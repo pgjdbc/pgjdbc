@@ -10,6 +10,7 @@ import org.postgresql.ssl.MakeSSL;
 import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
 import org.postgresql.ssl.WrappedFactory;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -25,7 +26,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.Properties;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -56,7 +56,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
    *        sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
    * @throws PSQLException if security error appears when initializing factory
    */
-  public LibPQFactory(Properties info) throws PSQLException {
+  public LibPQFactory(PGProperties info) throws PSQLException {
     try {
       sslmode = PGProperty.SSL_MODE.get(info);
       SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?

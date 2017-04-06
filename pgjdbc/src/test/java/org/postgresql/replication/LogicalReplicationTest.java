@@ -17,6 +17,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -36,7 +37,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -949,7 +949,7 @@ public class LogicalReplicationTest {
   }
 
   private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
+    PGProperties properties = new PGProperties();
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
     PGProperty.REPLICATION.set(properties, "database");
     return TestUtil.openDB(properties);

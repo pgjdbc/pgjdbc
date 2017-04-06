@@ -11,6 +11,7 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
@@ -19,7 +20,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,7 +53,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final CachedQueryCreateAction cachedQueryCreateAction;
 
   protected QueryExecutorBase(PGStream pgStream, String user,
-      String database, int cancelSignalTimeout, Properties info) throws SQLException {
+      String database, int cancelSignalTimeout, PGProperties info) throws SQLException {
     this.pgStream = pgStream;
     this.user = user;
     this.database = database;

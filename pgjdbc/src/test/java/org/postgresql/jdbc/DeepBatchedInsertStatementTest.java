@@ -14,6 +14,7 @@ import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Test;
 
@@ -22,7 +23,6 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Properties;
 
 /**
  * This object tests the internals of the BatchedStatementDecorator during
@@ -66,7 +66,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
   }
 
   @Override
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
     forceBinary(props);
   }

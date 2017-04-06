@@ -36,6 +36,7 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
@@ -57,7 +58,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -122,7 +122,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final ReplicationProtocol replicationProtocol;
 
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
-      int cancelSignalTimeout, Properties info) throws SQLException, IOException {
+      int cancelSignalTimeout, PGProperties info) throws SQLException, IOException {
     super(pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);

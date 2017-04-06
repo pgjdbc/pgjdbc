@@ -7,6 +7,7 @@ package org.postgresql;
 
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -471,8 +472,8 @@ public enum PGProperty {
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter
    */
-  public String get(Properties properties) {
-    return properties.getProperty(_name, _defaultValue);
+  public String get(PGProperties properties) {
+    return properties.get(_name, _defaultValue);
   }
 
   /**
@@ -481,11 +482,11 @@ public enum PGProperty {
    * @param properties properties in which the value should be set
    * @param value value for this connection parameter
    */
-  public void set(Properties properties, String value) {
+  public void set(PGProperties properties, String value) {
     if (value == null) {
       properties.remove(_name);
     } else {
-      properties.setProperty(_name, value);
+      properties.set(_name, value);
     }
   }
 
@@ -495,19 +496,19 @@ public enum PGProperty {
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to boolean
    */
-  public boolean getBoolean(Properties properties) {
+  public boolean getBoolean(PGProperties properties) {
     return Boolean.valueOf(get(properties));
   }
 
   /**
    * Return the int value for this connection parameter in the given {@code Properties}. Prefer the
-   * use of {@link #getInt(Properties)} anywhere you can throw an {@link java.sql.SQLException}
+   * use of {@link #getInt(PGProperties)} anywhere you can throw an {@link java.sql.SQLException}
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to int
    * @throws NumberFormatException if it cannot be converted to int.
    */
-  public int getIntNoCheck(Properties properties) {
+  public int getIntNoCheck(PGProperties properties) {
     String value = get(properties);
     return Integer.parseInt(value);
   }
@@ -519,7 +520,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to int
    * @throws PSQLException if it cannot be converted to int.
    */
-  public int getInt(Properties properties) throws PSQLException {
+  public int getInt(PGProperties properties) throws PSQLException {
     String value = get(properties);
     try {
       return Integer.parseInt(value);
@@ -536,7 +537,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to Integer or null
    * @throws PSQLException if unable to parse property as integer
    */
-  public Integer getInteger(Properties properties) throws PSQLException {
+  public Integer getInteger(PGProperties properties) throws PSQLException {
     String value = get(properties);
     if (value == null) {
       return null;
@@ -555,8 +556,8 @@ public enum PGProperty {
    * @param properties properties in which the value should be set
    * @param value boolean value for this connection parameter
    */
-  public void set(Properties properties, boolean value) {
-    properties.setProperty(_name, Boolean.toString(value));
+  public void set(PGProperties properties, boolean value) {
+    properties.set(_name, Boolean.toString(value));
   }
 
   /**
@@ -565,8 +566,8 @@ public enum PGProperty {
    * @param properties properties in which the value should be set
    * @param value int value for this connection parameter
    */
-  public void set(Properties properties, int value) {
-    properties.setProperty(_name, Integer.toString(value));
+  public void set(PGProperties properties, int value) {
+    properties.set(_name, Integer.toString(value));
   }
 
   /**
@@ -575,8 +576,8 @@ public enum PGProperty {
    * @param properties set of properties to check current in
    * @return true if the parameter is specified in the given properties
    */
-  public boolean isPresent(Properties properties) {
-    return getSetString(properties) != null;
+  public boolean isPresent(PGProperties properties) {
+    return properties.containsKey(_name);
   }
 
   /**
@@ -587,7 +588,8 @@ public enum PGProperty {
    * @return a DriverPropertyInfo representing this connection parameter
    */
   public DriverPropertyInfo toDriverPropertyInfo(Properties properties) {
-    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(_name, get(properties));
+    PGProperties pgProperties = new PGProperties(properties);
+    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(_name, get(pgProperties));
     propertyInfo.required = _required;
     propertyInfo.description = _description;
     propertyInfo.choices = _choices;
@@ -610,7 +612,7 @@ public enum PGProperty {
    * @param properties properties bundle
    * @return the value of a set property
    */
-  public String getSetString(Properties properties) {
+  public String getSetString(PGProperties properties) {
     Object o = properties.get(_name);
     if (o instanceof String) {
       return (String) o;

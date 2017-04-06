@@ -10,6 +10,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -17,7 +18,7 @@ import org.junit.Before;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Properties;
+
 
 public class BaseTest4 {
 
@@ -33,13 +34,13 @@ public class BaseTest4 {
   private BinaryMode binaryMode;
   protected PreferQueryMode preferQueryMode;
 
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     if (binaryMode == BinaryMode.FORCE) {
       forceBinary(props);
     }
   }
 
-  protected void forceBinary(Properties props) {
+  protected void forceBinary(PGProperties props) {
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
   }
 
@@ -49,7 +50,7 @@ public class BaseTest4 {
 
   @Before
   public void setUp() throws Exception {
-    Properties props = new Properties();
+    PGProperties props = new PGProperties();
     updateProperties(props);
     con = TestUtil.openDB(props);
     PGConnection pg = con.unwrap(PGConnection.class);

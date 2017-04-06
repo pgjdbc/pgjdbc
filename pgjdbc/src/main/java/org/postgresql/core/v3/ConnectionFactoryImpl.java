@@ -24,6 +24,7 @@ import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
@@ -35,7 +36,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -82,7 +82,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
-      Properties info) throws SQLException {
+      PGProperties info) throws SQLException {
     // Extract interesting values from the info properties:
     // - the SSL setting
     boolean requireSSL;
@@ -315,7 +315,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
-  private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, int connectTimeout)
+  private PGStream enableSSL(PGStream pgStream, boolean requireSSL,PGProperties info, int connectTimeout)
       throws IOException, SQLException {
     LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
@@ -404,7 +404,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
   }
 
-  private void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private void doAuthentication(PGStream pgStream, String host, String user, PGProperties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -637,7 +637,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   }
 
-  private void runInitialQueries(QueryExecutor queryExecutor, Properties info)
+  private void runInitialQueries(QueryExecutor queryExecutor, PGProperties info)
       throws SQLException {
     String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.get(info);
     if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {

@@ -16,6 +16,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.After;
 import org.junit.Before;
@@ -59,7 +60,7 @@ public class PGPropertyTest {
    */
   @Test
   public void testGetSetAllProperties() {
-    Properties properties = new Properties();
+    PGProperties properties = new PGProperties();
     for (PGProperty property : PGProperty.values()) {
       String value = property.get(properties);
       assertEquals(property.getDefaultValue(), value);
@@ -151,27 +152,27 @@ public class PGPropertyTest {
   }
 
   /**
-   * Test that {@link PGProperty#isPresent(Properties)} returns a correct result in all cases
+   * Test that {@link PGProperty#isPresent(PGProperties)} returns a correct result in all cases
    */
   @Test
   public void testIsPresentWithParseURLResult() throws Exception {
-    Properties givenProperties = new Properties();
-    givenProperties.setProperty("user", TestUtil.getUser());
-    givenProperties.setProperty("password", TestUtil.getPassword());
+    PGProperties givenProperties = new PGProperties();
+    givenProperties.set("user", TestUtil.getUser());
+    givenProperties.set("password", TestUtil.getPassword());
 
     Properties sysProperties = System.getProperties();
     sysProperties.remove("ssl");
     System.setProperties(sysProperties);
-    Properties parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
+    PGProperties parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
     assertFalse("SSL property should not be present",
         PGProperty.SSL.isPresent(parsedProperties));
 
     System.setProperty("ssl", "true");
-    givenProperties.setProperty("ssl", "true");
+    givenProperties.set("ssl", "true");
     parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
     assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
 
-    givenProperties.setProperty("ssl", "anotherValue");
+    givenProperties.set("ssl", "anotherValue");
     parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
     assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
 
@@ -184,7 +185,7 @@ public class PGPropertyTest {
    */
   @Test
   public void testPresenceCheck() {
-    Properties empty = new Properties();
+    PGProperties empty = new PGProperties();
     Object value = PGProperty.READ_ONLY.get(empty);
     assertNotNull(value);
     assertFalse(PGProperty.READ_ONLY.isPresent(empty));
@@ -192,10 +193,10 @@ public class PGPropertyTest {
 
   @Test
   public void testNullValue() {
-    Properties empty = new Properties();
+    PGProperties empty = new PGProperties();
     assertNull(PGProperty.LOGGER_LEVEL.getSetString(empty));
-    Properties withLogging = new Properties();
-    withLogging.setProperty(PGProperty.LOGGER_LEVEL.getName(), "OFF");
+    PGProperties withLogging = new PGProperties();
+    withLogging.set(PGProperty.LOGGER_LEVEL.getName(), "OFF");
     assertNotNull(PGProperty.LOGGER_LEVEL.getSetString(withLogging));
   }
 
@@ -209,7 +210,7 @@ public class PGPropertyTest {
             + URLEncoder.encode(databaseName)
             + "?user=" + URLEncoder.encode(userName)
             + "&password=" + URLEncoder.encode(password);
-    Properties parsed = Driver.parseURL(url, new Properties());
+    PGProperties parsed = Driver.parseURL(url, new PGProperties());
     assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
     assertEquals("user", userName, PGProperty.USER.get(parsed));
     assertEquals("password", password, PGProperty.PASSWORD.get(parsed));

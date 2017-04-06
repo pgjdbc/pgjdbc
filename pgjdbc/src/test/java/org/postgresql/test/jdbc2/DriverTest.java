@@ -15,6 +15,7 @@ import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.NullOutputStream;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.WriterHandler;
 
 import org.junit.Test;
@@ -74,12 +75,12 @@ public class DriverTest {
       throws Exception {
     assertTrue(url, drv.acceptsURL(url));
     Method parseMethod =
-        drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
+        drv.getClass().getDeclaredMethod("parseURL", String.class, PGProperties.class);
     parseMethod.setAccessible(true);
-    Properties p = (Properties) parseMethod.invoke(drv, url, null);
-    assertEquals(url, dbName, p.getProperty(PGProperty.PG_DBNAME.getName()));
-    assertEquals(url, hosts, p.getProperty(PGProperty.PG_HOST.getName()));
-    assertEquals(url, ports, p.getProperty(PGProperty.PG_PORT.getName()));
+    PGProperties p = (PGProperties) parseMethod.invoke(drv, url, null);
+    assertEquals(url, dbName, p.get(PGProperty.PG_DBNAME.getName()));
+    assertEquals(url, hosts, p.get(PGProperty.PG_HOST.getName()));
+    assertEquals(url, ports, p.get(PGProperty.PG_PORT.getName()));
   }
 
   /**

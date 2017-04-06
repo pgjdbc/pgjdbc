@@ -8,10 +8,9 @@ package org.postgresql.core;
 import org.postgresql.PGProperty;
 import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-
-import java.util.Properties;
 
 import javax.net.SocketFactory;
 
@@ -27,7 +26,7 @@ public class SocketFactoryFactory {
    * @return socket factory
    * @throws PSQLException if something goes wrong
    */
-  public static SocketFactory getSocketFactory(Properties info) throws PSQLException {
+  public static SocketFactory getSocketFactory(PGProperties info) throws PSQLException {
     // Socket factory
     String socketFactoryClassName = PGProperty.SOCKET_FACTORY.get(info);
     if (socketFactoryClassName == null) {

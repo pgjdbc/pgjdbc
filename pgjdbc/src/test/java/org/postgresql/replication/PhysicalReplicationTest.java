@@ -16,6 +16,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.util.PGProperties;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -30,7 +31,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.Properties;
 
 @HaveMinimalServerVersion("9.4")
 public class PhysicalReplicationTest {
@@ -296,7 +296,7 @@ public class PhysicalReplicationTest {
   }
 
   private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
+    PGProperties properties = new PGProperties();
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
     PGProperty.REPLICATION.set(properties, "database");
     return TestUtil.openDB(properties);

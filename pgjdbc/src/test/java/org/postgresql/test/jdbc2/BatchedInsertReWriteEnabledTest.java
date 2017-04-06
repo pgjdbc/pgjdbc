@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -20,7 +21,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
@@ -54,7 +54,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   @Override
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     super.updateProperties(props);
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
   }
@@ -368,7 +368,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   public void testReWriteDisabledForPlainBatch() throws Exception {
     Statement stmt = null;
     try {
-      con = TestUtil.openDB(new Properties());
+      con = TestUtil.openDB(new PGProperties());
       stmt = con.createStatement();
       stmt.addBatch("INSERT INTO testbatch VALUES (100,'a',200);");
       stmt.addBatch("INSERT INTO testbatch VALUES (300,'b',400);");

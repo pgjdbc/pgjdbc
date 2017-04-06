@@ -10,6 +10,7 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -22,7 +23,6 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,7 +50,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   private int portNumber = 0;
 
   // Map for all other properties
-  private Properties properties = new Properties();
+  private PGProperties properties = new PGProperties();
 
   /*
    * Ensure the driver is loaded as JDBC Driver might be invisible to Java's ServiceLoader.
@@ -1029,7 +1029,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#LOGGER_FILE
    */
   public String getLoggerFile() {
-    ExpressionProperties exprProps = new ExpressionProperties(properties, System.getProperties());
+    ExpressionProperties exprProps = new ExpressionProperties(properties, new PGProperties(System.getProperties()));
     return PGProperty.LOGGER_FILE.get(exprProps);
   }
 
@@ -1082,7 +1082,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setUrl(String url) {
 
-    Properties p = org.postgresql.Driver.parseURL(url, null);
+    PGProperties p = org.postgresql.Driver.parseURL(url, null);
 
     for (PGProperty property : PGProperty.values()) {
       setProperty(property, property.get(p));
@@ -1138,7 +1138,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         password = value;
         break;
       default:
-        properties.setProperty(property.getName(), value);
+        properties.set(property.getName(), value);
     }
   }
 
@@ -1213,8 +1213,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     user = (String) in.readObject();
     password = (String) in.readObject();
     portNumber = in.readInt();
-
-    properties = (Properties) in.readObject();
+    properties = (PGProperties)in.readObject();
   }
 
   public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {

@@ -13,6 +13,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Assume;
@@ -24,9 +25,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Properties;
+
 
 @RunWith(Parameterized.class)
 public class StringTypeParameterTest extends BaseTest4 {
@@ -47,12 +49,14 @@ public class StringTypeParameterTest extends BaseTest4 {
     TestUtil.createTable(con, "stringtypetest", "m mood");
   }
 
+
   @Override
-  protected void updateProperties(Properties props) {
-    super.updateProperties(props);
+  protected void updateProperties(PGProperties props) {
+
     if (stringType != null) {
       props.put("stringtype", stringType);
     }
+    super.updateProperties(props);
   }
 
   @Override

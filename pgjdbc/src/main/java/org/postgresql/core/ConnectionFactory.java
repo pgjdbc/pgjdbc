@@ -10,12 +10,13 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.v3.ConnectionFactoryImpl;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Properties;
+
 
 /**
  * Handles protocol-specific connection setup.
@@ -41,7 +42,7 @@ public abstract class ConnectionFactory {
    * @throws SQLException if the connection could not be established.
    */
   public static QueryExecutor openConnection(HostSpec[] hostSpecs, String user,
-      String database, Properties info) throws SQLException {
+      String database, PGProperties info) throws SQLException {
     String protoName = PGProperty.PROTOCOL_VERSION.get(info);
 
     if (protoName == null || protoName.isEmpty() || "3".equals(protoName)) {
@@ -74,7 +75,7 @@ public abstract class ConnectionFactory {
    *         protocol version incompatibility.
    */
   public abstract QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user,
-      String database, Properties info) throws SQLException;
+      String database, PGProperties info) throws SQLException;
 
   /**
    * Safely close the given stream.

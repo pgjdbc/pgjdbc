@@ -12,6 +12,7 @@ import org.postgresql.core.Query;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,7 +27,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 
 /**
  * Prepared statements are, by nature, prepared. This test makes sure that new preparation sequences
@@ -59,7 +59,7 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
   }
 
   @Override
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     super.updateProperties(props);
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, insertRewrite);
   }

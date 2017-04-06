@@ -12,6 +12,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.util.PGProperties;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -21,7 +22,6 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Properties;
 
 @HaveMinimalServerVersion("9.4")
 public class ReplicationConnectionTest {
@@ -111,7 +111,7 @@ public class ReplicationConnectionTest {
   }
 
   private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
+    PGProperties properties = new PGProperties();
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
     PGProperty.REPLICATION.set(properties, "database");
     //Only symple query protocol available for replication connection

@@ -10,13 +10,13 @@ import static org.junit.Assert.assertNotNull;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Connection;
-import java.util.Properties;
 
 public class SocketFactoryTestSuite {
 
@@ -26,7 +26,7 @@ public class SocketFactoryTestSuite {
 
   @Before
   public void setUp() throws Exception {
-    Properties properties = new Properties();
+    PGProperties properties = new PGProperties();
     properties.put(PGProperty.SOCKET_FACTORY.getName(), CustomSocketFactory.class.getName());
     properties.put(PGProperty.SOCKET_FACTORY_ARG.getName(), STRING_ARGUMENT);
     _conn = TestUtil.openDB(properties);

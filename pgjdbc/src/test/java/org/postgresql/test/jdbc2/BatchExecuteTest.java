@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,7 +26,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Properties;
 
 /*
  * TODO tests that can be added to this test case - SQLExceptions chained to a BatchUpdateException
@@ -57,7 +57,7 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   @Override
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     super.updateProperties(props);
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, insertRewrite);
   }

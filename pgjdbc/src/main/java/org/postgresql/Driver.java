@@ -11,6 +11,7 @@ import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
@@ -79,9 +80,9 @@ public class Driver implements java.sql.Driver {
 
   // Helper to retrieve default properties from classloader resource
   // properties files.
-  private Properties defaultProperties;
+  private PGProperties defaultProperties;
 
-  private synchronized Properties getDefaultProperties() throws IOException {
+  private synchronized PGProperties getDefaultProperties() throws IOException {
     if (defaultProperties != null) {
       return defaultProperties;
     }
@@ -89,8 +90,8 @@ public class Driver implements java.sql.Driver {
     // Make sure we load properties with the maximum possible privileges.
     try {
       defaultProperties =
-          AccessController.doPrivileged(new PrivilegedExceptionAction<Properties>() {
-            public Properties run() throws IOException {
+          AccessController.doPrivileged(new PrivilegedExceptionAction<PGProperties>() {
+            public PGProperties run() throws IOException {
               return loadDefaultProperties();
             }
           });
@@ -101,8 +102,8 @@ public class Driver implements java.sql.Driver {
     return defaultProperties;
   }
 
-  private Properties loadDefaultProperties() throws IOException {
-    Properties merged = new Properties();
+  private PGProperties loadDefaultProperties() throws IOException {
+    PGProperties merged = new PGProperties();
 
     try {
       PGProperty.USER.set(merged, System.getProperty("user.name"));
@@ -202,7 +203,7 @@ public class Driver implements java.sql.Driver {
    */
   public java.sql.Connection connect(String url, Properties info) throws SQLException {
     // get defaults
-    Properties defaults;
+    PGProperties defaults;
 
     if (!url.startsWith("jdbc:postgresql:")) {
       return null;
@@ -215,7 +216,7 @@ public class Driver implements java.sql.Driver {
     }
 
     // override defaults with provided properties
-    Properties props = new Properties(defaults);
+    PGProperties props = new PGProperties(defaults);
     if (info != null) {
       Set<String> e = info.stringPropertyNames();
       for (String propName : e) {
@@ -226,7 +227,7 @@ public class Driver implements java.sql.Driver {
                   + propName,
               PSQLState.UNEXPECTED_ERROR);
         }
-        props.setProperty(propName, propValue);
+        props.set(propName, propValue);
       }
     }
     // parse URL and add more properties
@@ -287,7 +288,7 @@ public class Driver implements java.sql.Driver {
    *
    * @param props Connection Properties
    */
-  private void setupLoggerFromProperties(final Properties props) {
+  private void setupLoggerFromProperties(final PGProperties props) {
     final String driverLogLevel = PGProperty.LOGGER_LEVEL.get(props);
     if (driverLogLevel == null) {
       return; // Don't mess with Logger if not set
@@ -301,7 +302,7 @@ public class Driver implements java.sql.Driver {
       PARENT_LOGGER.setLevel(Level.FINEST);
     }
 
-    ExpressionProperties exprProps = new ExpressionProperties(props, System.getProperties());
+    ExpressionProperties exprProps = new ExpressionProperties(props, new PGProperties(System.getProperties()));
     final String driverLogFile = PGProperty.LOGGER_FILE.get(exprProps);
     if (driverLogFile != null && driverLogFile.equals(loggerHandlerFile)) {
       return; // Same file output, do nothing.
@@ -348,7 +349,7 @@ public class Driver implements java.sql.Driver {
    * while enforcing a login timeout.
    */
   private static class ConnectThread implements Runnable {
-    ConnectThread(String url, Properties props) {
+    ConnectThread(String url, PGProperties props) {
       this.url = url;
       this.props = props;
     }
@@ -432,7 +433,7 @@ public class Driver implements java.sql.Driver {
     }
 
     private final String url;
-    private final Properties props;
+    private final PGProperties props;
     private Connection result;
     private Throwable resultException;
     private boolean abandoned;
@@ -447,7 +448,7 @@ public class Driver implements java.sql.Driver {
    * @return a new connection
    * @throws SQLException if the connection could not be made
    */
-  private static Connection makeConnection(String url, Properties props) throws SQLException {
+  private static Connection makeConnection(String url, PGProperties props) throws SQLException {
     return new PgConnection(hostSpecs(props), user(props), database(props), props, url);
   }
 
@@ -479,8 +480,8 @@ public class Driver implements java.sql.Driver {
    * @see java.sql.Driver#getPropertyInfo
    */
   public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
-    Properties copy = new Properties(info);
-    Properties parse = parseURL(url, copy);
+    PGProperties copy = new PGProperties(info);
+    PGProperties parse = parseURL(url, copy);
     if (parse != null) {
       copy = parse;
     }
@@ -488,7 +489,7 @@ public class Driver implements java.sql.Driver {
     PGProperty[] knownProperties = PGProperty.values();
     DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
     for (int i = 0; i < props.length; ++i) {
-      props[i] = knownProperties[i].toDriverPropertyInfo(copy);
+      props[i] = knownProperties[i].toDriverPropertyInfo(copy.getProperties());
     }
 
     return props;
@@ -534,8 +535,8 @@ public class Driver implements java.sql.Driver {
    * @param defaults Default properties
    * @return Properties with elements added from the url
    */
-  public static Properties parseURL(String url, Properties defaults) {
-    Properties urlProps = new Properties(defaults);
+  public static PGProperties parseURL(String url, PGProperties defaults) {
+    PGProperties urlProps = new PGProperties(defaults);
 
     String l_urlServer = url;
     String l_urlArgs = "";
@@ -557,7 +558,7 @@ public class Driver implements java.sql.Driver {
       if (slash == -1) {
         return null;
       }
-      urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer.substring(slash + 1)));
+      urlProps.set("PGDBNAME", URLDecoder.decode(l_urlServer.substring(slash + 1)));
 
       String[] addresses = l_urlServer.substring(0, slash).split(",");
       StringBuilder hosts = new StringBuilder();
@@ -586,21 +587,21 @@ public class Driver implements java.sql.Driver {
       }
       ports.setLength(ports.length() - 1);
       hosts.setLength(hosts.length() - 1);
-      urlProps.setProperty("PGPORT", ports.toString());
-      urlProps.setProperty("PGHOST", hosts.toString());
+      urlProps.set("PGPORT", ports.toString());
+      urlProps.set("PGHOST", hosts.toString());
     } else {
       /*
        if there are no defaults set or any one of PORT, HOST, DBNAME not set
        then set it to default
       */
       if (defaults == null || !defaults.containsKey("PGPORT")) {
-        urlProps.setProperty("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
+        urlProps.set("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
       }
       if (defaults == null || !defaults.containsKey("PGHOST")) {
-        urlProps.setProperty("PGHOST", "localhost");
+        urlProps.set("PGHOST", "localhost");
       }
       if (defaults == null || !defaults.containsKey("PGDBNAME")) {
-        urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer));
+        urlProps.set("PGDBNAME", URLDecoder.decode(l_urlServer));
       }
     }
 
@@ -612,9 +613,9 @@ public class Driver implements java.sql.Driver {
       }
       int l_pos = token.indexOf('=');
       if (l_pos == -1) {
-        urlProps.setProperty(token, "");
+        urlProps.set(token, "");
       } else {
-        urlProps.setProperty(token.substring(0, l_pos), URLDecoder.decode(token.substring(l_pos + 1)));
+        urlProps.set(token.substring(0, l_pos), URLDecoder.decode(token.substring(l_pos + 1)));
       }
     }
 
@@ -624,9 +625,9 @@ public class Driver implements java.sql.Driver {
   /**
    * @return the address portion of the URL
    */
-  private static HostSpec[] hostSpecs(Properties props) {
-    String[] hosts = props.getProperty("PGHOST").split(",");
-    String[] ports = props.getProperty("PGPORT").split(",");
+  private static HostSpec[] hostSpecs(PGProperties props) {
+    String[] hosts = props.get("PGHOST").split(",");
+    String[] ports = props.get("PGPORT").split(",");
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {
       hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]));
@@ -637,21 +638,21 @@ public class Driver implements java.sql.Driver {
   /**
    * @return the username of the URL
    */
-  private static String user(Properties props) {
-    return props.getProperty("user", "");
+  private static String user(PGProperties props) {
+    return props.get("user", "");
   }
 
   /**
    * @return the database name of the URL
    */
-  private static String database(Properties props) {
-    return props.getProperty("PGDBNAME", "");
+  private static String database(PGProperties props) {
+    return props.get("PGDBNAME", "");
   }
 
   /**
    * @return the timeout from the URL, in milliseconds
    */
-  private static long timeout(Properties props) {
+  private static long timeout(PGProperties props) {
     String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
     if (timeout != null) {
       try {

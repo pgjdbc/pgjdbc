@@ -7,7 +7,7 @@ package org.postgresql.hostchooser;
 
 import org.postgresql.util.HostSpec;
 
-import java.util.Properties;
+import org.postgresql.util.PGProperties;
 
 /**
  * Chooses a {@link HostChooser} instance based on the number of hosts and properties.
@@ -15,7 +15,7 @@ import java.util.Properties;
 public class HostChooserFactory {
 
   public static HostChooser createHostChooser(HostSpec[] hostSpecs,
-      HostRequirement targetServerType, Properties info) {
+      HostRequirement targetServerType, PGProperties info) {
     if (hostSpecs.length == 1) {
       return new SingleHostChooser(hostSpecs[0]);
     }

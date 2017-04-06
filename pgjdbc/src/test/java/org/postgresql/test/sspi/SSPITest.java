@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -20,7 +21,6 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.Properties;
 
 /*
  * These tests require a working SSPI authentication setup
@@ -45,8 +45,8 @@ public class SSPITest {
    */
   @Test
   public void testAuthorized() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("username", TestUtil.getSSPIUser());
+    PGProperties props = new PGProperties();
+    props.set("username", TestUtil.getSSPIUser());
     Connection con = TestUtil.openDB(props);
 
     Statement stmt = con.createStatement();
@@ -61,8 +61,8 @@ public class SSPITest {
    */
   @Test
   public void testUnauthorized() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("username", "invalid" + TestUtil.getSSPIUser());
+    PGProperties props = new PGProperties();
+    props.set("username", "invalid" + TestUtil.getSSPIUser());
 
     try {
       Connection con = TestUtil.openDB(props);

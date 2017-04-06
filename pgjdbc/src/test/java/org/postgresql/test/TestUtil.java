@@ -9,6 +9,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Assert;
 
@@ -273,19 +274,19 @@ public class TestUtil {
    *
    * @return connection
    */
-  public static Connection openDB() throws Exception {
-    return openDB(new Properties());
+  public static java.sql.Connection openDB() throws Exception {
+    return openDB(new PGProperties());
   }
 
   /*
    * Helper - opens a connection with the allowance for passing additional parameters, like
    * "compatible".
    */
-  public static Connection openDB(Properties props) throws Exception {
+  public static java.sql.Connection openDB(PGProperties props) throws Exception {
     initDriver();
 
     // Allow properties to override the user name.
-    String user = props.getProperty("username");
+    String user = props.get("username");
     if (user == null) {
       user = getUser();
     }
@@ -293,12 +294,12 @@ public class TestUtil {
       throw new IllegalArgumentException(
           "user name is not specified. Please specify 'username' property via -D or build.properties");
     }
-    props.setProperty("user", user);
+    props.set("user", user);
     String password = getPassword();
     if (password == null) {
       password = "";
     }
-    props.setProperty("password", password);
+    props.set("password", password);
     if (!props.containsKey(PGProperty.PREPARE_THRESHOLD.getName())) {
       PGProperty.PREPARE_THRESHOLD.set(props, getPrepareThreshold());
     }
@@ -309,7 +310,7 @@ public class TestUtil {
       }
     }
 
-    return DriverManager.getConnection(getURL(), props);
+    return DriverManager.getConnection(getURL(), props.getProperties());
   }
 
   /*

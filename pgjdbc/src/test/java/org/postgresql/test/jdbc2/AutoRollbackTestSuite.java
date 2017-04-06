@@ -15,6 +15,7 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
@@ -30,7 +31,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.Properties;
+
 
 @RunWith(Parameterized.class)
 public class AutoRollbackTestSuite extends BaseTest4 {
@@ -120,7 +121,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   }
 
   @Override
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     super.updateProperties(props);
     PGProperty.AUTOSAVE.set(props, autoSave.value());
     PGProperty.PREPARE_THRESHOLD.set(props, 1);

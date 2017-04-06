@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.After;
 import org.junit.Before;
@@ -21,7 +22,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.Properties;
+
 
 public class SchemaTest {
   private Connection _conn;
@@ -151,8 +152,8 @@ public class SchemaTest {
 
   @Test
   public void testSchemaInProperties() throws Exception {
-    Properties properties = new Properties();
-    properties.setProperty("currentSchema", "schema1");
+    PGProperties properties = new PGProperties();
+    properties.set("currentSchema", "schema1");
     Connection conn = TestUtil.openDB(properties);
     try {
       assertEquals("schema1", conn.getSchema());

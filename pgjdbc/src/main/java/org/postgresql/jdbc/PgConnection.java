@@ -34,6 +34,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -58,9 +59,9 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -70,6 +71,7 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
+
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,7 +85,7 @@ public class PgConnection implements BaseConnection {
   //
   // Data initialized on construction:
   //
-  private final Properties _clientInfo;
+  private final PGProperties _clientInfo;
 
   /* URL we were created via */
   private final String creatingURL;
@@ -176,7 +178,7 @@ public class PgConnection implements BaseConnection {
   public PgConnection(HostSpec[] hostSpecs,
                       String user,
                       String database,
-                      Properties info,
+                      PGProperties info,
                       String url) throws SQLException {
     // Print out the driver version number
     LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
@@ -310,7 +312,7 @@ public class PgConnection implements BaseConnection {
       types.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
     }
 
-    this._clientInfo = new Properties();
+    this._clientInfo = new PGProperties();
     if (haveMinimumServerVersion(ServerVersion.v9_0)) {
       String appName = PGProperty.APPLICATION_NAME.get(info);
       if (appName == null) {
@@ -612,7 +614,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // This initialises the objectTypes hash map
-  private void initObjectTypes(Properties info) throws SQLException {
+  private void initObjectTypes(PGProperties info) throws SQLException {
     // Add in the types that come packaged with the driver.
     // These can be overridden later if desired.
     addDataType("box", org.postgresql.geometric.PGbox.class);
@@ -625,12 +627,12 @@ public class PgConnection implements BaseConnection {
     addDataType("money", org.postgresql.util.PGmoney.class);
     addDataType("interval", org.postgresql.util.PGInterval.class);
 
-    Enumeration<?> e = info.propertyNames();
-    while (e.hasMoreElements()) {
-      String propertyName = (String) e.nextElement();
+    Iterator<?> i = info.keySet().iterator();
+    while (i.hasNext()) {
+      String propertyName = (String) i.next();
       if (propertyName.startsWith("datatype.")) {
         String typeName = propertyName.substring(9);
-        String className = info.getProperty(propertyName);
+        String className = (String)info.get(propertyName);
         Class<?> klass;
 
         try {
@@ -1394,14 +1396,14 @@ public class PgConnection implements BaseConnection {
   public String getClientInfo(String name) throws SQLException {
     checkClosed();
     _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
-    return _clientInfo.getProperty(name);
+    return (String)_clientInfo.get(name);
   }
 
   @Override
   public Properties getClientInfo() throws SQLException {
     checkClosed();
     _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
-    return _clientInfo;
+    return _clientInfo.getProperties();
   }
 
   public <T> T createQueryObject(Class<T> ifc) throws SQLException {

@@ -12,13 +12,13 @@ import static java.util.Collections.sort;
 import org.postgresql.PGProperty;
 import org.postgresql.hostchooser.GlobalHostStatusTracker.HostSpecStatus;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 
 /**
  * HostChooser that keeps track of known host statuses.
@@ -30,7 +30,7 @@ public class MultiHostChooser implements HostChooser {
   private boolean loadBalance;
 
   protected MultiHostChooser(HostSpec[] hostSpecs, HostRequirement targetServerType,
-      Properties info) {
+      PGProperties info) {
     this.hostSpecs = hostSpecs;
     this.targetServerType = targetServerType;
     try {

@@ -10,11 +10,11 @@ import org.postgresql.core.PGStream;
 import org.postgresql.ssl.jdbc4.LibPQFactory;
 import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
+import org.postgresql.util.PGProperties;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,7 +26,7 @@ public class MakeSSL extends ObjectFactory {
 
   private static final Logger LOGGER = Logger.getLogger(MakeSSL.class.getName());
 
-  public static void convert(PGStream stream, Properties info)
+  public static void convert(PGStream stream, PGProperties info)
       throws PSQLException, IOException {
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
 

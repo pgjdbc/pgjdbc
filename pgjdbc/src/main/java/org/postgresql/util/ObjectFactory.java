@@ -7,7 +7,6 @@ package org.postgresql.util;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Properties;
 
 /**
  * Helper class to instantiate objects. Note: the class is <b>NOT</b> public API, so it is subject
@@ -34,7 +33,7 @@ public class ObjectFactory {
    * @throws IllegalAccessException if something goes wrong
    * @throws InvocationTargetException if something goes wrong
    */
-  public static Object instantiate(String classname, Properties info, boolean tryString,
+  public static Object instantiate(String classname, PGProperties info, boolean tryString,
       String stringarg) throws ClassNotFoundException, SecurityException, NoSuchMethodException,
           IllegalArgumentException, InstantiationException, IllegalAccessException,
           InvocationTargetException {
@@ -42,7 +41,7 @@ public class ObjectFactory {
     Constructor<?> ctor = null;
     Class<?> cls = Class.forName(classname);
     try {
-      ctor = cls.getConstructor(Properties.class);
+      ctor = cls.getConstructor(PGProperties.class);
     } catch (NoSuchMethodException nsme) {
       if (tryString) {
         try {

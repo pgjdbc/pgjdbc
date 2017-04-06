@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +20,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 
 /*
  * This test suite will check the behaviour of the findColumnIndex method. The tests will check the
@@ -30,8 +30,8 @@ public class ColumnSanitiserEnabledTest {
 
   @Before
   public void setUp() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("disableColumnSanitiser", Boolean.FALSE.toString());
+    PGProperties props = new PGProperties();
+    props.set("disableColumnSanitiser", Boolean.FALSE.toString());
     conn = TestUtil.openDB(props);
     assertTrue(conn instanceof BaseConnection);
     BaseConnection bc = (BaseConnection) conn;

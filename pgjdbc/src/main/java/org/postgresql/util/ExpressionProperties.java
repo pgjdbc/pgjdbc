@@ -5,22 +5,21 @@
 
 package org.postgresql.util;
 
-import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ExpressionProperties extends Properties {
+public class ExpressionProperties extends PGProperties {
 
   private static final Pattern EXPRESSION = Pattern.compile("\\$\\{([^}]+)\\}");
 
-  private final Properties[] defaults;
+  private final PGProperties[] defaults;
 
   /**
    * Creates an empty property list with the specified defaults.
    *
    * @param defaults java.util.Properties
    */
-  public ExpressionProperties(Properties ...defaults) {
+  public ExpressionProperties(PGProperties ...defaults) {
     this.defaults = defaults;
   }
 
@@ -35,13 +34,11 @@ public class ExpressionProperties extends Properties {
    * @return the value in this property list with
    *         the specified key value.
    */
-  @Override
   public String getProperty(String key) {
     String value = getRawPropertyValue(key);
     return replaceProperties(value);
   }
 
-  @Override
   public String getProperty(String key, String defaultValue) {
     String value = getRawPropertyValue(key);
     if (value == null) {
@@ -56,12 +53,12 @@ public class ExpressionProperties extends Properties {
    * @return raw property value
    */
   public String getRawPropertyValue(String key) {
-    String value = super.getProperty(key);
+    String value = (String)super.get(key);
     if (value != null) {
       return value;
     }
-    for (Properties properties : defaults) {
-      value = properties.getProperty(key);
+    for (PGProperties properties : defaults) {
+      value = (String)properties.get(key);
       if (value != null) {
         return value;
       }

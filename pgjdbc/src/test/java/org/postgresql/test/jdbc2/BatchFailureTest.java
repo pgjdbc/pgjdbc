@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 @RunWith(Parameterized.class)
@@ -150,7 +150,7 @@ public class BatchFailureTest extends BaseTest4 {
   }
 
   @Override
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     if (binaryMode == BinaryMode.FORCE) {
       forceBinary(props);
     }

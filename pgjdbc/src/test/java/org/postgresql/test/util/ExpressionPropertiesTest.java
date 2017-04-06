@@ -6,11 +6,10 @@
 package org.postgresql.test.util;
 
 import org.postgresql.util.ExpressionProperties;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.Properties;
 
 public class ExpressionPropertiesTest {
   @Test
@@ -40,10 +39,10 @@ public class ExpressionPropertiesTest {
 
   @Test
   public void multipleParentProperties() {
-    Properties p1 = new Properties();
-    p1.setProperty("server", "app1_${app.type}");
-    Properties p2 = new Properties();
-    p2.setProperty("app.type", "production");
+    PGProperties p1 = new PGProperties();
+    p1.set("server", "app1_${app.type}");
+    PGProperties p2 = new PGProperties();
+    p2.set("app.type", "production");
 
     ExpressionProperties p = new ExpressionProperties(p1, p2);
     p.put("file", "pgjdbc_${server}.txt");

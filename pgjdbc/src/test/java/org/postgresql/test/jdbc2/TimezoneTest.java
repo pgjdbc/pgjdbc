@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.After;
 import org.junit.Before;
@@ -28,7 +29,6 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Properties;
 import java.util.TimeZone;
 
 /**
@@ -101,7 +101,7 @@ public class TimezoneTest {
   }
 
   private void connect() throws Exception {
-    Properties p = new Properties();
+    PGProperties p = new PGProperties();
     PGProperty.PREPARE_THRESHOLD.set(p, 1);
     con = TestUtil.openDB(p);
   }

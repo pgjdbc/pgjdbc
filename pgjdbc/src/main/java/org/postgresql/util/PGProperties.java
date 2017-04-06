@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.TreeMap;
 
@@ -49,9 +52,19 @@ public class PGProperties extends TreeMap<Object, Object> {
     }
   }
 
+  public PGProperties load( InputStream inputStream ) throws IOException {
+    Properties properties = new Properties();
+    properties.load(inputStream);
+    return new PGProperties(properties);
+  }
+
   public Properties getProperties() {
     Properties properties = new Properties();
-    forEach((key, value) -> properties.put(key, value));
+    Iterator<Object> keys = this.keySet().iterator();
+    while ( keys.hasNext() ) {
+      String key = (String)keys.next();
+      properties.put( key, get(key) );
+    }
     return properties;
   }
 

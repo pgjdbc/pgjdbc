@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGProperties;
 
 import org.junit.Test;
 
@@ -13,7 +14,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -29,7 +29,7 @@ public class TypeCacheDLLStressTest extends BaseTest4 {
   private Connection con2;
 
   @Override
-  protected void updateProperties(Properties props) {
+  protected void updateProperties(PGProperties props) {
     try {
       con2 = TestUtil.openDB(props);
     } catch (Exception e) {
