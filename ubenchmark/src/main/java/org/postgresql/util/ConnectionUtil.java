@@ -59,14 +59,14 @@ public class ConnectionUtil {
   /**
    * @return merged with default property list
    */
-  public static Properties getProperties() {
-    Properties properties = new Properties(System.getProperties());
+  public static PGProperties getProperties() {
+    PGProperties properties = new PGProperties(System.getProperties());
 
     PGProperty.USER.set(properties, getUser());
     PGProperty.PASSWORD.set(properties, getPassword());
     PGProperty.PG_PORT.set(properties, getPort());
-    properties.setProperty("database", getDatabase());
-    properties.setProperty("server", getServer());
+    properties.set("database", getDatabase());
+    properties.set("server", getServer());
 
     return properties;
   }

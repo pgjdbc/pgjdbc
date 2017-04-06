@@ -6,6 +6,7 @@
 package org.postgresql.benchmark.connection;
 
 import org.postgresql.util.ConnectionUtil;
+import org.postgresql.util.PGProperties;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -61,9 +62,9 @@ public class FinalizeConnection {
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
-    Properties props = ConnectionUtil.getProperties();
+    PGProperties props = ConnectionUtil.getProperties();
 
-    connectionProperties = props;
+    connectionProperties = props.getProperties();
     connectionUrl = ConnectionUtil.getURL();
     driver = DriverManager.getDriver(connectionUrl);
   }
