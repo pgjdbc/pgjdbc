@@ -17,7 +17,8 @@ import java.util.TreeMap;
 public class PGProperties extends TreeMap<Object, Object> {
 
   public PGProperties() {
-    super();
+
+    super(new PGPropertyComparator());
   }
 
   public PGProperties(Properties properties) {
@@ -67,6 +68,5 @@ public class PGProperties extends TreeMap<Object, Object> {
     }
     return properties;
   }
-
 
 }
