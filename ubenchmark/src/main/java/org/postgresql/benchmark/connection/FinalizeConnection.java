@@ -6,7 +6,6 @@
 package org.postgresql.benchmark.connection;
 
 import org.postgresql.util.ConnectionUtil;
-import org.postgresql.util.PGProperties;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
