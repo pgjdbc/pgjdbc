@@ -22,12 +22,14 @@ public class PGProperties extends TreeMap<Object, Object> {
   }
 
   public PGProperties(Properties properties) {
+    super(new PGPropertyComparator());
     if (properties != null) {
       putAll(properties);
     }
   }
 
   public PGProperties(PGProperties properties) {
+    super(new PGPropertyComparator());
     if (properties != null) {
       putAll(properties);
     }
