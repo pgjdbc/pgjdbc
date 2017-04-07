@@ -104,7 +104,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * This implementation don't use a LogWriter.
+   * This implementation doesn't use a LogWriter.
    */
   @Override
   public PrintWriter getLogWriter() {
@@ -112,7 +112,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * This implementation don't use a LogWriter.
+   * This implementation doesn't use a LogWriter.
    * @param printWriter Not used
    */
   @Override
