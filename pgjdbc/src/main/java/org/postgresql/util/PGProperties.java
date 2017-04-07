@@ -49,9 +49,17 @@ public class PGProperties extends TreeMap<Object, Object> {
     return null;
   }
 
+  /**
+   * sets new value
+   * removes entry if value is null
+   */
   public void set(Object key, Object value) {
     if (value != null) {
       put(key, value);
+    } else {
+      if (containsKey(key)) {
+        remove(key);
+      }
     }
   }
 

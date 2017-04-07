@@ -78,6 +78,36 @@ public class PGPropertyTest {
   }
 
   /**
+   * Test that we can set all properties in upper and lower case
+   */
+  @Test
+  public void testGetSetAllPropertiesCaseInsensitive() {
+    PGProperties properties = new PGProperties();
+    for (PGProperty property : PGProperty.values()) {
+      if (property.getDefaultValue() != null ) {
+        String key = property.getName();
+
+        /* set the property with lower case */
+        properties.set(key.toLowerCase(), property.getDefaultValue());
+        /* get the property with lower and upper case */
+        assertEquals(property.getDefaultValue(), properties.get(key));
+        assertEquals(property.getDefaultValue(), properties.get(key.toLowerCase()));
+        assertEquals(property.getDefaultValue(), properties.get(key.toUpperCase()));
+
+        /* clear the property */
+        properties.set(key,null);
+        assertNull(properties.get(key));
+
+        properties.set(key.toUpperCase(), property.getDefaultValue());
+        assertEquals(property.getDefaultValue(), properties.get(key));
+        assertEquals(property.getDefaultValue(), properties.get(key.toLowerCase()));
+        assertEquals(property.getDefaultValue(), properties.get(key.toUpperCase()));
+
+      }
+    }
+  }
+
+  /**
    * Test that the enum constant is common with the underlying property name
    */
   @Test
