@@ -15,6 +15,7 @@ import org.junit.runners.Suite.SuiteClasses;
     CustomizeDefaultFetchSizeTest.class,
     GetObject310Test.class,
     PreparedStatementTest.class,
+    Jdbc42CallableStatementTest.class,
     GetObject310BinaryTest.class,
     SetObject310Test.class})
 public class Jdbc42TestSuite {
