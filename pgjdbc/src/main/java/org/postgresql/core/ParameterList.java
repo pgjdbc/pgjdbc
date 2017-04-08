@@ -25,7 +25,7 @@ import java.sql.SQLException;
 public interface ParameterList {
 
 
-  void registerOutParameter(int index, int sqlType) throws SQLException;
+  void registerOutParameter(int index) throws SQLException;
 
   /**
    * Get the number of parameters in this list. This value never changes for a particular instance,

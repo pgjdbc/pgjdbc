@@ -43,7 +43,7 @@ class CompositeParameterList implements V3ParameterList {
     throw new IllegalArgumentException("I am confused; can't find a subparam for index " + index);
   }
 
-  public void registerOutParameter(int index, int sqlType) {
+  public void registerOutParameter(int index) {
 
   }
 
