@@ -185,21 +185,21 @@ public class ReaderInputStreamTest {
   }
 
   @Test
-  public void readsSmallerThanBlockSizeTest() throws Exception {
-    final int BLOCK = 8 * 1024;
-    final int DATASIZE = BLOCK + 57;
-    final byte[] data = new byte[DATASIZE];
-    final byte[] buffer = new byte[BLOCK];
+  public void readsEqualToBlockSizeTest() throws Exception {
+    final int blockSize = 8 * 1024;
+    final int dataSize = blockSize + 57;
+    final byte[] data = new byte[dataSize];
+    final byte[] buffer = new byte[blockSize];
 
-    InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(data));
-    ReaderInputStream r = new ReaderInputStream(isr);
+    InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(data), "UTF-8");
+    ReaderInputStream r = new ReaderInputStream(isr, blockSize);
 
     int total = 0;
 
-    total += r.read(buffer, 0, BLOCK);
-    total += r.read(buffer, 0, BLOCK);
+    total += r.read(buffer, 0, blockSize);
+    total += r.read(buffer, 0, blockSize);
 
-    assertEquals("Data not read completely: missing " + (DATASIZE - total) + " bytes", total, DATASIZE);
+    assertEquals("Data not read completely: missing " + (dataSize - total) + " bytes", dataSize, total);
   }
 
   private static class SingleCharPerReadReader extends Reader {
