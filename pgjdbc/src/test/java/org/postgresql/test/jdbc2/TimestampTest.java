@@ -16,11 +16,10 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,7 +29,9 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
@@ -38,23 +39,36 @@ import java.util.TimeZone;
  * Test get/setTimestamp for both timestamp with time zone and timestamp without time zone datatypes
  *
  */
-public class TimestampTest {
-  private Connection con;
+@RunWith(Parameterized.class)
+public class TimestampTest extends BaseTest4 {
 
-  @Before
+  public TimestampTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
+
+  @Override
   public void setUp() throws Exception {
-    con = TestUtil.openDB();
+    super.setUp();
     TestUtil.createTable(con, TSWTZ_TABLE, "ts timestamp with time zone");
     TestUtil.createTable(con, TSWOTZ_TABLE, "ts timestamp without time zone");
     TestUtil.createTable(con, DATE_TABLE, "ts date");
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, TSWTZ_TABLE);
     TestUtil.dropTable(con, TSWOTZ_TABLE);
     TestUtil.dropTable(con, DATE_TABLE);
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   /**

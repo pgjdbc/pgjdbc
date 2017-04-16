@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGResultSetMetaData;
+import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
@@ -3308,6 +3309,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (wasNull()) {
           return null;
         }
+        long time = dateValue.getTime();
+        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+          return type.cast(LocalDate.MAX);
+        }
+        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+          return type.cast(LocalDate.MIN);
+        }
         return type.cast(dateValue.toLocalDate());
       } else {
         throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
@@ -3329,6 +3337,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         Timestamp timestampValue = getTimestamp(columnIndex);
         if (wasNull()) {
           return null;
+        }
+        long time = timestampValue.getTime();
+        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+          return type.cast(OffsetDateTime.MAX);
+        }
+        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+          return type.cast(OffsetDateTime.MIN);
         }
         // Postgres stores everything in UTC and does not keep original time zone
         OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
