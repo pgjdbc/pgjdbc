@@ -193,7 +193,7 @@ public class Encoding {
   /**
    * Decode an array of bytes into a string.
    *
-   * @param encodedString a byte array containing the string to encode
+   * @param encodedString a byte array containing the string to decode
    * @param offset        the offset in <code>encodedString</code> of the first byte of the encoded
    *                      representation
    * @param length        the length, in bytes, of the encoded representation
@@ -207,7 +207,7 @@ public class Encoding {
   /**
    * Decode an array of bytes into a string.
    *
-   * @param encodedString a byte array containing the string to encode
+   * @param encodedString a byte array containing the string to decode
    * @return the decoded string
    * @throws IOException if something goes wrong
    */
