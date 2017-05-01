@@ -12,6 +12,8 @@ import static org.junit.Assume.assumeThat;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -744,6 +746,91 @@ public class LogicalReplicationTest {
         result, equalTo(wait));
   }
 
+  @Test
+  public void testReplicationRestartFromLastFeedbackPositionParallelTransaction() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    LogSequenceNumber startLSN = getCurrentLSN();
+
+    PGReplicationStream stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(startLSN)
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    Connection tx1Connection = TestUtil.openDB();
+    tx1Connection.setAutoCommit(false);
+
+    Connection tx2Connection = TestUtil.openDB();
+    tx2Connection.setAutoCommit(false);
+
+    Statement stTx1 = tx1Connection.createStatement();
+    Statement stTx2 = tx2Connection.createStatement();
+
+    stTx1.execute("BEGIN");
+    stTx2.execute("BEGIN");
+
+    stTx1.execute("insert into test_logic_table(name) values('first tx changes')");
+    stTx2.execute("insert into test_logic_table(name) values('second tx changes')");
+
+    tx1Connection.commit();
+    tx2Connection.commit();
+
+    tx1Connection.close();
+    tx2Connection.close();
+
+    List<String> consumedData = new ArrayList<String>();
+    consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
+    stream.setFlushedLSN(stream.getLastReceiveLSN());
+    stream.setAppliedLSN(stream.getLastReceiveLSN());
+
+    stream.forceUpdateStatus();
+
+    //emulate replication break
+    replConnection.close();
+    waitStopReplicationSlot();
+
+    replConnection = openReplicationConnection();
+    pgConnection = (PGConnection) replConnection;
+    stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(LogSequenceNumber.INVALID_LSN) /* Invalid LSN indicate for start from restart lsn */
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    Statement st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('third tx changes')");
+    st.close();
+
+    consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
+    String result = group(consumedData);
+
+    String wait = group(Arrays.asList(
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'first tx changes'",
+        "COMMIT",
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:2 name[character varying]:'second tx changes'",
+        "COMMIT"
+    ));
+
+    assertThat(
+        "When we add feedback about applied lsn to replication stream(in this case it's force update status)"
+            + "after restart consume changes via this slot should be started from last success lsn that "
+            + "we send before via force status update, that why we wait consume both transaction without duplicates",
+        result, equalTo(wait));
+  }
+
   private void waitStopReplicationSlot() throws SQLException, InterruptedException {
     while (true) {
       PreparedStatement statement =
@@ -841,7 +928,9 @@ public class LogicalReplicationTest {
     Statement st = sqlConnection.createStatement();
     ResultSet rs = null;
     try {
-      rs = st.executeQuery("select pg_current_xlog_location()");
+      rs = st.executeQuery("select "
+          + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+          ? "pg_current_wal_location()" : "pg_current_xlog_location()"));
 
       if (rs.next()) {
         String lsn = rs.getString(1);

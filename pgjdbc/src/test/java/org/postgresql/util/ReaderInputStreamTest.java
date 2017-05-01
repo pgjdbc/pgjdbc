@@ -9,9 +9,11 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.MalformedInputException;
@@ -180,6 +182,24 @@ public class ReaderInputStreamTest {
     Reader reader = new SingleCharPerReadReader(LEADING_SURROGATE, LEADING_SURROGATE);
     InputStream is = new ReaderInputStream(reader);
     read(is, 0xF0, 0xA0, 0x9C, 0x8E);
+  }
+
+  @Test
+  public void readsEqualToBlockSizeTest() throws Exception {
+    final int blockSize = 8 * 1024;
+    final int dataSize = blockSize + 57;
+    final byte[] data = new byte[dataSize];
+    final byte[] buffer = new byte[blockSize];
+
+    InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(data), "UTF-8");
+    ReaderInputStream r = new ReaderInputStream(isr, blockSize);
+
+    int total = 0;
+
+    total += r.read(buffer, 0, blockSize);
+    total += r.read(buffer, 0, blockSize);
+
+    assertEquals("Data not read completely: missing " + (dataSize - total) + " bytes", dataSize, total);
   }
 
   private static class SingleCharPerReadReader extends Reader {

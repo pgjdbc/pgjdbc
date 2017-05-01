@@ -1,0 +1,47 @@
+---
+layout: default
+title: PostgreSQL JDBC Driver
+resource: media
+nav:
+---
+
+<br />
+				<div id="pgFrontContainer">
+					<!-- <div id="pgFrontMain"> -->
+						<div id="pgFrontFeature">
+							<div id="pgFrontFeatureContent">
+								<p class="txtDate"><strong>Feb 20 2017</strong></p>
+								<h1 id="txtFrontFeatureHeading">PostgreSQL JDBC Driver 42.0.0 Released!</h1>
+								<p>
+									<strong>Notable changes</strong><br/>
+									{% capture notes%}{% include changelog/42.0.0-notes.md %}{% endcapture %}
+									{{ notes | markdownify }}
+								</p>
+								<p>
+									You may have noticed the change in the versioning of the driver, you can
+									<a href="documentation/faq.html#versioning">read the FAQ</a> for more information.
+								</p>
+								<div id="txtFrontFeatureLink">
+									<br/>
+									<img src="media/img/layout/blt_blu_arrow.png" width="6" height="6" alt="" />
+									<a href="documentation/changelog.html#version_42.0.0" title="Release Notes">Release notes</a>
+									<br/>
+									<img src="media/img/layout/blt_blu_arrow.png" width="6" height="6" alt="" />
+									<a href="download.html" title="Download">Download</a>
+									<br />
+								</div>
+								<div id="txtFrontFeatureLink">
+									<br/>
+									<img src="media/img/layout/blt_blu_arrow.png" width="6" height="6" alt="" />
+									<a href="https://oss.sonatype.org/content/repositories/snapshots/org/postgresql/postgresql/" title="Snapshots">Snapshots can be found here</a>
+									<br />
+								</div>
+								<p>
+									<br/><br/>
+									The PostgreSQL JDBC group would like to thank YourKit for graciously providing licenses to the project
+									<img src="https://www.yourkit.com/images/yklogo.png" />
+								</p>
+							</div> <!-- pgFrontFeatureContent -->
+						</div> <!-- pgFrontFeature -->
+					<!-- </div>  pgFrontMain -->
+				</div> <!-- pgFrontContainer -->

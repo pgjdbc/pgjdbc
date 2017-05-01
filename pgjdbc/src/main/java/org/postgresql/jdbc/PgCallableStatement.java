@@ -691,7 +691,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getObject(int, Class<T>)");
+    if (type == ResultSet.class) {
+      return type.cast(getObject(parameterIndex));
+    }
+    throw new PSQLException(GT.tr("Unsupported type conversion to {1}.", type),
+            PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   public <T> T getObject(String parameterName, Class<T> type) throws SQLException {

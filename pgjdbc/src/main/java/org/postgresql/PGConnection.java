@@ -32,6 +32,20 @@ public interface PGConnection {
   PGNotification[] getNotifications() throws SQLException;
 
   /**
+   * This method returns any notifications that have been received since the last call to this
+   * method. Returns null if there have been no notifications. A timeout can be specified so the
+   * driver waits for notifications.
+   *
+   * @param timeoutMillis when 0, blocks forever. when &gt; 0, blocks up to the specified number of millies
+   *        or until at least one notification has been received. If more than one notification is
+   *        about to be received, these will be returned in one batch.
+   * @return notifications that have been received
+   * @throws SQLException if something wrong happens
+   * @since 43
+   */
+  PGNotification[] getNotifications(int timeoutMillis) throws SQLException;
+
+  /**
    * This returns the COPY API for the current connection.
    *
    * @return COPY API for the current connection

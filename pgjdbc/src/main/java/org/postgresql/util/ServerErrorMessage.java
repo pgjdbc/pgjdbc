@@ -11,8 +11,12 @@ import org.postgresql.core.EncodingPredictor;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ServerErrorMessage implements Serializable {
+
+  private static final Logger LOGGER = Logger.getLogger(ServerErrorMessage.class.getName());
 
   private static final Character SEVERITY = 'S';
   private static final Character MESSAGE = 'M';
@@ -33,10 +37,9 @@ public class ServerErrorMessage implements Serializable {
   private static final Character CONSTRAINT = 'n';
 
   private final Map<Character, String> m_mesgParts = new HashMap<Character, String>();
-  private final int verbosity;
 
-  public ServerErrorMessage(EncodingPredictor.DecodeResult serverError, int verbosity) {
-    this(serverError.result, verbosity);
+  public ServerErrorMessage(EncodingPredictor.DecodeResult serverError) {
+    this(serverError.result);
     if (serverError.encoding != null) {
       m_mesgParts.put(MESSAGE, m_mesgParts.get(MESSAGE)
           + GT.tr(" (pgjdbc: autodetected server-encoding to be {0}, if the message is not readable, please check database logs and/or host, port, dbname, user, password, pg_hba.conf)",
@@ -45,9 +48,7 @@ public class ServerErrorMessage implements Serializable {
     }
   }
 
-  public ServerErrorMessage(String p_serverError, int verbosity) {
-    this.verbosity = verbosity;
-
+  public ServerErrorMessage(String p_serverError) {
     char[] l_chars = p_serverError.toCharArray();
     int l_pos = 0;
     int l_length = l_chars.length;
@@ -188,7 +189,7 @@ public class ServerErrorMessage implements Serializable {
       l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
     }
 
-    if (verbosity > 2) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       String l_internalQuery = m_mesgParts.get(INTERNAL_QUERY);
       if (l_internalQuery != null) {
         l_totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", l_internalQuery));

@@ -8,6 +8,7 @@ package org.postgresql.ds.common;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -22,21 +23,24 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
 import javax.naming.Referenceable;
 import javax.naming.StringRefAddr;
+import javax.sql.CommonDataSource;
 
 /**
  * Base class for data sources and related classes.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public abstract class BaseDataSource implements Referenceable {
-  // Needed to implement the DataSource/ConnectionPoolDataSource interfaces
-  private transient PrintWriter logger;
+public abstract class BaseDataSource implements CommonDataSource, Referenceable {
+
+  private static final Logger LOGGER = Logger.getLogger(BaseDataSource.class.getName());
 
   // Standard properties, defined in the JDBC 2.0 Optional Package spec
   private String serverName = "localhost";
@@ -47,6 +51,21 @@ public abstract class BaseDataSource implements Referenceable {
 
   // Map for all other properties
   private Properties properties = new Properties();
+
+  /*
+   * Ensure the driver is loaded as JDBC Driver might be invisible to Java's ServiceLoader.
+   * Usually, {@code Class.forName(...)} is not required as {@link DriverManager} detects JDBC drivers
+   * via {@code META-INF/services/java.sql.Driver} entries. However there might be cases when the driver
+   * is located at the application level classloader, thus it might be required to perform manual
+   * registration of the driver.
+   */
+  static {
+    try {
+      Class.forName("org.postgresql.Driver");
+    } catch (ClassNotFoundException e) {
+      throw new IllegalStateException("BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath", e);
+    }
+  }
 
   /**
    * Gets a connection to the PostgreSQL database. The database is identified by the DataSource
@@ -73,35 +92,32 @@ public abstract class BaseDataSource implements Referenceable {
   public Connection getConnection(String user, String password) throws SQLException {
     try {
       Connection con = DriverManager.getConnection(getUrl(), user, password);
-      if (logger != null) {
-        logger.println("Created a non-pooled connection for " + user + " at " + getUrl());
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
       }
       return con;
     } catch (SQLException e) {
-      if (logger != null) {
-        logger.println(
-            "Failed to create a non-pooled connection for " + user + " at " + getUrl() + ": " + e);
-      }
+      LOGGER.log(Level.SEVERE, "Failed to create a {0} for {1} at {2}: {3}",
+          new Object[]{getDescription(), user, getUrl(), e});
       throw e;
     }
   }
 
   /**
-   * Gets the log writer used to log connections opened.
-   *
-   * @return log writer used to log connections opened
+   * This implementation don't use a LogWriter.
    */
+  @Override
   public PrintWriter getLogWriter() {
-    return logger;
+    return null;
   }
 
   /**
-   * The DataSource will note every connection opened to the provided log writer.
-   *
-   * @param printWriter log writer used to log connections opened
+   * This implementation don't use a LogWriter.
+   * @param printWriter Not used
    */
+  @Override
   public void setLogWriter(PrintWriter printWriter) {
-    logger = printWriter;
+    // NOOP
   }
 
   /**
@@ -220,6 +236,7 @@ public abstract class BaseDataSource implements Referenceable {
    * @return login timeout
    * @see PGProperty#LOGIN_TIMEOUT
    */
+  @Override
   public int getLoginTimeout() {
     return PGProperty.LOGIN_TIMEOUT.getIntNoCheck(properties);
   }
@@ -228,6 +245,7 @@ public abstract class BaseDataSource implements Referenceable {
    * @param loginTimeout login timeout
    * @see PGProperty#LOGIN_TIMEOUT
    */
+  @Override
   public void setLoginTimeout(int loginTimeout) {
     PGProperty.LOGIN_TIMEOUT.set(properties, loginTimeout);
   }
@@ -246,22 +264,6 @@ public abstract class BaseDataSource implements Referenceable {
    */
   public void setConnectTimeout(int connectTimeout) {
     PGProperty.CONNECT_TIMEOUT.set(properties, connectTimeout);
-  }
-
-  /**
-   * @return log level
-   * @see PGProperty#LOG_LEVEL
-   */
-  public int getLogLevel() {
-    return PGProperty.LOG_LEVEL.getIntNoCheck(properties);
-  }
-
-  /**
-   * @param logLevel log level
-   * @see PGProperty#LOG_LEVEL
-   */
-  public void setLogLevel(int logLevel) {
-    PGProperty.LOG_LEVEL.set(properties, logLevel);
   }
 
   /**
@@ -1006,6 +1008,39 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
+   * @return Logger Level of the JDBC Driver
+   * @see PGProperty#LOGGER_LEVEL
+   */
+  public String getLoggerLevel() {
+    return PGProperty.LOGGER_LEVEL.get(properties);
+  }
+
+  /**
+   * @param loggerLevel of the JDBC Driver
+   * @see PGProperty#LOGGER_LEVEL
+   */
+  public void setLoggerLevel(String loggerLevel) {
+    PGProperty.LOGGER_LEVEL.set(properties, loggerLevel);
+  }
+
+  /**
+   * @return File output of the Logger.
+   * @see PGProperty#LOGGER_FILE
+   */
+  public String getLoggerFile() {
+    ExpressionProperties exprProps = new ExpressionProperties(properties, System.getProperties());
+    return PGProperty.LOGGER_FILE.get(exprProps);
+  }
+
+  /**
+   * @param loggerFile File output of the Logger.
+   * @see PGProperty#LOGGER_LEVEL
+   */
+  public void setLoggerFile(String loggerFile) {
+    PGProperty.LOGGER_FILE.set(properties, loggerFile);
+  }
+
+  /**
    * Generates a {@link DriverManager} URL from the other properties supplied.
    *
    * @return {@link DriverManager} URL from the other properties supplied
@@ -1191,14 +1226,6 @@ public abstract class BaseDataSource implements Referenceable {
     readBaseObject(ois);
   }
 
-  public void setLoglevel(int logLevel) {
-    PGProperty.LOG_LEVEL.set(properties, logLevel);
-  }
-
-  public int getLoglevel() {
-    return PGProperty.LOG_LEVEL.getIntNoCheck(properties);
-  }
-
   /**
    * @see PGProperty#PREFER_QUERY_MODE
    * @return preferred query execution mode
@@ -1246,4 +1273,10 @@ public abstract class BaseDataSource implements Referenceable {
   public void setReWriteBatchedInserts(boolean reWrite) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  public java.util.logging.Logger getParentLogger() {
+    return Logger.getLogger("org.postgresql");
+  }
+  //#endif
 }

@@ -7,7 +7,6 @@ package org.postgresql.xa;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.Logger;
 import org.postgresql.core.TransactionState;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
@@ -23,6 +22,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.sql.XAConnection;
 import javax.transaction.xa.XAException;
@@ -40,12 +41,14 @@ import javax.transaction.xa.Xid;
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  */
 public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource {
+
+  private static final Logger LOGGER = Logger.getLogger(PGXAConnection.class.getName());
+
   /**
    * Underlying physical database connection. It's used for issuing PREPARE TRANSACTION/ COMMIT
    * PREPARED/ROLLBACK PREPARED commands.
    */
   private final BaseConnection conn;
-  private final Logger logger;
 
   /*
    * PGXAConnection-object can be in one of three states:
@@ -79,26 +82,21 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private boolean localAutoCommitMode = true;
 
   private void debug(String s) {
-    logger.debug("XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "XAResource {0}: {1}", new Object[]{Integer.toHexString(this.hashCode()), s});
+    }
   }
 
   public PGXAConnection(BaseConnection conn) throws SQLException {
     super(conn, true, true);
     this.conn = conn;
     this.state = STATE_IDLE;
-    this.logger = conn.getLogger();
   }
 
-
-  /****
+  /**
    * XAConnection interface
-   ****/
-
+   */
   public Connection getConnection() throws SQLException {
-    if (logger.logDebug()) {
-      debug("PGXAConnection.getConnection called");
-    }
-
     Connection conn = super.getConnection();
 
     // When we're outside an XA transaction, autocommit
@@ -127,7 +125,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * connection is used for an XA transaction.
    */
   private class ConnectionHandler implements InvocationHandler {
-    private Connection con;
+    private final Connection con;
 
     public ConnectionHandler(Connection con) {
       this.con = con;
@@ -183,7 +181,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. Connection is associated with the transaction
    */
   public void start(Xid xid, int flags) throws XAException {
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("starting transaction xid = " + xid);
     }
 
@@ -251,7 +249,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. connection is disassociated from the transaction.
    */
   public void end(Xid xid, int flags) throws XAException {
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("ending transaction xid = " + xid);
     }
 
@@ -291,7 +289,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. Transaction is prepared
    */
   public int prepare(Xid xid) throws XAException {
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("preparing transaction xid = " + xid);
     }
 
@@ -386,7 +384,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. Transaction is rolled back and disassociated from connection
    */
   public void rollback(Xid xid) throws XAException {
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("rolling back xid = " + xid);
     }
 
@@ -420,7 +418,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   public void commit(Xid xid, boolean onePhase) throws XAException {
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("committing xid = " + xid + (onePhase ? " (one phase) " : " (two phase)"));
     }
 

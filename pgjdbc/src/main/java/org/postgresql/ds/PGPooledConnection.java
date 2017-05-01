@@ -18,7 +18,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
@@ -437,7 +436,4 @@ public class PGPooledConnection implements PooledConnection {
   public void addStatementEventListener(StatementEventListener listener) {
   }
 
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
-  }
 }

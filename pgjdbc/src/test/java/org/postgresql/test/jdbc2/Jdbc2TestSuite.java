@@ -11,8 +11,11 @@ import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
+import org.postgresql.test.util.ExpressionPropertiesTest;
+import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
+import org.postgresql.util.ReaderInputStreamTest;
 
 import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
@@ -46,8 +49,11 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(DatabaseMetaDataPropertiesTest.class));
     suite.addTest(new JUnit4TestAdapter(SearchPathLookupTest.class));
     suite.addTest(new JUnit4TestAdapter(EncodingTest.class));
+    suite.addTest(new JUnit4TestAdapter(ExpressionPropertiesTest.class));
     suite.addTest(new JUnit4TestAdapter(ColumnSanitiserDisabledTest.class));
     suite.addTest(new JUnit4TestAdapter(ColumnSanitiserEnabledTest.class));
+    suite.addTest(new JUnit4TestAdapter(LruCacheTest.class));
+    suite.addTest(new JUnit4TestAdapter(ReaderInputStreamTest.class));
     suite.addTest(new JUnit4TestAdapter(ServerVersionParseTest.class));
     suite.addTest(new JUnit4TestAdapter(ServerVersionTest.class));
 

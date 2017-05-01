@@ -14,7 +14,6 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
-import org.postgresql.core.Logger;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
@@ -72,22 +71,19 @@ import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class PgConnection implements BaseConnection {
 
+  private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
+
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
-  /**
-   * Driver-wide connection ID counter, used for logging
-   */
-  private static int nextConnectionID = 1;
 
   //
   // Data initialized on construction:
   //
-
   private final Properties _clientInfo;
-  // Per-connection logger
-  private final Logger logger;
 
   /* URL we were created via */
   private final String creatingURL;
@@ -102,7 +98,7 @@ public class PgConnection implements BaseConnection {
   /* Query that runs ROLLBACK */
   private final Query rollbackQuery;
 
-  private TypeInfo _typeCache;
+  private final TypeInfo _typeCache;
 
   private boolean disableColumnSanitiser = false;
 
@@ -141,7 +137,7 @@ public class PgConnection implements BaseConnection {
    * Replication protocol in current version postgresql(10devel) supports a limited number of
    * commands.
    */
-  private boolean replicationConnection;
+  private final boolean replicationConnection;
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
@@ -171,6 +167,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     queryExecutor.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
+    LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
   }
 
   //
@@ -181,50 +178,32 @@ public class PgConnection implements BaseConnection {
                       String database,
                       Properties info,
                       String url) throws SQLException {
+    // Print out the driver version number
+    LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
+
     this.creatingURL = url;
-
-    // Read loglevel arg and set the loglevel based on this value
-    // otherwise use the programmatic or init logger level;
-    // In addition to setting the log level, enable output to
-    // standard out if no other printwriter is set
-
-    int logLevel = Driver.getLogLevel();
-
-    String connectionLogLevel = PGProperty.LOG_LEVEL.getSetString(info);
-    if (connectionLogLevel != null) {
-      try {
-        logLevel = Integer.parseInt(connectionLogLevel);
-      } catch (NumberFormatException nfe) {
-        // ignore
-      }
-    }
-    synchronized (PgConnection.class) {
-      logger = new Logger(nextConnectionID++);
-      logger.setLogLevel(logLevel);
-    }
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
-    prepareThreshold = PGProperty.PREPARE_THRESHOLD.getInt(info);
+    setPrepareThreshold(PGProperty.PREPARE_THRESHOLD.getInt(info));
     if (prepareThreshold == -1) {
-      forcebinary = true;
-    }
-
-    boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
-
-    // Print out the driver version number
-    if (logger.logInfo()) {
-      logger.info(org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
+      setForceBinary(true);
     }
 
     // Now make the initial connection and set up local state
-    this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
+    this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, user, database, info);
+
+    // WARNING for unsupported servers (8.1 and lower are not supported)
+    if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v8_2)) {
+      LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
+    }
 
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
       setReadOnly(true);
     }
 
+    boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // Formats that currently have binary protocol support
     Set<Integer> binaryOids = new HashSet<Integer>();
     if (binaryTransfer && queryExecutor.getProtocolVersion() >= 3) {
@@ -271,12 +250,10 @@ public class PgConnection implements BaseConnection {
     queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
     queryExecutor.setBinarySendOids(useBinarySendForOids);
 
-    if (logger.logDebug()) {
-      logger.debug("    loglevel = " + logLevel);
-      logger.debug("    prepare threshold = " + prepareThreshold);
-      logger.debug("    types using binary send = " + oidsToString(useBinarySendForOids));
-      logger.debug("    types using binary receive = " + oidsToString(useBinaryReceiveForOids));
-      logger.debug("    integer date/time = " + queryExecutor.getIntegerDateTimes());
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "    types using binary send = {0}", oidsToString(useBinarySendForOids));
+      LOGGER.log(Level.FINEST, "    types using binary receive = {0}", oidsToString(useBinaryReceiveForOids));
+      LOGGER.log(Level.FINEST, "    integer date/time = {0}", queryExecutor.getIntegerDateTimes());
     }
 
     //
@@ -571,8 +548,8 @@ public class PgConnection implements BaseConnection {
 
     PGobject obj = null;
 
-    if (logger.logDebug()) {
-      logger.debug("Constructing object from type=" + type + " value=<" + value + ">");
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "Constructing object from type={0} value=<{1}>", new Object[]{type, value});
     }
 
     try {
@@ -723,6 +700,7 @@ public class PgConnection implements BaseConnection {
     }
 
     this.readOnly = readOnly;
+    LOGGER.log(Level.FINE, "  setReadOnly = {0}", readOnly);
   }
 
   public boolean isReadOnly() throws SQLException {
@@ -742,6 +720,7 @@ public class PgConnection implements BaseConnection {
     }
 
     this.autoCommit = autoCommit;
+    LOGGER.log(Level.FINE, "  setAutoCommit = {0}", autoCommit);
   }
 
   public boolean getAutoCommit() throws SQLException {
@@ -857,6 +836,7 @@ public class PgConnection implements BaseConnection {
     String isolationLevelSQL =
         "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
     execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
+    LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", isolationLevelName);
   }
 
   protected String getIsolationLevelName(int level) {
@@ -894,7 +874,7 @@ public class PgConnection implements BaseConnection {
   protected void finalize() throws Throwable {
     try {
       if (openStackTrace != null) {
-        logger.log(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
+        LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
       }
 
       close();
@@ -993,8 +973,13 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public PGNotification[] getNotifications() throws SQLException {
+    return getNotifications(-1);
+  }
+
+  @Override
+  public PGNotification[] getNotifications(int timeoutMillis) throws SQLException {
     checkClosed();
-    getQueryExecutor().processNotifies();
+    getQueryExecutor().processNotifies(timeoutMillis);
     // Backwards-compatibility hand-holding.
     PGNotification[] notifications = queryExecutor.getNotifications();
     return (notifications.length == 0 ? null : notifications);
@@ -1024,6 +1009,7 @@ public class PgConnection implements BaseConnection {
     }
 
     this.defaultFetchSize = fetchSize;
+    LOGGER.log(Level.FINE, "  setDefaultFetchSize = {0}", fetchSize);
   }
 
   public int getDefaultFetchSize() {
@@ -1032,6 +1018,7 @@ public class PgConnection implements BaseConnection {
 
   public void setPrepareThreshold(int newThreshold) {
     this.prepareThreshold = newThreshold;
+    LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
   }
 
   public boolean getForceBinary() {
@@ -1040,6 +1027,7 @@ public class PgConnection implements BaseConnection {
 
   public void setForceBinary(boolean newValue) {
     this.forcebinary = newValue;
+    LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
   }
 
   public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
@@ -1047,7 +1035,7 @@ public class PgConnection implements BaseConnection {
   }
 
   public Logger getLogger() {
-    return logger;
+    return LOGGER;
   }
 
   public int getProtocolVersion() {
@@ -1082,6 +1070,7 @@ public class PgConnection implements BaseConnection {
 
   public void setDisableColumnSanitiser(boolean disableColumnSanitiser) {
     this.disableColumnSanitiser = disableColumnSanitiser;
+    LOGGER.log(Level.FINE, "  setDisableColumnSanitiser = {0}", disableColumnSanitiser);
   }
 
   @Override
@@ -1097,6 +1086,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setAutosave(AutoSave autoSave) {
     queryExecutor.setAutoSave(autoSave);
+    LOGGER.log(Level.FINE, "  setAutosave = {0}", autoSave.value());
   }
 
   protected void abort() {
@@ -1231,6 +1221,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     setTypeMapImpl(map);
+    LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 
   protected Array makeArray(int oid, String fieldString) throws SQLException {
@@ -1325,7 +1316,7 @@ public class PgConnection implements BaseConnection {
         // "current transaction aborted", assume the connection is up and running
         return true;
       }
-      getLogger().log(GT.tr("Validating connection."), e);
+      LOGGER.log(Level.WARNING, GT.tr("Validating connection."), e);
     }
     return false;
   }
@@ -1361,7 +1352,9 @@ public class PgConnection implements BaseConnection {
             GT.tr("Failed to set ClientInfo property: {0}", "ApplicationName"), sqle.getSQLState(),
             failures, sqle);
       }
-
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "  setClientInfo = {0} {1}", new Object[]{name, value});
+      }
       _clientInfo.put(name, value);
       return;
     }
@@ -1459,6 +1452,7 @@ public class PgConnection implements BaseConnection {
         Utils.escapeLiteral(sb, schema, getStandardConformingStrings());
         sb.append("'");
         stmt.executeUpdate(sb.toString());
+        LOGGER.log(Level.FINE, "  setSchema = {0}", schema);
       }
     } finally {
       stmt.close();
@@ -1509,6 +1503,7 @@ public class PgConnection implements BaseConnection {
         throw new PSQLException(GT.tr("Unknown ResultSet holdability setting: {0}.", holdability),
             PSQLState.INVALID_PARAMETER_VALUE);
     }
+    LOGGER.log(Level.FINE, "  setHoldability = {0}", holdability);
   }
 
   @Override

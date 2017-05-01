@@ -7,9 +7,9 @@ VERS=${CURRENT_VERSION/-SNAPSHOT}
 PREV_VERSION=`git describe --match 'REL*' --abbrev=0`
 
 echo "<a name=\"version_${VERS}\"></a>"
-echo "## Version ${VERS} (2016-16-16)"
+echo "## Version ${VERS} ($(date +%Y-%m-%d))"
 echo
 echo Notable changes:
 echo
 
-git shortlog --format="%s@@@%H@@@%h@@@" --grep="maven-release-plugin|update versions in readme.md" --extended-regexp --invert-grep --no-merges $PREV_VERSION..HEAD | perl release_notes_filter.pl
+git shortlog --format="%s@@@%H@@@%h@@@" --grep="maven-release-plugin|update versions in readme.md" --extended-regexp --invert-grep --no-merges $PREV_VERSION..HEAD | perl release_notes_filter.pl ${VERS}

@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * This class implements the Fastpath api.
@@ -115,9 +116,7 @@ public class Fastpath {
    */
   @Deprecated
   public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException {
-    if (connection.getLogger().logDebug()) {
-      connection.getLogger().debug("Fastpath: calling " + name);
-    }
+    connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), resulttype, args);
   }
 
@@ -139,9 +138,7 @@ public class Fastpath {
    * @see org.postgresql.largeobject.LargeObject
    */
   public byte[] fastpath(String name, FastpathArg[] args) throws SQLException {
-    if (connection.getLogger().logDebug()) {
-      connection.getLogger().debug("Fastpath: calling " + name);
-    }
+    connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), args);
   }
 
