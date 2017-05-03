@@ -6,6 +6,7 @@
 package org.postgresql.gss;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.util.ErrorContextVisibility;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -110,7 +111,7 @@ class GssAction implements PrivilegedAction<Exception> {
             case 'E':
               int l_elen = pgStream.receiveInteger4();
               ServerErrorMessage l_errorMsg
-                  = new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
+                  = new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4), ErrorContextVisibility.ERRORS);
 
               LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", l_errorMsg);
 

@@ -8,6 +8,7 @@ package org.postgresql.ds.common;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.ErrorContextVisibility;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -1256,6 +1257,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setAutosave(AutoSave autoSave) {
     PGProperty.AUTOSAVE.set(properties, autoSave.value());
+  }
+
+  /**
+   * @see PGProperty#ERROR_CONTEXT_VISIBILITY
+   * @return ErrorContextVisibility setting for this connection
+   */
+  public ErrorContextVisibility getErrorContextVisibility() {
+    return ErrorContextVisibility.of(PGProperty.ERROR_CONTEXT_VISIBILITY.get(properties));
+  }
+
+  /**
+   * @see PGProperty#ERROR_CONTEXT_VISIBILITY
+   * @param errorContextVisibility property to set error context visibility
+   */
+  public void setErrorContextVisibility(ErrorContextVisibility errorContextVisibility) {
+    PGProperty.ERROR_CONTEXT_VISIBILITY.set(properties, errorContextVisibility.value());
   }
 
   /**

@@ -3,7 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 import org.postgresql.core.EncodingPredictor;
@@ -38,17 +37,22 @@ public class ServerErrorMessage implements Serializable {
 
   private final Map<Character, String> m_mesgParts = new HashMap<Character, String>();
 
-  public ServerErrorMessage(EncodingPredictor.DecodeResult serverError) {
-    this(serverError.result);
+  /**
+   * Determines the handling of CONTEXT fields in messages returned by ServerErrorMessage.
+   */
+  private final ErrorContextVisibility ecv;
+
+  public ServerErrorMessage(EncodingPredictor.DecodeResult serverError, ErrorContextVisibility errorContextVisibility) {
+    this(serverError.result, errorContextVisibility);
     if (serverError.encoding != null) {
       m_mesgParts.put(MESSAGE, m_mesgParts.get(MESSAGE)
           + GT.tr(" (pgjdbc: autodetected server-encoding to be {0}, if the message is not readable, please check database logs and/or host, port, dbname, user, password, pg_hba.conf)",
-          serverError.encoding)
+              serverError.encoding)
       );
     }
   }
 
-  public ServerErrorMessage(String p_serverError) {
+  public ServerErrorMessage(String p_serverError, ErrorContextVisibility errorContextVisibility) {
     char[] l_chars = p_serverError.toCharArray();
     int l_pos = 0;
     int l_length = l_chars.length;
@@ -66,6 +70,7 @@ public class ServerErrorMessage implements Serializable {
       }
       l_pos++;
     }
+    this.ecv = errorContextVisibility;
   }
 
   public String getSQLState() {
@@ -144,6 +149,7 @@ public class ServerErrorMessage implements Serializable {
     return Integer.parseInt(s);
   }
 
+  @Override
   public String toString() {
     // Now construct the message from what the server sent
     // The general format is:
@@ -159,43 +165,65 @@ public class ServerErrorMessage implements Serializable {
     //
     // Normally only the message and detail is included.
     // If INFO level logging is enabled then detail, hint, position and where are
-    // included. If DEBUG level logging is enabled then all information
-    // is included.
+    // included. If TRACE level logging is enabled then all information is included.
 
-    StringBuilder l_totalMessage = new StringBuilder();
+    StringBuilder l_totalMessage = new StringBuilder(32);
     String l_message = m_mesgParts.get(SEVERITY);
+    boolean isError = false;
     if (l_message != null) {
+      LOGGER.log(Level.FINEST, "SEVERITY: {0}", l_message);
       l_totalMessage.append(l_message).append(": ");
+      isError = "ERROR".equals(l_message);
     }
     l_message = m_mesgParts.get(MESSAGE);
     if (l_message != null) {
+      LOGGER.log(Level.FINEST, "MESSAGE: {0}", l_message);
       l_totalMessage.append(l_message);
     }
     l_message = m_mesgParts.get(DETAIL);
     if (l_message != null) {
+      LOGGER.log(Level.FINEST, "DETAIL: {0}", l_message);
       l_totalMessage.append("\n  ").append(GT.tr("Detail: {0}", l_message));
     }
 
     l_message = m_mesgParts.get(HINT);
     if (l_message != null) {
+      LOGGER.log(Level.FINEST, "HINT: {0}", l_message);
       l_totalMessage.append("\n  ").append(GT.tr("Hint: {0}", l_message));
     }
     l_message = m_mesgParts.get(POSITION);
     if (l_message != null) {
+      LOGGER.log(Level.FINEST, "POSITION: {0}", l_message);
       l_totalMessage.append("\n  ").append(GT.tr("Position: {0}", l_message));
     }
-    l_message = m_mesgParts.get(WHERE);
-    if (l_message != null) {
-      l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
+
+    if (ErrorContextVisibility.NEVER != ecv) {
+      l_message = m_mesgParts.get(WHERE);
+      if (l_message != null) {
+        LOGGER.log(Level.FINEST, "WHERE: {0}", l_message);
+        switch (ecv) {
+          case ALWAYS:
+            l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
+            break;
+          case ERRORS:
+          default:
+            if (isError) {
+              l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
+            }
+            break;
+        }
+      }
     }
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       String l_internalQuery = m_mesgParts.get(INTERNAL_QUERY);
       if (l_internalQuery != null) {
+        LOGGER.log(Level.FINEST, "INTERNAL_QUERY: {0}", l_internalQuery);
         l_totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", l_internalQuery));
       }
       String l_internalPosition = m_mesgParts.get(INTERNAL_POSITION);
       if (l_internalPosition != null) {
+        LOGGER.log(Level.FINEST, "INTERNAL_POSITION: {0}", l_internalPosition);
         l_totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", l_internalPosition));
       }
 
@@ -203,15 +231,20 @@ public class ServerErrorMessage implements Serializable {
       String l_line = m_mesgParts.get(LINE);
       String l_routine = m_mesgParts.get(ROUTINE);
       if (l_file != null || l_line != null || l_routine != null) {
+        LOGGER.log(Level.FINEST, "FILE: {0}", l_file);
+        LOGGER.log(Level.FINEST, "LINE: {0}", l_line);
+        LOGGER.log(Level.FINEST, "ROUTINE: {0}", l_routine);
         l_totalMessage.append("\n  ").append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}",
             l_file, l_routine, l_line));
       }
       l_message = m_mesgParts.get(SQLSTATE);
       if (l_message != null) {
+        LOGGER.log(Level.FINEST, "SQLSTATE: {0}", l_message);
         l_totalMessage.append("\n  ").append(GT.tr("Server SQLState: {0}", l_message));
       }
     }
 
+    LOGGER.log(Level.FINEST, "FINAL MESSAGE: {0}", l_totalMessage);
     return l_totalMessage.toString();
   }
 }

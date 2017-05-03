@@ -12,6 +12,7 @@ import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.ErrorContextVisibility;
 import org.postgresql.util.HostSpec;
 
 import java.sql.SQLException;
@@ -436,4 +437,6 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @return the ReplicationProtocol instance for this connection.
    */
   ReplicationProtocol getReplicationProtocol();
+
+  ErrorContextVisibility getErrorContextVisibility();
 }

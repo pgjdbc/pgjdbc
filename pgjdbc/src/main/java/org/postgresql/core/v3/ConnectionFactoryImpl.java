@@ -21,6 +21,7 @@ import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.sspi.ISSPIClient;
+import org.postgresql.util.ErrorContextVisibility;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
@@ -433,7 +434,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             }
 
             ServerErrorMessage errorMsg =
-                new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
+                new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4), ErrorContextVisibility.of(PGProperty.ERROR_CONTEXT_VISIBILITY.get(info)));
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
             throw new PSQLException(errorMsg);
 
