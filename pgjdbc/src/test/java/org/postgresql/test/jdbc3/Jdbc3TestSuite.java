@@ -13,18 +13,17 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        Jdbc3CallableStatementTest.class,
-        GeneratedKeysTest.class,
-        CompositeQueryParseTest.class,
-        Jdbc3SavepointTest.class,
-        TypesTest.class,
-        ResultSetTest.class,
-        ParameterMetaDataTest.class,
-        Jdbc3BlobTest.class,
-        DatabaseMetaDataTest.class,
-        SendRecvBufferSizeTest.class,
-        StringTypeParameterTest.class
-})
+    Jdbc3CallableStatementTest.class,
+    GeneratedKeysTest.class,
+    CompositeQueryParseTest.class,
+    Jdbc3SavepointTest.class,
+    TypesTest.class,
+    ResultSetTest.class,
+    ParameterMetaDataTest.class,
+    Jdbc3BlobTest.class,
+    DatabaseMetaDataTest.class,
+    SendRecvBufferSizeTest.class,
+    StringTypeParameterTest.class})
 public class Jdbc3TestSuite {
 
 }
