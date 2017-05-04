@@ -7,7 +7,7 @@ nav: ../
 
 # History of Changes
 * [Introduction and explanation of symbols](#introduction)
-* [Version 42.1.0 (2017-05-03)](#version_42.1.0)
+* [Version 42.1.0 (2017-05-04)](#version_42.1.0)
 	* [Contributors to this release](#contributors_42.1.0)
 * [Version 42.0.0 (2017-02-18)](#version_42.0.0)
 	* [Contributors to this release](#contributors_42.0.0)
