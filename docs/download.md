@@ -26,7 +26,7 @@ driver versions.
 
 ***
 <a name="current"></a>
-## Current Version *42.0.0*
+## Current Version *42.1.0*
 
 This is the current version of the driver.  Unless you have unusual
 requirements (running old applications or JVMs), this is the driver
@@ -42,11 +42,11 @@ you will need to use a JDBC3 version of the driver, which will by
 necessity not be current, found in [Other Versions](#others).
 
 
-[PostgreSQL JDBC 4.0 Driver, 42.0.0](download/postgresql-42.0.0.jre6.jar)
+[PostgreSQL JDBC 4.0 Driver, 42.1.0](download/postgresql-42.1.0.jre6.jar)
 
-[PostgreSQL JDBC 4.1 Driver, 42.0.0](download/postgresql-42.0.0.jre7.jar)
+[PostgreSQL JDBC 4.1 Driver, 42.1.0](download/postgresql-42.1.0.jre7.jar)
 
-[PostgreSQL JDBC 4.2 Driver, 42.0.0](download/postgresql-42.0.0.jar)
+[PostgreSQL JDBC 4.2 Driver, 42.1.0](download/postgresql-42.1.0.jar)
 
 
 ***
@@ -86,6 +86,14 @@ versions of the JVM with the JDBC specification implemented.
 	<th>JDBC 4.2</th>
 	<th>Source</th>
 </tr>
+<tr>
+	<td>42.1.0</td>
+	<td><a href="download/postgresql-42.1.0.jre6.jar">42.1.0 JDBC 4</a></td>
+	<td><a href="download/postgresql-42.1.0.jre7.jar">42.1.0 JDBC 41</a></td>
+	<td><a href="download/postgresql-42.1.0.jar">42.1.0 JDBC 42</a></td>
+	<td><a href="download/postgresql-jdbc-42.1.0.src.tar.gz">42.1.0 JDBC Source</a></td>
+</tr>
+
 <tr>
 	<td>42.0.0</td>
 	<td><a href="download/postgresql-42.0.0.jre6.jar">42.0.0 JDBC 4</a></td>
