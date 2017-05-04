@@ -8,13 +8,10 @@ package org.postgresql.test.jdbc4.jdbc41;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.Callable;
@@ -24,22 +21,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class AbortTest {
+public class AbortTest extends BaseTest4 {
 
   private static final int SLEEP_SECONDS = 30;
   private static final int SLEEP_MILLISECONDS = SLEEP_SECONDS * 1000;
-
-  private Connection _conn;
-
-  @Before
-  public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-  }
-
-  @After
-  public void tearDown() throws SQLException {
-    TestUtil.closeDB(_conn);
-  }
 
   @Test
   public void testAbort() throws SQLException, InterruptedException, ExecutionException {
@@ -48,7 +33,7 @@ public class AbortTest {
     Future<SQLException> workerFuture = executor.submit(new Callable<SQLException>() {
       public SQLException call() {
         try {
-          Statement stmt = _conn.createStatement();
+          Statement stmt = con.createStatement();
           stmt.execute("SELECT pg_sleep(" + SLEEP_SECONDS + ")");
         } catch (SQLException e) {
           return e;
@@ -60,7 +45,7 @@ public class AbortTest {
       public SQLException call() {
         ExecutorService abortExecutor = Executors.newSingleThreadExecutor();
         try {
-          _conn.abort(abortExecutor);
+          con.abort(abortExecutor);
         } catch (SQLException e) {
           return e;
         }
@@ -84,7 +69,7 @@ public class AbortTest {
     // suppose that if it took at least 95% of sleep time, aborting has failed and we've waited the
     // full time
     assertTrue(endTime - startTime < SLEEP_MILLISECONDS * 95 / 100);
-    assertTrue(_conn.isClosed());
+    assertTrue(con.isClosed());
   }
 
   /**
@@ -92,9 +77,9 @@ public class AbortTest {
    */
   @Test
   public void testAbortOnClosedConnection() throws SQLException {
-    _conn.close();
+    con.close();
     try {
-      _conn.abort(Executors.newSingleThreadExecutor());
+      con.abort(Executors.newSingleThreadExecutor());
     } catch (SQLException e) {
       fail(e.getMessage());
     }
