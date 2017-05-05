@@ -11,5 +11,7 @@ echo "## Version ${VERS} ($(date +%Y-%m-%d))"
 echo
 echo Notable changes:
 echo
+echo {% include changelog/$VERS-notes.md %}
+echo
 
 git shortlog --format="%s@@@%H@@@%h@@@" --grep="maven-release-plugin|update versions in readme.md" --extended-regexp --invert-grep --no-merges $PREV_VERSION..HEAD | perl release_notes_filter.pl ${VERS}
