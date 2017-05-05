@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TransactionState;
+import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
@@ -26,7 +27,11 @@ public class IsValidTest extends BaseTest4 {
 
   @Test
   public void testIsValid() throws Exception {
-    assertTrue(con.isValid(0));
+    try {
+      assertTrue(con.isValid(0));
+    } finally {
+      TestUtil.closeDB(con);
+    }
     assertFalse(con.isValid(0));
   }
 
