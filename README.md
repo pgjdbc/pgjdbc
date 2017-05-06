@@ -82,7 +82,7 @@ Notable changes for:
 * fix: calculation of lastReceiveLSN for logical replication [PR#801](https://github.com/pgjdbc/pgjdbc/pull/801)
 * fix: make sure org.postgresql.Driver is loaded when accessing though DataSource interface [#768](https://github.com/pgjdbc/pgjdbc/issues/768)
 * feat: support fetching a REF_CURSOR using getObject [PR#809](https://github.com/pgjdbc/pgjdbc/pull/809)
-* note: there's no 42.1.0.jre8 due to infinity handling bug. Fixed in 42.1.1.jre6
+* note: there's no 42.1.0.jre6 due to infinity handling bug. Fixed in 42.1.1.jre6
 
 **[42.0.0]** (2017-02-20):
 * Support for PostgreSQL versions below 8.2 was dropped
