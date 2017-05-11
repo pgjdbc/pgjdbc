@@ -2098,9 +2098,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (isBinary(columnIndex)) {
       int col = columnIndex - 1;
       int oid = fields[col].getOID();
-      if (oid == Oid.INT8) {
-        return ByteConverter.int8(this_row[col], 0);
-      }
       return readLongValue(this_row[col], oid, Long.MIN_VALUE, Long.MAX_VALUE, "long");
     }
 

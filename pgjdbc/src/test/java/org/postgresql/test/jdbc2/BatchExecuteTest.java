@@ -79,6 +79,8 @@ public class BatchExecuteTest extends BaseTest4 {
     TestUtil.createTable(con, "batchUpdCnt", "id varchar(512) primary key, data varchar(512)");
     stmt.executeUpdate("INSERT INTO batchUpdCnt(id) VALUES ('key-2')");
 
+
+    TestUtil.createTable(con, "testbatchserial", "id BIGSERIAL, col1 INTEGER");
     stmt.close();
 
     // Generally recommended with batch updates. By default we run all
@@ -92,7 +94,12 @@ public class BatchExecuteTest extends BaseTest4 {
     con.setAutoCommit(true);
 
     TestUtil.dropTable(con, "testbatch");
+    TestUtil.dropTable(con, "prep");
+    TestUtil.dropTable(con, "batchUpdCnt");
+    TestUtil.dropTable(con, "testbatchserial");
+
     super.tearDown();
+
   }
 
   @Test
@@ -1253,6 +1260,27 @@ Server SQLState: 25001)
     }
   }
 
+  @Test
+  public void testBatchWithGeneratedKeys() throws SQLException {
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", new String[] {"id"});
+      for (int i =  0; i<100; i++){
+        pstmt.setInt(1,i);
+        pstmt.addBatch();
+      }
+      int [] ints = pstmt.executeBatch();
+      ResultSet generatedKeys = pstmt.getGeneratedKeys();
+      for (int i = 0; i < 100; i++ ){
+        Assert.assertTrue("There should be a generated key for each insert", generatedKeys.next());
+        Assert.assertEquals(i+1, generatedKeys.getLong(1));
+      }
+    } catch (SQLException sqle) {
+      Assert.fail("Failed to insert into a batch. Reason:" + sqle.getMessage());
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
   public static void assertSimpleInsertBatch(int n, int[] actual) {
     int[] expected = new int[n];
     Arrays.fill(expected, 1);
@@ -1277,4 +1305,5 @@ Server SQLState: 25001)
         Arrays.toString(clone),
         Arrays.toString(actual));
   }
+
 }
