@@ -1276,6 +1276,9 @@ Server SQLState: 25001)
         Assert.assertEquals(i+1, genkeys.getLong(1));
       }
 
+      pstmt.close();
+      pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", new String[] {"id"});
+      
       for (int i =  0; i<100; i++){
         pstmt.setInt(1,i);
         pstmt.addBatch();
