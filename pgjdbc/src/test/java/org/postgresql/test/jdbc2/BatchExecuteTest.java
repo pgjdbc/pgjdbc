@@ -1263,8 +1263,19 @@ Server SQLState: 25001)
   @Test
   public void testBatchWithGeneratedKeys() throws SQLException {
     PreparedStatement pstmt = null;
+
+
     try {
       pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", new String[] {"id"});
+
+      for ( int i = 0; i < 10; i++ ){
+        pstmt.setInt(1,i);
+        pstmt.execute();
+        ResultSet genkeys = pstmt.getGeneratedKeys();
+        Assert.assertTrue(genkeys.next());
+        Assert.assertEquals(i+1, genkeys.getLong(1));
+      }
+
       for (int i =  0; i<100; i++){
         pstmt.setInt(1,i);
         pstmt.addBatch();
@@ -1273,7 +1284,7 @@ Server SQLState: 25001)
       ResultSet generatedKeys = pstmt.getGeneratedKeys();
       for (int i = 0; i < 100; i++ ){
         Assert.assertTrue("There should be a generated key for each insert", generatedKeys.next());
-        Assert.assertEquals(i+1, generatedKeys.getLong(1));
+        Assert.assertEquals(i+11, generatedKeys.getLong(1));
       }
     } catch (SQLException sqle) {
       Assert.fail("Failed to insert into a batch. Reason:" + sqle.getMessage());
