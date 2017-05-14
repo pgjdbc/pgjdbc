@@ -1198,6 +1198,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + "  END "
              + " ELSE CASE c.relkind "
              + "  WHEN 'r' THEN 'TEMPORARY TABLE' "
+             + "  WHEN 'p' THEN 'TEMPORARY TABLE' "
              + "  WHEN 'i' THEN 'TEMPORARY INDEX' "
              + "  WHEN 'S' THEN 'TEMPORARY SEQUENCE' "
              + "  WHEN 'v' THEN 'TEMPORARY VIEW' "
@@ -1206,6 +1207,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " END "
              + " WHEN false THEN CASE c.relkind "
              + " WHEN 'r' THEN 'TABLE' "
+             + " WHEN 'p' THEN 'TABLE' "
              + " WHEN 'i' THEN 'INDEX' "
              + " WHEN 'S' THEN 'SEQUENCE' "
              + " WHEN 'v' THEN 'VIEW' "
@@ -1255,8 +1257,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Map<String, String> ht = new HashMap<String, String>();
     tableTypeClauses.put("TABLE", ht);
     ht.put("SCHEMAS",
-        "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
+        "c.relkind IN ('r','p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname !~ '^pg_'");
     ht = new HashMap<String, String>();
     tableTypeClauses.put("VIEW", ht);
     ht.put("SCHEMAS",
@@ -1303,8 +1305,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         "c.relkind = 'v' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
     ht = new HashMap<String, String>();
     tableTypeClauses.put("TEMPORARY TABLE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname ~ '^pg_temp_' ");
-    ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_temp_' ");
+    ht.put("SCHEMAS", "c.relkind IN ('p','r') AND n.nspname ~ '^pg_temp_' ");
+    ht.put("NOSCHEMAS", "c.relkind IN ('p','r') AND c.relname ~ '^pg_temp_' ");
     ht = new HashMap<String, String>();
     tableTypeClauses.put("TEMPORARY INDEX", ht);
     ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
@@ -1444,7 +1446,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
            + " LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) "
            + " LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') "
            + " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') "
-           + " WHERE c.relkind in ('r','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ";
+           + " WHERE c.relkind in ('p','r','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ";
 
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
@@ -1658,7 +1660,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r "
           + " WHERE c.relnamespace = n.oid "
           + " AND c.relowner = r.oid "
-          + " AND c.relkind = 'r' ";
+          + " AND c.relkind IN ('p','r') ";
 
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
@@ -1786,6 +1788,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             sqlpriv = "INSERT";
             break;
           case 'r':
+          case 'p':
             sqlpriv = "SELECT";
             break;
           case 'w':
@@ -2044,6 +2047,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " WHEN 'n' THEN " + DatabaseMetaData.importedKeySetNull
             + " WHEN 'd' THEN " + DatabaseMetaData.importedKeySetDefault
             + " WHEN 'r' THEN " + DatabaseMetaData.importedKeyRestrict
+            + " WHEN 'p' THEN " + DatabaseMetaData.importedKeyRestrict
             + " WHEN 'a' THEN " + DatabaseMetaData.importedKeyNoAction
             + " ELSE NULL END AS UPDATE_RULE, "
             + "CASE con.confdeltype "
@@ -2051,6 +2055,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " WHEN 'n' THEN " + DatabaseMetaData.importedKeySetNull
             + " WHEN 'd' THEN " + DatabaseMetaData.importedKeySetDefault
             + " WHEN 'r' THEN " + DatabaseMetaData.importedKeyRestrict
+            + " WHEN 'p' THEN " + DatabaseMetaData.importedKeyRestrict
             + " WHEN 'a' THEN " + DatabaseMetaData.importedKeyNoAction
             + " ELSE NULL END AS DELETE_RULE, "
             + "con.conname AS FK_NAME, pkic.relname AS PK_NAME, "
