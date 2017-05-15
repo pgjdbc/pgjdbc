@@ -702,7 +702,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Force a Describe before any execution? We need to do this if we're going
     // to send anything dependent on the Describe results, e.g. binary parameters.
-    boolean preDescribe = false;
+    boolean preDescribe = wantsGeneratedKeysAlways;
 
     if (wantsGeneratedKeysAlways) {
       /*
