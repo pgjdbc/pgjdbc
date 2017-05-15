@@ -18,6 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.swing.plaf.nimbus.State;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -50,6 +51,7 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
     TestUtil.createCompositeType(con, "custom", "i int");
     TestUtil.createCompositeType(con, "_custom", "f float");
+
 
     // 8.2 does not support arrays of composite types
     TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
@@ -1209,4 +1211,25 @@ public class DatabaseMetaDataTest {
     assertTrue(!rs.next());
   }
 
+  @Test
+  public void testPartitionedTables() throws SQLException {
+    if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v10) ) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute("CREATE TABLE measurement (logdate date not null,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getTables("", "", "measurement", new String[] {"TABLE"});
+        assertTrue(rs.next());
+        assertEquals("measurement", rs.getString("table_name"));
+
+      } finally {
+        if ( stmt != null ) {
+          stmt.execute("drop table measurement");
+        }
+      }
+    }
+
+
+  }
 }
