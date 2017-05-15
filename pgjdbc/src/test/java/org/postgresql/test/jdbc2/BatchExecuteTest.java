@@ -13,7 +13,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.DatabaseMetaData;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1256,24 +1263,21 @@ Server SQLState: 25001)
   @Test
   public void testBatchWithGeneratedKeys() throws SQLException {
     PreparedStatement pstmt = null;
-
-
     try {
 
-      for ( int i = 0; i < 10; i++ ){
+      for ( int i = 0; i < 10; i++ ) {
         pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
         pstmt.setString(1,"a");
         pstmt.execute();
         ResultSet genkeys = pstmt.getGeneratedKeys();
         Assert.assertTrue(genkeys.next());
-        Assert.assertEquals(""+(i+1), genkeys.getString(1));
+        Assert.assertEquals("" + (i + 1), genkeys.getString(1));
         genkeys.close();
         pstmt.close();
 
       }
 
       pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
-      
 
       pstmt.setString(1,"a");
       pstmt.addBatch();
@@ -1290,6 +1294,7 @@ Server SQLState: 25001)
       TestUtil.closeQuietly(pstmt);
     }
   }
+
   public static void assertSimpleInsertBatch(int n, int[] actual) {
     int[] expected = new int[n];
     Arrays.fill(expected, 1);
