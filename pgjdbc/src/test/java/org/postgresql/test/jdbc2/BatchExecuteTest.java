@@ -13,14 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.sql.BatchUpdateException;
-import java.sql.DatabaseMetaData;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -80,7 +73,7 @@ public class BatchExecuteTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO batchUpdCnt(id) VALUES ('key-2')");
 
 
-    TestUtil.createTable(con, "testbatchserial", "id BIGSERIAL, col1 INTEGER");
+    TestUtil.createTable(con, "testbatchserial", "id BIGSERIAL, col1 text");
     stmt.close();
 
     // Generally recommended with batch updates. By default we run all
@@ -1266,29 +1259,31 @@ Server SQLState: 25001)
 
 
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", new String[] {"id"});
 
       for ( int i = 0; i < 10; i++ ){
-        pstmt.setInt(1,i);
+        pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+        pstmt.setString(1,"a");
         pstmt.execute();
         ResultSet genkeys = pstmt.getGeneratedKeys();
         Assert.assertTrue(genkeys.next());
-        Assert.assertEquals(i+1, genkeys.getLong(1));
+        Assert.assertEquals(""+(i+1), genkeys.getString(1));
+        genkeys.close();
+        pstmt.close();
+
       }
 
-      pstmt.close();
-      pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", new String[] {"id"});
+      pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
       
-      for (int i =  0; i<100; i++){
-        pstmt.setInt(1,i);
-        pstmt.addBatch();
-      }
+
+      pstmt.setString(1,"a");
+      pstmt.addBatch();
+
       int [] ints = pstmt.executeBatch();
       ResultSet generatedKeys = pstmt.getGeneratedKeys();
-      for (int i = 0; i < 100; i++ ){
-        Assert.assertTrue("There should be a generated key for each insert", generatedKeys.next());
-        Assert.assertEquals(i+11, generatedKeys.getLong(1));
-      }
+
+      Assert.assertTrue("There should be a generated key for each insert", generatedKeys.next());
+      Assert.assertEquals("11", generatedKeys.getString(1));
+
     } catch (SQLException sqle) {
       Assert.fail("Failed to insert into a batch. Reason:" + sqle.getMessage());
     } finally {
