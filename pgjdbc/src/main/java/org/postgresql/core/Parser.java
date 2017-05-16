@@ -547,7 +547,11 @@ public class Parser {
       return false;
     }
 
-    return (query[offset] | 32) == 'r'
+    /* test to make sure the word returning is not in the statement
+        we have to test for a space in front and in the end
+    */
+    return (query[offset - 1] == ' ')
+        && (query[offset] | 32) == 'r'
         && (query[offset + 1] | 32) == 'e'
         && (query[offset + 2] | 32) == 't'
         && (query[offset + 3] | 32) == 'u'
@@ -555,7 +559,9 @@ public class Parser {
         && (query[offset + 5] | 32) == 'n'
         && (query[offset + 6] | 32) == 'i'
         && (query[offset + 7] | 32) == 'n'
-        && (query[offset + 8] | 32) == 'g';
+        && (query[offset + 8] | 32) == 'g'
+        /* ensure that returning is not part of another column name */
+        && (query[offset + 9] == ' ');
   }
 
   /**
