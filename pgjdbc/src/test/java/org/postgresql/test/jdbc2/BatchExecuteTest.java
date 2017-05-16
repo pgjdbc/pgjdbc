@@ -1261,7 +1261,7 @@ Server SQLState: 25001)
   }
 
   @Test
-  public void testBatchWithGeneratedKeys() throws SQLException {
+  public void testSingleBatchWithGeneratedKeys() throws SQLException {
     PreparedStatement pstmt = null;
     try {
 
@@ -1288,6 +1288,45 @@ Server SQLState: 25001)
       Assert.assertTrue("There should be a generated key for each insert", generatedKeys.next());
       Assert.assertEquals("11", generatedKeys.getString(1));
 
+    } catch (SQLException sqle) {
+      Assert.fail("Failed to insert into a batch. Reason:" + sqle.getMessage());
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  @Test
+  public void testMultipleBatchWithGeneratedKeys() throws SQLException {
+    PreparedStatement pstmt = null;
+
+    try {
+
+      for ( int i = 0; i < 10; i++ ) {
+        pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+        pstmt.setString(1,"a");
+        pstmt.execute();
+        ResultSet genkeys = pstmt.getGeneratedKeys();
+        Assert.assertTrue(genkeys.next());
+        Assert.assertEquals("" + (i + 1), genkeys.getString(1));
+        genkeys.close();
+        pstmt.close();
+
+      }
+
+      pstmt = con.prepareStatement("INSERT INTO testbatchserial (col1) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+
+      for ( int i = 0; i < 10; i++ ) {
+        pstmt.setString(1, "a");
+        pstmt.addBatch();
+      }
+
+      int [] ints = pstmt.executeBatch();
+      ResultSet generatedKeys = pstmt.getGeneratedKeys();
+
+      for ( int i = 0; i < 10; i++ ) {
+        Assert.assertTrue("There should be a generated key for each insert", generatedKeys.next());
+        Assert.assertEquals("" + (i + 11), generatedKeys.getString(1));
+      }
     } catch (SQLException sqle) {
       Assert.fail("Failed to insert into a batch. Reason:" + sqle.getMessage());
     } finally {
