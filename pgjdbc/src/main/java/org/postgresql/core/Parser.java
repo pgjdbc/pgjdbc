@@ -71,11 +71,14 @@ public class Parser {
     int numberOfStatements = 0;
 
     boolean whitespaceOnly = true;
+    boolean prevCharWhitespace = false;
+
     int keyWordCount = 0;
     int keywordStart = -1;
     for (int i = 0; i < aChars.length; ++i) {
       char aChar = aChars[i];
       boolean isKeyWordChar = false;
+      prevCharWhitespace = whitespaceOnly;
       // ';' is ignored as it splits the queries
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
       switch (aChar) {
@@ -205,7 +208,7 @@ public class Parser {
             }
           }
         }
-        if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
+        if (prevCharWhitespace && wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
           isReturningPresent = true;
         } else if (wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
           isValuesFound = true;
@@ -550,8 +553,7 @@ public class Parser {
     /* test to make sure the word returning is not in the statement
         we have to test for a space in front and in the end
     */
-    return (query[offset - 1] == ' ')
-        && (query[offset] | 32) == 'r'
+    return (query[offset] | 32) == 'r'
         && (query[offset + 1] | 32) == 'e'
         && (query[offset + 2] | 32) == 't'
         && (query[offset + 3] | 32) == 'u'
@@ -559,9 +561,7 @@ public class Parser {
         && (query[offset + 5] | 32) == 'n'
         && (query[offset + 6] | 32) == 'i'
         && (query[offset + 7] | 32) == 'n'
-        && (query[offset + 8] | 32) == 'g'
-        /* ensure that returning is not part of another column name */
-        && (query[offset + 9] == ' ');
+        && (query[offset + 8] | 32) == 'g';
   }
 
   /**

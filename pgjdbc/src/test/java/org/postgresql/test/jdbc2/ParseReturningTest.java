@@ -32,7 +32,7 @@ public class ParseReturningTest extends BaseTest {
   }
 
   protected void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "test_returning");
+    TestUtil.dropTable(con, "testreturning");
     super.tearDown();
   }
 
@@ -41,7 +41,8 @@ public class ParseReturningTest extends BaseTest {
    */
   @Test
   public void testColumnReturning() throws SQLException {
-    PreparedStatement pstmt = con.prepareStatement("insert into test_returning (address, returning_allowed) values (?,?)", Statement.RETURN_GENERATED_KEYS);
+    PreparedStatement pstmt = con.prepareStatement("insert into test_returning (address,"
+        + "\nreturning_allowed) values (?,?)", Statement.RETURN_GENERATED_KEYS);
     pstmt.setString(1, "a");
     pstmt.setBoolean(2, true);
     assertEquals(1,pstmt.executeUpdate());
