@@ -1248,12 +1248,12 @@ public class DatabaseMetaDataTest {
         assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
 
       } finally {
-         if ( stmt != null ) {
-           stmt.execute( "drop table test_new");
-           stmt.close();
-         }
+        if ( stmt != null ) {
+          stmt.execute( "drop table test_new");
+          stmt.close();
+        }
       }
-      }
+    }
 
   }
 
