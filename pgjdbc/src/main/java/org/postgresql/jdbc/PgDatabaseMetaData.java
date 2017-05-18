@@ -1437,6 +1437,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql += "a.attnum,";
     }
 
+    if (connection.haveMinimumServerVersion(ServerVersion.v10)) {
+      sql += "nullif(a.attidentity, '') as attidentity,";
+    } else {
+      sql += "null as attidentity,";
+    }
     sql += "pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype "
            + " FROM pg_catalog.pg_namespace n "
            + " JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) "
@@ -1505,6 +1510,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           }
         }
       }
+      String identity = rs.getString("attidentity");
 
       int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
       int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
@@ -1543,7 +1549,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                   : connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
 
       String autoinc = "NO";
-      if (defval != null && defval.contains("nextval(")) {
+      if (defval != null && defval.contains("nextval(") || identity != null) {
         autoinc = "YES";
       }
       tuple[22] = connection.encodeString(autoinc);
