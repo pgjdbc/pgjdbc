@@ -13,7 +13,6 @@ import org.postgresql.test.TestUtil;
 
 import org.junit.Test;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -41,13 +40,21 @@ public class ParseReturningTest extends BaseTest {
    */
   @Test
   public void testColumnReturning() throws SQLException {
-    PreparedStatement pstmt = con.prepareStatement("insert into test_returning (address,"
-        + "\nreturning_allowed) values (?,?)", Statement.RETURN_GENERATED_KEYS);
-    pstmt.setString(1, "a");
-    pstmt.setBoolean(2, true);
-    assertEquals(1,pstmt.executeUpdate());
-    ResultSet generatedKeys = pstmt.getGeneratedKeys();
+    Statement stmt = con.createStatement();
+    stmt.execute("insert into test_returning (address,"
+        + "\nreturning_allowed) values ('a','t')", Statement.RETURN_GENERATED_KEYS);
+    ResultSet generatedKeys = stmt.getGeneratedKeys();
     assertTrue("There should be at least one result", generatedKeys.next());
+    generatedKeys.close();
+    generatedKeys.close();
+
+    try {
+      stmt.execute("insert into \"test_returning\"(address,returning_allowed)values('a','t')returning*", Statement.RETURN_GENERATED_KEYS);
+    } catch (SQLException ex) {
+      assertEquals("42601", ex.getSQLState());
+    } finally {
+      stmt.close();
+    }
 
   }
 }

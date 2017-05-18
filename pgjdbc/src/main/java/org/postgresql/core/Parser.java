@@ -71,14 +71,14 @@ public class Parser {
     int numberOfStatements = 0;
 
     boolean whitespaceOnly = true;
-    boolean prevCharWhitespace = false;
+    boolean isKeyWordChar = false;
 
     int keyWordCount = 0;
     int keywordStart = -1;
     for (int i = 0; i < aChars.length; ++i) {
+
       char aChar = aChars[i];
-      boolean isKeyWordChar = false;
-      prevCharWhitespace = whitespaceOnly;
+      isKeyWordChar = false;
       // ';' is ignored as it splits the queries
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
       switch (aChar) {
@@ -176,8 +176,7 @@ public class Parser {
           break;
 
         default:
-          isKeyWordChar =
-              aChars[i] >= 'a' && aChars[i] <= 'z' || aChars[i] >= 'A' && aChars[i] <= 'Z';
+          isKeyWordChar = isKeyWordChar(aChars[i]);
           if (isKeyWordChar && keywordStart < 0) {
             keywordStart = i;
           }
@@ -208,7 +207,9 @@ public class Parser {
             }
           }
         }
-        if (prevCharWhitespace && wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
+
+        if ( keywordStart > 0 && !isKeyWordChar(aChars[keywordStart - 1])
+            && wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
           isReturningPresent = true;
         } else if (wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
           isValuesFound = true;
@@ -265,6 +266,10 @@ public class Parser {
       nativeQueries.add(lastQuery);
     }
     return nativeQueries;
+  }
+
+  private static boolean isKeyWordChar(char ch) {
+    return   ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
   }
 
   private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
