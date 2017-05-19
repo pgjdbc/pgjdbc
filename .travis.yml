@@ -27,7 +27,7 @@ script:
   - export JDK6_HOME=$(jdk_switcher home openjdk6)
   - export JDK7_HOME=$(jdk_switcher home openjdk7)
   - export JDK8_HOME=$(jdk_switcher home oraclejdk8)
-  - export JDK9_HOME=/usr/lib/jvm/java-9-openjdk-amd64/
+  - -test -d "${JDK9_HOME}" || export JDK9_HOME=/usr/lib/jvm/java-9-openjdk-amd64/
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - ./.travis/travis_build.sh
   - ./.travis/travis_check_postgres_health.sh
