@@ -282,6 +282,13 @@ public enum PGProperty {
       "Argument forwarded to constructor of SocketFactory class."),
 
   /**
+   * Resolve DNS address to ip.  Should be false if you want a socks proxy to resolve the
+   * DNS address
+   */
+  RESOLVE_DNS("resolveDNS", null, 
+		  "Wether to resolve dns addresses,  set to false if using a socks proxy"),
+  
+  /**
    * Socket read buffer size (SO_RECVBUF). A value of {@code -1}, which is the default, means system
    * default.
    */

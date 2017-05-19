@@ -42,6 +42,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
+  private boolean resolveDNS = true;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
@@ -64,6 +65,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
+    this.resolveDNS = PGProperty.RESOLVE_DNS.getBoolean(info);
+    
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
@@ -152,7 +155,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       }
 
       cancelStream =
-          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout);
+          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), this.resolveDNS, cancelSignalTimeout);
       if (cancelSignalTimeout > 0) {
         cancelStream.getSocket().setSoTimeout(cancelSignalTimeout);
       }
