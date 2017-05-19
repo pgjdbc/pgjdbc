@@ -6,9 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Test;
@@ -45,7 +43,6 @@ public class UpsertTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeTrue("upsert requires PostgreSQL 9.5+", TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_5));
 
     TestUtil.createTempTable(con, "test_statement", "i int primary key, t varchar(5)");
     stmt = con.createStatement();

@@ -72,13 +72,14 @@ public class GetObject310InfinityTests extends BaseTest4 {
               // org.postgresql.util.PSQLException: Cannot convert the column of type TIMESTAMPTZ to requested type timestamp.
               continue;
             }
+            Field field = null;
             try {
-              Field field = klass.getField(expression.startsWith("-") ? "MIN" : "MAX");
-              Object expected = field.get(null);
-              ids.add(new Object[]{binaryMode, expression, pgType, klass, expected});
+              field = klass.getField(expression.startsWith("-") ? "MIN" : "MAX");
             } catch (NoSuchFieldException e) {
               throw new IllegalStateException("No min/max field in " + klass, e);
             }
+            Object expected = field.get(null);
+            ids.add(new Object[]{binaryMode, expression, pgType, klass, expected});
           }
         }
       }

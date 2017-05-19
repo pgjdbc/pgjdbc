@@ -8,28 +8,29 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 /*
  * Test that enhanced error reports return the correct origin for constraint violation errors.
  */
-public class ServerErrorTest extends BaseTest4 {
+public class ServerErrorTest {
 
-  @Override
+  private Connection con;
+
+  @Before
   public void setUp() throws Exception {
-    super.setUp();
-    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
-
+    con = TestUtil.openDB();
     Statement stmt = con.createStatement();
 
     stmt.execute("CREATE DOMAIN testdom AS int4 CHECK (value < 10)");
@@ -38,13 +39,13 @@ public class ServerErrorTest extends BaseTest4 {
     stmt.close();
   }
 
-  @Override
-  public void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropTable(con, "testerr");
     Statement stmt = con.createStatement();
     stmt.execute("DROP DOMAIN testdom");
     stmt.close();
-    super.tearDown();
+    TestUtil.closeDB(con);
   }
 
   @Test

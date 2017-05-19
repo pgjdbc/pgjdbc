@@ -19,6 +19,7 @@ import org.postgresql.util.WriterHandler;
 import org.junit.Test;
 
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -71,7 +72,10 @@ public class DriverTest {
   private void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName)
       throws Exception {
     assertTrue(url, drv.acceptsURL(url));
-    Properties p = Driver.parseURL(url, null);
+    Method parseMethod =
+        drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
+    parseMethod.setAccessible(true);
+    Properties p = (Properties) parseMethod.invoke(drv, url, null);
     assertEquals(url, dbName, p.getProperty("PGDBNAME"));
     assertEquals(url, hosts, p.getProperty("PGHOST"));
     assertEquals(url, ports, p.getProperty("PGPORT"));
@@ -184,6 +188,7 @@ public class DriverTest {
 
   @Test
   public void testSetLogWriter() throws Exception {
+
     // this is a dummy to make sure TestUtil is initialized
     Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
     con.close();
@@ -191,6 +196,7 @@ public class DriverTest {
     String loggerFile = System.getProperty("loggerFile");
 
     try {
+
       PrintWriter printWriter = new PrintWriter(new NullOutputStream(System.err));
       DriverManager.setLogWriter(printWriter);
       assertEquals(DriverManager.getLogWriter(), printWriter);
@@ -210,12 +216,14 @@ public class DriverTest {
       DriverManager.setLogWriter(null);
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
+
     }
 
   }
 
   @Test
   public void testSetLogStream() throws Exception {
+
     // this is a dummy to make sure TestUtil is initialized
     Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
     con.close();
@@ -223,6 +231,7 @@ public class DriverTest {
     String loggerFile = System.getProperty("loggerFile");
 
     try {
+
       DriverManager.setLogStream(new NullOutputStream(System.err));
       System.clearProperty("loggerFile");
       System.clearProperty("loggerLevel");
@@ -240,6 +249,8 @@ public class DriverTest {
       DriverManager.setLogStream(null);
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
+
+
     }
 
   }

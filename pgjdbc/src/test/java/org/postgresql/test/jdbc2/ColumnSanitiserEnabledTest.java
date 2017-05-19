@@ -9,7 +9,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.junit.After;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 
@@ -45,8 +44,7 @@ public class ColumnSanitiserEnabledTest {
     data.close();
   }
 
-  @After
-  public void tearDown() throws Exception {
+  protected void tearDown() throws Exception {
     TestUtil.dropTable(conn, "allmixedup");
     TestUtil.closeDB(conn);
   }

@@ -25,8 +25,8 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
- * Tests {@link PGTime} in various scenarios including setTime, setObject for both {@code time with
- * time zone} and {@code time without time zone} data types.
+ * Tests {@link PGTime} in various scenarios including setTime, setObject for both <code>time with
+ * time zone</code> and <code>time without time zone</code> data types.
  */
 public class PGTimeTest extends BaseTest4 {
   /**
@@ -47,7 +47,7 @@ public class PGTimeTest extends BaseTest4 {
   }
 
   /**
-   * Tests that adding a {@code PGInterval} object to a {@code PGTime} object when
+   * Tests that adding a <code>PGInterval</code> object to a <code>PGTime</code> object when
    * performed as a casted string and object.
    *
    * @throws SQLException if a JDBC or database problem occurs.
@@ -55,7 +55,7 @@ public class PGTimeTest extends BaseTest4 {
   @Test
   public void testTimeWithInterval() throws SQLException {
     Calendar cal = Calendar.getInstance();
-    cal.set(1970, Calendar.JANUARY, 1);
+    cal.set(1970, 0, 1);
 
     final long now = cal.getTimeInMillis();
     verifyTimeWithInterval(new PGTime(now), new PGInterval(0, 0, 0, 1, 2, 3.14), true);
@@ -73,12 +73,12 @@ public class PGTimeTest extends BaseTest4 {
   }
 
   /**
-   * Verifies that adding the given {@code PGInterval} object to a {@code PGTime} produces
+   * Verifies that adding the given <code>PGInterval</code> object to a <code>PGTime</code> produces
    * the correct results when performed as a casted string and object.
    *
    * @param time the time to test.
    * @param interval the time interval.
-   * @param useSetObject {@code true} if the setObject method should be used instead of
+   * @param useSetObject <code>true</code> if the setObject method should be used instead of
    *        setTime.
    * @throws SQLException if a JDBC or database problem occurs.
    */
@@ -125,15 +125,15 @@ public class PGTimeTest extends BaseTest4 {
   }
 
   /**
-   * Tests inserting and selecting {@code PGTime} objects with {@code time} and {@code time
-   * with time zone} columns.
+   * Tests inserting and selecting <code>PGTime</code> objects with <code>time</code> and <code>time
+   * with time zone</code> columns.
    *
    * @throws SQLException if a JDBC or database problem occurs.
    */
   @Test
   public void testTimeInsertAndSelect() throws SQLException {
     Calendar cal = Calendar.getInstance();
-    cal.set(1970, Calendar.JANUARY, 1);
+    cal.set(1970, 0, 1);
 
     final long now = cal.getTimeInMillis();
     verifyInsertAndSelect(new PGTime(now), true);
@@ -150,11 +150,11 @@ public class PGTimeTest extends BaseTest4 {
   }
 
   /**
-   * Verifies that inserting the given {@code PGTime} as a time string and an object produces
+   * Verifies that inserting the given <code>PGTime</code> as a time string and an object produces
    * the same results.
    *
    * @param time the time to test.
-   * @param useSetObject {@code true} if the setObject method should be used instead of
+   * @param useSetObject <code>true</code> if the setObject method should be used instead of
    *        setTime.
    * @throws SQLException if a JDBC or database problem occurs.
    */

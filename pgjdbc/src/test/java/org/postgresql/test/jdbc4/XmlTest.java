@@ -10,14 +10,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.test.TestUtil;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import org.postgresql.test.jdbc2.BaseTest4;
 import org.w3c.dom.Node;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,49 +44,50 @@ import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-public class XmlTest extends BaseTest4 {
-  private final static String XSL =
+public class XmlTest {
+  private final static String _xsl =
           "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"><xsl:output method=\"text\" indent=\"no\" /><xsl:template match=\"/a\"><xsl:for-each select=\"/a/b\">B<xsl:value-of select=\".\" /></xsl:for-each></xsl:template></xsl:stylesheet>";
-  private final static String XML_DOCUMENT = "<a><b>1</b><b>2</b></a>";
-  private final static String XML_FRAGMENT = "<a>f</a><b>g</b>";
+  private final static String _xmlDocument = "<a><b>1</b><b>2</b></a>";
+  private final static String _xmlFragment = "<a>f</a><b>g</b>";
 
+  private Connection _conn;
   private final Transformer _xslTransformer;
   private final Transformer _identityTransformer;
 
 
   public XmlTest() throws Exception {
     TransformerFactory factory = TransformerFactory.newInstance();
-    _xslTransformer = factory.newTransformer(new StreamSource(new StringReader(XSL)));
+    _xslTransformer = factory.newTransformer(new StreamSource(new StringReader(_xsl)));
     _xslTransformer.setErrorListener(new Ignorer());
     _identityTransformer = factory.newTransformer();
   }
 
-  @Override
+  @Before
   public void setUp() throws Exception {
-    super.setUp();
-    Statement stmt = con.createStatement();
+    _conn = TestUtil.openDB();
+    Statement stmt = _conn.createStatement();
     stmt.execute("CREATE TEMP TABLE xmltest(id int primary key, val xml)");
-    stmt.execute("INSERT INTO xmltest VALUES (1, '" + XML_DOCUMENT + "')");
-    stmt.execute("INSERT INTO xmltest VALUES (2, '" + XML_FRAGMENT + "')");
+    stmt.execute("INSERT INTO xmltest VALUES (1, '" + _xmlDocument + "')");
+    stmt.execute("INSERT INTO xmltest VALUES (2, '" + _xmlFragment + "')");
     stmt.close();
   }
 
-  @Override
+  @After
   public void tearDown() throws SQLException {
-    Statement stmt = con.createStatement();
+    Statement stmt = _conn.createStatement();
     stmt.execute("DROP TABLE xmltest");
     stmt.close();
-    super.tearDown();
+    TestUtil.closeDB(_conn);
   }
 
   private ResultSet getRS() throws SQLException {
-    Statement stmt = con.createStatement();
+    Statement stmt = _conn.createStatement();
     return stmt.executeQuery("SELECT val FROM xmltest");
   }
 
   @Test
   public void testUpdateRS() throws SQLException {
-    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    Statement stmt = _conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = stmt.executeQuery("SELECT id, val FROM xmltest");
     assertTrue(rs.next());
     SQLXML xml = rs.getSQLXML(2);
@@ -162,15 +167,15 @@ public class XmlTest extends BaseTest4 {
   }
 
   private <T extends Result> void testWrite(Class<T> resultClass) throws Exception {
-    Statement stmt = con.createStatement();
+    Statement stmt = _conn.createStatement();
     stmt.execute("DELETE FROM xmltest");
     stmt.close();
 
-    PreparedStatement ps = con.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
-    SQLXML xml = con.createSQLXML();
+    PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
+    SQLXML xml = _conn.createSQLXML();
     Result result = xml.setResult(resultClass);
 
-    Source source = new StreamSource(new StringReader(XML_DOCUMENT));
+    Source source = new StreamSource(new StringReader(_xmlDocument));
     _identityTransformer.transform(source, result);
 
     ps.setInt(1, 1);
@@ -188,9 +193,9 @@ public class XmlTest extends BaseTest4 {
       header = "<?xml version=\"1.0\" standalone=\"no\"?>";
     }
 
-    assertEquals(header + XML_DOCUMENT, rs.getString(1));
+    assertEquals(header + _xmlDocument, rs.getString(1));
     xml = rs.getSQLXML(1);
-    assertEquals(header + XML_DOCUMENT, xml.getString());
+    assertEquals(header + _xmlDocument, xml.getString());
 
     assertTrue(!rs.next());
   }
@@ -238,18 +243,18 @@ public class XmlTest extends BaseTest4 {
 
   @Test
   public void testSetNull() throws SQLException {
-    Statement stmt = con.createStatement();
+    Statement stmt = _conn.createStatement();
     stmt.execute("DELETE FROM xmltest");
     stmt.close();
 
-    PreparedStatement ps = con.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
+    PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
     ps.setInt(1, 1);
     ps.setNull(2, Types.SQLXML);
     ps.executeUpdate();
     ps.setInt(1, 2);
     ps.setObject(2, null, Types.SQLXML);
     ps.executeUpdate();
-    SQLXML xml = con.createSQLXML();
+    SQLXML xml = _conn.createSQLXML();
     xml.setString(null);
     ps.setInt(1, 3);
     ps.setObject(2, xml);
@@ -268,7 +273,7 @@ public class XmlTest extends BaseTest4 {
 
   @Test
   public void testEmpty() throws SQLException, IOException {
-    SQLXML xml = con.createSQLXML();
+    SQLXML xml = _conn.createSQLXML();
 
     try {
       xml.getString();
@@ -285,7 +290,7 @@ public class XmlTest extends BaseTest4 {
 
   @Test
   public void testDoubleSet() throws SQLException {
-    SQLXML xml = con.createSQLXML();
+    SQLXML xml = _conn.createSQLXML();
 
     xml.setString("");
 
