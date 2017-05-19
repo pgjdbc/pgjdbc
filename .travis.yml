@@ -13,7 +13,6 @@ before_script:
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
-  - if [[ "x$JDK" == *'x9'* ]]; then remove_dir_from_path $JAVA_HOME/bin; export JAVA_HOME=/usr/lib/jvm/java-9-oracle; export PATH=$JAVA_HOME/bin:$PATH; java -Xmx32m -version; fi
 
 env:
   global:
@@ -27,8 +26,7 @@ script:
   - export JDK6_HOME=$(jdk_switcher home openjdk6)
   - export JDK7_HOME=$(jdk_switcher home openjdk7)
   - export JDK8_HOME=$(jdk_switcher home oraclejdk8)
-  - export JDK9_HOME=/usr/lib/jvm/java-9-oracle
-  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
+  - export JDK9_HOME=$(jdk_switcher home openjdk9)
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - ./.travis/travis_build.sh
   - ./.travis/travis_check_postgres_health.sh
@@ -136,12 +134,9 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8 # this will be overwritten by before_install above
+    - jdk: openjdk9 
       addons:
         postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java9-installer
       env:
         - PG_VERSION=9.4
         - JDK=9
