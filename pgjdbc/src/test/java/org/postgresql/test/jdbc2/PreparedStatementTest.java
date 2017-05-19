@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -35,6 +36,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 @RunWith(Parameterized.class)
@@ -1090,6 +1092,66 @@ public class PreparedStatementTest extends BaseTest4 {
     psinsert.close();
     psselect.close();
     pstruncate.close();
+  }
+
+  @Test
+  public void testSetObjectWithBigDecimal() throws SQLException {
+    TestUtil.createTempTable(con, "number_fallback",
+            "n1 numeric");
+    PreparedStatement psinsert = con.prepareStatement("insert into number_fallback values(?)");
+    PreparedStatement psselect = con.prepareStatement("select n1 from number_fallback");
+
+    psinsert.setObject(1, new BigDecimal("733"));
+    psinsert.execute();
+
+    ResultSet rs = psselect.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(
+        "expected 733, but received " + rs.getBigDecimal(1),
+        new BigDecimal("733").compareTo(rs.getBigDecimal(1)) == 0);
+
+    psinsert.close();
+    psselect.close();
+  }
+
+  @Test
+  public void testSetObjectNumberFallbackWithBigInteger() throws SQLException {
+    TestUtil.createTempTable(con, "number_fallback",
+            "n1 numeric");
+    PreparedStatement psinsert = con.prepareStatement("insert into number_fallback values(?)");
+    PreparedStatement psselect = con.prepareStatement("select n1 from number_fallback");
+
+    psinsert.setObject(1, new BigInteger("733"));
+    psinsert.execute();
+
+    ResultSet rs = psselect.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(
+        "expected 733, but received " + rs.getBigDecimal(1),
+        new BigDecimal("733").compareTo(rs.getBigDecimal(1)) == 0);
+
+    psinsert.close();
+    psselect.close();
+  }
+
+  @Test
+  public void testSetObjectNumberFallbackWithAtomicLong() throws SQLException {
+    TestUtil.createTempTable(con, "number_fallback",
+            "n1 numeric");
+    PreparedStatement psinsert = con.prepareStatement("insert into number_fallback values(?)");
+    PreparedStatement psselect = con.prepareStatement("select n1 from number_fallback");
+
+    psinsert.setObject(1, new AtomicLong(733));
+    psinsert.execute();
+
+    ResultSet rs = psselect.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(
+        "expected 733, but received " + rs.getBigDecimal(1),
+        new BigDecimal("733").compareTo(rs.getBigDecimal(1)) == 0);
+
+    psinsert.close();
+    psselect.close();
   }
 
   @Test
