@@ -65,42 +65,6 @@ public class StringTypeParameterTest {
     testParameterVarchar(null);
   }
 
-  @Test
-  public void testParameterUnspecified() throws Exception {
-    if (!prepare("unspecified")) {
-      return;
-    }
-
-    PreparedStatement update = _conn.prepareStatement("insert into stringtypetest (m) values (?)");
-    update.setString(1, "happy");
-    update.executeUpdate();
-    // all good
-
-    update.clearParameters();
-    update.setObject(1, "happy", Types.VARCHAR);
-    update.executeUpdate();
-    // all good
-    update.close();
-
-    PreparedStatement query = _conn.prepareStatement("select * from stringtypetest where m = ?");
-    query.setString(1, "happy");
-    ResultSet rs = query.executeQuery();
-    assertTrue(rs.next());
-    assertEquals("happy", rs.getObject("m"));
-    rs.close();
-
-    query.clearParameters();
-    query.setObject(1, "happy", Types.VARCHAR);
-    rs = query.executeQuery();
-    assertTrue(rs.next());
-    assertEquals("happy", rs.getObject("m"));
-
-    // all good
-    rs.close();
-    query.close();
-
-  }
-
   private void testParameterVarchar(String param) throws Exception {
     if (!prepare(param)) {
       return;
@@ -159,5 +123,40 @@ public class StringTypeParameterTest {
     rs.close();
     query.close();
 
+  }
+
+  @Test
+  public void testParameterUnspecified() throws Exception {
+    if (!prepare("unspecified")) {
+      return;
+    }
+
+    PreparedStatement update = _conn.prepareStatement("insert into stringtypetest (m) values (?)");
+    update.setString(1, "happy");
+    update.executeUpdate();
+    // all good
+
+    update.clearParameters();
+    update.setObject(1, "happy", Types.VARCHAR);
+    update.executeUpdate();
+    // all good
+    update.close();
+
+    PreparedStatement query = _conn.prepareStatement("select * from stringtypetest where m = ?");
+    query.setString(1, "happy");
+    ResultSet rs = query.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("happy", rs.getObject("m"));
+    rs.close();
+
+    query.clearParameters();
+    query.setObject(1, "happy", Types.VARCHAR);
+    rs = query.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("happy", rs.getObject("m"));
+
+    // all good
+    rs.close();
+    query.close();
   }
 }
