@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
@@ -38,6 +39,7 @@ public class CopyLargeFileTest {
   @Before
   public void setUp() throws Exception {
     con = TestUtil.openDB();
+    assumeTrue(TestUtil.isProtocolVersion(con, 3));
 
     TestUtil.createTable(con, "pgjdbc_issue366_test_glossary",
         "id SERIAL, text_id VARCHAR(1000) NOT NULL UNIQUE, name VARCHAR(10) NOT NULL UNIQUE");

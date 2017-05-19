@@ -11,11 +11,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
@@ -24,18 +21,7 @@ import java.sql.SQLException;
  * properties. Methods which return a ResultSet are tested elsewhere. This avoids a complicated
  * setUp/tearDown for something like assertTrue(dbmd.nullPlusNonNullIsNull());
  */
-public class DatabaseMetaDataPropertiesTest {
-  private Connection con;
-
-  @Before
-  public void setUp() throws Exception {
-    con = TestUtil.openDB();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(con);
-  }
+public class DatabaseMetaDataPropertiesTest extends BaseTest4 {
 
   /*
    * The spec says this may return null, but we always do!

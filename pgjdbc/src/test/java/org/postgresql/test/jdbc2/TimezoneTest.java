@@ -555,22 +555,16 @@ public class TimezoneTest {
 
       int seq = 1;
 
-      Date dJVM;
-      Date dUTC;
-      Date dGMT03;
-      Date dGMT05;
-      Date dGMT13 = null;
-
       // +0100 (JVM default)
-      dJVM = new Date(1104534000000L); // 2005-01-01 00:00:00 +0100
+      Date dJVM = new Date(1104534000000L); // 2005-01-01 00:00:00 +0100
       insertTimestamp.setInt(1, seq++);
       insertTimestamp.setDate(2, dJVM); // 2005-01-01 00:00:00 +0100
       insertTimestamp.setDate(3, dJVM); // 2005-01-01 00:00:00
       insertTimestamp.setDate(4, dJVM); // 2005-01-01
       insertTimestamp.executeUpdate();
 
-      // UTC
-      dUTC = new Date(1104537600000L); // 2005-01-01 00:00:00 +0000
+        // UTC
+      Date dUTC = new Date(1104537600000L); // 2005-01-01 00:00:00 +0000
       insertTimestamp.setInt(1, seq++);
       insertTimestamp.setDate(2, dUTC, cUTC); // 2005-01-01 00:00:00 +0000
       insertTimestamp.setDate(3, dUTC, cUTC); // 2005-01-01 00:00:00
@@ -578,7 +572,7 @@ public class TimezoneTest {
       insertTimestamp.executeUpdate();
 
       // +0300
-      dGMT03 = new Date(1104526800000L); // 2005-01-01 00:00:00 +0300
+      Date dGMT03 = new Date(1104526800000L); // 2005-01-01 00:00:00 +0300
       insertTimestamp.setInt(1, seq++);
       insertTimestamp.setDate(2, dGMT03, cGMT03); // 2005-01-01 00:00:00 +0300
       insertTimestamp.setDate(3, dGMT03, cGMT03); // 2005-01-01 00:00:00
@@ -586,7 +580,7 @@ public class TimezoneTest {
       insertTimestamp.executeUpdate();
 
       // -0500
-      dGMT05 = new Date(1104555600000L); // 2005-01-01 00:00:00 -0500
+      Date dGMT05 = new Date(1104555600000L); // 2005-01-01 00:00:00 -0500
       insertTimestamp.setInt(1, seq++);
       insertTimestamp.setDate(2, dGMT05, cGMT05); // 2005-01-01 00:00:00 -0500
       insertTimestamp.setDate(3, dGMT05, cGMT05); // 2005-01-01 00:00:00
@@ -594,7 +588,7 @@ public class TimezoneTest {
       insertTimestamp.executeUpdate();
 
       // +1300
-      dGMT13 = new Date(1104490800000L); // 2005-01-01 00:00:00 +1300
+      Date dGMT13 = new Date(1104490800000L); // 2005-01-01 00:00:00 +1300
       insertTimestamp.setInt(1, seq++);
       insertTimestamp.setDate(2, dGMT13, cGMT13); // 2005-01-01 00:00:00 +1300
       insertTimestamp.setDate(3, dGMT13, cGMT13); // 2005-01-01 00:00:00

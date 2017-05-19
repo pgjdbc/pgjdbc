@@ -62,7 +62,7 @@ public class TypesTest extends BaseTest4 {
     // The V2 path will return a String because it doesn't know
     // any better.
     if (preferQueryMode != PreferQueryMode.SIMPLE) {
-      assertTrue(!((Boolean) rs.getObject(4)).booleanValue());
+      assertFalse((Boolean) rs.getObject(4));
     }
   }
 

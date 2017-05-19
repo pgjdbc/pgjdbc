@@ -667,10 +667,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       cstmt.registerOutParameter(3, java.sql.Types.FLOAT);
       cstmt.executeUpdate();
       Double val = (Double) cstmt.getObject(1);
-      assertTrue(val.doubleValue() == doubleValues[0]);
+      assertTrue(val == doubleValues[0]);
 
       val = (Double) cstmt.getObject(2);
-      assertTrue(val.doubleValue() == doubleValues[1]);
+      assertTrue(val == doubleValues[1]);
 
       val = (Double) cstmt.getObject(3);
       assertTrue(cstmt.wasNull());

@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
@@ -62,6 +63,8 @@ public class CopyTest {
   @Before
   public void setUp() throws Exception {
     con = TestUtil.openDB();
+    assumeTrue(TestUtil.isProtocolVersion(con, 3));
+
 
     TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
 
@@ -107,10 +110,8 @@ public class CopyTest {
 
     long count1 = cp.endCopy();
     long count2 = cp.getHandledRowCount();
-    long expectedResult = -1;
-    expectedResult = dataRows;
-    assertEquals(expectedResult, count1);
-    assertEquals(expectedResult, count2);
+    assertEquals(dataRows, count1);
+    assertEquals(dataRows, count2);
 
     try {
       cp.cancelCopy();
@@ -204,18 +205,15 @@ public class CopyTest {
     String sql = "COPY copytest TO STDOUT";
     CopyOut cp = copyAPI.copyOut(sql);
     int count = 0;
-    byte buf[];
-    while ((buf = cp.readFromCopy()) != null) {
+    while (cp.readFromCopy() != null) {
       count++;
     }
     assertEquals(false, cp.isActive());
     assertEquals(dataRows, count);
 
     long rowCount = cp.getHandledRowCount();
-    long expectedResult = -1;
-    expectedResult = dataRows;
 
-    assertEquals(expectedResult, rowCount);
+    assertEquals(dataRows, rowCount);
 
     assertEquals(dataRows, getCount());
   }
