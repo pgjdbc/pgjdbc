@@ -27,6 +27,7 @@ script:
   - export JDK7_HOME=$(jdk_switcher home openjdk7)
   - export JDK8_HOME=$(jdk_switcher home oraclejdk8)
   - export JDK9_HOME=$(jdk_switcher home oraclejdk9)
+  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - ./.travis/travis_build.sh
   - ./.travis/travis_check_postgres_health.sh
@@ -148,7 +149,6 @@ matrix:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - MCENTRAL=Y
     - jdk: openjdk6
       addons:
         postgresql: "9.4"
