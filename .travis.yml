@@ -12,7 +12,8 @@ before_script:
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
-  - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
+  - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql tes
+  - if [[ "x$JDK" == *'x9'* ]]; then export JAVA_HOME=/usr/lib/jvm/zulu-9-amd64; export PATH=$JAVA_HOME/bin:$PATH; fi
 
 env:
   global:
@@ -140,10 +141,10 @@ matrix:
       dist: trusty
       group: edge
       addons:
-        postgresql: "9.4"
+        postgresql: "9.6"
       env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
+        - PG_VERSION=9.6
+        - JDK=9
     - jdk: openjdk7
       addons:
         postgresql: "9.4"

@@ -443,6 +443,8 @@ public class LogicalReplicationTest {
     result.addAll(receiveMessage(stream, 3));
 
     replConnection.close();
+    waitStopReplicationSlot();
+
     replConnection = openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
 
