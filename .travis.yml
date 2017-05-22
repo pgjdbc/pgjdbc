@@ -150,6 +150,7 @@ matrix:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
+        - MCENTRAL=Y
     - jdk: openjdk6
       addons:
         postgresql: "9.4"
