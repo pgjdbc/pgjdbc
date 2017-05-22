@@ -12,8 +12,8 @@ before_script:
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
-  - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql tes
-  - if [[ "x$JDK" == *'x9'* ]]; then export JAVA_HOME=/usr/lib/jvm/zulu-9-amd64; export PATH=$JAVA_HOME/bin:$PATH; fi
+  - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
+#  - if [[ "x$JDK" == *'x9'* ]]; then export JAVA_HOME=/usr/lib/jvm/java-9-oracle; export PATH=$JAVA_HOME/bin:$PATH; fi
 
 env:
   global:
