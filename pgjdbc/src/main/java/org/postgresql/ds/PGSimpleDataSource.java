@@ -23,11 +23,10 @@ import javax.sql.DataSource;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class PGSimpleDataSource extends BaseDataSource implements DataSource, Serializable {
-  /**
-   * Gets a description of this DataSource.
-   */
+
+  @Override
   public String getDescription() {
-    return "Non-Pooling DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
+    return "Simple DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   private void writeObject(ObjectOutputStream out) throws IOException {
@@ -38,10 +37,12 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
     readBaseObject(in);
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);

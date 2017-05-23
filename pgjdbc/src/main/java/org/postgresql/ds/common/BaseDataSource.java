@@ -91,11 +91,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public Connection getConnection(String user, String password) throws SQLException {
     try {
-      Connection con = DriverManager.getConnection(getUrl(), user, password);
-      if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
+      if (org.postgresql.Driver.isRegistered()) {
+        Connection con = DriverManager.getConnection(getUrl(), user, password);
+        if (LOGGER.isLoggable(Level.FINE)) {
+          LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
+        }
+        return con;
+      } else {
+        throw new SQLException("Driver is not registered.");
       }
-      return con;
     } catch (SQLException e) {
       LOGGER.log(Level.SEVERE, "Failed to create a {0} for {1} at {2}: {3}",
           new Object[]{getDescription(), user, getUrl(), e});
@@ -1001,6 +1005,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return replication parameter for startup message
    * @see PGProperty#REPLICATION
    */
   public String getReplication() {
@@ -1150,6 +1155,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return new Reference(getClass().getName(), PGObjectFactory.class.getName(), null);
   }
 
+  @Override
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
     ref.add(new StringRefAddr("serverName", serverName));
@@ -1275,6 +1281,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
   }

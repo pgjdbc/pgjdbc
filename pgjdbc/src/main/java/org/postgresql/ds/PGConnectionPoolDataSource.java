@@ -30,19 +30,13 @@ import javax.sql.PooledConnection;
  * these properties are declared in the superclass.
  * </p>
  *
- * <p>
- * This implementation supports JDK 1.3 and higher.
- * </p>
- *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class PGConnectionPoolDataSource extends BaseDataSource
     implements ConnectionPoolDataSource, Serializable {
   private boolean defaultAutoCommit = true;
 
-  /**
-   * Gets a description of this DataSource.
-   */
+  @Override
   public String getDescription() {
     return "ConnectionPoolDataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
@@ -54,6 +48,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
    * @throws java.sql.SQLException Occurs when the physical database connection cannot be
    *         established.
    */
+  @Override
   public PooledConnection getPooledConnection() throws SQLException {
     return new PGPooledConnection(getConnection(), defaultAutoCommit);
   }
@@ -65,6 +60,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
    * @throws java.sql.SQLException Occurs when the physical database connection cannot be
    *         established.
    */
+  @Override
   public PooledConnection getPooledConnection(String user, String password) throws SQLException {
     return new PGPooledConnection(getConnection(user, password), defaultAutoCommit);
   }
