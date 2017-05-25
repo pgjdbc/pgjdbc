@@ -286,7 +286,7 @@ public enum PGProperty {
    * DNS address
    */
   RESOLVE_DNS("resolveDns", null,
-      "Wether to resolve dns addresses,  set to false if using a socks proxy"),
+      "Whether to resolve dns addresses,  set to false if using a socks proxy"),
 
   /**
    * Socket read buffer size (SO_RECVBUF). A value of {@code -1}, which is the default, means system
