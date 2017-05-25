@@ -988,7 +988,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * Sets whether DNS names should be resolved to IP's before opening the socket
    * It is useful to set it to false if using a socks proxy
    *
-   * @param wether DNS should be resolved before opening a socket. 
+   * @param resolveDns wether DNS should be resolved before opening a socket. 
    * @see PGProperty#RESOLVE_DNS
    */
   public void setResolveDns(boolean resolveDns) {
