@@ -62,9 +62,9 @@ public class PGStream {
       // When using a SOCKS proxy, the host might not be resolvable locally,
       // thus we defer resolution until the traffic reaches the proxy. If there
       // is no proxy, we must resolve the host to an IP to connect the socket.
-    	InetSocketAddress address = resolveDNS ? 
-			new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()) :
-				InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      InetSocketAddress address = resolveDNS ? 
+          new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()) :
+          InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
 
       socket.connect(address, timeout);
     }

@@ -127,7 +127,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     boolean resolveDNS = PGProperty.RESOLVE_DNS.getBoolean(info);
-    
+
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     HostChooser hostChooser =
@@ -326,7 +326,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5679);
     pgStream.flush();
-    
+
     // Now get the response from the backend, one of N, E, S.
     int beresp = pgStream.receiveChar();
     switch (beresp) {

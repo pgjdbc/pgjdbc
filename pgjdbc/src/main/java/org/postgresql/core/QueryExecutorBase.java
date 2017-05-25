@@ -66,7 +66,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     this.resolveDNS = PGProperty.RESOLVE_DNS.getBoolean(info);
-    
+
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
