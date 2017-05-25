@@ -25,16 +25,14 @@ public class ProxySocketFactory extends javax.net.SocketFactory {
   }
 
 
-  public ProxySocketFactory(String urlString) throws URISyntaxException
-  {
+  public ProxySocketFactory(String urlString) throws URISyntaxException {
     URI url = new URI(urlString);
 
     Proxy.Type proxyType = Proxy.Type.DIRECT;
 
     if (url.getScheme().equalsIgnoreCase("http")) {
       proxyType = Proxy.Type.HTTP;
-    }
-    else if (url.getScheme().equalsIgnoreCase("socks")) {
+    } else if (url.getScheme().equalsIgnoreCase("socks")) {
       proxyType = Proxy.Type.SOCKS;
     }
 
