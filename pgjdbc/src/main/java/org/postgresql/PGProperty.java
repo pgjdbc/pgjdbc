@@ -285,7 +285,7 @@ public enum PGProperty {
    * Resolve DNS address to ip.  Should be false if you want a socks proxy to resolve the
    * DNS address
    */
-  RESOLVE_DNS("resolveDNS", null,
+  RESOLVE_DNS("resolveDns", null,
       "Wether to resolve dns addresses,  set to false if using a socks proxy"),
 
   /**
