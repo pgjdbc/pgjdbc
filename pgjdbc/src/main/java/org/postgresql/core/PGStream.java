@@ -63,8 +63,8 @@ public class PGStream {
       // thus we defer resolution until the traffic reaches the proxy. If there
       // is no proxy, we must resolve the host to an IP to connect the socket.
       InetSocketAddress address = resolveDNS
-	? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
-        : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
 
       socket.connect(address, timeout);
     }

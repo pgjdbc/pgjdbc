@@ -977,7 +977,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @return wether DNS names are resolved before opening the socket
+   * @return whether DNS names are resolved before opening the socket
    * @see PGProperty#RESOLVE_DNS
    */
   public boolean isResolveDns() {
@@ -988,7 +988,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * Sets whether DNS names should be resolved to IP's before opening the socket
    * It is useful to set it to false if using a socks proxy
    *
-   * @param resolveDns wether DNS should be resolved before opening a socket. 
+   * @param resolveDns whether DNS should be resolved before opening a socket.
    * @see PGProperty#RESOLVE_DNS
    */
   public void setResolveDns(boolean resolveDns) {
