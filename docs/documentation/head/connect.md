@@ -385,6 +385,24 @@ Connection conn = DriverManager.getConnection(url);
 
 	This value is an optional argument to the constructor of the socket factory
 	class provided above. 
+	
+* **resolveDns** = boolean
+
+	Set this value to false to prevent the driver from trying to resolve DNS names.  This is useful when 
+	connecting to a database behind a socks proxy server.  For example:
+	
+	```java
+	String url = "jdbc:postgresql://localhost/test";
+	Properties props = new Properties();
+	props.setProperty("resolveDns","false");
+	props.setProperty("socketFactory","org.postgresql.util.ProxySocketFactory");
+	props.setProperty("socketFactoryArg","socks://<host>:<port>");
+	Connection conn = DriverManager.getConnection(url, props);
+
+	String url = "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=true";
+	Connection conn = DriverManager.getConnection(url);
+	```
+
 
 * **reWriteBatchedInserts** = boolean
 
