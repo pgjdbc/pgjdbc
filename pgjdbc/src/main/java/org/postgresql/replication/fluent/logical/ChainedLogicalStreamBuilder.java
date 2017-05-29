@@ -17,15 +17,40 @@ public interface ChainedLogicalStreamBuilder
    * Open logical replication stream
    *
    * @return not null PGReplicationStream available for fetch data in logical form
+   * @throws SQLException
    */
   PGReplicationStream start() throws SQLException;
 
+  /**
+   *
+   * @param optionName
+   * @param optionValue
+   * @return
+   */
+
   ChainedLogicalStreamBuilder withSlotOption(String optionName, boolean optionValue);
 
+  /**
+   *
+   * @param optionName
+   * @param optionValue
+   * @return
+   */
   ChainedLogicalStreamBuilder withSlotOption(String optionName, int optionValue);
 
+  /**
+   *
+   * @param optionName
+   * @param optionValue
+   * @return
+   */
   ChainedLogicalStreamBuilder withSlotOption(String optionName, String optionValue);
 
+  /**
+   *
+   * @param options
+   * @return
+   */
   ChainedLogicalStreamBuilder withSlotOptions(Properties options);
 
 }

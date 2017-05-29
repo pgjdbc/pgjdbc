@@ -41,10 +41,15 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   /**
    * @param copyDual         bidirectional copy protocol
+   * @param startLSN         the position in the WAL that we want to initiate replication from
+   *                         usually the currentLSN returned by calling pg_current_wal_lsn()for v10
+   *                         above or pg_current_xlog_location() depending on the version of the
+   *                         server
    * @param updateIntervalMs the number of millisecond between status packets sent back to the
    *                         server.  A value of zero disables the periodic status updates
    *                         completely, although an update will still be sent when requested by the
    *                         server, to avoid timeout disconnect.
+   * @param replicationType  LOGICAL or PHYSICAL
    */
   public V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs,
       ReplicationType replicationType

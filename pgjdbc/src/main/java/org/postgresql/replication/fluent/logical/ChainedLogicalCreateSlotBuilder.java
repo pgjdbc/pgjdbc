@@ -21,6 +21,7 @@ public interface ChainedLogicalCreateSlotBuilder
    * use for test logical replication api
    *
    * @param outputPlugin not null name of the output plugin used for logical decoding
+   * @return the logical slot builder
    */
   ChainedLogicalCreateSlotBuilder withOutputPlugin(String outputPlugin);
 }

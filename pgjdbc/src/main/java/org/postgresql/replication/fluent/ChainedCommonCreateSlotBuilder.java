@@ -18,6 +18,7 @@ public interface ChainedCommonCreateSlotBuilder<T extends ChainedCommonCreateSlo
    * rows which could cause a recovery conflict even when the standby is disconnected.
    *
    * @param slotName not null unique replication slot name for create.
+   * @return T
    */
   T withSlotName(String slotName);
 
