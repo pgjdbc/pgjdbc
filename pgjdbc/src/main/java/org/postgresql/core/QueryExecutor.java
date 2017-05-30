@@ -223,6 +223,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * cannot do this as it is prone to deadlock, so the higher level caller must be responsible which
    * requires exposing this method. This variant supports blocking for the given time in millis.
    *
+   * @param timeoutMillis number of milliseconds to block for
    * @throws SQLException if and error occurs while fetching notifications
    */
   void processNotifies(int timeoutMillis) throws SQLException;

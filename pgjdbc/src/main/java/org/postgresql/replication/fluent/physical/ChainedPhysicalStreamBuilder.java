@@ -17,6 +17,7 @@ public interface ChainedPhysicalStreamBuilder extends
    * Open physical replication stream
    *
    * @return not null PGReplicationStream available for fetch wal logs in binary form
+   * @throws SQLException on error
    */
   PGReplicationStream start() throws SQLException;
 }

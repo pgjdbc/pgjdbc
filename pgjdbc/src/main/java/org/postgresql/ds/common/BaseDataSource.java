@@ -993,7 +993,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param replication replication argument
+   * @param replication set to 'database' for logical replication or 'true' for physical replication
    * @see PGProperty#REPLICATION
    */
   public void setReplication(String replication) {
@@ -1001,6 +1001,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return null, 'database', or 'true
    * @see PGProperty#REPLICATION
    */
   public String getReplication() {
