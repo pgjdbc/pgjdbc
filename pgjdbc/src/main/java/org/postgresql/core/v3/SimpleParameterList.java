@@ -48,7 +48,7 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
-  public void registerOutParameter(int index, int sqlType) throws SQLException {
+  public void registerOutParameter(int index) throws SQLException {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",

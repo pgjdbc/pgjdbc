@@ -199,7 +199,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     checkIndex(parameterIndex, false);
 
     if (setPreparedParameters) {
-      preparedParameters.registerOutParameter(parameterIndex, sqlType);
+      preparedParameters.registerOutParameter(parameterIndex);
     }
     // functionReturnType contains the user supplied value to check
     // testReturn contains a modified version to make it easier to
