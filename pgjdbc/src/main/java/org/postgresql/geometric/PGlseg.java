@@ -21,7 +21,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   /**
    * These are the two points.
    */
-  public PGpoint point[] = new PGpoint[2];
+  public PGpoint[] point = new PGpoint[2];
 
   /**
    * @param x1 coordinate for first point

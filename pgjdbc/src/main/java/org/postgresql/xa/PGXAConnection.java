@@ -127,10 +127,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private class ConnectionHandler implements InvocationHandler {
     private final Connection con;
 
-    public ConnectionHandler(Connection con) {
+    ConnectionHandler(Connection con) {
       this.con = con;
     }
 
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       if (state != STATE_IDLE) {
         String methodName = method.getName();

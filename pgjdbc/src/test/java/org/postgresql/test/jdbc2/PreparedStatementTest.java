@@ -81,7 +81,7 @@ public class PreparedStatementTest extends BaseTest4 {
   public void testSetBinaryStream() throws SQLException {
     assumeByteaSupported();
     ByteArrayInputStream bais;
-    byte buf[] = new byte[10];
+    byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
     }
@@ -152,7 +152,7 @@ public class PreparedStatementTest extends BaseTest4 {
       return;
     }
 
-    byte buf[] = new byte[10];
+    byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
     }

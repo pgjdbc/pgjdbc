@@ -65,7 +65,7 @@ public class FastpathArg {
    *
    * @param bytes array to store
    */
-  public FastpathArg(byte bytes[]) {
+  public FastpathArg(byte[] bytes) {
     this(bytes, 0, bytes.length);
   }
 
@@ -76,7 +76,7 @@ public class FastpathArg {
    * @param off offset within array
    * @param len length of data to include
    */
-  public FastpathArg(byte buf[], int off, int len) {
+  public FastpathArg(byte[] buf, int off, int len) {
     this.bytes = buf;
     this.bytesStart = off;
     this.bytesLength = len;

@@ -26,7 +26,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   /**
    * The points defining this path
    */
-  public PGpoint points[];
+  public PGpoint[] points;
 
   /**
    * @param points the PGpoints that define the path

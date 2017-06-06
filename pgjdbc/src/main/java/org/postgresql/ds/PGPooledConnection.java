@@ -248,10 +248,11 @@ public class PGPooledConnection implements PooledConnection {
     private Connection proxy; // the Connection the client is currently using, which is a proxy
     private boolean automatic = false;
 
-    public ConnectionHandler(Connection con) {
+    ConnectionHandler(Connection con) {
       this.con = con;
     }
 
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
@@ -375,11 +376,12 @@ public class PGPooledConnection implements PooledConnection {
     private ConnectionHandler con;
     private Statement st;
 
-    public StatementHandler(ConnectionHandler con, Statement st) {
+    StatementHandler(ConnectionHandler con, Statement st) {
       this.con = con;
       this.st = st;
     }
 
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object

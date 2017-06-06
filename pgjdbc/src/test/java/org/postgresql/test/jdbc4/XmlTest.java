@@ -45,10 +45,10 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 public class XmlTest {
-  private final static String _xsl =
+  private static final String _xsl =
           "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"><xsl:output method=\"text\" indent=\"no\" /><xsl:template match=\"/a\"><xsl:for-each select=\"/a/b\">B<xsl:value-of select=\".\" /></xsl:for-each></xsl:template></xsl:stylesheet>";
-  private final static String _xmlDocument = "<a><b>1</b><b>2</b></a>";
-  private final static String _xmlFragment = "<a>f</a><b>g</b>";
+  private static final String _xmlDocument = "<a><b>1</b><b>2</b></a>";
+  private static final String _xmlFragment = "<a>f</a><b>g</b>";
 
   private Connection _conn;
   private final Transformer _xslTransformer;

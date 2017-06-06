@@ -163,7 +163,7 @@ public class BlobTest {
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
-    byte data[] = lob.getBytes(2, 4);
+    byte[] data = lob.getBytes(2, 4);
     assertEquals(data.length, 4);
     assertEquals(data[0], '?');
     assertEquals(data[1], 'x');
@@ -180,7 +180,7 @@ public class BlobTest {
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
-    byte data[] = new byte[2];
+    byte[] data = new byte[2];
 
     InputStream is = lob.getBinaryStream();
     assertEquals(data.length, is.read(data));
@@ -251,7 +251,7 @@ public class BlobTest {
 
     int s;
     int t;
-    byte buf[];
+    byte[] buf;
     OutputStream os;
 
     switch (method) {

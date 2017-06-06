@@ -780,7 +780,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
 
           if (valueLen != -1) {
-            byte buf[] = new byte[valueLen];
+            byte[] buf = new byte[valueLen];
             pgStream.receive(buf, 0, valueLen);
             returnValue = buf;
           }
@@ -819,7 +819,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (!suppressBegin) {
       doSubprotocolBegin();
     }
-    byte buf[] = Utils.encodeUTF8(sql);
+    byte[] buf = Utils.encodeUTF8(sql);
 
     try {
       LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
@@ -1786,8 +1786,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
-      int queryOIDs[] = query.getStatementTypes();
-      int paramOIDs[] = params.getTypeOIDs();
+      int[] queryOIDs = query.getStatementTypes();
+      int[] paramOIDs = params.getTypeOIDs();
       for (int i = 0; i < paramOIDs.length; i++) {
         // Only supply type information when there isn't any
         // already, don't arbitrarily overwrite user supplied

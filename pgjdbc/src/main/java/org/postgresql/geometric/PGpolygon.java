@@ -18,7 +18,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   /**
    * The points defining the polygon
    */
-  public PGpoint points[];
+  public PGpoint[] points;
 
   /**
    * Creates a polygon using an array of PGpoints

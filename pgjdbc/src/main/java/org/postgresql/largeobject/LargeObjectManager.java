@@ -305,7 +305,7 @@ public class LargeObjectManager {
       throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
     }
-    FastpathArg args[] = new FastpathArg[1];
+    FastpathArg[] args = new FastpathArg[1];
     args[0] = new FastpathArg(mode);
     return fp.getOID("lo_creat", args);
   }
@@ -331,7 +331,7 @@ public class LargeObjectManager {
    * @throws SQLException on error
    */
   public void delete(long oid) throws SQLException {
-    FastpathArg args[] = new FastpathArg[1];
+    FastpathArg[] args = new FastpathArg[1];
     args[0] = Fastpath.createOIDArg(oid);
     fp.fastpath("lo_unlink", args);
   }

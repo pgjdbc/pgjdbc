@@ -66,10 +66,10 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     INSERT_BATCH,
   }
 
-  private final static EnumSet<FailMode> DEALLOCATES =
+  private static final EnumSet<FailMode> DEALLOCATES =
       EnumSet.of(FailMode.DEALLOCATE, FailMode.DISCARD);
 
-  private final static EnumSet<FailMode> TRANS_KILLERS =
+  private static final EnumSet<FailMode> TRANS_KILLERS =
       EnumSet.of(FailMode.SELECT, FailMode.INSERT_BATCH);
 
   private enum ContinueMode {

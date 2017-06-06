@@ -144,14 +144,14 @@ public class LruCache<Key, Value extends CanEstimateSize> {
     }
   }
 
-  public final static CreateAction NOOP_CREATE_ACTION = new CreateAction() {
+  public static final CreateAction NOOP_CREATE_ACTION = new CreateAction() {
     @Override
     public Object create(Object o) throws SQLException {
       return null;
     }
   };
 
-  public final static EvictAction NOOP_EVICT_ACTION = new EvictAction() {
+  public static final EvictAction NOOP_EVICT_ACTION = new EvictAction() {
     @Override
     public void evict(Object o) throws SQLException {
       return;
