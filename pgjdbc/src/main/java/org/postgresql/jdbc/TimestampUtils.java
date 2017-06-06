@@ -830,14 +830,15 @@ public class TimestampUtils {
     long secs = toJavaSecs(days * 86400L);
     long millis = secs * 1000L;
 
-    // Here be dragons: backend did not provide us the timezone, so we guess the actual point in
-    // time
-    millis = guessTimestamp(millis, tz);
-
     if (millis <= PGStatement.DATE_NEGATIVE_SMALLER_INFINITY) {
       millis = PGStatement.DATE_NEGATIVE_INFINITY;
     } else if (millis >= PGStatement.DATE_POSITIVE_SMALLER_INFINITY) {
       millis = PGStatement.DATE_POSITIVE_INFINITY;
+    } else {
+      // Here be dragons: backend did not provide us the timezone, so we guess the actual point in
+      // time
+
+      millis = guessTimestamp(millis, tz);
     }
     return new Date(millis);
   }

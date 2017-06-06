@@ -18,11 +18,13 @@ public interface ChainedCommonCreateSlotBuilder<T extends ChainedCommonCreateSlo
    * rows which could cause a recovery conflict even when the standby is disconnected.
    *
    * @param slotName not null unique replication slot name for create.
+   * @return T a slot builder
    */
   T withSlotName(String slotName);
 
   /**
    * Create slot with specified parameters in database
+   * @throws SQLException on error
    */
   void make() throws SQLException;
 }

@@ -21,7 +21,7 @@ public interface CommonOptions {
   String getSlotName();
 
   /**
-   * @return not null position from which need start replicate changes
+   * @return the position to start replication. This cannot be null.
    */
   LogSequenceNumber getStartLSNPosition();
 
@@ -30,6 +30,8 @@ public interface CommonOptions {
    * for easier monitoring of the progress from server. A value of zero disables the periodic status
    * updates completely, although an update will still be sent when requested by the server, to
    * avoid timeout disconnect. The default value is 10 seconds.
+   *
+   * @return the current status interval
    */
   int getStatusInterval();
 }

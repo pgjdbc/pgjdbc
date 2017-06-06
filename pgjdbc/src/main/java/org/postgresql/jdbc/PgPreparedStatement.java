@@ -345,12 +345,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-    checkClosed();
-    if (x == null) {
-      setNull(parameterIndex, Types.DECIMAL);
-    } else {
-      bindLiteral(parameterIndex, x.toString(), Oid.NUMERIC);
-    }
+    setNumber(parameterIndex, x);
   }
 
   public void setString(int parameterIndex, String x) throws SQLException {
@@ -512,6 +507,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       bindBytes(parameterIndex, data, oid);
     } else {
       setString(parameterIndex, HStoreConverter.toString(x), oid);
+    }
+  }
+
+  private void setNumber(int parameterIndex, Number x) throws SQLException {
+    checkClosed();
+    if (x == null) {
+      setNull(parameterIndex, Types.DECIMAL);
+    } else {
+      bindLiteral(parameterIndex, x.toString(), Oid.NUMERIC);
     }
   }
 
@@ -962,6 +966,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       //#endif
     } else if (x instanceof Map) {
       setMap(parameterIndex, (Map<?, ?>) x);
+    } else if (x instanceof Number) {
+      setNumber(parameterIndex, (Number) x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(

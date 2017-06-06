@@ -33,23 +33,25 @@ class BooleanTypeUtil {
    * @throws PSQLException PSQLState.CANNOT_COERCE
    */
   static boolean castToBoolean(final Object in) throws PSQLException {
-    LOGGER.log(Level.FINE, "Object to cast: {0}", in);
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "Cast to boolean: \"{0}\"", String.valueOf(in));
+    }
     if (in instanceof Boolean) {
       return (Boolean) in;
     }
     if (in instanceof String) {
-      return from((String) in);
+      return fromString((String) in);
     }
     if (in instanceof Character) {
-      return from((Character) in);
+      return fromCharacter((Character) in);
     }
     if (in instanceof Number) {
-      return from((Number) in, in.getClass().getName());
+      return fromNumber((Number) in);
     }
-    throw cannotCoerceException(in.getClass().getName());
+    throw new PSQLException("Cannot cast to boolean", PSQLState.CANNOT_COERCE);
   }
 
-  private static boolean from(final String strval) throws PSQLException {
+  private static boolean fromString(final String strval) throws PSQLException {
     // Leading or trailing whitespace is ignored, and case does not matter.
     final String val = strval.trim();
     if ("1".equals(val) || "true".equalsIgnoreCase(val)
@@ -62,10 +64,10 @@ class BooleanTypeUtil {
         || "n".equalsIgnoreCase(val) || "off".equalsIgnoreCase(val)) {
       return false;
     }
-    throw cannotCoerceException("String", val);
+    throw cannotCoerceException(strval);
   }
 
-  private static boolean from(final Character charval) throws PSQLException {
+  private static boolean fromCharacter(final Character charval) throws PSQLException {
     if ('1' == charval || 't' == charval || 'T' == charval
         || 'y' == charval || 'Y' == charval) {
       return true;
@@ -74,33 +76,27 @@ class BooleanTypeUtil {
         || 'n' == charval || 'N' == charval) {
       return false;
     }
-    throw cannotCoerceException("Character", charval.toString());
+    throw cannotCoerceException(charval);
   }
 
-  private static boolean from(final Number numval, final String className) throws PSQLException {
+  private static boolean fromNumber(final Number numval) throws PSQLException {
     // Handles BigDecimal, Byte, Short, Integer, Long Float, Double
     // based on the widening primitive conversions.
-    double value = numval.doubleValue();
+    final double value = numval.doubleValue();
     if (value == 1.0d) {
       return true;
     }
     if (value == 0.0d) {
       return false;
     }
-    throw cannotCoerceException(className, String.valueOf(numval));
+    throw cannotCoerceException(numval);
   }
 
-  private static PSQLException cannotCoerceException(final String fromType) {
-    LOGGER.log(Level.FINE, "Cannot cast type {0} to boolean", fromType);
-    return new PSQLException(GT.tr("Cannot cast type {0} to boolean", fromType),
-        PSQLState.CANNOT_COERCE);
-  }
-
-  private static PSQLException cannotCoerceException(final String fromType, final String value) {
+  private static PSQLException cannotCoerceException(final Object value) {
     if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "Cannot cast type {0} to boolean: \"{1}\"", new Object[]{fromType, value});
+      LOGGER.log(Level.FINE, "Cannot cast to boolean: \"{0}\"", String.valueOf(value));
     }
-    return new PSQLException(GT.tr("Cannot cast type {0} to boolean: \"{1}\"", fromType, value),
+    return new PSQLException(GT.tr("Cannot cast to boolean: \"{0}\"", String.valueOf(value)),
         PSQLState.CANNOT_COERCE);
   }
 

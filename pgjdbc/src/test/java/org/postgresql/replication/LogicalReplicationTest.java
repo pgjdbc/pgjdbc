@@ -443,6 +443,8 @@ public class LogicalReplicationTest {
     result.addAll(receiveMessage(stream, 3));
 
     replConnection.close();
+    waitStopReplicationSlot();
+
     replConnection = openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
 
@@ -930,7 +932,7 @@ public class LogicalReplicationTest {
     try {
       rs = st.executeQuery("select "
           + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-          ? "pg_current_wal_location()" : "pg_current_xlog_location()"));
+          ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
 
       if (rs.next()) {
         String lsn = rs.getString(1);

@@ -10,6 +10,13 @@ nav:
 					<!-- <div id="pgFrontMain"> -->
 						<div id="pgFrontFeature">
 							<div id="pgFrontFeatureContent">
+								<p class="txtDate"><strong>May 05 2017</strong></p>
+								<h1 id="txtFrontFeatureHeading">PostgreSQL JDBC Driver 42.1.1 Released!</h1>
+								<p>
+									<strong>Notable changes</strong><br/>
+									{% capture notes%}{% include changelog/42.1.1-notes.md %}{% endcapture %}
+									{{ notes | markdownify }}
+								</p>
 								<p class="txtDate"><strong>May 04 2017</strong></p>
 								<h1 id="txtFrontFeatureHeading">PostgreSQL JDBC Driver 42.1.0 Released!</h1>
 								<p>
@@ -24,7 +31,7 @@ nav:
 								<div id="txtFrontFeatureLink">
 									<br/>
 									<img src="media/img/layout/blt_blu_arrow.png" width="6" height="6" alt="" />
-									<a href="documentation/changelog.html#version_42.0.0" title="Release Notes">Release notes</a>
+									<a href="documentation/changelog.html#version_42.1.1" title="Release Notes">Release notes</a>
 									<br/>
 									<img src="media/img/layout/blt_blu_arrow.png" width="6" height="6" alt="" />
 									<a href="download.html" title="Download">Download</a>

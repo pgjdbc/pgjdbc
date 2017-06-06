@@ -24,36 +24,36 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.0.0-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.1.1-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.0.0</version>
+    <version>42.1.1</version>
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-42.0.0.jre7-blue.svg)][mvn-jre7]
+[![Java 7](https://img.shields.io/badge/Java_7-42.1.1.jre7-blue.svg)][mvn-jre7]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.0.0.jre7</version>
+    <version>42.1.1.jre7</version>
 </dependency>
 ```
 
-[![Java 6](https://img.shields.io/badge/Java_6-42.0.0.jre6-blue.svg)][mvn-jre6]
+[![Java 6](https://img.shields.io/badge/Java_6-42.1.1.jre6-blue.svg)][mvn-jre6]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.0.0.jre6</version>
+    <version>42.1.1.jre6</version>
 </dependency>
 ```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.0.0.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.0.0.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.0.0|bundle
+[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.1.jre6|bundle
+[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.1.jre7|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.1|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -61,9 +61,9 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.0.1-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.0.1.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.0.1.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.1.2-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.1.2.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.1.2.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
@@ -73,6 +73,16 @@ There are also available (snapshot) binary RPMs in [Fedora's Copr repository](ht
 
 ## Changelog
 Notable changes for:
+
+**[42.1.1]** (2017-05-05):
+* fix: infinite dates might be corrupted when transferred in binary for certain JREs. For instance, 5881610-07-11 instead of infinity.
+
+**[42.1.0]** (2017-05-04):
+* fix: data being trucated in setCharacterStream (the bug introduced in 42.0.0) [PR#802](https://github.com/pgjdbc/pgjdbc/pull/802)
+* fix: calculation of lastReceiveLSN for logical replication [PR#801](https://github.com/pgjdbc/pgjdbc/pull/801)
+* fix: make sure org.postgresql.Driver is loaded when accessing though DataSource interface [#768](https://github.com/pgjdbc/pgjdbc/issues/768)
+* feat: support fetching a REF_CURSOR using getObject [PR#809](https://github.com/pgjdbc/pgjdbc/pull/809)
+* note: there's no 42.1.0.jre6 due to infinity handling bug. Fixed in 42.1.1.jre6
 
 **[42.0.0]** (2017-02-20):
 * Support for PostgreSQL versions below 8.2 was dropped
@@ -103,6 +113,8 @@ Notable changes for:
 * Performance optimization for timestamps (~`TimeZone.getDefault` optimization)
 * Allow build-from-source on GNU/Linux without maven repositories, and add Fedora Copr test to the regression suite
 
+[42.1.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.0...REL42.1.1
+[42.1.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.0.0...REL42.1.0
 [42.0.0]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1212...REL42.0.0
 [9.4.1212]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1211...REL9.4.1212
 [9.4.1211]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1210...REL9.4.1211

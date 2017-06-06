@@ -7,6 +7,8 @@ nav: ../
 
 # History of Changes
 * [Introduction and explanation of symbols](#introduction)
+* [Version 42.1.1 (2017-05-05)](#version_42.1.1)
+	* [Contributors to this release](#contributors_42.1.1)
 * [Version 42.1.0 (2017-05-04)](#version_42.1.0)
 	* [Contributors to this release](#contributors_42.1.0)
 * [Version 42.0.0 (2017-02-18)](#version_42.0.0)
@@ -75,6 +77,8 @@ denote the various action types:![add](../media/img/add.jpg)=add,
 <img alt="remove" src="../media/img/remove.jpg" />=remove,
 <img alt="update" src="../media/img/update.jpg" />=update
 ***
+
+{% include changelog/42.1.1-release.md %}
 
 {% include changelog/42.1.0-release.md %}
 
