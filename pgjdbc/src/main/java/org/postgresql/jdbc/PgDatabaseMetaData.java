@@ -1137,7 +1137,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if (returnTypeType.equals("c") || (returnTypeType.equals("p") && argModesArray != null)) {
         String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
                            + " WHERE a.attrelid = " + returnTypeRelid
-                           + " AND NOT a.isdropped AND a.attnum > 0 ORDER BY a.attnum ";
+                           + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
         Statement columnstmt = connection.createStatement();
         ResultSet columnrs = columnstmt.executeQuery(columnsql);
         while (columnrs.next()) {
