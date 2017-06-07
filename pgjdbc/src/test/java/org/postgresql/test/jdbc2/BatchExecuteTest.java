@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
+import org.postgresql.PGStatement;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -1276,5 +1277,51 @@ Server SQLState: 25001)
         message,
         Arrays.toString(clone),
         Arrays.toString(actual));
+  }
+
+  @Test
+  public void testServerPrepareMultipleRows() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+      // 2 is not enough for insertRewrite=true case since it would get executed as a single multi-insert statement
+      for (int i = 0; i < 3; i++) {
+        ps.setInt(1, i);
+        ps.addBatch();
+      }
+      int[] actual = ps.executeBatch();
+      Assert.assertTrue(
+          "More than 1 row is inserted via executeBatch, it should lead to multiple server statements, thus the statements should be server-prepared",
+          ((PGStatement) ps).isUseServerPrepare());
+      assertBatchResult("3 rows inserted via batch", new int[]{1, 1, 1}, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testNoServerPrepareOneRow() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+      ps.setInt(1, 1);
+      ps.addBatch();
+      int[] actual = ps.executeBatch();
+      int prepareThreshold = ((PGStatement) ps).getPrepareThreshold();
+      if (prepareThreshold == 1) {
+        Assert.assertTrue(
+            "prepareThreshold=" + prepareThreshold
+                + " thus the statement should be server-prepared",
+            ((PGStatement) ps).isUseServerPrepare());
+      } else {
+        Assert.assertFalse(
+            "Just one row inserted via executeBatch, prepareThreshold=" + prepareThreshold
+                + " thus the statement should not be server-prepared",
+            ((PGStatement) ps).isUseServerPrepare());
+      }
+      assertBatchResult("1 rows inserted via batch", new int[]{1}, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
   }
 }
