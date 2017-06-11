@@ -36,6 +36,14 @@
     <checkstyle.version>7.8.2</checkstyle.version>
   </properties>
 
+  <dependencies>
+    <dependency>
+      <groupId>com.ongres.scram</groupId>
+      <artifactId>client</artifactId>
+      <version>1.0.0-beta.2</version>
+    </dependency>
+  </dependencies>
+
   <profiles>
     <profile>
       <id>translate</id>

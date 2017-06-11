@@ -20,6 +20,7 @@ import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
+import org.postgresql.sasl.ScramAuthenticator;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
@@ -39,6 +40,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.net.SocketFactory;
 
 /**
@@ -59,6 +61,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_GSS = 7;
   private static final int AUTH_REQ_GSS_CONTINUE = 8;
   private static final int AUTH_REQ_SSPI = 9;
+  private static final int AUTH_REQ_SASL = 10;
+  private static final int AUTH_REQ_SASL_CONTINUE = 11;
+  private static final int AUTH_REQ_SASL_FINAL = 12;
 
   /**
    * Marker exception; thrown when we want to fall back to using V2.
@@ -412,6 +417,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SSPI negotiation state, if used */
     ISSPIClient sspiClient = null;
+    /* SCRAM authentication state, if used */
+    ScramAuthenticator scramAuthenticator = null;
 
     try {
       authloop: while (true) {
@@ -602,6 +609,22 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
                 sspiClient.continueSSPI(l_msgLen - 8);
+                break;
+
+              case AUTH_REQ_SASL:
+                LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
+
+                scramAuthenticator = new ScramAuthenticator(user, password, pgStream);
+                scramAuthenticator.processServerMechanismsAndInit();
+                scramAuthenticator.sendScramClientFirstMessage();
+                break;
+
+              case AUTH_REQ_SASL_CONTINUE:
+                scramAuthenticator.processServerFirstMessage(l_msgLen - 4 - 4);
+                break;
+
+              case AUTH_REQ_SASL_FINAL:
+                scramAuthenticator.verifyServerSignature(l_msgLen - 4 - 4);
                 break;
 
               case AUTH_REQ_OK:
