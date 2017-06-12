@@ -492,6 +492,22 @@ public class DatabaseMetaDataTest {
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
     assertTrue(!rs.next());
     rs.close();
+
+    /* getFunctionColumns also has to be aware of dropped columns
+       add this in here to make sure it can deal with them
+     */
+    rs = dbmd.getFunctionColumns(null, null, "f4", null);
+    assertTrue(rs.next());
+
+    assertTrue(rs.next());
+    assertEquals("id", rs.getString(4));
+
+    assertTrue(rs.next());
+    assertEquals("updated", rs.getString(4));
+
+
+    rs.close();
+
   }
 
   @Test
