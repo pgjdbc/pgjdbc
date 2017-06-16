@@ -1550,6 +1550,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public int[] executeBatch() throws SQLException {
     try {
+      if (batchParameters.size() > 1 && m_prepareThreshold > 0) {
+        // Use server-prepared statements when there's more than one statement in a batch
+        // Technically speaking, it might cause to create a server-prepared statement
+        // just for 2 executions even for prepareThreshold=5. That however should be
+        // acceptable since prepareThreshold is a optimization kind of parameter.
+        this.preparedQuery.increaseExecuteCount(m_prepareThreshold);
+      }
       return super.executeBatch();
     } finally {
       defaultTimeZone = null;
