@@ -364,7 +364,7 @@ public enum PGProperty {
   /**
    * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
-   * extendedCacheEveryting means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
+   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
    *
    * This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)
    */
@@ -375,14 +375,14 @@ public enum PGProperty {
       "extended", "extendedForPrepared", "extendedCacheEveryting", "simple"),
 
   /**
-   * Specifies what the driver should do if a query fails. In {@code autosave=always} mode, JDBC driver sets a safepoint before each query,
-   * and rolls back to that safepoint in case of failure. In {@code autosave=never} mode (default), no safepoint dance is made ever.
-   * In {@code autosave=conservative} mode, safepoint is set for each query, however the rollback is done only for rare cases
+   * Specifies what the driver should do if a query fails. In {@code autosave=always} mode, JDBC driver sets a savepoint before each query,
+   * and rolls back to that savepoint in case of failure. In {@code autosave=never} mode (default), no savepoint dance is made ever.
+   * In {@code autosave=conservative} mode, savepoint is set for each query, however the rollback is done only for rare cases
    * like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
    */
   AUTOSAVE("autosave", "never",
-      "Specifies what the driver should do if a query fails. In autosave=always mode, JDBC driver sets a safepoint before each query, "
-          + "and rolls back to that safepoint in case of failure. In autosave=never mode (default), no safepoint dance is made ever. "
+      "Specifies what the driver should do if a query fails. In autosave=always mode, JDBC driver sets a savepoint before each query, "
+          + "and rolls back to that savepoint in case of failure. In autosave=never mode (default), no savepoint dance is made ever. "
           + "In autosave=conservative mode, safepoint is set for each query, however the rollback is done only for rare cases"
           + " like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries", false,
       "always", "never", "conservative"),
