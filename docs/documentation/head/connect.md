@@ -229,8 +229,9 @@ Connection conn = DriverManager.getConnection(url);
 
     Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), 
     extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, 
-    extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.", false,
-    extended | extendedForPrepared | extendedCacheEveryting | simple
+    extendedCacheEverything means use extended protocol and try cache every statement 
+    (including Statement.execute(String sql)) in a query cache.
+    extended | extendedForPrepared | extendedCacheEverything | simple
 
     The default is extended
 
@@ -356,7 +357,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **disableColumnSanitiser** = boolean
 
-	Enable optimization that disables column name sanitiser. 
+	Setting this to true disables column name sanitiser. 
 	The sanitiser folds columns in the resultset to lowercase. 
 	The default is to sanitise the columns (off).
 
