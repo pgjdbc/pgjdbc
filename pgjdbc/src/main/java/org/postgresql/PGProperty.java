@@ -371,8 +371,8 @@ public enum PGProperty {
   PREFER_QUERY_MODE("preferQueryMode", "extended",
       "Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), "
           + "extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, "
-          + "extendedCacheEveryting means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.", false,
-      "extended", "extendedForPrepared", "extendedCacheEveryting", "simple"),
+          + "extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.", false,
+      "extended", "extendedForPrepared", "extendedCacheEverything", "simple"),
 
   /**
    * Specifies what the driver should do if a query fails. In {@code autosave=always} mode, JDBC driver sets a savepoint before each query,
