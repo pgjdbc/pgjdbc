@@ -14,6 +14,7 @@ import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
@@ -437,4 +438,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @return the ReplicationProtocol instance for this connection.
    */
   ReplicationProtocol getReplicationProtocol();
+
+  void setNetworkTimeout(int milliseconds) throws IOException;
+
+  int getNetworkTimeout() throws IOException;
 }

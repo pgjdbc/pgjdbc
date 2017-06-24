@@ -80,6 +80,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected abstract void sendCloseMessage() throws IOException;
 
   @Override
+  public void setNetworkTimeout(int milliseconds) throws IOException {
+    pgStream.setNetworkTimeout(milliseconds);
+  }
+
+  @Override
+  public int getNetworkTimeout() throws IOException {
+    return pgStream.getNetworkTimeout();
+  }
+
+  @Override
   public HostSpec getHostSpec() {
     return pgStream.getHostSpec();
   }
