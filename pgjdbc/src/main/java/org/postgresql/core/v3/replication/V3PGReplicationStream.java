@@ -169,6 +169,10 @@ public class V3PGReplicationStream implements PGReplicationStream {
   }
 
   private boolean isTimeUpdate() {
+    /* a value of 0 disables automatic updates */
+    if ( updateInterval == 0 ) {
+      return false;
+    }
     long diff = System.currentTimeMillis() - lastStatusUpdate;
     return diff >= updateInterval;
   }
