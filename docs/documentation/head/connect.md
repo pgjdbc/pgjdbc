@@ -417,8 +417,8 @@ Connection conn = DriverManager.getConnection(url);
    for logical replication from that database. <p>Parameter should be use together with 
    `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
     
-	<a name="connection-failover"></a>
-	## Connection Fail-over
+   
+## Connection Fail-over
 
 	To support simple connection fail-over it is possible to define multiple endpoints
 	(host and port pairs) in the connection url separated by commas.
