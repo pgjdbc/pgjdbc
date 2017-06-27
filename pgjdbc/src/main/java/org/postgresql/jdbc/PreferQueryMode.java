@@ -17,7 +17,7 @@ public enum PreferQueryMode {
   SIMPLE("simple"),
   EXTENDED_FOR_PREPARED("extendedForPrepared"),
   EXTENDED("extended"),
-  EXTENDED_CACHE_EVERYTING("extendedCacheEveryting");
+  EXTENDED_CACHE_EVERYTHING("extendedCacheEverything");
 
   private final String value;
 

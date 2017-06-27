@@ -416,6 +416,7 @@ Connection conn = DriverManager.getConnection(url);
    to the database specified in the dbname parameter, which will allow the connection to be used
    for logical replication from that database. <p>Parameter should be use together with 
    `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
+
        
        
 <a name="connection-failover"></a>       
