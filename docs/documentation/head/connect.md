@@ -416,27 +416,28 @@ Connection conn = DriverManager.getConnection(url);
    to the database specified in the dbname parameter, which will allow the connection to be used
    for logical replication from that database. <p>Parameter should be use together with 
    `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
-    
-   
+       
+       
+<a name="connection-failover"></a>       
 ## Connection Fail-over
 
-	To support simple connection fail-over it is possible to define multiple endpoints
-	(host and port pairs) in the connection url separated by commas.
-	The driver will try to once connect to each of them in order until the connection succeeds. 
-	If none succeed, a normal connection exception is thrown.
+To support simple connection fail-over it is possible to define multiple endpoints
+(host and port pairs) in the connection url separated by commas.
+The driver will try to once connect to each of them in order until the connection succeeds. 
+If none succeed, a normal connection exception is thrown.
 
-	The syntax for the connection url is:
+The syntax for the connection url is:
 
-	`jdbc:postgresql://host1:port1,host2:port2/database`
+`jdbc:postgresql://host1:port1,host2:port2/database`
 
-	The simple connection fail-over is useful when running against a high availability 
-	postgres installation that has identical data on each node. 
-	For example streaming replication postgres or postgres-xc cluster.
+The simple connection fail-over is useful when running against a high availability 
+postgres installation that has identical data on each node. 
+For example streaming replication postgres or postgres-xc cluster.
 
-	For example an application can create two connection pools. 
-	One data source is for writes, another for reads. The write pool limits connections only to master node:
+For example an application can create two connection pools. 
+One data source is for writes, another for reads. The write pool limits connections only to master node:
 
-	`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master`.
-	And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
+`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master`.
+And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
 
-	`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
+`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
