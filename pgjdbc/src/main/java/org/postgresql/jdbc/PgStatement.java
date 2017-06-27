@@ -272,7 +272,7 @@ public class PgStatement implements Statement, BaseStatement {
     Object key = queryExecutor
         .createQueryKey(sql, replaceProcessingEnabled, shouldUseParameterized, columnNames);
     CachedQuery cachedQuery;
-    boolean shouldCache = preferQueryMode == PreferQueryMode.EXTENDED_CACHE_EVERYTING;
+    boolean shouldCache = preferQueryMode == PreferQueryMode.EXTENDED_CACHE_EVERYTHING;
     if (shouldCache) {
       cachedQuery = queryExecutor.borrowQueryByKey(key);
     } else {
