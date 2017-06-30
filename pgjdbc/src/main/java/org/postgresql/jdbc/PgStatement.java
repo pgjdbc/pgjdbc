@@ -98,7 +98,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The warnings chain.
    */
-  protected SQLWarning warnings = null;
+  protected volatile SQLWarning warnings = null;
   /**
    * The last warning of the warning chain.
    */
@@ -213,18 +213,15 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     @Override
+    public void handleWarning(SQLWarning warning) {
+      PgStatement.this.addWarning(warning);
+    }
+
+    @Override
     public void handleCommandStatus(String status, int updateCount, long insertOID) {
       append(new ResultWrapper(updateCount, insertOID));
     }
 
-    @Override
-    public void handleCompletion() throws SQLException {
-      SQLWarning warning = getWarning();
-      if (warning != null) {
-        PgStatement.this.addWarning(warning);
-      }
-      super.handleCompletion();
-    }
   }
 
   public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {

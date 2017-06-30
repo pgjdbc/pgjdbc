@@ -24,7 +24,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Statement;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -409,6 +415,43 @@ public class StatementTest {
     // Executing another query should clear the warning from the first one.
     assertNull(stmt.getWarnings());
     stmt.close();
+  }
+
+  @Test
+  public void testWarningsAreAvailableAsap()
+      throws SQLException, InterruptedException, ExecutionException {
+    con.createStatement()
+            .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+                + "$BODY$ "
+                + "BEGIN "
+                + "RAISE NOTICE 'Test 1'; "
+                + "RAISE NOTICE 'Test 2'; "
+                + "EXECUTE pg_sleep(2); "
+                + "END "
+                + "$BODY$ "
+                + "LANGUAGE plpgsql;");
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
+    final AtomicReference<SQLWarning> warning = new AtomicReference<SQLWarning>();
+    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+    ScheduledFuture<?> future = executorService.schedule(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          warning.set(preparedStatement.getWarnings());
+        } catch (SQLException e) {
+          fail("Exception thrown: " + e.getMessage());
+        }
+      }
+    }, 1000, TimeUnit.MILLISECONDS);
+    preparedStatement.execute();
+
+    future.get();
+    executorService.shutdown();
+
+    assertNotNull(warning.get());
+    assertEquals(warning.get().getMessage(), "Test 1");
+    assertEquals(warning.get().getNextWarning().getMessage(), "Test 2");
   }
 
   /**
