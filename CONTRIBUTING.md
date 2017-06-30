@@ -144,7 +144,7 @@ Git repository typically contains -SNAPSHOT versions, so you can use the followi
 
 Prerequisites:
 - JDK 6, JDK 7, and JDK8 configured in `~/.m2/toolchains.xml`
-- a PostgreSQL instance for running tests
+- a PostgreSQL instance for running tests; it must have a user named `test` as well as a database named `test`
 - ensure that the RPM packaging CI isn't failing at
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/) -
   possibly bump `parent poms` or `pgjdbc` versions in RPM [spec file](packaging/rpm/postgresql-jdbc.spec).
