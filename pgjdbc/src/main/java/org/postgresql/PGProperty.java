@@ -159,11 +159,24 @@ public enum PGProperty {
       "Specifies the length to return for types of unknown length"),
 
   /**
+   * When connections that are not explicitly closed are garbage collected, close them during finalization
+   * in garbage collection.
+   *
+   * <b>IMPORTANT:</b> may have severe performance implications as it slows down garbage collection
+   * considerably. Best used in development and testing, or for systems that are not tested not to
+   * leak connections.
+   */
+  RESOURCE_FINALIZER_GUARD("resourceFinalizerGuard", "true",
+      "Close connections that are not explicitly closed over finalization in the garbage collection"),
+
+  /**
    * When connections that are not explicitly closed are garbage collected, log the stacktrace from
    * the opening of the connection to trace the leak source.
+   *
+   * This flag is ignored unless 'resourceFinalizerGuard' is set to true.
    */
   LOG_UNCLOSED_CONNECTIONS("logUnclosedConnections", "false",
-      "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
+      "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source; requires the 'resourceFinalizerGuard' property to be set to 'true'"),
 
   /**
    * Enable optimization that disables column name sanitiser.
