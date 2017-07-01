@@ -141,7 +141,7 @@ Connection conn = DriverManager.getConnection(url);
 
 	Logger level of the driver. Allowed values: <code>OFF</code>, <code>DEBUG</code> or <code>TRACE</code>.
 	This enable the <code>java.util.logging.Logger</code> Level of the driver based on the following mapping
-	of levels: DEBUG -&gt; FINE, TRACE -&gt; FINEST. This property is intented for debug the driver and
+	of levels: DEBUG -&gt; FINE, TRACE -&gt; FINEST. This property is intended for debug the driver and
 	not for general SQL query debug.
 
 * **loggerFile** = String
@@ -415,7 +415,8 @@ Connection conn = DriverManager.getConnection(url);
    can be used in walsender mode. Passing "database" as the value instructs walsender to connect
    to the database specified in the dbname parameter, which will allow the connection to be used
    for logical replication from that database. <p>Parameter should be use together with 
-   `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
+   `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
+    
     
 <a name="connection-failover"></a>
 ## Connection Fail-over
@@ -437,6 +438,7 @@ For example an application can create two connection pools.
 One data source is for writes, another for reads. The write pool limits connections only to master node:
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master`.
+
 And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
