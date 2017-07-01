@@ -8,7 +8,12 @@ package org.postgresql.core;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Test cases for the Parser.
@@ -132,5 +137,28 @@ public class ParserTest {
   @Test
   public void testUnterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
+  }
+
+  @Test
+  @Ignore(value = "returning in the select clause is hard to distinguish from insert ... returning *")
+  public void insertSelectFakeReturning() throws SQLException {
+    String query =
+        "insert test(id, name) select 1, 'value' as RETURNING from test2";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(
+            query, true, true, true, true, new String[0]);
+    boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
+    Assert.assertFalse("Query does not have returning clause " + query, returningKeywordPresent);
+  }
+
+  @Test
+  public void insertSelectReturning() throws SQLException {
+    String query =
+        "insert test(id, name) select 1, 'value' from test2 RETURNING id";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(
+            query, true, true, true, true, new String[0]);
+    boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
+    Assert.assertTrue("Query has a returning clause " + query, returningKeywordPresent);
   }
 }
