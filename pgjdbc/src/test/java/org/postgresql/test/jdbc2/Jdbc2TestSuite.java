@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.core.ParserTest;
+import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
@@ -77,6 +78,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(PGTimestampTest.class));
     suite.addTest(new JUnit4TestAdapter(TimezoneCachingTest.class));
     suite.addTest(new JUnit4TestAdapter(ParserTest.class));
+    suite.addTest(new JUnit4TestAdapter(ReturningParserTest.class));
 
     // PreparedStatement
     suite.addTest(new JUnit4TestAdapter(PreparedStatementTest.class));
