@@ -27,11 +27,15 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -452,6 +456,62 @@ public class StatementTest {
     assertNotNull(warning.get());
     assertEquals(warning.get().getMessage(), "Test 1");
     assertEquals(warning.get().getNextWarning().getMessage(), "Test 2");
+  }
+
+  /**
+   * Demonstrates a safe approach to concurrently reading the latest
+   * warnings while periodically clearing them.
+   *
+   * One drawback of this approach is that it requires the reader to make it to the end of the
+   * warning chain before clearing it, so long as your warning processing step is not very slow,
+   * this should happen more or less instantaneously even if you receive a lot of warnings.
+   */
+  @Test
+  public void testConcurrentWarningReadAndClear()
+      throws SQLException, InterruptedException, ExecutionException, TimeoutException {
+    final int iterations = 1000;
+    final ExecutorService executor = Executors.newSingleThreadExecutor();
+    final PgStatement statement = (PgStatement) con.createStatement();
+    final Future warningReaderThread = executor.submit(new Callable<Object>() {
+      @Override
+      public Object call() throws SQLException, InterruptedException {
+        SQLWarning lastProcessed = null;
+        int warnings = 0;
+        //For production code replace this with some condition that
+        //ends after the statement finishes execution
+        while (warnings < iterations) {
+          //if next linked warning has value use that, otherwise check latest head
+          final SQLWarning warn = lastProcessed != null && lastProcessed.getNextWarning() != null
+              ? lastProcessed.getNextWarning()
+              : statement.getWarnings();
+          if (warn != null) {
+            warnings++;
+            //System.out.println("Processing " + warn.getMessage());
+            lastProcessed = warn;
+            if (warn == statement.getWarnings()) {
+              //System.out.println("Clearing warnings");
+              statement.clearWarnings();
+            }
+          } else {
+            //Not required for this test, but a good idea adding some delay for production code
+            //to avoid high cpu usage while the query is running and no warnings are coming in.
+            Thread.sleep(10);
+          }
+        }
+        //Ensure that we didn't double process the same warning.
+        assertEquals(lastProcessed.getMessage(), "Warning " + (iterations - 1));
+        return null;
+      }
+    });
+
+    for (int i = 0; i < iterations; i++) {
+      statement.addWarning(new SQLWarning("Warning " + i));
+      if (i % 33 == 0 ) {
+        Thread.sleep(1);//Add some delay every few records to simulate IO
+      }
+    }
+    //If the reader doesn't return after 2 seconds, it failed.
+    warningReaderThread.get(2, TimeUnit.SECONDS);
   }
 
   /**
