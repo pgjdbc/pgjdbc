@@ -613,15 +613,23 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 sspiClient.continueSSPI(l_msgLen - 8);
                 break;
 
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
+                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
                 scramAuthenticator = new org.postgresql.jre8.sasl.ScramAuthenticator(user, password, pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
+                //#else
+                if (true) {
+                  throw new PSQLException(GT.tr(
+                          "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" vesions)",
+                          areq), PSQLState.CONNECTION_REJECTED);
+                }
+                //#endif
                 break;
 
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
               case AUTH_REQ_SASL_CONTINUE:
                 scramAuthenticator.processServerFirstMessage(l_msgLen - 4 - 4);
                 break;
