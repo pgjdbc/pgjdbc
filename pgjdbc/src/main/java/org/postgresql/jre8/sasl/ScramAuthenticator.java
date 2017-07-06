@@ -4,7 +4,7 @@
  */
 
 
-package org.postgresql.sasl;
+package org.postgresql.jre8.sasl;
 
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;

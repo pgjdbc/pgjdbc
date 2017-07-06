@@ -20,7 +20,6 @@ import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
-import org.postgresql.sasl.ScramAuthenticator;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
@@ -417,8 +416,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SSPI negotiation state, if used */
     ISSPIClient sspiClient = null;
+
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     /* SCRAM authentication state, if used */
-    ScramAuthenticator scramAuthenticator = null;
+    org.postgresql.jre8.sasl.ScramAuthenticator scramAuthenticator = null;
+    //#endif
 
     try {
       authloop: while (true) {
@@ -611,10 +613,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 sspiClient.continueSSPI(l_msgLen - 8);
                 break;
 
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
-                scramAuthenticator = new ScramAuthenticator(user, password, pgStream);
+                scramAuthenticator = new org.postgresql.jre8.sasl.ScramAuthenticator(user, password, pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
                 break;
@@ -626,6 +629,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL_FINAL:
                 scramAuthenticator.verifyServerSignature(l_msgLen - 4 - 4);
                 break;
+              //#endif
 
               case AUTH_REQ_OK:
                 /* Cleanup after successful authentication */
