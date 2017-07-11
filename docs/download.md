@@ -24,9 +24,13 @@ downloading the appropriate JAR file and dropping it into your
 classpath.  Source versions are also available here for recent
 driver versions.
 
+{% for post in site.categories.new_release limit:1 %}
+{% capture current_version %}{{ post.version }}{% endcapture %}
+{% endfor %}
+
 ***
 <a name="current"></a>
-## Current Version *42.1.1*
+## Current Version *{{ current_version }}*
 
 This is the current version of the driver.  Unless you have unusual
 requirements (running old applications or JVMs), this is the driver
@@ -41,12 +45,11 @@ javax.sql package.
 you will need to use a JDBC3 version of the driver, which will by
 necessity not be current, found in [Other Versions](#others).
 
+[PostgreSQL JDBC 4.2 Driver, {{ current_version }}](download/postgresql-{{ current_version }}.jar)
 
-[PostgreSQL JDBC 4.0 Driver, 42.1.1](download/postgresql-42.1.1.jre6.jar)
+[PostgreSQL JDBC 4.1 Driver, {{ current_version }}.jre7](download/postgresql-{{ current_version }}.jre7.jar)
 
-[PostgreSQL JDBC 4.1 Driver, 42.1.1](download/postgresql-42.1.1.jre7.jar)
-
-[PostgreSQL JDBC 4.2 Driver, 42.1.1](download/postgresql-42.1.1.jar)
+[PostgreSQL JDBC 4.0 Driver, {{ current_version }}.jre6](download/postgresql-{{ current_version }}.jre6.jar)
 
 
 ***
@@ -86,29 +89,17 @@ versions of the JVM with the JDBC specification implemented.
 	<th>JDBC 4.2</th>
 	<th>Source</th>
 </tr>
-<tr>
-	<td>42.1.1</td>
-	<td><a href="download/postgresql-42.1.1.jre6.jar">42.1.1 JDBC 4</a></td>
-	<td><a href="download/postgresql-42.1.1.jre7.jar">42.1.1 JDBC 41</a></td>
-	<td><a href="download/postgresql-42.1.1.jar">42.1.1 JDBC 42</a></td>
-	<td><a href="download/postgresql-jdbc-42.1.1.src.tar.gz">42.1.1 JDBC Source</a></td>
-</tr>
 
+{% for post in site.categories.new_release %}
+{% capture ver %}{{ post.version }}{% endcapture %}
 <tr>
-	<td>42.1.0</td>
-	<td>n/a</td>
-	<td><a href="download/postgresql-42.1.0.jre7.jar">42.1.0 JDBC 41</a></td>
-	<td><a href="download/postgresql-42.1.0.jar">42.1.0 JDBC 42</a></td>
-	<td><a href="download/postgresql-jdbc-42.1.0.src.tar.gz">42.1.0 JDBC Source</a></td>
+	<td>{{ ver }}</td>
+	<td><a href="download/postgresql-{{ ver }}.jre6.jar">{{ ver }} JDBC 4</a></td>
+	<td><a href="download/postgresql-{{ ver }}.jre7.jar">{{ ver }} JDBC 41</a></td>
+	<td><a href="download/postgresql-{{ ver }}.jar">{{ ver }} JDBC 42</a></td>
+	<td><a href="download/postgresql-jdbc-{{ ver }}.src.tar.gz">{{ ver }} JDBC Source</a></td>
 </tr>
-
-<tr>
-	<td>42.0.0</td>
-	<td><a href="download/postgresql-42.0.0.jre6.jar">42.0.0 JDBC 4</a></td>
-	<td><a href="download/postgresql-42.0.0.jre7.jar">42.0.0 JDBC 41</a></td>
-	<td><a href="download/postgresql-42.0.0.jar">42.0.0 JDBC 42</a></td>
-	<td><a href="download/postgresql-jdbc-42.0.0.src.tar.gz">42.0.0 JDBC Source</a></td>
-</tr>
+{% endfor %}
 
 <tr>
 	<td>9.4.1212</td>

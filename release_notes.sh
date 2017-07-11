@@ -6,12 +6,19 @@ VERS=${CURRENT_VERSION/-SNAPSHOT}
 
 PREV_VERSION=`git describe --match 'REL*' --abbrev=0`
 
-echo "<a name=\"version_${VERS}\"></a>"
-echo "## Version ${VERS} ($(date +%Y-%m-%d))"
+echo ---
+echo title:  "PostgreSQL JDBC Driver ${VERS} Released"
+echo date:   $(date '+%Y-%m-%d %H:%M:%S %z')
+echo categories:
+echo '  - new_release'
+echo version: ${VERS}
+echo ---
+
+
+echo **Notable changes**
 echo
-echo Notable changes:
-echo
-echo {% include changelog/$VERS-notes.md %}
+echo '*'
+echo '<!--more-->'
 echo
 
 git shortlog --format="%s@@@%H@@@%h@@@" --grep="maven-release-plugin|update versions in readme.md" --extended-regexp --invert-grep --no-merges $PREV_VERSION..HEAD | perl release_notes_filter.pl ${VERS}

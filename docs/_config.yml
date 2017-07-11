@@ -1,3 +1,8 @@
 name: PostgreSQL JDBC Driver website
 markdown: redcarpet
 highlighter: pygments
+excerpt_separator: <!--more-->
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
