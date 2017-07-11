@@ -34,6 +34,7 @@ my %author_url = (
   'Philippe Marschall' => 'https://github.com/marschall',
   'Rikard Pavelic' => 'https://github.com/zapov',
   'Robert Zenz' => 'https://github.com/RobertZenz',
+  'Robert \'Bobby\' Zenz' => 'https://github.com/RobertZenz',
   'Roman Ivanov' => 'https://github.com/romani',
   'Sebastian Utz' => 'https://github.com/seut',
   'slmsbrhgn' => 'https://github.com/slmsbrhgn',
