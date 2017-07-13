@@ -8,7 +8,7 @@ nav: ../
 # History of Changes
 {% comment %}There are no new lines after "for" and after "endfor" below in order to keep formatting of the output list sane.{% endcomment %}
 * [Introduction and explanation of symbols](#introduction)
-{% for post in site.categories.new_release %}* [Version {{ post.version }} ({{ post.date | date: "%Y-%d-%m"}})](#version_{{ post.version }})
+{% for post in site.categories.new_release %}* [Version {{ post.version }} ({{ post.date | date: "%Y-%m-%d"}})](#version_{{ post.version }})
 	* [Contributors to this release](#contributors_{{ post.version }})
 {% endfor %}* [Version 9.4.1212 (2016-11-01)](#version_9.4.1212)
 	* [Contributors to this release](#contributors_9.4.1212)
@@ -77,7 +77,7 @@ denote the various action types:![add](../media/img/add.jpg)=add,
 
 {% for post in site.categories.new_release %}
 <a name="version_{{ post.version }}"></a>
-## Version {{ post.version }} ({{ post.date | date: "%Y-%d-%m"}})
+## Version {{ post.version }} ({{ post.date | date: "%Y-%m-%d"}})
 {{ post.content }}
 {% endfor %}
 
