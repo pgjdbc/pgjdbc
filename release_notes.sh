@@ -39,6 +39,7 @@ echo ---
 echo **Notable changes**
 echo
 echo '*'
+echo
 echo '<!--more-->'
 echo
 
