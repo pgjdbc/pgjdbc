@@ -141,6 +141,34 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   @Test
+  public void testExecuteEmptyPreparedBatch() throws Exception {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+      int[] updateCount = ps.executeBatch();
+      Assert.assertEquals("Empty batch should update empty result", 0, updateCount.length);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testPreparedNoParameters() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
+      ps.addBatch();
+      ps.addBatch();
+      ps.addBatch();
+      ps.addBatch();
+      int[] actual = ps.executeBatch();
+      assertBatchResult("4 rows inserted via batch", new int[]{1, 1, 1, 1}, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
   public void testClearBatch() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -158,6 +186,31 @@ public class BatchExecuteTest extends BaseTest4 {
     assertCol1HasValue(4);
 
     stmt.close();
+  }
+
+  @Test
+  public void testClearPreparedNoArgBatch() throws Exception {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
+      ps.addBatch();
+      ps.clearBatch();
+      int[] updateCount = ps.executeBatch();
+      Assert.assertEquals("Empty batch should update empty result", 0, updateCount.length);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testClearPreparedEmptyBatch() throws Exception {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
+      ps.clearBatch();
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
   }
 
   @Test
