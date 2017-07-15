@@ -80,7 +80,7 @@ while(<>) {
   print $subject.$pr." [".$shortSha."](https://github.com/pgjdbc/pgjdbc/commit/$sha)\n";
 }
 
-print "<a name=\"contributors_{{ version }}\"></a>\n";
+print "<a name=\"contributors_{{ page.version }}\"></a>\n";
 print "### Contributors to this release\n\n";
 
 print "We thank the following people for their contributions to this release.\n\n";
