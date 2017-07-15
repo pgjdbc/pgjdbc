@@ -6,31 +6,32 @@
 package org.postgresql.test.jdbc42;
 
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest;
+import org.postgresql.test.jdbc2.BaseTest4;
+
+import org.junit.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 
 
-public class PreparedStatementTest extends BaseTest {
+public class PreparedStatementTest extends BaseTest4 {
 
-  public PreparedStatementTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Override
+  public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "timestamptztable", "tstz timestamptz");
     TestUtil.createTable(con, "timetztable", "ttz timetz");
   }
 
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "timestamptztable");
     TestUtil.dropTable(con, "timetztable");
     super.tearDown();
   }
 
+  @Test
   public void testTimestampTzSetNull() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO timestamptztable (tstz) VALUES (?)");
 
@@ -45,6 +46,7 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testTimeTzSetNull() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO timetztable (ttz) VALUES (?)");
 

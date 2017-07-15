@@ -5,9 +5,10 @@
 
 package org.postgresql.core.v3;
 
-import org.postgresql.test.jdbc2.BaseTest;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.SQLException;
 
@@ -17,7 +18,23 @@ import java.sql.SQLException;
  * @author Jeremy Whiting jwhiting@redhat.com
  *
  */
-public class V3ParameterListTests extends BaseTest {
+public class V3ParameterListTests {
+  private TypeTransferModeRegistry transferModeRegistry;
+
+  @Before
+  public void setUp() throws Exception {
+    transferModeRegistry = new TypeTransferModeRegistry() {
+        @Override
+        public boolean useBinaryForSend(int oid) {
+            return false;
+        }
+
+        @Override
+        public boolean useBinaryForReceive(int oid) {
+            return false;
+        }
+    };
+  }
 
   /**
    * Test to check the merging of two collections of parameters. All elements
@@ -26,6 +43,7 @@ public class V3ParameterListTests extends BaseTest {
    * @throws SQLException
    *           raised exception if setting parameter fails.
    */
+  @Test
   public void testMergeOfParameterLists() throws SQLException {
     SimpleParameterList s1SPL = new SimpleParameterList(8, transferModeRegistry);
     s1SPL.setIntParameter(1, 1);
@@ -43,28 +61,5 @@ public class V3ParameterListTests extends BaseTest {
     assertEquals(
         "Expected string representation of values does not match outcome.",
         "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString());
-  }
-
-  public V3ParameterListTests(String test) {
-    super(test);
-  }
-
-  private TypeTransferModeRegistry transferModeRegistry;
-
-  @Override
-  @Before
-  protected void setUp() throws Exception {
-    transferModeRegistry =
-        new TypeTransferModeRegistry() {
-          @Override
-          public boolean useBinaryForSend(int oid) {
-            return false;
-          }
-
-          @Override
-          public boolean useBinaryForReceive(int oid) {
-            return false;
-          }
-        };
   }
 }

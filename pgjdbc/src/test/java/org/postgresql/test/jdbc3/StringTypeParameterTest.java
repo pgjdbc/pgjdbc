@@ -5,10 +5,15 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,15 +22,11 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Properties;
 
-public class StringTypeParameterTest extends TestCase {
+public class StringTypeParameterTest {
 
   private Connection _conn;
 
-  public StringTypeParameterTest(String name) {
-    super(name);
-  }
-
-  protected boolean setUp(String stringType) throws Exception {
+  private boolean prepare(String stringType) throws Exception {
     Properties props = new Properties();
     if (stringType != null) {
       props.put("stringtype", stringType);
@@ -39,7 +40,8 @@ public class StringTypeParameterTest extends TestCase {
     return true;
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     if (_conn != null) {
       TestUtil.dropTable(_conn, "stringtypetest");
       TestUtil.dropType(_conn, "mood");
@@ -47,6 +49,7 @@ public class StringTypeParameterTest extends TestCase {
     }
   }
 
+  @Test
   public void testParameterStringTypeVarchar() throws Exception {
     if (!TestUtil.isProtocolVersion(_conn, 3)) {
       return;
@@ -54,6 +57,7 @@ public class StringTypeParameterTest extends TestCase {
     testParameterVarchar("varchar");
   }
 
+  @Test
   public void testParameterStringTypeNotSet() throws Exception {
     if (!TestUtil.isProtocolVersion(_conn, 3)) {
       return;
@@ -62,7 +66,7 @@ public class StringTypeParameterTest extends TestCase {
   }
 
   private void testParameterVarchar(String param) throws Exception {
-    if (!setUp(param)) {
+    if (!prepare(param)) {
       return;
     }
 
@@ -121,8 +125,9 @@ public class StringTypeParameterTest extends TestCase {
 
   }
 
+  @Test
   public void testParameterUnspecified() throws Exception {
-    if (!setUp("unspecified")) {
+    if (!prepare("unspecified")) {
       return;
     }
 
@@ -153,6 +158,5 @@ public class StringTypeParameterTest extends TestCase {
     // all good
     rs.close();
     query.close();
-
   }
 }

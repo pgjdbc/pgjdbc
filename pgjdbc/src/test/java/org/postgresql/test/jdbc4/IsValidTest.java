@@ -12,13 +12,14 @@ import static org.junit.Assert.assertTrue;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.Statement;
 
-public class IsValidTest {
+public class IsValidTest extends BaseTest4 {
 
   private TransactionState getTransactionState(Connection conn) {
     return ((BaseConnection) conn).getTransactionState();
@@ -26,13 +27,12 @@ public class IsValidTest {
 
   @Test
   public void testIsValid() throws Exception {
-    Connection _conn = TestUtil.openDB();
     try {
-      assertTrue(_conn.isValid(0));
+      assertTrue(con.isValid(0));
     } finally {
-      TestUtil.closeDB(_conn);
+      TestUtil.closeDB(con);
     }
-    assertFalse(_conn.isValid(0));
+    assertFalse(con.isValid(0));
   }
 
   /**
@@ -40,36 +40,30 @@ public class IsValidTest {
    */
   @Test
   public void testTransactionState() throws Exception {
-    Connection conn = TestUtil.openDB();
+    TransactionState transactionState = getTransactionState(con);
+    con.isValid(0);
+    assertEquals("Transaction state has been changed", transactionState,
+        getTransactionState(con));
+
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+    con.setAutoCommit(false);
     try {
-      TransactionState transactionState;
-      transactionState = getTransactionState(conn);
-      conn.isValid(0);
+      transactionState = getTransactionState(con);
+      con.isValid(0);
       assertEquals("Transaction state has been changed", transactionState,
-          getTransactionState(conn));
+          getTransactionState(con));
 
-      conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-      conn.setAutoCommit(false);
-      try {
-        transactionState = getTransactionState(conn);
-        conn.isValid(0);
-        assertEquals("Transaction state has been changed", transactionState,
-            getTransactionState(conn));
-
-        Statement stmt = conn.createStatement();
-        stmt.execute("SELECT 1");
-        transactionState = getTransactionState(conn);
-        conn.isValid(0);
-        assertEquals("Transaction state has been changed", transactionState,
-            getTransactionState(conn));
-      } finally {
-        try {
-          conn.setAutoCommit(true);
-        } catch (final Exception e) {
-        }
-      }
+      Statement stmt = con.createStatement();
+      stmt.execute("SELECT 1");
+      transactionState = getTransactionState(con);
+      con.isValid(0);
+      assertEquals("Transaction state has been changed", transactionState,
+          getTransactionState(con));
     } finally {
-      TestUtil.closeDB(conn);
+      try {
+        con.setAutoCommit(true);
+      } catch (final Exception e) {
+      }
     }
   }
 
