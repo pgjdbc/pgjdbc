@@ -88,7 +88,11 @@ public class PgConnection implements BaseConnection {
   /* URL we were created via */
   private final String creatingURL;
 
-  private Throwable openStackTrace;
+  /*
+   * Finalizer guard in the style suggested by the Effective Java book
+   * @see http://www.informit.com/articles/article.aspx?p=1216151&seqNum=7
+   */
+  private final Object finalizerGuard;
 
   /* Actual network handler */
   private final QueryExecutor queryExecutor;
@@ -295,8 +299,20 @@ public class PgConnection implements BaseConnection {
     _typeCache = createTypeInfo(this, unknownLength);
     initObjectTypes(info);
 
-    if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
-      openStackTrace = new Throwable("Connection was created at this point:");
+    if (PGProperty.RESOURCE_FINALIZER_GUARD.getBoolean(info)) {
+      final boolean log = PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info);
+      final Throwable openStackTrace = new Throwable("Connection was created at this point:");
+      finalizerGuard = new Object() {
+        @Override
+        protected void finalize() throws Throwable {
+          if (log) {
+            LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
+          }
+          PgConnection.this.close();
+        }
+      };
+    } else {
+      finalizerGuard = null;
     }
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
@@ -656,7 +672,6 @@ public class PgConnection implements BaseConnection {
   public void close() throws SQLException {
     releaseTimer();
     queryExecutor.close();
-    openStackTrace = null;
   }
 
   public String nativeSQL(String sql) throws SQLException {
@@ -862,25 +877,6 @@ public class PgConnection implements BaseConnection {
   public String getCatalog() throws SQLException {
     checkClosed();
     return queryExecutor.getDatabase();
-  }
-
-  /**
-   * Overrides finalize(). If called, it closes the connection.
-   * <p>
-   * This was done at the request of <a href="mailto:rachel@enlarion.demon.co.uk">Rachel
-   * Greenham</a> who hit a problem where multiple clients didn't close the connection, and once a
-   * fortnight enough clients were open to kill the postgres server.
-   */
-  protected void finalize() throws Throwable {
-    try {
-      if (openStackTrace != null) {
-        LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
-      }
-
-      close();
-    } finally {
-      super.finalize();
-    }
   }
 
   /**

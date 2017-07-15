@@ -833,6 +833,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if driver should guard with finalizers against leaking unclosed resources (connections, statements, etc.)
+   * @see PGProperty#RESOURCE_FINALIZER_GUARD
+   */
+  public boolean getResourceFinalizerGuard() {
+    return PGProperty.RESOURCE_FINALIZER_GUARD.getBoolean(properties);
+  }
+
+  /**
+   * @param enabled true if driver should guard with finalizers against leaking unclosed resources (connections, statements, etc.)
+   * @see PGProperty#RESOURCE_FINALIZER_GUARD
+   */
+  public void setResourceFinalizerGuard(boolean enabled) {
+    PGProperty.RESOURCE_FINALIZER_GUARD.set(properties, enabled);
+  }
+
+  /**
    * @return true if driver should log unclosed connections
    * @see PGProperty#LOG_UNCLOSED_CONNECTIONS
    */
