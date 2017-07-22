@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc42;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 
@@ -279,6 +280,8 @@ public class SetObject310Test {
    */
   @Test
   public void testSetLocalDateTimeBc() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
     // use BC for funsies
     List<LocalDateTime> bcDates = new ArrayList<LocalDateTime>();
     bcDates.add(LocalDateTime.parse("1997-06-30T23:59:59.999999").with(ChronoField.ERA, IsoEra.BCE.getValue()));
