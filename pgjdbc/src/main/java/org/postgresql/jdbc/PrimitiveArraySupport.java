@@ -73,7 +73,7 @@ final class PrimitiveArraySupport {
 
     @Override
     public String toArrayString(char delim, short[] array) {
-      final StringBuilder sb = new StringBuilder(Math.max(64, array.length * 8));
+      final StringBuilder sb = new StringBuilder(Math.max(32, array.length * 4));
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i > 0) {
@@ -148,7 +148,7 @@ final class PrimitiveArraySupport {
 
     @Override
     public String toArrayString(char delim, boolean[] array) {
-      final StringBuilder sb = new StringBuilder(Math.max(64, array.length * 8));
+      final StringBuilder sb = new StringBuilder(Math.max(32, array.length * 6));
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i > 0) {
@@ -173,7 +173,7 @@ final class PrimitiveArraySupport {
 
     @Override
     public String toArrayString(char delim, char[] array) {
-      final StringBuilder sb = new StringBuilder(Math.max(64, array.length * 8));
+      final StringBuilder sb = new StringBuilder(Math.max(16, array.length * 2) + 2);
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i > 0) {
