@@ -10,12 +10,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -303,8 +304,13 @@ public class ResultSetTest extends BaseTest4 {
     testBadBoolean("'2017-03-13'::date", "2017-03-13");
     testBadBoolean("'2017-03-13 14:25:48.130861'::time", "14:25:48.130861");
     testBadBoolean("ARRAY[[1,0],[0,1]]", "{{1,0},{0,1}}");
-    testBadBoolean("'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
     testBadBoolean("29::bit(4)", "1101");
+  }
+
+  @Test
+  public void testGetBadUuidBoolean() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    testBadBoolean("'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
   }
 
   public void testBadBoolean(String select, String value) throws SQLException {
@@ -877,7 +883,7 @@ public class ResultSetTest extends BaseTest4 {
    */
   @Test
   public void testNamedPreparedStatementResultSetColumnMappingCache() throws SQLException {
-    Assume.assumeTrue("Simple protocol only mode does not support server-prepared statements",
+    assumeTrue("Simple protocol only mode does not support server-prepared statements",
         preferQueryMode != PreferQueryMode.SIMPLE);
     PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
     ResultSet rs;

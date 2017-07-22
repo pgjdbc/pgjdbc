@@ -419,15 +419,15 @@ public enum PGProperty {
   private String _description;
   private String[] _choices;
 
-  private PGProperty(String name, String defaultValue, String description) {
+  PGProperty(String name, String defaultValue, String description) {
     this(name, defaultValue, description, false);
   }
 
-  private PGProperty(String name, String defaultValue, String description, boolean required) {
+  PGProperty(String name, String defaultValue, String description, boolean required) {
     this(name, defaultValue, description, required, (String[]) null);
   }
 
-  private PGProperty(String name, String defaultValue, String description, boolean required,
+  PGProperty(String name, String defaultValue, String description, boolean required,
       String... choices) {
     _name = name;
     _defaultValue = defaultValue;

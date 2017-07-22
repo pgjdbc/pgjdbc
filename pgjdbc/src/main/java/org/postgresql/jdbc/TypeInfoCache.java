@@ -64,7 +64,7 @@ public class TypeInfoCache implements TypeInfo {
   // 2 - sql type
   // 3 - java class
   // 4 - array type oid
-  private static final Object types[][] = {
+  private static final Object[][] types = {
       {"int2", Oid.INT2, Types.SMALLINT, "java.lang.Integer", Oid.INT2_ARRAY},
       {"int4", Oid.INT4, Types.INTEGER, "java.lang.Integer", Oid.INT4_ARRAY},
       {"oid", Oid.OID, Types.BIGINT, "java.lang.Long", Oid.OID_ARRAY},
@@ -98,7 +98,7 @@ public class TypeInfoCache implements TypeInfo {
    * PG maps several alias to real type names. When we do queries against pg_catalog, we must use
    * the real type, not an alias, so use this mapping.
    */
-  private final static HashMap<String, String> typeAliases;
+  private static final HashMap<String, String> typeAliases;
 
   static {
     typeAliases = new HashMap<String, String>();

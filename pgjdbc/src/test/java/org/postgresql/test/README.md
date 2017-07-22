@@ -104,12 +104,11 @@ In your test method you can use the fixture that is setup for it
 by the test case.
 
 If you decide to add a new test case, you should do two things:
-1) Add a class that extends junit.framework.TestCase. It should
+1) Add a test class. It should
 contain setUp() and tearDown() methods that create and destroy
 the fixture respectively.
 2) Edit $JDBC_SRC/org/postgresql/test/jdbc2/Jdbc2TestSuite.java or
-$JDBC_SRC/org/postgresql/test/jdbc3/Jdbc3TestSuite.java and add a
-suite.addTestSuite() call for your class. This will make the test case
+$JDBC_SRC/org/postgresql/test/jdbc3/Jdbc3TestSuite.java and add your class. This will make the test case
 part of the test suite.
 
 6 Guidelines for developing new tests
@@ -123,19 +122,15 @@ The recommended pattern for creating and dropping tables can be
 found in the example in section 7 below.
 
 Please note that JUnit provides several convenience methods to
-check for conditions. See the TestCase class in the Javadoc
+check for conditions. See the Assert class in the Javadoc
 documentation of JUnit, which is installed on your system. For
 example, you can compare two integers using
-TestCase.assertEquals(int expected, int actual). This method
+Assert.assertEquals(int expected, int actual). This method
 will print both values in case of a failure.
 
-To simply report a failure use TestCase.fail().
+To simply report a failure use Assert.fail().
 
 The JUnit FAQ explains how to test for a thrown exception.
-
-Avoid the use of the deprecated TestCase.assert(), since it
-collides with the new assert keyword in the Java 2 platform
-version 1.4.
 
 As a rule, the test suite should succeed. Any errors or failures
 - which may be caused by bugs in the JDBC driver, the backend or
@@ -155,23 +150,26 @@ behaviour or the intended implementation of a feature?
 ----------------------
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.postgresql.test.TestUtil;
-import junit.framework.TestCase;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.sql.*;
 
 /*
  * Test case for ...
  */
-public class FooTest extends TestCase {
+public class FooTest {
 
     private Connection con;
     private Statement stmt;
 
-    public FooTest(String name) {
-        super(name);
-    }
-
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         con = TestUtil.openDB();
         stmt = con.createStatement();
 
@@ -194,7 +192,8 @@ public class FooTest extends TestCase {
         // the use of transactions.
     }
 
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         con.setAutoCommit(true);
         if (stmt != null) {
             stmt.executeUpdate("DROP TABLE testfoo");
@@ -205,8 +204,9 @@ public class FooTest extends TestCase {
         }
     }
 
+    @Test
     public void testFoo() {
-        // Use the assert methods in junit.framework.TestCase
+        // Use the assert methods in import org.junit.Assert
         // for the actual tests
 
         // Just some silly examples
@@ -216,6 +216,7 @@ public class FooTest extends TestCase {
         }
     }
 
+    @Test
     public void testBar() {
     	// Another test.
     }

@@ -37,7 +37,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
   private static class SingleUseProperties extends Properties {
     private static final long serialVersionUID = 1L;
 
-    public SingleUseProperties(Properties initialProperties) {
+    SingleUseProperties(Properties initialProperties) {
       super();
       if (initialProperties != null) {
         putAll(initialProperties);

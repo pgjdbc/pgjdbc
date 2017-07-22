@@ -88,10 +88,8 @@ public class ResultSetMetaDataTest extends BaseTest4 {
 
     assertEquals("a", rsmd.getColumnName(1));
     assertEquals("oid", rsmd.getColumnName(5));
-    if (TestUtil.isProtocolVersion(conn, 3)) {
-      assertEquals("", pgrsmd.getBaseColumnName(4));
-      assertEquals("b", pgrsmd.getBaseColumnName(6));
-    }
+    assertEquals("", pgrsmd.getBaseColumnName(4));
+    assertEquals("b", pgrsmd.getBaseColumnName(6));
 
     assertEquals(Types.INTEGER, rsmd.getColumnType(1));
     assertEquals(Types.VARCHAR, rsmd.getColumnType(2));
@@ -105,25 +103,17 @@ public class ResultSetMetaDataTest extends BaseTest4 {
 
     assertEquals("", rsmd.getSchemaName(1));
     assertEquals("", rsmd.getSchemaName(4));
-    if (TestUtil.isProtocolVersion(conn, 3)) {
-      assertEquals("public", pgrsmd.getBaseSchemaName(1));
-      assertEquals("", pgrsmd.getBaseSchemaName(4));
-    }
+    assertEquals("public", pgrsmd.getBaseSchemaName(1));
+    assertEquals("", pgrsmd.getBaseSchemaName(4));
 
     assertEquals("rsmd1", rsmd.getTableName(1));
     assertEquals("", rsmd.getTableName(4));
-    if (TestUtil.isProtocolVersion(conn, 3)) {
-      assertEquals("rsmd1", pgrsmd.getBaseTableName(1));
-      assertEquals("", pgrsmd.getBaseTableName(4));
-    }
+    assertEquals("rsmd1", pgrsmd.getBaseTableName(1));
+    assertEquals("", pgrsmd.getBaseTableName(4));
 
-    if (TestUtil.isProtocolVersion(conn, 3)) {
-      assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
-      assertEquals(ResultSetMetaData.columnNullable, rsmd.isNullable(2));
-      assertEquals(ResultSetMetaData.columnNullableUnknown, rsmd.isNullable(4));
-    } else {
-      assertEquals(ResultSetMetaData.columnNullableUnknown, rsmd.isNullable(1));
-    }
+    assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
+    assertEquals(ResultSetMetaData.columnNullable, rsmd.isNullable(2));
+    assertEquals(ResultSetMetaData.columnNullableUnknown, rsmd.isNullable(4));
   }
 
   // verify that a prepared update statement returns no metadata and doesn't execute.
@@ -205,12 +195,10 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     ResultSetMetaData rsmd = rs.getMetaData();
 
     assertTrue(!rsmd.isAutoIncrement(1));
-    if (TestUtil.isProtocolVersion(conn, 3)) {
-      assertTrue(rsmd.isAutoIncrement(2));
-      assertTrue(rsmd.isAutoIncrement(3));
-      assertEquals("bigserial", rsmd.getColumnTypeName(2));
-      assertEquals("serial", rsmd.getColumnTypeName(3));
-    }
+    assertTrue(rsmd.isAutoIncrement(2));
+    assertTrue(rsmd.isAutoIncrement(3));
+    assertEquals("bigserial", rsmd.getColumnTypeName(2));
+    assertEquals("serial", rsmd.getColumnTypeName(3));
 
     rs.close();
     stmt.close();

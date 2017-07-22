@@ -25,7 +25,7 @@ import java.util.List;
  * @author Christopher Deckers (chrriis@gmail.com)
  */
 public class Parser {
-  private final static int[] NO_BINDS = new int[0];
+  private static final int[] NO_BINDS = new int[0];
 
   /**
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
@@ -1197,8 +1197,8 @@ public class Parser {
     }
   }
 
-  private final static char[] QUOTE_OR_ALPHABETIC_MARKER = new char[]{'\"', '0'};
-  private final static char[] SINGLE_QUOTE = new char[]{'\''};
+  private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
+  private static final char[] SINGLE_QUOTE = {'\''};
 
   // Static variables for parsing SQL when replaceProcessing is true.
   private enum SqlParseState {

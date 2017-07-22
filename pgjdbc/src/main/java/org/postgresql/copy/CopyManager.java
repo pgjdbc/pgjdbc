@@ -32,7 +32,7 @@ public class CopyManager {
   // do figure it out we can just set it here and they reap the rewards.
   // Note that this is currently being used for both a number of bytes and a number
   // of characters.
-  final static int DEFAULT_BUFFER_SIZE = 65536;
+  static final int DEFAULT_BUFFER_SIZE = 65536;
 
   private final Encoding encoding;
   private final QueryExecutor queryExecutor;

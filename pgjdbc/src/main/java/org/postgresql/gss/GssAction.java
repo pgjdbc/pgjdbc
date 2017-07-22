@@ -34,7 +34,7 @@ class GssAction implements PrivilegedAction<Exception> {
   private final GSSCredential clientCredentials;
 
 
-  public GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
+  GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
       String kerberosServerName, boolean useSpnego) {
     this.pgStream = pgStream;
     this.clientCredentials = clientCredentials;
@@ -45,9 +45,8 @@ class GssAction implements PrivilegedAction<Exception> {
   }
 
   private static boolean hasSpnegoSupport(GSSManager manager) throws GSSException {
-
     org.ietf.jgss.Oid spnego = new org.ietf.jgss.Oid("1.3.6.1.5.5.2");
-    org.ietf.jgss.Oid mechs[] = manager.getMechs();
+    org.ietf.jgss.Oid[] mechs = manager.getMechs();
 
     for (Oid mech : mechs) {
       if (mech.equals(spnego)) {
@@ -64,7 +63,7 @@ class GssAction implements PrivilegedAction<Exception> {
 
       GSSManager manager = GSSManager.getInstance();
       GSSCredential clientCreds = null;
-      Oid desiredMechs[] = new Oid[1];
+      Oid[] desiredMechs = new Oid[1];
       if (clientCredentials == null) {
         if (useSpnego && hasSpnegoSupport(manager)) {
           desiredMechs[0] = new Oid("1.3.6.1.5.5.2");
@@ -86,8 +85,8 @@ class GssAction implements PrivilegedAction<Exception> {
           GSSContext.DEFAULT_LIFETIME);
       secContext.requestMutualAuth(true);
 
-      byte inToken[] = new byte[0];
-      byte outToken[] = null;
+      byte[] inToken = new byte[0];
+      byte[] outToken = null;
 
       boolean established = false;
       while (!established) {

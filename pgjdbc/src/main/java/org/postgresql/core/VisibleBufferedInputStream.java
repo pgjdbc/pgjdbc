@@ -177,7 +177,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * {@inheritDoc}
    */
-  public int read(byte to[], int off, int len) throws IOException {
+  public int read(byte[] to, int off, int len) throws IOException {
     if ((off | len | (off + len) | (to.length - (off + len))) < 0) {
       throw new IndexOutOfBoundsException();
     } else if (len == 0) {

@@ -11,7 +11,8 @@ package org.postgresql.core;
  * syntax, thus a special cache key class is used to trigger proper parsing for callable statements.
  */
 class CallableQueryKey extends BaseQueryKey {
-  public CallableQueryKey(String sql) {
+
+  CallableQueryKey(String sql) {
     super(sql, true, true);
   }
 

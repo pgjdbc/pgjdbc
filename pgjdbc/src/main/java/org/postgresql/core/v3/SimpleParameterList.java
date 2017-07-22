@@ -32,12 +32,12 @@ import java.util.Arrays;
  */
 class SimpleParameterList implements V3ParameterList {
 
-  private final static byte IN = 1;
-  private final static byte OUT = 2;
-  private final static byte INOUT = IN | OUT;
+  private static final byte IN = 1;
+  private static final byte OUT = 2;
+  private static final byte INOUT = IN | OUT;
 
-  private final static byte TEXT = 0;
-  private final static byte BINARY = 4;
+  private static final byte TEXT = 0;
+  private static final byte BINARY = 4;
 
   SimpleParameterList(int paramCount, TypeTransferModeRegistry transferModeRegistry) {
     this.paramValues = new Object[paramCount];
@@ -467,7 +467,7 @@ class SimpleParameterList implements V3ParameterList {
    * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
    * to null".
    */
-  private final static Object NULL_OBJECT = new Object();
+  private static final Object NULL_OBJECT = new Object();
 
   private int pos = 0;
 }

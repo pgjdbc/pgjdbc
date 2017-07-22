@@ -259,8 +259,7 @@ public class TestUtil {
    * @return connection using a priviliged user mostly for tests that the ability to load C
    *         functions now as of 4/14
    */
-  public static java.sql.Connection openPrivilegedDB() throws Exception {
-
+  public static Connection openPrivilegedDB() throws Exception {
     initDriver();
     Properties properties = new Properties();
     properties.setProperty("user", getPrivilegedUser());
@@ -274,7 +273,7 @@ public class TestUtil {
    *
    * @return connection
    */
-  public static java.sql.Connection openDB() throws Exception {
+  public static Connection openDB() throws Exception {
     return openDB(new Properties());
   }
 
@@ -282,7 +281,7 @@ public class TestUtil {
    * Helper - opens a connection with the allowance for passing additional parameters, like
    * "compatible".
    */
-  public static java.sql.Connection openDB(Properties props) throws Exception {
+  public static Connection openDB(Properties props) throws Exception {
     initDriver();
 
     // Allow properties to override the user name.
@@ -614,6 +613,9 @@ public class TestUtil {
   }
 
   public static String escapeString(Connection con, String value) throws SQLException {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).escapeString(value);
     }
@@ -621,6 +623,9 @@ public class TestUtil {
   }
 
   public static boolean getStandardConformingStrings(Connection con) {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).getStandardConformingStrings();
     }
@@ -633,6 +638,9 @@ public class TestUtil {
    * connection.
    */
   public static boolean haveMinimumServerVersion(Connection con, int version) throws SQLException {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).haveMinimumServerVersion(version);
     }
@@ -641,6 +649,9 @@ public class TestUtil {
 
   public static boolean haveMinimumServerVersion(Connection con, Version version)
       throws SQLException {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).haveMinimumServerVersion(version);
     }
@@ -652,10 +663,12 @@ public class TestUtil {
     return (jvm.compareTo(version) >= 0);
   }
 
-  public static boolean isProtocolVersion(Connection con, int version) {
+  public static boolean haveIntegerDateTimes(Connection con) {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
-      return (version == ((PgConnection) con).getProtocolVersion());
-
+      return ((PgConnection) con).getQueryExecutor().getIntegerDateTimes();
     }
     return false;
   }

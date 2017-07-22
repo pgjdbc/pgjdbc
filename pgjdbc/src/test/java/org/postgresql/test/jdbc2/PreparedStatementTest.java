@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGStatement;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -77,11 +78,28 @@ public class PreparedStatementTest extends BaseTest4 {
     super.tearDown();
   }
 
+  private int getNumberOfServerPreparedStatements(String sql)
+      throws SQLException {
+    PreparedStatement pstmt = null;
+    ResultSet rs = null;
+    try {
+      pstmt = con.prepareStatement(
+          "select count(*) from pg_prepared_statements where statement = ?");
+      pstmt.setString(1, sql);
+      rs = pstmt.executeQuery();
+      rs.next();
+      return rs.getInt(1);
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
+
   @Test
   public void testSetBinaryStream() throws SQLException {
     assumeByteaSupported();
     ByteArrayInputStream bais;
-    byte buf[] = new byte[10];
+    byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
     }
@@ -143,16 +161,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Test
   public void testBinaryStreamErrorsRestartable() throws SQLException {
-    // The V2 protocol does not have the ability to recover when
-    // streaming data to the server. We could potentially try
-    // introducing a syntax error to force the query to fail, but
-    // that seems dangerous.
-    //
-    if (!TestUtil.isProtocolVersion(con, 3)) {
-      return;
-    }
-
-    byte buf[] = new byte[10];
+    byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
     }
@@ -1169,15 +1178,13 @@ public class PreparedStatementTest extends BaseTest4 {
   public void testUnknownSetObject() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
 
-    if (TestUtil.isProtocolVersion(con, 3)) {
-      pstmt.setString(1, "1 week");
-      try {
-        pstmt.executeUpdate();
-        assertTrue("When using extended protocol, interval vs character varying type mismatch error is expected",
-            preferQueryMode == PreferQueryMode.SIMPLE);
-      } catch (SQLException sqle) {
-        // ERROR: column "i" is of type interval but expression is of type character varying
-      }
+    pstmt.setString(1, "1 week");
+    try {
+      pstmt.executeUpdate();
+      assertTrue("When using extended protocol, interval vs character varying type mismatch error is expected",
+          preferQueryMode == PreferQueryMode.SIMPLE);
+    } catch (SQLException sqle) {
+      // ERROR: column "i" is of type interval but expression is of type character varying
     }
 
     pstmt.setObject(1, "1 week", Types.OTHER);
@@ -1236,12 +1243,10 @@ public class PreparedStatementTest extends BaseTest4 {
       pstmt.executeBatch();
     }
     pstmt.close();
-    pstmt = con.prepareStatement("select count(*) from pg_prepared_statements where statement = 'INSERT INTO batch_tab_threshold5 (id, val) VALUES ($1,$2)'");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertEquals(1, rs.getInt(1));
-    rs.close();
-    pstmt.close();
+    assertTrue("prepareThreshold=5, so the statement should be server-prepared",
+        ((PGStatement) pstmt).isUseServerPrepare());
+    assertEquals("prepareThreshold=5, so the statement should be server-prepared", 1,
+        getNumberOfServerPreparedStatements("INSERT INTO batch_tab_threshold5 (id, val) VALUES ($1,$2)"));
   }
 
   @Test
@@ -1266,12 +1271,39 @@ public class PreparedStatementTest extends BaseTest4 {
       pstmt.executeBatch();
     }
     pstmt.close();
-    pstmt = con.prepareStatement("select count(*) from pg_prepared_statements where statement = 'INSERT INTO batch_tab_threshold0 (id, val) VALUES ($1,$2)'");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertEquals(0, rs.getInt(1));
-    rs.close();
-    pstmt.close();
+
+    assertFalse("prepareThreshold=0, so the statement should not be server-prepared",
+        ((PGStatement) pstmt).isUseServerPrepare());
+    assertEquals("prepareThreshold=0, so the statement should not be server-prepared", 0,
+        getNumberOfServerPreparedStatements("INSERT INTO batch_tab_threshold0 (id, val) VALUES ($1,$2)"));
+  }
+
+  @Test
+  public void testSelectPrepareThreshold0AutoCommitFalseFetchSizeNonZero() throws SQLException {
+    assumeBinaryModeRegular();
+    Assume.assumeTrue("simple protocol only does not support prepared statement requests",
+        preferQueryMode != PreferQueryMode.SIMPLE);
+
+    con.setAutoCommit(false);
+    PreparedStatement pstmt = null;
+    ResultSet rs = null;
+    try {
+      pstmt = con.prepareStatement("SELECT 42");
+      ((PgStatement) pstmt).setPrepareThreshold(0);
+      pstmt.setFetchSize(1);
+      rs = pstmt.executeQuery();
+      rs.next();
+      assertEquals(42, rs.getInt(1));
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+    }
+
+    assertFalse("prepareThreshold=0, so the statement should not be server-prepared",
+        ((PGStatement) pstmt).isUseServerPrepare());
+
+    assertEquals("prepareThreshold=0, so the statement should not be server-prepared", 0,
+        getNumberOfServerPreparedStatements("SELECT 42"));
   }
 
 }

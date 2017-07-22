@@ -577,9 +577,19 @@ public class Driver implements java.sql.Driver {
       urlProps.setProperty("PGPORT", ports.toString());
       urlProps.setProperty("PGHOST", hosts.toString());
     } else {
-      urlProps.setProperty("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
-      urlProps.setProperty("PGHOST", "localhost");
-      urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer));
+      /*
+       if there are no defaults set or any one of PORT, HOST, DBNAME not set
+       then set it to default
+      */
+      if (defaults == null || !defaults.containsKey("PGPORT")) {
+        urlProps.setProperty("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
+      }
+      if (defaults == null || !defaults.containsKey("PGHOST")) {
+        urlProps.setProperty("PGHOST", "localhost");
+      }
+      if (defaults == null || !defaults.containsKey("PGDBNAME")) {
+        urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer));
+      }
     }
 
     // parse the args part of the url
