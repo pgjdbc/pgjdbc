@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc42;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest;
@@ -146,6 +147,8 @@ public class GetObject310Test extends BaseTest {
    */
   @Test
   public void testGetLocalDateTime() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
     List<String> zoneIdsToTest = new ArrayList<String>();
     zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
     zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9
