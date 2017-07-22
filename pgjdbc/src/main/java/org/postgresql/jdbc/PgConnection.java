@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
+import org.postgresql.PGArraySupport;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -74,7 +75,7 @@ import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PgConnection implements BaseConnection {
+public class PgConnection implements BaseConnection, PGArraySupport {
 
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
 
@@ -392,6 +393,14 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
+   * {@inheritDoc}
+   */
+  @Override
+  public PGArraySupport getArraySupport() throws SQLException {
+    return this;
+  }
+
+/**
    * This adds a warning to the warning chain.
    *
    * @param warn warning to add
@@ -1269,6 +1278,41 @@ public class PgConnection implements BaseConnection {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
+  
+  @Override
+  public Array createArrayOf(String typeName, Object elements) throws SQLException {
+      checkClosed();  
+
+      final int oid = getTypeInfo().getPGArrayType(typeName);
+      final char delim = getTypeInfo().getArrayDelimiter(oid);
+
+      if (oid == Oid.UNSPECIFIED) {
+        throw new PSQLException(
+            GT.tr("Unable to find server array type for provided name {0}.", typeName),
+            PSQLState.INVALID_NAME);
+      }
+      
+      final String arrayString;
+
+      if (PrimitiveArraySupport.isSupportedPrimitiveArray(elements)) {
+	  arrayString = PrimitiveArraySupport.getArrayToString(elements)
+		  .toArrayString(delim, elements);
+      }
+      else
+      {
+          final Class<?> clazz = elements.getClass();
+          if (!clazz.isArray()) {
+    	  throw new PSQLException(
+    		GT.tr("Invalid elements {0}", elements),
+    		PSQLState.INVALID_PARAMETER_TYPE);
+          }
+          StringBuilder sb = new StringBuilder();
+          appendArray(sb, elements, delim);
+          arrayString = sb.toString();
+      }
+
+      return makeArray(oid, arrayString);
+    }
 
   @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {

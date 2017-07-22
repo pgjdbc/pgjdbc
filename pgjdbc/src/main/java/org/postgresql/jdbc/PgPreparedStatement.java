@@ -13,6 +13,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -682,6 +683,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.ARRAY:
         if (in instanceof Array) {
           setArray(parameterIndex, (Array) in);
+        } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(in)) {
+            setPrimitiveArray(parameterIndex, in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -705,6 +708,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
             PSQLState.INVALID_PARAMETER_TYPE);
     }
+  }
+
+  private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
+    final PrimitiveArraySupport.ArrayToString<A> arrayToString = 
+        PrimitiveArraySupport.getArrayToString(in);
+    final TypeInfo ti = connection.getTypeInfo();
+    final int oid = ti.getPGType(arrayToString.getDefaultTypeName());
+    final char delim = ti.getArrayDelimiter(oid);
+    setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
   }
 
   private static String asString(final Clob in) throws SQLException {
@@ -968,6 +980,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
+    } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
+      setPrimitiveArray(parameterIndex, x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(

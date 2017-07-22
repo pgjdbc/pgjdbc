@@ -21,6 +21,9 @@ import java.sql.Statement;
  * returned by the PostgreSQL driver implement PGConnection.
  */
 public interface PGConnection {
+  
+    PGArraySupport getArraySupport() throws SQLException;
+    
   /**
    * This method returns any notifications that have been received since the last call to this
    * method. Returns null if there have been no notifications.
