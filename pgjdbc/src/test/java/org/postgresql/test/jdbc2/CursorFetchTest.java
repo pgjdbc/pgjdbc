@@ -5,7 +5,12 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
+
+import org.junit.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,17 +21,15 @@ import java.sql.Statement;
  * Tests for using non-zero setFetchSize().
  */
 public class CursorFetchTest extends BaseTest {
-  public CursorFetchTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Override
+  public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "test_fetch", "value integer");
     con.setAutoCommit(false);
   }
 
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     if (!con.getAutoCommit()) {
       con.rollback();
     }
@@ -45,6 +48,7 @@ public class CursorFetchTest extends BaseTest {
   }
 
   // Test various fetchsizes.
+  @Test
   public void testBasicFetch() throws Exception {
     createRows(100);
 
@@ -69,6 +73,7 @@ public class CursorFetchTest extends BaseTest {
 
 
   // Similar, but for scrollable resultsets.
+  @Test
   public void testScrollableFetch() throws Exception {
     createRows(100);
 
@@ -111,6 +116,7 @@ public class CursorFetchTest extends BaseTest {
     }
   }
 
+  @Test
   public void testScrollableAbsoluteFetch() throws Exception {
     createRows(100);
 
@@ -153,6 +159,7 @@ public class CursorFetchTest extends BaseTest {
   // -run query (all rows should be fetched)
   // -set fetchsize = 50 (should have no effect)
   // -process results
+  @Test
   public void testResultSetFetchSizeOne() throws Exception {
     createRows(100);
 
@@ -178,6 +185,7 @@ public class CursorFetchTest extends BaseTest {
   // --process 25 rows
   // --should do a FETCH ALL to get more data
   // --process 75 rows
+  @Test
   public void testResultSetFetchSizeTwo() throws Exception {
     createRows(100);
 
@@ -205,6 +213,7 @@ public class CursorFetchTest extends BaseTest {
   // --process 50 rows
   // --do a FETCH FORWARD 50
   // --process 25 rows. end of results.
+  @Test
   public void testResultSetFetchSizeThree() throws Exception {
     createRows(100);
 
@@ -232,6 +241,7 @@ public class CursorFetchTest extends BaseTest {
   // --process 25 rows
   // --do a FETCH FORWARD 25
   // --process 25 rows. end of results.
+  @Test
   public void testResultSetFetchSizeFour() throws Exception {
     createRows(100);
 
@@ -249,6 +259,7 @@ public class CursorFetchTest extends BaseTest {
     assertEquals(100, count);
   }
 
+  @Test
   public void testSingleRowResultPositioning() throws Exception {
     String msg;
     createRows(1);
@@ -289,6 +300,7 @@ public class CursorFetchTest extends BaseTest {
     }
   }
 
+  @Test
   public void testMultiRowResultPositioning() throws Exception {
     String msg;
 
@@ -340,6 +352,7 @@ public class CursorFetchTest extends BaseTest {
   }
 
   // Test odd queries that should not be transformed into cursor-based fetches.
+  @Test
   public void testInsert() throws Exception {
     // INSERT should not be transformed.
     PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value) values(1)");
@@ -347,6 +360,7 @@ public class CursorFetchTest extends BaseTest {
     stmt.executeUpdate();
   }
 
+  @Test
   public void testMultistatement() throws Exception {
     // Queries with multiple statements should not be transformed.
 
@@ -370,6 +384,7 @@ public class CursorFetchTest extends BaseTest {
   // if the driver tries to use a cursor with autocommit on
   // it will fail because the cursor will disappear partway
   // through execution
+  @Test
   public void testNoCursorWithAutoCommit() throws Exception {
     createRows(10); // 0 .. 9
     con.setAutoCommit(true);
@@ -384,6 +399,7 @@ public class CursorFetchTest extends BaseTest {
     assertEquals(10, count);
   }
 
+  @Test
   public void testGetRow() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.setFetchSize(1);
@@ -400,6 +416,7 @@ public class CursorFetchTest extends BaseTest {
   // isLast() may change the results of other positioning methods as it has to
   // buffer some more results. This tests avoid using it so as to test robustness
   // other positioning methods
+  @Test
   public void testRowResultPositioningWithoutIsLast() throws Exception {
     String msg;
 
@@ -446,6 +463,7 @@ public class CursorFetchTest extends BaseTest {
 
 
   // Empty resultsets require all row positioning methods to return false
+  @Test
   public void testNoRowResultPositioning() throws Exception {
     String msg;
 
@@ -473,6 +491,7 @@ public class CursorFetchTest extends BaseTest {
   }
 
   // Empty resultsets require all row positioning methods to return false
+  @Test
   public void testScrollableNoRowResultPositioning() throws Exception {
     String msg;
 
