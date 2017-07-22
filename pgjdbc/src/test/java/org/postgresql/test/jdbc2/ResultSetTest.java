@@ -17,7 +17,6 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
