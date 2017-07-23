@@ -10,20 +10,19 @@ import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
 import org.junit.Assume;
+import org.junit.Before;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public class BaseTest extends TestCase {
+public class BaseTest {
   protected Connection con;
   protected PreferQueryMode preferQueryMode;
 
-  public BaseTest(String name) {
-    super(name);
-
+  public BaseTest() {
     try {
       new org.postgresql.Driver();
     } catch (Exception ex) {
@@ -38,7 +37,8 @@ public class BaseTest extends TestCase {
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
   }
 
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     Properties props = new Properties();
     updateProperties(props);
     con = TestUtil.openDB(props);
@@ -46,7 +46,8 @@ public class BaseTest extends TestCase {
     preferQueryMode = pg == null ? PreferQueryMode.EXTENDED : pg.getPreferQueryMode();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     TestUtil.closeDB(con);
   }
 
