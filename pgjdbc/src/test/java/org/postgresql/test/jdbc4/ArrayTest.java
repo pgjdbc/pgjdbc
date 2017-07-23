@@ -77,7 +77,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCreateArrayOfInt() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::int[]");
-    Integer in[] = new Integer[3];
+    Integer[] in = new Integer[3];
     in[0] = 0;
     in[1] = -1;
     in[2] = 2;
@@ -86,7 +86,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Integer out[] = (Integer[]) arr.getArray();
+    Integer[] out = (Integer[]) arr.getArray();
 
     Assert.assertEquals(3, out.length);
     Assert.assertEquals(0, out[0].intValue());
@@ -97,7 +97,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCreateArrayOfMultiString() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text[]");
-    String in[][] = new String[2][2];
+    String[][] in = new String[2][2];
     in[0][0] = "a";
     in[0][1] = "";
     in[1][0] = "\\";
@@ -107,7 +107,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    String out[][] = (String[][]) arr.getArray();
+    String[][] out = (String[][]) arr.getArray();
 
     Assert.assertEquals(2, out.length);
     Assert.assertEquals(2, out[0].length);
@@ -130,7 +130,7 @@ public class ArrayTest extends BaseTest4 {
     PGobject p2 = new PGobject();
     p2.setType("json");
     p2.setValue("{\"x\": 20}");
-    PGobject in[] = new PGobject[] { p1, p2 };
+    PGobject[] in = new PGobject[]{p1, p2};
     pstmt.setArray(1, _conn.createArrayOf("json", in));
 
     ResultSet rs = pstmt.executeQuery();
@@ -146,7 +146,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayWithNonStandardDelimiter() throws SQLException {
-    PGbox in[] = new PGbox[2];
+    PGbox[] in = new PGbox[2];
     in[0] = new PGbox(1, 2, 3, 4);
     in[1] = new PGbox(5, 6, 7, 8);
 
@@ -172,7 +172,7 @@ public class ArrayTest extends BaseTest4 {
     }
 
     PreparedStatement pstmt = _conn.prepareStatement(sql);
-    String in[] = new String[2];
+    String[] in = new String[2];
     in[0] = null;
     in[1] = null;
     pstmt.setArray(1, _conn.createArrayOf("int8", in));
@@ -180,7 +180,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Long out[] = (Long[]) arr.getArray();
+    Long[] out = (Long[]) arr.getArray();
 
     Assert.assertEquals(2, out.length);
     Assert.assertNull(out[0]);
@@ -190,13 +190,13 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCreateEmptyArrayOfIntViaAlias() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::int[]");
-    Integer in[] = new Integer[0];
+    Integer[] in = new Integer[0];
     pstmt.setArray(1, _conn.createArrayOf("integer", in));
 
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Integer out[] = (Integer[]) arr.getArray();
+    Integer[] out = (Integer[]) arr.getArray();
 
     Assert.assertEquals(0, out.length);
 
@@ -206,14 +206,14 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayWithoutServer() throws SQLException {
-    String in[][] = new String[2][2];
+    String[][] in = new String[2][2];
     in[0][0] = "a";
     in[0][1] = "";
     in[1][0] = "\\";
     in[1][1] = "\"\\'z";
 
     Array arr = _conn.createArrayOf("varchar", in);
-    String out[][] = (String[][]) arr.getArray();
+    String[][] out = (String[][]) arr.getArray();
 
     Assert.assertEquals(2, out.length);
     Assert.assertEquals(2, out[0].length);
@@ -225,14 +225,14 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreatePrimitiveArray() throws SQLException {
-    double in[][] = new double[2][2];
+    double[][] in = new double[2][2];
     in[0][0] = 3.5;
     in[0][1] = -4.5;
     in[1][0] = 10.0 / 3;
     in[1][1] = 77;
 
     Array arr = _conn.createArrayOf("float8", in);
-    Double out[][] = (Double[][]) arr.getArray();
+    Double[][] out = (Double[][]) arr.getArray();
 
     Assert.assertEquals(2, out.length);
     Assert.assertEquals(2, out[0].length);
@@ -263,7 +263,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt2.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    UUID out[] = (UUID[]) arr.getArray();
+    UUID[] out = (UUID[]) arr.getArray();
 
     Assert.assertEquals(3, out.length);
     Assert.assertEquals(uuid1, out[0]);

@@ -62,24 +62,24 @@ public class Base64 {
   /**
    * No options specified. Value is zero.
    */
-  public final static int NO_OPTIONS = 0;
+  public static final int NO_OPTIONS = 0;
 
   /**
    * Specify encoding.
    */
-  public final static int ENCODE = 1;
+  public static final int ENCODE = 1;
 
 
   /**
    * Specify decoding.
    */
-  public final static int DECODE = 0;
+  public static final int DECODE = 0;
 
 
   /**
    * Don't break lines when encoding (violates strict Base64 specification)
    */
-  public final static int DONT_BREAK_LINES = 8;
+  public static final int DONT_BREAK_LINES = 8;
 
 
   /* ******** P R I V A T E F I E L D S ******** */
@@ -88,32 +88,32 @@ public class Base64 {
   /**
    * Maximum line length (76) of Base64 output.
    */
-  private final static int MAX_LINE_LENGTH = 76;
+  private static final int MAX_LINE_LENGTH = 76;
 
 
   /**
    * The equals sign (=) as a byte.
    */
-  private final static byte EQUALS_SIGN = (byte) '=';
+  private static final byte EQUALS_SIGN = (byte) '=';
 
 
   /**
    * The new line character (\n) as a byte.
    */
-  private final static byte NEW_LINE = (byte) '\n';
+  private static final byte NEW_LINE = (byte) '\n';
 
 
   /**
    * Preferred encoding.
    */
-  private final static String PREFERRED_ENCODING = "UTF-8";
+  private static final String PREFERRED_ENCODING = "UTF-8";
 
 
   /**
    * The 64 valid Base64 values.
    */
-  private final static byte[] ALPHABET;
-  private final static byte[] _NATIVE_ALPHABET = { /* May be something funny like EBCDIC */
+  private static final byte[] ALPHABET;
+  private static final byte[] _NATIVE_ALPHABET = { /* May be something funny like EBCDIC */
       (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G',
       (byte) 'H', (byte) 'I', (byte) 'J', (byte) 'K', (byte) 'L', (byte) 'M', (byte) 'N',
       (byte) 'O', (byte) 'P', (byte) 'Q', (byte) 'R', (byte) 'S', (byte) 'T', (byte) 'U',
@@ -143,7 +143,7 @@ public class Base64 {
    * Translates a Base64 value to either its 6-bit reconstruction value or a negative number
    * indicating some other meaning.
    **/
-  private final static byte[] DECODABET = {-9, -9, -9, -9, -9, -9, -9, -9, -9, // Decimal 0 - 8
+  private static final byte[] DECODABET = {-9, -9, -9, -9, -9, -9, -9, -9, -9, // Decimal 0 - 8
       -5, -5, // Whitespace: Tab and Linefeed
       -9, -9, // Decimal 11 - 12
       -5, // Whitespace: Carriage Return
@@ -180,8 +180,8 @@ public class Base64 {
 
   // I think I end up not using the BAD_ENCODING indicator.
   // private final static byte BAD_ENCODING = -9; // Indicates error in encoding
-  private final static byte WHITE_SPACE_ENC = -5; // Indicates white space in encoding
-  private final static byte EQUALS_SIGN_ENC = -1; // Indicates equals sign in encoding
+  private static final byte WHITE_SPACE_ENC = -5; // Indicates white space in encoding
+  private static final byte EQUALS_SIGN_ENC = -1; // Indicates equals sign in encoding
 
 
   /**

@@ -15,10 +15,10 @@ import java.util.List;
  * Creates an instance of {@link CachedQuery} for a given connection.
  */
 class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQuery> {
-  private final static String[] EMPTY_RETURNING = new String[0];
+  private static final String[] EMPTY_RETURNING = new String[0];
   private final QueryExecutor queryExecutor;
 
-  public CachedQueryCreateAction(QueryExecutor queryExecutor) {
+  CachedQueryCreateAction(QueryExecutor queryExecutor) {
     this.queryExecutor = queryExecutor;
   }
 

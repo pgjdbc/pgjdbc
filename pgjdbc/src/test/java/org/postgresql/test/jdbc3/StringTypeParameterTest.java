@@ -29,7 +29,7 @@ import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class StringTypeParameterTest extends BaseTest4 {
-  private final static String UNSPECIFIED_STRING_TYPE = "unspecified";
+  private static final String UNSPECIFIED_STRING_TYPE = "unspecified";
 
   private final String stringType;
 

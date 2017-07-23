@@ -23,47 +23,47 @@ import java.util.Map;
  */
 public class EscapedFunctions {
   // numeric functions names
-  public final static String ABS = "abs";
-  public final static String ACOS = "acos";
-  public final static String ASIN = "asin";
-  public final static String ATAN = "atan";
-  public final static String ATAN2 = "atan2";
-  public final static String CEILING = "ceiling";
-  public final static String COS = "cos";
-  public final static String COT = "cot";
-  public final static String DEGREES = "degrees";
-  public final static String EXP = "exp";
-  public final static String FLOOR = "floor";
-  public final static String LOG = "log";
-  public final static String LOG10 = "log10";
-  public final static String MOD = "mod";
-  public final static String PI = "pi";
-  public final static String POWER = "power";
-  public final static String RADIANS = "radians";
-  public final static String ROUND = "round";
-  public final static String SIGN = "sign";
-  public final static String SIN = "sin";
-  public final static String SQRT = "sqrt";
-  public final static String TAN = "tan";
-  public final static String TRUNCATE = "truncate";
+  public static final String ABS = "abs";
+  public static final String ACOS = "acos";
+  public static final String ASIN = "asin";
+  public static final String ATAN = "atan";
+  public static final String ATAN2 = "atan2";
+  public static final String CEILING = "ceiling";
+  public static final String COS = "cos";
+  public static final String COT = "cot";
+  public static final String DEGREES = "degrees";
+  public static final String EXP = "exp";
+  public static final String FLOOR = "floor";
+  public static final String LOG = "log";
+  public static final String LOG10 = "log10";
+  public static final String MOD = "mod";
+  public static final String PI = "pi";
+  public static final String POWER = "power";
+  public static final String RADIANS = "radians";
+  public static final String ROUND = "round";
+  public static final String SIGN = "sign";
+  public static final String SIN = "sin";
+  public static final String SQRT = "sqrt";
+  public static final String TAN = "tan";
+  public static final String TRUNCATE = "truncate";
 
   // string function names
-  public final static String ASCII = "ascii";
-  public final static String CHAR = "char";
-  public final static String CONCAT = "concat";
-  public final static String INSERT = "insert"; // change arguments order
-  public final static String LCASE = "lcase";
-  public final static String LEFT = "left";
-  public final static String LENGTH = "length";
-  public final static String LOCATE = "locate"; // the 3 args version duplicate args
-  public final static String LTRIM = "ltrim";
-  public final static String REPEAT = "repeat";
-  public final static String REPLACE = "replace";
-  public final static String RIGHT = "right"; // duplicate args
-  public final static String RTRIM = "rtrim";
-  public final static String SPACE = "space";
-  public final static String SUBSTRING = "substring";
-  public final static String UCASE = "ucase";
+  public static final String ASCII = "ascii";
+  public static final String CHAR = "char";
+  public static final String CONCAT = "concat";
+  public static final String INSERT = "insert"; // change arguments order
+  public static final String LCASE = "lcase";
+  public static final String LEFT = "left";
+  public static final String LENGTH = "length";
+  public static final String LOCATE = "locate"; // the 3 args version duplicate args
+  public static final String LTRIM = "ltrim";
+  public static final String REPEAT = "repeat";
+  public static final String REPLACE = "replace";
+  public static final String RIGHT = "right"; // duplicate args
+  public static final String RTRIM = "rtrim";
+  public static final String SPACE = "space";
+  public static final String SUBSTRING = "substring";
+  public static final String UCASE = "ucase";
   // soundex is implemented on the server side by
   // the contrib/fuzzystrmatch module. We provide a translation
   // for this in the driver, but since we don't want to bother with run
@@ -72,44 +72,44 @@ public class EscapedFunctions {
   // difference is currently unsupported entirely.
 
   // date time function names
-  public final static String CURDATE = "curdate";
-  public final static String CURTIME = "curtime";
-  public final static String DAYNAME = "dayname";
-  public final static String DAYOFMONTH = "dayofmonth";
-  public final static String DAYOFWEEK = "dayofweek";
-  public final static String DAYOFYEAR = "dayofyear";
-  public final static String HOUR = "hour";
-  public final static String MINUTE = "minute";
-  public final static String MONTH = "month";
-  public final static String MONTHNAME = "monthname";
-  public final static String NOW = "now";
-  public final static String QUARTER = "quarter";
-  public final static String SECOND = "second";
-  public final static String WEEK = "week";
-  public final static String YEAR = "year";
+  public static final String CURDATE = "curdate";
+  public static final String CURTIME = "curtime";
+  public static final String DAYNAME = "dayname";
+  public static final String DAYOFMONTH = "dayofmonth";
+  public static final String DAYOFWEEK = "dayofweek";
+  public static final String DAYOFYEAR = "dayofyear";
+  public static final String HOUR = "hour";
+  public static final String MINUTE = "minute";
+  public static final String MONTH = "month";
+  public static final String MONTHNAME = "monthname";
+  public static final String NOW = "now";
+  public static final String QUARTER = "quarter";
+  public static final String SECOND = "second";
+  public static final String WEEK = "week";
+  public static final String YEAR = "year";
   // for timestampadd and timestampdiff the fractional part of second is not supported
   // by the backend
   // timestampdiff is very partially supported
-  public final static String TIMESTAMPADD = "timestampadd";
-  public final static String TIMESTAMPDIFF = "timestampdiff";
+  public static final String TIMESTAMPADD = "timestampadd";
+  public static final String TIMESTAMPDIFF = "timestampdiff";
 
   // constants for timestampadd and timestampdiff
-  public final static String SQL_TSI_ROOT = "SQL_TSI_";
-  public final static String SQL_TSI_DAY = "DAY";
-  public final static String SQL_TSI_FRAC_SECOND = "FRAC_SECOND";
-  public final static String SQL_TSI_HOUR = "HOUR";
-  public final static String SQL_TSI_MINUTE = "MINUTE";
-  public final static String SQL_TSI_MONTH = "MONTH";
-  public final static String SQL_TSI_QUARTER = "QUARTER";
-  public final static String SQL_TSI_SECOND = "SECOND";
-  public final static String SQL_TSI_WEEK = "WEEK";
-  public final static String SQL_TSI_YEAR = "YEAR";
+  public static final String SQL_TSI_ROOT = "SQL_TSI_";
+  public static final String SQL_TSI_DAY = "DAY";
+  public static final String SQL_TSI_FRAC_SECOND = "FRAC_SECOND";
+  public static final String SQL_TSI_HOUR = "HOUR";
+  public static final String SQL_TSI_MINUTE = "MINUTE";
+  public static final String SQL_TSI_MONTH = "MONTH";
+  public static final String SQL_TSI_QUARTER = "QUARTER";
+  public static final String SQL_TSI_SECOND = "SECOND";
+  public static final String SQL_TSI_WEEK = "WEEK";
+  public static final String SQL_TSI_YEAR = "YEAR";
 
 
   // system functions
-  public final static String DATABASE = "database";
-  public final static String IFNULL = "ifnull";
-  public final static String USER = "user";
+  public static final String DATABASE = "database";
+  public static final String IFNULL = "ifnull";
+  public static final String USER = "user";
 
 
   /**
@@ -635,7 +635,7 @@ public class EscapedFunctions {
     return buf.toString();
   }
 
-  private final static String constantToInterval(String type, String value) throws SQLException {
+  private static String constantToInterval(String type, String value) throws SQLException {
     if (!type.startsWith(SQL_TSI_ROOT)) {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);

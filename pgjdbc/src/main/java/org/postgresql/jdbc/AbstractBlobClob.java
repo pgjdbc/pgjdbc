@@ -165,13 +165,13 @@ public abstract class AbstractBlobClob {
   /**
    * Iterates over a large object returning byte values. Will buffer the data from the large object.
    */
-  private class LOIterator {
+  private class LOIterator  {
     private static final int BUFFER_SIZE = 8096;
-    private byte buffer[] = new byte[BUFFER_SIZE];
+    private byte[] buffer = new byte[BUFFER_SIZE];
     private int idx = BUFFER_SIZE;
     private int numBytes = BUFFER_SIZE;
 
-    public LOIterator(long start) throws SQLException {
+    LOIterator(long start) throws SQLException {
       getLo(false).seek((int) start);
     }
 

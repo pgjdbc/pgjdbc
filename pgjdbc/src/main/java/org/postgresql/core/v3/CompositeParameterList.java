@@ -64,9 +64,9 @@ class CompositeParameterList implements V3ParameterList {
   }
 
   public int[] getTypeOIDs() {
-    int oids[] = new int[total];
+    int[] oids = new int[total];
     for (int i = 0; i < offsets.length; i++) {
-      int subOids[] = subparams[i].getTypeOIDs();
+      int[] subOids = subparams[i].getTypeOIDs();
       System.arraycopy(subOids, 0, oids, offsets[i], subOids.length);
     }
     return oids;

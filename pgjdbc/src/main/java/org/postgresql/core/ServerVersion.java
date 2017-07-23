@@ -29,7 +29,7 @@ public enum ServerVersion implements Version {
 
   private final int version;
 
-  private ServerVersion(String version) {
+  ServerVersion(String version) {
     this.version = parseServerVersionStr(version);
   }
 

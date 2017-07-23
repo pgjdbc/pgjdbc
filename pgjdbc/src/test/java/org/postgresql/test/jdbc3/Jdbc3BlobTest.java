@@ -27,9 +27,9 @@ import java.sql.Statement;
 import java.util.Arrays;
 
 public class Jdbc3BlobTest {
-  private final static String TABLE = "blobtest";
-  private final static String INSERT = "INSERT INTO " + TABLE + " VALUES (1, lo_creat(-1))";
-  private final static String SELECT = "SELECT ID, DATA FROM " + TABLE + " WHERE ID = 1";
+  private static final String TABLE = "blobtest";
+  private static final String INSERT = "INSERT INTO " + TABLE + " VALUES (1, lo_creat(-1))";
+  private static final String SELECT = "SELECT ID, DATA FROM " + TABLE + " WHERE ID = 1";
 
   private Connection _conn;
 
@@ -113,7 +113,7 @@ public class Jdbc3BlobTest {
       return;
     }
 
-    byte data[] = new byte[100];
+    byte[] data = new byte[100];
     for (byte i = 0; i < data.length; i++) {
       data[i] = i;
     }

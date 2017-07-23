@@ -764,7 +764,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setString(String,String)");
   }
 
-  public void setBytes(String parameterName, byte x[]) throws SQLException {
+  public void setBytes(String parameterName, byte[] x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBytes(String,byte)");
   }
 

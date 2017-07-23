@@ -967,11 +967,11 @@ public class PgStatement implements Statement, BaseStatement {
     throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
   }
 
-  public long executeLargeUpdate(String sql, int columnIndexes[]) throws SQLException {
+  public long executeLargeUpdate(String sql, int[] columnIndexes) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
   }
 
-  public long executeLargeUpdate(String sql, String columnNames[]) throws SQLException {
+  public long executeLargeUpdate(String sql, String[] columnNames) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
   }
 
@@ -1079,7 +1079,7 @@ public class PgStatement implements Statement, BaseStatement {
     return executeUpdate(sql, (String[]) null);
   }
 
-  public int executeUpdate(String sql, int columnIndexes[]) throws SQLException {
+  public int executeUpdate(String sql, int[] columnIndexes) throws SQLException {
     if (columnIndexes == null || columnIndexes.length == 0) {
       return executeUpdate(sql);
     }
@@ -1088,7 +1088,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.NOT_IMPLEMENTED);
   }
 
-  public int executeUpdate(String sql, String columnNames[]) throws SQLException {
+  public int executeUpdate(String sql, String[] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return executeUpdate(sql);
     }
@@ -1107,7 +1107,7 @@ public class PgStatement implements Statement, BaseStatement {
     return execute(sql, (String[]) null);
   }
 
-  public boolean execute(String sql, int columnIndexes[]) throws SQLException {
+  public boolean execute(String sql, int[] columnIndexes) throws SQLException {
     if (columnIndexes != null && columnIndexes.length == 0) {
       return execute(sql);
     }
@@ -1116,7 +1116,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.NOT_IMPLEMENTED);
   }
 
-  public boolean execute(String sql, String columnNames[]) throws SQLException {
+  public boolean execute(String sql, String[] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return execute(sql);
     }

@@ -17,8 +17,8 @@ import java.util.ResourceBundle;
  */
 public class GT {
 
-  private final static GT _gt = new GT();
-  private final static Object noargs[] = new Object[0];
+  private static final GT _gt = new GT();
+  private static final Object[] noargs = new Object[0];
 
   public static String tr(String message, Object... args) {
     return _gt.translate(message, args);
@@ -35,7 +35,7 @@ public class GT {
     }
   }
 
-  private String translate(String message, Object args[]) {
+  private String translate(String message, Object[] args) {
     if (_bundle != null && message != null) {
       try {
         message = _bundle.getString(message);

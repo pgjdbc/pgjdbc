@@ -96,7 +96,7 @@ public class LargeObject {
       this.commitOnClose = false;
     }
 
-    FastpathArg args[] = new FastpathArg[2];
+    FastpathArg[] args = new FastpathArg[2];
     args[0] = Fastpath.createOIDArg(oid);
     args[1] = new FastpathArg(mode);
     this.fd = fp.getInteger("lo_open", args);
@@ -168,7 +168,7 @@ public class LargeObject {
       }
 
       // finally close
-      FastpathArg args[] = new FastpathArg[1];
+      FastpathArg[] args = new FastpathArg[1];
       args[0] = new FastpathArg(fd);
       fp.fastpath("lo_close", args); // true here as we dont care!!
       closed = true;
@@ -188,7 +188,7 @@ public class LargeObject {
   public byte[] read(int len) throws SQLException {
     // This is the original method, where the entire block (len bytes)
     // is retrieved in one go.
-    FastpathArg args[] = new FastpathArg[2];
+    FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(len);
     return fp.getData("loread", args);
@@ -203,8 +203,8 @@ public class LargeObject {
    * @return the number of bytes actually read
    * @throws SQLException if a database-access error occurs.
    */
-  public int read(byte buf[], int off, int len) throws SQLException {
-    byte b[] = read(len);
+  public int read(byte[] buf, int off, int len) throws SQLException {
+    byte[] b = read(len);
     if (b.length < len) {
       len = b.length;
     }
@@ -218,8 +218,8 @@ public class LargeObject {
    * @param buf array to write
    * @throws SQLException if a database-access error occurs.
    */
-  public void write(byte buf[]) throws SQLException {
-    FastpathArg args[] = new FastpathArg[2];
+  public void write(byte[] buf) throws SQLException {
+    FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(buf);
     fp.fastpath("lowrite", args);
@@ -233,8 +233,8 @@ public class LargeObject {
    * @param len number of bytes to write
    * @throws SQLException if a database-access error occurs.
    */
-  public void write(byte buf[], int off, int len) throws SQLException {
-    FastpathArg args[] = new FastpathArg[2];
+  public void write(byte[] buf, int off, int len) throws SQLException {
+    FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(buf, off, len);
     fp.fastpath("lowrite", args);
@@ -252,7 +252,7 @@ public class LargeObject {
    * @throws SQLException if a database-access error occurs.
    */
   public void seek(int pos, int ref) throws SQLException {
-    FastpathArg args[] = new FastpathArg[3];
+    FastpathArg[] args = new FastpathArg[3];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(pos);
     args[2] = new FastpathArg(ref);
@@ -267,7 +267,7 @@ public class LargeObject {
    * @throws SQLException if a database-access error occurs.
    */
   public void seek64(long pos, int ref) throws SQLException {
-    FastpathArg args[] = new FastpathArg[3];
+    FastpathArg[] args = new FastpathArg[3];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(pos);
     args[2] = new FastpathArg(ref);
@@ -293,7 +293,7 @@ public class LargeObject {
    * @throws SQLException if a database-access error occurs.
    */
   public int tell() throws SQLException {
-    FastpathArg args[] = new FastpathArg[1];
+    FastpathArg[] args = new FastpathArg[1];
     args[0] = new FastpathArg(fd);
     return fp.getInteger("lo_tell", args);
   }
@@ -303,7 +303,7 @@ public class LargeObject {
    * @throws SQLException if a database-access error occurs.
    */
   public long tell64() throws SQLException {
-    FastpathArg args[] = new FastpathArg[1];
+    FastpathArg[] args = new FastpathArg[1];
     args[0] = new FastpathArg(fd);
     return fp.getLong("lo_tell64", args);
   }
@@ -349,7 +349,7 @@ public class LargeObject {
    * @throws SQLException if something goes wrong
    */
   public void truncate(int len) throws SQLException {
-    FastpathArg args[] = new FastpathArg[2];
+    FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(len);
     fp.getInteger("lo_truncate", args);
@@ -364,7 +364,7 @@ public class LargeObject {
    * @throws SQLException if something goes wrong
    */
   public void truncate64(long len) throws SQLException {
-    FastpathArg args[] = new FastpathArg[2];
+    FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(len);
     fp.getInteger("lo_truncate64", args);

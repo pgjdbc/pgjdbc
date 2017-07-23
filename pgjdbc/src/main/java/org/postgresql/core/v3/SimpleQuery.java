@@ -316,5 +316,5 @@ class SimpleQuery implements Query {
 
   private Integer cachedMaxResultRowSize;
 
-  final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
+  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
