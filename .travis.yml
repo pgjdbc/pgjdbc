@@ -54,13 +54,6 @@ cache:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: # this has to match the environment for 8.2 below
-        - PG_VERSION=8.2
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
   include:
     - jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
