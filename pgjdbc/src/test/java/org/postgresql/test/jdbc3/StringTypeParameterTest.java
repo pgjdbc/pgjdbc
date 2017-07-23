@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
@@ -71,7 +71,7 @@ public class StringTypeParameterTest extends BaseTest4 {
   @Test
   public void testVarcharAsEnum() throws Exception {
     Assume.assumeFalse(UNSPECIFIED_STRING_TYPE.equals(stringType));
-    boolean v90 = TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0);
+    Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
 
     PreparedStatement update = con.prepareStatement("insert into stringtypetest (m) values (?)");
     for (int i = 0; i < 2; i++) {
@@ -83,10 +83,8 @@ public class StringTypeParameterTest extends BaseTest4 {
       }
       try {
         update.executeUpdate();
-        if (v90) {
-          fail("Expected 'column \"m\" is of type mood but expression is of type character varying', "
-              + (i == 0 ? "setString(1, \"sad\")" : "setObject(1, \"sad\", Types.VARCHAR)"));
-        }
+        fail("Expected 'column \"m\" is of type mood but expression is of type character varying', "
+            + (i == 0 ? "setString(1, \"sad\")" : "setObject(1, \"sad\", Types.VARCHAR)"));
       } catch (SQLException e) {
         // Exception exception is
         // ERROR: column "m" is of type mood but expression is of type character varying
@@ -110,7 +108,7 @@ public class StringTypeParameterTest extends BaseTest4 {
   @Test
   public void testMultipleEnumBinds() throws Exception {
     Assume.assumeFalse(UNSPECIFIED_STRING_TYPE.equals(stringType));
-    boolean v90 = TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0);
+    Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
 
     PreparedStatement query =
         con.prepareStatement("select * from stringtypetest where m = ? or m = ?");
@@ -118,9 +116,7 @@ public class StringTypeParameterTest extends BaseTest4 {
     query.setObject(2, "sad", Types.VARCHAR);
     try {
       query.executeQuery();
-      if (v90) {
-        fail("Expected 'operator does not exist: mood = character varying'");
-      }
+      fail("Expected 'operator does not exist: mood = character varying'");
     } catch (SQLException e) {
       // Exception exception is
       // ERROR: operator does not exist: mood = character varying
