@@ -125,10 +125,8 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(V3ParameterListTests.class));
 
     Connection conn = TestUtil.openDB();
-    if (TestUtil.isProtocolVersion(conn, 3)) {
-      suite.addTest(new JUnit4TestAdapter(CopyTest.class));
-      suite.addTest(new JUnit4TestAdapter(CopyLargeFileTest.class));
-    }
+    suite.addTest(new JUnit4TestAdapter(CopyTest.class));
+    suite.addTest(new JUnit4TestAdapter(CopyLargeFileTest.class));
 
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_3)) {
       suite.addTest(new JUnit4TestAdapter(ServerErrorTest.class));
