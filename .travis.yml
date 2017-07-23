@@ -156,6 +156,7 @@ matrix:
         - PG_VERSION=9.4
         - MCENTRAL=Y
     - jdk: openjdk6
+      dist: precise # Trusty does not have Java 6, and installers no longer work
       addons:
         postgresql: "9.4"
       env:
@@ -195,12 +196,14 @@ matrix:
         - PG_VERSION=9.3
         - COVERAGE=Y
     - jdk: openjdk6
+      dist: precise # Trusty does not have Java 6, and installers no longer work
       addons:
         postgresql: "9.2"
       env:
         - PG_VERSION=9.2
         - COVERAGE=Y
     - jdk: oraclejdk8
+      sudo: required # to install PostgreSQL 9.1
       addons:
         postgresql: "9.1"
       env:
