@@ -143,15 +143,6 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Test
   public void testBinaryStreamErrorsRestartable() throws SQLException {
-    // The V2 protocol does not have the ability to recover when
-    // streaming data to the server. We could potentially try
-    // introducing a syntax error to force the query to fail, but
-    // that seems dangerous.
-    //
-    if (!TestUtil.isProtocolVersion(con, 3)) {
-      return;
-    }
-
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
@@ -1169,15 +1160,13 @@ public class PreparedStatementTest extends BaseTest4 {
   public void testUnknownSetObject() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
 
-    if (TestUtil.isProtocolVersion(con, 3)) {
-      pstmt.setString(1, "1 week");
-      try {
-        pstmt.executeUpdate();
-        assertTrue("When using extended protocol, interval vs character varying type mismatch error is expected",
-            preferQueryMode == PreferQueryMode.SIMPLE);
-      } catch (SQLException sqle) {
-        // ERROR: column "i" is of type interval but expression is of type character varying
-      }
+    pstmt.setString(1, "1 week");
+    try {
+      pstmt.executeUpdate();
+      assertTrue("When using extended protocol, interval vs character varying type mismatch error is expected",
+          preferQueryMode == PreferQueryMode.SIMPLE);
+    } catch (SQLException sqle) {
+      // ERROR: column "i" is of type interval but expression is of type character varying
     }
 
     pstmt.setObject(1, "1 week", Types.OTHER);
