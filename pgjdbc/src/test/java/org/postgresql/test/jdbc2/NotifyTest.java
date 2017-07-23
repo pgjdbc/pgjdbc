@@ -52,7 +52,7 @@ public class NotifyTest {
 
   @Test(timeout = 60000)
   public void testNotifyArgument() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0) || TestUtil.isProtocolVersion(conn, 2)) {
+    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
       return;
     }
 

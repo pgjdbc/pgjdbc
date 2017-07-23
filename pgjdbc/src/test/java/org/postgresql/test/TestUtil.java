@@ -664,18 +664,6 @@ public class TestUtil {
     return (jvm.compareTo(version) >= 0);
   }
 
-  @Deprecated
-  public static boolean isProtocolVersion(Connection con, int version) {
-    if (con == null) {
-      throw new NullPointerException("Connection is null");
-    }
-    if (con instanceof PgConnection) {
-      return (version == ((PgConnection) con).getProtocolVersion());
-
-    }
-    return false;
-  }
-
   /**
    * Print a ResultSet to System.out. This is useful for debugging tests.
    */

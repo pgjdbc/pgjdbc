@@ -41,10 +41,6 @@ public class ParameterMetaDataTest extends BaseTest4 {
 
   @Test
   public void testParameterMD() throws SQLException {
-    if (!TestUtil.isProtocolVersion(con, 3)) {
-      return;
-    }
-
     PreparedStatement pstmt =
         con.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ? AND d >^ ? ");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
@@ -65,10 +61,6 @@ public class ParameterMetaDataTest extends BaseTest4 {
 
   @Test
   public void testFailsOnBadIndex() throws SQLException {
-    if (!TestUtil.isProtocolVersion(con, 3)) {
-      return;
-    }
-
     PreparedStatement pstmt =
         con.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ?");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
@@ -87,10 +79,6 @@ public class ParameterMetaDataTest extends BaseTest4 {
   // Make sure we work when mashing two queries into a single statement.
   @Test
   public void testMultiStatement() throws SQLException {
-    if (!TestUtil.isProtocolVersion(con, 3)) {
-      return;
-    }
-
     PreparedStatement pstmt = con.prepareStatement(
         "SELECT a FROM parametertest WHERE b = ? AND c = ? ; SELECT b FROM parametertest WHERE a = ?");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
@@ -113,10 +101,6 @@ public class ParameterMetaDataTest extends BaseTest4 {
   //
   @Test
   public void testTypeChangeWithUnknown() throws SQLException {
-    if (!TestUtil.isProtocolVersion(con, 3)) {
-      return;
-    }
-
     PreparedStatement pstmt =
         con.prepareStatement("SELECT a FROM parametertest WHERE c = ? AND e = ?");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
