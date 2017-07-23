@@ -10,24 +10,14 @@ nav:
 					<!-- <div id="pgFrontMain"> -->
 						<div id="pgFrontFeature">
 							<div id="pgFrontFeatureContent">
-								<p class="txtDate"><strong>May 05 2017</strong></p>
-								<h1 id="txtFrontFeatureHeading">PostgreSQL JDBC Driver 42.1.1 Released!</h1>
-								<p>
-									<strong>Notable changes</strong><br/>
-									{% capture notes%}{% include changelog/42.1.1-notes.md %}{% endcapture %}
-									{{ notes | markdownify }}
-								</p>
-								<p class="txtDate"><strong>May 04 2017</strong></p>
-								<h1 id="txtFrontFeatureHeading">PostgreSQL JDBC Driver 42.1.0 Released!</h1>
-								<p>
-									<strong>Notable changes</strong><br/>
-									{% capture notes%}{% include changelog/42.1.0-notes.md %}{% endcapture %}
-									{{ notes | markdownify }}
-								</p>
-								<p>
-									You may have noticed the change in the versioning of the driver, you can
-									<a href="documentation/faq.html#versioning">read the FAQ</a> for more information.
-								</p>
+								{% for post in site.posts %}
+								<p class="txtDate"><strong>{{ post.date | date_to_long_string }}</strong></p>
+								<h1 id="txtFrontFeatureHeading">{{ post.title }}</h1>
+								<div>
+								{{ post.excerpt | prepend: "<!--start-->" | split: "<!--start-->" | last }}
+								</div>
+								<p>See full <a href="/documentation/changelog.html#version_{{ post.version}}">changelog for {{ post.version}}</a>
+								{% endfor %}
 								<div id="txtFrontFeatureLink">
 									<br/>
 									<img src="media/img/layout/blt_blu_arrow.png" width="6" height="6" alt="" />

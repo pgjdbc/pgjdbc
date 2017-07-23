@@ -173,9 +173,16 @@ public class Parser {
           break;
 
         default:
-          isKeyWordChar =
-              aChars[i] >= 'a' && aChars[i] <= 'z' || aChars[i] >= 'A' && aChars[i] <= 'Z';
-          if (isKeyWordChar && keywordStart < 0) {
+          if (keywordStart >= 0) {
+            // When we are inside a keyword, we need to detect keyword end boundary
+            // Note that isKeyWordChar is initialized to false before the switch, so
+            // all other characters would result in isKeyWordChar=false
+            isKeyWordChar = isIdentifierContChar(aChar);
+            break;
+          }
+          // Not in keyword, so just detect next keyword start
+          isKeyWordChar = isIdentifierStartChar(aChar);
+          if (isKeyWordChar) {
             keywordStart = i;
           }
           break;
@@ -205,7 +212,9 @@ public class Parser {
             }
           }
         }
-        if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
+        if (inParen != 0 || aChar == ')') {
+          // RETURNING and VALUES cannot be present in braces
+        } else if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
           isReturningPresent = true;
         } else if (wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
           isValuesFound = true;
@@ -659,19 +668,23 @@ public class Parser {
 
   /**
    * Checks if a character is valid as the start of an identifier.
+   * PostgreSQL 9.4 allows column names like _, ‿, ⁀, ⁔, ︳, ︴, ﹍, ﹎, ﹏, ＿, so
+   * it is assumed isJavaIdentifierPart is good enough for PostgreSQL.
+   *
+   * @see <a href="https://www.postgresql.org/docs/9.6/static/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS">Identifiers and Key Words</a>
    *
    * @param c the character to check
    * @return true if valid as first character of an identifier; false if not
    */
   public static boolean isIdentifierStartChar(char c) {
     /*
-     * Extracted from {ident_start} and {ident_cont} in
+     * PostgreSQL's implmementation is located in
      * pgsql/src/backend/parser/scan.l:
      * ident_start    [A-Za-z\200-\377_]
      * ident_cont     [A-Za-z\200-\377_0-9\$]
+     * however is is not clear how that interacts with unicode, so we just use Java's implementation.
      */
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-        || c == '_' || c > 127;
+    return Character.isJavaIdentifierStart(c);
   }
 
   /**
@@ -681,10 +694,7 @@ public class Parser {
    * @return true if valid as second or later character of an identifier; false if not
    */
   public static boolean isIdentifierContChar(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-        || c == '_' || c > 127
-        || (c >= '0' && c <= '9')
-        || c == '$';
+    return Character.isJavaIdentifierPart(c);
   }
 
   /**
@@ -706,9 +716,13 @@ public class Parser {
      * The allowed dollar quote start and continuation characters
      * must stay in sync with what the backend defines in
      * pgsql/src/backend/parser/scan.l
+     *
+     * The quoted string starts with $foo$ where "foo" is an optional string
+     * in the form of an identifier, except that it may not contain "$",
+     * and extends to the first occurrence of an identical string.
+     * There is *no* processing of the quoted text.
      */
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-        || c == '_' || c > 127;
+    return c != '$' && isIdentifierStartChar(c);
   }
 
   /**
@@ -718,9 +732,7 @@ public class Parser {
    * @return true if valid as second or later character of a dollar quoting tag; false if not
    */
   public static boolean isDollarQuoteContChar(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-        || c == '_' || c > 127
-        || (c >= '0' && c <= '9');
+    return c != '$' && isIdentifierContChar(c);
   }
 
   /**

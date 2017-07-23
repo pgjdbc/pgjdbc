@@ -104,6 +104,8 @@ public class AutoRollbackTestSuite extends BaseTest4 {
         failMode != FailMode.DEALLOCATE || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
     Assume.assumeTrue("DISCARD ALL requires PostgreSQL 8.3+",
         failMode != FailMode.DISCARD || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    Assume.assumeTrue("Plan invalidation on table redefinition requires PostgreSQL 8.3+",
+        failMode != FailMode.ALTER || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
   }
 
   @Override

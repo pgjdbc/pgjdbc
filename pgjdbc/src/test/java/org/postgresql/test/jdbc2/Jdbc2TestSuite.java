@@ -6,10 +6,10 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.core.ParserTest;
+import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
-import org.postgresql.test.CursorFetchBinaryTest;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
@@ -77,6 +77,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(PGTimestampTest.class));
     suite.addTest(new JUnit4TestAdapter(TimezoneCachingTest.class));
     suite.addTest(new JUnit4TestAdapter(ParserTest.class));
+    suite.addTest(new JUnit4TestAdapter(ReturningParserTest.class));
 
     // PreparedStatement
     suite.addTest(new JUnit4TestAdapter(PreparedStatementTest.class));
@@ -92,7 +93,7 @@ public class Jdbc2TestSuite extends TestSuite {
 
     suite.addTest(new JUnit4TestAdapter(BatchedInsertReWriteEnabledTest.class));
     suite.addTest(new JUnit4TestAdapter(NativeQueryBindLengthTest.class));
-    suite.addTestSuite(DeepBatchedInsertStatementTest.class);
+    suite.addTest(new JUnit4TestAdapter(DeepBatchedInsertStatementTest.class));
 
     // Other misc tests, based on previous problems users have had or specific
     // features some applications require.
@@ -108,8 +109,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(UpdateableResultTest.class));
 
     suite.addTest(new JUnit4TestAdapter(CallableStmtTest.class));
-    suite.addTestSuite(CursorFetchTest.class);
-    suite.addTestSuite(CursorFetchBinaryTest.class);
+    suite.addTest(new JUnit4TestAdapter(CursorFetchTest.class));
     suite.addTest(new JUnit4TestAdapter(ServerCursorTest.class));
 
     suite.addTest(new JUnit4TestAdapter(IntervalTest.class));
@@ -122,7 +122,7 @@ public class Jdbc2TestSuite extends TestSuite {
 
     suite.addTest(new JUnit4TestAdapter(PGPropertyTest.class));
 
-    suite.addTestSuite(V3ParameterListTests.class);
+    suite.addTest(new JUnit4TestAdapter(V3ParameterListTests.class));
 
     Connection conn = TestUtil.openDB();
     if (TestUtil.isProtocolVersion(conn, 3)) {
@@ -135,8 +135,7 @@ public class Jdbc2TestSuite extends TestSuite {
     }
 
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_5)) {
-      suite.addTestSuite(UpsertTest.class);
-      suite.addTestSuite(UpsertBinaryTest.class);
+      suite.addTest(new JUnit4TestAdapter(UpsertTest.class));
     }
 
     conn.close();

@@ -5,13 +5,17 @@
 
 package org.postgresql.jdbc;
 
+import static org.junit.Assert.assertEquals;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest;
+import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
+
+import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.sql.Date;
@@ -25,16 +29,14 @@ import java.util.Properties;
  * execution. Rather than rely on testing at the jdbc api layer.
  * on.
  */
-public class DeepBatchedInsertStatementTest extends BaseTest {
-  public DeepBatchedInsertStatementTest(String name) {
-    super(name);
-  }
+public class DeepBatchedInsertStatementTest extends BaseTest4 {
 
   /*
    * Set up the fixture for this testcase: a connection to a database with a
    * table for this test.
    */
-  protected void setUp() throws Exception {
+  @Override
+  public void setUp() throws Exception {
     super.setUp();
     Statement stmt = con.createStatement();
 
@@ -56,7 +58,8 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
   }
 
   // Tear down the fixture for this test case.
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testbatch");
     TestUtil.dropTable(con, "testunspecified");
     super.tearDown();
@@ -68,6 +71,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
     forceBinary(props);
   }
 
+  @Test
   public void testDeepInternalsBatchedQueryDecorator() throws Exception {
     PgPreparedStatement pstmt = null;
     try {
@@ -200,6 +204,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
   /**
    *
    */
+  @Test
   public void testUnspecifiedParameterType() throws Exception {
     PgPreparedStatement pstmt = null;
     try {
@@ -233,6 +238,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
    * Test to check the statement can provide the necessary number of prepared
    * type fields. This is after running with a batch size of 1.
    */
+  @Test
   public void testVaryingTypeCounts() throws SQLException {
     PgPreparedStatement pstmt = null;
     try {

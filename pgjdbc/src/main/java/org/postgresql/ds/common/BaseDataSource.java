@@ -1237,7 +1237,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * @see PGProperty#PREFER_QUERY_MODE
-   * @param preferQueryMode extended, simple, extendedForPrepared, or extendedCacheEveryting
+   * @param preferQueryMode extended, simple, extendedForPrepared, or extendedCacheEverything
    */
   public void setPreferQueryMode(PreferQueryMode preferQueryMode) {
     PGProperty.PREFER_QUERY_MODE.set(properties, preferQueryMode.value());

@@ -6,14 +6,11 @@ nav: ../
 ---
 
 # History of Changes
+{% comment %}There are no new lines after "for" and after "endfor" below in order to keep formatting of the output list sane.{% endcomment %}
 * [Introduction and explanation of symbols](#introduction)
-* [Version 42.1.1 (2017-05-05)](#version_42.1.1)
-	* [Contributors to this release](#contributors_42.1.1)
-* [Version 42.1.0 (2017-05-04)](#version_42.1.0)
-	* [Contributors to this release](#contributors_42.1.0)
-* [Version 42.0.0 (2017-02-18)](#version_42.0.0)
-	* [Contributors to this release](#contributors_42.0.0)
-* [Version 9.4.1212 (2016-11-01)](#version_9.4.1212)
+{% for post in site.categories.new_release %}* [Version {{ post.version }} ({{ post.date | date: "%Y-%m-%d"}})](#version_{{ post.version }})
+	* [Contributors to this release](#contributors_{{ post.version }})
+{% endfor %}* [Version 9.4.1212 (2016-11-01)](#version_9.4.1212)
 	* [Contributors to this release](#contributors_9.4.1212)
 * [Version 9.4.1211 (2016-09-18)](#version_9.4.1211)
 	* [Contributors to this release](#contributors_9.4.1211)
@@ -78,11 +75,11 @@ denote the various action types:![add](../media/img/add.jpg)=add,
 <img alt="update" src="../media/img/update.jpg" />=update
 ***
 
-{% include changelog/42.1.1-release.md %}
-
-{% include changelog/42.1.0-release.md %}
-
-{% include changelog/42.0.0-release.md %}
+{% for post in site.categories.new_release %}
+<a name="version_{{ post.version }}"></a>
+## Version {{ post.version }} ({{ post.date | date: "%Y-%m-%d"}})
+{{ post.content }}
+{% endfor %}
 
 <a name="version_9.4.1212"></a>
 ## Version 9.4.1212 (2016-11-02)
