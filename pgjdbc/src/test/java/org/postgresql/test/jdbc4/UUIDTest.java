@@ -37,7 +37,7 @@ public class UUIDTest extends BaseTest4 {
   @Override
   public void tearDown() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.execute("DROP TABLE uuidtest");
+    stmt.execute("DROP TABLE IF EXISTS uuidtest");
     stmt.close();
     super.tearDown();
   }
