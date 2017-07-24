@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
@@ -58,6 +59,7 @@ public class PGTimestampTest {
    */
   @Test
   public void testTimestampWithInterval() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
     PGTimestamp timestamp = new PGTimestamp(System.currentTimeMillis());
     PGInterval interval = new PGInterval(0, 0, 0, 1, 2, 3.14);
     verifyTimestampWithInterval(timestamp, interval, true);

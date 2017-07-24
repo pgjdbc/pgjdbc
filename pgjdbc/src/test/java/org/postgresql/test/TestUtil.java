@@ -664,6 +664,16 @@ public class TestUtil {
     return (jvm.compareTo(version) >= 0);
   }
 
+  public static boolean haveIntegerDateTimes(Connection con) {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
+    if (con instanceof PgConnection) {
+      return ((PgConnection) con).getQueryExecutor().getIntegerDateTimes();
+    }
+    return false;
+  }
+
   /**
    * Print a ResultSet to System.out. This is useful for debugging tests.
    */
