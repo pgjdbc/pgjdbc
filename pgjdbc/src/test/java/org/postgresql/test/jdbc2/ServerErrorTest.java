@@ -46,7 +46,7 @@ public class ServerErrorTest {
   public void tearDown() throws Exception {
     TestUtil.dropTable(con, "testerr");
     Statement stmt = con.createStatement();
-    stmt.execute("DROP DOMAIN testdom");
+    stmt.execute("DROP DOMAIN IF EXISTS testdom");
     stmt.close();
     TestUtil.closeDB(con);
   }
