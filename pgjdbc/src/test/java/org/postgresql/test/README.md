@@ -104,12 +104,11 @@ In your test method you can use the fixture that is setup for it
 by the test case.
 
 If you decide to add a new test case, you should do two things:
-1) Add a class that extends junit.framework.TestCase. It should
+1) Add a test class. It should
 contain setUp() and tearDown() methods that create and destroy
 the fixture respectively.
 2) Edit $JDBC_SRC/org/postgresql/test/jdbc2/Jdbc2TestSuite.java or
-$JDBC_SRC/org/postgresql/test/jdbc3/Jdbc3TestSuite.java and add a
-suite.addTestSuite() call for your class. This will make the test case
+$JDBC_SRC/org/postgresql/test/jdbc3/Jdbc3TestSuite.java and add your class. This will make the test case
 part of the test suite.
 
 6 Guidelines for developing new tests
