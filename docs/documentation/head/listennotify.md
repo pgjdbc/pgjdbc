@@ -86,7 +86,7 @@ class Listener extends Thread
 				
 				if (notifications != null)
 				{
-					for (int i=0; i<;notifications.length; i++)
+					for (int i=0; i < notifications.length; i++)
 						System.out.println("Got notification: " + notifications[i].getName());
 				}
 
