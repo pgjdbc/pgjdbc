@@ -90,7 +90,7 @@ public class XmlTest extends BaseTest4 {
   @Override
   public void tearDown() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.execute("DROP TABLE xmltest");
+    stmt.execute("DROP TABLE IF EXISTS xmltest");
     stmt.close();
     TestUtil.closeDB(con);
   }

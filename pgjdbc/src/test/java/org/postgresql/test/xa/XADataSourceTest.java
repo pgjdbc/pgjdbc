@@ -83,7 +83,9 @@ public class XADataSourceTest {
 
   @After
   public void tearDown() throws SQLException {
-    xaconn.close();
+    if (xaconn != null) {
+      xaconn.close();
+    }
     clearAllPrepared();
 
     TestUtil.dropTable(_conn, "testxa1");
