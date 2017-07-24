@@ -110,6 +110,7 @@ public class Jdbc2TestSuite extends TestSuite {
 
     suite.addTest(new JUnit4TestAdapter(CallableStmtTest.class));
     suite.addTest(new JUnit4TestAdapter(CursorFetchTest.class));
+    suite.addTest(new JUnit4TestAdapter(ConcurrentStatementFetch.class));
     suite.addTest(new JUnit4TestAdapter(ServerCursorTest.class));
 
     suite.addTest(new JUnit4TestAdapter(IntervalTest.class));

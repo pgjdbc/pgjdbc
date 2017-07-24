@@ -1747,16 +1747,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         : "Queries that might contain ; must be executed with QueryExecutor.QUERY_EXECUTE_AS_SIMPLE mode. "
         + "Given query is " + query.getNativeSql();
 
-    // nb: if we decide to use a portal (usePortal == true) we must also use a named statement
-    // (oneShot == false) as otherwise the portal will be closed under us unexpectedly when
-    // the unnamed statement is next reused.
+    // As per "46.2. Message Flow" documentation (quote from 9.1):
+    // If successfully created, a named portal object lasts till the end of the current transaction, unless explicitly destroyed
+    //
+    // That is named portals do not require to use named statements.
 
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
     boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
     boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
         && fetchSize > 0 && !describeOnly;
-    boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0 && !usePortal;
+    boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
     boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
     boolean forceDescribePortal = (flags & QUERY_FORCE_DESCRIBE_PORTAL) != 0;
 
