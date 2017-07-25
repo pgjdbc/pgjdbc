@@ -485,7 +485,7 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertTrue(rs.next());
     arr = rs.getArray(1);
 
-    Integer i[][] = (Integer[][]) arr.getArray();
+    Integer[][] i = (Integer[][]) arr.getArray();
     Assert.assertEquals(1, i[0][0].intValue());
     Assert.assertEquals(2, i[0][1].intValue());
     Assert.assertEquals(3, i[1][0].intValue());

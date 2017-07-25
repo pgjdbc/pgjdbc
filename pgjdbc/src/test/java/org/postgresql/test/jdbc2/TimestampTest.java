@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
@@ -174,6 +175,8 @@ public class TimestampTest extends BaseTest4 {
    */
   @Test
   public void testGetTimestampWTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
 
@@ -235,6 +238,8 @@ public class TimestampTest extends BaseTest4 {
    */
   @Test
   public void testSetTimestampWTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
     Statement stmt = con.createStatement();
     PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWTZ_TABLE, "?"));
 
@@ -305,6 +310,8 @@ public class TimestampTest extends BaseTest4 {
    */
   @Test
   public void testGetTimestampWOTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
 
@@ -385,6 +392,8 @@ public class TimestampTest extends BaseTest4 {
    */
   @Test
   public void testSetTimestampWOTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
     Statement stmt = con.createStatement();
     PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWOTZ_TABLE, "?"));
 

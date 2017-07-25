@@ -12,7 +12,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-abstract public class DbKeyStoreSocketFactory extends org.postgresql.ssl.WrappedFactory {
+public abstract class DbKeyStoreSocketFactory extends org.postgresql.ssl.WrappedFactory {
   /*
    * Populate the WrappedFactory member _factory with an SSL Socket Factory that uses the JKS
    * keystore provided by getKeyStorePassword() and getKeyStoreStream(). A subclass only needs to
@@ -52,9 +52,9 @@ abstract public class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
     }
   }
 
-  abstract public char[] getKeyStorePassword();
+  public abstract char[] getKeyStorePassword();
 
-  abstract public InputStream getKeyStoreStream();
+  public abstract InputStream getKeyStoreStream();
 
   public static class DbKeyStoreSocketException extends Exception {
     public DbKeyStoreSocketException(String message) {

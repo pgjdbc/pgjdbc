@@ -16,7 +16,7 @@ class DescribeRequest {
   public final boolean describeOnly;
   public final String statementName;
 
-  public DescribeRequest(SimpleQuery query, SimpleParameterList parameterList,
+  DescribeRequest(SimpleQuery query, SimpleParameterList parameterList,
       boolean describeOnly, String statementName) {
     this.query = query;
     this.parameterList = parameterList;

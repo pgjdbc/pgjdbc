@@ -474,7 +474,7 @@ public class UpdateableResultTest extends BaseTest4 {
 
     Array arr = rs.getArray(2);
     assertEquals(Types.INTEGER, arr.getBaseType());
-    Integer intarr[] = (Integer[]) arr.getArray();
+    Integer[] intarr = (Integer[]) arr.getArray();
     assertEquals(3, intarr.length);
     assertEquals(1, intarr[0].intValue());
     assertEquals(2, intarr[1].intValue());

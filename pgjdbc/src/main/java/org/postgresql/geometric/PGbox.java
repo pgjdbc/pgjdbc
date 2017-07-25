@@ -22,7 +22,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   /**
    * These are the two points.
    */
-  public PGpoint point[] = new PGpoint[2];
+  public PGpoint[] point = new PGpoint[2];
 
   /**
    * @param x1 first x coordinate

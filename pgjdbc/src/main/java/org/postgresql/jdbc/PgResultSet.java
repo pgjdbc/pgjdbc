@@ -95,7 +95,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private TimeZone defaultTimeZone;
   protected final BaseConnection connection; // the connection we belong to
   protected final BaseStatement statement; // the statement we belong to
-  protected final Field fields[]; // Field metadata for this resultset.
+  protected final Field[] fields; // Field metadata for this resultset.
   protected final Query originalQuery; // Query we originated from
 
   protected final int maxRows; // Maximum rows in this resultset (might be 0).
@@ -1093,7 +1093,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     try {
       InputStreamReader reader = new InputStreamReader(x, "ASCII");
-      char data[] = new char[length];
+      char[] data = new char[length];
       int numRead = 0;
       while (true) {
         int n = reader.read(data, numRead, length - numRead);
@@ -1130,7 +1130,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return;
     }
 
-    byte data[] = new byte[length];
+    byte[] data = new byte[length];
     int numRead = 0;
     try {
       while (true) {
@@ -1154,7 +1154,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     } else {
       // the stream contained less data than they said
       // perhaps this is an error?
-      byte data2[] = new byte[numRead];
+      byte[] data2 = new byte[numRead];
       System.arraycopy(data, 0, data2, 0, numRead);
       updateBytes(columnIndex, data2);
     }
@@ -1184,7 +1184,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     try {
-      char data[] = new char[length];
+      char[] data = new char[length];
       int numRead = 0;
       while (true) {
         int n = x.read(data, numRead, length - numRead);
@@ -1466,7 +1466,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
-  public synchronized void updateBytes(String columnName, byte x[]) throws SQLException {
+  public synchronized void updateBytes(String columnName, byte[] x) throws SQLException {
     updateBytes(findColumn(columnName), x);
   }
 
@@ -2473,7 +2473,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long binary datatype, but with toast the bytea datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getBytes() since there is no current way to stream the value from the server
-    byte b[] = getBytes(columnIndex);
+    byte[] b = getBytes(columnIndex);
     if (b != null) {
       return new ByteArrayInputStream(b);
     }
@@ -2836,8 +2836,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return 0; // SQL NULL
   }
 
-  private final static BigInteger LONGMAX = new BigInteger(Long.toString(Long.MAX_VALUE));
-  private final static BigInteger LONGMIN = new BigInteger(Long.toString(Long.MIN_VALUE));
+  private static final BigInteger LONGMAX = new BigInteger(Long.toString(Long.MAX_VALUE));
+  private static final BigInteger LONGMIN = new BigInteger(Long.toString(Long.MIN_VALUE));
 
   public static long toLong(String s) throws SQLException {
     if (s != null) {

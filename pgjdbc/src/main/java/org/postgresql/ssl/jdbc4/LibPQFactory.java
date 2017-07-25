@@ -192,7 +192,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
 
     private char[] password = null;
 
-    public ConsoleCallbackHandler(String password) {
+    ConsoleCallbackHandler(String password) {
       if (password != null) {
         this.password = password.toCharArray();
       }
@@ -205,6 +205,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
      * @throws UnsupportedCallbackException If the console is not available or other than
      *         PasswordCallback is supplied
      */
+    @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
       Console cons = System.console();
       if (cons == null && password == null) {

@@ -17,7 +17,7 @@ import java.util.Arrays;
 class QueryWithReturningColumnsKey extends BaseQueryKey {
   public final String[] columnNames;
 
-  public QueryWithReturningColumnsKey(String sql, boolean isParameterized, boolean escapeProcessing,
+  QueryWithReturningColumnsKey(String sql, boolean isParameterized, boolean escapeProcessing,
       String[] columnNames) {
     super(sql, isParameterized, escapeProcessing);
     if (columnNames == null) {

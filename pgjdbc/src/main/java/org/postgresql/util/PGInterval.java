@@ -25,7 +25,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   private int minutes;
   private double seconds;
 
-  private final static DecimalFormat secondsFormat;
+  private static final DecimalFormat secondsFormat;
 
   static {
     secondsFormat = new DecimalFormat("0.00####");

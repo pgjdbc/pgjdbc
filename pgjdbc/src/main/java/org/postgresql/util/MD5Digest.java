@@ -26,7 +26,7 @@ public class MD5Digest {
    * @param salt A four-salt sent by the server.
    * @return A 35-byte array, comprising the string "md5" and an MD5 digest.
    */
-  public static byte[] encode(byte user[], byte password[], byte salt[]) {
+  public static byte[] encode(byte[] user, byte[] password, byte[] salt) {
     MessageDigest md;
     byte[] temp_digest;
     byte[] pass_digest;
@@ -59,7 +59,7 @@ public class MD5Digest {
    * Turn 16-byte stream into a human-readable 32-byte hex string
    */
   private static void bytesToHex(byte[] bytes, byte[] hex, int offset) {
-    final char lookup[] =
+    final char[] lookup =
         {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     int i;

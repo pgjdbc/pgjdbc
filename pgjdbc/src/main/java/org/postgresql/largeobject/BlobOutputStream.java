@@ -21,7 +21,7 @@ public class BlobOutputStream extends OutputStream {
   /**
    * Buffer
    */
-  private byte buf[];
+  private byte[] buf;
 
   /**
    * Size of the buffer (default 1K)

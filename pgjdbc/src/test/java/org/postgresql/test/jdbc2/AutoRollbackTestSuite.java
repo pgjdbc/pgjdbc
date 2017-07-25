@@ -66,10 +66,10 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     INSERT_BATCH,
   }
 
-  private final static EnumSet<FailMode> DEALLOCATES =
+  private static final EnumSet<FailMode> DEALLOCATES =
       EnumSet.of(FailMode.DEALLOCATE, FailMode.DISCARD);
 
-  private final static EnumSet<FailMode> TRANS_KILLERS =
+  private static final EnumSet<FailMode> TRANS_KILLERS =
       EnumSet.of(FailMode.SELECT, FailMode.INSERT_BATCH);
 
   private enum ContinueMode {
@@ -104,6 +104,8 @@ public class AutoRollbackTestSuite extends BaseTest4 {
         failMode != FailMode.DEALLOCATE || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
     Assume.assumeTrue("DISCARD ALL requires PostgreSQL 8.3+",
         failMode != FailMode.DISCARD || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    Assume.assumeTrue("Plan invalidation on table redefinition requires PostgreSQL 8.3+",
+        failMode != FailMode.ALTER || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
   }
 
   @Override

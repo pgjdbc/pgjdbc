@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
@@ -54,6 +55,8 @@ public class PGTimeTest extends BaseTest4 {
    */
   @Test
   public void testTimeWithInterval() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
     Calendar cal = Calendar.getInstance();
     cal.set(1970, 0, 1);
 
