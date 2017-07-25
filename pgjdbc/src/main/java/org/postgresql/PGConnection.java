@@ -22,7 +22,13 @@ import java.sql.Statement;
  */
 public interface PGConnection {
   
-    PGArraySupport getArraySupport() throws SQLException;
+  /**
+   * Returns extended array support for this connection. 
+   * 
+   * @return Extended array support for this connection.
+   * @throws SQLException
+   */
+  PGArraySupport getArraySupport() throws SQLException;
     
   /**
    * This method returns any notifications that have been received since the last call to this

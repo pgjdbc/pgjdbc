@@ -1164,7 +1164,12 @@ public class PgConnection implements BaseConnection, PGArraySupport {
       if (o == null) {
         sb.append("NULL");
       } else if (o.getClass().isArray()) {
-        appendArray(sb, o, delim);
+        final PrimitiveArraySupport.ArrayToString arraySupport = PrimitiveArraySupport.getArrayToString(o);
+        if (arraySupport != null) {
+          arraySupport.appendArray(sb, delim, arraySupport);
+        } else {
+          appendArray(sb, o, delim);
+        }
       } else {
         String s = o.toString();
         PgArray.escapeArrayElement(sb, s);
@@ -1281,38 +1286,41 @@ public class PgConnection implements BaseConnection, PGArraySupport {
   
   @Override
   public Array createArrayOf(String typeName, Object elements) throws SQLException {
-      checkClosed();  
+    checkClosed();
 
-      final int oid = getTypeInfo().getPGArrayType(typeName);
-      final char delim = getTypeInfo().getArrayDelimiter(oid);
+    final TypeInfo typeInfo = getTypeInfo();
+    
+    final int oid = typeInfo.getPGArrayType(typeName);
+    final char delim = typeInfo.getArrayDelimiter(oid);
 
-      if (oid == Oid.UNSPECIFIED) {
-        throw new PSQLException(
-            GT.tr("Unable to find server array type for provided name {0}.", typeName),
-            PSQLState.INVALID_NAME);
-      }
-      
-      final String arrayString;
-
-      if (PrimitiveArraySupport.isSupportedPrimitiveArray(elements)) {
-	  arrayString = PrimitiveArraySupport.getArrayToString(elements)
-		  .toArrayString(delim, elements);
-      }
-      else
-      {
-          final Class<?> clazz = elements.getClass();
-          if (!clazz.isArray()) {
-    	  throw new PSQLException(
-    		GT.tr("Invalid elements {0}", elements),
-    		PSQLState.INVALID_PARAMETER_TYPE);
-          }
-          StringBuilder sb = new StringBuilder();
-          appendArray(sb, elements, delim);
-          arrayString = sb.toString();
-      }
-
-      return makeArray(oid, arrayString);
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName),
+          PSQLState.INVALID_NAME);
     }
+
+    final String arrayString;
+
+    final PrimitiveArraySupport.ArrayToString arraySupport = PrimitiveArraySupport.getArrayToString(elements);
+
+    if (arraySupport != null) {
+      //if the oid for the given type matches the default type, we might be able to go straight to binary representation
+      if (oid == typeInfo.getPGType(arraySupport.getDefaultTypeName())
+          && arraySupport.supportBinaryRepresentation()) {
+        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(elements));
+      }
+      arrayString = arraySupport.toArrayString(delim, elements);
+    } else {
+      final Class<?> clazz = elements.getClass();
+      if (!clazz.isArray()) {
+        throw new PSQLException(GT.tr("Invalid elements {0}", elements), PSQLState.INVALID_PARAMETER_TYPE);
+      }
+      StringBuilder sb = new StringBuilder();
+      appendArray(sb, elements, delim);
+      arrayString = sb.toString();
+    }
+
+    return makeArray(oid, arrayString);
+  }
 
   @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {

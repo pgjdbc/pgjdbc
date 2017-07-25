@@ -715,8 +715,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PrimitiveArraySupport.getArrayToString(in);
     final TypeInfo ti = connection.getTypeInfo();
     final int oid = ti.getPGType(arrayToString.getDefaultTypeName());
-    final char delim = ti.getArrayDelimiter(oid);
-    setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
+    
+    if (arrayToString.supportBinaryRepresentation()) {
+      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(in), oid);
+    } else {     
+      final char delim = ti.getArrayDelimiter(oid);
+      setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
+    }
   }
 
   private static String asString(final Clob in) throws SQLException {

@@ -876,11 +876,16 @@ public class PgArray implements java.sql.Array {
   public String toString() {
     if (fieldString == null && fieldBytes != null) {
       try {
-        Object array = readBinaryArray(1,0);
-        java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
-        fieldString = tmpArray.toString();
+        Object array = readBinaryArray(1, 0);
+
+        if (PrimitiveArraySupport.isSupportedPrimitiveArray(array)) {
+          fieldString = PrimitiveArraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+        } else {
+          java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
+          fieldString = tmpArray.toString();
+        }
       } catch (SQLException e) {
-        fieldString = "NULL"; //punt
+        fieldString = "NULL"; // punt
       }
     }
     return fieldString;
