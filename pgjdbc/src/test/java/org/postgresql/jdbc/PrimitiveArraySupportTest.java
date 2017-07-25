@@ -1,20 +1,28 @@
+/*
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
 import org.postgresql.core.Oid;
+
+import org.junit.Test;
 
 public class PrimitiveArraySupportTest {
 
   public PrimitiveArraySupport.ArrayToString<long[]> longArrays = PrimitiveArraySupport.getArrayToString(new long[] {});
   public PrimitiveArraySupport.ArrayToString<int[]> intArrays = PrimitiveArraySupport.getArrayToString(new int[] {});
-  public PrimitiveArraySupport.ArrayToString<short[]> shortArrays = PrimitiveArraySupport.getArrayToString(new short[] {});
-  public PrimitiveArraySupport.ArrayToString<double[]> doubleArrays = PrimitiveArraySupport.getArrayToString(new double[] {});
-  public PrimitiveArraySupport.ArrayToString<float[]> floatArrays = PrimitiveArraySupport.getArrayToString(new float[] {});
-
+  public PrimitiveArraySupport.ArrayToString<short[]> shortArrays = PrimitiveArraySupport
+      .getArrayToString(new short[] {});
+  public PrimitiveArraySupport.ArrayToString<double[]> doubleArrays = PrimitiveArraySupport
+      .getArrayToString(new double[] {});
+  public PrimitiveArraySupport.ArrayToString<float[]> floatArrays = PrimitiveArraySupport
+      .getArrayToString(new float[] {});
 
   @Test
   public void testLongBinary() throws Exception {
@@ -40,19 +48,17 @@ public class PrimitiveArraySupportTest {
 
   @Test
   public void testLongToString() throws Exception {
-    final long[] longs = new long[]{12367890987L, 987664198234L, -2982470923874L};
+    final long[] longs = new long[] { 12367890987L, 987664198234L, -2982470923874L };
 
     final String arrayString = longArrays.toArrayString(',', longs);
 
     assertEquals("{12367890987,987664198234,-2982470923874}", arrayString);
 
-
     final String altArrayString = longArrays.toArrayString(';', longs);
 
     assertEquals("{12367890987;987664198234;-2982470923874}", altArrayString);
-    
   }
-  
+
   @Test
   public void testIntBinary() throws Exception {
     final int[] ints = new int[13];
@@ -77,19 +83,18 @@ public class PrimitiveArraySupportTest {
 
   @Test
   public void testIntToString() throws Exception {
-    final int[] ints = new int[]{12367890, 987664198, -298247092};
+    final int[] ints = new int[] { 12367890, 987664198, -298247092 };
 
     final String arrayString = intArrays.toArrayString(',', ints);
 
     assertEquals("{12367890,987664198,-298247092}", arrayString);
 
-
     final String altArrayString = intArrays.toArrayString(';', ints);
 
     assertEquals("{12367890;987664198;-298247092}", altArrayString);
-    
+
   }
-  
+
   @Test
   public void testShorttBinary() throws Exception {
     final short[] shorts = new short[13];
@@ -114,19 +119,18 @@ public class PrimitiveArraySupportTest {
 
   @Test
   public void testShortToString() throws Exception {
-    final short[] shorts = new short[]{123, 34, -57};
+    final short[] shorts = new short[] { 123, 34, -57 };
 
     final String arrayString = shortArrays.toArrayString(',', shorts);
 
     assertEquals("{123,34,-57}", arrayString);
 
-
     final String altArrayString = shortArrays.toArrayString(';', shorts);
 
     assertEquals("{123;34;-57}", altArrayString);
-    
+
   }
-  
+
   @Test
   public void testDoubleBinary() throws Exception {
     final double[] doubles = new double[13];
@@ -151,19 +155,18 @@ public class PrimitiveArraySupportTest {
 
   @Test
   public void testdoubleToString() throws Exception {
-    final double[] doubles = new double[]{122353.345, 923487.235987, -23.239486};
+    final double[] doubles = new double[] { 122353.345, 923487.235987, -23.239486 };
 
     final String arrayString = doubleArrays.toArrayString(',', doubles);
 
     assertEquals("{122353.345,923487.235987,-23.239486}", arrayString);
 
-
     final String altArrayString = doubleArrays.toArrayString(';', doubles);
 
     assertEquals("{122353.345;923487.235987;-23.239486}", altArrayString);
-    
+
   }
-  
+
   @Test
   public void testFloatBinary() throws Exception {
     final float[] floats = new float[13];
@@ -188,17 +191,16 @@ public class PrimitiveArraySupportTest {
 
   @Test
   public void testfloatToString() throws Exception {
-    final float[] floats = new float[]{122353.34f, 923487.25f, -23.2394f};
+    final float[] floats = new float[] { 122353.34f, 923487.25f, -23.2394f };
 
     final String arrayString = floatArrays.toArrayString(',', floats);
 
     assertEquals("{122353.34,923487.25,-23.2394}", arrayString);
 
-
     final String altArrayString = floatArrays.toArrayString(';', floats);
 
     assertEquals("{122353.34;923487.25;-23.2394}", altArrayString);
-    
+
   }
 
 }

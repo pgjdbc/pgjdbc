@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import org.postgresql.core.Oid;
@@ -15,9 +20,9 @@ final class PrimitiveArraySupport {
     String toArrayString(char delim, A array);
 
     public void appendArray(StringBuilder sb, char delim, A array);
-    
+
     public boolean supportBinaryRepresentation();
-    
+
     public byte[] toBinaryRepresentation(A array) throws SQLFeatureNotSupportedException;
   }
 
@@ -418,7 +423,8 @@ final class PrimitiveArraySupport {
 
     /**
      * {@inheritDoc}
-     * @throws SQLFeatureNotSupportedException 
+     *
+     * @throws SQLFeatureNotSupportedException Because this feature is not supported.
      */
     @Override
     public byte[] toBinaryRepresentation(String[] array) throws SQLFeatureNotSupportedException {

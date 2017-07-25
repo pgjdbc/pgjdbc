@@ -400,7 +400,7 @@ public class PgConnection implements BaseConnection, PGArraySupport {
     return this;
   }
 
-/**
+  /**
    * This adds a warning to the warning chain.
    *
    * @param warn warning to add
@@ -1283,13 +1283,13 @@ public class PgConnection implements BaseConnection, PGArraySupport {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
-  
+
   @Override
   public Array createArrayOf(String typeName, Object elements) throws SQLException {
     checkClosed();
 
     final TypeInfo typeInfo = getTypeInfo();
-    
+
     final int oid = typeInfo.getPGArrayType(typeName);
     final char delim = typeInfo.getArrayDelimiter(oid);
 

@@ -4,6 +4,9 @@
  */
 
 package org.postgresql.test.jdbc2;
+
+import org.postgresql.PGArraySupport;
+import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
@@ -15,8 +18,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.postgresql.PGArraySupport;
-import org.postgresql.PGConnection;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -84,7 +85,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testSetPrimitiveObjects() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
-    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY); 
+    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY);
     pstmt.setObject(2, new double[]{3.1d, 1.4d}, Types.ARRAY);
     pstmt.setObject(3, new String[]{"abc", "f'a", "fa\"b"}, Types.ARRAY);
     pstmt.executeUpdate();
@@ -117,19 +118,18 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals("fa\"b", strarr[1]);
 
     rs.close();
-
   }
 
   @Test
   public void testSetPrimitiveArraysObjects() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
-    
-    final PGArraySupport arraySupport = conn.unwrap(PGConnection.class).getArraySupport();    
 
-    pstmt.setArray(1, arraySupport.createArrayOf("int4", new int[]{1,2,3})); 
+    final PGArraySupport arraySupport = conn.unwrap(PGConnection.class).getArraySupport();
+
+    pstmt.setArray(1, arraySupport.createArrayOf("int4", new int[]{1,2,3}));
     pstmt.setObject(2, arraySupport.createArrayOf("float8", new double[]{3.1d, 1.4d}));
     pstmt.setObject(3, arraySupport.createArrayOf("varchar", new String[]{"abc", "f'a", "fa\"b"}));
-    
+
     pstmt.executeUpdate();
     pstmt.close();
 

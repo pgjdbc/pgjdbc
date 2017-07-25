@@ -683,7 +683,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (in instanceof Array) {
           setArray(parameterIndex, (Array) in);
         } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(in)) {
-            setPrimitiveArray(parameterIndex, in);
+          setPrimitiveArray(parameterIndex, in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -710,14 +710,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
-    final PrimitiveArraySupport.ArrayToString<A> arrayToString = 
-        PrimitiveArraySupport.getArrayToString(in);
-    
+    final PrimitiveArraySupport.ArrayToString<A> arrayToString = PrimitiveArraySupport.getArrayToString(in);
+
     final int oid = arrayToString.getDefaultArrayTypeOid();
-    
+
     if (arrayToString.supportBinaryRepresentation()) {
       bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(in), oid);
-    } else {     
+    } else {
       final char delim = connection.getTypeInfo().getArrayDelimiter(oid);
       setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
     }
