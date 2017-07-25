@@ -104,7 +104,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Integer[] out = (Integer[]) arr.getArray();
+    Integer out[] = (Integer[]) arr.getArray();
 
     Assert.assertEquals(3, out.length);
     Assert.assertEquals(0, out[0].intValue());
@@ -198,7 +198,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Long[] out = (Long[]) arr.getArray();
+    Long out[] = (Long[]) arr.getArray();
 
     Assert.assertEquals(2, out.length);
     Assert.assertNull(out[0]);
