@@ -10,7 +10,7 @@ import java.util.Map;
 final class PrimitiveArraySupport {
   public static interface ArrayToString<A> {
 
-    String getDefaultTypeName();
+    int getDefaultArrayTypeOid();
 
     String toArrayString(char delim, A array);
 
@@ -27,8 +27,8 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public String getDefaultTypeName() {
-      return "int8[]";
+    public int getDefaultArrayTypeOid() {
+      return Oid.INT8_ARRAY;
     }
 
     @Override
@@ -96,8 +96,8 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public String getDefaultTypeName() {
-      return "int4[]";
+    public int getDefaultArrayTypeOid() {
+      return Oid.INT4_ARRAY;
     }
 
     @Override
@@ -165,8 +165,8 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public String getDefaultTypeName() {
-      return "int2[]";
+    public int getDefaultArrayTypeOid() {
+      return Oid.INT2_ARRAY;
     }
 
     @Override
@@ -235,8 +235,8 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public String getDefaultTypeName() {
-      return "float8[]";
+    public int getDefaultArrayTypeOid() {
+      return Oid.FLOAT8_ARRAY;
     }
 
     @Override
@@ -305,8 +305,8 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public String getDefaultTypeName() {
-      return "float4[]";
+    public int getDefaultArrayTypeOid() {
+      return Oid.FLOAT4_ARRAY;
     }
 
     @Override
@@ -369,7 +369,65 @@ final class PrimitiveArraySupport {
 
   };
 
-  private static final Map<Class, ArrayToString> ARRAY_CLASS_TOSTRING = new HashMap<>(8);
+  private static final ArrayToString<String[]> STRING_ARRAY_TOSTRING = new ArrayToString<String[]>() {
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getDefaultArrayTypeOid() {
+      return Oid.VARCHAR_ARRAY;
+    }
+
+    @Override
+    public String toArrayString(char delim, String[] array) {
+      final StringBuilder sb = new StringBuilder(Math.max(64, array.length * 8));
+      appendArray(sb, delim, array);
+      return sb.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void appendArray(StringBuilder sb, char delim, String[] array) {
+      sb.append('{');
+      for (int i = 0; i < array.length; ++i) {
+        if (i > 0) {
+          sb.append(delim);
+        }
+        if (array[i] == null) {
+          sb.append('N');
+          sb.append('U');
+          sb.append('L');
+          sb.append('L');
+        } else {
+          PgArray.escapeArrayElement(sb, array[i]);
+        }
+      }
+      sb.append('}');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean supportBinaryRepresentation() {
+      return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @throws SQLFeatureNotSupportedException 
+     */
+    @Override
+    public byte[] toBinaryRepresentation(String[] array) throws SQLFeatureNotSupportedException {
+      throw new SQLFeatureNotSupportedException();
+    }
+
+  };
+
+  private static final Map<Class, ArrayToString> ARRAY_CLASS_TOSTRING = new HashMap<>(9);
 
   static {
     ARRAY_CLASS_TOSTRING.put(long[].class, LONG_ARRAY_TOSTRING);
@@ -377,6 +435,7 @@ final class PrimitiveArraySupport {
     ARRAY_CLASS_TOSTRING.put(short[].class, SHORT_ARRAY_TOSTRING);
     ARRAY_CLASS_TOSTRING.put(double[].class, DOUBLE_ARRAY_TOSTRING);
     ARRAY_CLASS_TOSTRING.put(float[].class, FLOAT_ARRAY_TOSTRING);
+    ARRAY_CLASS_TOSTRING.put(String[].class, STRING_ARRAY_TOSTRING);
   }
 
   public static boolean isSupportedPrimitiveArray(Object obj) {

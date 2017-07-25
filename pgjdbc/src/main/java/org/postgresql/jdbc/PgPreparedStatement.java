@@ -13,7 +13,6 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -713,13 +712,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
     final PrimitiveArraySupport.ArrayToString<A> arrayToString = 
         PrimitiveArraySupport.getArrayToString(in);
-    final TypeInfo ti = connection.getTypeInfo();
-    final int oid = ti.getPGType(arrayToString.getDefaultTypeName());
+    
+    final int oid = arrayToString.getDefaultArrayTypeOid();
     
     if (arrayToString.supportBinaryRepresentation()) {
       bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(in), oid);
     } else {     
-      final char delim = ti.getArrayDelimiter(oid);
+      final char delim = connection.getTypeInfo().getArrayDelimiter(oid);
       setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
     }
   }
