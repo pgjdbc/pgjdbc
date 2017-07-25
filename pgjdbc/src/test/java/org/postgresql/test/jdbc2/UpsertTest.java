@@ -42,7 +42,7 @@ public class UpsertTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.assumeMinimumServerVersion(con, ServerVersion.v9_5);
+    assumeMinimumServerVersion(ServerVersion.v9_5);
 
     TestUtil.createTempTable(con, "test_statement", "i int primary key, t varchar(5)");
     Statement stmt = con.createStatement();

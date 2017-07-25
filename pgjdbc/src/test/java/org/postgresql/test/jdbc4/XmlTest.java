@@ -12,7 +12,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
-import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
@@ -65,8 +64,8 @@ public class XmlTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.assumeMinimumServerVersion(con, ServerVersion.v8_3);
-    assumeTrue("Server has been complied --with-libxml", isXmlEnabled(con));
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+    assumeTrue("Server has been compiled --with-libxml", isXmlEnabled(con));
 
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE xmltest(id int primary key, val xml)");
@@ -92,7 +91,7 @@ public class XmlTest extends BaseTest4 {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS xmltest");
     stmt.close();
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   private ResultSet getRS() throws SQLException {

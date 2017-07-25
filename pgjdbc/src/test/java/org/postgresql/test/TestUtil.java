@@ -11,7 +11,6 @@ import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
 
 import org.junit.Assert;
-import org.junit.Assume;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -657,20 +656,6 @@ public class TestUtil {
       return ((PgConnection) con).haveMinimumServerVersion(version);
     }
     return false;
-  }
-
-  /**
-   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}
-   */
-  public static void assumeMinimumServerVersion(String message, Connection conn, Version version) throws SQLException {
-    Assume.assumeTrue(message, haveMinimumServerVersion(conn, version));
-  }
-
-  /**
-   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}
-   */
-  public static void assumeMinimumServerVersion(Connection conn, Version version) throws SQLException {
-    Assume.assumeTrue(haveMinimumServerVersion(conn, version));
   }
 
   public static boolean haveMinimumJVMVersion(String version) {
