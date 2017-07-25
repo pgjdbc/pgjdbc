@@ -26,5 +26,5 @@ public interface PGArraySupport {
    * @throws SQLException If for some reason the array cannot be created.
    * @see java.sql.Connection#createArrayOf(String, Object[])
    */
-  public Array createArrayOf(String typeName, Object elements) throws SQLException;
+  Array createArrayOf(String typeName, Object elements) throws SQLException;
 }

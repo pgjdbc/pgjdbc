@@ -1166,7 +1166,7 @@ public class PgConnection implements BaseConnection, PGArraySupport {
       } else if (o.getClass().isArray()) {
         final PrimitiveArraySupport.ArrayToString arraySupport = PrimitiveArraySupport.getArrayToString(o);
         if (arraySupport != null) {
-          arraySupport.appendArray(sb, delim, arraySupport);
+          arraySupport.appendArray(sb, delim, o);
         } else {
           appendArray(sb, o, delim);
         }

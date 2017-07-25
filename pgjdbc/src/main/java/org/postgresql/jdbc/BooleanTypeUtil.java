@@ -9,6 +9,9 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +24,28 @@ import java.util.logging.Logger;
 class BooleanTypeUtil {
 
   private static final Logger LOGGER = Logger.getLogger(BooleanTypeUtil.class.getName());
+
+  /**
+   * Maps String values to Boolean constants. By using {@link String#CASE_INSENSITIVE_ORDER}
+   * {@link Map#get(Object)} is case-insensitive.
+   */
+  private static final SortedMap<String, Boolean> STRING_TO_BOOL = new TreeMap<String, Boolean>(
+      String.CASE_INSENSITIVE_ORDER);
+
+  static {
+    STRING_TO_BOOL.put("1", Boolean.TRUE);
+    STRING_TO_BOOL.put("true", Boolean.TRUE);
+    STRING_TO_BOOL.put("t", Boolean.TRUE);
+    STRING_TO_BOOL.put("yes", Boolean.TRUE);
+    STRING_TO_BOOL.put("y", Boolean.TRUE);
+    STRING_TO_BOOL.put("on", Boolean.TRUE);
+    STRING_TO_BOOL.put("0", Boolean.FALSE);
+    STRING_TO_BOOL.put("false", Boolean.FALSE);
+    STRING_TO_BOOL.put("f", Boolean.FALSE);
+    STRING_TO_BOOL.put("no", Boolean.FALSE);
+    STRING_TO_BOOL.put("n", Boolean.FALSE);
+    STRING_TO_BOOL.put("off", Boolean.FALSE);
+  }
 
   private BooleanTypeUtil() {
   }
@@ -43,7 +68,7 @@ class BooleanTypeUtil {
       return fromString((String) in);
     }
     if (in instanceof Character) {
-      return fromCharacter((Character) in);
+      return fromString(in.toString());
     }
     if (in instanceof Number) {
       return fromNumber((Number) in);
@@ -54,29 +79,11 @@ class BooleanTypeUtil {
   private static boolean fromString(final String strval) throws PSQLException {
     // Leading or trailing whitespace is ignored, and case does not matter.
     final String val = strval.trim();
-    if ("1".equals(val) || "true".equalsIgnoreCase(val)
-        || "t".equalsIgnoreCase(val) || "yes".equalsIgnoreCase(val)
-        || "y".equalsIgnoreCase(val) || "on".equalsIgnoreCase(val)) {
-      return true;
+    final Boolean result = STRING_TO_BOOL.get(val);
+    if (result == null) {
+      throw cannotCoerceException(strval);
     }
-    if ("0".equals(val) || "false".equalsIgnoreCase(val)
-        || "f".equalsIgnoreCase(val) || "no".equalsIgnoreCase(val)
-        || "n".equalsIgnoreCase(val) || "off".equalsIgnoreCase(val)) {
-      return false;
-    }
-    throw cannotCoerceException(strval);
-  }
-
-  private static boolean fromCharacter(final Character charval) throws PSQLException {
-    if ('1' == charval || 't' == charval || 'T' == charval
-        || 'y' == charval || 'Y' == charval) {
-      return true;
-    }
-    if ('0' == charval || 'f' == charval || 'F' == charval
-        || 'n' == charval || 'N' == charval) {
-      return false;
-    }
-    throw cannotCoerceException(charval);
+    return result.booleanValue();
   }
 
   private static boolean fromNumber(final Number numval) throws PSQLException {

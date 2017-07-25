@@ -13,17 +13,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 final class PrimitiveArraySupport {
-  public static interface ArrayToString<A> {
+  public interface ArrayToString<A> {
 
     int getDefaultArrayTypeOid();
 
     String toArrayString(char delim, A array);
 
-    public void appendArray(StringBuilder sb, char delim, A array);
+    void appendArray(StringBuilder sb, char delim, A array);
 
-    public boolean supportBinaryRepresentation();
+    boolean supportBinaryRepresentation();
 
-    public byte[] toBinaryRepresentation(A array) throws SQLFeatureNotSupportedException;
+    byte[] toBinaryRepresentation(A array) throws SQLFeatureNotSupportedException;
   }
 
   private static final ArrayToString<long[]> LONG_ARRAY_TOSTRING = new ArrayToString<long[]>() {
@@ -374,6 +374,77 @@ final class PrimitiveArraySupport {
 
   };
 
+  private static final ArrayToString<boolean[]> BOOLEAN_ARRAY_TOSTRING = new ArrayToString<boolean[]>() {
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getDefaultArrayTypeOid() {
+      return Oid.BOOL_ARRAY;
+    }
+
+    @Override
+    public String toArrayString(char delim, boolean[] array) {
+      final StringBuilder sb = new StringBuilder(Math.max(64, array.length * 8));
+      appendArray(sb, delim, array);
+      return sb.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void appendArray(StringBuilder sb, char delim, boolean[] array) {
+      sb.append('{');
+      for (int i = 0; i < array.length; ++i) {
+        if (i > 0) {
+          sb.append(delim);
+        }
+        sb.append(array[i] ? 't' : 'f');
+      }
+      sb.append('}');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean supportBinaryRepresentation() {
+      return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @throws SQLFeatureNotSupportedException Because this feature is not supported.
+     */
+    @Override
+    public byte[] toBinaryRepresentation(boolean[] array) throws SQLFeatureNotSupportedException {
+      int length = 20 + (5 * array.length);
+      final byte[] bytes = new byte[length];
+
+      // 1 dimension
+      ByteConverter.int4(bytes, 0, 1);
+      // no null
+      ByteConverter.int4(bytes, 4, 0);
+      // oid
+      ByteConverter.int4(bytes, 8, Oid.BOOL);
+      // length
+      ByteConverter.int4(bytes, 12, array.length);
+
+      int idx = 20;
+      for (int i = 0; i < array.length; ++i) {
+        bytes[idx + 3] = 1;
+        bytes[idx + 4] = array[i] ? (byte) 1 : (byte) 0;
+        idx += 5;
+      }
+
+      return bytes;
+    }
+
+  };
+
   private static final ArrayToString<String[]> STRING_ARRAY_TOSTRING = new ArrayToString<String[]>() {
 
     /**
@@ -441,6 +512,7 @@ final class PrimitiveArraySupport {
     ARRAY_CLASS_TOSTRING.put(short[].class, SHORT_ARRAY_TOSTRING);
     ARRAY_CLASS_TOSTRING.put(double[].class, DOUBLE_ARRAY_TOSTRING);
     ARRAY_CLASS_TOSTRING.put(float[].class, FLOAT_ARRAY_TOSTRING);
+    ARRAY_CLASS_TOSTRING.put(boolean[].class, BOOLEAN_ARRAY_TOSTRING);
     ARRAY_CLASS_TOSTRING.put(String[].class, STRING_ARRAY_TOSTRING);
   }
 
