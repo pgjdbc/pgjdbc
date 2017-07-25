@@ -5,13 +5,13 @@
 
 package org.postgresql.test;
 
-import org.junit.Assume;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
 
 import org.junit.Assert;
+import org.junit.Assume;
 
 import java.io.File;
 import java.io.FileInputStream;
