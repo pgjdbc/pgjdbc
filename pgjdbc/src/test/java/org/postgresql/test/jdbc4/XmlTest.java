@@ -65,8 +65,8 @@ public class XmlTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
-    assumeTrue("Server have been complied --with-libxml",isXmlEnabled(con));
+    TestUtil.assumeMinimumServerVersion(con, ServerVersion.v8_3);
+    assumeTrue("Server has been complied --with-libxml", isXmlEnabled(con));
 
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE xmltest(id int primary key, val xml)");

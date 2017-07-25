@@ -38,8 +38,8 @@ public class HStoreTest extends BaseTest4 {
     Assume.assumeTrue("server has installed hstore", isHStoreEnabled(con));
     Assume.assumeFalse("hstore is not supported in simple protocol only mode",
         preferQueryMode == PreferQueryMode.SIMPLE);
-    Assume.assumeTrue("hstore requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    TestUtil.assumeMinimumServerVersion("hstore requires PostgreSQL 8.3+",
+            con, ServerVersion.v8_3);
   }
 
   private static boolean isHStoreEnabled(Connection conn) {

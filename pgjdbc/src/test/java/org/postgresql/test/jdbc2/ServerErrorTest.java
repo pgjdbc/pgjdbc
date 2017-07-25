@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -33,7 +32,7 @@ public class ServerErrorTest {
   @Before
   public void setUp() throws Exception {
     con = TestUtil.openDB();
-    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
+    TestUtil.assumeMinimumServerVersion(con, ServerVersion.v9_3);
     Statement stmt = con.createStatement();
 
     stmt.execute("CREATE DOMAIN testdom AS int4 CHECK (value < 10)");

@@ -7,7 +7,6 @@ package org.postgresql.test.jdbc4;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -27,7 +26,7 @@ public class UUIDTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    TestUtil.assumeMinimumServerVersion(con, ServerVersion.v8_3);
 
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE uuidtest(id uuid)");
