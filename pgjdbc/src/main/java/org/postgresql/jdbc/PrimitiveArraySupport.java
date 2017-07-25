@@ -504,7 +504,7 @@ final class PrimitiveArraySupport {
 
   };
 
-  private static final Map<Class, ArrayToString> ARRAY_CLASS_TOSTRING = new HashMap<>(9);
+  private static final Map<Class, ArrayToString> ARRAY_CLASS_TOSTRING = new HashMap<Class, ArrayToString>(9);
 
   static {
     ARRAY_CLASS_TOSTRING.put(long[].class, LONG_ARRAY_TOSTRING);
