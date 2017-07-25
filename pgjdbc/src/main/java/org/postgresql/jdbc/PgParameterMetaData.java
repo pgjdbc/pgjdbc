@@ -16,9 +16,9 @@ import java.sql.SQLException;
 public class PgParameterMetaData implements ParameterMetaData {
 
   private final BaseConnection _connection;
-  private final int _oids[];
+  private final int[] _oids;
 
-  public PgParameterMetaData(BaseConnection connection, int oids[]) {
+  public PgParameterMetaData(BaseConnection connection, int[] oids) {
     _connection = connection;
     _oids = oids;
   }

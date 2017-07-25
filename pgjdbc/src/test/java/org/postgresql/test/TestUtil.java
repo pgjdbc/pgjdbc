@@ -614,6 +614,9 @@ public class TestUtil {
   }
 
   public static String escapeString(Connection con, String value) throws SQLException {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).escapeString(value);
     }
@@ -621,6 +624,9 @@ public class TestUtil {
   }
 
   public static boolean getStandardConformingStrings(Connection con) {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).getStandardConformingStrings();
     }
@@ -633,6 +639,9 @@ public class TestUtil {
    * connection.
    */
   public static boolean haveMinimumServerVersion(Connection con, int version) throws SQLException {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).haveMinimumServerVersion(version);
     }
@@ -641,6 +650,9 @@ public class TestUtil {
 
   public static boolean haveMinimumServerVersion(Connection con, Version version)
       throws SQLException {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
       return ((PgConnection) con).haveMinimumServerVersion(version);
     }
@@ -652,10 +664,12 @@ public class TestUtil {
     return (jvm.compareTo(version) >= 0);
   }
 
-  public static boolean isProtocolVersion(Connection con, int version) {
+  public static boolean haveIntegerDateTimes(Connection con) {
+    if (con == null) {
+      throw new NullPointerException("Connection is null");
+    }
     if (con instanceof PgConnection) {
-      return (version == ((PgConnection) con).getProtocolVersion());
-
+      return ((PgConnection) con).getQueryExecutor().getIntegerDateTimes();
     }
     return false;
   }

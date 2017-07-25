@@ -1417,7 +1417,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
   //#endif
 
-  public ParameterMetaData createParameterMetaData(BaseConnection conn, int oids[])
+  public ParameterMetaData createParameterMetaData(BaseConnection conn, int[] oids)
       throws SQLException {
     return new PgParameterMetaData(conn, oids);
   }
@@ -1602,7 +1602,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
         flags);
 
-    int oids[] = preparedParameters.getTypeOIDs();
+    int[] oids = preparedParameters.getTypeOIDs();
     if (oids != null) {
       return createParameterMetaData(connection, oids);
     }

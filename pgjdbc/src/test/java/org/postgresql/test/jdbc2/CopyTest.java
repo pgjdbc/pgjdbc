@@ -204,7 +204,7 @@ public class CopyTest {
     String sql = "COPY copytest TO STDOUT";
     CopyOut cp = copyAPI.copyOut(sql);
     int count = 0;
-    byte buf[];
+    byte[] buf;
     while ((buf = cp.readFromCopy()) != null) {
       count++;
     }
@@ -404,7 +404,7 @@ public class CopyTest {
     private final Connection con;
     private SQLException rollbackException;
 
-    public Rollback(Connection con) {
+    Rollback(Connection con) {
       setName("Asynchronous rollback");
       setDaemon(true);
       this.con = con;

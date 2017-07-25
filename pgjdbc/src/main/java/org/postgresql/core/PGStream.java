@@ -230,7 +230,7 @@ public class PGStream {
    * @param buf The array of bytes to be sent
    * @throws IOException if an I/O error occurs
    */
-  public void send(byte buf[]) throws IOException {
+  public void send(byte[] buf) throws IOException {
     pg_output.write(buf);
   }
 
@@ -242,7 +242,7 @@ public class PGStream {
    * @param siz the number of bytes to be sent
    * @throws IOException if an I/O error occurs
    */
-  public void send(byte buf[], int siz) throws IOException {
+  public void send(byte[] buf, int siz) throws IOException {
     send(buf, 0, siz);
   }
 
@@ -255,7 +255,7 @@ public class PGStream {
    * @param siz the number of bytes to be sent
    * @throws IOException if an I/O error occurs
    */
-  public void send(byte buf[], int off, int siz) throws IOException {
+  public void send(byte[] buf, int off, int siz) throws IOException {
     int bufamt = buf.length - off;
     pg_output.write(buf, off, bufamt < siz ? bufamt : siz);
     for (int i = bufamt; i < siz; ++i) {

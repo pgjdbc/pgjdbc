@@ -74,6 +74,9 @@ There are also available (snapshot) binary RPMs in [Fedora's Copr repository](ht
 ## Changelog
 Notable changes for:
 
+**NEXT**:
+* Statements with non-zero fetchSize no longer require server-side named handle. This might cause issues when using old PostgreSQL versions (pre-8.4)+fetchSize+interleaved ResultSet processing combo. see [issue 869](https://github.com/pgjdbc/pgjdbc/issues/869)
+
 **[42.1.3]** (2017-07-14):
 * fixed NPE in PreparedStatement.executeBatch in case of empty batch (regression since 42.1.2) PR#867
 

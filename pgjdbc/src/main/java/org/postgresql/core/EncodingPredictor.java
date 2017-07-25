@@ -43,7 +43,7 @@ public class EncodingPredictor {
     }
   }
 
-  private final static Translation[] FATAL_TRANSLATIONS =
+  private static final Translation[] FATAL_TRANSLATIONS =
       new Translation[]{
           new Translation("ВАЖНО", null, "ru", "WIN", "ALT", "KOI8"),
           new Translation("致命错误", null, "zh_CN", "EUC_CN", "GBK", "BIG5"),

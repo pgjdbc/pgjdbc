@@ -15,7 +15,7 @@ class ExecuteRequest {
   public final Portal portal;
   public final boolean asSimple;
 
-  public ExecuteRequest(SimpleQuery query, Portal portal, boolean asSimple) {
+  ExecuteRequest(SimpleQuery query, Portal portal, boolean asSimple) {
     this.query = query;
     this.portal = portal;
     this.asSimple = asSimple;

@@ -32,7 +32,7 @@ public class Fastpath {
   // Java passes oids around as longs, but in the backend
   // it's an unsigned int, so we use this to make the conversion
   // of long -> signed int which the backend interprets as unsigned.
-  private final static long NUM_OIDS = 4294967296L; // 2^32
+  private static final long NUM_OIDS = 4294967296L; // 2^32
 
   // This maps the functions names to their id's (possible unique just
   // to a connection).

@@ -104,7 +104,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Integer out[] = (Integer[]) arr.getArray();
+    Integer[] out = (Integer[]) arr.getArray();
 
     Assert.assertEquals(3, out.length);
     Assert.assertEquals(0, out[0].intValue());
@@ -148,6 +148,7 @@ public class ArrayTest extends BaseTest4 {
     PGobject p2 = new PGobject();
     p2.setType("json");
     p2.setValue("{\"x\": 20}");
+
     PGobject[] in = new PGobject[] { p1, p2 };
     pstmt.setArray(1, _conn.createArrayOf("json", in));
 
@@ -198,7 +199,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Long out[] = (Long[]) arr.getArray();
+    Long[] out = (Long[]) arr.getArray();
 
     Assert.assertEquals(2, out.length);
     Assert.assertNull(out[0]);
@@ -250,7 +251,7 @@ public class ArrayTest extends BaseTest4 {
     in[1][1] = 77;
 
     Array arr = _conn.createArrayOf("float8", in);
-    Double out[][] = (Double[][]) arr.getArray();
+    Double[][] out = (Double[][]) arr.getArray();
 
     Assert.assertEquals(2, out.length);
     Assert.assertEquals(2, out[0].length);
@@ -281,7 +282,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt2.executeQuery();
     Assert.assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    UUID out[] = (UUID[]) arr.getArray();
+    UUID[] out = (UUID[]) arr.getArray();
 
     Assert.assertEquals(3, out.length);
     Assert.assertEquals(uuid1, out[0]);
