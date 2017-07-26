@@ -63,7 +63,7 @@ public class ByteConverter {
 
   /**
    * Parses a boolean value from the byte array.
-   * 
+   *
    * @param bytes
    *          The byte array to parse.
    * @param idx
