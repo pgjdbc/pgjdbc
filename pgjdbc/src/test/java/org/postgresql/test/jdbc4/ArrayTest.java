@@ -314,8 +314,33 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testSetObjectFromJavaArray() throws SQLException {
     String[] strArray = new String[]{"a", "b", "c"};
+    Object[] objCopy = new Object[strArray.length];
+    System.arraycopy(strArray, 0, objCopy, 0, strArray.length);
 
     PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
+
+    //cannot handle generic Object[]
+    try {
+      pstmt.setObject(1, objCopy, Types.ARRAY);
+      pstmt.executeUpdate();
+      Assert.fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
+    } catch (org.postgresql.util.PSQLException ex) {
+      // Expected failure.
+    }
+
+    try {
+      pstmt.setObject(1, objCopy);
+      pstmt.executeUpdate();
+      Assert.fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
+    } catch (org.postgresql.util.PSQLException ex) {
+      // Expected failure.
+    }   
+
+    pstmt.setObject(1, strArray);
+    pstmt.executeUpdate();
+
+    pstmt.setObject(1, strArray, Types.ARRAY);
+    pstmt.executeUpdate();
 
     // Correct way, though the use of "text" as a type is non-portable.
     // Only supported for JDK 1.6 and JDBC4
