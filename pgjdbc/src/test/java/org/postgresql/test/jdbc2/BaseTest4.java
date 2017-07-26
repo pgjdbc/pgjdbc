@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
@@ -73,4 +74,19 @@ public class BaseTest4 {
   public void assumeBinaryModeRegular() {
     Assume.assumeTrue(binaryMode == BinaryMode.REGULAR);
   }
+
+  /**
+   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}
+   */
+  public void assumeMinimumServerVersion(String message, Version version) throws SQLException {
+    Assume.assumeTrue(message, TestUtil.haveMinimumServerVersion(con, version));
+  }
+
+  /**
+   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}
+   */
+  public void assumeMinimumServerVersion(Version version) throws SQLException {
+    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, version));
+  }
+
 }

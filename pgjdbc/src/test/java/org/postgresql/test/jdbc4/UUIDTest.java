@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc4;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
@@ -24,6 +25,8 @@ public class UUIDTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE uuidtest(id uuid)");
     stmt.close();
@@ -32,7 +35,7 @@ public class UUIDTest extends BaseTest4 {
   @Override
   public void tearDown() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.execute("DROP TABLE uuidtest");
+    stmt.execute("DROP TABLE IF EXISTS uuidtest");
     stmt.close();
     super.tearDown();
   }

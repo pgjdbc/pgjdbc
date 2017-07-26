@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
@@ -51,6 +52,7 @@ public class XADataSourceTest {
   @Before
   public void setUp() throws Exception {
     _conn = TestUtil.openDB();
+    assumeTrue(isPreparedTransactionEnabled(_conn));
 
     // Check if we're operating as a superuser; some tests require it.
     Statement st = _conn.createStatement();
@@ -69,9 +71,21 @@ public class XADataSourceTest {
     conn = xaconn.getConnection();
   }
 
+  private static boolean isPreparedTransactionEnabled(Connection connection) throws SQLException {
+    Statement stmt = connection.createStatement();
+    ResultSet rs = stmt.executeQuery("SHOW max_prepared_transactions");
+    rs.next();
+    int mpt = rs.getInt(1);
+    rs.close();
+    stmt.close();
+    return mpt > 0;
+  }
+
   @After
   public void tearDown() throws SQLException {
-    xaconn.close();
+    if (xaconn != null) {
+      xaconn.close();
+    }
     clearAllPrepared();
 
     TestUtil.dropTable(_conn, "testxa1");

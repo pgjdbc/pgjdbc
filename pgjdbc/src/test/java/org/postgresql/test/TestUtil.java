@@ -259,8 +259,7 @@ public class TestUtil {
    * @return connection using a priviliged user mostly for tests that the ability to load C
    *         functions now as of 4/14
    */
-  public static java.sql.Connection openPrivilegedDB() throws Exception {
-
+  public static Connection openPrivilegedDB() throws Exception {
     initDriver();
     Properties properties = new Properties();
     properties.setProperty("user", getPrivilegedUser());
@@ -274,7 +273,7 @@ public class TestUtil {
    *
    * @return connection
    */
-  public static java.sql.Connection openDB() throws Exception {
+  public static Connection openDB() throws Exception {
     return openDB(new Properties());
   }
 
@@ -282,7 +281,7 @@ public class TestUtil {
    * Helper - opens a connection with the allowance for passing additional parameters, like
    * "compatible".
    */
-  public static java.sql.Connection openDB(Properties props) throws Exception {
+  public static Connection openDB(Properties props) throws Exception {
     initDriver();
 
     // Allow properties to override the user name.
