@@ -148,6 +148,7 @@ public class ArrayTest extends BaseTest4 {
     PGobject p2 = new PGobject();
     p2.setType("json");
     p2.setValue("{\"x\": 20}");
+    
     PGobject[] in = new PGobject[] { p1, p2 };
     pstmt.setArray(1, _conn.createArrayOf("json", in));
 
