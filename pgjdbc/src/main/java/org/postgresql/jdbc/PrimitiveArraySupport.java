@@ -261,7 +261,10 @@ final class PrimitiveArraySupport {
         if (i > 0) {
           sb.append(delim);
         }
+        //use quotes to account for any issues with scientific notation
+        sb.append('"');
         sb.append(array[i]);
+        sb.append('"');
       }
       sb.append('}');
     }
@@ -331,7 +334,10 @@ final class PrimitiveArraySupport {
         if (i > 0) {
           sb.append(delim);
         }
+        //use quotes to account for any issues with scientific notation
+        sb.append('"');
         sb.append(array[i]);
+        sb.append('"');
       }
       sb.append('}');
     }
@@ -401,7 +407,7 @@ final class PrimitiveArraySupport {
         if (i > 0) {
           sb.append(delim);
         }
-        sb.append(array[i] ? 't' : 'f');
+        sb.append(array[i] ? '1' : '0');
       }
       sb.append('}');
     }
@@ -436,7 +442,7 @@ final class PrimitiveArraySupport {
       int idx = 20;
       for (int i = 0; i < array.length; ++i) {
         bytes[idx + 3] = 1;
-        bytes[idx + 4] = array[i] ? (byte) 1 : (byte) 0;
+        ByteConverter.bool(bytes, idx + 4, array[i]);
         idx += 5;
       }
 

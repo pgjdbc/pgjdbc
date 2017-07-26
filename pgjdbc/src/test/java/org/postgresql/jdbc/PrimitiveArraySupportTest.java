@@ -7,11 +7,16 @@ package org.postgresql.jdbc;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import org.postgresql.core.Oid;
 
 import org.junit.Test;
+
+import java.sql.SQLFeatureNotSupportedException;
 
 public class PrimitiveArraySupportTest {
 
@@ -23,6 +28,8 @@ public class PrimitiveArraySupportTest {
       .getArrayToString(new double[] {});
   public PrimitiveArraySupport.ArrayToString<float[]> floatArrays = PrimitiveArraySupport
       .getArrayToString(new float[] {});
+  public PrimitiveArraySupport.ArrayToString<boolean[]> booleanArrays = PrimitiveArraySupport
+      .getArrayToString(new boolean[] {});
 
   @Test
   public void testLongBinary() throws Exception {
@@ -159,11 +166,11 @@ public class PrimitiveArraySupportTest {
 
     final String arrayString = doubleArrays.toArrayString(',', doubles);
 
-    assertEquals("{122353.345,923487.235987,-23.239486}", arrayString);
+    assertEquals("{\"122353.345\",\"923487.235987\",\"-23.239486\"}", arrayString);
 
     final String altArrayString = doubleArrays.toArrayString(';', doubles);
 
-    assertEquals("{122353.345;923487.235987;-23.239486}", altArrayString);
+    assertEquals("{\"122353.345\";\"923487.235987\";\"-23.239486\"}", altArrayString);
 
   }
 
@@ -195,12 +202,57 @@ public class PrimitiveArraySupportTest {
 
     final String arrayString = floatArrays.toArrayString(',', floats);
 
-    assertEquals("{122353.34,923487.25,-23.2394}", arrayString);
+    assertEquals("{\"122353.34\",\"923487.25\",\"-23.2394\"}", arrayString);
 
     final String altArrayString = floatArrays.toArrayString(';', floats);
 
-    assertEquals("{122353.34;923487.25;-23.2394}", altArrayString);
+    assertEquals("{\"122353.34\";\"923487.25\";\"-23.2394\"}", altArrayString);
 
   }
 
+  @Test
+  public void testBooleanBinary() throws Exception {
+    final boolean[] bools = new boolean[] { true, true, false };
+
+    final PgArray pgArray = new PgArray(null, Oid.BIT, booleanArrays.toBinaryRepresentation(bools));
+
+    Object arrayObj = pgArray.getArray();
+
+    assertThat(arrayObj, instanceOf(Boolean[].class));
+
+    final Boolean[] actual = (Boolean[]) arrayObj;
+
+    assertEquals(bools.length, actual.length);
+
+    for (int i = 0; i < bools.length; ++i) {
+      assertEquals(Boolean.valueOf(bools[i]), actual[i]);
+    }
+  }
+
+  @Test
+  public void testBooleanToString() throws Exception {
+    final boolean[] bools = new boolean[] { true, true, false };
+
+    final String arrayString = booleanArrays.toArrayString(',', bools);
+
+    assertEquals("{1,1,0}", arrayString);
+
+    final String altArrayString = booleanArrays.toArrayString(';', bools);
+
+    assertEquals("{1;1;0}", altArrayString);
+  }
+
+  @Test
+  public void testStringNotSupportBinary() {
+    PrimitiveArraySupport.ArrayToString<String[]> stringArrays = PrimitiveArraySupport
+        .getArrayToString(new String[] {});
+    assertNotNull(stringArrays);
+    assertFalse(stringArrays.supportBinaryRepresentation());
+    try {
+      stringArrays.toBinaryRepresentation(new String[] { "1.2" });
+      fail("no sql exception thrown");
+    } catch (SQLFeatureNotSupportedException e) {
+
+    }
+  }
 }

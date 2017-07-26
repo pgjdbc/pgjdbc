@@ -1305,7 +1305,8 @@ public class PgConnection implements BaseConnection, PGArraySupport {
     if (arraySupport != null) {
       // if the oid for the given type matches the default type, we might be
       // able to go straight to binary representation
-      if (oid == arraySupport.getDefaultArrayTypeOid() && arraySupport.supportBinaryRepresentation()) {
+      if (oid == arraySupport.getDefaultArrayTypeOid() && arraySupport.supportBinaryRepresentation()
+          && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
         return new PgArray(this, oid, arraySupport.toBinaryRepresentation(elements));
       }
       arrayString = arraySupport.toArrayString(delim, elements);

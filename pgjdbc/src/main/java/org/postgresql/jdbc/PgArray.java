@@ -250,6 +250,9 @@ public class PgArray implements java.sql.Array {
             Encoding encoding = connection.getEncoding();
             arr[i] = encoding.decode(fieldBytes, pos, len);
             break;
+          case Oid.BOOL:
+            arr[i] = ByteConverter.bool(fieldBytes, pos);
+            break;
           default:
             ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
             if (arrAssistant != null) {
@@ -392,6 +395,8 @@ public class PgArray implements java.sql.Array {
       case Oid.TEXT:
       case Oid.VARCHAR:
         return String.class;
+      case Oid.BOOL:
+        return Boolean.class;
       default:
         ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
         if (arrElemBuilder != null) {

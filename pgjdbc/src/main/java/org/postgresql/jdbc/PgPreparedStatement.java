@@ -714,7 +714,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     final int oid = arrayToString.getDefaultArrayTypeOid();
 
-    if (arrayToString.supportBinaryRepresentation()) {
+    if (arrayToString.supportBinaryRepresentation() && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(in), oid);
     } else {
       final char delim = connection.getTypeInfo().getArrayDelimiter(oid);
