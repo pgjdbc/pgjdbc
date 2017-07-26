@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
-import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assume;
@@ -21,6 +20,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,26 +31,30 @@ import java.util.Map;
 
 public class HStoreTest extends BaseTest4 {
 
-  private Connection _conn;
-
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    _conn = con;
+    Assume.assumeTrue("server has installed hstore", isHStoreEnabled(con));
     Assume.assumeFalse("hstore is not supported in simple protocol only mode",
         preferQueryMode == PreferQueryMode.SIMPLE);
-    Assume.assumeTrue("hstore requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    assumeMinimumServerVersion("hstore requires PostgreSQL 8.3+", ServerVersion.v8_3);
   }
 
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.closeDB(_conn);
+  private static boolean isHStoreEnabled(Connection conn) {
+    try {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT 'a=>1'::hstore::text");
+      rs.close();
+      stmt.close();
+      return true;
+    } catch (SQLException sqle) {
+      return false;
+    }
   }
 
   @Test
   public void testHStoreSelect() throws SQLException {
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT 'a=>1,b=>2'::hstore");
+    PreparedStatement pstmt = con.prepareStatement("SELECT 'a=>1,b=>2'::hstore");
     ResultSet rs = pstmt.executeQuery();
     assertEquals(Map.class.getName(), rs.getMetaData().getColumnClassName(1));
     assertTrue(rs.next());
@@ -66,7 +70,7 @@ public class HStoreTest extends BaseTest4 {
 
   @Test
   public void testHStoreSelectNullValue() throws SQLException {
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT 'a=>NULL'::hstore");
+    PreparedStatement pstmt = con.prepareStatement("SELECT 'a=>NULL'::hstore");
     ResultSet rs = pstmt.executeQuery();
     assertEquals(Map.class.getName(), rs.getMetaData().getColumnClassName(1));
     assertTrue(rs.next());
@@ -78,7 +82,7 @@ public class HStoreTest extends BaseTest4 {
   @Test
   public void testHStoreSend() throws SQLException {
     Map<String, Integer> correct = Collections.singletonMap("a", 1);
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::text");
     pstmt.setObject(1, correct);
     ResultSet rs = pstmt.executeQuery();
     assertEquals(String.class.getName(), rs.getMetaData().getColumnClassName(1));
@@ -89,7 +93,7 @@ public class HStoreTest extends BaseTest4 {
   @Test
   public void testHStoreUsingPSSetObject4() throws SQLException {
     Map<String, Integer> correct = Collections.singletonMap("a", 1);
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::text");
     pstmt.setObject(1, correct, Types.OTHER, -1);
     ResultSet rs = pstmt.executeQuery();
     assertEquals(String.class.getName(), rs.getMetaData().getColumnClassName(1));
@@ -100,7 +104,7 @@ public class HStoreTest extends BaseTest4 {
   @Test
   public void testHStoreSendEscaped() throws SQLException {
     Map<String, String> correct = Collections.singletonMap("a", "t'e\ns\"t");
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?");
     pstmt.setObject(1, correct);
     ResultSet rs = pstmt.executeQuery();
     assertEquals(Map.class.getName(), rs.getMetaData().getColumnClassName(1));
