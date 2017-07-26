@@ -436,26 +436,23 @@ public class StatementTest {
                 + "LANGUAGE plpgsql;");
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
     final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
-    final AtomicReference<SQLWarning> warning = new AtomicReference<SQLWarning>();
     ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-    ScheduledFuture<?> future = executorService.schedule(new Runnable() {
+    ScheduledFuture<SQLWarning> future = executorService.schedule(new Callable<SQLWarning>() {
       @Override
-      public void run() {
-        try {
-          warning.set(preparedStatement.getWarnings());
-        } catch (SQLException e) {
-          fail("Exception thrown: " + e.getMessage());
-        }
+      public SQLWarning call() throws SQLException {
+        return preparedStatement.getWarnings();
       }
     }, 1000, TimeUnit.MILLISECONDS);
     preparedStatement.execute();
 
-    future.get();
+    SQLWarning warning = future.get();
     executorService.shutdown();
 
-    assertNotNull(warning.get());
-    assertEquals(warning.get().getMessage(), "Test 1");
-    assertEquals(warning.get().getNextWarning().getMessage(), "Test 2");
+    assertNotNull(warning);
+    assertEquals("First warning received not first notice raised",
+        warning.getMessage(), "Test 1");
+    assertEquals("Second warning received not second notice raised",
+        warning.getNextWarning().getMessage(), "Test 2");
   }
 
   /**
@@ -471,7 +468,19 @@ public class StatementTest {
       throws SQLException, InterruptedException, ExecutionException, TimeoutException {
     final int iterations = 1000;
     final ExecutorService executor = Executors.newSingleThreadExecutor();
-    final PgStatement statement = (PgStatement) con.createStatement();
+    con.createStatement()
+        .execute("CREATE OR REPLACE FUNCTION notify_loop() RETURNS VOID AS "
+            + "$BODY$ "
+            + "BEGIN "
+            + "FOR i IN 1.. " + iterations + " LOOP "
+            + "  RAISE NOTICE 'Warning %', i; "
+            + "END LOOP; "
+            + "END "
+            + "$BODY$ "
+            + "LANGUAGE plpgsql;");
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    final PreparedStatement statement = con.prepareStatement("SELECT notify_loop()");
+
     final Future warningReaderThread = executor.submit(new Callable<Object>() {
       @Override
       public Object call() throws SQLException, InterruptedException {
@@ -480,10 +489,11 @@ public class StatementTest {
         //For production code replace this with some condition that
         //ends after the statement finishes execution
         while (warnings < iterations) {
-          //if next linked warning has value use that, otherwise check latest head
-          final SQLWarning warn = lastProcessed != null && lastProcessed.getNextWarning() != null
-              ? lastProcessed.getNextWarning()
-              : statement.getWarnings();
+          SQLWarning warn = statement.getWarnings();
+          //if next linked warning has value use that, otherwise keep using latest head
+          if (lastProcessed != null && lastProcessed.getNextWarning() != null) {
+            warn = lastProcessed.getNextWarning();
+          }
           if (warn != null) {
             warnings++;
             //System.out.println("Processing " + warn.getMessage());
@@ -495,21 +505,16 @@ public class StatementTest {
           } else {
             //Not required for this test, but a good idea adding some delay for production code
             //to avoid high cpu usage while the query is running and no warnings are coming in.
+            //Alternatively use JDK9's Thread.onSpinWait()
             Thread.sleep(10);
           }
         }
         //Ensure that we didn't double process the same warning.
-        assertEquals(lastProcessed.getMessage(), "Warning " + (iterations - 1));
+        assertEquals(lastProcessed.getMessage(), "Warning " + iterations);
         return null;
       }
     });
-
-    for (int i = 0; i < iterations; i++) {
-      statement.addWarning(new SQLWarning("Warning " + i));
-      if (i % 33 == 0 ) {
-        Thread.sleep(1);//Add some delay every few records to simulate IO
-      }
-    }
+    statement.execute();
     //If the reader doesn't return after 2 seconds, it failed.
     warningReaderThread.get(2, TimeUnit.SECONDS);
   }

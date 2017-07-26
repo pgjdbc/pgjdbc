@@ -210,13 +210,13 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     @Override
-    public void handleWarning(SQLWarning warning) {
-      PgStatement.this.addWarning(warning);
+    public void handleCommandStatus(String status, int updateCount, long insertOID) {
+      append(new ResultWrapper(updateCount, insertOID));
     }
 
     @Override
-    public void handleCommandStatus(String status, int updateCount, long insertOID) {
-      append(new ResultWrapper(updateCount, insertOID));
+    public void handleWarning(SQLWarning warning) {
+      PgStatement.this.addWarning(warning);
     }
 
   }

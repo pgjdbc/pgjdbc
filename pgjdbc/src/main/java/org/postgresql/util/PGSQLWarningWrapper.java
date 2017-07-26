@@ -15,7 +15,7 @@ import java.sql.SQLWarning;
  */
 public class PGSQLWarningWrapper {
 
-  private SQLWarning firstWarning;
+  private final SQLWarning firstWarning;
   private SQLWarning lastWarning;
 
   public PGSQLWarningWrapper(SQLWarning warning) {
