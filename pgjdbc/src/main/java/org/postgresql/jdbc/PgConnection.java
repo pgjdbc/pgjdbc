@@ -1164,7 +1164,7 @@ public class PgConnection implements BaseConnection, PGArraySupport {
       if (o == null) {
         sb.append("NULL");
       } else if (o.getClass().isArray()) {
-        final PrimitiveArraySupport.ArrayToString arraySupport = PrimitiveArraySupport.getArrayToString(o);
+        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(o);
         if (arraySupport != null) {
           arraySupport.appendArray(sb, delim, o);
         } else {
@@ -1300,14 +1300,14 @@ public class PgConnection implements BaseConnection, PGArraySupport {
 
     final String arrayString;
 
-    final PrimitiveArraySupport.ArrayToString arraySupport = PrimitiveArraySupport.getArrayToString(elements);
+    final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(elements);
 
     if (arraySupport != null) {
       // if the oid for the given type matches the default type, we might be
       // able to go straight to binary representation
-      if (oid == arraySupport.getDefaultArrayTypeOid() && arraySupport.supportBinaryRepresentation()
+      if (oid == arraySupport.getDefaultArrayTypeOid(typeInfo) && arraySupport.supportBinaryRepresentation()
           && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(elements));
+        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements));
       }
       arrayString = arraySupport.toArrayString(delim, elements);
     } else {

@@ -20,16 +20,12 @@ import java.sql.SQLFeatureNotSupportedException;
 
 public class PrimitiveArraySupportTest {
 
-  public PrimitiveArraySupport.ArrayToString<long[]> longArrays = PrimitiveArraySupport.getArrayToString(new long[] {});
-  public PrimitiveArraySupport.ArrayToString<int[]> intArrays = PrimitiveArraySupport.getArrayToString(new int[] {});
-  public PrimitiveArraySupport.ArrayToString<short[]> shortArrays = PrimitiveArraySupport
-      .getArrayToString(new short[] {});
-  public PrimitiveArraySupport.ArrayToString<double[]> doubleArrays = PrimitiveArraySupport
-      .getArrayToString(new double[] {});
-  public PrimitiveArraySupport.ArrayToString<float[]> floatArrays = PrimitiveArraySupport
-      .getArrayToString(new float[] {});
-  public PrimitiveArraySupport.ArrayToString<boolean[]> booleanArrays = PrimitiveArraySupport
-      .getArrayToString(new boolean[] {});
+  public PrimitiveArraySupport<long[]> longArrays = PrimitiveArraySupport.getArraySupport(new long[] {});
+  public PrimitiveArraySupport<int[]> intArrays = PrimitiveArraySupport.getArraySupport(new int[] {});
+  public PrimitiveArraySupport<short[]> shortArrays = PrimitiveArraySupport.getArraySupport(new short[] {});
+  public PrimitiveArraySupport<double[]> doubleArrays = PrimitiveArraySupport.getArraySupport(new double[] {});
+  public PrimitiveArraySupport<float[]> floatArrays = PrimitiveArraySupport.getArraySupport(new float[] {});
+  public PrimitiveArraySupport<boolean[]> booleanArrays = PrimitiveArraySupport.getArraySupport(new boolean[] {});
 
   @Test
   public void testLongBinary() throws Exception {
@@ -38,7 +34,7 @@ public class PrimitiveArraySupportTest {
       longs[i] = i - 3;
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.INT8_ARRAY, longArrays.toBinaryRepresentation(longs));
+    final PgArray pgArray = new PgArray(null, Oid.INT8_ARRAY, longArrays.toBinaryRepresentation(null, longs));
 
     Object arrayObj = pgArray.getArray();
 
@@ -73,7 +69,7 @@ public class PrimitiveArraySupportTest {
       ints[i] = i - 3;
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, intArrays.toBinaryRepresentation(ints));
+    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, intArrays.toBinaryRepresentation(null, ints));
 
     Object arrayObj = pgArray.getArray();
 
@@ -103,13 +99,13 @@ public class PrimitiveArraySupportTest {
   }
 
   @Test
-  public void testShorttBinary() throws Exception {
+  public void testShortToBinary() throws Exception {
     final short[] shorts = new short[13];
     for (int i = 0; i < 13; ++i) {
       shorts[i] = (short) (i - 3);
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, shortArrays.toBinaryRepresentation(shorts));
+    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, shortArrays.toBinaryRepresentation(null, shorts));
 
     Object arrayObj = pgArray.getArray();
 
@@ -145,7 +141,7 @@ public class PrimitiveArraySupportTest {
       doubles[i] = i - 3.1;
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.FLOAT8_ARRAY, doubleArrays.toBinaryRepresentation(doubles));
+    final PgArray pgArray = new PgArray(null, Oid.FLOAT8_ARRAY, doubleArrays.toBinaryRepresentation(null, doubles));
 
     Object arrayObj = pgArray.getArray();
 
@@ -181,7 +177,7 @@ public class PrimitiveArraySupportTest {
       floats[i] = (float) (i - 3.1);
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.FLOAT4_ARRAY, floatArrays.toBinaryRepresentation(floats));
+    final PgArray pgArray = new PgArray(null, Oid.FLOAT4_ARRAY, floatArrays.toBinaryRepresentation(null, floats));
 
     Object arrayObj = pgArray.getArray();
 
@@ -214,7 +210,7 @@ public class PrimitiveArraySupportTest {
   public void testBooleanBinary() throws Exception {
     final boolean[] bools = new boolean[] { true, true, false };
 
-    final PgArray pgArray = new PgArray(null, Oid.BIT, booleanArrays.toBinaryRepresentation(bools));
+    final PgArray pgArray = new PgArray(null, Oid.BIT, booleanArrays.toBinaryRepresentation(null, bools));
 
     Object arrayObj = pgArray.getArray();
 
@@ -244,12 +240,11 @@ public class PrimitiveArraySupportTest {
 
   @Test
   public void testStringNotSupportBinary() {
-    PrimitiveArraySupport.ArrayToString<String[]> stringArrays = PrimitiveArraySupport
-        .getArrayToString(new String[] {});
+    PrimitiveArraySupport<String[]> stringArrays = PrimitiveArraySupport.getArraySupport(new String[] {});
     assertNotNull(stringArrays);
     assertFalse(stringArrays.supportBinaryRepresentation());
     try {
-      stringArrays.toBinaryRepresentation(new String[] { "1.2" });
+      stringArrays.toBinaryRepresentation(null, new String[] { "1.2" });
       fail("no sql exception thrown");
     } catch (SQLFeatureNotSupportedException e) {
 

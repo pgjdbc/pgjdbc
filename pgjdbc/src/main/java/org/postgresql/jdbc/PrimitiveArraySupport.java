@@ -6,33 +6,35 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.core.Oid;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.util.ByteConverter;
 
+import java.sql.Connection;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashMap;
 import java.util.Map;
 
-final class PrimitiveArraySupport {
-  public interface ArrayToString<A> {
+abstract class PrimitiveArraySupport<A> {
 
-    int getDefaultArrayTypeOid();
+  public abstract int getDefaultArrayTypeOid(TypeInfo tiCache);
 
-    String toArrayString(char delim, A array);
+  public abstract String toArrayString(char delim, A array);
 
-    void appendArray(StringBuilder sb, char delim, A array);
+  public abstract void appendArray(StringBuilder sb, char delim, A array);
 
-    boolean supportBinaryRepresentation();
-
-    byte[] toBinaryRepresentation(A array) throws SQLFeatureNotSupportedException;
+  public boolean supportBinaryRepresentation() {
+    return true;
   }
 
-  private static final ArrayToString<long[]> LONG_ARRAY_TOSTRING = new ArrayToString<long[]>() {
+  public abstract byte[] toBinaryRepresentation(Connection connection, A array) throws SQLFeatureNotSupportedException;
+
+  private static final PrimitiveArraySupport<long[]> LONG_ARRAY_TOSTRING = new PrimitiveArraySupport<long[]>() {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid() {
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
       return Oid.INT8_ARRAY;
     }
 
@@ -62,15 +64,7 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public boolean supportBinaryRepresentation() {
-      return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public byte[] toBinaryRepresentation(long[] array) {
+    public byte[] toBinaryRepresentation(Connection connection, long[] array) {
 
       int length = 20 + (12 * array.length);
       final byte[] bytes = new byte[length];
@@ -95,13 +89,13 @@ final class PrimitiveArraySupport {
     }
   };
 
-  private static final ArrayToString<int[]> INT_ARRAY_TOSTRING = new ArrayToString<int[]>() {
+  private static final PrimitiveArraySupport<int[]> INT_ARRAY_TOSTRING = new PrimitiveArraySupport<int[]>() {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid() {
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
       return Oid.INT4_ARRAY;
     }
 
@@ -131,15 +125,7 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public boolean supportBinaryRepresentation() {
-      return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public byte[] toBinaryRepresentation(int[] array) {
+    public byte[] toBinaryRepresentation(Connection connection, int[] array) {
 
       int length = 20 + (8 * array.length);
       final byte[] bytes = new byte[length];
@@ -164,13 +150,13 @@ final class PrimitiveArraySupport {
     }
   };
 
-  private static final ArrayToString<short[]> SHORT_ARRAY_TOSTRING = new ArrayToString<short[]>() {
+  private static final PrimitiveArraySupport<short[]> SHORT_ARRAY_TOSTRING = new PrimitiveArraySupport<short[]>() {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid() {
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
       return Oid.INT2_ARRAY;
     }
 
@@ -200,15 +186,7 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public boolean supportBinaryRepresentation() {
-      return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public byte[] toBinaryRepresentation(short[] array) {
+    public byte[] toBinaryRepresentation(Connection connection, short[] array) {
 
       int length = 20 + (6 * array.length);
       final byte[] bytes = new byte[length];
@@ -234,13 +212,13 @@ final class PrimitiveArraySupport {
 
   };
 
-  private static final ArrayToString<double[]> DOUBLE_ARRAY_TOSTRING = new ArrayToString<double[]>() {
+  private static final PrimitiveArraySupport<double[]> DOUBLE_ARRAY_TOSTRING = new PrimitiveArraySupport<double[]>() {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid() {
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
       return Oid.FLOAT8_ARRAY;
     }
 
@@ -261,7 +239,7 @@ final class PrimitiveArraySupport {
         if (i > 0) {
           sb.append(delim);
         }
-        //use quotes to account for any issues with scientific notation
+        // use quotes to account for any issues with scientific notation
         sb.append('"');
         sb.append(array[i]);
         sb.append('"');
@@ -273,15 +251,7 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public boolean supportBinaryRepresentation() {
-      return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public byte[] toBinaryRepresentation(double[] array) {
+    public byte[] toBinaryRepresentation(Connection connection, double[] array) {
 
       int length = 20 + (12 * array.length);
       final byte[] bytes = new byte[length];
@@ -307,13 +277,13 @@ final class PrimitiveArraySupport {
 
   };
 
-  private static final ArrayToString<float[]> FLOAT_ARRAY_TOSTRING = new ArrayToString<float[]>() {
+  private static final PrimitiveArraySupport<float[]> FLOAT_ARRAY_TOSTRING = new PrimitiveArraySupport<float[]>() {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid() {
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
       return Oid.FLOAT4_ARRAY;
     }
 
@@ -334,7 +304,7 @@ final class PrimitiveArraySupport {
         if (i > 0) {
           sb.append(delim);
         }
-        //use quotes to account for any issues with scientific notation
+        // use quotes to account for any issues with scientific notation
         sb.append('"');
         sb.append(array[i]);
         sb.append('"');
@@ -346,15 +316,7 @@ final class PrimitiveArraySupport {
      * {@inheritDoc}
      */
     @Override
-    public boolean supportBinaryRepresentation() {
-      return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public byte[] toBinaryRepresentation(float[] array) {
+    public byte[] toBinaryRepresentation(Connection connection, float[] array) {
 
       int length = 20 + (8 * array.length);
       final byte[] bytes = new byte[length];
@@ -380,13 +342,13 @@ final class PrimitiveArraySupport {
 
   };
 
-  private static final ArrayToString<boolean[]> BOOLEAN_ARRAY_TOSTRING = new ArrayToString<boolean[]>() {
+  private static final PrimitiveArraySupport<boolean[]> BOOLEAN_ARRAY_TOSTRING = new PrimitiveArraySupport<boolean[]>() {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid() {
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
       return Oid.BOOL_ARRAY;
     }
 
@@ -414,19 +376,12 @@ final class PrimitiveArraySupport {
 
     /**
      * {@inheritDoc}
-     */
-    @Override
-    public boolean supportBinaryRepresentation() {
-      return true;
-    }
-
-    /**
-     * {@inheritDoc}
      *
-     * @throws SQLFeatureNotSupportedException Because this feature is not supported.
+     * @throws SQLFeatureNotSupportedException
+     *           Because this feature is not supported.
      */
     @Override
-    public byte[] toBinaryRepresentation(boolean[] array) throws SQLFeatureNotSupportedException {
+    public byte[] toBinaryRepresentation(Connection connection, boolean[] array) throws SQLFeatureNotSupportedException {
       int length = 20 + (5 * array.length);
       final byte[] bytes = new byte[length];
 
@@ -451,13 +406,13 @@ final class PrimitiveArraySupport {
 
   };
 
-  private static final ArrayToString<String[]> STRING_ARRAY_TOSTRING = new ArrayToString<String[]>() {
+  private static final PrimitiveArraySupport<String[]> STRING_ARRAY_TOSTRING = new PrimitiveArraySupport<String[]>() {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid() {
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
       return Oid.VARCHAR_ARRAY;
     }
 
@@ -501,16 +456,17 @@ final class PrimitiveArraySupport {
     /**
      * {@inheritDoc}
      *
-     * @throws SQLFeatureNotSupportedException Because this feature is not supported.
+     * @throws SQLFeatureNotSupportedException
+     *           Because this feature is not supported.
      */
     @Override
-    public byte[] toBinaryRepresentation(String[] array) throws SQLFeatureNotSupportedException {
+    public byte[] toBinaryRepresentation(Connection connection, String[] array) throws SQLFeatureNotSupportedException {
       throw new SQLFeatureNotSupportedException();
     }
 
   };
 
-  private static final Map<Class, ArrayToString> ARRAY_CLASS_TOSTRING = new HashMap<Class, ArrayToString>(9);
+  private static final Map<Class, PrimitiveArraySupport> ARRAY_CLASS_TOSTRING = new HashMap<Class, PrimitiveArraySupport>(9);
 
   static {
     ARRAY_CLASS_TOSTRING.put(long[].class, LONG_ARRAY_TOSTRING);
@@ -526,11 +482,11 @@ final class PrimitiveArraySupport {
     return obj != null && ARRAY_CLASS_TOSTRING.containsKey(obj.getClass());
   }
 
-  public static <A> ArrayToString<A> getArrayToString(A array) {
+  public static <A> PrimitiveArraySupport<A> getArraySupport(A array) {
     return ARRAY_CLASS_TOSTRING.get(array.getClass());
   }
 
-  public static <A> String toArrayString(char delim, A array) {
+  public static <A> String arrayToString(char delim, A array) {
     return ARRAY_CLASS_TOSTRING.get(array.getClass()).toArrayString(delim, array);
   }
 }
