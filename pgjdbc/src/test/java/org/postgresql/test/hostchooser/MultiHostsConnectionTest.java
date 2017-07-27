@@ -58,7 +58,7 @@ public class MultiHostsConnectionTest {
   public void setUp() throws Exception {
     Field field = GlobalHostStatusTracker.class.getDeclaredField("hostStatusMap");
     field.setAccessible(true);
-    hostStatusMap = new HashMap<>((Map<HostSpec, Object>) field.get(null));
+    hostStatusMap = new HashMap<HostSpec, Object>((Map<HostSpec, Object>) field.get(null));
 
     con = TestUtil.openDB();
     masterIp = getRemoteHostSpec();
