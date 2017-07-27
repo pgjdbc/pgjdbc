@@ -122,13 +122,17 @@ public class TypeInfoCache implements TypeInfo {
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     _conn = conn;
     _unknownLength = unknownLength;
-    _oidToPgName = new ConcurrentHashMap<Integer, String>();
-    _pgNameToOid = new ConcurrentHashMap<String, Integer>();
-    _pgNameToJavaClass = new ConcurrentHashMap<String, String>();
-    _pgNameToPgObject = new ConcurrentHashMap<String, Class<? extends PGobject>>();
-    _pgArrayToPgType = new ConcurrentHashMap<Integer, Integer>();
-    _arrayOidToDelimiter = new ConcurrentHashMap<Integer, Character>();
-    _pgNameToSQLType = new ConcurrentHashMap<String, Integer>();
+    
+    //initialize with room for some additional custom types
+    final int mapInitSize = types.length * 2;
+    
+    _oidToPgName = new ConcurrentHashMap<Integer, String>(mapInitSize);
+    _pgNameToOid = new ConcurrentHashMap<String, Integer>(mapInitSize);
+    _pgNameToJavaClass = new ConcurrentHashMap<String, String>(mapInitSize);
+    _pgNameToPgObject = new ConcurrentHashMap<String, Class<? extends PGobject>>(mapInitSize);
+    _pgArrayToPgType = new ConcurrentHashMap<Integer, Integer>(mapInitSize);
+    _arrayOidToDelimiter = new ConcurrentHashMap<Integer, Character>(mapInitSize);
+    _pgNameToSQLType = new ConcurrentHashMap<String, Integer>(mapInitSize);
 
     lock.lock();
     try {
@@ -182,10 +186,15 @@ public class TypeInfoCache implements TypeInfo {
   }
 
 
-  public synchronized void addDataType(String type, Class<? extends PGobject> klass)
+  public void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
-    _pgNameToPgObject.put(type, klass);
-    _pgNameToJavaClass.put(type, klass.getName());
+    lock.lock();
+    try {
+      _pgNameToPgObject.put(type, klass);
+      _pgNameToJavaClass.put(type, klass.getName());
+    } finally {
+      lock.unlock();
+    }
   }
 
   public Iterator<String> getPGTypeNamesWithSQLTypes() {
