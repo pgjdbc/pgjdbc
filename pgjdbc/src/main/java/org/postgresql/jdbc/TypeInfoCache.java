@@ -122,10 +122,10 @@ public class TypeInfoCache implements TypeInfo {
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     _conn = conn;
     _unknownLength = unknownLength;
-    
+
     //initialize with room for some additional custom types
     final int mapInitSize = types.length * 2;
-    
+
     _oidToPgName = new ConcurrentHashMap<Integer, String>(mapInitSize);
     _pgNameToOid = new ConcurrentHashMap<String, Integer>(mapInitSize);
     _pgNameToJavaClass = new ConcurrentHashMap<String, String>(mapInitSize);
