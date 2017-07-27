@@ -8,6 +8,7 @@ package org.postgresql.test.hostchooser;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
+import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
@@ -20,7 +21,7 @@ import java.util.Properties;
  */
 public class MultiHostTestSuite extends TestSuite {
 
-  public static java.sql.Connection openSlaveDB() throws Exception {
+  public static Connection openSlaveDB() throws Exception {
     TestUtil.initDriver();
 
     Properties props = new Properties();
@@ -52,17 +53,24 @@ public class MultiHostTestSuite extends TestSuite {
   public static TestSuite suite() throws Exception {
     TestSuite suite = new TestSuite();
 
+    if (isReplicationInstanceAvailable()) {
+      suite.addTest(new JUnit4TestAdapter(MultiHostsConnectionTest.class));
+    } else {
+      // suite must have at lest one test case
+      suite.addTestSuite(DummyTest.class);
+    }
+
+    return suite;
+  }
+
+  private static boolean isReplicationInstanceAvailable() throws Exception {
     try {
       Connection connection = openSlaveDB();
       TestUtil.closeDB(connection);
+      return true;
     } catch (PSQLException ex) {
-      // replication instance is not available, but suite must have at lest one test case
-      suite.addTestSuite(DummyTest.class);
-      return suite;
+      return false;
     }
-
-    suite.addTestSuite(MultiHostsConnectionTest.class);
-    return suite;
   }
 
   public static class DummyTest extends TestCase {
