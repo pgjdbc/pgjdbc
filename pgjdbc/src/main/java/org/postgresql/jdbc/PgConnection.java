@@ -6,7 +6,6 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
-import org.postgresql.PGArraySupport;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -75,7 +74,7 @@ import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PgConnection implements BaseConnection, PGArraySupport {
+public class PgConnection implements BaseConnection {
 
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
 
@@ -390,14 +389,6 @@ public class PgConnection implements BaseConnection, PGArraySupport {
 
   public ReplicationProtocol getReplicationProtocol() {
     return queryExecutor.getReplicationProtocol();
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public PGArraySupport getArraySupport() throws SQLException {
-    return this;
   }
 
   /**

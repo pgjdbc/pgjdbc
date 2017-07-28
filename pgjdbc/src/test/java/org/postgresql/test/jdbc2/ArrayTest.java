@@ -5,7 +5,9 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.PGArraySupport;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.geometric.PGbox;
@@ -13,6 +15,7 @@ import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -98,24 +101,24 @@ public class ArrayTest extends BaseTest4 {
     Array arr = rs.getArray(1);
     Assert.assertEquals(Types.INTEGER, arr.getBaseType());
     Integer[] intarr = (Integer[]) arr.getArray();
-    Assert.assertEquals(3, intarr.length);
-    Assert.assertEquals(1, intarr[0].intValue());
-    Assert.assertEquals(2, intarr[1].intValue());
-    Assert.assertEquals(3, intarr[2].intValue());
+    assertEquals(3, intarr.length);
+    assertEquals(1, intarr[0].intValue());
+    assertEquals(2, intarr[1].intValue());
+    assertEquals(3, intarr[2].intValue());
 
     arr = rs.getArray(2);
-    Assert.assertEquals(Types.NUMERIC, arr.getBaseType());
+    assertEquals(Types.NUMERIC, arr.getBaseType());
     BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
-    Assert.assertEquals(2, decarr.length);
-    Assert.assertEquals(new BigDecimal("3.1"), decarr[0]);
-    Assert.assertEquals(new BigDecimal("1.4"), decarr[1]);
+    assertEquals(2, decarr.length);
+    assertEquals(new BigDecimal("3.1"), decarr[0]);
+    assertEquals(new BigDecimal("1.4"), decarr[1]);
 
     arr = rs.getArray(3);
-    Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+    assertEquals(Types.VARCHAR, arr.getBaseType());
     String[] strarr = (String[]) arr.getArray(2, 2);
-    Assert.assertEquals(2, strarr.length);
-    Assert.assertEquals("f'a", strarr[0]);
-    Assert.assertEquals("fa\"b", strarr[1]);
+    assertEquals(2, strarr.length);
+    assertEquals("f'a", strarr[0]);
+    assertEquals("fa\"b", strarr[1]);
 
     rs.close();
   }
@@ -124,11 +127,11 @@ public class ArrayTest extends BaseTest4 {
   public void testSetPrimitiveArraysObjects() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
 
-    final PGArraySupport arraySupport = conn.unwrap(PGConnection.class).getArraySupport();
+    final PGConnection arraySupport = conn.unwrap(PGConnection.class);
 
-    pstmt.setArray(1, arraySupport.createArrayOf("int4", new int[]{1,2,3}));
-    pstmt.setObject(2, arraySupport.createArrayOf("float8", new double[]{3.1d, 1.4d}));
-    pstmt.setObject(3, arraySupport.createArrayOf("varchar", new String[]{"abc", "f'a", "fa\"b"}));
+    pstmt.setArray(1, arraySupport.createArrayOf("int4", new int[] { 1, 2, 3 }));
+    pstmt.setObject(2, arraySupport.createArrayOf("float8", new double[] { 3.1d, 1.4d }));
+    pstmt.setObject(3, arraySupport.createArrayOf("varchar", new String[] { "abc", "f'a", "fa\"b" }));
 
     pstmt.executeUpdate();
     pstmt.close();
@@ -158,6 +161,13 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(2, strarr.length);
     Assert.assertEquals("f'a", strarr[0]);
     Assert.assertEquals("fa\"b", strarr[1]);
+
+    try {
+      arraySupport.createArrayOf("int4", Integer.valueOf(1));
+      fail("not an array");
+    } catch (PSQLException e) {
+
+    }
 
     rs.close();
   }

@@ -13,6 +13,7 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.PGobject;
 
+import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -23,12 +24,19 @@ import java.sql.Statement;
 public interface PGConnection {
 
   /**
-   * Returns extended array support for this connection.
+   * Creates an {@link Array} wrapping <i>elements</i>. This is similar to
+   * java.sql.Connection#createArrayOf(String, Object[]), but also provides
+   * support for primitive arrays.
    *
-   * @return Extended array support for this connection.
-   * @throws SQLException if something wrong happens
+   * @param typeName
+   *          The SQL name of the type to map the <i>elements</i> to.
+   * @param elements
+   *          The array of objects to map.
+   * @return An {@link Array} wrapping <i>elements</i>.
+   * @throws SQLException If for some reason the array cannot be created.
+   * @see java.sql.Connection#createArrayOf(String, Object[])
    */
-  PGArraySupport getArraySupport() throws SQLException;
+  Array createArrayOf(String typeName, Object elements) throws SQLException;
 
   /**
    * This method returns any notifications that have been received since the last call to this

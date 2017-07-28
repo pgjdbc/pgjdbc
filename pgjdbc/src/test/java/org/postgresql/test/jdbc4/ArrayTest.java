@@ -79,8 +79,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCreateArrayOfBool() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bool[]");
-    pstmt.setArray(1, _conn.unwrap(PgConnection.class).getArraySupport().createArrayOf("boolean",
-        new boolean[] { true, true, false }));
+    pstmt.setArray(1, _conn.unwrap(PgConnection.class).createArrayOf("boolean", new boolean[] { true, true, false }));
 
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
