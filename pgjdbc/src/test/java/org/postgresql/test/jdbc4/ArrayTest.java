@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -313,8 +314,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testSetObjectFromJavaArray() throws SQLException {
     String[] strArray = new String[]{"a", "b", "c"};
-    Object[] objCopy = new Object[strArray.length];
-    System.arraycopy(strArray, 0, objCopy, 0, strArray.length);
+    Object[] objCopy = Arrays.copyOf(strArray, strArray.length, Object[].class);
 
     PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
 

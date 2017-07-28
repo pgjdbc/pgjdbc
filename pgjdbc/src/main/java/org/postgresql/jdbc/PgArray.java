@@ -883,8 +883,9 @@ public class PgArray implements java.sql.Array {
       try {
         Object array = readBinaryArray(1, 0);
 
-        if (PrimitiveArraySupport.isSupportedPrimitiveArray(array)) {
-          fieldString = PrimitiveArraySupport.arrayToString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
+        if (arraySupport != null) {
+          fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
         } else {
           java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
           fieldString = tmpArray.toString();

@@ -28,7 +28,7 @@ abstract class PrimitiveArraySupport<A> {
 
   public abstract byte[] toBinaryRepresentation(Connection connection, A array) throws SQLFeatureNotSupportedException;
 
-  private static final PrimitiveArraySupport<long[]> LONG_ARRAY_TOSTRING = new PrimitiveArraySupport<long[]>() {
+  private static final PrimitiveArraySupport<long[]> LONG_ARRAY = new PrimitiveArraySupport<long[]>() {
 
     /**
      * {@inheritDoc}
@@ -89,7 +89,7 @@ abstract class PrimitiveArraySupport<A> {
     }
   };
 
-  private static final PrimitiveArraySupport<int[]> INT_ARRAY_TOSTRING = new PrimitiveArraySupport<int[]>() {
+  private static final PrimitiveArraySupport<int[]> INT_ARRAY = new PrimitiveArraySupport<int[]>() {
 
     /**
      * {@inheritDoc}
@@ -150,7 +150,7 @@ abstract class PrimitiveArraySupport<A> {
     }
   };
 
-  private static final PrimitiveArraySupport<short[]> SHORT_ARRAY_TOSTRING = new PrimitiveArraySupport<short[]>() {
+  private static final PrimitiveArraySupport<short[]> SHORT_ARRAY = new PrimitiveArraySupport<short[]>() {
 
     /**
      * {@inheritDoc}
@@ -212,7 +212,7 @@ abstract class PrimitiveArraySupport<A> {
 
   };
 
-  private static final PrimitiveArraySupport<double[]> DOUBLE_ARRAY_TOSTRING = new PrimitiveArraySupport<double[]>() {
+  private static final PrimitiveArraySupport<double[]> DOUBLE_ARRAY = new PrimitiveArraySupport<double[]>() {
 
     /**
      * {@inheritDoc}
@@ -277,7 +277,7 @@ abstract class PrimitiveArraySupport<A> {
 
   };
 
-  private static final PrimitiveArraySupport<float[]> FLOAT_ARRAY_TOSTRING = new PrimitiveArraySupport<float[]>() {
+  private static final PrimitiveArraySupport<float[]> FLOAT_ARRAY = new PrimitiveArraySupport<float[]>() {
 
     /**
      * {@inheritDoc}
@@ -342,7 +342,7 @@ abstract class PrimitiveArraySupport<A> {
 
   };
 
-  private static final PrimitiveArraySupport<boolean[]> BOOLEAN_ARRAY_TOSTRING = new PrimitiveArraySupport<boolean[]>() {
+  private static final PrimitiveArraySupport<boolean[]> BOOLEAN_ARRAY = new PrimitiveArraySupport<boolean[]>() {
 
     /**
      * {@inheritDoc}
@@ -406,7 +406,7 @@ abstract class PrimitiveArraySupport<A> {
 
   };
 
-  private static final PrimitiveArraySupport<String[]> STRING_ARRAY_TOSTRING = new PrimitiveArraySupport<String[]>() {
+  private static final PrimitiveArraySupport<String[]> STRING_ARRAY = new PrimitiveArraySupport<String[]>() {
 
     /**
      * {@inheritDoc}
@@ -466,27 +466,23 @@ abstract class PrimitiveArraySupport<A> {
 
   };
 
-  private static final Map<Class, PrimitiveArraySupport> ARRAY_CLASS_TOSTRING = new HashMap<Class, PrimitiveArraySupport>(9);
+  private static final Map<Class, PrimitiveArraySupport> ARRAY_CLASS_TO_SUPPORT = new HashMap<Class, PrimitiveArraySupport>((int) (7 / .75) + 1);
 
   static {
-    ARRAY_CLASS_TOSTRING.put(long[].class, LONG_ARRAY_TOSTRING);
-    ARRAY_CLASS_TOSTRING.put(int[].class, INT_ARRAY_TOSTRING);
-    ARRAY_CLASS_TOSTRING.put(short[].class, SHORT_ARRAY_TOSTRING);
-    ARRAY_CLASS_TOSTRING.put(double[].class, DOUBLE_ARRAY_TOSTRING);
-    ARRAY_CLASS_TOSTRING.put(float[].class, FLOAT_ARRAY_TOSTRING);
-    ARRAY_CLASS_TOSTRING.put(boolean[].class, BOOLEAN_ARRAY_TOSTRING);
-    ARRAY_CLASS_TOSTRING.put(String[].class, STRING_ARRAY_TOSTRING);
+    ARRAY_CLASS_TO_SUPPORT.put(long[].class, LONG_ARRAY);
+    ARRAY_CLASS_TO_SUPPORT.put(int[].class, INT_ARRAY);
+    ARRAY_CLASS_TO_SUPPORT.put(short[].class, SHORT_ARRAY);
+    ARRAY_CLASS_TO_SUPPORT.put(double[].class, DOUBLE_ARRAY);
+    ARRAY_CLASS_TO_SUPPORT.put(float[].class, FLOAT_ARRAY);
+    ARRAY_CLASS_TO_SUPPORT.put(boolean[].class, BOOLEAN_ARRAY);
+    ARRAY_CLASS_TO_SUPPORT.put(String[].class, STRING_ARRAY);
   }
 
   public static boolean isSupportedPrimitiveArray(Object obj) {
-    return obj != null && ARRAY_CLASS_TOSTRING.containsKey(obj.getClass());
+    return obj != null && ARRAY_CLASS_TO_SUPPORT.containsKey(obj.getClass());
   }
 
   public static <A> PrimitiveArraySupport<A> getArraySupport(A array) {
-    return ARRAY_CLASS_TOSTRING.get(array.getClass());
-  }
-
-  public static <A> String arrayToString(char delim, A array) {
-    return ARRAY_CLASS_TOSTRING.get(array.getClass()).toArrayString(delim, array);
+    return ARRAY_CLASS_TO_SUPPORT.get(array.getClass());
   }
 }
