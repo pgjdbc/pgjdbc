@@ -15,10 +15,10 @@ public class SslTestSuite extends TestSuite {
   private static Properties prop;
 
   private static void add(TestSuite suite, String param) {
-    if (prop.getProperty(param, "").equals("")) {
-      System.out.println("Skipping " + param + ".");
-    } else {
+    if (prop.containsKey(param)) {
       suite.addTest(SslTest.getSuite(prop, param));
+    } else {
+      System.out.println("Skipping " + param + ".");
     }
   }
 

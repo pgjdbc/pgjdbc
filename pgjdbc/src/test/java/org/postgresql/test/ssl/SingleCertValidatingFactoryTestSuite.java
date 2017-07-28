@@ -78,22 +78,10 @@ public class SingleCertValidatingFactoryTestSuite {
     return loadFile(badServerCertPath);
   }
 
-  protected String getUsername() {
-    return System.getProperty("username");
-  }
-
-  protected String getPassword() {
-    return System.getProperty("password");
-  }
-
   private String serverJdbcUrl;
 
   public SingleCertValidatingFactoryTestSuite(String serverJdbcUrl) {
     this.serverJdbcUrl = serverJdbcUrl;
-  }
-
-  protected String getServerJdbcUrl() {
-    return serverJdbcUrl;
   }
 
   /**
@@ -103,10 +91,9 @@ public class SingleCertValidatingFactoryTestSuite {
    * @param info The additional properties to use when creating a connection
    */
   protected Connection getConnection(Properties info) throws SQLException {
-    String url = getServerJdbcUrl();
-    info.setProperty("user", getUsername());
-    info.setProperty("password", getPassword());
-    return DriverManager.getConnection(url, info);
+    info.setProperty("user", TestUtil.getUser());
+    info.setProperty("password", TestUtil.getPassword());
+    return DriverManager.getConnection(serverJdbcUrl, info);
   }
 
   /**

@@ -24,48 +24,43 @@ public class SslTest extends TestCase {
   /**
    * Tries to connect to the database.
    *
-   * @param connstr Connection string for the database
-   * @param expected Expected values. the first element is a String holding the expected message of
-   *        PSQLException or null, if no exception is expected, the second indicates weather ssl is
-   *        to be used (Boolean)
    */
-  protected void driver(String connstr, Object[] expected) throws SQLException {
+  protected void driver() throws SQLException {
     Connection conn = null;
-    String exmsg = (String) expected[0];
+    String exMsgRegex = expected.exceptionMessageRegex;
     try {
-      conn = DriverManager.getConnection(connstr, TestUtil.getUser(), TestUtil.getPassword());
-      if (exmsg != null) {
-        fail("Exception did not occur: " + exmsg);
+      conn = DriverManager.getConnection(makeConnStr(), TestUtil.getUser(), TestUtil.getPassword());
+      if (exMsgRegex != null) {
+        fail("Exception did not occur: " + exMsgRegex);
       }
       //
       ResultSet rs = conn.createStatement().executeQuery("select ssl_is_used()");
       assertTrue(rs.next());
-      assertEquals("ssl_is_used: ", ((Boolean) expected[1]).booleanValue(), rs.getBoolean(1));
+      assertEquals("ssl_is_used: ", expected.useSsl, rs.getBoolean(1));
       conn.close();
     } catch (SQLException ex) {
       if (conn != null) {
         conn.close();
       }
-      if (exmsg == null) { // no exception is excepted
+      if (exMsgRegex == null) { // no exception is excepted
         fail("Exception thrown: " + ex.getMessage());
       } else {
-        assertTrue("expected: " + exmsg + " actual: " + ex.getMessage(),
-            ex.getMessage().matches(exmsg));
-        return;
+        assertTrue("expected: " + exMsgRegex + " actual: " + ex.getMessage(),
+            ex.getMessage().matches(exMsgRegex));
       }
     }
   }
 
-  protected String certdir;
-  protected String connstr;
-  protected String sslmode;
-  protected int protocol;
-  protected boolean goodclient;
-  protected boolean goodserver;
-  protected String prefix;
-  protected Object[] expected;
+  private final String certdir;
+  private final String connstr;
+  private final String sslmode;
+  private final int protocol;
+  private final boolean goodclient;
+  private final boolean goodserver;
+  private final String prefix;
+  private final Expected expected;
 
-  private String makeConnStr(String sslmode, boolean goodclient, boolean goodserver, int protocol) {
+  private String makeConnStr() {
     return connstr + "&protocolVersion=" + protocol
         + "&sslmode=" + sslmode
         + "&sslcert=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt")
@@ -75,7 +70,7 @@ public class SslTest extends TestCase {
   }
 
   public SslTest(String name, String certdir, String connstr, String sslmode, int protocol,
-      boolean goodclient, boolean goodserver, String prefix, Object[] expected) {
+      boolean goodclient, boolean goodserver, String prefix, Expected expected) {
     super(name);
     this.certdir = certdir;
     this.connstr = connstr;
@@ -95,268 +90,274 @@ public class SslTest extends TestCase {
     String[] sslModes = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"};
 
     TestSuite suite = new TestSuite();
-    Map<String, Object[]> expected = expectedmap.get(param);
+    Map<String, Expected> expected = expectedMap.get(param);
     if (expected == null) {
-      expected = defaultexpected;
+      expected = defaultExpected;
     }
     for (String sslMode : sslModes) {
-      suite.addTest(new SslTest(param + "-" + sslMode + "GG2", certdir, sconnstr, sslMode,
-          2, true, true, sprefix, expected.get(sslMode + "GG")));
       suite.addTest(new SslTest(param + "-" + sslMode + "GG3", certdir, sconnstr, sslMode,
           3, true, true, sprefix, expected.get(sslMode + "GG")));
-      suite.addTest(new SslTest(param + "-" + sslMode + "GB2", certdir, sconnstr, sslMode,
-          2, true, false, sprefix, expected.get(sslMode + "GB")));
       suite.addTest(new SslTest(param + "-" + sslMode + "GB3", certdir, sconnstr, sslMode,
           3, true, false, sprefix, expected.get(sslMode + "GB")));
-      suite.addTest(new SslTest(param + "-" + sslMode + "BG2", certdir, sconnstr, sslMode,
-          2, false, true, sprefix, expected.get(sslMode + "BG")));
       suite.addTest(new SslTest(param + "-" + sslMode + "BG3", certdir, sconnstr, sslMode,
           3, false, true, sprefix, expected.get(sslMode + "BG")));
     }
     return suite;
   }
 
+  @Override
   protected void runTest() throws Throwable {
-    driver(makeConnStr(sslmode, goodclient, goodserver, protocol), expected);
+    driver();
   }
 
-  static Map<String, Map<String, Object[]>> expectedmap;
-  static TreeMap<String, Object[]> defaultexpected;
+  private static Map<String, Map<String, Expected>> expectedMap;
+  private static TreeMap<String, Expected> defaultExpected;
 
   // For some strange reason, the v2 driver begins these error messages by "Connection rejected: "
   // but the v3 does not.
-  // Also, for v2 there are two spaces after FATAL:, and the message ends with "\n.".
-  static String PG_HBA_ON =
+  private static String PG_HBA_ON =
       "(Connection rejected: )?FATAL:  ?no pg_hba.conf entry for host .*, user .*, database .*, SSL on(?s-d:.*)";
-  static String PG_HBA_OFF =
+  private static String PG_HBA_OFF =
       "(Connection rejected: )?FATAL:  ?no pg_hba.conf entry for host .*, user .*, database .*, SSL off(?s-d:.*)";
   static String FAILED = "The connection attempt failed.";
-  static String BROKEN =
+  private static String BROKEN =
       "SSL error: (Broken pipe|Received fatal alert: unknown_ca|Connection reset)";
-  static String SSLMODE = "Invalid sslmode value: (allow|prefer)";
-  // static String UNKNOWN = "SSL error: Broken pipe";
-  // static String UNKNOWN = "SSL error: Received fatal alert: unknown_ca";
-  static String ANY = ".*";
-  static String VALIDATOR =
+  private static String SSLMODE = "Invalid sslmode value: (allow|prefer)";
+  private static String ANY = ".*";
+  private static String VALIDATOR =
       "SSL error: sun.security.validator.ValidatorException: PKIX path (building|validation) failed:.*";
-  static String HOSTNAME = "The hostname .* could not be verified.";
+  private static String HOSTNAME = "The hostname .* could not be verified.";
 
   static {
-    defaultexpected = new TreeMap<String, Object[]>();
-    defaultexpected.put("disableGG", new Object[]{null, Boolean.FALSE});
-    defaultexpected.put("disableGB", new Object[]{null, Boolean.FALSE});
-    defaultexpected.put("disableBG", new Object[]{null, Boolean.FALSE});
-    defaultexpected.put("allowGG", new Object[]{SSLMODE, Boolean.TRUE});
-    defaultexpected.put("allowGB", new Object[]{SSLMODE, Boolean.TRUE});
-    defaultexpected.put("allowBG", new Object[]{SSLMODE, Boolean.TRUE});
-    defaultexpected.put("preferGG", new Object[]{SSLMODE, Boolean.TRUE});
-    defaultexpected.put("preferGB", new Object[]{SSLMODE, Boolean.TRUE});
-    defaultexpected.put("preferBG", new Object[]{SSLMODE, Boolean.TRUE});
-    defaultexpected.put("requireGG", new Object[]{null, Boolean.TRUE});
-    defaultexpected.put("requireGB", new Object[]{null, Boolean.TRUE});
-    defaultexpected.put("requireBG", new Object[]{null, Boolean.TRUE});
-    defaultexpected.put("verify-caGG", new Object[]{null, Boolean.TRUE});
-    defaultexpected.put("verify-caGB", new Object[]{ANY, Boolean.TRUE});
-    defaultexpected.put("verify-caBG", new Object[]{null, Boolean.TRUE});
-    defaultexpected.put("verify-fullGG", new Object[]{null, Boolean.TRUE});
-    defaultexpected.put("verify-fullGB", new Object[]{ANY, Boolean.TRUE});
-    defaultexpected.put("verify-fullBG", new Object[]{null, Boolean.TRUE});
+    defaultExpected = new TreeMap<String, Expected>();
+    defaultExpected.put("disableGG", new Expected(null, false));
+    defaultExpected.put("disableGB", new Expected(null, false));
+    defaultExpected.put("disableBG", new Expected(null, false));
+    defaultExpected.put("allowGG", new Expected(SSLMODE, true));
+    defaultExpected.put("allowGB", new Expected(SSLMODE, true));
+    defaultExpected.put("allowBG", new Expected(SSLMODE, true));
+    defaultExpected.put("preferGG", new Expected(SSLMODE, true));
+    defaultExpected.put("preferGB", new Expected(SSLMODE, true));
+    defaultExpected.put("preferBG", new Expected(SSLMODE, true));
+    defaultExpected.put("requireGG", new Expected(null, true));
+    defaultExpected.put("requireGB", new Expected(null, true));
+    defaultExpected.put("requireBG", new Expected(null, true));
+    defaultExpected.put("verify-caGG", new Expected(null, true));
+    defaultExpected.put("verify-caGB", new Expected(ANY, true));
+    defaultExpected.put("verify-caBG", new Expected(null, true));
+    defaultExpected.put("verify-fullGG", new Expected(null, true));
+    defaultExpected.put("verify-fullGB", new Expected(ANY, true));
+    defaultExpected.put("verify-fullBG", new Expected(null, true));
 
-    expectedmap = new TreeMap<String, Map<String, Object[]>>();
-    TreeMap<String, Object[]> work;
+    TreeMap<String, Expected> work = (TreeMap) defaultExpected.clone();
+    work.put("disableGG", new Expected(null, false));
+    work.put("disableGB", new Expected(null, false));
+    work.put("disableBG", new Expected(null, false));
+    work.put("allowGG", new Expected(SSLMODE, false));
+    work.put("allowGB", new Expected(SSLMODE, false));
+    work.put("allowBG", new Expected(SSLMODE, false));
+    work.put("preferGG", new Expected(SSLMODE, false));
+    work.put("preferGB", new Expected(SSLMODE, false));
+    work.put("preferBG", new Expected(SSLMODE, false));
+    work.put("requireGG", new Expected(ANY, true));
+    work.put("requireGB", new Expected(ANY, true));
+    work.put("requireBG", new Expected(ANY, true));
+    work.put("verify-caGG", new Expected(ANY, true));
+    work.put("verify-caGB", new Expected(ANY, true));
+    work.put("verify-caBG", new Expected(ANY, true));
+    work.put("verify-fullGG", new Expected(ANY, true));
+    work.put("verify-fullGB", new Expected(ANY, true));
+    work.put("verify-fullBG", new Expected(ANY, true));
 
-    work = (TreeMap) defaultexpected.clone();
-    work.put("disableGG", new Object[]{null, Boolean.FALSE});
-    work.put("disableGB", new Object[]{null, Boolean.FALSE});
-    work.put("disableBG", new Object[]{null, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferGG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferGB", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("requireGG", new Object[]{ANY, Boolean.TRUE});
-    work.put("requireGB", new Object[]{ANY, Boolean.TRUE});
-    work.put("requireBG", new Object[]{ANY, Boolean.TRUE});
-    work.put("verify-caGG", new Object[]{ANY, Boolean.TRUE});
-    work.put("verify-caGB", new Object[]{ANY, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{ANY, Boolean.TRUE});
-    work.put("verify-fullGG", new Object[]{ANY, Boolean.TRUE});
-    work.put("verify-fullGB", new Object[]{ANY, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{ANY, Boolean.TRUE});
-    expectedmap.put("ssloff8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("ssloff9", work);
-
-    work = (TreeMap) defaultexpected.clone();
-    work.put("disableGG", new Object[]{null, Boolean.FALSE});
-    work.put("disableGB", new Object[]{null, Boolean.FALSE});
-    work.put("disableBG", new Object[]{null, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferGG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferGB", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("requireGG", new Object[]{PG_HBA_ON, Boolean.TRUE});
-    work.put("requireGB", new Object[]{PG_HBA_ON, Boolean.TRUE});
-    work.put("requireBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-caGG", new Object[]{PG_HBA_ON, Boolean.TRUE});
-    work.put("verify-caGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-fullGG", new Object[]{PG_HBA_ON, Boolean.TRUE});
-    work.put("verify-fullGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{BROKEN, Boolean.TRUE});
-    expectedmap.put("sslhostnossl8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("sslhostnossl9", work);
-
-    work = (TreeMap) defaultexpected.clone();
-    work.put("disableGG", new Object[]{null, Boolean.FALSE});
-    work.put("disableGB", new Object[]{null, Boolean.FALSE});
-    work.put("disableBG", new Object[]{null, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("requireGG", new Object[]{null, Boolean.TRUE});
-    work.put("requireGB", new Object[]{null, Boolean.TRUE});
-    work.put("requireBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-caGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-caGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-fullGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-fullGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{BROKEN, Boolean.TRUE});
-    expectedmap.put("sslhostgh8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("sslhostgh9", work);
+    expectedMap = new TreeMap<String, Map<String, Expected>>();
+    expectedMap.put("ssloff8", work);
 
     work = (TreeMap) work.clone();
-    work.put("disableGG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableGB", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableBG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.FALSE});
-    expectedmap.put("sslhostsslgh8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("sslhostsslgh9", work);
+    expectedMap.put("ssloff9", work);
 
-    work = (TreeMap) defaultexpected.clone();
-    work.put("disableGG", new Object[]{null, Boolean.FALSE});
-    work.put("disableGB", new Object[]{null, Boolean.FALSE});
-    work.put("disableBG", new Object[]{null, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("preferGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.FALSE});
-    work.put("requireGG", new Object[]{null, Boolean.TRUE});
-    work.put("requireGB", new Object[]{null, Boolean.TRUE});
-    work.put("requireBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-caGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-caGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-fullGG", new Object[]{HOSTNAME, Boolean.TRUE});
-    work.put("verify-fullGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{BROKEN, Boolean.TRUE});
-    expectedmap.put("sslhostbh8", work);
+    work = (TreeMap) defaultExpected.clone();
+    work.put("disableGG", new Expected(null, false));
+    work.put("disableGB", new Expected(null, false));
+    work.put("disableBG", new Expected(null, false));
+    work.put("allowGG", new Expected(SSLMODE, false));
+    work.put("allowGB", new Expected(SSLMODE, false));
+    work.put("allowBG", new Expected(SSLMODE, false));
+    work.put("preferGG", new Expected(SSLMODE, false));
+    work.put("preferGB", new Expected(SSLMODE, false));
+    work.put("preferBG", new Expected(SSLMODE, false));
+    work.put("requireGG", new Expected(PG_HBA_ON, true));
+    work.put("requireGB", new Expected(PG_HBA_ON, true));
+    work.put("requireBG", new Expected(BROKEN, true));
+    work.put("verify-caGG", new Expected(PG_HBA_ON, true));
+    work.put("verify-caGB", new Expected(VALIDATOR, true));
+    work.put("verify-caBG", new Expected(BROKEN, true));
+    work.put("verify-fullGG", new Expected(PG_HBA_ON, true));
+    work.put("verify-fullGB", new Expected(VALIDATOR, true));
+    work.put("verify-fullBG", new Expected(BROKEN, true));
+    expectedMap.put("sslhostnossl8", work);
     work = (TreeMap) work.clone();
-    expectedmap.put("sslhostbh9", work);
+    expectedMap.put("sslhostnossl9", work);
 
+    work = (TreeMap) defaultExpected.clone();
+    work.put("disableGG", new Expected(null, false));
+    work.put("disableGB", new Expected(null, false));
+    work.put("disableBG", new Expected(null, false));
+    work.put("allowGG", new Expected(SSLMODE, false));
+    work.put("allowGB", new Expected(SSLMODE, false));
+    work.put("allowBG", new Expected(SSLMODE, false));
+    work.put("preferGG", new Expected(SSLMODE, true));
+    work.put("preferGB", new Expected(SSLMODE, true));
+    work.put("preferBG", new Expected(SSLMODE, false));
+    work.put("requireGG", new Expected(null, true));
+    work.put("requireGB", new Expected(null, true));
+    work.put("requireBG", new Expected(BROKEN, true));
+    work.put("verify-caGG", new Expected(null, true));
+    work.put("verify-caGB", new Expected(VALIDATOR, true));
+    work.put("verify-caBG", new Expected(BROKEN, true));
+    work.put("verify-fullGG", new Expected(null, true));
+    work.put("verify-fullGB", new Expected(VALIDATOR, true));
+    work.put("verify-fullBG", new Expected(BROKEN, true));
+    expectedMap.put("sslhostgh8", work);
     work = (TreeMap) work.clone();
-    work.put("disableGG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableGB", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableBG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.FALSE});
-    expectedmap.put("sslhostsslbh8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("sslhostsslbh9", work);
-
-    work = (TreeMap) defaultexpected.clone();
-    work.put("disableGG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableGB", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableBG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("requireGG", new Object[]{null, Boolean.TRUE});
-    work.put("requireGB", new Object[]{null, Boolean.TRUE});
-    work.put("requireBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-caGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-caGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-fullGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-fullGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{BROKEN, Boolean.TRUE});
-    expectedmap.put("sslhostsslcertgh8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("sslhostsslcertgh9", work);
-
-    work = (TreeMap) defaultexpected.clone();
-    work.put("disableGG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableGB", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableBG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("requireGG", new Object[]{null, Boolean.TRUE});
-    work.put("requireGB", new Object[]{null, Boolean.TRUE});
-    work.put("requireBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-caGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-caGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-fullGG", new Object[]{HOSTNAME, Boolean.TRUE});
-    work.put("verify-fullGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{BROKEN, Boolean.TRUE});
-    expectedmap.put("sslhostsslcertbh8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("sslhostsslcertbh9", work);
-
-    work = (TreeMap) defaultexpected.clone();
-    work.put("disableGG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableGB", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("disableBG", new Object[]{PG_HBA_OFF, Boolean.FALSE});
-    work.put("allowGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("allowBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferGB", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("preferBG", new Object[]{SSLMODE, Boolean.TRUE});
-    work.put("requireGG", new Object[]{null, Boolean.TRUE});
-    work.put("requireGB", new Object[]{null, Boolean.TRUE});
-    work.put("requireBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-caGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-caGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{BROKEN, Boolean.TRUE});
-    work.put("verify-fullGG", new Object[]{null, Boolean.TRUE});
-    work.put("verify-fullGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{BROKEN, Boolean.TRUE});
-    expectedmap.put("sslcertgh8", work);
-    work = (TreeMap) work.clone();
-    expectedmap.put("sslcertgh9", work);
+    expectedMap.put("sslhostgh9", work);
 
     work = (TreeMap) work.clone();
-    work.put("verify-fullGG", new Object[]{HOSTNAME, Boolean.TRUE});
-    expectedmap.put("sslcertbh8", work);
+    work.put("disableGG", new Expected(PG_HBA_OFF, false));
+    work.put("disableGB", new Expected(PG_HBA_OFF, false));
+    work.put("disableBG", new Expected(PG_HBA_OFF, false));
+    work.put("allowGG", new Expected(SSLMODE, true));
+    work.put("allowGB", new Expected(SSLMODE, true));
+    work.put("allowBG", new Expected(SSLMODE, true));
+    work.put("preferBG", new Expected(SSLMODE, false));
+    expectedMap.put("sslhostsslgh8", work);
     work = (TreeMap) work.clone();
-    expectedmap.put("sslcertbh9", work);
+    expectedMap.put("sslhostsslgh9", work);
 
+    work = (TreeMap) defaultExpected.clone();
+    work.put("disableGG", new Expected(null, false));
+    work.put("disableGB", new Expected(null, false));
+    work.put("disableBG", new Expected(null, false));
+    work.put("allowGG", new Expected(SSLMODE, false));
+    work.put("allowGB", new Expected(SSLMODE, false));
+    work.put("allowBG", new Expected(SSLMODE, false));
+    work.put("preferGG", new Expected(SSLMODE, true));
+    work.put("preferGB", new Expected(SSLMODE, true));
+    work.put("preferBG", new Expected(SSLMODE, false));
+    work.put("requireGG", new Expected(null, true));
+    work.put("requireGB", new Expected(null, true));
+    work.put("requireBG", new Expected(BROKEN, true));
+    work.put("verify-caGG", new Expected(null, true));
+    work.put("verify-caGB", new Expected(VALIDATOR, true));
+    work.put("verify-caBG", new Expected(BROKEN, true));
+    work.put("verify-fullGG", new Expected(HOSTNAME, true));
+    work.put("verify-fullGB", new Expected(VALIDATOR, true));
+    work.put("verify-fullBG", new Expected(BROKEN, true));
+    expectedMap.put("sslhostbh8", work);
+    work = (TreeMap) work.clone();
+    expectedMap.put("sslhostbh9", work);
+
+    work = (TreeMap) work.clone();
+    work.put("disableGG", new Expected(PG_HBA_OFF, false));
+    work.put("disableGB", new Expected(PG_HBA_OFF, false));
+    work.put("disableBG", new Expected(PG_HBA_OFF, false));
+    work.put("allowGG", new Expected(SSLMODE, true));
+    work.put("allowGB", new Expected(SSLMODE, true));
+    work.put("allowBG", new Expected(SSLMODE, true));
+    work.put("preferBG", new Expected(SSLMODE, false));
+    expectedMap.put("sslhostsslbh8", work);
+    work = (TreeMap) work.clone();
+    expectedMap.put("sslhostsslbh9", work);
+
+    work = (TreeMap) defaultExpected.clone();
+    work.put("disableGG", new Expected(PG_HBA_OFF, false));
+    work.put("disableGB", new Expected(PG_HBA_OFF, false));
+    work.put("disableBG", new Expected(PG_HBA_OFF, false));
+    work.put("allowGG", new Expected(SSLMODE, true));
+    work.put("allowGB", new Expected(SSLMODE, true));
+    work.put("allowBG", new Expected(SSLMODE, true));
+    work.put("preferGG", new Expected(SSLMODE, true));
+    work.put("preferGB", new Expected(SSLMODE, true));
+    work.put("preferBG", new Expected(SSLMODE, true));
+    work.put("requireGG", new Expected(null, true));
+    work.put("requireGB", new Expected(null, true));
+    work.put("requireBG", new Expected(BROKEN, true));
+    work.put("verify-caGG", new Expected(null, true));
+    work.put("verify-caGB", new Expected(VALIDATOR, true));
+    work.put("verify-caBG", new Expected(BROKEN, true));
+    work.put("verify-fullGG", new Expected(null, true));
+    work.put("verify-fullGB", new Expected(VALIDATOR, true));
+    work.put("verify-fullBG", new Expected(BROKEN, true));
+    expectedMap.put("sslhostsslcertgh8", work);
+    work = (TreeMap) work.clone();
+    expectedMap.put("sslhostsslcertgh9", work);
+
+    work = (TreeMap) defaultExpected.clone();
+    work.put("disableGG", new Expected(PG_HBA_OFF, false));
+    work.put("disableGB", new Expected(PG_HBA_OFF, false));
+    work.put("disableBG", new Expected(PG_HBA_OFF, false));
+    work.put("allowGG", new Expected(SSLMODE, true));
+    work.put("allowGB", new Expected(SSLMODE, true));
+    work.put("allowBG", new Expected(SSLMODE, true));
+    work.put("preferGG", new Expected(SSLMODE, true));
+    work.put("preferGB", new Expected(SSLMODE, true));
+    work.put("preferBG", new Expected(SSLMODE, true));
+    work.put("requireGG", new Expected(null, true));
+    work.put("requireGB", new Expected(null, true));
+    work.put("requireBG", new Expected(BROKEN, true));
+    work.put("verify-caGG", new Expected(null, true));
+    work.put("verify-caGB", new Expected(VALIDATOR, true));
+    work.put("verify-caBG", new Expected(BROKEN, true));
+    work.put("verify-fullGG", new Expected(HOSTNAME, true));
+    work.put("verify-fullGB", new Expected(VALIDATOR, true));
+    work.put("verify-fullBG", new Expected(BROKEN, true));
+    expectedMap.put("sslhostsslcertbh8", work);
+    work = (TreeMap) work.clone();
+    expectedMap.put("sslhostsslcertbh9", work);
+
+    work = (TreeMap) defaultExpected.clone();
+    work.put("disableGG", new Expected(PG_HBA_OFF, false));
+    work.put("disableGB", new Expected(PG_HBA_OFF, false));
+    work.put("disableBG", new Expected(PG_HBA_OFF, false));
+    work.put("allowGG", new Expected(SSLMODE, true));
+    work.put("allowGB", new Expected(SSLMODE, true));
+    work.put("allowBG", new Expected(SSLMODE, true));
+    work.put("preferGG", new Expected(SSLMODE, true));
+    work.put("preferGB", new Expected(SSLMODE, true));
+    work.put("preferBG", new Expected(SSLMODE, true));
+    work.put("requireGG", new Expected(null, true));
+    work.put("requireGB", new Expected(null, true));
+    work.put("requireBG", new Expected(BROKEN, true));
+    work.put("verify-caGG", new Expected(null, true));
+    work.put("verify-caGB", new Expected(VALIDATOR, true));
+    work.put("verify-caBG", new Expected(BROKEN, true));
+    work.put("verify-fullGG", new Expected(null, true));
+    work.put("verify-fullGB", new Expected(VALIDATOR, true));
+    work.put("verify-fullBG", new Expected(BROKEN, true));
+    expectedMap.put("sslcertgh8", work);
+    work = (TreeMap) work.clone();
+    expectedMap.put("sslcertgh9", work);
+
+    work = (TreeMap) work.clone();
+    work.put("verify-fullGG", new Expected(HOSTNAME, true));
+    expectedMap.put("sslcertbh8", work);
+    work = (TreeMap) work.clone();
+    expectedMap.put("sslcertbh9", work);
   }
 
+  private static class Expected {
+    private final String exceptionMessageRegex;
+    private final boolean useSsl;
+
+    /**
+     *
+     * @param exceptionMessageRegex the expected message regex of PSQLException or null,
+     *                         if no exception is expected
+     * @param useSsl weather ssl is to be used
+     */
+    Expected(String exceptionMessageRegex, boolean useSsl) {
+      this.exceptionMessageRegex = exceptionMessageRegex;
+      this.useSsl = useSsl;
+    }
+  }
 
 }
