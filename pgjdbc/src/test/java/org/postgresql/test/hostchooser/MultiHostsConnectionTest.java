@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 import static org.postgresql.hostchooser.HostRequirement.any;
 import static org.postgresql.hostchooser.HostRequirement.master;
 import static org.postgresql.hostchooser.HostRequirement.preferSlave;
@@ -26,6 +27,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 
+import org.junit.BeforeClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,8 +46,7 @@ public class MultiHostsConnectionTest {
   private static final String user = TestUtil.getUser();
   private static final String password = TestUtil.getPassword();
   private static final String master1 = TestUtil.getServer() + ":" + TestUtil.getPort();
-  private static final String slave1 =
-      MultiHostTestSuite.getSlaveServer() + ":" + MultiHostTestSuite.getSlavePort();
+  private static final String slave1 = getSlaveServer() + ":" + getSlavePort();
   private static final String fake1 = "127.127.217.217:1";
 
   private String masterIp;
@@ -53,6 +54,11 @@ public class MultiHostsConnectionTest {
 
   private Connection con;
   private Map<HostSpec, Object> hostStatusMap;
+
+  @BeforeClass
+  public static void setUpClass() throws Exception {
+    assumeTrue(isReplicationInstanceAvailable());
+  }
 
   @Before
   public void setUp() throws Exception {
@@ -64,9 +70,38 @@ public class MultiHostsConnectionTest {
     masterIp = getRemoteHostSpec();
     closeDB(con);
 
-    con = MultiHostTestSuite.openSlaveDB();
+    con = openSlaveDB();
     slaveIp = getRemoteHostSpec();
     closeDB(con);
+  }
+
+  private static Connection openSlaveDB() throws Exception {
+    TestUtil.initDriver();
+
+    Properties props = new Properties();
+
+    props.setProperty("user", TestUtil.getUser());
+    props.setProperty("password", TestUtil.getPassword());
+
+    return DriverManager.getConnection(TestUtil.getURL(getSlaveServer(), getSlavePort()), props);
+  }
+
+  private static String getSlaveServer() {
+    return System.getProperty("slaveServer", TestUtil.getServer());
+  }
+
+  private static int getSlavePort() {
+    return parseInt(System.getProperty("slavePort", String.valueOf(TestUtil.getPort() + 1)));
+  }
+
+  private static boolean isReplicationInstanceAvailable() throws Exception {
+    try {
+      Connection connection = openSlaveDB();
+      closeDB(connection);
+      return true;
+    } catch (PSQLException ex) {
+      return false;
+    }
   }
 
   private Connection getConnection(HostRequirement hostType, String... targets)
