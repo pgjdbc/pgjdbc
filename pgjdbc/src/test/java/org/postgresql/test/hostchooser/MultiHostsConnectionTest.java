@@ -27,8 +27,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 
-import org.junit.BeforeClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
