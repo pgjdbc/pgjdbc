@@ -78,5 +78,17 @@ public class GetXXXTest {
     }
 
   }
+  @Test
+  public void testGetBitType() throws SQLException {
+    TestUtil.createTempTable(con, "bit_type", "bit_type bit(2)");
 
+    Statement stmt = con.createStatement();
+    stmt.execute("insert into bit_type values (B'00'), (B'01'), (B'10'), (B'11')  ");
+    ResultSet rs = stmt.executeQuery(" select * from bit_type");
+    while(rs.next()) {
+      Object obj = rs.getObject(1);
+      assertNotNull(obj);
+    }
+
+  }
 }
