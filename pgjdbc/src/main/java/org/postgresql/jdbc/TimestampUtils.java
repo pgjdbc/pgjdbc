@@ -643,6 +643,12 @@ public class TimestampUtils {
     if (needZeros > 0) {
       sb.insert(len, ZEROS, 0, needZeros);
     }
+
+    int end = sb.length() - 1;
+    while (sb.charAt(end) == '0') {
+      sb.deleteCharAt(end);
+      end--;
+    }
   }
 
   private void appendTimeZone(StringBuilder sb, java.util.Calendar cal) {
