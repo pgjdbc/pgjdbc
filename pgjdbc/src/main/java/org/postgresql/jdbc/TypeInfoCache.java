@@ -178,10 +178,18 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getSQLType(int oid) throws SQLException {
+    if (oid == Oid.UNSPECIFIED) {
+      return Types.OTHER;
+    }
+
     return getSQLType(getPGType(oid));
   }
 
   public synchronized int getSQLType(String pgTypeName) throws SQLException {
+    if (pgTypeName == null) {
+      return Types.OTHER;
+    }
+
     if (pgTypeName.endsWith("[]")) {
       return Types.ARRAY;
     }
@@ -357,6 +365,10 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public synchronized int getPGType(String pgTypeName) throws SQLException {
+    if (pgTypeName == null) {
+      return Oid.UNSPECIFIED;
+    }
+
     Integer oid = _pgNameToOid.get(pgTypeName);
     if (oid != null) {
       return oid;
@@ -436,6 +448,10 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getPGArrayType(String elementTypeName) throws SQLException {
+    if (elementTypeName == null) {
+      return Oid.UNSPECIFIED;
+    }
+
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
   }
@@ -526,7 +542,7 @@ public class TypeInfoCache implements TypeInfo {
 
     ResultSet rs = _getArrayElementOidStatement.getResultSet();
     if (!rs.next()) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      return Oid.UNSPECIFIED;
     }
 
     pgType = (int) rs.getLong(1);
@@ -554,6 +570,10 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public synchronized String getJavaClass(int oid) throws SQLException {
+    if (oid == Oid.UNSPECIFIED) {
+      return null;
+    }
+
     String pgTypeName = getPGType(oid);
 
     String result = _pgNameToJavaClass.get(pgTypeName);
@@ -570,6 +590,10 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public String getTypeForAlias(String alias) {
+    if (alias == null) {
+      return null;
+    }
+
     String type = typeAliases.get(alias);
     if (type != null) {
       return type;
