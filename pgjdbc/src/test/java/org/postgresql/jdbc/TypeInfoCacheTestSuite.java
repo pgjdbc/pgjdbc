@@ -11,7 +11,8 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    TypeInfoCacheEdgeCaseTest.class
+    TypeInfoCacheEdgeCaseTest.class,
+    TypeInfoCacheGetTypeForAliasTest.class
 })
 
 public class TypeInfoCacheTestSuite {
