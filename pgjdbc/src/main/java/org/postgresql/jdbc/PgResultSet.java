@@ -1772,12 +1772,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.PROTOCOL_VIOLATION));
     }
 
-    @Override
-    public void handleWarning(SQLWarning warning) {
-      super.handleWarning(warning);
-      PgResultSet.this.warnings = this.getWarning();
+    public void handleCompletion() throws SQLException {
+      SQLWarning warning = getWarning();
+      if (warning != null) {
+        PgResultSet.this.addWarning(warning);
+      }
+      super.handleCompletion();
     }
-
   }
 
 

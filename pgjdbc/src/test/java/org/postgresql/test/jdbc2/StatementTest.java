@@ -32,8 +32,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -423,37 +421,56 @@ public class StatementTest {
 
   @Test
   public void testWarningsAreAvailableAsap()
-      throws SQLException, InterruptedException, ExecutionException {
+      throws Exception {
+    TestUtil.createTable(con, "test_lock", "name text");
+    final Connection outerLockCon = TestUtil.openDB();
+    outerLockCon.setAutoCommit(false);
+    //Acquire an exclusive lock so we can block the notice generating statement
+    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
     con.createStatement()
             .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
                 + "$BODY$ "
                 + "BEGIN "
                 + "RAISE NOTICE 'Test 1'; "
                 + "RAISE NOTICE 'Test 2'; "
-                + "EXECUTE pg_sleep(2); "
+                + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE; "
                 + "END "
                 + "$BODY$ "
                 + "LANGUAGE plpgsql;");
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    //If we never receive the two warnings the statement will just hang, so set a low timeout
+    con.createStatement().execute("SET SESSION statement_timeout = 1000");
     final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
-    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-    ScheduledFuture<SQLWarning> future = executorService.schedule(new Callable<SQLWarning>() {
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    Future<Void> future = executorService.submit(new Callable<Void>() {
       @Override
-      public SQLWarning call() throws SQLException {
-        return preparedStatement.getWarnings();
+      public Void call() throws SQLException {
+        while (true) {
+          SQLWarning warning = preparedStatement.getWarnings();
+          if (warning != null) {
+            assertEquals("First warning received not first notice raised",
+                "Test 1", warning.getMessage());
+            SQLWarning next = warning.getNextWarning();
+            if (next != null) {
+              assertEquals("Second warning received not second notice raised",
+                  "Test 2", warning.getNextWarning().getMessage());
+              //Release the lock so that the notice generating statement can end.
+              outerLockCon.commit();
+              return null;
+            }
+          }
+        }
       }
-    }, 1000, TimeUnit.MILLISECONDS);
+    });
+    //Statement should only finish executing once we have
+    //received the two notices and released the outer lock.
     preparedStatement.execute();
 
-    SQLWarning warning = future.get();
+    //If test takes longer than 2 seconds its a failure.
+    future.get(2, TimeUnit.SECONDS);
     executorService.shutdown();
-
-    assertNotNull(warning);
-    assertEquals("First warning received not first notice raised",
-        warning.getMessage(), "Test 1");
-    assertEquals("Second warning received not second notice raised",
-        warning.getNextWarning().getMessage(), "Test 2");
   }
+
 
   /**
    * Demonstrates a safe approach to concurrently reading the latest
@@ -497,6 +514,8 @@ public class StatementTest {
           if (warn != null) {
             warnings++;
             //System.out.println("Processing " + warn.getMessage());
+            assertEquals("Received warning out of expected order",
+                "Warning " + warnings, warn.getMessage());
             lastProcessed = warn;
             if (warn == statement.getWarnings()) {
               //System.out.println("Clearing warnings");
@@ -509,8 +528,8 @@ public class StatementTest {
             Thread.sleep(10);
           }
         }
-        //Ensure that we didn't double process the same warning.
-        assertEquals(lastProcessed.getMessage(), "Warning " + iterations);
+        assertEquals("Didn't receive expected last warning",
+            "Warning " + iterations, lastProcessed.getMessage());
         return null;
       }
     });

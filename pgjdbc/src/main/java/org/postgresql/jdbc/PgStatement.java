@@ -17,7 +17,6 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.util.GT;
-import org.postgresql.util.PGSQLWarningWrapper;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -99,7 +98,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The warnings chain.
    */
-  protected volatile PGSQLWarningWrapper warnings = null;
+  protected volatile PSQLWarningWrapper warnings = null;
 
   /**
    * Maximum number of rows to return, 0 = unlimited
@@ -540,9 +539,9 @@ public class PgStatement implements Statement, BaseStatement {
    */
   public void addWarning(SQLWarning warn) {
     //copy reference to avoid NPE from concurrent modification of this.warnings
-    final PGSQLWarningWrapper warnWrap = this.warnings;
+    final PSQLWarningWrapper warnWrap = this.warnings;
     if (warnWrap == null) {
-      this.warnings = new PGSQLWarningWrapper(warn);
+      this.warnings = new PSQLWarningWrapper(warn);
     } else {
       warnWrap.addWarning(warn);
     }
@@ -551,7 +550,7 @@ public class PgStatement implements Statement, BaseStatement {
   public SQLWarning getWarnings() throws SQLException {
     checkClosed();
     //copy reference to avoid NPE from concurrent modification of this.warnings
-    final PGSQLWarningWrapper warnWrap = this.warnings;
+    final PSQLWarningWrapper warnWrap = this.warnings;
     return warnWrap != null ? warnWrap.getFirstWarning() : null;
   }
 

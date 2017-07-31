@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.util;
+package org.postgresql.jdbc;
 
 import java.sql.SQLWarning;
 
@@ -13,22 +13,22 @@ import java.sql.SQLWarning;
  * of calling #setNextWarning on the head. By encapsulating this into a single object it allows
  * users(ie PgStatement) to atomically set and clear the warning chain.
  */
-public class PGSQLWarningWrapper {
+class PSQLWarningWrapper {
 
   private final SQLWarning firstWarning;
   private SQLWarning lastWarning;
 
-  public PGSQLWarningWrapper(SQLWarning warning) {
+  PSQLWarningWrapper(SQLWarning warning) {
     firstWarning = warning;
     lastWarning = warning;
   }
 
-  public void addWarning(SQLWarning sqlWarning) {
+  void addWarning(SQLWarning sqlWarning) {
     lastWarning.setNextWarning(sqlWarning);
     lastWarning = sqlWarning;
   }
 
-  public SQLWarning getFirstWarning() {
+  SQLWarning getFirstWarning() {
     return firstWarning;
   }
 
