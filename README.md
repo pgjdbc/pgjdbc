@@ -24,36 +24,36 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.1.3-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.1.4-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.3</version>
+    <version>42.1.4</version>
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-42.1.3.jre7-blue.svg)][mvn-jre7]
+[![Java 7](https://img.shields.io/badge/Java_7-42.1.4.jre7-blue.svg)][mvn-jre7]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.3.jre7</version>
+    <version>42.1.4.jre7</version>
 </dependency>
 ```
 
-[![Java 6](https://img.shields.io/badge/Java_6-42.1.3.jre6-blue.svg)][mvn-jre6]
+[![Java 6](https://img.shields.io/badge/Java_6-42.1.4.jre6-blue.svg)][mvn-jre6]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.3.jre6</version>
+    <version>42.1.4.jre6</version>
 </dependency>
 ```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.3.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.3.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.3|bundle
+[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.4.jre6|bundle
+[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.4.jre7|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.4|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -61,9 +61,9 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.2.0-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.2.0.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.2.0.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.1.5-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.1.5.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.1.5.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
@@ -74,7 +74,7 @@ There are also available (snapshot) binary RPMs in [Fedora's Copr repository](ht
 ## Changelog
 Notable changes for:
 
-**NEXT**:
+**[42.1.4]** (2017-08-01):
 * Statements with non-zero fetchSize no longer require server-side named handle. This might cause issues when using old PostgreSQL versions (pre-8.4)+fetchSize+interleaved ResultSet processing combo. see [issue 869](https://github.com/pgjdbc/pgjdbc/issues/869)
 
 **[42.1.3]** (2017-07-14):
@@ -124,6 +124,7 @@ Notable changes for:
 * Performance optimization for timestamps (~`TimeZone.getDefault` optimization)
 * Allow build-from-source on GNU/Linux without maven repositories, and add Fedora Copr test to the regression suite
 
+[42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
 [42.1.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.2...REL42.1.3
 [42.1.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.1...REL42.1.2
 [42.1.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.0...REL42.1.1
