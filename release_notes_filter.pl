@@ -27,6 +27,7 @@ my %author_url = (
   'Marc Petzold' => 'https://github.com/dosimeta',
   'Marios Trivyzas' => 'https://github.com/matriv',
   'Mathias Fußenegger' => 'https://github.com/mfussenegger',
+  'Michael Glaesemann' => 'https://github.com/grzm',
   'Minglei Tu' => 'https://github.com/tminglei',
   'Pavel Raiskup' => 'https://github.com/praiskup',
   'Petro Semeniuk' => 'https://github.com/PetroSemeniuk',
