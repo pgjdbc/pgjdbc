@@ -546,15 +546,15 @@ public class TypeInfoCache implements TypeInfo {
     return delim;
   }
 
-  public synchronized int getPGArrayElement(int oid) throws SQLException {
-    if (oid == Oid.UNSPECIFIED) {
+  public synchronized int getPGArrayElement(int arrayOid) throws SQLException {
+    if (arrayOid == Oid.UNSPECIFIED) {
       return Oid.UNSPECIFIED;
     }
 
-    Integer pgType = _pgArrayToPgType.get(oid);
+    Integer oid = _pgArrayToPgType.get(arrayOid);
 
-    if (pgType != null) {
-      return pgType;
+    if (oid != null) {
+      return oid;
     }
 
     if (_getArrayElementOidStatement == null) {
@@ -565,7 +565,7 @@ public class TypeInfoCache implements TypeInfo {
       _getArrayElementOidStatement = _conn.prepareStatement(sql);
     }
 
-    _getArrayElementOidStatement.setInt(1, oid);
+    _getArrayElementOidStatement.setInt(1, arrayOid);
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) _getArrayElementOidStatement)
@@ -578,24 +578,24 @@ public class TypeInfoCache implements TypeInfo {
       return Oid.UNSPECIFIED;
     }
 
-    pgType = (int) rs.getLong(1);
+    oid = (int) rs.getLong(1);
     boolean onPath = rs.getBoolean(2);
     String schema = rs.getString(3);
     String name = rs.getString(4);
-    _pgArrayToPgType.put(oid, pgType);
-    _pgNameToOid.put(schema + "." + name, pgType);
+    _pgArrayToPgType.put(arrayOid, oid);
+    _pgNameToOid.put(schema + "." + name, oid);
     String fullName = "\"" + schema + "\".\"" + name + "\"";
-    _pgNameToOid.put(fullName, pgType);
+    _pgNameToOid.put(fullName, oid);
     if (onPath && name.equals(name.toLowerCase())) {
-      _oidToPgName.put(pgType, name);
-      _pgNameToOid.put(name, pgType);
+      _oidToPgName.put(oid, name);
+      _pgNameToOid.put(name, oid);
     } else {
-      _oidToPgName.put(pgType, fullName);
+      _oidToPgName.put(oid, fullName);
     }
 
     rs.close();
 
-    return pgType;
+    return oid;
   }
 
   public synchronized Class<? extends PGobject> getPGobject(String type) {
