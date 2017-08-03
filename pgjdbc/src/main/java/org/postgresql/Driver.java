@@ -640,20 +640,18 @@ public class Driver implements java.sql.Driver {
    * @return the timeout from the URL, in milliseconds
    */
   private static long timeout(Properties props) {
-    int result = 0;
-    String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
-    if (timeout != null) {
+    long result = 0L;
+    if (PGProperty.LOGIN_TIMEOUT.isPresent(props)) {
+      String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
       try {
-        result = Integer.parseInt(timeout);
+        result = (long) (Float.parseFloat(timeout) * 1000);
       } catch (NumberFormatException e) {
         LOGGER.log(Level.WARNING, "Couldn't parse loginTimeout value: {0}", timeout);
       }
+    } else {
+      result = (long) DriverManager.getLoginTimeout() * 1000;
     }
-    if (result == 0) {
-      result = DriverManager.getLoginTimeout();
-    }
-
-    return result * 1000L;
+    return result;
   }
 
   /**
