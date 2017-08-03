@@ -408,6 +408,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     oid = Oid.UNSPECIFIED;
+    String cachedName = pgTypeName;
     ResultSet rs = oidStatement.getResultSet();
     if (rs.next()) {
       oid = (int) rs.getLong(1);
@@ -415,14 +416,14 @@ public class TypeInfoCache implements TypeInfo {
       String schema = rs.getString(3);
       String name = rs.getString(4);
       if (onPath) {
-        pgTypeName = onPathName(name);
+        cachedName = onPathName(name);
         _pgNameToOid.put(schema + "." + name, oid);
       } else {
-        pgTypeName = qualifiedName(schema, name);
+        cachedName = qualifiedName(schema, name);
       }
     }
-    _pgNameToOid.put(pgTypeName, oid);
-    _oidToPgName.put(oid, pgTypeName);
+    _pgNameToOid.put(cachedName, oid);
+    _oidToPgName.put(oid, cachedName);
     rs.close();
 
     return oid;
@@ -485,8 +486,8 @@ public class TypeInfoCache implements TypeInfo {
       return Oid.UNSPECIFIED;
     }
 
-    elementTypeName = getTypeForAlias(elementTypeName);
-    return getPGType(elementTypeName + "[]");
+    String canonicalTypeName = getTypeForAlias(elementTypeName);
+    return getPGType(canonicalTypeName + "[]");
   }
 
   /**
