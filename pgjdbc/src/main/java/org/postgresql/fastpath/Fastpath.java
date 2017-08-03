@@ -83,14 +83,14 @@ public class Fastpath {
   }
 
   /**
-   * Send a function call to the PostgreSQL backend
+   * Sends a function call to the PostgreSQL backend
    *
    * @param fnId Function id
    * @param args FastpathArguments to pass to fastpath
    * @return null if no data, byte[] otherwise
    * @throws SQLException if a database-access error occurs.
    */
-  public byte[] fastpath(int fnId, FastpathArg[] args) throws SQLException {
+  public byte[] fastpath(int fnId, FastpathArg... args) throws SQLException {
     // Turn fastpath array into a parameter list.
     ParameterList params = executor.createFastpathParameters(args.length);
     for (int i = 0; i < args.length; ++i) {
@@ -121,7 +121,7 @@ public class Fastpath {
   }
 
   /**
-   * Send a function call to the PostgreSQL backend by name.
+   * Sends a function call to the PostgreSQL backend by name.
    *
    * Note: the mapping for the procedure name to function id needs to exist, usually to an earlier
    * call to addfunction().
@@ -137,7 +137,7 @@ public class Fastpath {
    * @throws SQLException if name is unknown or if a database-access error occurs.
    * @see org.postgresql.largeobject.LargeObject
    */
-  public byte[] fastpath(String name, FastpathArg[] args) throws SQLException {
+  public byte[] fastpath(String name, FastpathArg... args) throws SQLException {
     connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), args);
   }
@@ -150,7 +150,7 @@ public class Fastpath {
    * @return integer result
    * @throws SQLException if a database-access error occurs or no result
    */
-  public int getInteger(String name, FastpathArg[] args) throws SQLException {
+  public int getInteger(String name, FastpathArg... args) throws SQLException {
     byte[] returnValue = fastpath(name, args);
     if (returnValue == null) {
       throw new PSQLException(
@@ -175,7 +175,7 @@ public class Fastpath {
    * @return long result
    * @throws SQLException if a database-access error occurs or no result
    */
-  public long getLong(String name, FastpathArg[] args) throws SQLException {
+  public long getLong(String name, FastpathArg... args) throws SQLException {
     byte[] returnValue = fastpath(name, args);
     if (returnValue == null) {
       throw new PSQLException(
@@ -201,7 +201,7 @@ public class Fastpath {
    * @return oid of the given call
    * @throws SQLException if a database-access error occurs or no result
    */
-  public long getOID(String name, FastpathArg[] args) throws SQLException {
+  public long getOID(String name, FastpathArg... args) throws SQLException {
     long oid = getInteger(name, args);
     if (oid < 0) {
       oid += NUM_OIDS;
@@ -217,12 +217,12 @@ public class Fastpath {
    * @return byte[] array containing result
    * @throws SQLException if a database-access error occurs or no result
    */
-  public byte[] getData(String name, FastpathArg[] args) throws SQLException {
+  public byte[] getData(String name, FastpathArg... args) throws SQLException {
     return fastpath(name, args);
   }
 
   /**
-   * This adds a function to our lookup table.
+   * Adds a function to our lookup table.
    *
    * <p>
    * User code should use the addFunctions method, which is based upon a query, rather than hard
@@ -278,7 +278,7 @@ public class Fastpath {
   }
 
   /**
-   * This returns the function id associated by its name.
+   * Returns the function id associated by its name.
    *
    * <p>
    * If addFunction() or addFunctions() have not been called for this name, then an SQLException is

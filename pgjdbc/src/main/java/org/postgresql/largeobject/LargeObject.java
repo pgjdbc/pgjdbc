@@ -137,6 +137,7 @@ public class LargeObject {
    * @return the OID of this LargeObject
    * @deprecated As of 8.3, replaced by {@link #getLongOID()}
    */
+  @Deprecated
   public int getOID() {
     return (int) oid;
   }
@@ -168,9 +169,7 @@ public class LargeObject {
       }
 
       // finally close
-      FastpathArg[] args = new FastpathArg[1];
-      args[0] = new FastpathArg(fd);
-      fp.fastpath("lo_close", args); // true here as we dont care!!
+      fp.fastpath("lo_close", new FastpathArg(fd)); // true here as we dont care!!
       closed = true;
       if (this.commitOnClose) {
         this.conn.commit();
@@ -293,9 +292,7 @@ public class LargeObject {
    * @throws SQLException if a database-access error occurs.
    */
   public int tell() throws SQLException {
-    FastpathArg[] args = new FastpathArg[1];
-    args[0] = new FastpathArg(fd);
-    return fp.getInteger("lo_tell", args);
+    return fp.getInteger("lo_tell", new FastpathArg(fd));
   }
 
   /**
@@ -303,9 +300,7 @@ public class LargeObject {
    * @throws SQLException if a database-access error occurs.
    */
   public long tell64() throws SQLException {
-    FastpathArg[] args = new FastpathArg[1];
-    args[0] = new FastpathArg(fd);
-    return fp.getLong("lo_tell64", args);
+    return fp.getLong("lo_tell64", new FastpathArg(fd));
   }
 
   /**

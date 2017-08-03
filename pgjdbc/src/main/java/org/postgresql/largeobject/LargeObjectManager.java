@@ -266,7 +266,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This creates a large object, returning its OID.
+   * Creates a large object, returning its OID.
    *
    * <p>
    * It defaults to READWRITE for the new object's attributes.
@@ -281,7 +281,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This creates a large object, returning its OID.
+   * Creates a large object, returning its OID.
    *
    * <p>
    * It defaults to READWRITE for the new object's attributes.
@@ -294,7 +294,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This creates a large object, returning its OID
+   * Creates a large object, returning its OID
    *
    * @param mode a bitmask describing different attributes of the new object
    * @return oid of new object
@@ -305,13 +305,11 @@ public class LargeObjectManager {
       throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
     }
-    FastpathArg[] args = new FastpathArg[1];
-    args[0] = new FastpathArg(mode);
-    return fp.getOID("lo_creat", args);
+    return fp.getOID("lo_creat", new FastpathArg(mode));
   }
 
   /**
-   * This creates a large object, returning its OID
+   * Creates a large object, returning its OID
    *
    * @param mode a bitmask describing different attributes of the new object
    * @return oid of new object
@@ -325,19 +323,17 @@ public class LargeObjectManager {
   }
 
   /**
-   * This deletes a large object.
+   * Deletes a large object.
    *
    * @param oid describing object to delete
    * @throws SQLException on error
    */
   public void delete(long oid) throws SQLException {
-    FastpathArg[] args = new FastpathArg[1];
-    args[0] = Fastpath.createOIDArg(oid);
-    fp.fastpath("lo_unlink", args);
+    fp.fastpath("lo_unlink", Fastpath.createOIDArg(oid));
   }
 
   /**
-   * This deletes a large object.
+   * Deletes a large object.
    *
    * <p>
    * It is identical to the delete method, and is supplied as the C API uses unlink.
@@ -352,7 +348,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This deletes a large object.
+   * Deletes a large object.
    *
    * <p>
    * It is identical to the delete method, and is supplied as the C API uses unlink.
@@ -365,7 +361,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This deletes a large object.
+   * Deletes a large object.
    *
    * @param oid describing object to delete
    * @throws SQLException on error
