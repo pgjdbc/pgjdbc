@@ -103,6 +103,9 @@ public class Driver implements java.sql.Driver {
   private Properties loadDefaultProperties() throws IOException {
     Properties merged = new Properties();
 
+    // resolve DNS by default if not using socks proxy
+    PGProperty.RESOLVE_DNS.set(merged, System.getProperty("socksProxyHost") == null);
+
     try {
       PGProperty.USER.set(merged, System.getProperty("user.name"));
     } catch (java.lang.SecurityException se) {
@@ -228,6 +231,7 @@ public class Driver implements java.sql.Driver {
         props.setProperty(propName, propValue);
       }
     }
+
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
       LOGGER.log(Level.SEVERE, "Error in url: {0}", url);

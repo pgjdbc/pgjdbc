@@ -126,6 +126,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
+    boolean resolveDNS = PGProperty.RESOLVE_DNS.getBoolean(info);
+
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     HostChooser hostChooser =
@@ -141,11 +143,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       PGStream newStream = null;
       try {
-        newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
+        newStream = new PGStream(socketFactory, hostSpec, resolveDNS, connectTimeout);
 
         // Construct and send an ssl startup packet if requested.
         if (trySSL) {
-          newStream = enableSSL(newStream, requireSSL, info, connectTimeout);
+          newStream = enableSSL(newStream, requireSSL, info, resolveDNS, connectTimeout);
         }
 
         // Set the socket timeout if the "socketTimeout" property has been set.
@@ -315,7 +317,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
-  private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, int connectTimeout)
+  private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, boolean resolveDNS, int connectTimeout)
       throws IOException, SQLException {
     LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
@@ -339,7 +341,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // We have to reconnect to continue.
         pgStream.close();
-        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), resolveDNS, connectTimeout);
 
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE SSLRefused");

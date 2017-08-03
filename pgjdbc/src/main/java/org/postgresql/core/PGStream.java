@@ -50,10 +50,11 @@ public class PGStream {
    *
    * @param socketFactory socket factory to use when creating sockets
    * @param hostSpec the host and port to connect to
+   * @param resolveDns if true, the host address will be resolved. Set to false for use with a socks proxy
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
-  public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
+  public PGStream(SocketFactory socketFactory, HostSpec hostSpec, boolean resolveDns, int timeout) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
 
@@ -62,9 +63,10 @@ public class PGStream {
       // When using a SOCKS proxy, the host might not be resolvable locally,
       // thus we defer resolution until the traffic reaches the proxy. If there
       // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = System.getProperty("socksProxyHost") == null
+      InetSocketAddress address = resolveDns
           ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
           : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+
       socket.connect(address, timeout);
     }
     changeSocket(socket);
@@ -79,11 +81,12 @@ public class PGStream {
    *
    * @param socketFactory socket factory
    * @param hostSpec the host and port to connect to
+   * @param resolve if true, the host address will be resolved. Set to false for use with a socks proxy
    * @throws IOException if an IOException occurs below it.
    * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int)}
    */
-  public PGStream(SocketFactory socketFactory, HostSpec hostSpec) throws IOException {
-    this(socketFactory, hostSpec, 0);
+  public PGStream(SocketFactory socketFactory, HostSpec hostSpec, boolean resolveDns) throws IOException {
+    this(socketFactory, hostSpec, resolveDns, 0);
   }
 
   public HostSpec getHostSpec() {
