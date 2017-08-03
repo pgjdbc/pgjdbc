@@ -362,17 +362,12 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     if (_getTypeInfoStatement == null) {
-      // There's no great way of telling what's an array type.
-      // People can name their own types starting with _.
-      // Other types use typelem that aren't actually arrays, like box.
-      //
-      String sql;
       // in case of multiple records (in different schemas) choose the one from the current
       // schema,
       // otherwise take the last version of a type that is at least more deterministic then before
       // (keeping old behaviour of finding types, that should not be found without correct search
       // path)
-      sql = "SELECT typinput='array_in'::regproc, typtype "
+      String sql = "SELECT typinput='array_in'::regproc, typtype "
           + "  FROM pg_catalog.pg_type "
           + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
           + "  LEFT "
