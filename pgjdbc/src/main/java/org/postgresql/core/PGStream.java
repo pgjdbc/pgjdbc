@@ -11,6 +11,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.EOFException;
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -30,7 +31,7 @@ import javax.net.SocketFactory;
  * In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
  * at a time is accessing a particular PGStream instance.
  */
-public class PGStream {
+public class PGStream implements Closeable {
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
 
@@ -82,6 +83,7 @@ public class PGStream {
    * @throws IOException if an IOException occurs below it.
    * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int)}
    */
+  @Deprecated
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec) throws IOException {
     this(socketFactory, hostSpec, 0);
   }
@@ -417,57 +419,6 @@ public class PGStream {
   }
 
   /**
-   * Read a tuple from the back end. A tuple is a two dimensional array of bytes. This variant reads
-   * the V2 protocol's tuple representation.
-   *
-   * @param nf the number of fields expected
-   * @param bin true if the tuple is a binary tuple
-   * @return null if the current response has no more tuples, otherwise an array of bytearrays
-   * @throws IOException if a data I/O error occurs
-   */
-  public byte[][] receiveTupleV2(int nf, boolean bin) throws IOException, OutOfMemoryError {
-    int i;
-    int bim = (nf + 7) / 8;
-    byte[] bitmask = receive(bim);
-    byte[][] answer = new byte[nf][];
-
-    int whichbit = 0x80;
-    int whichbyte = 0;
-
-    OutOfMemoryError oom = null;
-    for (i = 0; i < nf; ++i) {
-      boolean isNull = ((bitmask[whichbyte] & whichbit) == 0);
-      whichbit >>= 1;
-      if (whichbit == 0) {
-        ++whichbyte;
-        whichbit = 0x80;
-      }
-      if (!isNull) {
-        int len = receiveInteger4();
-        if (!bin) {
-          len -= 4;
-        }
-        if (len < 0) {
-          len = 0;
-        }
-        try {
-          answer[i] = new byte[len];
-          receive(answer[i], 0, len);
-        } catch (OutOfMemoryError oome) {
-          oom = oome;
-          skip(len);
-        }
-      }
-    }
-
-    if (oom != null) {
-      throw oom;
-    }
-
-    return answer;
-  }
-
-  /**
    * Reads in a given number of bytes from the backend
    *
    * @param siz number of bytes to read
@@ -579,6 +530,7 @@ public class PGStream {
    *
    * @throws IOException if an I/O Error occurs
    */
+  @Override
   public void close() throws IOException {
     if (encodingWriter != null) {
       encodingWriter.close();
