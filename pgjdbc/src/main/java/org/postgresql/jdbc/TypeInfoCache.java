@@ -151,7 +151,7 @@ public class TypeInfoCache implements TypeInfo {
     // the box datatype and it's not a JDBC core type.
     //
     Character delim = ',';
-    _arrayOidToDelimiter.put(oid, delim);
+    _arrayOidToDelimiter.put(arrayOid, delim);
 
     String pgArrayTypeName = pgTypeName + ARRAY_SUFFIX;
     _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
