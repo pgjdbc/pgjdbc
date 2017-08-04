@@ -59,7 +59,7 @@ public class Fastpath {
    * @return null if no data, Integer if an integer result, Long if a long result, or byte[]
    *         otherwise
    * @throws SQLException if a database-access error occurs.
-   * @deprecated please use {@link #fastpath(int, FastpathArg[])}
+   * @deprecated please use {@link #fastpath(String, FastpathArg[])}
    */
   @Deprecated
   public Object fastpath(int fnId, boolean resultType, FastpathArg[] args) throws SQLException {
@@ -89,7 +89,9 @@ public class Fastpath {
    * @param args FastpathArguments to pass to fastpath
    * @return null if no data, byte[] otherwise
    * @throws SQLException if a database-access error occurs.
+   * @deprecated please use {@link #fastpath(String, FastpathArg[])}
    */
+  @Deprecated
   public byte[] fastpath(int fnId, FastpathArg... args) throws SQLException {
     // Turn fastpath array into a parameter list.
     ParameterList params = executor.createFastpathParameters(args.length);
@@ -108,7 +110,6 @@ public class Fastpath {
    * @return null if no data, Integer if an integer result, Long if a long result, or byte[]
    *         otherwise
    * @throws SQLException if something goes wrong
-   * @see #fastpath(int, FastpathArg[])
    * @see #fastpath(String, FastpathArg[])
    * @deprecated Use {@link #getData(String, FastpathArg[])} if you expect a binary result, or one
    *             of {@link #getInteger(String, FastpathArg[])} or
@@ -139,7 +140,14 @@ public class Fastpath {
    */
   public byte[] fastpath(String name, FastpathArg... args) throws SQLException {
     connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
-    return fastpath(getID(name), args);
+    // Turn fastpath array into a parameter list.
+    ParameterList params = executor.createFastpathParameters(args.length);
+    for (int i = 0; i < args.length; ++i) {
+      args[i].populateParameter(params, i + 1);
+    }
+
+    // Run it.
+    return executor.fastpathCall(getID(name), params, connection.getAutoCommit());
   }
 
   /**
