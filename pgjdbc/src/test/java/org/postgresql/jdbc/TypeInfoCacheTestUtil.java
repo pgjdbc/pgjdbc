@@ -283,6 +283,10 @@ class TypeInfoCacheTestUtil {
       return typeToOid.get(type);
     }
 
+    int userDefinedTypeSqlType(Connection conn) throws SQLException {
+      return (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3)) ? Types.VARCHAR : Types.STRUCT;
+    }
+
     void uninstall(Connection conn) throws SQLException {
       for (String quotedName : quotedTypeNames) {
         TestUtil.dropType(conn, quotedName);

@@ -20,6 +20,7 @@ import org.junit.runners.Suite.SuiteClasses;
     TypeInfoCacheGetPGTypeByNameTest.class,
     TypeInfoCacheGetPGTypeByOidCachedNameTest.class,
     TypeInfoCacheGetPGTypeByOidTest.class,
+    TypeInfoCacheGetPGTypeNamesWithSQLTypesTest.class,
     TypeInfoCacheGetPGTypeSearchPathTest.class,
     TypeInfoCacheGetPGTypeUnparseableNameTest.class,
     TypeInfoCacheGetSQLTypeSearchPathTest.class,
