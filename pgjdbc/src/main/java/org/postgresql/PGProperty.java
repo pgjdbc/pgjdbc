@@ -530,7 +530,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the flat value for this connection parameter in the given {@code Properties}
+   * Return the float value for this connection parameter in the given {@code Properties}
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to float
