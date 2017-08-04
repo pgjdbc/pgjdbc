@@ -850,18 +850,18 @@ public class TypeInfoCache implements TypeInfo {
 
     String pgTypeName = getPGType(oid);
 
-    String result = _pgNameToJavaClass.get(pgTypeName);
-    if (result != null) {
-      return result;
+    javaClass = _pgNameToJavaClass.get(pgTypeName);
+    if (javaClass != null) {
+      return javaClass;
     }
 
     if (getSQLType(pgTypeName) == Types.ARRAY) {
-      result = "java.sql.Array";
-      _pgNameToJavaClass.put(pgTypeName, result);
-      _oidToJavaClass.put(oid, result);
+      javaClass = "java.sql.Array";
+      _pgNameToJavaClass.put(pgTypeName, javaClass);
+      _oidToJavaClass.put(oid, javaClass);
     }
 
-    return result;
+    return javaClass;
   }
 
   public String getTypeForAlias(String alias) {
