@@ -54,7 +54,6 @@ public class TypeInfoCache implements TypeInfo {
   private PreparedStatement _getOidStatementComplexNonArray;
   private PreparedStatement _getOidStatementComplexArray;
   private PreparedStatement _getNameStatement;
-  private PreparedStatement _getArrayDelimiterStatement;
 
   // basic pg types info:
   // 0 - type name
@@ -310,6 +309,7 @@ public class TypeInfoCache implements TypeInfo {
     int arrayOid = pgType.arrayOid();
 
     _pgArrayToPgType.put(arrayOid, elementOid);
+    _arrayOidToDelimiter.put(arrayOid, pgType.delimiter());
 
     String cachedName = pgType.qualifiedName();
     _pgNameToOid.put(cachedName, oid);
@@ -774,36 +774,17 @@ public class TypeInfoCache implements TypeInfo {
       return delim;
     }
 
-    if (_getArrayDelimiterStatement == null) {
-      String sql;
-      sql = "SELECT e.typdelim"
-          + " FROM pg_catalog.pg_type t"
-          + " JOIN pg_catalog.pg_type e ON (t.typelem, t.typinput) = (e.oid, 'array_in'::regproc)"
-          + " WHERE t.oid = ?";
-      _getArrayDelimiterStatement = _conn.prepareStatement(sql);
-    }
+    PgType pgType = fetchPgType(oid);
 
-    _getArrayDelimiterStatement.setInt(1, oid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) _getArrayDelimiterStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (pgType == null) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    ResultSet rs = _getArrayDelimiterStatement.getResultSet();
-    if (!rs.next()) {
+    if (pgType.isElement()) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    String s = rs.getString(1);
-    delim = s.charAt(0);
-
-    _arrayOidToDelimiter.put(oid, delim);
-
-    rs.close();
-
-    return delim;
+    return pgType.delimiter();
   }
 
   public synchronized int getPGArrayElement(int arrayOid) throws SQLException {
