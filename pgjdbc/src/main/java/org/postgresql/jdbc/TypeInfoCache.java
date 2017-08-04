@@ -113,6 +113,8 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private static final String ARRAY_SUFFIX = "[]";
+  private static final String JAVA_SQL_ARRAY = "java.sql.Array";
+  private static final char DEFAULT_DELIMITER = ',';
 
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     _conn = conn;
@@ -157,24 +159,22 @@ public class TypeInfoCache implements TypeInfo {
     // to a comma. In a stock install the only exception is
     // the box datatype and it's not a JDBC core type.
     //
-    Character delim = ',';
-    _arrayOidToDelimiter.put(arrayOid, delim);
+    _arrayOidToDelimiter.put(arrayOid, DEFAULT_DELIMITER);
 
     String pgArrayTypeName = pgTypeName + ARRAY_SUFFIX;
-    _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
-    _oidToJavaClass.put(arrayOid, "java.sql.Array");
+    _pgNameToJavaClass.put(pgArrayTypeName, JAVA_SQL_ARRAY);
+    _oidToJavaClass.put(arrayOid, JAVA_SQL_ARRAY);
     _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
     _oidToSQLType.put(arrayOid, Types.ARRAY);
     _pgNameToOid.put(pgArrayTypeName, arrayOid);
     pgArrayTypeName = "_" + pgTypeName;
     if (!_pgNameToJavaClass.containsKey(pgArrayTypeName)) {
-      _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
+      _pgNameToJavaClass.put(pgArrayTypeName, JAVA_SQL_ARRAY);
       _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
       _pgNameToOid.put(pgArrayTypeName, arrayOid);
       _oidToPgName.put(arrayOid, pgArrayTypeName);
     }
   }
-
 
   public synchronized void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
@@ -339,11 +339,11 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     if (pgType.isElement) {
-      _oidToJavaClass.put(arrayOid, "java.sql.Array");
+      _oidToJavaClass.put(arrayOid, JAVA_SQL_ARRAY);
     } else {
-      _oidToJavaClass.put(oid, "java.sql.Array");
+      _oidToJavaClass.put(oid, JAVA_SQL_ARRAY);
       if (!_pgNameToJavaClass.containsKey(cachedName)) {
-        _pgNameToJavaClass.put(cachedName, "java.sql.Array");
+        _pgNameToJavaClass.put(cachedName, JAVA_SQL_ARRAY);
       }
     }
 
@@ -357,7 +357,7 @@ public class TypeInfoCache implements TypeInfo {
       }
 
       if (!pgType.isElement() && !_pgNameToJavaClass.containsKey(cachedName)) {
-        _pgNameToJavaClass.put(cachedName, "java.sql.Array");
+        _pgNameToJavaClass.put(cachedName, JAVA_SQL_ARRAY);
       }
     }
 
@@ -376,7 +376,7 @@ public class TypeInfoCache implements TypeInfo {
     _pgNameToOid.put(nameString, pgType.oid());
     _pgNameToSQLType.put(nameString, pgType.sqlType());
     if (!pgType.isElement()) {
-      _pgNameToJavaClass.put(nameString, "java.sql.Array");
+      _pgNameToJavaClass.put(nameString, JAVA_SQL_ARRAY);
     }
   }
 
@@ -787,7 +787,7 @@ public class TypeInfoCache implements TypeInfo {
 
   public synchronized char getArrayDelimiter(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
-      return ',';
+      return DEFAULT_DELIMITER;
     }
 
     Character delim = _arrayOidToDelimiter.get(oid);
@@ -856,7 +856,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     if (getSQLType(pgTypeName) == Types.ARRAY) {
-      javaClass = "java.sql.Array";
+      javaClass = JAVA_SQL_ARRAY;
       _pgNameToJavaClass.put(pgTypeName, javaClass);
       _oidToJavaClass.put(oid, javaClass);
     }
