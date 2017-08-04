@@ -151,6 +151,7 @@ public class TypeInfoCache implements TypeInfo {
     _oidToPgName.put(oid, pgTypeName);
     _pgArrayToPgType.put(arrayOid, oid);
     _pgNameToSQLType.put(pgTypeName, sqlType);
+    _oidToSQLType.put(oid, sqlType);
 
     // Currently we hardcode all core types array delimiter
     // to a comma. In a stock install the only exception is
@@ -163,6 +164,7 @@ public class TypeInfoCache implements TypeInfo {
     _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
     _oidToJavaClass.put(arrayOid, "java.sql.Array");
     _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+    _oidToSQLType.put(arrayOid, Types.ARRAY);
     _pgNameToOid.put(pgArrayTypeName, arrayOid);
     pgArrayTypeName = "_" + pgTypeName;
     if (!_pgNameToJavaClass.containsKey(pgArrayTypeName)) {
@@ -324,6 +326,14 @@ public class TypeInfoCache implements TypeInfo {
 
     int sqlType = pgType.sqlType();
     // Take care not to overwrite core type entries loaded on instantiation.
+    if (!_oidToSQLType.containsKey(elementOid)) {
+      _oidToSQLType.put(elementOid, pgType.sqlType);
+    }
+
+    if (!_oidToSQLType.containsKey(arrayOid)) {
+      _oidToSQLType.put(arrayOid, Types.ARRAY);
+    }
+
     if (!_pgNameToSQLType.containsKey(cachedName)) {
       _pgNameToSQLType.put(cachedName, sqlType);
     }
@@ -469,18 +479,16 @@ public class TypeInfoCache implements TypeInfo {
       return Types.OTHER;
     }
 
+    Integer sqlType = _oidToSQLType.get(oid);
+    if (sqlType != null) {
+      return sqlType;
+    }
+
     PgType pgType = fetchPgType(oid);
     if (pgType == null) {
       return Types.OTHER;
     }
 
-    // If we had a map of oids to SQLType, we wouldn't have to do this conversion
-    String cachedName = pgType.cacheName();
-
-    Integer sqlType = _pgNameToSQLType.get(cachedName);
-    if (sqlType != null) {
-      return sqlType;
-    }
     return pgType.sqlType();
   }
 
