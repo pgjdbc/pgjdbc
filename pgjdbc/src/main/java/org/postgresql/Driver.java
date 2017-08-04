@@ -639,17 +639,12 @@ public class Driver implements java.sql.Driver {
   /**
    * @return the timeout from the URL, in milliseconds
    */
-  private static long timeout(Properties props) {
+  private static long timeout(Properties props) throws PSQLException {
     long result = 0L;
     if (PGProperty.LOGIN_TIMEOUT.isPresent(props)) {
-      String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
-      try {
-        result = (long) (Float.parseFloat(timeout) * 1000);
-      } catch (NumberFormatException e) {
-        LOGGER.log(Level.WARNING, "Couldn't parse loginTimeout value: {0}", timeout);
-      }
+      result = (long) (PGProperty.LOGIN_TIMEOUT.getFloat(props) * 1000);
     } else {
-      result = (long) DriverManager.getLoginTimeout() * 1000;
+      result = (long) (DriverManager.getLoginTimeout() * 1000);
     }
     return result;
   }
