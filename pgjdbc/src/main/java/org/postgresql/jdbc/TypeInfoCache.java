@@ -776,8 +776,10 @@ public class TypeInfoCache implements TypeInfo {
 
     if (_getArrayDelimiterStatement == null) {
       String sql;
-      sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e "
-          + "WHERE t.oid = ? and t.typelem = e.oid";
+      sql = "SELECT e.typdelim"
+          + " FROM pg_catalog.pg_type t"
+          + " JOIN pg_catalog.pg_type e ON (t.typelem, t.typinput) = (e.oid, 'array_in'::regproc)"
+          + " WHERE t.oid = ?";
       _getArrayDelimiterStatement = _conn.prepareStatement(sql);
     }
 
