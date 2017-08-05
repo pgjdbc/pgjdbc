@@ -14,6 +14,7 @@ import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.io.IOException;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,6 +25,8 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -2226,6 +2229,20 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     rs.close();
     stmt.close();
+
+    // Per JDBC API, we should sort result by SqlType value
+    Collections.sort(v, new Comparator<byte[][]>() {
+      @Override
+      public int compare(byte[][] o1, byte[][] o2) {
+        try {
+          int i1 = Integer.parseInt(connection.getEncoding().decode(o1[1]));
+          int i2 = Integer.parseInt(connection.getEncoding().decode(o2[1]));
+          return Integer.compare(i1, i2);
+        } catch (IOException e) {
+          return -1; // Should not happen, but if we do, we should avoid breaking the operation.
+        }
+      }
+    });
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
