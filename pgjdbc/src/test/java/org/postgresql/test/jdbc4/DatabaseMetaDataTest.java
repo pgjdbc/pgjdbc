@@ -87,7 +87,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = _conn.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
     int lastType = Integer.MIN_VALUE;
-    while(rs.next()) {
+    while (rs.next()) {
       int type = rs.getInt("DATA_TYPE");
       assertTrue(lastType <= type);
       lastType = type;
