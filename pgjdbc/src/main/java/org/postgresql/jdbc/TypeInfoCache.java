@@ -535,10 +535,26 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  /*
+  To join element and array types, use (arr.typelem, arr.typinput) = (e.oid, 'array_in'::regproc).
+  Some types, such as box, have non-zero typelem values and are not arrays. One might be tempted to
+  leverage the fact that typlen = -1 (variable length) for arrays, but that will run afoul with
+  element types that have multiple array and vector implementations such as int2, which has _int2 and
+  int2vector. The _int2 type uses array_in and corresponds to int2[] and smallint[], while the
+  int2vector type uses int2vectorin and is used in system tables.
+
+  The pg_type.typarray column, added in 8.3, makes this unnecessary, so the queries can be updated
+  when 8.2 support is dropped. The efficiencies gained in query performance are negligible in
+  comparison to time spent over the wire and the overhead in maintaining a separate code path for 8.2.
+   */
+
   private PreparedStatement getOidStatement(ParsedTypeName typeName) throws SQLException {
     if (typeName.isSimple()) {
       if (_getOidStatementSimple == null) {
-        // see comments in @getSQLType()
+        /*
+        For bug-compatibility reasons, this query does not restrict the search to the search path.
+        See https://github.com/pgjdbc/pgjdbc/commit/b383f6d2c8f19e2b5b867039ca96071ba8d495e1
+        */
         String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname,"
             + " t.typinput = 'array_in'::regproc,"
             + " t.typname, t.typelem, t.typtype, t.typdelim,"
@@ -761,7 +777,7 @@ public class TypeInfoCache implements TypeInfo {
 
     /*
     We can't replace this type name munging without breaking legacy behavior because
-    ParsedTypeName.fromString handles simple names differently from those with array suffixes.
+    ParsedTypeName.fromString handles simple names differently from those with array suffixes:
     "foo[]" is not the same as "the array type for base type foo"
      */
     String canonicalTypeName = getTypeForAlias(elementTypeName);
