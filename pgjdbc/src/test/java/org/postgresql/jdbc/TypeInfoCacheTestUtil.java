@@ -34,6 +34,11 @@ class TypeInfoCacheTestUtil {
     return s.replaceAll("%", "\"");
   }
 
+  /**
+   * Convenience function (which was finally added in Java 8). However, we support back to JDK 1.2,
+   * and test back to OpenJDK6.
+   * https://docs.oracle.com/javase/8/docs/api/java/util/StringJoiner.html
+   */
   static String join(
       @SuppressWarnings("SameParameterValue") String separator,
       String[] coll) {
@@ -307,6 +312,10 @@ class TypeInfoCacheTestUtil {
     }
   }
 
+  /**
+   * Convenience wrapper for java.sql.Types to make it easier to read test output. Used primarily
+   * via the custom assertSQLType assertion (below).
+   */
   public static class SQLType {
     private static final HashMap<Integer, SQLType> sqlTypes = new HashMap<Integer, SQLType>();
 

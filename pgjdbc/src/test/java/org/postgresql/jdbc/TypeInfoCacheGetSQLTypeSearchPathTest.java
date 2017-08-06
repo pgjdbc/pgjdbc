@@ -24,6 +24,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 
+/*
+ This extends BaseTest4 instead of TypeInfoCachePGTypeBaseTest as it uses more than one custom type.
+ PgTypeSet (used in TypeInfoCachePGTypeBaseTest) only creates a single type of custom type.
+ */
 @RunWith(Parameterized.class)
 public class TypeInfoCacheGetSQLTypeSearchPathTest extends BaseTest4 {
   public static class Schema {
@@ -92,8 +96,8 @@ public class TypeInfoCacheGetSQLTypeSearchPathTest extends BaseTest4 {
 
     /*
     getSQLType doesn't return the PostgreSQL type it's matching, so trying to determine which
-    underlying type is being selected. Here we're creating different custom type with the same name,
-    each in its own schema.
+    underlying type is being selected requires a bit of work. Here we're creating different user-defined
+    types with the same name, each in its own schema.
 
      java.sql.Types |    type     | definition
     ----------------|-------------|-------------------------------------------
@@ -103,8 +107,8 @@ public class TypeInfoCacheGetSQLTypeSearchPathTest extends BaseTest4 {
 
     So, search_path will determine which java.sql.Types value is returned for unqualified type names.
 
-    Each case is: schemas, types, search path schemas,
-    and a map of type name strings to the schema the type name string is expected to match; null is no match
+    Each case is: schemas, types, search path schemas, and a map of type name strings to the schema
+    the type name string is expected to match; null is no match.
      */
 
     cases.add(new Object[]{
