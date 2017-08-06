@@ -2237,7 +2237,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         try {
           int i1 = Integer.parseInt(connection.getEncoding().decode(o1[1]));
           int i2 = Integer.parseInt(connection.getEncoding().decode(o2[1]));
-          return Integer.compare(i1, i2);
+          return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
         } catch (IOException e) {
           return -1; // Should not happen, but if we do, we should avoid breaking the operation.
         }
