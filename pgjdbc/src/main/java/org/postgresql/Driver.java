@@ -187,6 +187,9 @@ public class Driver implements java.sql.Driver {
    * probably want to have set up the Postgres database itself to use the same encoding, with the
    * {@code -E <encoding>} argument to createdb.
    *
+   * <p>If the "loginTimeout" is not present in properties, then it will default to
+   * DriverManager#loginTimeout value.</p>
+   *
    * Our protocol takes the forms:
    *
    * <PRE>
