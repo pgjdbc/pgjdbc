@@ -453,7 +453,7 @@ public class StatementTest {
             SQLWarning next = warning.getNextWarning();
             if (next != null) {
               assertEquals("Second warning received not second notice raised",
-                  "Test 2", warning.getNextWarning().getMessage());
+                  "Test 2", next.getMessage());
               //Release the lock so that the notice generating statement can end.
               outerLockCon.commit();
               return null;
@@ -517,6 +517,7 @@ public class StatementTest {
             assertEquals("Received warning out of expected order",
                 "Warning " + warnings, warn.getMessage());
             lastProcessed = warn;
+            //If the processed warning was the head of the chain clear
             if (warn == statement.getWarnings()) {
               //System.out.println("Clearing warnings");
               statement.clearWarnings();
