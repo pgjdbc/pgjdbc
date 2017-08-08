@@ -260,6 +260,14 @@ public class TypeInfoCache implements TypeInfo {
     return type;
   }
 
+  private static String onPathName(String typname) {
+    return typname;
+  }
+
+  private static String qualifiedName(String nspname, String typname) {
+    return "\"" + nspname + "\".\"" + typname + "\"";
+  }
+
   private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
     boolean isArray = pgTypeName.endsWith("[]");
     boolean hasQuote = pgTypeName.contains("\"");
@@ -435,11 +443,11 @@ public class TypeInfoCache implements TypeInfo {
       String schema = rs.getString(2);
       String name = rs.getString(3);
       if (onPath) {
-        pgTypeName = name;
+        pgTypeName = onPathName(name);
         _pgNameToOid.put(schema + "." + name, oid);
       } else {
         // TODO: escaping !?
-        pgTypeName = "\"" + schema + "\".\"" + name + "\"";
+        pgTypeName = qualifiedName(schema, name);
         // if all is lowercase add special type info
         // TODO: should probably check for all special chars
         if (schema.equals(schema.toLowerCase()) && schema.indexOf('.') == -1
