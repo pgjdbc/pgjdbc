@@ -359,6 +359,8 @@ public class TypeInfoCache implements TypeInfo {
       return i;
     }
 
+    ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
+
     if (_getTypeInfoStatement == null) {
       // There's no great way of telling what's an array type.
       // People can name their own types starting with _.
@@ -372,6 +374,7 @@ public class TypeInfoCache implements TypeInfo {
       // path)
       sql = "SELECT typinput='array_in'::regproc, typtype "
           + "  FROM pg_catalog.pg_type "
+          + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
           + "  LEFT "
           + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
           + "          from pg_namespace as ns "
@@ -381,13 +384,15 @@ public class TypeInfoCache implements TypeInfo {
           + "         using ( nspname ) "
           + "       ) as sp "
           + "    ON sp.nspoid = typnamespace "
-          + " WHERE typname = ? "
+          + " WHERE typname = ? AND (n.nspname = ? OR ?::name IS NULL AND n.nspname = ANY (current_schemas(true)))"
           + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
 
       _getTypeInfoStatement = _conn.prepareStatement(sql);
     }
 
-    _getTypeInfoStatement.setString(1, pgTypeName);
+    _getTypeInfoStatement.setString(1, typeName.typname());
+    _getTypeInfoStatement.setString(2, typeName.nspname());
+    _getTypeInfoStatement.setString(3, typeName.nspname());
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) _getTypeInfoStatement)
