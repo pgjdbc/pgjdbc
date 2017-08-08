@@ -351,15 +351,15 @@ public class TypeInfoCache implements TypeInfo {
       return Types.OTHER;
     }
 
-    if (pgTypeName.endsWith("[]")) {
-      return Types.ARRAY;
-    }
     Integer i = _pgNameToSQLType.get(pgTypeName);
     if (i != null) {
       return i;
     }
 
     ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
+    if (typeName.isArray()) {
+      return Types.ARRAY;
+    }
 
     if (_getTypeInfoStatement == null) {
       // There's no great way of telling what's an array type.
@@ -389,7 +389,6 @@ public class TypeInfoCache implements TypeInfo {
 
       _getTypeInfoStatement = _conn.prepareStatement(sql);
     }
-
     _getTypeInfoStatement.setString(1, typeName.typname());
     _getTypeInfoStatement.setString(2, typeName.nspname());
     _getTypeInfoStatement.setString(3, typeName.nspname());
@@ -399,13 +398,17 @@ public class TypeInfoCache implements TypeInfo {
         .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
-
     ResultSet rs = _getTypeInfoStatement.getResultSet();
+    Boolean isArray = null;
+    String typtype = null;
+    if (rs.next()) {
+      isArray = rs.getBoolean(1);
+      typtype = rs.getString(2);
+    }
+    rs.close();
 
     Integer type = null;
-    if (rs.next()) {
-      boolean isArray = rs.getBoolean(1);
-      String typtype = rs.getString(2);
+    if (isArray != null) {
       if (isArray) {
         type = Types.ARRAY;
       } else if ("c".equals(typtype)) {
@@ -420,7 +423,6 @@ public class TypeInfoCache implements TypeInfo {
     if (type == null) {
       type = Types.OTHER;
     }
-    rs.close();
 
     _pgNameToSQLType.put(pgTypeName, type);
     return type;
