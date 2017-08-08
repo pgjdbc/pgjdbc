@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.postgresql.jdbc.TypeInfoCacheTestUtil.join;
 import static org.postgresql.jdbc.TypeInfoCacheTestUtil.quotify;
 
 import org.postgresql.core.TypeInfo;
@@ -53,24 +54,6 @@ public class TypeInfoCacheGetPGTypeSearchPathTest extends BaseTest4 {
   public void tearDown() throws SQLException {
     typeSet.uninstall(con);
     super.tearDown();
-  }
-
-  private static String join(
-      @SuppressWarnings("SameParameterValue") String separator,
-      String[] coll) {
-    if (coll == null) {
-      return null;
-    }
-    int length = coll.length;
-    if (length == 0) {
-      return null;
-    }
-    StringBuilder out = new StringBuilder();
-    out.append(coll[0]);
-    for (int i = 1; i < length; ++i) {
-      out.append(separator).append(coll[i]);
-    }
-    return out.toString();
   }
 
   @Parameterized.Parameters(name = "{0} Path: {4}; Types: {3}")

@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.junit.Assert.assertEquals;
+
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.core.Oid;
@@ -15,10 +17,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+
 
 class TypeInfoCacheTestUtil {
 
@@ -28,6 +32,24 @@ class TypeInfoCacheTestUtil {
    */
   static String quotify(String s) {
     return s.replaceAll("%", "\"");
+  }
+
+  static String join(
+      @SuppressWarnings("SameParameterValue") String separator,
+      String[] coll) {
+    if (coll == null) {
+      return null;
+    }
+    int length = coll.length;
+    if (length == 0) {
+      return null;
+    }
+    StringBuilder out = new StringBuilder();
+    out.append(coll[0]);
+    for (int i = 1; i < length; ++i) {
+      out.append(separator).append(coll[i]);
+    }
+    return out.toString();
   }
 
   enum PgTypeStructType {
@@ -279,5 +301,95 @@ class TypeInfoCacheTestUtil {
       assumeTrue("arrays of user-defined types require version PostgreSQL 8.3 or later",
           isSupportedType(conn, type));
     }
+  }
+
+  public static class SQLType {
+    private static final HashMap<Integer, SQLType> sqlTypes = new HashMap<Integer, SQLType>();
+
+    @SuppressWarnings("unused")
+    static final SQLType
+        ARRAY = new SQLType(Types.ARRAY, "ARRAY");
+    @SuppressWarnings("unused")
+    static final SQLType
+        BIGINT = new SQLType(Types.BIGINT, "BIGINT");
+    @SuppressWarnings("unused")
+    static final SQLType
+        BINARY = new SQLType(Types.BINARY, "BINARY");
+    @SuppressWarnings("unused")
+    static final SQLType
+        BIT = new SQLType(Types.BIT, "BIT");
+    @SuppressWarnings("unused")
+    static final SQLType
+        CHAR = new SQLType(Types.CHAR, "CHAR");
+    @SuppressWarnings("unused")
+    static final SQLType
+        DATE = new SQLType(Types.DATE, "DATE");
+    static final SQLType
+        DISTINCT = new SQLType(Types.DISTINCT, "DISTINCT");
+    @SuppressWarnings("unused")
+    static final SQLType
+        DOUBLE = new SQLType(Types.DOUBLE, "DOUBLE");
+    static final SQLType
+        INTEGER = new SQLType(Types.INTEGER, "INTEGER");
+    @SuppressWarnings("unused")
+    static final SQLType
+        NUMERIC = new SQLType(Types.NUMERIC, "NUMERIC");
+    @SuppressWarnings("unused")
+    static final SQLType
+        OTHER = new SQLType(Types.OTHER, "OTHER");
+    @SuppressWarnings("unused")
+    static final SQLType
+        REAL = new SQLType(Types.REAL, "REAL");
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    @SuppressWarnings("unused")
+    static final SQLType
+        REF_CURSOR = new SQLType(Types.REF_CURSOR, "REF_CURSOR");
+    //#endif
+    @SuppressWarnings("unused")
+    static final SQLType
+        SMALLINT = new SQLType(Types.SMALLINT, "SMALLINT");
+    static final SQLType
+        STRUCT = new SQLType(Types.STRUCT, "STRUCT");
+    @SuppressWarnings("unused")
+    static final SQLType
+        TIME = new SQLType(Types.TIME, "TIME");
+    @SuppressWarnings("unused")
+    static final SQLType
+        TIMESTAMP = new SQLType(Types.TIMESTAMP, "TIMESTAMP");
+    static final SQLType
+        VARCHAR = new SQLType(Types.VARCHAR, "VARCHAR");
+
+    static SQLType forType(int type) {
+      return sqlTypes.get(type);
+    }
+
+    public final int type;
+    public final String name;
+
+    private SQLType(int type, String name) {
+      this.type = type;
+      this.name = name;
+      sqlTypes.put(type, this);
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
+  }
+
+  static void assertSQLType(String message, int expected, int actual) {
+    SQLType expectedSQLType = SQLType.forType(expected);
+    SQLType actualSqlType = SQLType.forType(actual);
+    if (expectedSQLType == null || actualSqlType == null) {
+      assertEquals(message, expected, actual);
+    } else {
+      assertEquals(message, expectedSQLType.name, actualSqlType.name);
+    }
+  }
+
+  static void assumeUserDefinedArrays(Connection conn) throws SQLException {
+    assumeTrue("arrays of user-defined types require version PostgreSQL 8.3 or later",
+        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
   }
 }
