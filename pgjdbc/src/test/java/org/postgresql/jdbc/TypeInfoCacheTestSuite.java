@@ -12,6 +12,7 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 @SuiteClasses({
     TypeInfoCacheEdgeCaseTest.class,
+    TypeInfoCacheGetJavaClassTest.class,
     TypeInfoCacheGetPGArrayTypeCachedNameTest.class,
     TypeInfoCacheGetPGArrayTypeTest.class,
     TypeInfoCacheGetPGArrayTypeUnparseableNameTest.class,
