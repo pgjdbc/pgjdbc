@@ -91,10 +91,6 @@ public class TypeInfoCacheGetPGTypeSearchPathTest extends BaseTest4 {
        created type with that name. This is *not* how the type would normally be found if used in a
        query. getPGArrayType does not exhibit this behavior.
 
-    3. There's a bug regarding search-path precedence for *non*-simple type names, i.e.,
-       unqualified, but quoted or an array. The most recently created will be returned regardless
-       of search path precedence. For example, with types a.type and b.type, both a and b on the
-       search path, "type" will return whichever was created last regardless of search path order.
      */
 
     // baseline
@@ -112,20 +108,19 @@ public class TypeInfoCacheGetPGTypeSearchPathTest extends BaseTest4 {
     });
 
     /*
-     "text" and TEXT match public.text
-     "text" and "text"[] match because they're non-simple and the quotes are removed
-     TEXT matches because it's simple and lowered on search.
-     TEXT[] matches because it's non-simple, and is case-folded because it's not quoted.
+     TEXT matches public because it's simple and lowered on search.
     */
     cases.add(new Object[]{
         new PgTypeStruct[]{new PgTypeStruct("pg_catalog", "text"),
             new PgTypeStruct("public", "text")},
         DEFAULT_SEARCH_PATH,
-        new HashMap<String, PgTypeStruct>() {
+        new HashMap<String, Object>() {
           {
             put("text", new PgTypeStruct("pg_catalog", "text"));
-            put("%text%", new PgTypeStruct("public", "text"));
-            put("TEXT", new PgTypeStruct("public", "text"));
+            put("%text%", new PgTypeStruct("pg_catalog", "text"));
+            put("TEXT", Arrays.asList(
+                new PgTypeStruct("public", "text"),
+                new PgTypeStruct("pg_catalog", "text")));
             put("%TEXT%", PgTypeStruct.UNSPECIFIED);
           }
         },
@@ -198,9 +193,8 @@ public class TypeInfoCacheGetPGTypeSearchPathTest extends BaseTest4 {
     });
 
     /*
-    Note how creation order affects which one is selected between the following two cases.
-    In the first, a.type is created first, then b.type.
-    In the second, b.type is created first.
+    The following two tests are to confirm that a legacy bug is fixed. Creation order does not
+    affect which type is matched.
      */
     cases.add(new Object[]{
         new PgTypeStruct[]{
@@ -210,10 +204,8 @@ public class TypeInfoCacheGetPGTypeSearchPathTest extends BaseTest4 {
         new String[]{"a", "b"},
         new HashMap<String, Object>() {
           {
-            // "type" matches (a, type), "type[]" matches (b, type)
-            put("type",
-                Arrays.asList(new PgTypeStruct("a", "type"), new PgTypeStruct("b", "type")));
-            put("%type%", new PgTypeStruct("b", "type"));
+            put("type", new PgTypeStruct("a", "type"));
+            put("%type%", new PgTypeStruct("a", "type"));
           }
         },
     });
