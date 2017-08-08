@@ -463,14 +463,14 @@ public class TypeInfoCache implements TypeInfo {
     if (typeName.isSimple()) {
       if (_getOidStatementSimple == null) {
         // see comments in @getSQLType()
-        String sql = "SELECT pg_type.oid, n.nspname = ANY(current_schemas(true)), n.nspname, typname "
-            + "  FROM pg_catalog.pg_type "
-            + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
+        String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname"
+            + "  FROM pg_catalog.pg_type t"
+            + "  JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace"
             + "  LEFT JOIN (SELECT s.r, (current_schemas(false))[r] AS nspname"
             + "               FROM generate_series(1, array_upper(current_schemas(false), 1)) AS s (r)) AS sp"
             + "    USING (nspname)"
-            + " WHERE typname = ? "
-            + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
+            + " WHERE t.typname = ?"
+            + " ORDER BY sp.r, t.oid DESC LIMIT 1;";
         _getOidStatementSimple = _conn.prepareStatement(sql);
       }
       // coerce to lower case to handle upper case type names
@@ -481,7 +481,7 @@ public class TypeInfoCache implements TypeInfo {
 
     PreparedStatement oidStatementComplex;
     if (_getOidStatementComplexNonArray == null) {
-      String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
+      String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname"
           + "  FROM pg_catalog.pg_type t"
           + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
           + "  LEFT JOIN (SELECT s.r, (current_schemas(true))[r] AS nspname"
@@ -503,21 +503,22 @@ public class TypeInfoCache implements TypeInfo {
     if (_getOidStatementComplexArray == null) {
       String sql;
       if (_conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-        sql = "SELECT t.typarray, n.nspname = ANY(current_schemas(true)), n.nspname, arr.typname "
-            + "  FROM pg_catalog.pg_type t"
-            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
+        sql = "SELECT arr.oid, n.nspname = ANY(current_schemas(true)), n.nspname, arr.typname"
+            + "  FROM pg_catalog.pg_type e"
+            + "  JOIN pg_catalog.pg_namespace n ON e.typnamespace = n.oid"
+            + "  JOIN pg_catalog.pg_type arr"
+            + "    ON arr.oid = e.typarray"
             + "  LEFT JOIN (SELECT s.r, (current_schemas(true))[r] AS nspname"
             + "               FROM generate_series(1, array_upper(current_schemas(true), 1)) AS s (r)) AS sp"
             + "    USING (nspname)"
-            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+            + " WHERE e.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
             + " ORDER BY sp.r LIMIT 1";
       } else {
-        sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
-            + "  FROM pg_catalog.pg_type t"
-            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + "  JOIN pg_catalog.pg_type e"
-            + "    ON (e.oid, 'array_in'::regproc) = (t.typelem, t.typinput)"
+        sql = "SELECT arr.oid, n.nspname = ANY(current_schemas(true)), n.nspname, arr.typname"
+            + "  FROM pg_catalog.pg_type e"
+            + "  JOIN pg_catalog.pg_namespace n ON e.typnamespace = n.oid"
+            + "  JOIN pg_catalog.pg_type arr"
+            + "    ON (arr.typelem, arr.typinput) = (e.oid, 'array_in'::regproc)"
             + "  LEFT JOIN (SELECT s.r, (current_schemas(true))[r] AS nspname"
             + "               FROM generate_series(1, array_upper(current_schemas(true), 1)) AS s (r)) AS sp"
             + "    USING (nspname)"
@@ -577,9 +578,10 @@ public class TypeInfoCache implements TypeInfo {
 
   private synchronized PgType fetchPgType(int oid) throws SQLException {
     if (_getNameStatement == null) {
-      String sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
-          + "FROM pg_catalog.pg_type t "
-          + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
+      String sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname"
+          + " FROM pg_catalog.pg_type t "
+          + " JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+          + " WHERE t.oid = ?";
 
       _getNameStatement = _conn.prepareStatement(sql);
     }
@@ -705,9 +707,11 @@ public class TypeInfoCache implements TypeInfo {
 
     if (_getArrayElementOidStatement == null) {
       String sql;
-      sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname "
-          + "FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid "
-          + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
+      sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname"
+          + " FROM pg_catalog.pg_type arr"
+          + " JOIN pg_catalog.pg_type e ON arr.typelem = e.oid"
+          + " JOIN pg_catalog.pg_namespace n ON arr.typnamespace = n.oid "
+          + " WHERE arr.oid = ?";
       _getArrayElementOidStatement = _conn.prepareStatement(sql);
     }
 
