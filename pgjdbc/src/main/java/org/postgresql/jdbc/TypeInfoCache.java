@@ -54,9 +54,7 @@ public class TypeInfoCache implements TypeInfo {
   private PreparedStatement _getOidStatementComplexNonArray;
   private PreparedStatement _getOidStatementComplexArray;
   private PreparedStatement _getNameStatement;
-  private PreparedStatement _getArrayElementOidStatement;
   private PreparedStatement _getArrayDelimiterStatement;
-  private PreparedStatement _getTypeInfoStatement;
 
   // basic pg types info:
   // 0 - type name
@@ -179,13 +177,7 @@ public class TypeInfoCache implements TypeInfo {
     return _pgNameToSQLType.keySet().iterator();
   }
 
-  interface PgTypeName {
-    String nspname();
-
-    String typname();
-  }
-
-  static class PgType implements PgTypeName {
+  static class PgType {
     private final String nspname;
     private final String typname;
     private final int oid;
@@ -236,15 +228,16 @@ public class TypeInfoCache implements TypeInfo {
       return sqlType;
     }
 
-    final boolean isElement;
-    final int elementOid;
+    private final boolean isElement;
+    private final int elementOid;
     @SuppressWarnings("unused")
-    final String elementTypname;
-    final int arrayOid;
+    private final String elementTypname;
+    private final int arrayOid;
     @SuppressWarnings("unused")
-    final String arrayTypname;
-    final int sqlType;
-    final Character typdelim;
+    private final String arrayTypname;
+    private final int sqlType;
+    @SuppressWarnings("unused")
+    private final Character typdelim;
 
     private PgType(String nspname, boolean onPath, int elementOid, String elementTypname,
         Character elementTyptype, Character typdelim, int arrayOid, String arrayTypname,
@@ -264,14 +257,6 @@ public class TypeInfoCache implements TypeInfo {
 
     int oid() {
       return oid;
-    }
-
-    public String nspname() {
-      return nspname;
-    }
-
-    public String typname() {
-      return typname;
     }
 
     int elementOid() {
@@ -372,7 +357,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-  static class ParsedTypeName implements PgTypeName {
+  static class ParsedTypeName {
     private final String nspname;
     private final String typname;
     private final boolean isArray;
@@ -477,71 +462,13 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     // If we had a map of oids to SQLType, we wouldn't have to do this conversion
-    String pgTypeName = pgType.cacheName();
-    Integer i = _pgNameToSQLType.get(pgTypeName);
-    if (i != null) {
-      return i;
+    String cachedName = pgType.cacheName();
+
+    Integer sqlType = _pgNameToSQLType.get(cachedName);
+    if (sqlType != null) {
+      return sqlType;
     }
-
-    int type = getSQLType(pgType);
-    _pgNameToSQLType.put(pgTypeName, type);
-    return type;
-  }
-
-  private synchronized int getSQLType(PgTypeName typeName) throws SQLException {
-    if (_getTypeInfoStatement == null) {
-      // in case of multiple records (in different schemas) choose the one from the current
-      // schema,
-      // otherwise take the last version of a type that is at least more deterministic then before
-      // (keeping old behaviour of finding types, that should not be found without correct search
-      // path)
-      String sql = "SELECT typinput='array_in'::regproc, typtype "
-          + "  FROM pg_catalog.pg_type "
-          + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
-          + "  LEFT JOIN (SELECT s.r, (current_schemas(false))[r] AS nspname"
-          + "               FROM generate_series(1, array_upper(current_schemas(false), 1)) AS s (r)) AS sp"
-          + "    USING (nspname)"
-          + " WHERE typname = ? AND (n.nspname = ? OR ?::name IS NULL AND n.nspname = ANY (current_schemas(true)))"
-          + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
-
-      _getTypeInfoStatement = _conn.prepareStatement(sql);
-    }
-    _getTypeInfoStatement.setString(1, typeName.typname());
-    _getTypeInfoStatement.setString(2, typeName.nspname());
-    _getTypeInfoStatement.setString(3, typeName.nspname());
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) _getTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-    ResultSet rs = _getTypeInfoStatement.getResultSet();
-    Boolean isArray = null;
-    String typtype = null;
-    if (rs.next()) {
-      isArray = rs.getBoolean(1);
-      typtype = rs.getString(2);
-    }
-    rs.close();
-
-    Integer type = null;
-    if (isArray != null) {
-      if (isArray) {
-        type = Types.ARRAY;
-      } else if ("c".equals(typtype)) {
-        type = Types.STRUCT;
-      } else if ("d".equals(typtype)) {
-        type = Types.DISTINCT;
-      } else if ("e".equals(typtype)) {
-        type = Types.VARCHAR;
-      }
-    }
-
-    if (type == null) {
-      type = Types.OTHER;
-    }
-
-    return type;
+    return pgType.sqlType();
   }
 
   public synchronized int getSQLType(String pgTypeName) throws SQLException {
@@ -566,9 +493,13 @@ public class TypeInfoCache implements TypeInfo {
       return Types.ARRAY;
     }
 
-    int type = getSQLType(typeName);
-    _pgNameToSQLType.put(pgTypeName, type);
-    return type;
+    PgType pgType = fetchPgType(pgTypeName);
+
+    if (pgType == null) {
+      return Types.OTHER;
+    }
+
+    return pgType.sqlType();
   }
 
   enum PgTypeResultSetColumn {
@@ -672,7 +603,7 @@ public class TypeInfoCache implements TypeInfo {
     return oidStatementComplex;
   }
 
-  private synchronized int fetchPgType(String pgTypeName) throws SQLException {
+  private synchronized PgType fetchPgType(String pgTypeName) throws SQLException {
     ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
     PreparedStatement oidStatement = typeName.isArray()
         ? getArrayOidStatement(typeName) : getOidStatement(typeName);
@@ -707,11 +638,11 @@ public class TypeInfoCache implements TypeInfo {
     rs.close();
 
     if (pgType == null) {
-      return Oid.UNSPECIFIED;
+      return null;
     }
 
     cachePgType(pgType, pgTypeName);
-    return pgType.oid();
+    return pgType;
   }
 
   public synchronized int getPGType(String pgTypeName) throws SQLException {
@@ -724,7 +655,13 @@ public class TypeInfoCache implements TypeInfo {
       return oid;
     }
 
-    return fetchPgType(pgTypeName);
+    PgType pgType = fetchPgType(pgTypeName);
+
+    if (pgType == null) {
+      return Oid.UNSPECIFIED;
+    }
+
+    return pgType.oid();
   }
 
   private synchronized PgType fetchPgType(int oid) throws SQLException {
@@ -801,6 +738,11 @@ public class TypeInfoCache implements TypeInfo {
       return Oid.UNSPECIFIED;
     }
 
+    /*
+    We can't replace this type name munging without breaking legacy behavior because
+    ParsedTypeName.fromString handles simple names differently from those with array suffixes.
+    "foo[]" is not the same as "the array type for base type foo"
+     */
     String canonicalTypeName = getTypeForAlias(elementTypeName);
     return getPGType(canonicalTypeName + ARRAY_SUFFIX);
   }
@@ -873,48 +815,19 @@ public class TypeInfoCache implements TypeInfo {
       return oid;
     }
 
-    if (_getArrayElementOidStatement == null) {
-      String sql;
-      sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname,"
-          + " e.typname, e.typtype, e.typdelim, arr.typname"
-          + " FROM pg_catalog.pg_type arr"
-          + " JOIN pg_catalog.pg_type e ON arr.typelem = e.oid"
-          + " JOIN pg_catalog.pg_namespace n ON arr.typnamespace = n.oid "
-          + " WHERE arr.oid = ?";
-      _getArrayElementOidStatement = _conn.prepareStatement(sql);
-    }
-
-    _getArrayElementOidStatement.setInt(1, arrayOid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) _getArrayElementOidStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    PgType pgType = null;
-    ResultSet rs = _getArrayElementOidStatement.getResultSet();
-    if (rs.next()) {
-      oid = (int) rs.getLong(1);
-      boolean onPath = rs.getBoolean(2);
-      String schema = rs.getString(3);
-      String name = rs.getString(4);
-      Character typtype = rs.getString(5).charAt(0);
-      Character typdelim = rs.getString(6).charAt(0);
-      String arrayName = rs.getString(7);
-      pgType =
-          PgType.createElement(schema, onPath, oid, name, typtype, typdelim, arrayOid, arrayName);
-    }
-    rs.close();
+    PgType pgType = fetchPgType(arrayOid);
 
     if (pgType == null) {
       return Oid.UNSPECIFIED;
     }
 
-    cachePgType(pgType);
-    _pgArrayToPgType.put(arrayOid, pgType.oid());
+    if (pgType.isElement()) {
+      // arrayOid is actually the oid of an element type.
+      return Oid.UNSPECIFIED;
+    }
 
-    return pgType.oid();
+    cachePgType(pgType);
+    return pgType.elementOid();
   }
 
   public synchronized Class<? extends PGobject> getPGobject(String type) {
