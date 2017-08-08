@@ -50,6 +50,7 @@ public class StatementTest {
     TestUtil.createTempTable(con, "escapetest",
         "ts timestamp, d date, t time, \")\" varchar(5), \"\"\"){a}'\" text ");
     TestUtil.createTempTable(con, "comparisontest", "str1 varchar(5), str2 varchar(15)");
+    TestUtil.createTable(con, "test_lock", "name text");
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'_abcd','_found'"));
     stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'%abcd','%found'"));
@@ -61,6 +62,9 @@ public class StatementTest {
     TestUtil.dropTable(con, "test_statement");
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
+    TestUtil.dropTable(con, "test_lock");
+    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_loop()");
+    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
   }
 
@@ -422,7 +426,6 @@ public class StatementTest {
   @Test
   public void testWarningsAreAvailableAsap()
       throws Exception {
-    TestUtil.createTable(con, "test_lock", "name text");
     final Connection outerLockCon = TestUtil.openDB();
     outerLockCon.setAutoCommit(false);
     //Acquire an exclusive lock so we can block the notice generating statement
@@ -441,10 +444,9 @@ public class StatementTest {
     //If we never receive the two warnings the statement will just hang, so set a low timeout
     con.createStatement().execute("SET SESSION statement_timeout = 1000");
     final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
-    Future<Void> future = executorService.submit(new Callable<Void>() {
+    final Callable<Void> warningReader = new Callable<Void>() {
       @Override
-      public Void call() throws SQLException {
+      public Void call() throws SQLException, InterruptedException {
         while (true) {
           SQLWarning warning = preparedStatement.getWarnings();
           if (warning != null) {
@@ -459,16 +461,23 @@ public class StatementTest {
               return null;
             }
           }
+          //Break the loop on InterruptedException
+          Thread.sleep(0);
         }
       }
-    });
-    //Statement should only finish executing once we have
-    //received the two notices and released the outer lock.
-    preparedStatement.execute();
+    };
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    try {
+      Future<Void> future = executorService.submit(warningReader);
+      //Statement should only finish executing once we have
+      //received the two notices and released the outer lock.
+      preparedStatement.execute();
 
-    //If test takes longer than 2 seconds its a failure.
-    future.get(2, TimeUnit.SECONDS);
-    executorService.shutdown();
+      //If test takes longer than 2 seconds its a failure.
+      future.get(2, TimeUnit.SECONDS);
+    } finally {
+      executorService.shutdownNow();
+    }
   }
 
 
@@ -484,7 +493,6 @@ public class StatementTest {
   public void testConcurrentWarningReadAndClear()
       throws SQLException, InterruptedException, ExecutionException, TimeoutException {
     final int iterations = 1000;
-    final ExecutorService executor = Executors.newSingleThreadExecutor();
     con.createStatement()
         .execute("CREATE OR REPLACE FUNCTION notify_loop() RETURNS VOID AS "
             + "$BODY$ "
@@ -497,10 +505,9 @@ public class StatementTest {
             + "LANGUAGE plpgsql;");
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
     final PreparedStatement statement = con.prepareStatement("SELECT notify_loop()");
-
-    final Future warningReaderThread = executor.submit(new Callable<Object>() {
+    final Callable<Void> warningReader = new Callable<Void>() {
       @Override
-      public Object call() throws SQLException, InterruptedException {
+      public Void call() throws SQLException, InterruptedException {
         SQLWarning lastProcessed = null;
         int warnings = 0;
         //For production code replace this with some condition that
@@ -533,10 +540,17 @@ public class StatementTest {
             "Warning " + iterations, lastProcessed.getMessage());
         return null;
       }
-    });
-    statement.execute();
-    //If the reader doesn't return after 2 seconds, it failed.
-    warningReaderThread.get(2, TimeUnit.SECONDS);
+    };
+
+    final ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      final Future warningReaderThread = executor.submit(warningReader);
+      statement.execute();
+      //If the reader doesn't return after 2 seconds, it failed.
+      warningReaderThread.get(2, TimeUnit.SECONDS);
+    } finally {
+      executor.shutdownNow();
+    }
   }
 
   /**
