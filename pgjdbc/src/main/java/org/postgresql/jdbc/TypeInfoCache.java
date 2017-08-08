@@ -335,9 +335,15 @@ public class TypeInfoCache implements TypeInfo {
     } else {
       if (fullName.startsWith("\"")) {
         if (fullName.endsWith("\"")) {
-          String[] parts = fullName.split("\"\\.\"");
-          schema = parts.length == 2 ? parts[0] + "\"" : null;
-          name = parts.length == 2 ? "\"" + parts[1] : parts[0];
+          if (fullName.length() == 3) {
+            // type name string is dot-quote-dot (".")
+            schema = null;
+            name = fullName;
+          } else {
+            String[] parts = fullName.split("\"\\.\"");
+            schema = parts.length == 2 ? parts[0] + "\"" : null;
+            name = parts.length == 2 ? "\"" + parts[1] : parts[0];
+          }
         } else {
           int lastDotIndex = fullName.lastIndexOf('.');
           name = fullName.substring(lastDotIndex + 1);
@@ -349,12 +355,14 @@ public class TypeInfoCache implements TypeInfo {
       }
     }
     if (schema != null && schema.startsWith("\"") && schema.endsWith("\"")) {
-      schema = schema.substring(1, schema.length() - 1);
+      int schemaLength = schema.length();
+      schema = (schemaLength == 1) ? schema : schema.substring(1, schema.length() - 1);
     } else if (schema != null) {
       schema = schema.toLowerCase();
     }
     if (name.startsWith("\"") && name.endsWith("\"")) {
-      name = name.substring(1, name.length() - 1);
+      int nameLength = name.length();
+      name = (nameLength == 1) ? name : name.substring(1, name.length() - 1);
     } else {
       name = name.toLowerCase();
     }
