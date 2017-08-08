@@ -382,9 +382,7 @@ public class TypeInfoCache implements TypeInfo {
     return "\"" + nspname + "\".\"" + typname + "\"";
   }
 
-  private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
-    ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
-
+  private PreparedStatement getOidStatement(ParsedTypeName typeName) throws SQLException {
     if (typeName.isSimple()) {
       if (_getOidStatementSimple == null) {
         String sql;
@@ -413,43 +411,71 @@ public class TypeInfoCache implements TypeInfo {
       return _getOidStatementSimple;
     }
     PreparedStatement oidStatementComplex;
-    if (typeName.isArray()) {
-      if (_getOidStatementComplexArray == null) {
-        String sql;
-        if (_conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-          sql = "SELECT t.typarray, n.nspname = ANY(current_schemas(true)), n.nspname, arr.typname "
-              + "  FROM pg_catalog.pg_type t"
-              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-              + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
-              + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
-              + " ORDER BY t.oid DESC LIMIT 1";
-        } else {
-          sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
-              + "  FROM pg_catalog.pg_type t"
-              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-              + "  JOIN pg_catalog.pg_type e"
-              + "    ON (e.oid, 'array_in'::regproc) = (t.typelem, t.typinput)"
-              + " WHERE e.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
-              + " ORDER BY t.typelem DESC LIMIT 1";
-        }
-        _getOidStatementComplexArray = _conn.prepareStatement(sql);
-      }
-      oidStatementComplex = _getOidStatementComplexArray;
-    } else {
-      if (_getOidStatementComplexNonArray == null) {
-        String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
-            + "  FROM pg_catalog.pg_type t"
-            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
-            + " ORDER BY t.oid DESC LIMIT 1";
-        _getOidStatementComplexNonArray = _conn.prepareStatement(sql);
-      }
-      oidStatementComplex = _getOidStatementComplexNonArray;
+    if (_getOidStatementComplexNonArray == null) {
+      String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
+          + "  FROM pg_catalog.pg_type t"
+          + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+          + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+          + " ORDER BY t.oid DESC LIMIT 1";
+      _getOidStatementComplexNonArray = _conn.prepareStatement(sql);
     }
+    oidStatementComplex = _getOidStatementComplexNonArray;
     oidStatementComplex.setString(1, typeName.typname());
     oidStatementComplex.setString(2, typeName.nspname());
     oidStatementComplex.setString(3, typeName.nspname());
     return oidStatementComplex;
+  }
+
+  private PreparedStatement getArrayOidStatement(ParsedTypeName typeName) throws SQLException {
+    PreparedStatement oidStatementComplex;
+    if (_getOidStatementComplexArray == null) {
+      String sql;
+      if (_conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
+        sql = "SELECT t.typarray, n.nspname = ANY(current_schemas(true)), n.nspname, arr.typname "
+            + "  FROM pg_catalog.pg_type t"
+            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+            + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
+            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+            + " ORDER BY t.oid DESC LIMIT 1";
+      } else {
+        sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
+            + "  FROM pg_catalog.pg_type t"
+            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+            + "  JOIN pg_catalog.pg_type e"
+            + "    ON (e.oid, 'array_in'::regproc) = (t.typelem, t.typinput)"
+            + " WHERE e.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+            + " ORDER BY t.typelem DESC LIMIT 1";
+      }
+      _getOidStatementComplexArray = _conn.prepareStatement(sql);
+    }
+    oidStatementComplex = _getOidStatementComplexArray;
+    oidStatementComplex.setString(1, typeName.typname());
+    oidStatementComplex.setString(2, typeName.nspname());
+    oidStatementComplex.setString(3, typeName.nspname());
+    return oidStatementComplex;
+  }
+
+  private synchronized int fetchPgType(String pgTypeName) throws SQLException {
+    ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
+    PreparedStatement oidStatement = typeName.isArray()
+        ? getArrayOidStatement(typeName) : getOidStatement(typeName);
+
+    // Go through BaseStatement to avoid transaction start.
+    if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+    }
+
+    int oid = Oid.UNSPECIFIED;
+    ResultSet rs = oidStatement.getResultSet();
+    if (rs.next()) {
+      oid = (int) rs.getLong(1);
+      boolean onPath = rs.getBoolean(2);
+      String schema = rs.getString(3);
+      String name = rs.getString(4);
+      cachePgType(oid, schema, name, onPath);
+    }
+    rs.close();
+    return oid;
   }
 
   public synchronized int getPGType(String pgTypeName) throws SQLException {
@@ -462,25 +488,7 @@ public class TypeInfoCache implements TypeInfo {
       return oid;
     }
 
-    PreparedStatement oidStatement = getOidStatement(pgTypeName);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    oid = Oid.UNSPECIFIED;
-    ResultSet rs = oidStatement.getResultSet();
-    if (rs.next()) {
-      oid = (int) rs.getLong(1);
-      boolean onPath = rs.getBoolean(2);
-      String schema = rs.getString(3);
-      String name = rs.getString(4);
-      cachePgType(oid, schema, name, onPath);
-    }
-    rs.close();
-
-    return oid;
+    return fetchPgType(pgTypeName);
   }
 
   public synchronized String getPGType(int oid) throws SQLException {
