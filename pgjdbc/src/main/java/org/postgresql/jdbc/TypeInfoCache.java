@@ -177,6 +177,20 @@ public class TypeInfoCache implements TypeInfo {
     return _pgNameToSQLType.keySet().iterator();
   }
 
+  private synchronized String cachePgType(int oid, String schema, String name, boolean onPath) {
+    String cachedName = qualifiedName(schema, name);
+    _pgNameToOid.put(cachedName, oid);
+
+    if (onPath) {
+      cachedName = onPathName(name);
+      _pgNameToOid.put(cachedName, oid);
+    }
+
+    _oidToPgName.put(oid, cachedName);
+
+    return cachedName;
+  }
+
   public int getSQLType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return Types.OTHER;
@@ -408,22 +422,14 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     oid = Oid.UNSPECIFIED;
-    String cachedName = pgTypeName;
     ResultSet rs = oidStatement.getResultSet();
     if (rs.next()) {
       oid = (int) rs.getLong(1);
       boolean onPath = rs.getBoolean(2);
       String schema = rs.getString(3);
       String name = rs.getString(4);
-      if (onPath) {
-        cachedName = onPathName(name);
-        _pgNameToOid.put(schema + "." + name, oid);
-      } else {
-        cachedName = qualifiedName(schema, name);
-      }
+      cachePgType(oid, schema, name, onPath);
     }
-    _pgNameToOid.put(cachedName, oid);
-    _oidToPgName.put(oid, cachedName);
     rs.close();
 
     return oid;
@@ -460,21 +466,7 @@ public class TypeInfoCache implements TypeInfo {
       boolean onPath = rs.getBoolean(1);
       String schema = rs.getString(2);
       String name = rs.getString(3);
-      if (onPath) {
-        pgTypeName = onPathName(name);
-        _pgNameToOid.put(schema + "." + name, oid);
-      } else {
-        // TODO: escaping !?
-        pgTypeName = qualifiedName(schema, name);
-        // if all is lowercase add special type info
-        // TODO: should probably check for all special chars
-        if (schema.equals(schema.toLowerCase()) && schema.indexOf('.') == -1
-            && name.equals(name.toLowerCase()) && name.indexOf('.') == -1) {
-          _pgNameToOid.put(schema + "." + name, oid);
-        }
-      }
-      _pgNameToOid.put(pgTypeName, oid);
-      _oidToPgName.put(oid, pgTypeName);
+      pgTypeName = cachePgType(oid, schema, name, onPath);
     }
     rs.close();
 
@@ -583,17 +575,8 @@ public class TypeInfoCache implements TypeInfo {
     boolean onPath = rs.getBoolean(2);
     String schema = rs.getString(3);
     String name = rs.getString(4);
+    cachePgType(oid, schema, name, onPath);
     _pgArrayToPgType.put(arrayOid, oid);
-    _pgNameToOid.put(schema + "." + name, oid);
-    String fullName = "\"" + schema + "\".\"" + name + "\"";
-    _pgNameToOid.put(fullName, oid);
-    if (onPath && name.equals(name.toLowerCase())) {
-      _oidToPgName.put(oid, name);
-      _pgNameToOid.put(name, oid);
-    } else {
-      _oidToPgName.put(oid, fullName);
-    }
-
     rs.close();
 
     return oid;
