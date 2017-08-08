@@ -260,8 +260,17 @@ public class TypeInfoCache implements TypeInfo {
     return type;
   }
 
+  private static String quote(String ident) {
+    boolean hasDot = ident.indexOf('.') != -1;
+    boolean isQuoted = ident.startsWith("\"") && ident.endsWith("\"");
+    boolean isCaseSensitive = !ident.equals(ident.toLowerCase());
+    String arraySuffix = "[]";
+    boolean hasArraySuffix = ident.endsWith(arraySuffix);
+    return (hasDot || isQuoted || isCaseSensitive || hasArraySuffix) ? '"' + ident + '"' : ident;
+  }
+
   private static String onPathName(String typname) {
-    return typname;
+    return quote(typname);
   }
 
   private static String qualifiedName(String nspname, String typname) {
