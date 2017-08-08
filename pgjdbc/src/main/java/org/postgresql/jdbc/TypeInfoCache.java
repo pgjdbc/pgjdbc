@@ -306,9 +306,9 @@ public class TypeInfoCache implements TypeInfo {
           sql = "SELECT t.oid, t.typname "
               + "  FROM pg_catalog.pg_type t"
               + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-              + " WHERE t.typelem = (SELECT oid FROM pg_catalog.pg_type WHERE typname = ?)"
-              + " AND substring(t.typname, 1, 1) = '_' AND t.typlen = -1"
-              + " AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+              + "  JOIN pg_catalog.pg_type e"
+              + "    ON (e.oid, 'array_in'::regproc) = (t.typelem, t.typinput)"
+              + " WHERE e.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
               + " ORDER BY t.typelem DESC LIMIT 1";
         }
         _getOidStatementComplexArray = _conn.prepareStatement(sql);
