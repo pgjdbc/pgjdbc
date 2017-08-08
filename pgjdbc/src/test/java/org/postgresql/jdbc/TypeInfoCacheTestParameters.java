@@ -471,50 +471,12 @@ class TypeInfoCacheTestParameters {
 
   /*
    This is similar to getPGTypeByOidParams, though it's used when testing names that have been cached
-   by getPGType(name), which has different behavior than getPGType(oid). Before refactoring, you need
-   to have a baseline to know if you're making any undesired behavioral changes. Once it's confirmed
-   that the behavior is consistent, this separate parameter set can be removed.
+   by getPGType(name).
    */
   static Iterable<Object[]> getPGTypeByOidCachedNameParams() {
-    Collection<Object[]> cases = new ArrayList<Object[]>();
-    cases.add(new Object[]{new PgTypeStruct("pg_catalog", "text"), "text", "_text"});
-
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", " "), " ", "_ "});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "%"), "%", "_%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "%%"), "%%", "_%%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "%%%"), "%%%", "_%%%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "%%%%"), "%%%%", "_%%%%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "."), ".", "_."});
-
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "%TYPE[]%"), "%TYPE[]%", "_%TYPE[]%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "%type[]%"), "%type[]%", "_%type[]%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "TYPE"), "TYPE", "_TYPE"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "TYPE[]"), "TYPE[]", "_TYPE[]"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "type"), "type", "_type"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("public", "type[]"), "type[]", "_type[]"});
-
-    // Drops namespace
-    cases.add(new Object[]{PgTypeStruct.createQuotified("ns", " "), " ", "_ "});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("ns", "%"), "%", "_%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("ns", "."), ".", "_."});
-
-    cases.add(new Object[]{PgTypeStruct.createQuotified("%NS%", "%TYPE%"), "%TYPE%", "_%TYPE%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("%NS%", "%TYPE[]%"), "%TYPE[]%", "_%TYPE[]%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("NS", "TYPE"), "TYPE", "_TYPE"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("NS", "TYPE[]"), "TYPE[]", "_TYPE[]"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("ns", "type"), "type", "_type"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("ns", "type[]"), "type[]", "_type[]"});
-
-    cases.add(new Object[]{PgTypeStruct.createQuotified("ns", "ty.pe"), "ty.pe", "_ty.pe"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("n%%.%%s%%", "%%ty%%.%%pe%%"), "%n%%.%%s%%%.%%%ty%%.%%pe%%%", "%n%%.%%s%%%.%_%%ty%%.%%pe%%%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("n%%s", "%%type%%"), "%%type%%", "_%%type%%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("n%.%s%", "%ty%.%pe%"), "%n%.%s%%.%%ty%.%pe%%", "%n%.%s%%.%_%ty%.%pe%%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("n%s", "%type%"), "%type%", "_%type%"});
-    cases.add(new Object[]{PgTypeStruct.createQuotified("n%s", "type"), "type", "_type"});
-
     Collection<Object[]> params = new ArrayList<Object[]>();
-    for (Object[] c : cases) {
-      params.add(new Object[]{c[0], quotify((String) c[1]), quotify((String) c[2])});
+    for (Object[] c : getPGTypeByOidParams()) {
+      params.add(new Object[]{c[0], quotify((String) c[1]), quotify((String) c[3])});
     }
     return params;
   }
