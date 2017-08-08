@@ -191,6 +191,97 @@ public class TypeInfoCache implements TypeInfo {
     return cachedName;
   }
 
+  static class ParsedTypeName {
+    private final String nspname;
+    private final String typname;
+    private final boolean isArray;
+    private final boolean isSimple;
+
+    static ParsedTypeName fromString(String pgTypeName) {
+      boolean isArray = pgTypeName.endsWith("[]");
+      boolean hasQuote = pgTypeName.contains("\"");
+      int dotIndex = pgTypeName.indexOf('.');
+
+      if (dotIndex == -1 && !hasQuote && !isArray) {
+        return new ParsedTypeName(pgTypeName);
+      }
+
+      String fullName = isArray ? pgTypeName.substring(0, pgTypeName.length() - 2) : pgTypeName;
+      String schema;
+      String name;
+      // simple use case
+      if (dotIndex == -1) {
+        schema = null;
+        name = fullName;
+      } else {
+        if (fullName.startsWith("\"")) {
+          if (fullName.endsWith("\"")) {
+            if (fullName.length() == 3) {
+              // type name string is dot-quote-dot (".")
+              schema = null;
+              name = fullName;
+            } else {
+              String[] parts = fullName.split("\"\\.\"");
+              schema = parts.length == 2 ? parts[0] + "\"" : null;
+              name = parts.length == 2 ? "\"" + parts[1] : parts[0];
+            }
+          } else {
+            int lastDotIndex = fullName.lastIndexOf('.');
+            name = fullName.substring(lastDotIndex + 1);
+            schema = fullName.substring(0, lastDotIndex);
+          }
+        } else {
+          schema = fullName.substring(0, dotIndex);
+          name = fullName.substring(dotIndex + 1);
+        }
+      }
+      if (schema != null && schema.startsWith("\"") && schema.endsWith("\"")) {
+        int schemaLength = schema.length();
+        schema = (schemaLength == 1) ? schema : schema.substring(1, schema.length() - 1);
+      } else if (schema != null) {
+        schema = schema.toLowerCase();
+      }
+      if (name.startsWith("\"") && name.endsWith("\"")) {
+        int nameLength = name.length();
+        name = (nameLength == 1) ? name : name.substring(1, name.length() - 1);
+      } else {
+        name = name.toLowerCase();
+      }
+
+      return new ParsedTypeName(schema, name, isArray);
+    }
+
+    private ParsedTypeName(String typname) {
+      this.nspname = null;
+      this.typname = typname;
+      this.isArray = false;
+      this.isSimple = true;
+    }
+
+    private ParsedTypeName(String nspname, String typname, boolean isArray) {
+      this.nspname = nspname;
+      this.typname = typname;
+      this.isArray = isArray;
+      this.isSimple = false;
+    }
+
+    String nspname() {
+      return nspname;
+    }
+
+    String typname() {
+      return typname;
+    }
+
+    boolean isArray() {
+      return isArray;
+    }
+
+    boolean isSimple() {
+      return isSimple;
+    }
+  }
+
   public int getSQLType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return Types.OTHER;
@@ -292,11 +383,9 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
-    boolean isArray = pgTypeName.endsWith("[]");
-    boolean hasQuote = pgTypeName.contains("\"");
-    int dotIndex = pgTypeName.indexOf('.');
+    ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
 
-    if (dotIndex == -1 && !hasQuote && !isArray) {
+    if (typeName.isSimple()) {
       if (_getOidStatementSimple == null) {
         String sql;
         // see comments in @getSQLType()
@@ -317,14 +406,14 @@ public class TypeInfoCache implements TypeInfo {
         _getOidStatementSimple = _conn.prepareStatement(sql);
       }
       // coerce to lower case to handle upper case type names
-      String lcName = pgTypeName.toLowerCase();
+      String lcName = typeName.typname().toLowerCase();
       // default arrays are represented with _ as prefix ... this dont even work for public schema
       // fully
       _getOidStatementSimple.setString(1, lcName);
       return _getOidStatementSimple;
     }
     PreparedStatement oidStatementComplex;
-    if (isArray) {
+    if (typeName.isArray()) {
       if (_getOidStatementComplexArray == null) {
         String sql;
         if (_conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -357,50 +446,9 @@ public class TypeInfoCache implements TypeInfo {
       }
       oidStatementComplex = _getOidStatementComplexNonArray;
     }
-    String fullName = isArray ? pgTypeName.substring(0, pgTypeName.length() - 2) : pgTypeName;
-    String schema;
-    String name;
-    // simple use case
-    if (dotIndex == -1) {
-      schema = null;
-      name = fullName;
-    } else {
-      if (fullName.startsWith("\"")) {
-        if (fullName.endsWith("\"")) {
-          if (fullName.length() == 3) {
-            // type name string is dot-quote-dot (".")
-            schema = null;
-            name = fullName;
-          } else {
-            String[] parts = fullName.split("\"\\.\"");
-            schema = parts.length == 2 ? parts[0] + "\"" : null;
-            name = parts.length == 2 ? "\"" + parts[1] : parts[0];
-          }
-        } else {
-          int lastDotIndex = fullName.lastIndexOf('.');
-          name = fullName.substring(lastDotIndex + 1);
-          schema = fullName.substring(0, lastDotIndex);
-        }
-      } else {
-        schema = fullName.substring(0, dotIndex);
-        name = fullName.substring(dotIndex + 1);
-      }
-    }
-    if (schema != null && schema.startsWith("\"") && schema.endsWith("\"")) {
-      int schemaLength = schema.length();
-      schema = (schemaLength == 1) ? schema : schema.substring(1, schema.length() - 1);
-    } else if (schema != null) {
-      schema = schema.toLowerCase();
-    }
-    if (name.startsWith("\"") && name.endsWith("\"")) {
-      int nameLength = name.length();
-      name = (nameLength == 1) ? name : name.substring(1, name.length() - 1);
-    } else {
-      name = name.toLowerCase();
-    }
-    oidStatementComplex.setString(1, name);
-    oidStatementComplex.setString(2, schema);
-    oidStatementComplex.setString(3, schema);
+    oidStatementComplex.setString(1, typeName.typname());
+    oidStatementComplex.setString(2, typeName.nspname());
+    oidStatementComplex.setString(3, typeName.nspname());
     return oidStatementComplex;
   }
 
