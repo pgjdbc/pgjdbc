@@ -142,7 +142,6 @@ class TypeInfoCacheTestUtil {
       result = 31 * result + (type != null ? type.hashCode() : 0);
       return result;
     }
-
   }
 
   /**
@@ -280,6 +279,5 @@ class TypeInfoCacheTestUtil {
       assumeTrue("arrays of user-defined types require version PostgreSQL 8.3 or later",
           isSupportedType(conn, type));
     }
-
   }
 }

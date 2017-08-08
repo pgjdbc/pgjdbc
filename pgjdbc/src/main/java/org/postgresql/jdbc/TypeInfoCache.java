@@ -262,6 +262,7 @@ public class TypeInfoCache implements TypeInfo {
       String fullName = isArray ? pgTypeName.substring(0, pgTypeName.length() - 2) : pgTypeName;
       String schema;
       String name;
+
       // simple use case
       if (dotIndex == -1) {
         schema = null;
@@ -288,12 +289,14 @@ public class TypeInfoCache implements TypeInfo {
           name = fullName.substring(dotIndex + 1);
         }
       }
+
       if (schema != null && schema.startsWith("\"") && schema.endsWith("\"")) {
         int schemaLength = schema.length();
         schema = (schemaLength == 1) ? schema : schema.substring(1, schema.length() - 1);
       } else if (schema != null) {
         schema = schema.toLowerCase();
       }
+
       if (name.startsWith("\"") && name.endsWith("\"")) {
         int nameLength = name.length();
         name = (nameLength == 1) ? name : name.substring(1, name.length() - 1);
@@ -421,10 +424,8 @@ public class TypeInfoCache implements TypeInfo {
   private PreparedStatement getOidStatement(ParsedTypeName typeName) throws SQLException {
     if (typeName.isSimple()) {
       if (_getOidStatementSimple == null) {
-        String sql;
         // see comments in @getSQLType()
-        // -- go with older way of unnesting array to be compatible with 8.0
-        sql = "SELECT pg_type.oid, n.nspname = ANY(current_schemas(true)), n.nspname, typname "
+        String sql = "SELECT pg_type.oid, n.nspname = ANY(current_schemas(true)), n.nspname, typname "
             + "  FROM pg_catalog.pg_type "
             + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
             + "  LEFT "
@@ -441,11 +442,10 @@ public class TypeInfoCache implements TypeInfo {
       }
       // coerce to lower case to handle upper case type names
       String lcName = typeName.typname().toLowerCase();
-      // default arrays are represented with _ as prefix ... this dont even work for public schema
-      // fully
       _getOidStatementSimple.setString(1, lcName);
       return _getOidStatementSimple;
     }
+
     PreparedStatement oidStatementComplex;
     if (_getOidStatementComplexNonArray == null) {
       String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
@@ -544,14 +544,12 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     if (_getNameStatement == null) {
-      String sql;
-      sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
+      String sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
           + "FROM pg_catalog.pg_type t "
           + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
 
       _getNameStatement = _conn.prepareStatement(sql);
     }
-
     _getNameStatement.setInt(1, oid);
 
     // Go through BaseStatement to avoid transaction start.
