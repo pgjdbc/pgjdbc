@@ -451,8 +451,11 @@ public class TypeInfoCache implements TypeInfo {
       String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
           + "  FROM pg_catalog.pg_type t"
           + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+          + "  LEFT JOIN (SELECT s.r, (current_schemas(true))[r] AS nspname"
+          + "               FROM generate_series(1, array_upper(current_schemas(true), 1)) AS s (r)) AS sp"
+          + "    USING (nspname)"
           + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
-          + " ORDER BY t.oid DESC LIMIT 1";
+          + " ORDER BY sp.r LIMIT 1";
       _getOidStatementComplexNonArray = _conn.prepareStatement(sql);
     }
     oidStatementComplex = _getOidStatementComplexNonArray;
@@ -471,16 +474,22 @@ public class TypeInfoCache implements TypeInfo {
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
             + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
+            + "  LEFT JOIN (SELECT s.r, (current_schemas(true))[r] AS nspname"
+            + "               FROM generate_series(1, array_upper(current_schemas(true), 1)) AS s (r)) AS sp"
+            + "    USING (nspname)"
             + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
-            + " ORDER BY t.oid DESC LIMIT 1";
+            + " ORDER BY sp.r LIMIT 1";
       } else {
         sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
             + "  JOIN pg_catalog.pg_type e"
             + "    ON (e.oid, 'array_in'::regproc) = (t.typelem, t.typinput)"
+            + "  LEFT JOIN (SELECT s.r, (current_schemas(true))[r] AS nspname"
+            + "               FROM generate_series(1, array_upper(current_schemas(true), 1)) AS s (r)) AS sp"
+            + "    USING (nspname)"
             + " WHERE e.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
-            + " ORDER BY t.typelem DESC LIMIT 1";
+            + " ORDER BY sp.r LIMIT 1";
       }
       _getOidStatementComplexArray = _conn.prepareStatement(sql);
     }
