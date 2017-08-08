@@ -125,6 +125,12 @@ class TypeInfoCacheTestParameters {
         {
           put(PgTypeStruct.createQuotified("%", "%."), PgTypeStruct.UNSPECIFIED);
 
+          put(PgTypeStruct.createQuotified(".", "%"),
+              PgTypeStruct.createQuotified("%", ".%%"));
+
+          put(PgTypeStruct.createQuotified(".", "."),
+              PgTypeStruct.createQuotified("%", "%."));
+
           put(PgTypeStruct.createQuotified("public", "%%"), PgTypeStruct.UNSPECIFIED);
 
           put(PgTypeStruct.createQuotified("public", "%%%"),
@@ -132,6 +138,9 @@ class TypeInfoCacheTestParameters {
 
           put(PgTypeStruct.createQuotified("public", "%%%%"),
               PgTypeStruct.createQuotified("public", "%%"));
+
+          put(PgTypeStruct.createQuotified("public", "%.%"),
+              PgTypeStruct.createQuotified("public", "."));
 
           put(PgTypeStruct.createQuotified("public", "."), PgTypeStruct.UNSPECIFIED);
 
@@ -257,13 +266,13 @@ class TypeInfoCacheTestParameters {
     cases.add(new Object[]{" ", PgTypeStruct.createQuotified("public", " ")});
     cases.add(new Object[]{"", PgTypeStruct.UNSPECIFIED}); // empty string
     cases.add(new Object[]{"% %", PgTypeStruct.createQuotified("public", " ")});
-    cases.add(new Object[]{"%", PgTypeStruct.UNPARSEABLE});
+    cases.add(new Object[]{"%", PgTypeStruct.createQuotified("public", "%")});
     cases.add(new Object[]{"%%", PgTypeStruct.UNSPECIFIED}); // "%%" parses as (null, "")
     cases.add(new Object[]{"%%%", PgTypeStruct.createQuotified("public", "%")});
     cases.add(new Object[]{"%%%%", PgTypeStruct.createQuotified("public", "%%")});
-    cases.add(new Object[]{"%.%", PgTypeStruct.UNPARSEABLE});
+    cases.add(new Object[]{"%.%", PgTypeStruct.createQuotified("public", ".")});
     cases.add(new Object[]{"%.%.", PgTypeStruct.UNSPECIFIED}); // "%.%." parses as ("", "..")
-    cases.add(new Object[]{"%.%.%.%", PgTypeStruct.UNPARSEABLE});
+    cases.add(new Object[]{"%.%.%.%", PgTypeStruct.createQuotified("%", "%.")});
     cases.add(new Object[]{".", PgTypeStruct.UNSPECIFIED});    // "." parses as ("", "")
     cases.add(new Object[]{".%.%", PgTypeStruct.UNSPECIFIED}); // ".%.%" parses as ("", "%.%")
     cases.add(new Object[]{"..", PgTypeStruct.UNSPECIFIED});   // ".." parses as ("", ".")
