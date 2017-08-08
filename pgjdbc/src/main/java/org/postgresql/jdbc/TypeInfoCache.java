@@ -179,7 +179,13 @@ public class TypeInfoCache implements TypeInfo {
     return _pgNameToSQLType.keySet().iterator();
   }
 
-  static class PgType {
+  interface PgTypeName {
+    String nspname();
+
+    String typname();
+  }
+
+  static class PgType implements PgTypeName {
     private final String nspname;
     private final String typname;
     private final int oid;
@@ -194,6 +200,14 @@ public class TypeInfoCache implements TypeInfo {
 
     int oid() {
       return oid;
+    }
+
+    public String nspname() {
+      return nspname;
+    }
+
+    public String typname() {
+      return typname;
     }
 
     boolean onPath() {
@@ -215,9 +229,13 @@ public class TypeInfoCache implements TypeInfo {
     String onPathName() {
       return quote(typname);
     }
+
+    String cacheName() {
+      return onPath ? onPathName() : qualifiedName();
+    }
   }
 
-  private synchronized String cachePgType(PgType pgType) {
+  private synchronized void cachePgType(PgType pgType) {
     int oid = pgType.oid();
     String cachedName = pgType.qualifiedName();
     _pgNameToOid.put(cachedName, oid);
@@ -228,8 +246,6 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     _oidToPgName.put(oid, cachedName);
-
-    return cachedName;
   }
 
   private synchronized void cachePgType(PgType pgType, String nameString) {
@@ -244,7 +260,7 @@ public class TypeInfoCache implements TypeInfo {
     _pgNameToOid.put(nameString, pgType.oid());
   }
 
-  static class ParsedTypeName {
+  static class ParsedTypeName implements PgTypeName {
     private final String nspname;
     private final String typname;
     private final boolean isArray;
@@ -321,11 +337,11 @@ public class TypeInfoCache implements TypeInfo {
       this.isSimple = false;
     }
 
-    String nspname() {
+    public String nspname() {
       return nspname;
     }
 
-    String typname() {
+    public String typname() {
       return typname;
     }
 
@@ -343,24 +359,24 @@ public class TypeInfoCache implements TypeInfo {
       return Types.OTHER;
     }
 
-    return getSQLType(getPGType(oid));
-  }
-
-  public synchronized int getSQLType(String pgTypeName) throws SQLException {
-    if (pgTypeName == null) {
+    PgType pgType = fetchPgType(oid);
+    if (pgType == null) {
       return Types.OTHER;
     }
 
+    // If we had a map of oids to SQLType, we wouldn't have to do this conversion
+    String pgTypeName = pgType.cacheName();
     Integer i = _pgNameToSQLType.get(pgTypeName);
     if (i != null) {
       return i;
     }
 
-    ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
-    if (typeName.isArray()) {
-      return Types.ARRAY;
-    }
+    int type = getSQLType(pgType);
+    _pgNameToSQLType.put(pgTypeName, type);
+    return type;
+  }
 
+  private synchronized int getSQLType(PgTypeName typeName) throws SQLException {
     if (_getTypeInfoStatement == null) {
       // in case of multiple records (in different schemas) choose the one from the current
       // schema,
@@ -419,6 +435,32 @@ public class TypeInfoCache implements TypeInfo {
       type = Types.OTHER;
     }
 
+    return type;
+  }
+
+  public synchronized int getSQLType(String pgTypeName) throws SQLException {
+    if (pgTypeName == null) {
+      return Types.OTHER;
+    }
+
+    Integer i = _pgNameToSQLType.get(pgTypeName);
+    if (i != null) {
+      return i;
+    }
+
+    /*
+    This is a quick and dirty check based on the name only. We want to pass the type name string
+    (pgTypeName) to fetchPgType so that the type name string is properly cached.
+
+    We may not want to do this check anyway given the type may not exist, in which case we want to
+    return java.sql.Types.OTHER. However, this is what the current behavior is.
+     */
+    ParsedTypeName typeName = ParsedTypeName.fromString(pgTypeName);
+    if (typeName.isArray()) {
+      return Types.ARRAY;
+    }
+
+    int type = getSQLType(typeName);
     _pgNameToSQLType.put(pgTypeName, type);
     return type;
   }
@@ -544,16 +586,7 @@ public class TypeInfoCache implements TypeInfo {
     return fetchPgType(pgTypeName);
   }
 
-  public synchronized String getPGType(int oid) throws SQLException {
-    if (oid == Oid.UNSPECIFIED) {
-      return null;
-    }
-
-    String pgTypeName = _oidToPgName.get(oid);
-    if (pgTypeName != null) {
-      return pgTypeName;
-    }
-
+  private synchronized PgType fetchPgType(int oid) throws SQLException {
     if (_getNameStatement == null) {
       String sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
           + "FROM pg_catalog.pg_type t "
@@ -582,7 +615,26 @@ public class TypeInfoCache implements TypeInfo {
       return null;
     }
 
-    return cachePgType(pgType);
+    cachePgType(pgType);
+    return pgType;
+  }
+
+  public synchronized String getPGType(int oid) throws SQLException {
+    if (oid == Oid.UNSPECIFIED) {
+      return null;
+    }
+
+    String pgTypeName = _oidToPgName.get(oid);
+    if (pgTypeName != null) {
+      return pgTypeName;
+    }
+
+    PgType pgType = fetchPgType(oid);
+    if (pgType == null) {
+      return null;
+    }
+
+    return pgType.cacheName();
   }
 
   public int getPGArrayType(String elementTypeName) throws SQLException {
