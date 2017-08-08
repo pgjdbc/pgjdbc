@@ -29,10 +29,14 @@ public class TypeInfoCache implements TypeInfo {
 
   // pgname (String) -> java.sql.Types (Integer)
   private Map<String, Integer> _pgNameToSQLType;
+  // oid -> java.sql.Types
+  private Map<Integer, Integer> _oidToSQLType;
 
   // pgname (String) -> java class name (String)
   // ie "text" -> "java.lang.String"
   private Map<String, String> _pgNameToJavaClass;
+  // oid -> Java class name (e.g., "java.lang.String")
+  private Map<Integer, String> _oidToJavaClass;
 
   // oid (Integer) -> pgname (String)
   private Map<Integer, String> _oidToPgName;
@@ -116,6 +120,7 @@ public class TypeInfoCache implements TypeInfo {
     _oidToPgName = new HashMap<Integer, String>();
     _pgNameToOid = new HashMap<String, Integer>();
     _pgNameToJavaClass = new HashMap<String, String>();
+    _oidToJavaClass = new HashMap<Integer, String>();
     _pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>();
     _pgArrayToPgType = new HashMap<Integer, Integer>();
     _arrayOidToDelimiter = new HashMap<Integer, Character>();
@@ -123,6 +128,7 @@ public class TypeInfoCache implements TypeInfo {
     // needs to be synchronized because the iterator is returned
     // from getPGTypeNamesWithSQLTypes()
     _pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>());
+    _oidToSQLType = new HashMap<Integer, Integer>();
 
     for (Object[] type : types) {
       String pgTypeName = (String) type[0];
@@ -140,6 +146,7 @@ public class TypeInfoCache implements TypeInfo {
   public synchronized void addCoreType(String pgTypeName, Integer oid, Integer sqlType,
       String javaClass, Integer arrayOid) {
     _pgNameToJavaClass.put(pgTypeName, javaClass);
+    _oidToJavaClass.put(oid, javaClass);
     _pgNameToOid.put(pgTypeName, oid);
     _oidToPgName.put(oid, pgTypeName);
     _pgArrayToPgType.put(arrayOid, oid);
@@ -154,6 +161,7 @@ public class TypeInfoCache implements TypeInfo {
 
     String pgArrayTypeName = pgTypeName + ARRAY_SUFFIX;
     _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
+    _oidToJavaClass.put(arrayOid, "java.sql.Array");
     _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
     _pgNameToOid.put(pgArrayTypeName, arrayOid);
     pgArrayTypeName = "_" + pgTypeName;
@@ -320,8 +328,13 @@ public class TypeInfoCache implements TypeInfo {
       _pgNameToSQLType.put(cachedName, sqlType);
     }
 
-    if (!pgType.isElement && !_pgNameToJavaClass.containsKey(cachedName)) {
-      _pgNameToJavaClass.put(cachedName, "java.sql.Array");
+    if (pgType.isElement) {
+      _oidToJavaClass.put(arrayOid, "java.sql.Array");
+    } else {
+      _oidToJavaClass.put(oid, "java.sql.Array");
+      if (!_pgNameToJavaClass.containsKey(cachedName)) {
+        _pgNameToJavaClass.put(cachedName, "java.sql.Array");
+      }
     }
 
     if (pgType.onPath()) {
@@ -822,6 +835,11 @@ public class TypeInfoCache implements TypeInfo {
       return null;
     }
 
+    String javaClass = _oidToJavaClass.get(oid);
+    if (javaClass != null) {
+      return javaClass;
+    }
+
     String pgTypeName = getPGType(oid);
 
     String result = _pgNameToJavaClass.get(pgTypeName);
@@ -832,6 +850,7 @@ public class TypeInfoCache implements TypeInfo {
     if (getSQLType(pgTypeName) == Types.ARRAY) {
       result = "java.sql.Array";
       _pgNameToJavaClass.put(pgTypeName, result);
+      _oidToJavaClass.put(oid, result);
     }
 
     return result;
