@@ -278,8 +278,9 @@ public class TypeInfoCache implements TypeInfo {
         String sql;
         // see comments in @getSQLType()
         // -- go with older way of unnesting array to be compatible with 8.0
-        sql = "SELECT pg_type.oid, typname "
+        sql = "SELECT pg_type.oid, n.nspname = ANY(current_schemas(true)), n.nspname, typname "
             + "  FROM pg_catalog.pg_type "
+            + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
             + "  LEFT "
             + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
             + "          from pg_namespace as ns "
@@ -304,14 +305,14 @@ public class TypeInfoCache implements TypeInfo {
       if (_getOidStatementComplexArray == null) {
         String sql;
         if (_conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-          sql = "SELECT t.typarray, arr.typname "
+          sql = "SELECT t.typarray, n.nspname = ANY(current_schemas(true)), n.nspname, arr.typname "
               + "  FROM pg_catalog.pg_type t"
               + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
               + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
               + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
               + " ORDER BY t.oid DESC LIMIT 1";
         } else {
-          sql = "SELECT t.oid, t.typname "
+          sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
               + "  FROM pg_catalog.pg_type t"
               + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
               + "  JOIN pg_catalog.pg_type e"
@@ -324,7 +325,7 @@ public class TypeInfoCache implements TypeInfo {
       oidStatementComplex = _getOidStatementComplexArray;
     } else {
       if (_getOidStatementComplexNonArray == null) {
-        String sql = "SELECT t.oid, t.typname "
+        String sql = "SELECT t.oid, n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
             + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
@@ -401,11 +402,18 @@ public class TypeInfoCache implements TypeInfo {
     ResultSet rs = oidStatement.getResultSet();
     if (rs.next()) {
       oid = (int) rs.getLong(1);
-      String internalName = rs.getString(2);
-      _oidToPgName.put(oid, internalName);
-      _pgNameToOid.put(internalName, oid);
+      boolean onPath = rs.getBoolean(2);
+      String schema = rs.getString(3);
+      String name = rs.getString(4);
+      if (onPath) {
+        pgTypeName = onPathName(name);
+        _pgNameToOid.put(schema + "." + name, oid);
+      } else {
+        pgTypeName = qualifiedName(schema, name);
+      }
     }
     _pgNameToOid.put(pgTypeName, oid);
+    _oidToPgName.put(oid, pgTypeName);
     rs.close();
 
     return oid;
