@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -81,8 +82,39 @@ public class LoginTimeoutTest {
     props.setProperty("password", TestUtil.getPassword());
     props.setProperty("loginTimeout", "zzzz");
 
+    try {
+      DriverManager.getConnection(TestUtil.getURL(), props);
+      Assert.fail("bad loginTimeout should throw exception");
+    } catch (Exception e) {
+      // Ignore - expected
+    }
+  }
+
+  @Test
+  public void testUseDriverManagerLoginTimout() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("user", TestUtil.getUser());
+    props.setProperty("password", TestUtil.getPassword());
+
+    // Case where it default to DriverManager.loginTimeout
+    DriverManager.setLoginTimeout(5);
     Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();
+    DriverManager.setLoginTimeout(0);
+  }
+
+  @Test
+  public void testUseDriverManagerLoginTimout2() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("user", TestUtil.getUser());
+    props.setProperty("password", TestUtil.getPassword());
+
+    // Case where we can override it, even when DriverManager.loginTimeout is set
+    DriverManager.setLoginTimeout(5);
+    props.setProperty("loginTimeout", "0");
+    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
+    conn.close();
+    DriverManager.setLoginTimeout(0);
   }
 
   private static class TimeoutHelper implements Runnable {
