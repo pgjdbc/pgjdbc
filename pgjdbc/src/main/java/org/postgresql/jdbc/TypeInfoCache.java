@@ -386,15 +386,9 @@ public class TypeInfoCache implements TypeInfo {
       String sql = "SELECT typinput='array_in'::regproc, typtype "
           + "  FROM pg_catalog.pg_type "
           + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
-          + "  LEFT "
-          + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-          + "          from pg_namespace as ns "
-          // -- go with older way of unnesting array to be compatible with 8.0
-          + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-          + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-          + "         using ( nspname ) "
-          + "       ) as sp "
-          + "    ON sp.nspoid = typnamespace "
+          + "  LEFT JOIN (SELECT s.r, (current_schemas(false))[r] AS nspname"
+          + "               FROM generate_series(1, array_upper(current_schemas(false), 1)) AS s (r)) AS sp"
+          + "    USING (nspname)"
           + " WHERE typname = ? AND (n.nspname = ? OR ?::name IS NULL AND n.nspname = ANY (current_schemas(true)))"
           + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
 
@@ -472,14 +466,9 @@ public class TypeInfoCache implements TypeInfo {
         String sql = "SELECT pg_type.oid, n.nspname = ANY(current_schemas(true)), n.nspname, typname "
             + "  FROM pg_catalog.pg_type "
             + "  JOIN pg_catalog.pg_namespace n ON n.oid = typnamespace"
-            + "  LEFT "
-            + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-            + "          from pg_namespace as ns "
-            + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-            + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-            + "         using ( nspname ) "
-            + "       ) as sp "
-            + "    ON sp.nspoid = typnamespace "
+            + "  LEFT JOIN (SELECT s.r, (current_schemas(false))[r] AS nspname"
+            + "               FROM generate_series(1, array_upper(current_schemas(false), 1)) AS s (r)) AS sp"
+            + "    USING (nspname)"
             + " WHERE typname = ? "
             + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
         _getOidStatementSimple = _conn.prepareStatement(sql);
