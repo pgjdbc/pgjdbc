@@ -111,6 +111,8 @@ public class TypeInfoCache implements TypeInfo {
     typeAliases.put("decimal", "numeric");
   }
 
+  private static final String ARRAY_SUFFIX = "[]";
+
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     _conn = conn;
     _unknownLength = unknownLength;
@@ -153,7 +155,7 @@ public class TypeInfoCache implements TypeInfo {
     Character delim = ',';
     _arrayOidToDelimiter.put(oid, delim);
 
-    String pgArrayTypeName = pgTypeName + "[]";
+    String pgArrayTypeName = pgTypeName + ARRAY_SUFFIX;
     _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
     _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
     _pgNameToOid.put(pgArrayTypeName, arrayOid);
@@ -177,18 +179,69 @@ public class TypeInfoCache implements TypeInfo {
     return _pgNameToSQLType.keySet().iterator();
   }
 
-  private synchronized String cachePgType(int oid, String schema, String name, boolean onPath) {
-    String cachedName = qualifiedName(schema, name);
+  static class PgType {
+    private final String nspname;
+    private final String typname;
+    private final int oid;
+    private final boolean onPath;
+
+    PgType(int oid, String nspname, String typname, boolean onPath) {
+      this.oid = oid;
+      this.nspname = nspname;
+      this.typname = typname;
+      this.onPath = onPath;
+    }
+
+    int oid() {
+      return oid;
+    }
+
+    boolean onPath() {
+      return onPath;
+    }
+
+    private static String quote(String ident) {
+      boolean hasDot = ident.indexOf('.') != -1;
+      boolean isQuoted = ident.startsWith("\"") && ident.endsWith("\"");
+      boolean isCaseSensitive = !ident.equals(ident.toLowerCase());
+      boolean hasArraySuffix = ident.endsWith(ARRAY_SUFFIX);
+      return (hasDot || isQuoted || isCaseSensitive || hasArraySuffix) ? '"' + ident + '"' : ident;
+    }
+
+    String qualifiedName() {
+      return "\"" + nspname + "\".\"" + typname + "\"";
+    }
+
+    String onPathName() {
+      return quote(typname);
+    }
+  }
+
+  private synchronized String cachePgType(PgType pgType) {
+    int oid = pgType.oid();
+    String cachedName = pgType.qualifiedName();
     _pgNameToOid.put(cachedName, oid);
 
-    if (onPath) {
-      cachedName = onPathName(name);
+    if (pgType.onPath()) {
+      cachedName = pgType.onPathName();
       _pgNameToOid.put(cachedName, oid);
     }
 
     _oidToPgName.put(oid, cachedName);
 
     return cachedName;
+  }
+
+  private synchronized void cachePgType(PgType pgType, String nameString) {
+    cachePgType(pgType);
+
+    if (nameString.equals(pgType.qualifiedName())
+        || (pgType.onPath() && nameString.equals(pgType.onPathName()))) {
+      // Nothing new to cache.
+      return;
+    }
+
+    _pgNameToOid.put(nameString, pgType.oid());
   }
 
   static class ParsedTypeName {
@@ -198,7 +251,7 @@ public class TypeInfoCache implements TypeInfo {
     private final boolean isSimple;
 
     static ParsedTypeName fromString(String pgTypeName) {
-      boolean isArray = pgTypeName.endsWith("[]");
+      boolean isArray = pgTypeName.endsWith(ARRAY_SUFFIX);
       boolean hasQuote = pgTypeName.contains("\"");
       int dotIndex = pgTypeName.indexOf('.');
 
@@ -365,23 +418,6 @@ public class TypeInfoCache implements TypeInfo {
     return type;
   }
 
-  private static String quote(String ident) {
-    boolean hasDot = ident.indexOf('.') != -1;
-    boolean isQuoted = ident.startsWith("\"") && ident.endsWith("\"");
-    boolean isCaseSensitive = !ident.equals(ident.toLowerCase());
-    String arraySuffix = "[]";
-    boolean hasArraySuffix = ident.endsWith(arraySuffix);
-    return (hasDot || isQuoted || isCaseSensitive || hasArraySuffix) ? '"' + ident + '"' : ident;
-  }
-
-  private static String onPathName(String typname) {
-    return quote(typname);
-  }
-
-  private static String qualifiedName(String nspname, String typname) {
-    return "\"" + nspname + "\".\"" + typname + "\"";
-  }
-
   private PreparedStatement getOidStatement(ParsedTypeName typeName) throws SQLException {
     if (typeName.isSimple()) {
       if (_getOidStatementSimple == null) {
@@ -465,17 +501,23 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    int oid = Oid.UNSPECIFIED;
+    PgType pgType = null;
     ResultSet rs = oidStatement.getResultSet();
     if (rs.next()) {
-      oid = (int) rs.getLong(1);
+      int oid = (int) rs.getLong(1);
       boolean onPath = rs.getBoolean(2);
       String schema = rs.getString(3);
       String name = rs.getString(4);
-      cachePgType(oid, schema, name, onPath);
+      pgType = new PgType(oid, schema, name, onPath);
     }
     rs.close();
-    return oid;
+
+    if (pgType == null) {
+      return Oid.UNSPECIFIED;
+    }
+
+    cachePgType(pgType, pgTypeName);
+    return pgType.oid();
   }
 
   public synchronized int getPGType(String pgTypeName) throws SQLException {
@@ -517,16 +559,21 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
+    PgType pgType = null;
     ResultSet rs = _getNameStatement.getResultSet();
     if (rs.next()) {
       boolean onPath = rs.getBoolean(1);
       String schema = rs.getString(2);
       String name = rs.getString(3);
-      pgTypeName = cachePgType(oid, schema, name, onPath);
+      pgType = new PgType(oid, schema, name, onPath);
     }
     rs.close();
 
-    return pgTypeName;
+    if (pgType == null) {
+      return null;
+    }
+
+    return cachePgType(pgType);
   }
 
   public int getPGArrayType(String elementTypeName) throws SQLException {
@@ -535,7 +582,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     String canonicalTypeName = getTypeForAlias(elementTypeName);
-    return getPGType(canonicalTypeName + "[]");
+    return getPGType(canonicalTypeName + ARRAY_SUFFIX);
   }
 
   /**
@@ -622,20 +669,25 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
+    PgType pgType = null;
     ResultSet rs = _getArrayElementOidStatement.getResultSet();
-    if (!rs.next()) {
+    if (rs.next()) {
+      oid = (int) rs.getLong(1);
+      boolean onPath = rs.getBoolean(2);
+      String schema = rs.getString(3);
+      String name = rs.getString(4);
+      pgType = new PgType(oid, schema, name, onPath);
+    }
+    rs.close();
+
+    if (pgType == null) {
       return Oid.UNSPECIFIED;
     }
 
-    oid = (int) rs.getLong(1);
-    boolean onPath = rs.getBoolean(2);
-    String schema = rs.getString(3);
-    String name = rs.getString(4);
-    cachePgType(oid, schema, name, onPath);
-    _pgArrayToPgType.put(arrayOid, oid);
-    rs.close();
+    cachePgType(pgType);
+    _pgArrayToPgType.put(arrayOid, pgType.oid());
 
-    return oid;
+    return pgType.oid();
   }
 
   public synchronized Class<? extends PGobject> getPGobject(String type) {
