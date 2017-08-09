@@ -11,8 +11,10 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.shuffle;
 import static java.util.Collections.sort;
 
+import org.postgresql.PGProperty;
 import org.postgresql.hostchooser.GlobalHostStatusTracker.HostSpecStatus;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,8 +35,12 @@ public class MultiHostChooser implements HostChooser {
       Properties info) {
     this.hostSpecs = hostSpecs;
     this.targetServerType = targetServerType;
-    hostRecheckTime = parseInt(info.getProperty("hostRecheckSeconds", "10")) * 1000;
-    loadBalance = parseBoolean(info.getProperty("loadBalanceHosts", "false"));
+    try {
+      hostRecheckTime = PGProperty.HOST_RECHECK_SECONDS.getInt(info) * 1000;
+      loadBalance = PGProperty.LOAD_BALANCE_HOSTS.getBoolean(info);
+    } catch (PSQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
