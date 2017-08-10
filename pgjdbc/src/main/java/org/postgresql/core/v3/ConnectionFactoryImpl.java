@@ -117,12 +117,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // - the targetServerType setting
     HostRequirement targetServerType;
+    String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
     try {
-      targetServerType =
-          HostRequirement.valueOf(info.getProperty("targetServerType", HostRequirement.any.name()));
+      targetServerType = HostRequirement.valueOf(targetServerTypeStr);
     } catch (IllegalArgumentException ex) {
       throw new PSQLException(
-          GT.tr("Invalid targetServerType value: {0}", info.getProperty("targetServerType")),
+          GT.tr("Invalid targetServerType value: {0}", targetServerTypeStr),
           PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
