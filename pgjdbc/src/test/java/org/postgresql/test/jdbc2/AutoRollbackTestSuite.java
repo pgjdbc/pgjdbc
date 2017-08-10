@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RunWith(Parameterized.class)
 public class AutoRollbackTestSuite extends BaseTest4 {
@@ -240,9 +242,17 @@ public class AutoRollbackTestSuite extends BaseTest4 {
         if (!flushCacheOnDeallocate && autoSave == AutoSave.NEVER
             && DEALLOCATES.contains(failMode) && autoCommit == AutoCommit.NO
             && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-          Assert.assertFalse("Connection.isValid should return false since failMode=" + failMode
-              + ", flushCacheOnDeallocate=false, and autosave=NEVER",
-              con.isValid(4));
+          // Temporarily silence logging. We expect the connection check to fail and don't need to be reminded.
+          Logger logger = Logger.getLogger(PgConnection.class.getName());
+          Level savedLevel = logger.getLevel();
+          logger.setLevel(Level.OFF);
+          try {
+            Assert.assertFalse("Connection.isValid should return false since failMode=" + failMode
+                    + ", flushCacheOnDeallocate=false, and autosave=NEVER",
+                con.isValid(4));
+          } finally {
+            logger.setLevel(savedLevel);
+          }
         } else {
           Assert.assertTrue("Connection.isValid should return true unless the connection is closed",
               con.isValid(4));

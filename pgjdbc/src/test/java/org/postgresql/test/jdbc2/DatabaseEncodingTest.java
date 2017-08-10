@@ -22,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /*
  * Test case for various encoding problems.
@@ -30,6 +32,7 @@ import java.util.Arrays;
  * and that bad encodings are detected.
  */
 public class DatabaseEncodingTest {
+  private static final Logger LOGGER = Logger.getLogger(DatabaseEncodingTest.class.getName());
   private static final int STEP = 100;
 
   private Connection con;
@@ -76,9 +79,8 @@ public class DatabaseEncodingTest {
 
     String dbEncoding = rs.getString(1);
     if (!dbEncoding.equals("UTF8")) {
-      System.err.println(
-          "DatabaseEncodingTest: Skipping UTF8 database tests as test database encoding is "
-              + dbEncoding);
+      LOGGER.log(Level.INFO,
+          "DatabaseEncodingTest: Skipping UTF8 database tests as test database encoding is {0}", dbEncoding);
       rs.close();
       return; // not a UTF8 database.
     }
