@@ -135,8 +135,6 @@ public class DatabaseEncodingTest {
         insert.setInt(1, i);
         insert.setString(2, testString);
 
-        // System.err.println("Inserting: " + dumpString(testString));
-
         assertEquals(1, insert.executeUpdate());
       }
     }

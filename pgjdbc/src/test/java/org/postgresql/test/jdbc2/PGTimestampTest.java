@@ -203,15 +203,11 @@ public class PGTimestampTest {
     Timestamp ts1 = rs.getTimestamp(1);
     Timestamp tz1 = rs.getTimestamp(2);
 
-    // System.out.println(pstmt1 + " -> " + ts1 + ", " + sdf.format(tz1));
-
     // Read the PGTimestamp values.
     assertTrue(rs.next());
 
     Timestamp ts2 = rs.getTimestamp(1);
     Timestamp tz2 = rs.getTimestamp(2);
-
-    // System.out.println(pstmt2 + " -> " + ts2 + ", " + sdf.format(tz2));
 
     // Verify that the first and second versions match.
     assertEquals(ts1, ts2);

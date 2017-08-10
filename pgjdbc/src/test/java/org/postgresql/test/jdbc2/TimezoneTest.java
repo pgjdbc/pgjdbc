@@ -97,7 +97,6 @@ public class TimezoneTest {
     // so will produce +03 timestamptz output
     con.createStatement().executeUpdate("set timezone = 'gmt-3'");
 
-    // System.err.println("++++++ TESTS START (" + getName() + ") ++++++");
   }
 
   private void connect() throws Exception {
@@ -108,7 +107,6 @@ public class TimezoneTest {
 
   @After
   public void tearDown() throws Exception {
-    // System.err.println("++++++ TESTS END (" + getName() + ") ++++++");
     TimeZone.setDefault(saveTZ);
 
     TestUtil.dropTable(con, "testtimezone");

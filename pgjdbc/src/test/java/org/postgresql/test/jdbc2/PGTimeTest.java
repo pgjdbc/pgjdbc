@@ -106,7 +106,6 @@ public class PGTimeTest extends BaseTest4 {
     assertTrue(rs.next());
 
     Time result1 = rs.getTime(1);
-    // System.out.println(stmt + " = " + sdf.format(result1));
     stmt.close();
 
     // Execute a query using with PGTime + PGInterval.
@@ -122,7 +121,6 @@ public class PGTimeTest extends BaseTest4 {
     assertTrue(rs.next());
 
     Time result2 = rs.getTime(1);
-    // System.out.println(stmt + " = " + sdf.format(result2));
     assertEquals(result1, result2);
     stmt.close();
   }
@@ -204,15 +202,11 @@ public class PGTimeTest extends BaseTest4 {
     Time tm1 = rs.getTime(1);
     Time tz1 = rs.getTime(2);
 
-    // System.out.println(pstmt1 + " -> " + tm1 + ", " + sdf.format(tz1));
-
     // Read the PGTime values.
     assertTrue(rs.next());
 
     Time tm2 = rs.getTime(1);
     Time tz2 = rs.getTime(2);
-
-    // System.out.println(pstmt2 + " -> " + tm2 + ", " + sdf.format(tz2));
 
     // Verify that the first and second versions match.
     assertEquals(tm1, tm2);
