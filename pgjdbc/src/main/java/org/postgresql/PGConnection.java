@@ -21,6 +21,15 @@ import java.sql.Statement;
  * returned by the PostgreSQL driver implement PGConnection.
  */
 public interface PGConnection {
+
+  /**
+   * Returns extended array support for this connection.
+   *
+   * @return Extended array support for this connection.
+   * @throws SQLException if something wrong happens
+   */
+  PGArraySupport getArraySupport() throws SQLException;
+
   /**
    * This method returns any notifications that have been received since the last call to this
    * method. Returns null if there have been no notifications.

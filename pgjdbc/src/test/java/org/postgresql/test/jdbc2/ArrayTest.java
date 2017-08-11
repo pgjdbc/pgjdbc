@@ -5,6 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGArraySupport;
+import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
@@ -78,6 +80,86 @@ public class ArrayTest extends BaseTest4 {
     pstmt.executeUpdate();
 
     pstmt.close();
+  }
+
+  @Test
+  public void testSetPrimitiveObjects() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY);
+    pstmt.setObject(2, new double[]{3.1d, 1.4d}, Types.ARRAY);
+    pstmt.setObject(3, new String[]{"abc", "f'a", "fa\"b"}, Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    Array arr = rs.getArray(1);
+    Assert.assertEquals(Types.INTEGER, arr.getBaseType());
+    Integer[] intarr = (Integer[]) arr.getArray();
+    Assert.assertEquals(3, intarr.length);
+    Assert.assertEquals(1, intarr[0].intValue());
+    Assert.assertEquals(2, intarr[1].intValue());
+    Assert.assertEquals(3, intarr[2].intValue());
+
+    arr = rs.getArray(2);
+    Assert.assertEquals(Types.NUMERIC, arr.getBaseType());
+    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
+    Assert.assertEquals(2, decarr.length);
+    Assert.assertEquals(new BigDecimal("3.1"), decarr[0]);
+    Assert.assertEquals(new BigDecimal("1.4"), decarr[1]);
+
+    arr = rs.getArray(3);
+    Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+    String[] strarr = (String[]) arr.getArray(2, 2);
+    Assert.assertEquals(2, strarr.length);
+    Assert.assertEquals("f'a", strarr[0]);
+    Assert.assertEquals("fa\"b", strarr[1]);
+
+    rs.close();
+  }
+
+  @Test
+  public void testSetPrimitiveArraysObjects() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+
+    final PGArraySupport arraySupport = conn.unwrap(PGConnection.class).getArraySupport();
+
+    pstmt.setArray(1, arraySupport.createArrayOf("int4", new int[]{1,2,3}));
+    pstmt.setObject(2, arraySupport.createArrayOf("float8", new double[]{3.1d, 1.4d}));
+    pstmt.setObject(3, arraySupport.createArrayOf("varchar", new String[]{"abc", "f'a", "fa\"b"}));
+
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    Array arr = rs.getArray(1);
+    Assert.assertEquals(Types.INTEGER, arr.getBaseType());
+    Integer[] intarr = (Integer[]) arr.getArray();
+    Assert.assertEquals(3, intarr.length);
+    Assert.assertEquals(1, intarr[0].intValue());
+    Assert.assertEquals(2, intarr[1].intValue());
+    Assert.assertEquals(3, intarr[2].intValue());
+
+    arr = rs.getArray(2);
+    Assert.assertEquals(Types.NUMERIC, arr.getBaseType());
+    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
+    Assert.assertEquals(2, decarr.length);
+    Assert.assertEquals(new BigDecimal("3.1"), decarr[0]);
+    Assert.assertEquals(new BigDecimal("1.4"), decarr[1]);
+
+    arr = rs.getArray(3);
+    Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+    String[] strarr = (String[]) arr.getArray(2, 2);
+    Assert.assertEquals(2, strarr.length);
+    Assert.assertEquals("f'a", strarr[0]);
+    Assert.assertEquals("fa\"b", strarr[1]);
+
+    rs.close();
   }
 
   @Test

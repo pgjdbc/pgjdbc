@@ -9,6 +9,9 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +24,27 @@ import java.util.logging.Logger;
 class BooleanTypeUtil {
 
   private static final Logger LOGGER = Logger.getLogger(BooleanTypeUtil.class.getName());
+
+  /**
+   * Maps String values to Boolean constants. This starts with all lowers, but
+   * alternate cases will be added as encountered.
+   */
+  private static final Map<String, Boolean> STRING_TO_BOOL_ALL_LOWERS = new ConcurrentHashMap<String, Boolean>(24);
+
+  static {
+    STRING_TO_BOOL_ALL_LOWERS.put("1", Boolean.TRUE);
+    STRING_TO_BOOL_ALL_LOWERS.put("true", Boolean.TRUE);
+    STRING_TO_BOOL_ALL_LOWERS.put("t", Boolean.TRUE);
+    STRING_TO_BOOL_ALL_LOWERS.put("yes", Boolean.TRUE);
+    STRING_TO_BOOL_ALL_LOWERS.put("y", Boolean.TRUE);
+    STRING_TO_BOOL_ALL_LOWERS.put("on", Boolean.TRUE);
+    STRING_TO_BOOL_ALL_LOWERS.put("0", Boolean.FALSE);
+    STRING_TO_BOOL_ALL_LOWERS.put("false", Boolean.FALSE);
+    STRING_TO_BOOL_ALL_LOWERS.put("f", Boolean.FALSE);
+    STRING_TO_BOOL_ALL_LOWERS.put("no", Boolean.FALSE);
+    STRING_TO_BOOL_ALL_LOWERS.put("n", Boolean.FALSE);
+    STRING_TO_BOOL_ALL_LOWERS.put("off", Boolean.FALSE);
+  }
 
   private BooleanTypeUtil() {
   }
@@ -54,29 +78,35 @@ class BooleanTypeUtil {
   private static boolean fromString(final String strval) throws PSQLException {
     // Leading or trailing whitespace is ignored, and case does not matter.
     final String val = strval.trim();
-    if ("1".equals(val) || "true".equalsIgnoreCase(val)
-        || "t".equalsIgnoreCase(val) || "yes".equalsIgnoreCase(val)
-        || "y".equalsIgnoreCase(val) || "on".equalsIgnoreCase(val)) {
-      return true;
+    Boolean result = STRING_TO_BOOL_ALL_LOWERS.get(val);
+    if (result == null) {
+      result = STRING_TO_BOOL_ALL_LOWERS.get(val.toLowerCase(Locale.ENGLISH));
+      if (result != null) {
+        STRING_TO_BOOL_ALL_LOWERS.put(val, result);
+      } else {
+        throw cannotCoerceException(strval);
+      }
     }
-    if ("0".equals(val) || "false".equalsIgnoreCase(val)
-        || "f".equalsIgnoreCase(val) || "no".equalsIgnoreCase(val)
-        || "n".equalsIgnoreCase(val) || "off".equalsIgnoreCase(val)) {
-      return false;
-    }
-    throw cannotCoerceException(strval);
+    return result.booleanValue();
   }
 
   private static boolean fromCharacter(final Character charval) throws PSQLException {
-    if ('1' == charval || 't' == charval || 'T' == charval
-        || 'y' == charval || 'Y' == charval) {
-      return true;
+    switch (charval.charValue()) {
+      case '1':
+      case 't':
+      case 'y':
+      case 'T':
+      case 'Y':
+        return true;
+      case '0':
+      case 'f':
+      case 'n':
+      case 'F':
+      case 'N':
+        return false;
+      default:
+        throw cannotCoerceException(charval);
     }
-    if ('0' == charval || 'f' == charval || 'F' == charval
-        || 'n' == charval || 'N' == charval) {
-      return false;
-    }
-    throw cannotCoerceException(charval);
   }
 
   private static boolean fromNumber(final Number numval) throws PSQLException {
