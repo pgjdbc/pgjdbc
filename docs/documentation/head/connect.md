@@ -309,10 +309,10 @@ Connection conn = DriverManager.getConnection(url);
 * **jaasLogin** = boolean
 
 	Specifies whether to perform a JAAS login before authenticating with GSSAPI.
-	If set to `true` (the default), it allows obtaining GSS credentials using a
-	JAAS login module (e.g. `Krb5LoginModule`) before authenticating. To skip the
-	JAAS login, for example if the native GSS implementation is being used to
-	obtain credentials, set this to `false`.
+	If set to `true` (the default), the driver will attempt to obtain GSS credentials
+	using the configured JAAS login module(s) (e.g. `Krb5LoginModule`) before
+	authenticating. To skip the JAAS login, for example if the native GSS
+	implementation is being used to obtain credentials, set this to `false`.
 
 * **ApplicationName** = String
 
