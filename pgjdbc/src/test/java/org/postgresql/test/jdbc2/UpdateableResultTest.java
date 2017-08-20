@@ -533,8 +533,8 @@ public class UpdateableResultTest extends BaseTest4 {
   public void testMultipleSchemas() throws Exception {
     String previousSchema = con.getSchema();
 
-    TestUtil.createSchema(con, "schema2");
-    con.setSchema("schema2");
+    TestUtil.createSchema(con, "schema_update_row");
+    con.setSchema("schema_update_row");
     TestUtil.createTable(con, "second",
         "id1 int, name1 text, name2 text, constraint second_pk primary key (id1, name2)");
     Statement st2 = con.createStatement();
