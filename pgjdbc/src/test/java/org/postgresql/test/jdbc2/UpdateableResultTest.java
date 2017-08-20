@@ -529,4 +529,25 @@ public class UpdateableResultTest extends BaseTest4 {
     st.close();
   }
 
+  @Test
+  public void testMultipleSchemas() throws Exception {
+    String previousSchema = con.getSchema();
+
+    TestUtil.createSchema(con, "schema2");
+    con.setSchema("schema2");
+    TestUtil.createTable(con, "second",
+        "id1 int, name1 text, name2 text, constraint second_pk primary key (id1, name2)");
+    Statement st2 = con.createStatement();
+    st2.execute("insert into second values (1,'anyvalue', 'anyvalue2')");
+
+    con.setSchema(previousSchema);
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("select id1, name1 from second");
+    rs.next();
+    rs.updateString("name1", "newval");
+    rs.updateRow();
+    rs.close();
+  }
+
 }

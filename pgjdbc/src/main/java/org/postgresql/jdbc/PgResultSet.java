@@ -1573,6 +1573,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       String[] s = quotelessTableName(tableName);
       String quotelessTableName = s[0];
       String quotelessSchemaName = s[1];
+      if (quotelessSchemaName.isEmpty()) {
+        String connectionSchema = connection.getSchema();
+        if (connectionSchema != null && !connectionSchema.isEmpty()) {
+          quotelessSchemaName = connectionSchema;
+        }
+      }
       java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
           quotelessSchemaName, quotelessTableName);
       while (rs.next()) {
