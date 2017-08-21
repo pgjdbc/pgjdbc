@@ -1573,7 +1573,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       String[] s = quotelessTableName(tableName);
       String quotelessTableName = s[0];
       String quotelessSchemaName = s[1];
-      if (quotelessSchemaName.isEmpty()) {
+      if (quotelessSchemaName.isEmpty() && !isTemporaryTable()) {
         String connectionSchema = connection.getSchema();
         if (connectionSchema != null && !connectionSchema.isEmpty()) {
           quotelessSchemaName = connectionSchema;
@@ -1673,6 +1673,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // Always put table in slot 0
     parts[0] = acc.toString();
     return parts;
+  }
+
+  private boolean isTemporaryTable() throws SQLException {
+    ResultSet rs = connection.createStatement()
+        .executeQuery("SELECT 1 FROM pg_namespace WHERE oid = pg_my_temp_schema()");
+    return rs.next();
   }
 
   private void parseQuery() {
