@@ -531,6 +531,10 @@ public class UpdateableResultTest extends BaseTest4 {
 
   @Test
   public void testMultipleSchemas() throws Exception {
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEMP TABLE first(id int primary key, val xml)");
+    stmt.close();
+
     String previousSchema = con.getSchema();
 
     TestUtil.createSchema(con, "schema_update_row");
