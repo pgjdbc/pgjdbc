@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Test;
@@ -531,20 +532,18 @@ public class UpdateableResultTest extends BaseTest4 {
 
   @Test
   public void testMultipleSchemas() throws Exception {
-    Statement stmt = con.createStatement();
-    stmt.execute("CREATE TEMP TABLE first(id int primary key, val xml)");
-    stmt.close();
+    PgConnection pgConnection = con.unwrap(PgConnection.class);
 
-    String previousSchema = con.getSchema();
+    String previousSchema = pgConnection.getSchema();
 
     TestUtil.createSchema(con, "schema_update_row");
-    con.setSchema("schema_update_row");
+    pgConnection.setSchema("schema_update_row");
     TestUtil.createTable(con, "second",
         "id1 int, name1 text, name2 text, constraint second_pk primary key (id1, name2)");
     Statement st2 = con.createStatement();
     st2.execute("insert into second values (1,'anyvalue', 'anyvalue2')");
 
-    con.setSchema(previousSchema);
+    pgConnection.setSchema(previousSchema);
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("select id1, name1 from second");

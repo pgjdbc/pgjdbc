@@ -1684,7 +1684,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         "select n.nspname from pg_class c join pg_namespace n on n.oid=c.relnamespace where c.relname = ? and n.nspname like 'pg_temp%'");
       smt.setString(1, tableName);
       rs = smt.executeQuery();
-    return rs.next();
+      return rs.next();
     } finally {
       if (rs != null && !rs.isClosed()) {
         rs.close();
