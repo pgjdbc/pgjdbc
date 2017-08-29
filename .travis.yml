@@ -13,7 +13,7 @@ before_script:
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
-  - if [[ "x$JDK" == *'x9'* ]]; then export JAVA_HOME=/usr/lib/jvm/zulu-9-amd64; export PATH=$JAVA_HOME/bin:$PATH; fi
+#  - if [[ "x$JDK" == *'x9'* ]]; then export JAVA_HOME=/usr/lib/jvm/java-9-oracle; export PATH=$JAVA_HOME/bin:$PATH; fi
 
 env:
   global:
@@ -27,7 +27,7 @@ script:
   - export JDK6_HOME=$(jdk_switcher home openjdk6)
   - export JDK7_HOME=$(jdk_switcher home openjdk7)
   - export JDK8_HOME=$(jdk_switcher home oraclejdk8)
-  - export JDK9_HOME=/usr/lib/jvm/zulu-9-amd64
+  - export JDK9_HOME=$(jdk_switcher home oraclejdk9)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - ./.travis/travis_build.sh
@@ -129,16 +129,12 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
-    - jdk: # JDK9 EA Azul Zulu OpenJDK
+    - jdk: oraclejdk9
       sudo: required
       dist: trusty
+      group: edge
       addons:
         postgresql: "9.6"
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -q
-        - sudo apt-get install zulu-9 -y
       env:
         - PG_VERSION=9.6
         - JDK=9
