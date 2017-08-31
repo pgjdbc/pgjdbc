@@ -1902,6 +1902,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return connection.getTimestampUtils().timeToString((java.util.Date) obj,
             oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ);
       }
+      if (Oid.BOOL == field.getOID()) {
+        return ((Boolean) obj) ? "t" : "f";
+      }
       if ("hstore".equals(getPGType(columnIndex))) {
         return HStoreConverter.toString((Map<?, ?>) obj);
       }
@@ -1950,13 +1953,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     int col = columnIndex - 1;
-    if (Oid.BOOL == fields[col].getOID()) {
-      final byte[] v = this_row[col];
-      return (1 == v.length) && (116 == v[0]); // 116 = 't'
+    final byte[] value = this_row[col];
+    if (Oid.BOOL == fields[col].getOID() && 1 == value.length) {
+      // Binary value '1', Text value 't' == 116
+      return isBinary(columnIndex) ? (1 == value[0]) : (116 == value[0]);
     }
 
     if (isBinary(columnIndex)) {
-      return BooleanTypeUtil.castToBoolean(readDoubleValue(this_row[col], fields[col].getOID(), "boolean"));
+      return BooleanTypeUtil.castToBoolean(readDoubleValue(value, fields[col].getOID(), "boolean"));
     }
 
     return BooleanTypeUtil.castToBoolean(getString(columnIndex));

@@ -194,6 +194,10 @@ class SimpleParameterList implements V3ParameterList {
           double d = ByteConverter.float8((byte[]) paramValues[index], 0);
           return Double.toString(d);
 
+        case Oid.BOOL:
+          boolean b = ((byte[]) paramValues[index])[0] == 1;
+          return b ? "TRUE" : "FALSE";
+
         case Oid.UUID:
           String uuid =
               new UUIDArrayAssistant().buildElement((byte[]) paramValues[index], 0, 16).toString();
