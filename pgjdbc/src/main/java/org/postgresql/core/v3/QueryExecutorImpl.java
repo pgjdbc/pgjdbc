@@ -51,7 +51,6 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -558,7 +557,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       }
 
-      public void handleCommandStatus(String status, int updateCount, long insertOID) {
+      @Override
+      public void handleCommandStatus(String status, long updateCount, long insertOID) {
         if (!sawBegin) {
           sawBegin = true;
           if (!status.equals("BEGIN")) {
@@ -600,7 +600,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       ResultHandler handler = new ResultHandlerBase() {
         private boolean sawBegin = false;
 
-        public void handleCommandStatus(String status, int updateCount, long insertOID) {
+        @Override
+        public void handleCommandStatus(String status, long updateCount, long insertOID) {
           if (!sawBegin) {
             if (!status.equals("BEGIN")) {
               handleError(
@@ -614,6 +615,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
 
+        @Override
         public void handleWarning(SQLWarning warning) {
           // we don't want to ignore warnings and it would be tricky
           // to chain them back to the connection, so since we don't
@@ -2408,7 +2410,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // (if the fetch returns no rows, we see just a CommandStatus..)
     final ResultHandler delegateHandler = handler;
     handler = new ResultHandlerDelegate(delegateHandler) {
-      public void handleCommandStatus(String status, int updateCount, long insertOID) {
+      @Override
+      public void handleCommandStatus(String status, long updateCount, long insertOID) {
         handleResultRows(portal.getQuery(), null, new ArrayList<byte[][]>(), null);
       }
     };
@@ -2539,16 +2542,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     long oid = commandCompleteParser.getOid();
     long count = commandCompleteParser.getRows();
 
-    int countAsInt = 0;
-    if (count > Integer.MAX_VALUE) {
-      // If command status indicates that we've modified more than Integer.MAX_VALUE rows
-      // then we set the result count to reflect that we cannot provide the actual number
-      // due to the JDBC field being an int rather than a long.
-      countAsInt = Statement.SUCCESS_NO_INFO;
-    } else if (count > 0) {
-      countAsInt = (int) count;
-    }
-    handler.handleCommandStatus(status, countAsInt, oid);
+    handler.handleCommandStatus(status, count, oid);
   }
 
   private void receiveRFQ() throws IOException {

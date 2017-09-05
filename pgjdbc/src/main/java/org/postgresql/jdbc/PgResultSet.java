@@ -1744,17 +1744,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public class CursorResultHandler extends ResultHandlerBase {
 
+    @Override
     public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
         ResultCursor cursor) {
       PgResultSet.this.rows = tuples;
       PgResultSet.this.cursor = cursor;
     }
 
-    public void handleCommandStatus(String status, int updateCount, long insertOID) {
+    @Override
+    public void handleCommandStatus(String status, long updateCount, long insertOID) {
       handleError(new PSQLException(GT.tr("Unexpected command status: {0}.", status),
           PSQLState.PROTOCOL_VIOLATION));
     }
 
+    @Override
     public void handleCompletion() throws SQLException {
       SQLWarning warning = getWarning();
       if (warning != null) {
