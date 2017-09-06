@@ -10,6 +10,7 @@ import org.postgresql.geometric.PGbox;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
@@ -72,6 +73,22 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.dropTable(_conn, "arrcompchldttest");
     TestUtil.dropTable(_conn, "\"CorrectCasing\"");
     super.tearDown();
+  }
+
+  @Test
+  public void testCreateArrayOfBytea() throws SQLException {
+    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bytea");
+
+    byte []b = new byte[] { (byte)0xde, (byte)0xad, (byte)0xbe, (byte)0xef }; // 0xdeadbeef
+
+    pstmt.setObject(1, b);
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    byte []out = (byte[])(rs.getObject(1));
+    Assert.assertNotNull(out);
+
+    Assert.assertEquals(4, out.length);
   }
 
   @Test
