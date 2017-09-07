@@ -1,5 +1,6 @@
 sudo: false
 language: java
+dist: trusty
 
 before_script:
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
@@ -13,7 +14,6 @@ before_script:
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
-  - if [[ "x$JDK" == *'x9'* ]]; then export JAVA_HOME=/usr/lib/jvm/zulu-9-amd64; export PATH=$JAVA_HOME/bin:$PATH; fi
 
 env:
   global:
@@ -24,11 +24,11 @@ env:
 script:
   # make sure previous build artifacts are not used for subsequent builds
   - rm -rf $HOME/.m2/repository/org/postgresql || true
-  - export JDK6_HOME=$(jdk_switcher home openjdk6)
-  - export JDK7_HOME=$(jdk_switcher home openjdk7)
-  - export JDK8_HOME=$(jdk_switcher home oraclejdk8)
-  - export JDK9_HOME=/usr/lib/jvm/zulu-9-amd64
-  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
+  - test -d "${JDK6_HOME}" || export JDK6_HOME=$(jdk_switcher home openjdk6)
+  - test -d "${JDK7_HOME}" || export JDK7_HOME=$(jdk_switcher home openjdk7)
+  - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home oraclejdk8)
+  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
+  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - ./.travis/travis_build.sh
   - ./.travis/travis_check_postgres_health.sh
@@ -62,24 +62,36 @@ matrix:
         - FEDORA_CI=Y
       services:
         - docker
+    - jdk: oraclejdk9
+      addons:
+        postgresql: "9.6"
+      env:
+        - PG_VERSION=9.6
+        - JDK=9
     - jdk: oraclejdk8
       sudo: required
-      dist: trusty
       env:
         - PG_VERSION=HEAD
         - XA=true
         - REPLICATION=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: trusty
+      before_install:
+        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
+        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
+        - sudo apt-get update -qq && sudo apt-get install zulu-8 -y
+        - export JDK8_HOME=/usr/lib/jvm/zulu-8-amd64
+      addons:
+        postgresql: "9.6"
       env:
         - PG_VERSION=9.6
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
+        - MCENTRAL=Y
+        - JDOC=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: trusty
       addons:
         postgresql: "9.5"
       env:
@@ -88,20 +100,14 @@ matrix:
         - REPLICATION=Y
         - COVERAGE=Y
     - jdk: oraclejdk8
+      sudo: required
       addons:
         postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java8-installer
-      sudo: required
-      dist: trusty
       env:
         - PG_VERSION=9.4
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
-        - MCENTRAL=Y
-        - JDOC=Y
     - jdk: oraclejdk8
       sudo: required
       dist: precise
@@ -123,82 +129,87 @@ matrix:
     - jdk: oraclejdk8
       sudo: required
       dist: precise
-      env: # this has to match allow_failures above
+      env:
         - PG_VERSION=8.2
         - XA=true
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
-    - jdk: # JDK9 EA Azul Zulu OpenJDK
-      sudo: required
-      dist: trusty
-      addons:
-        postgresql: "9.6"
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -q
-        - sudo apt-get install zulu-9 -y
-      env:
-        - PG_VERSION=9.6
-        - JDK=9
-    - jdk: openjdk7
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
-    - jdk: openjdk6
-      dist: precise # Trusty does not have Java 6, and installers no longer work
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
     - jdk: oraclejdk8
       addons:
-        postgresql: "9.4"
+        postgresql: "9.6"
       env:
-        - PG_VERSION=9.4
+        - PG_VERSION=9.6
         - TEST_CLIENTS=Y
     - jdk: oraclejdk8
       addons:
-        postgresql: "9.4"
+        postgresql: "9.6"
       env:
-        - PG_VERSION=9.4
+        - PG_VERSION=9.6
         - QUERY_MODE=simple
         - COVERAGE=Y
         - ANORM_SBT=Y
     - jdk: oraclejdk8
       addons:
-        postgresql: "9.4"
+        postgresql: "9.6"
       env:
-        - PG_VERSION=9.4
+        - PG_VERSION=9.6
         - QUERY_MODE=extendedForPrepared
+        - COVERAGE=Y
     - jdk: oraclejdk8
+      addons:
+        postgresql: "9.5"
+      env:
+        - PG_VERSION=9.5
+        - NO_WAFFLE_NO_OSGI=Y
+        - JDOC=Y
+    - jdk: openjdk7
+      sudo: required
+      before_install:
+        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
+        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
+        - sudo apt-get update -qq && sudo apt-get install zulu-7 -y
+        - export JDK7_HOME=/usr/lib/jvm/zulu-7-amd64
+        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk7
       addons:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - NO_WAFFLE_NO_OSGI=Y
-        - JDOC=Y
+        - MCENTRAL=Y
+        - COVERAGE=Y
     - jdk: openjdk7
+      sudo: required
+      before_install:
+        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
+        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
+        - sudo apt-get update -qq && sudo apt-get install zulu-7 -y
+        - export JDK7_HOME=/usr/lib/jvm/zulu-7-amd64
+        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk7
       addons:
         postgresql: "9.3"
       env:
         - PG_VERSION=9.3
         - COVERAGE=Y
     - jdk: openjdk6
-      dist: precise # Trusty does not have Java 6, and installers no longer work
-      addons:
-        postgresql: "9.2"
+      sudo: required
+      before_install:
+        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
+        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
+        - sudo apt-get update -qq && sudo apt-get install zulu-6 -y
+        - export JDK6_HOME=/usr/lib/jvm/zulu-6-amd64
+        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk6
       env:
         - PG_VERSION=9.2
+        - MCENTRAL=Y
         - COVERAGE=Y
-    - jdk: oraclejdk8
-      sudo: required # to install PostgreSQL 9.1
-      addons:
-        postgresql: "9.1"
+    - jdk: openjdk6
+      sudo: required
+      before_install:
+        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
+        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
+        - sudo apt-get update -qq && sudo apt-get install zulu-6 -y
+        - export JDK6_HOME=/usr/lib/jvm/zulu-6-amd64
+        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk6
       env:
         - PG_VERSION=9.1
         - COVERAGE=Y
