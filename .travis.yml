@@ -110,7 +110,6 @@ matrix:
         - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: precise
       env:
         - PG_VERSION=8.4
         - XA=true
