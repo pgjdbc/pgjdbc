@@ -64,6 +64,9 @@ matrix:
         - docker
     - jdk: oraclejdk9
       addons:
+        apt:
+          packages:
+            - oracle-java9-installer # Test with latest update
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
@@ -102,6 +105,10 @@ matrix:
     - jdk: oraclejdk8
       sudo: required
       addons:
+      addons:
+        apt:
+          packages:
+            - oracle-java8-installer # Test with latest update
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
