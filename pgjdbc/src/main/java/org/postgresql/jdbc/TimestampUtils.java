@@ -1066,7 +1066,7 @@ public class TimestampUtils {
    * @param tz desired time zone
    * @return timestamp that would be rendered in {@code tz} like {@code millis} in UTC
    */
-  private long guessTimestamp(long millis, TimeZone tz) {
+  private synchronized long guessTimestamp(long millis, TimeZone tz) {
     if (tz == null) {
       // If client did not provide us with time zone, we use system default time zone
       tz = getDefaultTz();
@@ -1133,7 +1133,7 @@ public class TimestampUtils {
    * @param tz The time zone of the date.
    * @return The extracted date.
    */
-  public Date convertToDate(long millis, TimeZone tz) {
+  public synchronized Date convertToDate(long millis, TimeZone tz) {
 
     // no adjustments for the inifity hack values
     if (millis <= PGStatement.DATE_NEGATIVE_INFINITY
@@ -1177,7 +1177,7 @@ public class TimestampUtils {
    * @param tz timezone to use.
    * @return The extracted time.
    */
-  public Time convertToTime(long millis, TimeZone tz) {
+  public synchronized Time convertToTime(long millis, TimeZone tz) {
     if (tz == null) {
       tz = getDefaultTz();
     }
