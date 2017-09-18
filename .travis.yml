@@ -23,6 +23,7 @@ env:
 
 before_install:
   - ./.travis/travis_install_zulu.sh
+  - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
 
 script:
   # make sure previous build artifacts are not used for subsequent builds

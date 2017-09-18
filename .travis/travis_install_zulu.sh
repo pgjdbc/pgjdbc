@@ -8,7 +8,4 @@ then
     sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
     sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
     sudo apt-get update -qq && sudo apt-get install zulu-${ZULU_JDK} -y
-
-    # Build using Toolchain OpenJDK Zulu
-    export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
 fi
