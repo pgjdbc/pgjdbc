@@ -21,6 +21,9 @@ env:
     - secure: "VrNgbyKQi5HjSMZfkt/zwG+AHk1NW1b+f3Jo1ZH7DCqcgLApwvp4MNsw+XamqHxudjj3Z8+4bYBxG2H6zIOobIyYhBvxUwMq7HTjM4jH8m5phqvQIWZOzZzqguYNNS7JJQUpIMwR7wTuHqucVfMxljoSuXQbs+0BUxo4Eh+FScQ="
     - secure: "NI+aqwRLLVt2feJdk/2ZEZnsaPyu+vOx8MahVxjz0UUVvRHVqxM5O1M0R53NJfEeIjflOzgZJwRLqgyl6dkdfjytRhaHWGptQdehV4cwNb+4epnn8WlpRzMac65zTQqnbGVtw9jissDQv6/Zl/+D+DMcU65BbFZkix40whILXG0="
 
+before_install:
+  - ./.travis/travis_install_zulu.sh
+
 script:
   # make sure previous build artifacts are not used for subsequent builds
   - rm -rf $HOME/.m2/repository/org/postgresql || true
@@ -77,17 +80,14 @@ matrix:
         - PG_VERSION=HEAD
         - XA=true
         - REPLICATION=Y
+        - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -qq && sudo apt-get install zulu-8 -y
-        - export JDK8_HOME=/usr/lib/jvm/zulu-8-amd64
       addons:
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
+        - ZULU_JDK=8
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
@@ -101,10 +101,8 @@ matrix:
         - PG_VERSION=9.5
         - XA=true
         - REPLICATION=Y
-        - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
-      addons:
       addons:
         apt:
           packages:
@@ -112,6 +110,7 @@ matrix:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
+        - LATEST_JAVA_UPDATE=Y # Use Travis last Java update
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
@@ -171,54 +170,30 @@ matrix:
         - JDOC=Y
     - jdk: openjdk7
       sudo: required
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -qq && sudo apt-get install zulu-7 -y
-        - export JDK7_HOME=/usr/lib/jvm/zulu-7-amd64
-        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk7
       addons:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
+        - ZULU_JDK=7
         - MCENTRAL=Y
-        - COVERAGE=Y
     - jdk: openjdk7
       sudo: required
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -qq && sudo apt-get install zulu-7 -y
-        - export JDK7_HOME=/usr/lib/jvm/zulu-7-amd64
-        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk7
       addons:
         postgresql: "9.3"
       env:
         - PG_VERSION=9.3
-        - COVERAGE=Y
+        - ZULU_JDK=7
     - jdk: openjdk6
       sudo: required
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -qq && sudo apt-get install zulu-6 -y
-        - export JDK6_HOME=/usr/lib/jvm/zulu-6-amd64
-        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk6
       env:
         - PG_VERSION=9.2
+        - ZULU_JDK=6
         - MCENTRAL=Y
-        - COVERAGE=Y
     - jdk: openjdk6
       sudo: required
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -qq && sudo apt-get install zulu-6 -y
-        - export JDK6_HOME=/usr/lib/jvm/zulu-6-amd64
-        - jdk_switcher use oraclejdk8 # run maven with jdk8, compile with toolchain jdk6
       env:
         - PG_VERSION=9.1
-        - COVERAGE=Y
+        - ZULU_JDK=6
 
 # Deploy snapshots to Maven Central
 after_success:
