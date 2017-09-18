@@ -9,9 +9,6 @@ then
     sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
     sudo apt-get update -qq && sudo apt-get install zulu-$ZULU_JDK -y
 
-    # Run Maven with JDK8 from Travis
-    jdk_switcher use oraclejdk8
-
     # Build using Toolchain OpenJDK Zulu
     if [ "$ZULU_JDK" -eq 6 ]; then
       export JDK6_HOME=/usr/lib/jvm/zulu-$ZULU_JDK-amd64

@@ -33,6 +33,7 @@ script:
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
+  - jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
   - ./.travis/travis_build.sh
   - ./.travis/travis_check_postgres_health.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
