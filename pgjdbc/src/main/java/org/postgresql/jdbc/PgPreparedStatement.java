@@ -281,6 +281,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
     checkClosed();
+    if (connection.binaryTransferSend(Oid.BOOL)) {
+      byte[] val = {(byte) (x ? 1 : 0)};
+      bindBytes(parameterIndex, val, Oid.BOOL);
+      return;
+    }
     // The key words TRUE and FALSE are the preferred (SQL-compliant) usage.
     bindLiteral(parameterIndex, x ? "TRUE" : "FALSE", Oid.BOOL);
   }

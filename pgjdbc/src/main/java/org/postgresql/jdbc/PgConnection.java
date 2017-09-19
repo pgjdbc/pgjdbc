@@ -229,6 +229,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.POINT);
       binaryOids.add(Oid.BOX);
       binaryOids.add(Oid.UUID);
+      binaryOids.add(Oid.BOOL);
     }
 
     binaryOids.addAll(getOidSet(PGProperty.BINARY_TRANSFER_ENABLE.get(info)));
