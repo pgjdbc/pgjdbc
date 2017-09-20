@@ -24,7 +24,11 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import javax.naming.InvalidNameException;
@@ -47,6 +51,8 @@ import javax.security.auth.x500.X500Principal;
  * Provide an SSLSocketFactory that is compatible with the libpq behaviour.
  */
 public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
+
+  private static final int ALT_DNS_NAME = 2;
 
   LazyKeyManager km = null;
   String sslmode;
@@ -252,6 +258,25 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     }
     // Extract the common name
     X509Certificate serverCert = peerCerts[0];
+
+    try {
+      // Check for Subject Alternative Names (see RFC 6125)
+      Collection subjectAltNames = serverCert.getSubjectAlternativeNames();
+      Iterator sanIt = subjectAltNames.iterator();
+      while (sanIt.hasNext()) {
+        List list = (List) sanIt.next();
+        String san = ((String) list.get(1));
+        Integer type = (Integer) list.get(0);
+
+        // this mimics libpq check for ALT_DNS_NAME
+        if (type == ALT_DNS_NAME && san.equals(hostname)) {
+          return true;
+        }
+      }
+    } catch (CertificateParsingException e) {
+      return false;
+    }
+
     LdapName DN;
     try {
       DN = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
