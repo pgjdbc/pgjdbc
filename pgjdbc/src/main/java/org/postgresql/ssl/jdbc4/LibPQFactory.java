@@ -262,15 +262,21 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     try {
       // Check for Subject Alternative Names (see RFC 6125)
       Collection subjectAltNames = serverCert.getSubjectAlternativeNames();
-      Iterator sanIt = subjectAltNames.iterator();
-      while (sanIt.hasNext()) {
-        List list = (List) sanIt.next();
-        String san = ((String) list.get(1));
-        Integer type = (Integer) list.get(0);
 
-        // this mimics libpq check for ALT_DNS_NAME
-        if (type == ALT_DNS_NAME && san.equals(hostname)) {
-          return true;
+      if (subjectAltNames != null) {
+
+        Iterator sanIt = subjectAltNames.iterator();
+
+        while (sanIt.hasNext()) {
+
+          List list = (List) sanIt.next();
+          String san = ((String) list.get(1));
+          Integer type = (Integer) list.get(0);
+
+          // this mimics libpq check for ALT_DNS_NAME
+          if (type == ALT_DNS_NAME && san.equals(hostname)) {
+            return true;
+          }
         }
       }
     } catch (CertificateParsingException e) {
