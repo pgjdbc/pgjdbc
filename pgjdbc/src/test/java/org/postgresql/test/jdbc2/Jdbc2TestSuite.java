@@ -15,7 +15,10 @@ import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.JavaVersionTest;
+import org.postgresql.test.core.FixedLengthOutputStreamTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
+import org.postgresql.test.util.ByteBufferByteStreamWriterTest;
+import org.postgresql.test.util.ByteStreamWriterTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
@@ -131,7 +134,11 @@ import org.junit.runners.Suite;
         CopyLargeFileTest.class,
         ServerErrorTest.class,
         UpsertTest.class,
-        OuterJoinSyntaxTest.class
+        OuterJoinSyntaxTest.class,
+
+        FixedLengthOutputStreamTest.class,
+        ByteStreamWriterTest.class,
+        ByteBufferByteStreamWriterTest.class
 })
 public class Jdbc2TestSuite {
 }

@@ -7,6 +7,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.core.ParameterList;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -105,6 +106,11 @@ class CompositeParameterList implements V3ParameterList {
   public void setBytea(int index, InputStream stream) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], stream);
+  }
+
+  public void setBytea(int index, ByteStreamWriter writer) throws SQLException {
+    int sub = findSubParam(index);
+    subparams[sub].setBytea(index - offsets[sub], writer);
   }
 
   public void setText(int index, InputStream stream) throws SQLException {

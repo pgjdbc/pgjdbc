@@ -14,6 +14,7 @@ import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -145,6 +146,11 @@ class SimpleParameterList implements V3ParameterList {
   @Override
   public void setBytea(int index, InputStream stream) throws SQLException {
     bind(index, new StreamWrapper(stream), Oid.BYTEA, BINARY);
+  }
+
+  @Override
+  public void setBytea(int index, ByteStreamWriter writer) throws SQLException {
+    bind(index, writer, Oid.BYTEA, BINARY);
   }
 
   @Override
@@ -290,6 +296,14 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
   }
 
+  //
+  // byte stream writer support
+  //
+
+  private static void streamBytea(PGStream pgStream, ByteStreamWriter writer) throws IOException {
+    pgStream.send(writer);
+  }
+
   public int[] getTypeOIDs() {
     return paramTypes;
   }
@@ -351,6 +365,11 @@ class SimpleParameterList implements V3ParameterList {
       return ((StreamWrapper) paramValues[index]).getLength();
     }
 
+    // Binary-format bytea?
+    if (paramValues[index] instanceof ByteStreamWriter) {
+      return ((ByteStreamWriter) paramValues[index]).getLength();
+    }
+
     // Already encoded?
     if (encoded[index] == null) {
       // Encode value and compute actual length using UTF-8.
@@ -377,6 +396,12 @@ class SimpleParameterList implements V3ParameterList {
     // Binary-format bytea?
     if (paramValues[index] instanceof StreamWrapper) {
       streamBytea(pgStream, (StreamWrapper) paramValues[index]);
+      return;
+    }
+
+    // Streamed bytea?
+    if (paramValues[index] instanceof ByteStreamWriter) {
+      streamBytea(pgStream, (ByteStreamWriter) paramValues[index]);
       return;
     }
 
