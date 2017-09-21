@@ -48,7 +48,7 @@ public class ByteBufferByteStreamWriterTest {
 
   @Test
   public void testPropagatesException() throws IOException {
-    IOException e = new IOException("oh no");
+    final IOException e = new IOException("oh no");
     OutputStream errorStream = new OutputStream() {
       @Override
       public void write(int b) throws IOException {
