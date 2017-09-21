@@ -391,7 +391,7 @@ public class PGStream implements Closeable {
    * @return tuple from the back end
    * @throws IOException if a data I/O error occurs
    */
-  public byte[][] receiveTupleV3() throws IOException, OutOfMemoryError {
+  public Tuple receiveTupleV3() throws IOException, OutOfMemoryError {
     // TODO: use l_msgSize
     int l_msgSize = receiveInteger4();
     int l_nf = receiveInteger2();
@@ -415,7 +415,7 @@ public class PGStream implements Closeable {
       throw oom;
     }
 
-    return answer;
+    return new Tuple(answer);
   }
 
   /**

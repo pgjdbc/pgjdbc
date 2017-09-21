@@ -23,7 +23,7 @@ public class ResultHandlerDelegate implements ResultHandler {
   }
 
   @Override
-  public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
+  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
       ResultCursor cursor) {
     if (delegate != null) {
       delegate.handleResultRows(fromQuery, fields, tuples, cursor);

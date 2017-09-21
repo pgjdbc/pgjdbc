@@ -9,6 +9,7 @@ import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
+import org.postgresql.core.Tuple;
 
 import java.util.List;
 
@@ -17,7 +18,7 @@ class CallableBatchResultHandler extends BatchResultHandler {
     super(statement, queries, parameterLists, false);
   }
 
-  public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
+  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples, ResultCursor cursor) {
     /* ignore */
   }
 }
