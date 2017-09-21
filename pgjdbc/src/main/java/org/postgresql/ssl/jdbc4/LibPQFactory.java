@@ -24,7 +24,11 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import javax.naming.InvalidNameException;
@@ -252,6 +256,22 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     }
     // Extract the common name
     X509Certificate serverCert = peerCerts[0];
+
+    try {
+      // Check for Subject Alternative Names (see RFC 6125)
+      Collection subjectAltNames = serverCert.getSubjectAlternativeNames();
+      Iterator sanIt = subjectAltNames.iterator();
+      while (sanIt.hasNext()) {
+        List list = (List) sanIt.next();
+        String san = ((String) list.get(1));
+        if (san.equals(hostname)) {
+          return true;
+        }
+      }
+    } catch (CertificateParsingException e) {
+      return false;
+    }
+
     LdapName DN;
     try {
       DN = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
