@@ -652,7 +652,7 @@ public class Driver implements java.sql.Driver {
    * @return the timeout from the URL, in milliseconds
    */
   private static long timeout(Properties props) {
-    String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
+    String timeout = props.getProperty(PGProperty.LOGIN_TIMEOUT.getName(), null);
     if (timeout != null) {
       try {
         return (long) (Float.parseFloat(timeout) * 1000);
