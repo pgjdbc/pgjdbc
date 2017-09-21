@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -308,6 +309,27 @@ public class PGStream implements Closeable, Flushable {
     pgOutput.write(buf, off, bufamt < siz ? bufamt : siz);
     for (int i = bufamt; i < siz; ++i) {
       pgOutput.write(0);
+    }
+  }
+
+  /**
+   * Send a fixed-size array of bytes to the backend. If {@code length < siz}, pad with zeros. If
+   * {@code length > siz}, truncate the array.
+   *
+   * @param writer the stream writer to invoke to send the bytes
+   * @throws IOException if an I/O error occurs
+   */
+  public void send(ByteStreamWriter writer) throws IOException {
+    FixedLengthOutputStream fixedLengthStream = new FixedLengthOutputStream(writer.getLength(), pg_output);
+    try {
+      writer.writeTo(fixedLengthStream);
+    } catch (IOException ioe) {
+      throw ioe;
+    } catch (Exception re) {
+      throw new IOException("Error writing bytes to stream", re);
+    }
+    for (int i = fixedLengthStream.remaining(); i > 0; i--) {
+      pg_output.write(0);
     }
   }
 
