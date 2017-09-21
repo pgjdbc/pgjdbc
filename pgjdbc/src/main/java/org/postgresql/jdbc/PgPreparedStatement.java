@@ -18,6 +18,7 @@ import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGBinaryObject;
@@ -361,6 +362,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     byte[] copy = new byte[x.length];
     System.arraycopy(x, 0, copy, 0, x.length);
     preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
+  }
+
+  private void setByteStreamWriter(int parameterIndex, ByteStreamWriter x) throws SQLException {
+    preparedParameters.setBytea(parameterIndex, x);
   }
 
   public void setDate(int parameterIndex, java.sql.Date x) throws SQLException {
@@ -930,6 +935,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setDouble(parameterIndex, (Double) x);
     } else if (x instanceof byte[]) {
       setBytes(parameterIndex, (byte[]) x);
+    } else if (x instanceof ByteStreamWriter) {
+      setByteStreamWriter(parameterIndex, (ByteStreamWriter) x);
     } else if (x instanceof java.sql.Date) {
       setDate(parameterIndex, (java.sql.Date) x);
     } else if (x instanceof Time) {
