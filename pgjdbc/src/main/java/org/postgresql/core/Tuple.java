@@ -1,18 +1,29 @@
 /*
- * Copyright (c) 2008, PostgreSQL Global Development Group
+ * Copyright (c) 2017, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
 package org.postgresql.core;
 
+/**
+ * Class representing a row in a {@link java.sql.ResultSet}.
+ */
 public class Tuple {
   private final boolean forUpdate;
   final byte[][] data;
 
+  /**
+   * Construct an empty tuple. Used in updatable result sets.
+   * @param length the number of fields in the tuple.
+   */
   public Tuple(int length) {
     this(new byte[length][], true);
   }
 
+  /**
+   * Construct a populated tuple. Used when returning results.
+   * @param data the tuple data
+   */
   public Tuple(byte[][] data) {
     this(data, false);
   }
@@ -22,28 +33,49 @@ public class Tuple {
     this.forUpdate = forUpdate;
   }
 
-  public int columnCount() {
+  /**
+   * Number of fields in the tuple
+   * @return number of fields
+   */
+  public int fieldCount() {
     return data.length;
   }
 
+  /**
+   * Total length in bytes of the tuple data.
+   * @return the number of bytes in this tuple
+   */
   public int length() {
     int length = 0;
-    for (byte[] aTuple : data) {
-      if (aTuple != null) {
-        length += aTuple.length;
+    for (byte[] field : data) {
+      if (field != null) {
+        length += field.length;
       }
     }
     return length;
   }
 
+  /**
+   * Get the data for the given field
+   * @param index 0-based field position in the tuple
+   * @return byte array of the data
+   */
   public byte[] get(int index) {
     return data[index];
   }
 
+  /**
+   * Create a copy of the tuple for updating.
+   * @return a copy of the tuple that allows updates
+   */
   public Tuple updateableCopy() {
     return copy(true);
   }
 
+  /**
+   * Create a read-only copy of the tuple
+   * @return a copy of the tuple that does not allow updates
+   */
   public Tuple readOnlyCopy() {
     return copy(false);
   }
@@ -54,10 +86,15 @@ public class Tuple {
     return new Tuple(dataCopy, forUpdate);
   }
 
-  public void set(int column, byte[] fieldData) {
+  /**
+   * Set the given field to the given data.
+   * @param index 0-based field position
+   * @param fieldData the data to set
+   */
+  public void set(int index, byte[] fieldData) {
     if (!forUpdate) {
       throw new IllegalArgumentException("Attempted to write to readonly tuple");
     }
-    data[column] = fieldData;
+    data[index] = fieldData;
   }
 }
