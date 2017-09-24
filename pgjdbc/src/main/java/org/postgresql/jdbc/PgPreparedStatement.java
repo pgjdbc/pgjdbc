@@ -247,7 +247,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.TIMESTAMP_WITH_TIMEZONE:
       //#endif
       case Types.TIMESTAMP:
-        oid = Oid.UNSPECIFIED;
+        oid = Oid.TIMESTAMPTZ;
         break;
       case Types.BOOLEAN:
       case Types.BIT:
@@ -1292,7 +1292,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
-    bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
+    bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.TIMESTAMPTZ);
   }
 
   public void setTime(int i, Time t, java.util.Calendar cal) throws SQLException {
@@ -1303,7 +1303,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    int oid = Oid.UNSPECIFIED;
+    int oid = Oid.TIMESTAMPTZ;
 
     // If a PGTime is used, we can define the OID explicitly.
     if (t instanceof PGTime) {
@@ -1330,7 +1330,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    int oid = Oid.UNSPECIFIED;
+    int oid = Oid.TIMESTAMPTZ;
 
     // Use UNSPECIFIED as a compromise to get both TIMESTAMP and TIMESTAMPTZ working.
     // This is because you get this in a +1300 timezone:
