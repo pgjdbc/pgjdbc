@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -107,10 +108,8 @@ public class CopyTest {
 
     long count1 = cp.endCopy();
     long count2 = cp.getHandledRowCount();
-    long expectedResult = -1;
-    expectedResult = dataRows;
-    assertEquals(expectedResult, count1);
-    assertEquals(expectedResult, count2);
+    assertEquals(dataRows, count1);
+    assertEquals(dataRows, count2);
 
     try {
       cp.cancelCopy();
@@ -212,10 +211,8 @@ public class CopyTest {
     assertEquals(dataRows, count);
 
     long rowCount = cp.getHandledRowCount();
-    long expectedResult = -1;
-    expectedResult = dataRows;
 
-    assertEquals(expectedResult, rowCount);
+    assertEquals(dataRows, rowCount);
 
     assertEquals(dataRows, getCount());
   }
@@ -229,10 +226,9 @@ public class CopyTest {
     assertEquals(dataRows, getCount());
     // deep comparison of data written and read
     byte[] copybytes = copydata.toByteArray();
-    assertTrue(copybytes != null);
+    assertNotNull(copybytes);
     for (int i = 0, l = 0; i < origData.length; i++) {
       byte[] origBytes = origData[i].getBytes();
-      assertTrue(origBytes != null);
       assertTrue("Copy is shorter than original", copybytes.length >= l + origBytes.length);
       for (int j = 0; j < origBytes.length; j++, l++) {
         assertEquals("content changed at byte#" + j + ": " + origBytes[j] + copybytes[l],

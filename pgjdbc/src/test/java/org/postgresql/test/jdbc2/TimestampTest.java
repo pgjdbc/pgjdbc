@@ -565,42 +565,41 @@ public class TimestampTest extends BaseTest4 {
    */
   private void timestampTestWOTZ() throws SQLException {
     Statement stmt = con.createStatement();
-    ResultSet rs;
     java.sql.Timestamp t;
 
-    rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); // removed the order by ts
+    ResultSet rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); // removed the order by ts
     assertNotNull(rs);
 
     for (int i = 0; i < 3; i++) {
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS1WOTZ));
+      assertEquals(TS1WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS2WOTZ));
+      assertEquals(TS2WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS3WOTZ));
+      assertEquals(TS3WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS4WOTZ));
+      assertEquals(TS4WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS5WOTZ));
+      assertEquals(TS5WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS6WOTZ));
+      assertEquals(TS6WOTZ, t);
     }
 
     // Testing for Date
