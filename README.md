@@ -1,4 +1,4 @@
-<img height="90" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Wave.svg/133px-Wave.svg.png" />
+<img height="90" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Duke_%28Java_mascot%29_waving.svg/133px-Duke_%28Java_mascot%29_waving.svg.png" />
 <img height="90" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Postgresql_elephant.svg/200px-Postgresql_elephant.svg.png" />
 
 # PostgreSQL JDBC Driver
@@ -68,6 +68,10 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 ```
 
 There are also available (snapshot) binary RPMs in [Fedora's Copr repository](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/).
+
+## Changelog
+See [CHANGELOG.md file](CHANGELOG.md) for a list of changes of the lastest versions. You can found a
+[History of Changes](https://jdbc.postgresql.org/documentation/changelog.html#introduction) in the website for reference of previous versions.
 
 ----------------------------------------------------
 ## Documentation
