@@ -2512,7 +2512,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     long insert_oid = 0;
 
     if (status.startsWith("INSERT") || status.startsWith("UPDATE") || status.startsWith("DELETE")
-        || status.startsWith("MOVE")) {
+        || status.startsWith("SELECT ") || status.startsWith("MOVE")) {
       try {
         long updates = Long.parseLong(status.substring(1 + status.lastIndexOf(' ')));
 
