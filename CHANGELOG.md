@@ -59,8 +59,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Regresions
 - Data truncated in setCharacterStream. Fixed in 42.1.0
 
-
-Read the [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html#introduction) for reference of previous versions.
+## Older releases
+Read the [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html) for reference of previous versions.
 
 [Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...HEAD
 [42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
