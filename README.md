@@ -1,5 +1,4 @@
-<img height="90" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Duke_%28Java_mascot%29_waving.svg/133px-Duke_%28Java_mascot%29_waving.svg.png" />
-<img height="90" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Postgresql_elephant.svg/200px-Postgresql_elephant.svg.png" />
+<img height="90" alt="Slonik Duke" align="right" src="docs/media/img/slonik_duke.png" />
 
 # PostgreSQL JDBC Driver
 
