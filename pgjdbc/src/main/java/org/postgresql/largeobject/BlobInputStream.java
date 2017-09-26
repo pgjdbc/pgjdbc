@@ -88,16 +88,16 @@ public class BlobInputStream extends InputStream {
     while (len > 0) {
       if (buffer == null || bpos >= buffer.length) {
         try {
-           buffer = lo.read(bsize);
-           bpos = 0;
+          buffer = lo.read(bsize);
+          bpos = 0;
         } catch (SQLException e) {
           throw new IOException(e.toString(), e);
         }
       }
       int readSize = len;
       if (limit > 0) {
-        if (limit-apos < readSize) {
-          readSize = (int)(limit-apos);
+        if (limit - apos < readSize) {
+          readSize = (int)(limit - apos);
         }
       }
       if ((buffer.length - bpos) <= readSize) {
