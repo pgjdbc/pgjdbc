@@ -78,6 +78,45 @@ public class BlobInputStream extends InputStream {
     this.limit = limit;
   }
 
+  public int read(byte[] b) throws IOException {
+    return read(b, 0, b.length);
+  }
+
+  public int read(byte[] b, int off, int len) throws IOException {
+    checkClosed();
+    int total = 0;
+    while (len > 0) {
+      if (buffer == null || bpos >= buffer.length) {
+        try {
+           buffer = lo.read(bsize);
+           bpos = 0;
+        } catch (SQLException e) {
+          throw new IOException(e.toString(), e);
+        }
+      }
+      int readSize = len;
+      if (limit > 0) {
+        if (limit-apos < readSize) {
+          readSize = (int)(limit-apos);
+        }
+      }
+      if ((buffer.length - bpos) <= readSize) {
+        readSize = buffer.length - bpos;
+      }
+      if (readSize > 0) {
+        System.arraycopy(buffer, bpos, b, off, readSize);
+        bpos += readSize;
+        apos += readSize;
+        off += readSize;
+        total += readSize;
+        len -= readSize;
+      } else {
+        return total != 0 ? total : -1;
+      }
+    }
+    return total;
+  }
+
   /**
    * The minimum required to implement input stream
    */
