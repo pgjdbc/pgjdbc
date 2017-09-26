@@ -176,7 +176,7 @@
     </module>
     <module name="OverloadMethodsDeclarationOrder"/>
     <module name="VariableDeclarationUsageDistance"/>-->
-    <module name="com.puppycrawl.tools.checkstyle.checks.imports.CustomImportOrder">
+    <module name="CustomImportOrder">
       <property name="specialImportsRegExp" value="org.postgresql"/>
       <property name="sortImportsInGroupAlphabetically" value="true"/>
       <property name="customImportOrderRules"
