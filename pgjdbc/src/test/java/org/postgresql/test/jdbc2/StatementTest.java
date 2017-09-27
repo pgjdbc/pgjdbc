@@ -139,6 +139,19 @@ public class StatementTest {
   }
 
   @Test
+  public void testCopyCount() throws Exception {
+    Connection pcon = TestUtil.openPrivilegedDB();
+    Statement stmt = pcon.createStatement();
+    try {
+      int count = stmt.executeUpdate("COPY (SELECT x FROM generate_series(1,10) x) TO '/tmp/foo.txt';");
+      assertEquals(10, count);
+    } finally {
+      TestUtil.closeQuietly(stmt);
+      TestUtil.closeQuietly(pcon);
+    }
+  }
+
+  @Test
   public void testEscapeProcessing() throws SQLException {
     Statement stmt = con.createStatement();
     int count;
