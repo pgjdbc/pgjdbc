@@ -218,9 +218,9 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       cstmt.registerOutParameter(3, Types.DECIMAL);
       cstmt.executeUpdate();
       BigDecimal val = (BigDecimal) cstmt.getObject(1);
-      assertEquals(new BigDecimal("999999999999999.000000000000000"), val);
+      assertEquals(0, val.compareTo(new BigDecimal("999999999999999.000000000000000")));
       val = (BigDecimal) cstmt.getObject(2);
-      assertEquals(new BigDecimal("0.000000000000001"), val);
+      assertEquals(0, val.compareTo(new BigDecimal("0.000000000000001")));
       val = (BigDecimal) cstmt.getObject(3);
       assertNull(val);
     } catch (Exception ex) {
