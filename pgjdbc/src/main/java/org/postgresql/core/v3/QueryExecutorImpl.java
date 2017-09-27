@@ -2511,8 +2511,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int update_count = 0;
     long insert_oid = 0;
 
-    if (status.startsWith("INSERT") || status.startsWith("UPDATE") || status.startsWith("DELETE")
-        || status.startsWith("MOVE")) {
+    if (status.startsWith("INSERT ") || status.startsWith("UPDATE ") || status.startsWith("DELETE ")
+        || status.startsWith("SELECT ") || status.startsWith("COPY ")
+        || status.startsWith("MOVE ") || status.startsWith("FETCH ")) {
       try {
         long updates = Long.parseLong(status.substring(1 + status.lastIndexOf(' ')));
 

@@ -12,6 +12,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
@@ -125,6 +126,29 @@ public class StatementTest {
 
     count = stmt.executeUpdate("CREATE TEMP TABLE another_table (a int)");
     assertEquals(0, count);
+
+    count = stmt.executeUpdate("CREATE TEMP TABLE another_tablecount AS "
+        + "select true as test from generate_series(1,25);");
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
+      assertEquals("Pg9.0+ returns count for select commands", 25, count);
+    } else {
+      assertEquals("Pg8.2 to 8.4 return nothing", 0, count);
+    }
+
+    stmt.close();
+  }
+
+  @Test
+  public void testCopyCount() throws Exception {
+    Connection pcon = TestUtil.openPrivilegedDB();
+    Statement stmt = pcon.createStatement();
+    try {
+      int count = stmt.executeUpdate("COPY (SELECT x FROM generate_series(1,10) x) TO '/tmp/foo.txt';");
+      assertEquals(10, count);
+    } finally {
+      TestUtil.closeQuietly(stmt);
+      TestUtil.closeQuietly(pcon);
+    }
   }
 
   @Test
