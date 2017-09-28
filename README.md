@@ -68,10 +68,6 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 
 There are also available (snapshot) binary RPMs in [Fedora's Copr repository](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/).
 
-## Changelog
-See [CHANGELOG.md file](CHANGELOG.md) for a list of changes of the latest versions. You can found a
-[History of Changes](https://jdbc.postgresql.org/documentation/changelog.html#introduction) in the website for reference of previous versions.
-
 ----------------------------------------------------
 ## Documentation
 For more information you can read [the PgJDBC driver documentation](https://jdbc.postgresql.org/documentation/head/) or for general JDBC documentation please refer to [The Java™ Tutorials](http://docs.oracle.com/javase/tutorial/jdbc/).
