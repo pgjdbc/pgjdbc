@@ -175,6 +175,7 @@ public class BlobInputStream extends InputStream {
     checkClosed();
     try {
       lo.seek(mpos);
+      buffer = null;
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }
