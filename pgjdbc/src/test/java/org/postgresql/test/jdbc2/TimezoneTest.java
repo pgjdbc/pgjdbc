@@ -732,22 +732,22 @@ public class TimezoneTest {
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tUTC, rs.getTime(2, cUTC));
-      assertEquals(tUTC, rs.getTime(2, cUTC));
+      assertEquals(tUTC, rs.getTime(3, cUTC));
 
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tGMT03, rs.getTime(2, cGMT03));
-      assertEquals(tGMT03, rs.getTime(2, cGMT03));
+      assertEquals(tGMT03, rs.getTime(3, cGMT03));
 
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tGMT05, rs.getTime(2, cGMT05));
-      assertEquals(tGMT05, rs.getTime(2, cGMT05));
+      assertEquals(tGMT05, rs.getTime(3, cGMT05));
 
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tGMT13, rs.getTime(2, cGMT13));
-      assertEquals(tGMT13, rs.getTime(2, cGMT13));
+      assertEquals(tGMT13, rs.getTime(3, cGMT13));
 
       assertTrue(!rs.next());
       ps.close();
