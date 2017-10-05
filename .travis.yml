@@ -35,6 +35,7 @@ script:
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
+  - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
   - ./.travis/travis_build.sh
   - ./.travis/travis_check_postgres_health.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
@@ -116,6 +117,22 @@ matrix:
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
+    - jdk: openjdk7
+      sudo: required
+      addons:
+        postgresql: "9.2"
+      env:
+        - PG_VERSION=9.2
+        - ZULU_JDK=7
+        - MCENTRAL=Y
+    - jdk: openjdk6
+      sudo: required
+      addons:
+        postgresql: "9.1"
+      env:
+        - PG_VERSION=9.1
+        - ZULU_JDK=6
+        - MCENTRAL=Y
     - jdk: oraclejdk8
       sudo: required
       env:
@@ -147,55 +164,29 @@ matrix:
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
-        - TEST_CLIENTS=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
         - QUERY_MODE=simple
         - COVERAGE=Y
         - ANORM_SBT=Y
     - jdk: oraclejdk8
       addons:
-        postgresql: "9.6"
+        postgresql: "9.3"
       env:
-        - PG_VERSION=9.6
+        - PG_VERSION=9.3
         - QUERY_MODE=extendedForPrepared
         - COVERAGE=Y
     - jdk: oraclejdk8
       addons:
-        postgresql: "9.5"
+        postgresql: "9.6"
       env:
-        - PG_VERSION=9.5
-        - NO_WAFFLE_NO_OSGI=Y
-        - JDOC=Y
-    - jdk: openjdk7
-      sudo: required
+        - PG_VERSION=9.6
+        - TEST_CLIENTS=Y
+    - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - ZULU_JDK=7
-        - MCENTRAL=Y
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.3"
-      env:
-        - PG_VERSION=9.3
-        - ZULU_JDK=7
-    - jdk: openjdk6
-      sudo: required
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=6
-        - MCENTRAL=Y
-    - jdk: openjdk6
-      sudo: required
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
+        - NO_WAFFLE_NO_OSGI=Y
+
 
 # Deploy snapshots to Maven Central
 after_success:
