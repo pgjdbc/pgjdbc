@@ -56,8 +56,8 @@ public class BatchResultHandler extends ResultHandlerBase {
     // If SELECT, then handleCommandStatus call would just be missing
     resultIndex++;
     if (!expectGeneratedKeys) {
-      // No rows expected -> just ignore rows
-      return;
+      handleError(new PSQLException(GT.tr("A result was returned when none was expected."),
+          PSQLState.TOO_MANY_RESULTS));
     }
     if (generatedKeys == null) {
       try {
