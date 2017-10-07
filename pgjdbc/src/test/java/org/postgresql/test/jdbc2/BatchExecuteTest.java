@@ -214,25 +214,24 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   @Test
-  public void testSelectInBatch() throws Exception {
+  public void testSelectThrowsException() throws Exception {
     Statement stmt = con.createStatement();
 
     stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
     stmt.addBatch("SELECT col1 FROM testbatch WHERE pk = 1");
     stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
 
-    // There's no reason to Assert.fail
-    int[] updateCounts = stmt.executeBatch();
-
-    Assert.assertTrue("First update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
-            + ", actual value: " + updateCounts[0],
-        updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO);
-    Assert.assertTrue("For SELECT, number of modified rows should be either 0 or SUCCESS_NO_INFO"
-            + ", actual value: " + updateCounts[1],
-        updateCounts[1] == 0 || updateCounts[1] == Statement.SUCCESS_NO_INFO);
-    Assert.assertTrue("Second update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
-            + ", actual value: " + updateCounts[2],
-        updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO);
+    try {
+      stmt.executeBatch();
+      Assert.fail("Should raise a BatchUpdateException because of the SELECT");
+    } catch (BatchUpdateException e) {
+      int[] updateCounts = e.getUpdateCounts();
+      // There are 3 batches
+      Assert.assertEquals(3, updateCounts.length);
+      Assert.assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
+    } catch (SQLException e) {
+      Assert.fail("Should throw a BatchUpdateException instead of a generic SQLException: " + e);
+    }
 
     stmt.close();
   }
