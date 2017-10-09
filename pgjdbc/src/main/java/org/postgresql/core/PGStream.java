@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2017, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -21,7 +21,6 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
-
 import javax.net.SocketFactory;
 
 /**
@@ -63,7 +62,7 @@ public class PGStream implements Closeable {
       // When using a SOCKS proxy, the host might not be resolvable locally,
       // thus we defer resolution until the traffic reaches the proxy. If there
       // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = System.getProperty("socksProxyHost") == null
+      InetSocketAddress address = hostSpec.shouldResolve()
           ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
           : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
       socket.connect(address, timeout);
