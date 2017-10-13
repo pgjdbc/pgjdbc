@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - Make SELECT INTO and CREATE TABLE AS return row counts to the client in their command tags. [Issue 958](https://github.com/pgjdbc/pgjdbc/issues/958) [PR 962](https://github.com/pgjdbc/pgjdbc/pull/962)
+- Introduce properties to cache session characteristics state for read-only (cacheReadOnlyState) and transaction-isolation (cacheIsolationState), by default the read-only cache is enabled and the transaction-isolation is disabled to preserve current behavior. [PR 998](https://github.com/pgjdbc/pgjdbc/pull/958)
 
 ### Changed
 - Improve behavior of ResultSet.getObject(int, Class). [PR 932](https://github.com/pgjdbc/pgjdbc/pull/932)

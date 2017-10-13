@@ -833,6 +833,38 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if the cache of the read only state is enabled
+   * @see PGProperty#CACHE_READ_ONLY_STATE
+   */
+  public boolean getCacheReadOnlyState() {
+    return PGProperty.CACHE_READ_ONLY_STATE.getBoolean(properties);
+  }
+
+  /**
+   * @param cacheReadOnlyState enable the cache of the read only state
+   * @see PGProperty#CACHE_READ_ONLY_STATE
+   */
+  public void setCacheReadOnlyState(boolean cacheReadOnlyState) {
+    PGProperty.CACHE_READ_ONLY_STATE.set(properties, cacheReadOnlyState);
+  }
+
+  /**
+   * @return true if the cache of the isolation state is enabled
+   * @see PGProperty#CACHE_ISOLATION_STATE
+   */
+  public boolean getCacheIsolationState() {
+    return PGProperty.CACHE_ISOLATION_STATE.getBoolean(properties);
+  }
+
+  /**
+   * @param cacheIsolationState enable the cache of the isolation state
+   * @see PGProperty#CACHE_ISOLATION_STATE
+   */
+  public void setCacheIsolationState(boolean cacheIsolationState) {
+    PGProperty.CACHE_ISOLATION_STATE.set(properties, cacheIsolationState);
+  }
+
+  /**
    * @return true if driver should log unclosed connections
    * @see PGProperty#LOG_UNCLOSED_CONNECTIONS
    */
