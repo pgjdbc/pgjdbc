@@ -226,6 +226,12 @@ public class ConnectionTest {
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
     assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
 
+    con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+    assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
+
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+    assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
+
     // Test if a change of isolation level before beginning the
     // transaction affects the isolation level inside the transaction.
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
@@ -247,6 +253,8 @@ public class ConnectionTest {
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
     // Should still be ok.
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+    // Double set the same isolation level is a no-op.
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
     // Test that we can't change isolation mid-transaction
     Statement stmt = con.createStatement();
@@ -256,6 +264,20 @@ public class ConnectionTest {
     try {
       con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
       fail("Expected an exception when changing transaction isolation mid-transaction");
+    } catch (SQLException e) {
+      // Ok.
+    }
+
+    try {
+      con.setTransactionIsolation(Connection.TRANSACTION_NONE);
+      fail("TRANSACTION_NONE cannot be used because it specifies that transactions are not supported.");
+    } catch (SQLException e) {
+      // Ok.
+    }
+
+    try {
+      con.setTransactionIsolation(Integer.MIN_VALUE);
+      fail("The given parameter is not one of the allowed Connection constants");
     } catch (SQLException e) {
       // Ok.
     }
