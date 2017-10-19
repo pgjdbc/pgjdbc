@@ -700,7 +700,7 @@ public class TimestampUtils {
 
     sbuf.setLength(0);
 
-    if (localTime == LocalTime.MAX) {
+    if (localTime.equals( LocalTime.MAX )) {
       return "24:00:00";
     }
 
