@@ -771,8 +771,8 @@ public class PreparedStatementTest extends BaseTest4 {
     assertTrue(rs.wasNull());
 
     assertTrue(rs.next());
-    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1) == true);
-    assertTrue("expected false,received " + rs.getBoolean(2), rs.getBoolean(2) == false);
+    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1));
+    assertFalse("expected false,received " + rs.getBoolean(2), rs.getBoolean(2));
 
     rs.close();
     pstmt.close();
