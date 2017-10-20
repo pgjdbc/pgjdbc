@@ -72,9 +72,6 @@ matrix:
         - docker
     - jdk: oraclejdk9
       addons:
-        apt:
-          packages:
-            - oracle-java9-installer # Test with latest update
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
@@ -115,13 +112,9 @@ matrix:
     - jdk: oraclejdk8
       sudo: required
       addons:
-        apt:
-          packages:
-            - oracle-java8-installer # Test with latest update
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - LATEST_JAVA_UPDATE=Y # Use Travis last Java update
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
