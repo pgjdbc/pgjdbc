@@ -25,8 +25,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Statement;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -43,6 +51,7 @@ public class StatementTest {
     TestUtil.createTempTable(con, "escapetest",
         "ts timestamp, d date, t time, \")\" varchar(5), \"\"\"){a}'\" text ");
     TestUtil.createTempTable(con, "comparisontest", "str1 varchar(5), str2 varchar(15)");
+    TestUtil.createTable(con, "test_lock", "name text");
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'_abcd','_found'"));
     stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'%abcd','%found'"));
@@ -54,6 +63,9 @@ public class StatementTest {
     TestUtil.dropTable(con, "test_statement");
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
+    TestUtil.dropTable(con, "test_lock");
+    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_loop()");
+    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
   }
 
@@ -415,6 +427,136 @@ public class StatementTest {
     // Executing another query should clear the warning from the first one.
     assertNull(stmt.getWarnings());
     stmt.close();
+  }
+
+  @Test
+  public void testWarningsAreAvailableAsap()
+      throws Exception {
+    final Connection outerLockCon = TestUtil.openDB();
+    outerLockCon.setAutoCommit(false);
+    //Acquire an exclusive lock so we can block the notice generating statement
+    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
+    con.createStatement()
+            .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+                + "$BODY$ "
+                + "BEGIN "
+                + "RAISE NOTICE 'Test 1'; "
+                + "RAISE NOTICE 'Test 2'; "
+                + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE; "
+                + "END "
+                + "$BODY$ "
+                + "LANGUAGE plpgsql;");
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    //If we never receive the two warnings the statement will just hang, so set a low timeout
+    con.createStatement().execute("SET SESSION statement_timeout = 1000");
+    final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
+    final Callable<Void> warningReader = new Callable<Void>() {
+      @Override
+      public Void call() throws SQLException, InterruptedException {
+        while (true) {
+          SQLWarning warning = preparedStatement.getWarnings();
+          if (warning != null) {
+            assertEquals("First warning received not first notice raised",
+                "Test 1", warning.getMessage());
+            SQLWarning next = warning.getNextWarning();
+            if (next != null) {
+              assertEquals("Second warning received not second notice raised",
+                  "Test 2", next.getMessage());
+              //Release the lock so that the notice generating statement can end.
+              outerLockCon.commit();
+              return null;
+            }
+          }
+          //Break the loop on InterruptedException
+          Thread.sleep(0);
+        }
+      }
+    };
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    try {
+      Future<Void> future = executorService.submit(warningReader);
+      //Statement should only finish executing once we have
+      //received the two notices and released the outer lock.
+      preparedStatement.execute();
+
+      //If test takes longer than 2 seconds its a failure.
+      future.get(2, TimeUnit.SECONDS);
+    } finally {
+      executorService.shutdownNow();
+    }
+  }
+
+
+  /**
+   * Demonstrates a safe approach to concurrently reading the latest
+   * warnings while periodically clearing them.
+   *
+   * One drawback of this approach is that it requires the reader to make it to the end of the
+   * warning chain before clearing it, so long as your warning processing step is not very slow,
+   * this should happen more or less instantaneously even if you receive a lot of warnings.
+   */
+  @Test
+  public void testConcurrentWarningReadAndClear()
+      throws SQLException, InterruptedException, ExecutionException, TimeoutException {
+    final int iterations = 1000;
+    con.createStatement()
+        .execute("CREATE OR REPLACE FUNCTION notify_loop() RETURNS VOID AS "
+            + "$BODY$ "
+            + "BEGIN "
+            + "FOR i IN 1.. " + iterations + " LOOP "
+            + "  RAISE NOTICE 'Warning %', i; "
+            + "END LOOP; "
+            + "END "
+            + "$BODY$ "
+            + "LANGUAGE plpgsql;");
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    final PreparedStatement statement = con.prepareStatement("SELECT notify_loop()");
+    final Callable<Void> warningReader = new Callable<Void>() {
+      @Override
+      public Void call() throws SQLException, InterruptedException {
+        SQLWarning lastProcessed = null;
+        int warnings = 0;
+        //For production code replace this with some condition that
+        //ends after the statement finishes execution
+        while (warnings < iterations) {
+          SQLWarning warn = statement.getWarnings();
+          //if next linked warning has value use that, otherwise keep using latest head
+          if (lastProcessed != null && lastProcessed.getNextWarning() != null) {
+            warn = lastProcessed.getNextWarning();
+          }
+          if (warn != null) {
+            warnings++;
+            //System.out.println("Processing " + warn.getMessage());
+            assertEquals("Received warning out of expected order",
+                "Warning " + warnings, warn.getMessage());
+            lastProcessed = warn;
+            //If the processed warning was the head of the chain clear
+            if (warn == statement.getWarnings()) {
+              //System.out.println("Clearing warnings");
+              statement.clearWarnings();
+            }
+          } else {
+            //Not required for this test, but a good idea adding some delay for production code
+            //to avoid high cpu usage while the query is running and no warnings are coming in.
+            //Alternatively use JDK9's Thread.onSpinWait()
+            Thread.sleep(10);
+          }
+        }
+        assertEquals("Didn't receive expected last warning",
+            "Warning " + iterations, lastProcessed.getMessage());
+        return null;
+      }
+    };
+
+    final ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      final Future warningReaderThread = executor.submit(warningReader);
+      statement.execute();
+      //If the reader doesn't return after 2 seconds, it failed.
+      warningReaderThread.get(2, TimeUnit.SECONDS);
+    } finally {
+      executor.shutdownNow();
+    }
   }
 
   /**

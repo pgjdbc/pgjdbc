@@ -98,11 +98,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The warnings chain.
    */
-  protected SQLWarning warnings = null;
-  /**
-   * The last warning of the warning chain.
-   */
-  protected SQLWarning lastWarning = null;
+  protected volatile PSQLWarningWrapper warnings = null;
 
   /**
    * Maximum number of rows to return, 0 = unlimited
@@ -218,13 +214,10 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     @Override
-    public void handleCompletion() throws SQLException {
-      SQLWarning warning = getWarning();
-      if (warning != null) {
-        PgStatement.this.addWarning(warning);
-      }
-      super.handleCompletion();
+    public void handleWarning(SQLWarning warning) {
+      PgStatement.this.addWarning(warning);
     }
+
   }
 
   public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
@@ -536,25 +529,29 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * This adds a warning to the warning chain. We track the tail of the warning chain as well to
-   * avoid O(N) behavior for adding a new warning to an existing chain. Some server functions which
-   * RAISE NOTICE (or equivalent) produce a ton of warnings.
+   * Either initializes new warning wrapper, or adds warning onto the chain.
+   *
+   * Although warnings are expected to be added sequentially, the warnings chain may be cleared
+   * concurrently at any time via {@link #clearWarnings()}, therefore it is possible that a warning
+   * added via this method is placed onto the end of the previous warning chain
    *
    * @param warn warning to add
    */
   public void addWarning(SQLWarning warn) {
-    if (warnings == null) {
-      warnings = warn;
-      lastWarning = warn;
+    //copy reference to avoid NPE from concurrent modification of this.warnings
+    final PSQLWarningWrapper warnWrap = this.warnings;
+    if (warnWrap == null) {
+      this.warnings = new PSQLWarningWrapper(warn);
     } else {
-      lastWarning.setNextWarning(warn);
-      lastWarning = warn;
+      warnWrap.addWarning(warn);
     }
   }
 
   public SQLWarning getWarnings() throws SQLException {
     checkClosed();
-    return warnings;
+    //copy reference to avoid NPE from concurrent modification of this.warnings
+    final PSQLWarningWrapper warnWrap = this.warnings;
+    return warnWrap != null ? warnWrap.getFirstWarning() : null;
   }
 
   public int getMaxFieldSize() throws SQLException {
@@ -571,9 +568,15 @@ public class PgStatement implements Statement, BaseStatement {
     maxfieldSize = max;
   }
 
+  /**
+   * Clears the warning chain.<p>
+   * Note that while it is safe to clear warnings while the query is executing, warnings that are
+   * added between calls to {@link #getWarnings()} and #clearWarnings() may be missed.
+   * Therefore you should hold a reference to the tail of the previous warning chain
+   * and verify if its {@link SQLWarning#getNextWarning()} value is holds any new value.
+   */
   public void clearWarnings() throws SQLException {
     warnings = null;
-    lastWarning = null;
   }
 
   public java.sql.ResultSet getResultSet() throws SQLException {
