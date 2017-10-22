@@ -51,6 +51,7 @@ public class TimestampUtils {
 
   private TimeZone prevDefaultZoneFieldValue;
   private TimeZone defaultTimeZoneCache;
+  private TimeZone defaultTimeZone;
 
   static {
     // The expected maximum value is 60 (seconds), so 64 is used "just in case"
@@ -378,6 +379,9 @@ public class TimestampUtils {
     }
 
     ParsedTimestamp ts = parseBackendTimestamp(s);
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     Calendar useCal = ts.tz != null ? ts.tz : setupCalendar(cal);
     useCal.set(Calendar.ERA, ts.era);
     useCal.set(Calendar.YEAR, ts.year);
@@ -452,6 +456,9 @@ public class TimestampUtils {
   //#endif
 
   public synchronized Time toTime(Calendar cal, String s) throws SQLException {
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     // 1) Parse backend string
     Timestamp timestamp = toTimestamp(cal, s);
 
@@ -475,6 +482,9 @@ public class TimestampUtils {
   }
 
   public synchronized Date toDate(Calendar cal, String s) throws SQLException {
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     // 1) Parse backend string
     Timestamp timestamp = toTimestamp(cal, s);
 
@@ -498,13 +508,24 @@ public class TimestampUtils {
    * @param timeZone time zone to be set for the calendar
    * @return The shared calendar.
    */
-  public Calendar getSharedCalendar(TimeZone timeZone) {
+  private synchronized Calendar getSharedCalendar(TimeZone timeZone) {
     if (timeZone == null) {
       timeZone = getDefaultTz();
     }
     Calendar tmp = calendarWithUserTz;
     tmp.setTimeZone(timeZone);
     return tmp;
+  }
+
+  private Calendar getDefaultCalendar() {
+    if (hasFastDefaultTimeZone()) {
+      return getSharedCalendar(null);
+    }
+    Calendar sharedCalendar = getSharedCalendar(defaultTimeZone);
+    if (defaultTimeZone == null) {
+      defaultTimeZone = sharedCalendar.getTimeZone();
+    }
+    return sharedCalendar;
   }
 
   public synchronized String toString(Calendar cal, Timestamp x) {
@@ -519,6 +540,9 @@ public class TimestampUtils {
       return "-infinity";
     }
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     cal = setupCalendar(cal);
     cal.setTime(x);
 
@@ -547,6 +571,9 @@ public class TimestampUtils {
       return "-infinity";
     }
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     cal = setupCalendar(cal);
     cal.setTime(x);
 
@@ -568,6 +595,9 @@ public class TimestampUtils {
 
   public synchronized String toString(Calendar cal, Time x,
       boolean withTimeZone) {
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     cal = setupCalendar(cal);
     cal.setTime(x);
 
@@ -859,6 +889,14 @@ public class TimestampUtils {
     TimeZone tz = TimeZone.getDefault();
     defaultTimeZoneCache = tz;
     return tz;
+  }
+
+  public TimeZone getDefaultCalendarTimeZone() {
+    return getDefaultCalendar().getTimeZone();
+  }
+
+  public void clearDefaultTimeZone() {
+    defaultTimeZone = null;
   }
 
   public boolean hasFastDefaultTimeZone() {
@@ -1215,7 +1253,7 @@ public class TimestampUtils {
    * @param withTimeZone whether timezone should be added
    * @return given time value as String
    */
-  public String timeToString(java.util.Date time, boolean withTimeZone) {
+  public synchronized String timeToString(java.util.Date time, boolean withTimeZone) {
     Calendar cal = null;
     if (withTimeZone) {
       cal = calendarWithUserTz;
