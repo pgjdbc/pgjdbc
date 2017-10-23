@@ -77,19 +77,18 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.executeUpdate();
 
     ResultSet rs = con.createStatement().executeQuery("select tt from timetable order by id asc");
-    Assert.assertEquals(true, rs.next());
+    Assert.assertTrue(rs.next());
 
     LocalTime localTime = (LocalTime)rs.getObject(1,LocalTime.class);
 
 
     Assert.assertEquals( LocalTime.MAX, localTime);
 
-    Assert.assertEquals(true, rs.next());
+    Assert.assertTrue(rs.next());
 
     localTime = (LocalTime)rs.getObject(1, LocalTime.class);
 
     Assert.assertEquals( LocalTime.MIN, localTime);
-    
 
   }
 }
