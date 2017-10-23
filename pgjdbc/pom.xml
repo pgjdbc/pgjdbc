@@ -262,15 +262,15 @@
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.1.0</version>
         <configuration>
-          <minimizeJar>true</minimizeJar>
+				<minimizeJar>true</minimizeJar>
         <filters>
-      <filter>
-        <artifact>com.ongres.scram:client</artifact>
-        <includes>
-          <include>*.*</include>
-        </includes>
-      </filter>
-      <filter>
+      		<filter>
+        		<artifact>com.ongres.scram:client</artifact>
+        		<includes>
+          		<include>*.*</include>
+        		</includes>
+      		</filter>
+      	<filter>
         <artifact>com.github.dblock.waffle:waffle-jna</artifact>
         <excludes>
           <exclude>**</exclude>
@@ -295,7 +295,15 @@
             <phase>package</phase>
             <goals>
               <goal>shade</goal>
-            </goals>
+						</goals>
+						<configuration>
+							<relocations>
+		  					<relocation>
+									<pattern>com.ongres</pattern>
+									<shadedPattern>org.postgresql.shaded.com.ongres</shadedPattern>
+								</relocation>
+							</relocations>
+						</configuration>
           </execution>
         </executions>
       </plugin>
