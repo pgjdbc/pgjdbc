@@ -68,7 +68,7 @@ public class Utils {
   public static StringBuilder escapeLiteral(StringBuilder sbuf, String value,
       boolean standardConformingStrings) throws SQLException {
     if (sbuf == null) {
-      sbuf = new StringBuilder(value.length() * 11 / 10); // Add 10% for escaping.
+      sbuf = new StringBuilder((value.length() + 10) / 10 * 11); // Add 10% for escaping.
     }
     doAppendEscapedLiteral(sbuf, value, standardConformingStrings);
     return sbuf;
@@ -136,7 +136,7 @@ public class Utils {
   public static StringBuilder escapeIdentifier(StringBuilder sbuf, String value)
       throws SQLException {
     if (sbuf == null) {
-      sbuf = new StringBuilder(2 + value.length() * 11 / 10); // Add 10% for escaping.
+      sbuf = new StringBuilder(2 + (value.length() + 10) / 10 * 11); // Add 10% for escaping.
     }
     doAppendEscapedIdentifier(sbuf, value);
     return sbuf;

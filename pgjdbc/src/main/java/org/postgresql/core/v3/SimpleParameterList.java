@@ -214,7 +214,7 @@ class SimpleParameterList implements V3ParameterList {
       String param = paramValues[index].toString();
 
       // add room for quotes + potential escaping.
-      StringBuilder p = new StringBuilder(3 + param.length() * 11 / 10);
+      StringBuilder p = new StringBuilder(3 + (param.length() + 10) / 10 * 11);
 
       // No E'..' here since escapeLiteral escapes all things and it does not use \123 kind of
       // escape codes
