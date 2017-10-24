@@ -23,7 +23,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -454,6 +456,44 @@ public class TimestampUtils {
       return result;
     }
   }
+
+
+  /**
+   * Parse a string and return a ZonedDateTime representing its value.
+   *
+   * @param s The ISO formated date string to parse.
+   * @return null if s is null or a ZonedDateTime of the parsed string s.
+   * @throws SQLException if there is a problem parsing s.
+   */
+  public ZonedDateTime toZonedDateTime(String s) throws SQLException {
+    if (s == null) {
+      return null;
+    }
+
+    int slen = s.length();
+
+    // convert postgres's infinity values to internal infinity magic value
+    if (slen == 8 && s.equals("infinity")) {
+      return ZonedDateTime.of(LocalDateTime.MAX, ZoneId.of("UTC"));
+    }
+
+    if (slen == 9 && s.equals("-infinity")) {
+      return ZonedDateTime.of(LocalDateTime.MIN, ZoneId.of("UTC"));
+    }
+
+    ParsedTimestamp ts = parseBackendTimestamp(s);
+
+    LocalDateTime localDateTime = LocalDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos);
+    ZonedDateTime result = ZonedDateTime.of(localDateTime, ts.tz.getTimeZone().toZoneId());
+
+    if (ts.era == GregorianCalendar.BC) {
+      return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
+    } else {
+      return result;
+    }
+  }
+
+
   //#endif
 
   public synchronized Time toTime(Calendar cal, String s) throws SQLException {
@@ -1056,6 +1096,35 @@ public class TimestampUtils {
 
     return LocalDateTime.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos, ZoneOffset.UTC);
   }
+
+  /**
+   * Returns the local date time object matching the given bytes with {@link Oid#TIMESTAMP} or
+   * {@link Oid#TIMESTAMPTZ}.
+   *
+   * @param bytes The binary encoded local date time value.
+   * @return The parsed local date time object.
+   * @throws PSQLException If binary format could not be parsed.
+   */
+  public ZonedDateTime toZonedDateTimeBin(byte[] bytes) throws PSQLException {
+
+    /*
+       we really don't care about the timezone here it will be ignored in
+       toParsedTimestampBin as it is only used if the underlying column is
+       not a timestamptz.
+     */
+    ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(utcTz, bytes, true);
+    if (parsedTimestamp.infinity == Infinity.POSITIVE) {
+      return ZonedDateTime.of(LocalDateTime.MAX, utcTz.toZoneId());
+    } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
+      return ZonedDateTime.of(LocalDateTime.MIN, utcTz.toZoneId());
+    }
+
+    Timestamp ts = new Timestamp(parsedTimestamp.millis);
+    ts.setNanos(parsedTimestamp.nanos);
+
+    return ZonedDateTime.ofInstant(ts.toInstant(),ZoneOffset.ofTotalSeconds(ts.getTimezoneOffset()).normalized());
+  }
+
   //#endif
 
   /**

@@ -965,7 +965,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     } else if (x instanceof OffsetDateTime) {
       setTimestamp(parameterIndex, (OffsetDateTime) x);
     } else if ( x instanceof ZonedDateTime) {
-      setTimestamp(parameterIndex, ((ZonedDateTime)x).toLocalDateTime());
+      setTimestamp(parameterIndex, ((ZonedDateTime)x));
 
       //#endif
     } else if (x instanceof Map) {
