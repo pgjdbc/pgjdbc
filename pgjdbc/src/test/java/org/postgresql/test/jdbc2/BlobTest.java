@@ -169,14 +169,14 @@ public class BlobTest {
     LargeObject blob = lom.open(oid);
     InputStream bis = blob.getInputStream();
 
-    assertEquals(bis.read(), '<');
+    assertEquals('<', bis.read());
     bis.mark(4);
-    assertEquals(bis.read(), '?');
-    assertEquals(bis.read(), 'x');
-    assertEquals(bis.read(), 'm');
-    assertEquals(bis.read(), 'l');
+    assertEquals('?', bis.read());
+    assertEquals('x', bis.read());
+    assertEquals('m', bis.read());
+    assertEquals('l', bis.read());
     bis.reset();
-    assertEquals(bis.read(), '?');
+    assertEquals('?', bis.read());
   }
 
 
