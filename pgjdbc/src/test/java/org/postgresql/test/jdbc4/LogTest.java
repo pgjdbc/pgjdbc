@@ -5,12 +5,15 @@
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.PGProperty;
+import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
+
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest4;
 
 import java.sql.Array;
 import java.sql.PreparedStatement;
@@ -18,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class LogTest extends BaseTest4 {
@@ -26,6 +30,13 @@ public class LogTest extends BaseTest4 {
 
   public LogTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
+    long maxMemory = Runtime.getRuntime().maxMemory();
+    if (maxMemory < 6L * 1024 * 1024 * 1024) {
+      // TODO: add hamcrest matches and replace with "greaterThan" or something like that
+      Assume.assumeTrue(
+          "The test requires -Xmx6g or more. MaxMemory is " + (maxMemory / 1024.0 / 1024) + " MiB",
+          false);
+    }
   }
 
   @Parameterized.Parameters(name = "binary = {0}")
@@ -37,19 +48,10 @@ public class LogTest extends BaseTest4 {
     return ids;
   }
 
-  public void setUp() throws Exception {
-    oldLevel = System.getProperties().getProperty("loglevel");
-    System.getProperties().setProperty("loglevel", "2");
-    super.setUp();
-  }
-
-  public void tearDown() throws SQLException {
-    super.tearDown();
-    if (oldLevel == null) {
-      System.getProperties().remove("loglevel");
-    } else {
-      System.getProperties().setProperty("loglevel", oldLevel);
-    }
+  @Override
+  protected void updateProperties(Properties props) {
+    super.updateProperties(props);
+    PGProperty.LOGGER_LEVEL.set(props, "TRACE");
   }
 
   @Test
