@@ -529,7 +529,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     String string = getString(i);
-    return connection.getTimestampUtils().toTime(cal, string);
+    if (string.equals("24:00:00")) {
+      return Time.valueOf(string);
+    } else if (string.equals("00:00:00")) {
+      return new Time(0);
+    } else {
+      return connection.getTimestampUtils().toTime(cal, string);
+    }
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"

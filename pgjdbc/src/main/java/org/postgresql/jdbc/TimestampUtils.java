@@ -405,6 +405,11 @@ public class TimestampUtils {
     if (s == null) {
       return null;
     }
+
+    if (s.equals("24:00:00")) {
+      return LocalTime.MAX;
+    }
+
     try {
       return LocalTime.parse(s);
     } catch (DateTimeParseException nfe) {
@@ -692,13 +697,12 @@ public class TimestampUtils {
   }
 
   public synchronized String toString(LocalTime localTime) {
-    if (LocalTime.MAX.equals(localTime)) {
-      return "infinity";
-    } else if (LocalTime.MIN.equals(localTime)) {
-      return "-infinity";
-    }
 
     sbuf.setLength(0);
+
+    if (localTime.equals( LocalTime.MAX )) {
+      return "24:00:00";
+    }
 
     appendTime(sbuf, localTime);
 
