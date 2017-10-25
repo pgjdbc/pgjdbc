@@ -1525,10 +1525,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
     checkClosed();
-    if (xmlObject == null || xmlObject.getString() == null) {
+    String stringValue = xmlObject == null ? null : xmlObject.getString();
+    if (stringValue == null) {
       setNull(parameterIndex, Types.SQLXML);
     } else {
-      setString(parameterIndex, xmlObject.getString(), Oid.XML);
+      setString(parameterIndex, stringValue, Oid.XML);
     }
   }
 
