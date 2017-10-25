@@ -262,7 +262,7 @@ public class XmlTest extends BaseTest4 {
   }
 
   private SQLXML newConsumableSQLXML(String content) throws Exception {
-    SQLXML xml=(SQLXML) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { SQLXML.class }, new InvocationHandler() {
+    SQLXML xml = (SQLXML) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { SQLXML.class }, new InvocationHandler() {
       SQLXML xml = con.createSQLXML();
       boolean consumed = false;
       Set<Method> consumingMethods = new HashSet<>(Arrays.asList(
@@ -309,7 +309,7 @@ public class XmlTest extends BaseTest4 {
     assertEquals(_xmlDocument, rs.getSQLXML(1).getString());
     assertTrue(!rs.next());
   }
-  
+
   @Test
   public void testSetNull() throws SQLException {
     Statement stmt = con.createStatement();
