@@ -246,7 +246,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     if (hostname.length() < pattern.length() - 1) {
       return false;
     }
-    // Compare ingore case
+    // Compare ignore case
     final boolean ignoreCase = true;
     // Below code is "hostname.endsWithIgnoreCase(pattern.withoutFirstStar())"
 
@@ -257,7 +257,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     int toffset = hostname.length() - pattern.length() + 1;
 
     // Wildcard covers just one domain level
-    // a.b.c.com sould not be covered by *.c.com
+    // a.b.c.com should not be covered by *.c.com
     if (hostname.lastIndexOf('.', toffset - 1) >= 0) {
       // If there's a dot in between 0..toffset
       return false;
