@@ -59,6 +59,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 //#endif
 import java.time.ZonedDateTime;
@@ -3404,8 +3405,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == ZonedDateTime.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        return type.cast(getZonedDateTime(columnIndex));
+      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
+        Timestamp timestampValue = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        long time = timestampValue.getTime();
+        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+          return type.cast(ZonedDateTime.of(LocalDateTime.MAX, ZoneId.of("UTC")));
+        }
+        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+          return type.cast(ZonedDateTime.of(LocalDateTime.MIN, ZoneId.of("UTC")));
+        }
+        // Postgres stores everything in UTC and does not keep original time zone
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
+        return type.cast(zonedDateTime);
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
             PSQLState.INVALID_PARAMETER_VALUE);
