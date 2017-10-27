@@ -1089,6 +1089,16 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
   }
 
+  /**
+   * Sets properties from a {@link DriverManager} URL.
+   * Added to follow convention used in other DBMS.
+   *
+   * @param url properties to set
+   */
+  public void setURL(String url) {
+    setUrl(url);
+  }
+
   public String getProperty(String name) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
