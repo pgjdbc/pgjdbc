@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.LruCache;
@@ -235,7 +236,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
         "SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, "
             + "a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), ");
 
-    if ( connection.haveMinimumServerVersion(10)) {
+    if ( connection.haveMinimumServerVersion(ServerVersion.v10)) {
       sql.append("a.attidentity != '' OR pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");
     } else {
       sql.append("pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");
