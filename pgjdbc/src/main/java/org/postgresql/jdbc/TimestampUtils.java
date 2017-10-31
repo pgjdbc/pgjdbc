@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.JavaVersion;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.util.ByteConverter;
@@ -85,12 +86,16 @@ public class TimestampUtils {
     // This saves the creation of a clone everytime, and the memory associated to all these clones.
     Field tzField;
     try {
-      tzField = TimeZone.class.getDeclaredField("defaultTimeZone");
-      tzField.setAccessible(true);
-      TimeZone defaultTz = TimeZone.getDefault();
-      Object tzFromField = tzField.get(null);
-      if (defaultTz == null || !defaultTz.equals(tzFromField)) {
-        tzField = null;
+      tzField = null;
+      // Avoid reflective access in Java 9+
+      if (JavaVersion.getRuntimeVersion().compareTo(JavaVersion.v1_8) <= 0) {
+        tzField = TimeZone.class.getDeclaredField("defaultTimeZone");
+        tzField.setAccessible(true);
+        TimeZone defaultTz = TimeZone.getDefault();
+        Object tzFromField = tzField.get(null);
+        if (defaultTz == null || !defaultTz.equals(tzFromField)) {
+          tzField = null;
+        }
       }
     } catch (Exception e) {
       tzField = null;
