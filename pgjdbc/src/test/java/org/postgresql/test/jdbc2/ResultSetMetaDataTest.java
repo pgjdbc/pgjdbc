@@ -260,13 +260,12 @@ public class ResultSetMetaDataTest extends BaseTest4 {
 
   @Test
   public void testIdentityColumn() throws Exception {
-    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v10)) {
-      assumePreparedStatementMetadataSupported();
-      PreparedStatement pstmt = conn.prepareStatement("SELECT id FROM identitytest");
-      ResultSet rs = pstmt.executeQuery();
-      ResultSetMetaData rsmd = pstmt.getMetaData();
-      Assert.assertTrue(rsmd.isAutoIncrement(1));
-    }
+    assumeMinimumServerVersion(ServerVersion.v10);
+    assumePreparedStatementMetadataSupported();
+    PreparedStatement pstmt = conn.prepareStatement("SELECT id FROM identitytest");
+    ResultSet rs = pstmt.executeQuery();
+    ResultSetMetaData rsmd = pstmt.getMetaData();
+    Assert.assertTrue(rsmd.isAutoIncrement(1));
   }
 
   private void assumePreparedStatementMetadataSupported() {
