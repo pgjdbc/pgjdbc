@@ -11,7 +11,7 @@ import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
-import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.QueryFlag;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
@@ -62,6 +62,7 @@ import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -114,7 +115,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * @exception SQLException if a database access error occurs
    */
   public java.sql.ResultSet executeQuery() throws SQLException {
-    if (!executeWithFlags(0)) {
+    if (!executeWithFlags(EnumSet.noneOf(QueryFlag.class))) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -133,7 +134,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public int executeUpdate() throws SQLException {
-    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+    executeWithFlags(EnumSet.of(QueryFlag.NO_RESULTS));
 
     ResultWrapper iter = result;
     while (iter != null) {
@@ -155,15 +156,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public boolean execute() throws SQLException {
-    return executeWithFlags(0);
+    return executeWithFlags(EnumSet.noneOf(QueryFlag.class));
   }
 
-  public boolean executeWithFlags(int flags) throws SQLException {
+  public boolean executeWithFlags(EnumSet<QueryFlag> flags) throws SQLException {
     try {
       checkClosed();
 
       if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
-        flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+        flags.add(QueryFlag.EXECUTE_AS_SIMPLE);
       }
 
       execute(preparedQuery, preparedParameters, flags);
@@ -1066,8 +1067,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // for more info. We send the full query, but just don't
       // execute it.
 
-      int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
-          | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+      EnumSet<QueryFlag> flags = EnumSet.of(QueryFlag.ONESHOT, QueryFlag.DESCRIBE_ONLY,
+           QueryFlag.SUPPRESS_BEGIN);
       StatementResultHandler handler = new StatementResultHandler();
       connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
           flags);
@@ -1580,8 +1581,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
-    int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+    EnumSet<QueryFlag> flags = EnumSet.of(QueryFlag.ONESHOT, QueryFlag.DESCRIBE_ONLY,
+         QueryFlag.SUPPRESS_BEGIN);
     StatementResultHandler handler = new StatementResultHandler();
     connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
         flags);

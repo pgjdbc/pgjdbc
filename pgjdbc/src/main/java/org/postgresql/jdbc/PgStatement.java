@@ -13,6 +13,7 @@ import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.QueryFlag;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
@@ -26,6 +27,7 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
@@ -221,7 +223,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
-    if (!executeWithFlags(p_sql, 0)) {
+    if (!executeWithFlags(p_sql, EnumSet.noneOf(QueryFlag.class))) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -234,7 +236,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public int executeUpdate(String p_sql) throws SQLException {
-    executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS);
+    executeWithFlags(p_sql, EnumSet.of(QueryFlag.NO_RESULTS));
 
     ResultWrapper iter = result;
     while (iter != null) {
@@ -250,14 +252,14 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean execute(String p_sql) throws SQLException {
-    return executeWithFlags(p_sql, 0);
+    return executeWithFlags(p_sql, EnumSet.noneOf(QueryFlag.class));
   }
 
-  public boolean executeWithFlags(String sql, int flags) throws SQLException {
+  public boolean executeWithFlags(String sql, EnumSet<QueryFlag> flags) throws SQLException {
     return executeCachedSql(sql, flags, NO_RETURNING_COLUMNS);
   }
 
-  private boolean executeCachedSql(String sql, int flags, String[] columnNames) throws SQLException {
+  private boolean executeCachedSql(String sql, EnumSet<QueryFlag> flags, String[] columnNames) throws SQLException {
     PreferQueryMode preferQueryMode = connection.getPreferQueryMode();
     // Simple statements should not replace ?, ? with $1, $2
     boolean shouldUseParameterized = false;
@@ -286,16 +288,16 @@ public class PgStatement implements Statement, BaseStatement {
     return res;
   }
 
-  public boolean executeWithFlags(CachedQuery simpleQuery, int flags) throws SQLException {
+  public boolean executeWithFlags(CachedQuery simpleQuery, EnumSet<QueryFlag> flags) throws SQLException {
     checkClosed();
     if (connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) < 0) {
-      flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+      flags.add(QueryFlag.EXECUTE_AS_SIMPLE);
     }
     execute(simpleQuery, null, flags);
     return (result != null && result.getResultSet() != null);
   }
 
-  public boolean executeWithFlags(int flags) throws SQLException {
+  public boolean executeWithFlags(EnumSet<QueryFlag> flags) throws SQLException {
     checkClosed();
     throw new PSQLException(GT.tr("Can''t use executeWithFlags(int) on a Statement."),
         PSQLState.WRONG_OBJECT_TYPE);
@@ -341,7 +343,7 @@ public class PgStatement implements Statement, BaseStatement {
     return false;
   }
 
-  protected final void execute(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
+  protected final void execute(CachedQuery cachedQuery, ParameterList queryParameters, EnumSet<QueryFlag> flags)
       throws SQLException {
     try {
       executeInternal(cachedQuery, queryParameters, flags);
@@ -357,54 +359,53 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  private void executeInternal(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
+  private void executeInternal(CachedQuery cachedQuery, ParameterList queryParameters, EnumSet<QueryFlag> flags)
       throws SQLException {
     closeForNextExecution();
 
     // Enable cursor-based resultset if possible.
     if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
         && !wantsHoldableResultSet()) {
-      flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
+      flags.add(QueryFlag.FORWARD_CURSOR);
     }
 
     if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
-      flags |= QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS;
+      flags.add(QueryFlag.BOTH_ROWS_AND_STATUS);
 
       // If the no results flag is set (from executeUpdate)
       // clear it so we get the generated keys results.
       //
-      if ((flags & QueryExecutor.QUERY_NO_RESULTS) != 0) {
-        flags &= ~(QueryExecutor.QUERY_NO_RESULTS);
-      }
+      flags.remove(QueryFlag.NO_RESULTS);
     }
 
     if (isOneShotQuery(cachedQuery)) {
-      flags |= QueryExecutor.QUERY_ONESHOT;
+      flags.add(QueryFlag.ONESHOT);
     }
     // Only use named statements after we hit the threshold. Note that only
     // named statements can be transferred in binary format.
 
     if (connection.getAutoCommit()) {
-      flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+      flags.add(QueryFlag.SUPPRESS_BEGIN);
     }
 
     // updateable result sets do not yet support binary updates
     if (concurrency != ResultSet.CONCUR_READ_ONLY) {
-      flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
+      flags.add(QueryFlag.NO_BINARY_TRANSFER);
     }
 
     Query queryToExecute = cachedQuery.query;
 
     if (queryToExecute.isEmpty()) {
-      flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+      flags.add(QueryFlag.SUPPRESS_BEGIN);
     }
 
     if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers
-        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+        && !flags.contains(QueryFlag.EXECUTE_AS_SIMPLE)) {
       // Simple 'Q' execution does not need to know parameter types
       // When binaryTransfer is forced, then we need to know resulting parameter and column types,
       // thus sending a describe request.
-      int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+      EnumSet<QueryFlag> flags2 = EnumSet.copyOf(flags);
+      flags2.add(QueryFlag.DESCRIBE_ONLY);
       StatementResultHandler handler2 = new StatementResultHandler();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
           flags2);
@@ -701,7 +702,7 @@ public class PgStatement implements Statement, BaseStatement {
     batchStatements.clear();
     batchParameters.clear();
 
-    int flags = 0;
+    EnumSet<QueryFlag> flags;
 
     // Force a Describe before any execution? We need to do this if we're going
     // to send anything dependent on the Describe results, e.g. binary parameters.
@@ -717,18 +718,18 @@ public class PgStatement implements Statement, BaseStatement {
        * To prevent this, disable binary transfer mode in batches that return generated keys. See
        * GitHub issue #267
        */
-      flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS | QueryExecutor.QUERY_NO_BINARY_TRANSFER;
+      flags = EnumSet.of(QueryFlag.BOTH_ROWS_AND_STATUS, QueryFlag.NO_BINARY_TRANSFER);
     } else {
       // If a batch hasn't specified that it wants generated keys, using the appropriate
       // Connection.createStatement(...) interfaces, disallow any result set.
-      flags = QueryExecutor.QUERY_NO_RESULTS;
+      flags = EnumSet.of(QueryFlag.NO_RESULTS);
     }
 
     PreferQueryMode preferQueryMode = connection.getPreferQueryMode();
     if (preferQueryMode == PreferQueryMode.SIMPLE
         || (preferQueryMode == PreferQueryMode.EXTENDED_FOR_PREPARED
         && parameterLists[0] == null)) {
-      flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+      flags.add(QueryFlag.EXECUTE_AS_SIMPLE);
     }
 
     boolean sameQueryAhead = queries.length > 1 && queries[0] == queries[1];
@@ -738,7 +739,7 @@ public class PgStatement implements Statement, BaseStatement {
         // is server-prepared. In other words, "oneshot" only if the query is one in the batch
         // or the queries are different
         || isOneShotQuery(null)) {
-      flags |= QueryExecutor.QUERY_ONESHOT;
+      flags.add(QueryFlag.ONESHOT);
     } else {
       // If a batch requests generated keys and isn't already described,
       // force a Describe of the query before proceeding. That way we can
@@ -756,22 +757,23 @@ public class PgStatement implements Statement, BaseStatement {
        * It's also necessary to force a Describe on the first execution of the new statement, even
        * though we already described it, to work around bug #267.
        */
-      flags |= QueryExecutor.QUERY_FORCE_DESCRIBE_PORTAL;
+      flags.add(QueryFlag.FORCE_DESCRIBE_PORTAL);
     }
 
     if (connection.getAutoCommit()) {
-      flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+      flags.add(QueryFlag.SUPPRESS_BEGIN);
     }
 
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
 
     if ((preDescribe || forceBinaryTransfers)
-        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+        && !flags.contains(QueryFlag.EXECUTE_AS_SIMPLE)) {
       // Do a client-server round trip, parsing and describing the query so we
       // can determine its result types for use in binary parameters, batch sizing,
       // etc.
-      int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+      EnumSet<QueryFlag> flags2 = EnumSet.copyOf(flags);
+      flags2.add(QueryFlag.DESCRIBE_ONLY);
       StatementResultHandler handler2 = new StatementResultHandler();
       try {
         connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
@@ -1097,7 +1099,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     wantsGeneratedKeysOnce = true;
-    if (!executeCachedSql(sql, 0, columnNames)) {
+    if (!executeCachedSql(sql, EnumSet.noneOf(QueryFlag.class), columnNames)) {
       // no resultset returned. What's a pity!
     }
     return getUpdateCount();
@@ -1125,7 +1127,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     wantsGeneratedKeysOnce = true;
-    return executeCachedSql(sql, 0, columnNames);
+    return executeCachedSql(sql, EnumSet.noneOf(QueryFlag.class), columnNames);
   }
 
   public int getResultSetHoldability() throws SQLException {

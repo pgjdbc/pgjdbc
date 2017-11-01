@@ -8,7 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Oid;
-import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.QueryFlag;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -222,7 +223,7 @@ public class TypeInfoCache implements TypeInfo {
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) _getTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        .executeWithFlags(EnumSet.of(QueryFlag.SUPPRESS_BEGIN))) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -365,7 +366,7 @@ public class TypeInfoCache implements TypeInfo {
     PreparedStatement oidStatement = getOidStatement(pgTypeName);
 
     // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (!((BaseStatement) oidStatement).executeWithFlags(EnumSet.of(QueryFlag.SUPPRESS_BEGIN))) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -405,7 +406,7 @@ public class TypeInfoCache implements TypeInfo {
     _getNameStatement.setInt(1, oid);
 
     // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) _getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (!((BaseStatement) _getNameStatement).executeWithFlags(EnumSet.of(QueryFlag.SUPPRESS_BEGIN))) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -478,7 +479,7 @@ public class TypeInfoCache implements TypeInfo {
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) _getArrayDelimiterStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        .executeWithFlags(EnumSet.of(QueryFlag.SUPPRESS_BEGIN))) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -520,7 +521,7 @@ public class TypeInfoCache implements TypeInfo {
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) _getArrayElementOidStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        .executeWithFlags(EnumSet.of(QueryFlag.SUPPRESS_BEGIN))) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
