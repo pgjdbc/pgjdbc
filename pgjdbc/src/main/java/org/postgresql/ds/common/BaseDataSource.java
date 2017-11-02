@@ -1076,6 +1076,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * Generates a {@link DriverManager} URL from the other properties supplied.
+   *
+   * @return {@link DriverManager} URL from the other properties supplied
+   */
+  public String getURL() {
+    return getUrl();
+  }
+
+  /**
    * Sets properties from a {@link DriverManager} URL.
    *
    * @param url properties to set
