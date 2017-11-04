@@ -1,5 +1,6 @@
 sudo: false
 language: java
+dist: trusty
 
 before_script:
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
@@ -13,7 +14,6 @@ before_script:
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
-  - if [[ "x$JDK" == *'x9'* ]]; then export JAVA_HOME=/usr/lib/jvm/zulu-9-amd64; export PATH=$JAVA_HOME/bin:$PATH; fi
 
 env:
   global:
@@ -21,15 +21,21 @@ env:
     - secure: "VrNgbyKQi5HjSMZfkt/zwG+AHk1NW1b+f3Jo1ZH7DCqcgLApwvp4MNsw+XamqHxudjj3Z8+4bYBxG2H6zIOobIyYhBvxUwMq7HTjM4jH8m5phqvQIWZOzZzqguYNNS7JJQUpIMwR7wTuHqucVfMxljoSuXQbs+0BUxo4Eh+FScQ="
     - secure: "NI+aqwRLLVt2feJdk/2ZEZnsaPyu+vOx8MahVxjz0UUVvRHVqxM5O1M0R53NJfEeIjflOzgZJwRLqgyl6dkdfjytRhaHWGptQdehV4cwNb+4epnn8WlpRzMac65zTQqnbGVtw9jissDQv6/Zl/+D+DMcU65BbFZkix40whILXG0="
 
+before_install:
+  - ./.travis/travis_install_zulu.sh
+  - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
+
 script:
   # make sure previous build artifacts are not used for subsequent builds
   - rm -rf $HOME/.m2/repository/org/postgresql || true
-  - export JDK6_HOME=$(jdk_switcher home openjdk6)
-  - export JDK7_HOME=$(jdk_switcher home openjdk7)
-  - export JDK8_HOME=$(jdk_switcher home oraclejdk8)
-  - export JDK9_HOME=/usr/lib/jvm/zulu-9-amd64
-  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
+  - test -d "${JDK6_HOME}" || export JDK6_HOME=$(jdk_switcher home openjdk6)
+  - test -d "${JDK7_HOME}" || export JDK7_HOME=$(jdk_switcher home openjdk7)
+  - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home oraclejdk8)
+  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
+  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
+  - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
+  - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
   - ./.travis/travis_build.sh
   - ./.travis/travis_check_postgres_health.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
@@ -62,41 +68,29 @@ matrix:
         - FEDORA_CI=Y
       services:
         - docker
+    - jdk: oraclejdk9
+      addons:
+        apt:
+          packages:
+            - oracle-java9-installer # Test with latest update
+        postgresql: "9.6"
+      env:
+        - PG_VERSION=9.6
+        - JDK=9
     - jdk: oraclejdk8
       sudo: required
-      dist: trusty
       env:
         - PG_VERSION=HEAD
         - XA=true
         - REPLICATION=Y
+        - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: trusty
+      addons:
+        postgresql: "9.6"
       env:
         - PG_VERSION=9.6
-        - XA=true
-        - REPLICATION=Y
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: trusty
-      addons:
-        postgresql: "9.5"
-      env:
-        - PG_VERSION=9.5
-        - XA=true
-        - REPLICATION=Y
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java8-installer
-      sudo: required
-      dist: trusty
-      env:
-        - PG_VERSION=9.4
+        - ZULU_JDK=8
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
@@ -104,7 +98,43 @@ matrix:
         - JDOC=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: precise
+      addons:
+        postgresql: "9.5"
+      env:
+        - PG_VERSION=9.5
+        - XA=true
+        - REPLICATION=Y
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        apt:
+          packages:
+            - oracle-java8-installer # Test with latest update
+        postgresql: "9.4"
+      env:
+        - PG_VERSION=9.4
+        - LATEST_JAVA_UPDATE=Y # Use Travis last Java update
+        - XA=true
+        - REPLICATION=Y
+        - COVERAGE=Y
+    - jdk: openjdk7
+      sudo: required
+      addons:
+        postgresql: "9.2"
+      env:
+        - PG_VERSION=9.2
+        - ZULU_JDK=7
+        - MCENTRAL=Y
+    - jdk: openjdk6
+      sudo: required
+      addons:
+        postgresql: "9.1"
+      env:
+        - PG_VERSION=9.1
+        - ZULU_JDK=6
+        - MCENTRAL=Y
+    - jdk: oraclejdk8
+      sudo: required
       env:
         - PG_VERSION=8.4
         - XA=true
@@ -123,85 +153,40 @@ matrix:
     - jdk: oraclejdk8
       sudo: required
       dist: precise
-      env: # this has to match allow_failures above
+      env:
         - PG_VERSION=8.2
         - XA=true
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
-    - jdk: # JDK9 EA Azul Zulu OpenJDK
-      sudo: required
-      dist: trusty
-      addons:
-        postgresql: "9.6"
-      before_install:
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9
-        - sudo apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main'
-        - sudo apt-get update -q
-        - sudo apt-get install zulu-9 -y
-      env:
-        - PG_VERSION=9.6
-        - JDK=9
-    - jdk: openjdk7
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
-    - jdk: openjdk6
-      dist: precise # Trusty does not have Java 6, and installers no longer work
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
     - jdk: oraclejdk8
       addons:
-        postgresql: "9.4"
+        postgresql: "9.6"
       env:
-        - PG_VERSION=9.4
+        - PG_VERSION=9.6
+        - QUERY_MODE=simple
+        - COVERAGE=Y
+        - ANORM_SBT=Y
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.3"
+      env:
+        - PG_VERSION=9.3
+        - QUERY_MODE=extendedForPrepared
+        - COVERAGE=Y
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.6"
+      env:
+        - PG_VERSION=9.6
         - TEST_CLIENTS=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - QUERY_MODE=simple
-        - COVERAGE=Y
-        - ANORM_SBT=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - QUERY_MODE=extendedForPrepared
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
         - NO_WAFFLE_NO_OSGI=Y
-        - JDOC=Y
-    - jdk: openjdk7
-      addons:
-        postgresql: "9.3"
-      env:
-        - PG_VERSION=9.3
-        - COVERAGE=Y
-    - jdk: openjdk6
-      dist: precise # Trusty does not have Java 6, and installers no longer work
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      sudo: required # to install PostgreSQL 9.1
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - COVERAGE=Y
+
 
 # Deploy snapshots to Maven Central
 after_success:

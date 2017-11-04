@@ -392,7 +392,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    *
-   * @return column name, or "" if not applicable
+   * @return 0 if column data foramt is TEXT, or 1 if BINARY
    *
    * @exception SQLException if a database access error occurs
    */

@@ -29,6 +29,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Array;
@@ -213,6 +214,34 @@ public class GetObjectTest {
   }
 
   /**
+   *
+   * Test the behavior getObject for timestamp columns.
+   */
+  @Test
+  public void testGetJavaUtilDate() throws SQLException {
+    Statement stmt = _conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column","TIMESTAMP '2004-10-19 10:23:54'"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
+    try {
+      assertTrue(rs.next());
+      Calendar calendar = GregorianCalendar.getInstance();
+      calendar.clear();
+      calendar.set(Calendar.YEAR, 2004);
+      calendar.set(Calendar.MONTH, Calendar.OCTOBER);
+      calendar.set(Calendar.DAY_OF_MONTH, 19);
+      calendar.set(Calendar.HOUR_OF_DAY, 10);
+      calendar.set(Calendar.MINUTE, 23);
+      calendar.set(Calendar.SECOND, 54);
+      java.util.Date expected = new java.util.Date(calendar.getTimeInMillis());
+      assertEquals(expected, rs.getObject("timestamp_without_time_zone_column", java.util.Date.class));
+      assertEquals(expected, rs.getObject(1, java.util.Date.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
    * Test the behavior getObject for timestamp columns.
    */
   @Test
@@ -335,6 +364,42 @@ public class GetObjectTest {
   }
 
   /**
+   * Test the behavior getObject for small integer columns.
+   */
+  @Test
+  public void testGetShort() throws SQLException {
+    Statement stmt = _conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","smallint_column","1"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column"));
+    try {
+      assertTrue(rs.next());
+      assertEquals(Short.valueOf((short) 1), rs.getObject("smallint_column", Short.class));
+      assertEquals(Short.valueOf((short) 1), rs.getObject(1, Short.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
+   * Test the behavior getObject for small integer columns.
+   */
+  @Test
+  public void testGetShortNull() throws SQLException {
+    Statement stmt = _conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","smallint_column","NULL"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column"));
+    try {
+      assertTrue(rs.next());
+      assertNull(rs.getObject("smallint_column", Short.class));
+      assertNull(rs.getObject(1, Short.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
    * Test the behavior getObject for integer columns.
    */
   @Test
@@ -369,6 +434,24 @@ public class GetObjectTest {
       assertNull(rs.getObject(1, Integer.class));
       assertNull(rs.getObject("integer_column", Integer.class));
       assertNull(rs.getObject(2, Integer.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
+   * Test the behavior getObject for long columns.
+   */
+  @Test
+  public void testGetBigInteger() throws SQLException {
+    Statement stmt = _conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","bigint_column","2147483648"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bigint_column"));
+    try {
+      assertTrue(rs.next());
+      assertEquals(BigInteger.valueOf(2147483648L), rs.getObject("bigint_column", BigInteger.class));
+      assertEquals(BigInteger.valueOf(2147483648L), rs.getObject(1, BigInteger.class));
     } finally {
       rs.close();
     }
