@@ -111,7 +111,7 @@ public class LoginTimeoutTest {
 
     // Case where we can override it, even when DriverManager.loginTimeout is set
     DriverManager.setLoginTimeout(5);
-    props.setProperty("loginTimeout", "0");
+    props.setProperty("loginTimeout", "10");
     Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();
     DriverManager.setLoginTimeout(0);
@@ -175,6 +175,42 @@ public class LoginTimeoutTest {
       Properties props = new Properties();
       props.setProperty("user", "dummy");
       props.setProperty("loginTimeout", "5");
+
+      // This is a pretty crude check, but should help distinguish
+      // "can't connect" from "timed out".
+      long startTime = System.currentTimeMillis();
+      Connection conn = null;
+      try {
+        conn = DriverManager.getConnection(url, props);
+        fail("connection was unexpectedly successful");
+      } catch (SQLException e) {
+        // Ignored.
+      } finally {
+        if (conn != null) {
+          conn.close();
+        }
+      }
+
+      long endTime = System.currentTimeMillis();
+      assertTrue(endTime > startTime + 2500);
+    } finally {
+      helper.kill();
+    }
+  }
+
+  @Test
+  public void testTimeoutOccursUsingDriverManagerLoginTimout() throws Exception {
+    // Spawn a helper thread to accept a connection and do nothing with it;
+    // this should trigger a timeout.
+    TimeoutHelper helper = new TimeoutHelper();
+    new Thread(helper, "timeout listen helper").start();
+
+    try {
+      String url = "jdbc:postgresql://" + helper.getHost() + ":" + helper.getPort() + "/dummy";
+      Properties props = new Properties();
+      props.setProperty("user", "dummy");
+
+      DriverManager.setLoginTimeout(5);
 
       // This is a pretty crude check, but should help distinguish
       // "can't connect" from "timed out".

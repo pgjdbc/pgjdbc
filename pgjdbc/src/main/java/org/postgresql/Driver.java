@@ -538,10 +538,7 @@ public class Driver implements java.sql.Driver {
    * @return Properties with elements added from the url
    */
   public static Properties parseURL(String url, Properties defaults) {
-    Properties urlProps = new Properties();
-    if (defaults != null) {
-      urlProps.putAll(defaults);
-    }
+    Properties urlProps = new Properties(defaults);
 
     String l_urlServer = url;
     String l_urlArgs = "";
@@ -658,11 +655,17 @@ public class Driver implements java.sql.Driver {
    * @return the timeout from the URL, in milliseconds
    */
   private static long timeout(Properties props) throws PSQLException {
-    long result = 0L;
-    if (PGProperty.LOGIN_TIMEOUT.isPresent(props)) {
-      result = (long) (PGProperty.LOGIN_TIMEOUT.getFloat(props) * 1000);
+    // Note that PGProperty.LOGIN_TIMEOUT.isPresent() will not work here becuase props may contains
+    // the "loginTimeout" as defaults value, which will fail. We need to get the Props string value and compare
+    // to PGProperty.LOGIN_TIMEOUT default manually in order to simulate isPresent() flag.
+    String timeoutVal = props.getProperty(PGProperty.LOGIN_TIMEOUT.getName());
+    boolean isPresent = (timeoutVal != null) && !timeoutVal.equals(PGProperty.LOGIN_TIMEOUT.getDefaultValue());
+    long result;
+    if (isPresent) {
+      // The PGProperty.LOGIN_TIMEOUT.getFloat should throw proper exception if value is bad.
+      result = (long) PGProperty.LOGIN_TIMEOUT.getFloat(props) * 1000L;
     } else {
-      result = (long) (DriverManager.getLoginTimeout() * 1000);
+      result = DriverManager.getLoginTimeout() * 1000L;
     }
     return result;
   }
