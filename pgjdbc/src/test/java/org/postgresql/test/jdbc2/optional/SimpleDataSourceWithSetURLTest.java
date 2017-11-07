@@ -8,12 +8,13 @@ package org.postgresql.test.jdbc2.optional;
 import static org.junit.Assert.assertEquals;
 import static org.postgresql.Driver.parseURL;
 
-import java.util.Properties;
-
-import org.junit.Test;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
+
+import org.junit.Test;
+
+import java.util.Properties;
 
 /**
  * Performs the basic tests defined in the superclass. Just adds the configuration logic.
@@ -47,6 +48,7 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
     assertEquals(Integer.toString(TestUtil.getPrepareThreshold()), properties.getProperty(PGProperty.PREPARE_THRESHOLD.getName()));
     assertEquals(TestUtil.getLogLevel(), properties.getProperty(PGProperty.LOGGER_LEVEL.getName()));
   }
+
   @Test
   public void testSetURL() throws Exception {
     initializeDataSource();
