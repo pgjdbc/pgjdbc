@@ -3412,10 +3412,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         long time = timestampValue.getTime();
         if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(ZonedDateTime.of(LocalDateTime.MAX, ZoneId.of("UTC")));
+          return type.cast(ZonedDateTime.of(LocalDateTime.MAX, ZoneOffset.UTC));
         }
         if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(ZonedDateTime.of(LocalDateTime.MIN, ZoneId.of("UTC")));
+          return type.cast(ZonedDateTime.of(LocalDateTime.MIN, ZoneOffset.UTC));
         }
         // Postgres stores everything in UTC and does not keep original time zone
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
