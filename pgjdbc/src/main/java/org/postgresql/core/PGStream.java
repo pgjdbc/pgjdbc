@@ -14,6 +14,7 @@ import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.FilterOutputStream;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,7 +31,7 @@ import javax.net.SocketFactory;
  * In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
  * at a time is accessing a particular PGStream instance.
  */
-public class PGStream implements Closeable {
+public class PGStream implements Closeable, Flushable {
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
 
@@ -502,6 +503,7 @@ public class PGStream implements Closeable {
    *
    * @throws IOException if an I/O error occurs
    */
+  @Override
   public void flush() throws IOException {
     if (encodingWriter != null) {
       encodingWriter.flush();
