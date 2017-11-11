@@ -17,7 +17,7 @@ import java.sql.SQLException;
  * It means that process wal record should be fast as possible, because during process wal record
  * lead to disconnect by timeout from server.
  */
-public interface PGReplicationStream {
+public interface PGReplicationStream extends AutoCloseable {
 
   /**
    * <p>Read next wal record from backend. It method can be block until new message will not get
