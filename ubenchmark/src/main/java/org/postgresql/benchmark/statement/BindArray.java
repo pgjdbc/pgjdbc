@@ -15,6 +15,7 @@ import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -46,12 +47,21 @@ public class BindArray {
   private Connection connection;
   private PreparedStatement ps;
 
+  Integer[] ints;
+
+  @Param({"1", "5", "10", "50", "100", "1000"})
+  int arraySize;
+
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
     Properties props = ConnectionUtil.getProperties();
 
     connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
     ps = connection.prepareStatement("SELECT ?");
+    ints = new Integer[arraySize];
+    for (int i = 0; i < arraySize; i++) {
+      ints[i] = i + 1;
+    }
   }
 
   @TearDown(Level.Trial)
@@ -62,7 +72,6 @@ public class BindArray {
 
   @Benchmark
   public Statement setObject() throws SQLException {
-    Integer[] ints = {1, 2, 3};
     Array sqlInts = connection.createArrayOf("int", ints);
     ps.setObject(1, sqlInts, Types.ARRAY);
     return ps;
@@ -70,7 +79,6 @@ public class BindArray {
 
   @Benchmark
   public Statement setArray() throws SQLException {
-    Integer[] ints = {1, 2, 3};
     Array sqlInts = connection.createArrayOf("int", ints);
     ps.setArray(1, sqlInts);
     return ps;
