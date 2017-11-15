@@ -95,6 +95,26 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
+  public void testCreateArrayOfSmallInt() throws SQLException {
+    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::smallint[]");
+    Short[] in = new Short[3];
+    in[0] = 0;
+    in[1] = -1;
+    in[2] = 2;
+    pstmt.setArray(1, _conn.createArrayOf("int2", in));
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+    Short[] out = (Short[]) arr.getArray();
+
+    Assert.assertEquals(3, out.length);
+    Assert.assertEquals(0, out[0].shortValue());
+    Assert.assertEquals(-1, out[1].shortValue());
+    Assert.assertEquals(2, out[2].shortValue());
+  }
+
+  @Test
   public void testCreateArrayOfMultiString() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text[]");
     String[][] in = new String[2][2];

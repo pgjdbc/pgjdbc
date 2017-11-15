@@ -2020,9 +2020,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return 0; // SQL NULL
   }
 
-  private static final BigInteger SHORTMAX = new BigInteger(Short.toString(Short.MAX_VALUE));
-  private static final BigInteger SHORTMIN = new BigInteger(Short.toString(Short.MIN_VALUE));
-
   @Override
   public short getShort(int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getShort columnIndex: {0}", columnIndex);
@@ -2040,32 +2037,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return (short) readLongValue(this_row[col], oid, Short.MIN_VALUE, Short.MAX_VALUE, "short");
     }
 
-    String s = getFixedString(columnIndex);
-
-    if (s != null) {
-      s = s.trim();
-      try {
-        return Short.parseShort(s);
-      } catch (NumberFormatException e) {
-        try {
-          BigDecimal n = new BigDecimal(s);
-          BigInteger i = n.toBigInteger();
-          int gt = i.compareTo(SHORTMAX);
-          int lt = i.compareTo(SHORTMIN);
-
-          if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-          }
-          return i.shortValue();
-
-        } catch (NumberFormatException ne) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-      }
-    }
-    return 0; // SQL NULL
+    return toShort(getFixedString(columnIndex));
   }
 
   public int getInt(int columnIndex) throws SQLException {
@@ -2810,6 +2782,36 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   // ----------------- Formatting Methods -------------------
+
+  private static final BigInteger SHORTMAX = new BigInteger(Short.toString(Short.MAX_VALUE));
+  private static final BigInteger SHORTMIN = new BigInteger(Short.toString(Short.MIN_VALUE));
+
+  public static short toShort(String s) throws SQLException {
+    if (s != null) {
+      try {
+        s = s.trim();
+        return Short.parseShort(s);
+      } catch (NumberFormatException e) {
+        try {
+          BigDecimal n = new BigDecimal(s);
+          BigInteger i = n.toBigInteger();
+          int gt = i.compareTo(SHORTMAX);
+          int lt = i.compareTo(SHORTMIN);
+
+          if (gt > 0 || lt < 0) {
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
+                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+          }
+          return i.shortValue();
+
+        } catch (NumberFormatException ne) {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
+      }
+    }
+    return 0; // SQL NULL
+  }
 
   private static final BigInteger INTMAX = new BigInteger(Integer.toString(Integer.MAX_VALUE));
   private static final BigInteger INTMIN = new BigInteger(Integer.toString(Integer.MIN_VALUE));
