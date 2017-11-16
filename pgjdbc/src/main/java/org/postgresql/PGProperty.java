@@ -394,6 +394,16 @@ public enum PGProperty {
       "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
 
   /**
+   * Determines the handling of CONTEXT fields in messages returned by ServerErrorMessage. This mode
+   * controls whether the CONTEXT (WHERE) field is included in messages. The NEVER mode never includes
+   * CONTEXT, while ALWAYS always includes it if available. In ERRORS mode (the default), CONTEXT
+   * fields are included only for error messages, not for notices and warnings.
+   */
+  ERROR_CONTEXT_VISIBILITY("errorContextVisibility", "errors",
+      "Determines the handling of CONTEXT fields in messages returned by ServerErrorMessage.", false,
+      "never", "errors", "always"),
+
+  /**
    * <p>Connection parameter passed in the startup message. This parameter accepts two values; "true"
    * and "database". Passing "true" tells the backend to go into walsender mode, wherein a small set
    * of replication commands can be issued instead of SQL statements. Only the simple query protocol

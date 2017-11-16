@@ -9,6 +9,7 @@ import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.ErrorContextVisibility;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PSQLException;
@@ -41,6 +42,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final boolean columnSanitiserDisabled;
   private final PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
+  private final ErrorContextVisibility errorContextVisibility;
   private boolean flushCacheOnDeallocate = true;
 
   // default value for server versions that don't report standard_conforming_strings
@@ -75,6 +77,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
             cachedQuery.query.close();
           }
         });
+    this.errorContextVisibility = ErrorContextVisibility.of(PGProperty.ERROR_CONTEXT_VISIBILITY.get(info));
   }
 
   protected abstract void sendCloseMessage() throws IOException;
@@ -325,12 +328,19 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return preferQueryMode;
   }
 
+  @Override
   public AutoSave getAutoSave() {
     return autoSave;
   }
 
+  @Override
   public void setAutoSave(AutoSave autoSave) {
     this.autoSave = autoSave;
+  }
+
+  @Override
+  public ErrorContextVisibility getErrorContextVisibility() {
+    return errorContextVisibility;
   }
 
   protected boolean willHealViaReparse(SQLException e) {

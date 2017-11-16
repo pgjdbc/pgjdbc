@@ -2473,7 +2473,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     int elen = pgStream.receiveInteger4();
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
-    ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
+    ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage, getErrorContextVisibility());
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg.toString());
@@ -2490,7 +2490,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private SQLWarning receiveNoticeResponse() throws IOException {
     int nlen = pgStream.receiveInteger4();
-    ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
+    ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4), getErrorContextVisibility());
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE NoticeResponse({0})", warnMsg.toString());
