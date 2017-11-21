@@ -39,6 +39,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.net.SocketFactory;
 
 /**
@@ -59,6 +60,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_GSS = 7;
   private static final int AUTH_REQ_GSS_CONTINUE = 8;
   private static final int AUTH_REQ_SSPI = 9;
+  private static final int AUTH_REQ_SASL = 10;
+  private static final int AUTH_REQ_SASL_CONTINUE = 11;
+  private static final int AUTH_REQ_SASL_FINAL = 12;
 
   /**
    * Marker exception; thrown when we want to fall back to using V2.
@@ -413,6 +417,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /* SSPI negotiation state, if used */
     ISSPIClient sspiClient = null;
 
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    /* SCRAM authentication state, if used */
+    org.postgresql.jre8.sasl.ScramAuthenticator scramAuthenticator = null;
+    //#endif
+
     try {
       authloop: while (true) {
         int beresp = pgStream.receiveChar();
@@ -603,6 +612,32 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  */
                 sspiClient.continueSSPI(l_msgLen - 8);
                 break;
+
+              case AUTH_REQ_SASL:
+                LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
+
+                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+                scramAuthenticator = new org.postgresql.jre8.sasl.ScramAuthenticator(user, password, pgStream);
+                scramAuthenticator.processServerMechanismsAndInit();
+                scramAuthenticator.sendScramClientFirstMessage();
+                //#else
+                if (true) {
+                  throw new PSQLException(GT.tr(
+                          "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" vesions)",
+                          areq), PSQLState.CONNECTION_REJECTED);
+                }
+                //#endif
+                break;
+
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+              case AUTH_REQ_SASL_CONTINUE:
+                scramAuthenticator.processServerFirstMessage(l_msgLen - 4 - 4);
+                break;
+
+              case AUTH_REQ_SASL_FINAL:
+                scramAuthenticator.verifyServerSignature(l_msgLen - 4 - 4);
+                break;
+              //#endif
 
               case AUTH_REQ_OK:
                 /* Cleanup after successful authentication */
