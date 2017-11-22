@@ -24,6 +24,6 @@ Java Type | Default PostgreSQL™  Type
 `int[]` | `int4[]`
 `long[]` | `int8[]`
 `float[]` | `float4[]`
-`double[]` | `float[]8`
+`double[]` | `float8[]`
 `boolean[]` | `bool[]`
 `String[]` | `varchar[]`
