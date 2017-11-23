@@ -79,6 +79,7 @@ public class PgConnection implements BaseConnection {
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
 
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
+  private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
   //
   // Data initialized on construction:
@@ -1480,12 +1481,36 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "setNetworkTimeout(Executor, int)");
+  public void setNetworkTimeout(Executor executor /*not used*/, int milliseconds) throws SQLException {
+    checkClosed();
+
+    if (milliseconds < 0) {
+      throw new PSQLException(GT.tr("Network timeout must be a value greater than or equal to 0."),
+              PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    SecurityManager securityManager = System.getSecurityManager();
+    if (securityManager != null) {
+      securityManager.checkPermission(SQL_PERMISSION_NETWORK_TIMEOUT);
+    }
+
+    try {
+      queryExecutor.setNetworkTimeout(milliseconds);
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Unable to set network timeout."),
+              PSQLState.COMMUNICATION_ERROR, ioe);
+    }
   }
 
   public int getNetworkTimeout() throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
+    checkClosed();
+
+    try {
+      return queryExecutor.getNetworkTimeout();
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Unable to get network timeout."),
+              PSQLState.COMMUNICATION_ERROR, ioe);
+    }
   }
 
   @Override

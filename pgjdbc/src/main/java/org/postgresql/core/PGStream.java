@@ -541,4 +541,12 @@ public class PGStream implements Closeable, Flushable {
     pg_input.close();
     connection.close();
   }
+
+  public void setNetworkTimeout(int milliseconds) throws IOException {
+    connection.setSoTimeout(milliseconds);
+  }
+
+  public int getNetworkTimeout() throws IOException {
+    return connection.getSoTimeout();
+  }
 }
