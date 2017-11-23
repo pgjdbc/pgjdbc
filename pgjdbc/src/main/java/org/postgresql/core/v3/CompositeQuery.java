@@ -44,7 +44,7 @@ class CompositeQuery implements Query {
 
   @Override
   public String getNativeSql() {
-    StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
+    StringBuilder sbuf = new StringBuilder(subqueries[0].getNativeSql());
     for (int i = 1; i < subqueries.length; ++i) {
       sbuf.append(';');
       sbuf.append(subqueries[i].getNativeSql());
