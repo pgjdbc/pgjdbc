@@ -441,9 +441,7 @@ public class PgStatement implements Statement, BaseStatement {
     // No-op.
   }
 
-  // This is intentionally non-volatile to avoid performance hit in isClosed checks
-  // see #close()
-  protected boolean isClosed = false;
+  private volatile boolean isClosed = false;
 
   public int getUpdateCount() throws SQLException {
     checkClosed();
@@ -595,17 +593,27 @@ public class PgStatement implements Statement, BaseStatement {
    *
    * {@inheritDoc}
    */
-  public void close() throws SQLException {
+  public final void close() throws SQLException {
     // closing an already closed Statement is a no-op.
-    if (isClosed) {
-      return;
+    synchronized (this) {
+      if (isClosed) {
+        return;
+      }
+      isClosed = true;
     }
 
-    cleanupTimer();
+    cancel();
 
     closeForNextExecution();
 
-    isClosed = true;
+    closeImpl();
+  }
+
+  /**
+   * This is guaranteed to be called exactly once even in case of concurrent {@link #close()} calls.
+   * @throws SQLException in case of error
+   */
+  protected void closeImpl() throws SQLException {
   }
 
   /*
@@ -646,7 +654,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void checkClosed() throws SQLException {
-    if (isClosed) {
+    if (isClosed()) {
       throw new PSQLException(GT.tr("This statement has been closed."),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
@@ -805,18 +813,20 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public void cancel() throws SQLException {
-    if (!STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY, StatementCancelState.CANCELING)) {
+    if (statementState == StatementCancelState.IDLE) {
+      return;
+    }
+    if (!STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY,
+        StatementCancelState.CANCELING)) {
       // Not in query, there's nothing to cancel
       return;
     }
-    try {
-      // Synchronize on connection to avoid spinning in killTimerTask
-      synchronized (connection) {
+    // Synchronize on connection to avoid spinning in killTimerTask
+    synchronized (connection) {
+      try {
         connection.cancelQuery();
-      }
-    } finally {
-      STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
-      synchronized (connection) {
+      } finally {
+        STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
         connection.notifyAll(); // wake-up killTimerTask
       }
     }
@@ -925,8 +935,10 @@ public class PgStatement implements Statement, BaseStatement {
     // "timeout error"
     // We wait till state becomes "cancelled"
     boolean interrupted = false;
-    while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
-      synchronized (connection) {
+    synchronized (connection) {
+      // state check is performed under synchronized so it detects "cancelled" state faster
+      // In other words, it prevents unnecessary ".wait()" call
+      while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
         try {
           // Note: wait timeout here is irrelevant since synchronized(connection) would block until
           // .cancel finishes
