@@ -18,6 +18,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,7 +28,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -790,6 +793,118 @@ public class StatementTest {
       TestUtil.closeQuietly(connB);
     }
     assertEquals(0, sharedTimer.getRefCount());
+  }
+
+  @Test(timeout = 10000)
+  public void testCloseInProgressStatement() throws Exception {
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    final Connection outerLockCon = TestUtil.openDB();
+    outerLockCon.setAutoCommit(false);
+    //Acquire an exclusive lock so we can block the notice generating statement
+    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
+
+    try {
+      con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+      con.createStatement()
+          .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+              + "$BODY$ "
+              + "BEGIN "
+              + "RAISE NOTICE 'start';"
+              + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;"
+              + "END "
+              + "$BODY$ "
+              + "LANGUAGE plpgsql;");
+      int cancels = 0;
+      for (int i = 0; i < 100; i++) {
+        final Statement st = con.createStatement();
+        executor.submit(new Callable<Void>() {
+          @Override
+          public Void call() throws Exception {
+            long start = System.currentTimeMillis();
+            while (st.getWarnings() == null) {
+              long dt = System.currentTimeMillis() - start;
+              if (dt > 10000) {
+                throw new IllegalStateException("Expected to receive a notice within 10 seconds");
+              }
+            }
+            st.close();
+            return null;
+          }
+        });
+        st.setQueryTimeout(120);
+        try {
+          st.execute("select notify_then_sleep()");
+        } catch (SQLException e) {
+          Assert.assertEquals(
+              "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+              PSQLState.QUERY_CANCELED.getState(),
+              e.getSQLState()
+          );
+          cancels++;
+        } finally {
+          TestUtil.closeQuietly(st);
+        }
+      }
+      Assert.assertNotEquals("At least one QUERY_CANCELED state is expected", 0, cancels);
+    } finally {
+      executor.shutdown();
+      TestUtil.closeQuietly(outerLockCon);
+    }
+  }
+
+  @Test(timeout = 20000)
+  public void testFastCloses() throws SQLException {
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    con.createStatement()
+        .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+            + "$BODY$ "
+            + "BEGIN "
+            + "RAISE NOTICE 'start';"
+            + "EXECUTE pg_sleep(1);" // Note: timeout value does not matter here, we just test if test crashes or locks somehow
+            + "END "
+            + "$BODY$ "
+            + "LANGUAGE plpgsql;");
+    Map<String, Integer> cnt = new HashMap<String, Integer>();
+    final Random rnd = new Random();
+    for (int i = 0; i < 1000; i++) {
+      final Statement st = con.createStatement();
+      executor.submit(new Callable<Void>() {
+        @Override
+        public Void call() throws Exception {
+          int s = rnd.nextInt(10);
+          if (s > 8) {
+            Thread.sleep(s - 9);
+          }
+          st.close();
+          return null;
+        }
+      });
+      ResultSet rs = null;
+      String sqlState = "0";
+      try {
+        rs = st.executeQuery("select 1");
+        // Acceptable
+      } catch (SQLException e) {
+        sqlState = e.getSQLState();
+        if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(sqlState)
+            && !PSQLState.QUERY_CANCELED.getState().equals(sqlState)) {
+          Assert.assertEquals(
+              "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+              PSQLState.QUERY_CANCELED.getState(),
+              e.getSQLState()
+          );
+        }
+      } finally {
+        TestUtil.closeQuietly(rs);
+        TestUtil.closeQuietly(st);
+      }
+      Integer val = cnt.get(sqlState);
+      val = (val == null ? 0 : val) + 1;
+      cnt.put(sqlState, val);
+    }
+    System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
+    executor.shutdown();
   }
 
   /**

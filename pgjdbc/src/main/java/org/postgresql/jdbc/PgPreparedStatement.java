@@ -182,24 +182,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   @Override
-  public void close() throws SQLException {
-    if (isClosed) {
-      return;
-    }
-
+  public void closeImpl() throws SQLException {
     if (preparedQuery != null) {
-      // See #368. We need to prevent closing the same statement twice
-      // Otherwise we might "release" a query that someone else is already using
-      // In other words, client does .close() as usual, however cleanup thread might fail to observe
-      // isClosed=true
-      synchronized (preparedQuery) {
-        if (!isClosed) {
-          ((PgConnection) connection).releaseQuery(preparedQuery);
-        }
-      }
+      ((PgConnection) connection).releaseQuery(preparedQuery);
     }
-
-    super.close();
   }
 
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
