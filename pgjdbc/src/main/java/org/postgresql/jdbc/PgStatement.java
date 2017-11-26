@@ -225,28 +225,41 @@ public class PgStatement implements Statement, BaseStatement {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    if (result.getNext() != null) {
-      throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
-          PSQLState.TOO_MANY_RESULTS);
-    }
+    return getSingleResultSet();
+  }
 
-    return result.getResultSet();
+  protected java.sql.ResultSet getSingleResultSet() throws SQLException {
+    synchronized (this) {
+      checkClosed();
+      if (result.getNext() != null) {
+        throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
+            PSQLState.TOO_MANY_RESULTS);
+      }
+
+      return result.getResultSet();
+    }
   }
 
   public int executeUpdate(String p_sql) throws SQLException {
     executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS);
+    return getNoResultUpdateCount();
+  }
 
-    ResultWrapper iter = result;
-    while (iter != null) {
-      if (iter.getResultSet() != null) {
-        throw new PSQLException(GT.tr("A result was returned when none was expected."),
-            PSQLState.TOO_MANY_RESULTS);
+  protected int getNoResultUpdateCount() throws SQLException {
+    synchronized (this) {
+      checkClosed();
+      ResultWrapper iter = result;
+      while (iter != null) {
+        if (iter.getResultSet() != null) {
+          throw new PSQLException(GT.tr("A result was returned when none was expected."),
+              PSQLState.TOO_MANY_RESULTS);
 
+        }
+        iter = iter.getNext();
       }
-      iter = iter.getNext();
-    }
 
-    return getUpdateCount();
+      return getUpdateCount();
+    }
   }
 
   public boolean execute(String p_sql) throws SQLException {
@@ -292,7 +305,10 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
     }
     execute(simpleQuery, null, flags);
-    return (result != null && result.getResultSet() != null);
+    synchronized (this) {
+      checkClosed();
+      return (result != null && result.getResultSet() != null);
+    }
   }
 
   public boolean executeWithFlags(int flags) throws SQLException {
@@ -306,20 +322,22 @@ public class PgStatement implements Statement, BaseStatement {
     clearWarnings();
 
     // Close any existing resultsets associated with this statement.
-    while (firstUnclosedResult != null) {
-      ResultSet rs = firstUnclosedResult.getResultSet();
-      if (rs != null) {
-        rs.close();
+    synchronized (this) {
+      while (firstUnclosedResult != null) {
+        ResultSet rs = firstUnclosedResult.getResultSet();
+        if (rs != null) {
+          rs.close();
+        }
+        firstUnclosedResult = firstUnclosedResult.getNext();
       }
-      firstUnclosedResult = firstUnclosedResult.getNext();
-    }
-    result = null;
+      result = null;
 
-    if (generatedKeys != null) {
-      if (generatedKeys.getResultSet() != null) {
-        generatedKeys.getResultSet().close();
+      if (generatedKeys != null) {
+        if (generatedKeys.getResultSet() != null) {
+          generatedKeys.getResultSet().close();
+        }
+        generatedKeys = null;
       }
-      generatedKeys = null;
     }
   }
 
@@ -415,7 +433,9 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     StatementResultHandler handler = new StatementResultHandler();
-    result = null;
+    synchronized (this) {
+      result = null;
+    }
     try {
       startTimer();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
@@ -423,17 +443,19 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
     }
-    result = firstUnclosedResult = handler.getResults();
+    synchronized (this) {
+      checkClosed();
+      result = firstUnclosedResult = handler.getResults();
 
-    if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
-      generatedKeys = result;
-      result = result.getNext();
+      if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
+        generatedKeys = result;
+        result = result.getNext();
 
-      if (wantsGeneratedKeysOnce) {
-        wantsGeneratedKeysOnce = false;
+        if (wantsGeneratedKeysOnce) {
+          wantsGeneratedKeysOnce = false;
+        }
       }
     }
-
   }
 
   public void setCursorName(String name) throws SQLException {
@@ -444,30 +466,35 @@ public class PgStatement implements Statement, BaseStatement {
   private volatile boolean isClosed = false;
 
   public int getUpdateCount() throws SQLException {
-    checkClosed();
-    if (result == null || result.getResultSet() != null) {
-      return -1;
-    }
+    synchronized (this) {
+      checkClosed();
+      if (result == null || result.getResultSet() != null) {
+        return -1;
+      }
 
-    return result.getUpdateCount();
+      return result.getUpdateCount();
+    }
   }
 
   public boolean getMoreResults() throws SQLException {
-    if (result == null) {
-      return false;
-    }
-
-    result = result.getNext();
-
-    // Close preceding resultsets.
-    while (firstUnclosedResult != result) {
-      if (firstUnclosedResult.getResultSet() != null) {
-        firstUnclosedResult.getResultSet().close();
+    synchronized (this) {
+      checkClosed();
+      if (result == null) {
+        return false;
       }
-      firstUnclosedResult = firstUnclosedResult.getNext();
-    }
 
-    return (result != null && result.getResultSet() != null);
+      result = result.getNext();
+
+      // Close preceding resultsets.
+      while (firstUnclosedResult != result) {
+        if (firstUnclosedResult.getResultSet() != null) {
+          firstUnclosedResult.getResultSet().close();
+        }
+        firstUnclosedResult = firstUnclosedResult.getNext();
+      }
+
+      return (result != null && result.getResultSet() != null);
+    }
   }
 
   public int getMaxRows() throws SQLException {
@@ -578,13 +605,15 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public java.sql.ResultSet getResultSet() throws SQLException {
-    checkClosed();
+    synchronized (this) {
+      checkClosed();
 
-    if (result == null) {
-      return null;
+      if (result == null) {
+        return null;
+      }
+
+      return result.getResultSet();
     }
-
-    return result.getResultSet();
   }
 
   /**
@@ -623,11 +652,13 @@ public class PgStatement implements Statement, BaseStatement {
    */
 
   public long getLastOID() throws SQLException {
-    checkClosed();
-    if (result == null) {
-      return 0;
+    synchronized (this) {
+      checkClosed();
+      if (result == null) {
+        return 0;
+      }
+      return result.getInsertOID();
     }
-    return result.getInsertOID();
   }
 
   public void setPrepareThreshold(int newThreshold) throws SQLException {
@@ -795,7 +826,9 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    result = null;
+    synchronized (this) {
+      result = null;
+    }
 
     try {
       startTimer();
@@ -804,8 +837,11 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
       // There might be some rows generated even in case of failures
-      if (wantsGeneratedKeysAlways) {
-        generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
+      synchronized (this) {
+        checkClosed();
+        if (wantsGeneratedKeysAlways) {
+          generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
+        }
       }
     }
 
@@ -1032,12 +1068,14 @@ public class PgStatement implements Statement, BaseStatement {
       return;
     }
 
-    ResultWrapper result = firstUnclosedResult;
-    while (result != null) {
-      if (result.getResultSet() != null && !result.getResultSet().isClosed()) {
-        return;
+    synchronized (this) {
+      ResultWrapper result = firstUnclosedResult;
+      while (result != null) {
+        if (result.getResultSet() != null && !result.getResultSet().isClosed()) {
+          return;
+        }
+        result = result.getNext();
       }
-      result = result.getNext();
     }
 
     // prevent all ResultSet.close arising from Statement.close to loop here
@@ -1051,39 +1089,44 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean getMoreResults(int current) throws SQLException {
-    // CLOSE_CURRENT_RESULT
-    if (current == Statement.CLOSE_CURRENT_RESULT && result != null
-        && result.getResultSet() != null) {
-      result.getResultSet().close();
-    }
-
-    // Advance resultset.
-    if (result != null) {
-      result = result.getNext();
-    }
-
-    // CLOSE_ALL_RESULTS
-    if (current == Statement.CLOSE_ALL_RESULTS) {
-      // Close preceding resultsets.
-      while (firstUnclosedResult != result) {
-        if (firstUnclosedResult.getResultSet() != null) {
-          firstUnclosedResult.getResultSet().close();
-        }
-        firstUnclosedResult = firstUnclosedResult.getNext();
+    synchronized (this) {
+      checkClosed();
+      // CLOSE_CURRENT_RESULT
+      if (current == Statement.CLOSE_CURRENT_RESULT && result != null
+          && result.getResultSet() != null) {
+        result.getResultSet().close();
       }
-    }
 
-    // Done.
-    return (result != null && result.getResultSet() != null);
+      // Advance resultset.
+      if (result != null) {
+        result = result.getNext();
+      }
+
+      // CLOSE_ALL_RESULTS
+      if (current == Statement.CLOSE_ALL_RESULTS) {
+        // Close preceding resultsets.
+        while (firstUnclosedResult != result) {
+          if (firstUnclosedResult.getResultSet() != null) {
+            firstUnclosedResult.getResultSet().close();
+          }
+          firstUnclosedResult = firstUnclosedResult.getNext();
+        }
+      }
+
+      // Done.
+      return (result != null && result.getResultSet() != null);
+    }
   }
 
   public ResultSet getGeneratedKeys() throws SQLException {
-    checkClosed();
-    if (generatedKeys == null || generatedKeys.getResultSet() == null) {
-      return createDriverResultSet(new Field[0], new ArrayList<byte[][]>());
-    }
+    synchronized (this) {
+      checkClosed();
+      if (generatedKeys == null || generatedKeys.getResultSet() == null) {
+        return createDriverResultSet(new Field[0], new ArrayList<byte[][]>());
+      }
 
-    return generatedKeys.getResultSet();
+      return generatedKeys.getResultSet();
+    }
   }
 
   public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException {

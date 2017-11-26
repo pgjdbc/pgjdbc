@@ -118,12 +118,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    if (result.getNext() != null) {
-      throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
-          PSQLState.TOO_MANY_RESULTS);
-    }
-
-    return result.getResultSet();
+    return getSingleResultSet();
   }
 
   public int executeUpdate(String p_sql) throws SQLException {
@@ -135,17 +130,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public int executeUpdate() throws SQLException {
     executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
 
-    ResultWrapper iter = result;
-    while (iter != null) {
-      if (iter.getResultSet() != null) {
-        throw new PSQLException(GT.tr("A result was returned when none was expected."),
-            PSQLState.TOO_MANY_RESULTS);
-
-      }
-      iter = iter.getNext();
-    }
-
-    return getUpdateCount();
+    return getNoResultUpdateCount();
   }
 
   public boolean execute(String p_sql) throws SQLException {
@@ -168,7 +153,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
       execute(preparedQuery, preparedParameters, flags);
 
-      return (result != null && result.getResultSet() != null);
+      synchronized (this) {
+        checkClosed();
+        return (result != null && result.getResultSet() != null);
+      }
     } finally {
       defaultTimeZone = null;
     }
