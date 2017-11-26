@@ -87,7 +87,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           PSQLState.NO_DATA);
     }
 
-    ResultSet rs = result.getResultSet();
+    ResultSet rs;
+    synchronized (this) {
+      checkClosed();
+      rs = result.getResultSet();
+    }
     if (!rs.next()) {
       throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."),
           PSQLState.NO_DATA);
@@ -146,7 +150,9 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
     }
     rs.close();
-    result = null;
+    synchronized (this) {
+      result = null;
+    }
     return false;
   }
 
