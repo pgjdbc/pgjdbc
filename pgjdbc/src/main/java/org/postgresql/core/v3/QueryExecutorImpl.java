@@ -20,8 +20,8 @@ import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
 import org.postgresql.core.Query;
-import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
+import org.postgresql.core.QueryFlag;
 import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
@@ -54,6 +54,7 @@ import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -255,19 +256,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // Query execution
   //
 
-  private int updateQueryMode(int flags) {
+  private void updateQueryMode(EnumSet<QueryFlag> flags) {
     switch (getPreferQueryMode()) {
       case SIMPLE:
-        return flags | QUERY_EXECUTE_AS_SIMPLE;
+        flags.add(QueryFlag.EXECUTE_AS_SIMPLE);
+        LOGGER.log(Level.FINEST, "  updateQueryMode to: SIMPLE");
+        break;
       case EXTENDED:
-        return flags & ~QUERY_EXECUTE_AS_SIMPLE;
-      default:
-        return flags;
+        flags.remove(QueryFlag.EXECUTE_AS_SIMPLE);
+        LOGGER.log(Level.FINEST, "  updateQueryMode to: EXTENDED");
+        break;
     }
   }
 
   public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
-      int maxRows, int fetchSize, int flags) throws SQLException {
+      int maxRows, int fetchSize, EnumSet<QueryFlag> flags) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -278,9 +281,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       parameters = SimpleQuery.NO_PARAMETERS;
     }
 
-    flags = updateQueryMode(flags);
+    updateQueryMode(flags);
 
-    boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
+    boolean describeOnly = flags.contains(QueryFlag.DESCRIBE_ONLY);
 
     ((V3ParameterList) parameters).convertFunctionOutParameters();
 
@@ -296,7 +299,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         autosave = sendAutomaticSavepoint(query, flags);
         sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
             handler, null);
-        if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+        if (flags.contains(QueryFlag.EXECUTE_AS_SIMPLE)) {
           // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
           // on its own
         } else {
@@ -340,8 +343,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
-    if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+  private boolean sendAutomaticSavepoint(Query query, EnumSet<QueryFlag> flags) throws IOException {
+    if ((!flags.contains(QueryFlag.SUPPRESS_BEGIN)
         || getTransactionState() == TransactionState.OPEN)
         && query != restoreToAutoSave
         && getAutoSave() != AutoSave.NEVER
@@ -351,11 +354,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // If CompositeQuery is observed, just assume it might fail and set the savepoint
         || !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null)) {
-      sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
-          updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA)
-              // PostgreSQL does not support bind, exec, simple, sync message flow,
-              // so we force autosavepoint to use simple if the main query is using simple
-              | (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE));
+      EnumSet<QueryFlag> flags2 = EnumSet.of(QueryFlag.NO_RESULTS, QueryFlag.NO_METADATA);
+      updateQueryMode(flags2);
+      // PostgreSQL does not support bind, exec, simple, sync message flow,
+      // so we force autosavepoint to use simple if the main query is using simple
+      if (flags.contains(QueryFlag.EXECUTE_AS_SIMPLE)) {
+        flags2.add(QueryFlag.EXECUTE_AS_SIMPLE);
+      }
+      sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0, flags2);
       return true;
     }
     return false;
@@ -366,8 +372,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && getTransactionState() == TransactionState.FAILED
         && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
       try {
+        EnumSet<QueryFlag> flags = EnumSet.of(QueryFlag.NO_RESULTS, QueryFlag.NO_METADATA);
+        updateQueryMode(flags);
         execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
-            1, 0, updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA));
+            1, 0, flags);
       } catch (SQLException e2) {
         // That's O(N), sorry
         e.setNextException(e2);
@@ -427,16 +435,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
   public synchronized void execute(Query[] queries, ParameterList[] parameterLists,
-      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
+      BatchResultHandler batchHandler, int maxRows, int fetchSize, EnumSet<QueryFlag> flags) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  batch execute {0} queries, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
           new Object[]{queries.length, batchHandler, maxRows, fetchSize, flags});
     }
 
-    flags = updateQueryMode(flags);
+    updateQueryMode(flags);
 
-    boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
+    boolean describeOnly = flags.contains(QueryFlag.DESCRIBE_ONLY);
     // Check parameters and resolve OIDs.
     if (!describeOnly) {
       for (ParameterList parameterList : parameterLists) {
@@ -468,7 +476,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       if (handler.getException() == null) {
-        if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+        if (flags.contains(QueryFlag.EXECUTE_AS_SIMPLE)) {
           // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
           // on its own
         } else {
@@ -491,26 +499,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
+  private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, EnumSet<QueryFlag> flags)
       throws IOException {
     // First, send CloseStatements for finalized SimpleQueries that had statement names assigned.
     processDeadParsedQueries();
     processDeadPortals();
 
     // Send BEGIN on first statement in transaction.
-    if ((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) != 0
+    if (flags.contains(QueryFlag.SUPPRESS_BEGIN)
         || getTransactionState() != TransactionState.IDLE) {
       return delegateHandler;
     }
 
-    int beginFlags = QueryExecutor.QUERY_NO_METADATA;
-    if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
-      beginFlags |= QueryExecutor.QUERY_ONESHOT;
+    EnumSet<QueryFlag> beginFlags = EnumSet.of(QueryFlag.NO_METADATA, QueryFlag.EXECUTE_AS_SIMPLE);
+    if (flags.contains(QueryFlag.ONESHOT)) {
+      beginFlags.add(QueryFlag.ONESHOT);
     }
-
-    beginFlags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
-
-    beginFlags = updateQueryMode(beginFlags);
 
     sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
@@ -592,9 +596,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
       try {
         sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0,
-            QueryExecutor.QUERY_NO_METADATA);
+            EnumSet.of(QueryFlag.NO_METADATA));
         sendSync();
-        processResults(handler, 0);
+        processResults(handler, EnumSet.noneOf(QueryFlag.class));
         estimatedReceiveBufferBytes = 0;
       } catch (IOException ioe) {
         throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
@@ -1293,7 +1297,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void flushIfDeadlockRisk(Query query, boolean disallowBatching,
       ResultHandler resultHandler,
       BatchResultHandler batchHandler,
-      final int flags) throws IOException {
+      final EnumSet<QueryFlag> flags) throws IOException {
     // Assume all statements need at least this much reply buffer space,
     // plus params
     estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
@@ -1340,7 +1344,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Send a query to the backend.
    */
   private void sendQuery(Query query, V3ParameterList parameters, int maxRows, int fetchSize,
-      int flags, ResultHandler resultHandler,
+      EnumSet<QueryFlag> flags, ResultHandler resultHandler,
       BatchResultHandler batchHandler) throws IOException, SQLException {
     // Now the query itself.
     Query[] subqueries = query.getSubqueries();
@@ -1349,7 +1353,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // We know this is deprecated, but still respect it in case anyone's using it.
     // PgJDBC its self no longer does.
     @SuppressWarnings("deprecation")
-    boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
+    boolean disallowBatching = flags.contains(QueryFlag.DISALLOW_BATCHING);
 
     if (subqueries == null) {
       flushIfDeadlockRisk(query, disallowBatching, resultHandler, batchHandler, flags);
@@ -1738,10 +1742,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // Sync (sent by caller)
   //
   private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
-      int fetchSize, int flags) throws IOException {
-    boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
+      int fetchSize, EnumSet<QueryFlag> flags) throws IOException {
+    boolean asSimple = flags.contains(QueryFlag.EXECUTE_AS_SIMPLE);
     if (asSimple) {
-      assert (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) == 0
+      assert !flags.contains(QueryFlag.DESCRIBE_ONLY)
           : "Simple mode does not support describe requests. sql = " + query.getNativeSql()
           + ", flags = " + flags;
       sendSimpleQuery(query, params);
@@ -1749,7 +1753,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     assert !query.getNativeQuery().multiStatement
-        : "Queries that might contain ; must be executed with QueryExecutor.QUERY_EXECUTE_AS_SIMPLE mode. "
+        : "Queries that might contain ; must be executed with QueryFlag.EXECUTE_AS_SIMPLE mode. "
         + "Given query is " + query.getNativeSql();
 
     // As per "46.2. Message Flow" documentation (quote from 9.1):
@@ -1757,14 +1761,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     //
     // That is named portals do not require to use named statements.
 
-    boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
-    boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
-    boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
-    boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
+    boolean noResults = flags.contains(QueryFlag.NO_RESULTS);
+    boolean noMeta = flags.contains(QueryFlag.NO_METADATA);
+    boolean describeOnly = flags.contains(QueryFlag.DESCRIBE_ONLY);
+    boolean usePortal = flags.contains(QueryFlag.FORWARD_CURSOR) && !noResults && !noMeta
         && fetchSize > 0 && !describeOnly;
-    boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
-    boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
-    boolean forceDescribePortal = (flags & QUERY_FORCE_DESCRIBE_PORTAL) != 0;
+    boolean oneShot = flags.contains(QueryFlag.ONESHOT);
+    boolean noBinaryTransfer = flags.contains(QueryFlag.NO_BINARY_TRANSFER);
+    boolean forceDescribePortal = flags.contains(QueryFlag.FORCE_DESCRIBE_PORTAL);
 
     // Work out how many rows to fetch in this pass.
 
@@ -1948,9 +1952,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  protected void processResults(ResultHandler handler, int flags) throws IOException {
-    boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
-    boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
+  protected void processResults(ResultHandler handler, EnumSet<QueryFlag> flags) throws IOException {
+    boolean noResults = flags.contains(QueryFlag.NO_RESULTS);
+    boolean bothRowsAndStatus = flags.contains(QueryFlag.BOTH_ROWS_AND_STATUS);
 
     List<byte[][]> tuples = null;
 
@@ -2413,7 +2417,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       sendExecute(portal.getQuery(), portal, fetchSize);
       sendSync();
 
-      processResults(handler, 0);
+      processResults(handler, EnumSet.noneOf(QueryFlag.class));
       estimatedReceiveBufferBytes = 0;
     } catch (IOException e) {
       abort();

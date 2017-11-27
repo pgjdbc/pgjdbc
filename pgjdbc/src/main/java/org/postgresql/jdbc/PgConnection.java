@@ -18,6 +18,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.QueryFlag;
 import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.ServerVersion;
@@ -58,6 +59,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
+import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -414,7 +416,7 @@ public class PgConnection implements BaseConnection {
   public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
       throws SQLException {
     BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency);
-    boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
+    boolean hasResultSet = stat.executeWithFlags(s, EnumSet.of(QueryFlag.SUPPRESS_BEGIN));
 
     while (!hasResultSet && stat.getUpdateCount() != -1) {
       hasResultSet = stat.getMoreResults();
@@ -436,8 +438,8 @@ public class PgConnection implements BaseConnection {
 
   public void execSQLUpdate(String s) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
-    if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (stmt.executeWithFlags(s, EnumSet.of(QueryFlag.NO_METADATA, QueryFlag.NO_RESULTS,
+         QueryFlag.SUPPRESS_BEGIN))) {
       throw new PSQLException(GT.tr("A result was returned when none was expected."),
           PSQLState.TOO_MANY_RESULTS);
     }
@@ -730,10 +732,10 @@ public class PgConnection implements BaseConnection {
   }
 
   private void executeTransactionCommand(Query query) throws SQLException {
-    int flags = QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+    EnumSet<QueryFlag> flags = EnumSet.of(QueryFlag.NO_METADATA, QueryFlag.NO_RESULTS,
+         QueryFlag.SUPPRESS_BEGIN);
     if (prepareThreshold == 0) {
-      flags |= QueryExecutor.QUERY_ONESHOT;
+      flags.add(QueryFlag.ONESHOT);
     }
 
     try {

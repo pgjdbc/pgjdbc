@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.Driver;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
+import org.postgresql.core.QueryFlag;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -29,6 +30,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.EnumSet;
 import java.util.Map;
 
 class PgCallableStatement extends PgPreparedStatement implements CallableStatement {
@@ -59,7 +61,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   public int executeUpdate() throws SQLException {
     if (isFunction) {
-      executeWithFlags(0);
+      executeWithFlags(EnumSet.noneOf(QueryFlag.class));
       return 0;
     }
     return super.executeUpdate();
@@ -74,7 +76,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   @Override
-  public boolean executeWithFlags(int flags) throws SQLException {
+  public boolean executeWithFlags(EnumSet<QueryFlag> flags) throws SQLException {
     boolean hasResultSet = super.executeWithFlags(flags);
     if (!isFunction || !returnTypeSet) {
       return hasResultSet;

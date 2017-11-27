@@ -17,6 +17,7 @@ import org.postgresql.util.HostSpec;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -31,8 +32,8 @@ import java.util.TimeZone;
  * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
  * {@link #createQuery(String, boolean, boolean, String...)})
  * <li>execution methods for created Query objects (
- * {@link #execute(Query, ParameterList, ResultHandler, int, int, int)} for single queries and
- * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
+ * {@link #execute(Query, ParameterList, ResultHandler, int, int, EnumSet)} for single queries and
+ * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, EnumSet)} for batches of queries)
  * <li>a fastpath call interface ({@link #createFastpathParameters} and {@link #fastpathCall}).
  * </ul>
  *
@@ -52,73 +53,6 @@ import java.util.TimeZone;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface QueryExecutor extends TypeTransferModeRegistry {
-  /**
-   * Flag for query execution that indicates the given Query object is unlikely to be reused.
-   */
-  int QUERY_ONESHOT = 1;
-
-  /**
-   * Flag for query execution that indicates that resultset metadata isn't needed and can be safely
-   * omitted.
-   */
-  int QUERY_NO_METADATA = 2;
-
-  /**
-   * Flag for query execution that indicates that a resultset isn't expected and the query executor
-   * can safely discard any rows (although the resultset should still appear to be from a
-   * resultset-returning query).
-   */
-  int QUERY_NO_RESULTS = 4;
-
-  /**
-   * Flag for query execution that indicates a forward-fetch-capable cursor should be used if
-   * possible.
-   */
-  int QUERY_FORWARD_CURSOR = 8;
-
-  /**
-   * Flag for query execution that indicates the automatic BEGIN on the first statement when outside
-   * a transaction should not be done.
-   */
-  int QUERY_SUPPRESS_BEGIN = 16;
-
-  /**
-   * Flag for query execution when we don't really want to execute, we just want to get the
-   * parameter metadata for the statement.
-   */
-  int QUERY_DESCRIBE_ONLY = 32;
-
-  /**
-   * Flag for query execution used by generated keys where we want to receive both the ResultSet and
-   * associated update count from the command status.
-   */
-  int QUERY_BOTH_ROWS_AND_STATUS = 64;
-
-  /**
-   * Force this query to be described at each execution. This is done in pipelined batches where we
-   * might need to detect mismatched result types.
-   */
-  int QUERY_FORCE_DESCRIBE_PORTAL = 512;
-
-  /**
-   * Flag to disable batch execution when we expect results (generated keys) from a statement.
-   *
-   * @deprecated in PgJDBC 9.4 as we now auto-size batches.
-   */
-  @Deprecated
-  int QUERY_DISALLOW_BATCHING = 128;
-
-  /**
-   * Flag for query execution to avoid using binary transfer.
-   */
-  int QUERY_NO_BINARY_TRANSFER = 256;
-
-  /**
-   * Execute the query via simple 'Q' command (not parse, bind, exec, but simple execute).
-   * This sends query text on each execution, however it supports sending multiple queries
-   * separated with ';' as a single command.
-   */
-  int QUERY_EXECUTE_AS_SIMPLE = 1024;
 
   /**
    * Execute a Query, passing results to a provided ResultHandler.
@@ -132,11 +66,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param maxRows the maximum number of rows to retrieve
    * @param fetchSize if QUERY_FORWARD_CURSOR is set, the preferred number of rows to retrieve
    *        before suspending
-   * @param flags a combination of QUERY_* flags indicating how to handle the query.
+   * @param flags a EnumSet of QueryFlag indicating how to handle the query.
    * @throws SQLException if query execution fails
    */
   void execute(Query query, ParameterList parameters, ResultHandler handler, int maxRows,
-      int fetchSize, int flags) throws SQLException;
+      int fetchSize, EnumSet<QueryFlag> flags) throws SQLException;
 
   /**
    * Execute several Query, passing results to a provided ResultHandler.
@@ -152,11 +86,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param maxRows the maximum number of rows to retrieve
    * @param fetchSize if QUERY_FORWARD_CURSOR is set, the preferred number of rows to retrieve
    *        before suspending
-   * @param flags a combination of QUERY_* flags indicating how to handle the query.
+   * @param flags a EnumSet of QueryFlag indicating how to handle the query.
    * @throws SQLException if query execution fails
    */
   void execute(Query[] queries, ParameterList[] parameterLists, BatchResultHandler handler, int maxRows,
-      int fetchSize, int flags) throws SQLException;
+      int fetchSize, EnumSet<QueryFlag> flags) throws SQLException;
 
   /**
    * Fetch additional rows from a cursor.
