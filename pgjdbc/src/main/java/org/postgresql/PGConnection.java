@@ -83,6 +83,7 @@ public interface PGConnection {
    *             does not work correctly for registering classes that cannot be directly loaded by
    *             the JDBC driver's classloader.
    */
+  @Deprecated
   void addDataType(String type, String className);
 
   /**

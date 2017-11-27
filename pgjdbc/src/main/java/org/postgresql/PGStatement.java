@@ -43,6 +43,7 @@ public interface PGStatement {
    * @since 7.3
    * @deprecated As of build 302, replaced by {@link #setPrepareThreshold(int)}
    */
+  @Deprecated
   void setUseServerPrepare(boolean flag) throws SQLException;
 
   /**

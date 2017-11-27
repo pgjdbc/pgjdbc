@@ -141,6 +141,7 @@ public class LargeObject
    * @return the OID of this LargeObject
    * @deprecated As of 8.3, replaced by {@link #getLongOID()}
    */
+  @Deprecated
   public int getOID() {
     return (int) oid;
   }
