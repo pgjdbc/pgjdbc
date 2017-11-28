@@ -136,7 +136,9 @@ In addition to the standard connection parameters the driver supports a number o
 | socketTimeout                 | Integer | 0       | The timeout value used for socket read operations. |
 | tcpKeepAlive                  | Boolean | false   | Enable or disable TCP keep-alive. |
 | ApplicationName               | String  | null    | The application name (require server version >= 9.0) |
-| readOnly                      | Boolean | true    | Puts this connection in read-only mode |
+| readOnly                      | Boolean | false   | Puts this connection in read-only mode |
+| cacheReadOnlyState            | Boolean | true    | Cache value for read-only state. |
+| cacheIsolationState           | Boolean | false   | Cache value for isolation-level state. |
 | disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
 | assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
 | currentSchema                 | String  | null    | Specify the schema to be set in the search-path |

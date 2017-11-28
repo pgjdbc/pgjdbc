@@ -61,7 +61,6 @@ import java.sql.Types;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Properties;
@@ -122,6 +121,11 @@ public class PgConnection implements BaseConnection {
   private boolean autoCommit = true;
   // Connection's readonly state.
   private boolean readOnly = false;
+  // Connection's isolation level state.
+  private int isolationLevel = -1;
+  // Cache Session Characteristics to avoid calls to database.
+  private final boolean cacheReadOnlyState;
+  private final boolean cacheIsolationState;
 
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
@@ -198,6 +202,10 @@ public class PgConnection implements BaseConnection {
     if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v8_2)) {
       LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
     }
+
+    // Cache transaction state (read only/isolation level)
+    this.cacheReadOnlyState = PGProperty.CACHE_READ_ONLY_STATE.getBoolean(info);
+    this.cacheIsolationState = PGProperty.CACHE_ISOLATION_STATE.getBoolean(info);
 
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
@@ -685,28 +693,49 @@ public class PgConnection implements BaseConnection {
     firstWarning = null;
   }
 
-
+  @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
+
     if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       throw new PSQLException(
           GT.tr("Cannot change transaction read-only property in the middle of a transaction."),
           PSQLState.ACTIVE_SQL_TRANSACTION);
     }
 
-    if (readOnly != this.readOnly) {
-      String readOnlySql
-             = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
-      execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
+    if (this.readOnly == readOnly && cacheReadOnlyState) {
+      return; //Same read only state, not set it again.
     }
 
+    String readOnlySql
+        = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
+    execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
+
     this.readOnly = readOnly;
-    LOGGER.log(Level.FINE, "  setReadOnly = {0}", readOnly);
+    LOGGER.log(Level.FINE, "  setReadOnly = {0}", this.readOnly);
   }
 
+  @Override
   public boolean isReadOnly() throws SQLException {
     checkClosed();
-    return readOnly;
+
+    if (!cacheReadOnlyState) {
+      ResultSet rs = null;
+      try {
+        rs = execSQLQuery("show transaction_read_only"); // nb: no BEGIN triggered
+        if (rs.next()) {
+          String transaction_read_only = rs.getString(1);
+          this.readOnly = "on".equals(transaction_read_only);
+        }
+      } finally {
+        if (rs != null) {
+          rs.close();
+        }
+      }
+    }
+
+    LOGGER.log(Level.FINE, "  isReadOnly = {0}", this.readOnly);
+    return this.readOnly;
   }
 
   public void setAutoCommit(boolean autoCommit) throws SQLException {
@@ -787,38 +816,38 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getTransactionState();
   }
 
+  @Override
   public int getTransactionIsolation() throws SQLException {
     checkClosed();
 
-    String level = null;
-    final ResultSet rs = execSQLQuery("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
-    if (rs.next()) {
-      level = rs.getString(1);
-    }
-    rs.close();
-
-    // TODO revisit: throw exception instead of silently eating the error in unknown cases?
-    if (level == null) {
-      return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
-    }
-
-    level = level.toUpperCase(Locale.US);
-    if (level.equals("READ COMMITTED")) {
-      return Connection.TRANSACTION_READ_COMMITTED;
-    }
-    if (level.equals("READ UNCOMMITTED")) {
-      return Connection.TRANSACTION_READ_UNCOMMITTED;
-    }
-    if (level.equals("REPEATABLE READ")) {
-      return Connection.TRANSACTION_REPEATABLE_READ;
-    }
-    if (level.equals("SERIALIZABLE")) {
-      return Connection.TRANSACTION_SERIALIZABLE;
+    if (!cacheIsolationState || this.isolationLevel == -1) {
+      ResultSet rs = null;
+      try {
+        rs = execSQLQuery("show transaction_isolation"); // nb: no BEGIN triggered
+        if (rs.next()) {
+          String transaction_isolation = rs.getString(1);
+          if ("read committed".equals(transaction_isolation)) {
+            this.isolationLevel = Connection.TRANSACTION_READ_COMMITTED;
+          } else if ("serializable".equals(transaction_isolation)) {
+            this.isolationLevel = Connection.TRANSACTION_SERIALIZABLE;
+          } else if ("repeatable read".equals(transaction_isolation)) {
+            this.isolationLevel = Connection.TRANSACTION_REPEATABLE_READ;
+          } else if ("read uncommitted".equals(transaction_isolation)) {
+            this.isolationLevel = Connection.TRANSACTION_READ_UNCOMMITTED;
+          }
+        }
+      } finally {
+        if (rs != null) {
+          rs.close();
+        }
+      }
     }
 
-    return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
+    LOGGER.log(Level.FINE, "  getTransactionIsolation = {0}", this.isolationLevel);
+    return this.isolationLevel;
   }
 
+  @Override
   public void setTransactionIsolation(int level) throws SQLException {
     checkClosed();
 
@@ -828,7 +857,31 @@ public class PgConnection implements BaseConnection {
           PSQLState.ACTIVE_SQL_TRANSACTION);
     }
 
-    String isolationLevelName = getIsolationLevelName(level);
+    if (level == Connection.TRANSACTION_NONE) {
+      throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.",
+          "TRANSACTION_NONE"), PSQLState.INVALID_PARAMETER_VALUE);
+    } else if (this.isolationLevel == level && cacheIsolationState) {
+      return; // Same isolation level, not set it again.
+    }
+
+    String isolationLevelName;
+    switch (level) {
+      case Connection.TRANSACTION_READ_COMMITTED:
+        isolationLevelName = "READ COMMITTED";
+        break;
+      case Connection.TRANSACTION_SERIALIZABLE:
+        isolationLevelName = "SERIALIZABLE";
+        break;
+      case Connection.TRANSACTION_REPEATABLE_READ:
+        isolationLevelName = "REPEATABLE READ";
+        break;
+      case Connection.TRANSACTION_READ_UNCOMMITTED:
+        isolationLevelName = "READ UNCOMMITTED";
+        break;
+      default:
+        isolationLevelName = null;
+    }
+
     if (isolationLevelName == null) {
       throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", level),
           PSQLState.NOT_IMPLEMENTED);
@@ -837,22 +890,9 @@ public class PgConnection implements BaseConnection {
     String isolationLevelSQL =
         "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
     execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
-    LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", isolationLevelName);
-  }
 
-  protected String getIsolationLevelName(int level) {
-    switch (level) {
-      case Connection.TRANSACTION_READ_COMMITTED:
-        return "READ COMMITTED";
-      case Connection.TRANSACTION_SERIALIZABLE:
-        return "SERIALIZABLE";
-      case Connection.TRANSACTION_READ_UNCOMMITTED:
-        return "READ UNCOMMITTED";
-      case Connection.TRANSACTION_REPEATABLE_READ:
-        return "REPEATABLE READ";
-      default:
-        return null;
-    }
+    this.isolationLevel = level; // cache the value for later use.
+    LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", this.isolationLevel);
   }
 
   public void setCatalog(String catalog) throws SQLException {

@@ -355,6 +355,16 @@ Connection conn = DriverManager.getConnection(url);
 
 	Put the connection in read-only mode
 
+* **cacheReadOnlyState** = boolean
+
+	Cache value for read-only state. If your application uses the jdbc methods isReadOnly()/setReadOnly()
+	this can avoid unnecesary calls to the database.
+
+* **cacheIsolationState** = boolean
+
+	Cache value for isolation-level state. If your application uses the jdbc methods
+	setTransactionIsolation()/getTransactionIsolation() this can avoid unnecesary calls to the database.
+
 * **disableColumnSanitiser** = boolean
 
 	Setting this to true disables column name sanitiser. 

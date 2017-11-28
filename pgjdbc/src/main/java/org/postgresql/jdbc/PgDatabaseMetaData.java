@@ -883,8 +883,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    * <p>
-   * We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED before 8.0; from 8.0
-   * READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases for READ_COMMITTED.
+   * In PostgreSQL READ UNCOMMITTED is treated as READ COMMITTED, while REPEATABLE READ is treated
+   * as SERIALIZABLE before PostgreSQL 9.1.
    */
   public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
     switch (level) {

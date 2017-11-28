@@ -132,6 +132,19 @@ public enum PGProperty {
   READ_ONLY("readOnly", "false", "Puts this connection in read-only mode"),
 
   /**
+   * Cache value for read-only state. If your application uses the jdbc methods
+   * isReadOnly/setReadOnly this can avoid unnecesary calls to the database.
+   */
+  CACHE_READ_ONLY_STATE("cacheReadOnlyState", "true", "Cache value for read-only state."),
+
+  /**
+   * Cache value for isolation-level state. If your application uses the jdbc methods
+   * setTransactionIsolation/getTransactionIsolation this can avoid unnecesary calls to the
+   * database.
+   */
+  CACHE_ISOLATION_STATE("cacheIsolationState", "false", "Cache value for isolation-level state."),
+
+  /**
    * Comma separated list of types to enable binary transfer. Either OID numbers or names
    */
   BINARY_TRANSFER_ENABLE("binaryTransferEnable", "",
