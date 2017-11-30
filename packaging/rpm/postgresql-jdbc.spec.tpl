@@ -69,7 +69,6 @@ BuildRequires:	maven-plugin-build-helper
 BuildRequires:	classloader-leak-test-framework
 
 BuildRequires:	mvn(com.ongres.scram:client)
-BuildRequires:	mvn(org.apache.maven.plugins:maven-shade-plugin)
 
 %if %runselftest
 BuildRequires:	postgresql-contrib
@@ -116,6 +115,7 @@ find -name "*.jar" -or -name "*.class" | xargs rm -f
 %pom_xpath_inject pom:modules "<module>%parent_poms_builddir</module>"
 %pom_xpath_inject pom:parent "<relativePath>pgjdbc-parent-poms/pgjdbc-versions</relativePath>"
 %pom_xpath_set pom:relativePath ../pgjdbc-parent-poms/pgjdbc-core-parent pgjdbc
+%pom_xpath_remove "pom:plugin[pom:artifactId = 'maven-shade-plugin']" pgjdbc
 
 # compat symlink: requested by dtardon (libreoffice), reverts part of
 # 0af97ce32de877 commit.
