@@ -27,7 +27,6 @@ import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
-import org.postgresql.util.UnixCrypt;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -456,35 +455,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // Process the request.
             switch (areq) {
-              case AUTH_REQ_CRYPT: {
-                byte[] salt = pgStream.receive(2);
-
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " <=BE AuthenticationReqCrypt(salt=''{0}'')", new String(salt, "US-ASCII"));
-                }
-
-                if (password == null) {
-                  throw new PSQLException(
-                      GT.tr(
-                          "The server requested password-based authentication, but no password was provided."),
-                      PSQLState.CONNECTION_REJECTED);
-                }
-
-                byte[] encodedResult = UnixCrypt.crypt(salt, password.getBytes("UTF-8"));
-
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " FE=> Password(crypt=''{0}'')", new String(encodedResult, "US-ASCII"));
-                }
-
-                pgStream.sendChar('p');
-                pgStream.sendInteger4(4 + encodedResult.length + 1);
-                pgStream.send(encodedResult);
-                pgStream.sendChar(0);
-                pgStream.flush();
-
-                break;
-              }
-
               case AUTH_REQ_MD5: {
                 byte[] md5Salt = pgStream.receive(4);
                 if (LOGGER.isLoggable(Level.FINEST)) {
