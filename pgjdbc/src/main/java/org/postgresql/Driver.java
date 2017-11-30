@@ -106,7 +106,7 @@ public class Driver implements java.sql.Driver {
 
     try {
       PGProperty.USER.set(merged, System.getProperty("user.name"));
-    } catch (java.lang.SecurityException se) {
+    } catch (SecurityException se) {
       // We're just trying to set a default, so if we can't
       // it's not a big deal.
     }
@@ -200,7 +200,8 @@ public class Driver implements java.sql.Driver {
    * @throws SQLException if a database access error occurs
    * @see java.sql.Driver#connect
    */
-  public java.sql.Connection connect(String url, Properties info) throws SQLException {
+  @Override
+  public Connection connect(String url, Properties info) throws SQLException {
     // get defaults
     Properties defaults;
 
@@ -460,6 +461,7 @@ public class Driver implements java.sql.Driver {
    * @return true if this driver accepts the given URL
    * @see java.sql.Driver#acceptsURL
    */
+  @Override
   public boolean acceptsURL(String url) {
     return parseURL(url, null) != null;
   }
@@ -478,6 +480,7 @@ public class Driver implements java.sql.Driver {
    *         be an empty array if no properties are required
    * @see java.sql.Driver#getPropertyInfo
    */
+  @Override
   public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
     Properties copy = new Properties(info);
     Properties parse = parseURL(url, copy);
@@ -523,6 +526,7 @@ public class Driver implements java.sql.Driver {
    * <p>
    * For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).
    */
+  @Override
   public boolean jdbcCompliant() {
     return false;
   }
@@ -562,9 +566,7 @@ public class Driver implements java.sql.Driver {
       String[] addresses = l_urlServer.substring(0, slash).split(",");
       StringBuilder hosts = new StringBuilder();
       StringBuilder ports = new StringBuilder();
-      for (int addr = 0; addr < addresses.length; ++addr) {
-        String address = addresses[addr];
-
+      for (String address : addresses) {
         int portIdx = address.lastIndexOf(':');
         if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
           String portStr = address.substring(portIdx + 1);

@@ -73,9 +73,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       String spnServiceClass,
       boolean enableNegotiate) {
     try {
-      Class c = Class.forName("org.postgresql.sspi.SSPIClient");
-      Class[] cArg = new Class[]{PGStream.class, String.class, boolean.class};
-      return (ISSPIClient) c.getDeclaredConstructor(cArg)
+      @SuppressWarnings("unchecked")
+      Class<ISSPIClient> c = (Class<ISSPIClient>) Class.forName("org.postgresql.sspi.SSPIClient");
+      return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {
       // This catched quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
@@ -84,6 +84,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
+  @Override
   public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
       Properties info) throws SQLException {
     // Extract interesting values from the info properties:
@@ -106,33 +107,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
     }
 
-    // - the TCP keep alive setting
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
-
-    // NOTE: To simplify this code, it is assumed that if we are
-    // using the V3 protocol, then the database is at least 7.4. That
-    // eliminates the need to check database versions and maintain
-    // backward-compatible code here.
-    //
-    // Change by Chris Smith <cdsmith@twu.net>
 
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
-    // - the targetServerType setting
-    HostRequirement targetServerType;
-    String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
-    try {
-      targetServerType = HostRequirement.valueOf(targetServerTypeStr);
-    } catch (IllegalArgumentException ex) {
-      throw new PSQLException(
-          GT.tr("Invalid targetServerType value: {0}", targetServerTypeStr),
-          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-    }
+    HostRequirement targetServerType = getTargetServerType(info);
 
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
-    HostChooser hostChooser =
-        HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
+    HostChooser hostChooser = HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
     Iterator<HostSpec> hostIter = hostChooser.iterator();
     while (hostIter.hasNext()) {
       HostSpec hostSpec = hostIter.next();
@@ -189,36 +172,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
         LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
 
-        List<String[]> paramList = new ArrayList<String[]>();
-        paramList.add(new String[]{"user", user});
-        paramList.add(new String[]{"database", database});
-        paramList.add(new String[]{"client_encoding", "UTF8"});
-        paramList.add(new String[]{"DateStyle", "ISO"});
-        paramList.add(new String[]{"TimeZone", createPostgresTimeZone()});
-
-        Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.get(info));
-
-        if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
-          // User is explicitly telling us this is a 9.0+ server so set properties here:
-          paramList.add(new String[]{"extra_float_digits", "3"});
-          String appName = PGProperty.APPLICATION_NAME.get(info);
-          if (appName != null) {
-            paramList.add(new String[]{"application_name", appName});
-          }
-        } else {
-          // User has not explicitly told us that this is a 9.0+ server so stick to old default:
-          paramList.add(new String[]{"extra_float_digits", "2"});
-        }
-
-        String replication = PGProperty.REPLICATION.get(info);
-        if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
-          paramList.add(new String[]{"replication", replication});
-        }
-
-        String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
-        if (currentSchema != null) {
-          paramList.add(new String[]{"search_path", currentSchema});
-        }
+        List<String[]> paramList = getParametersForStartup(user, database, info);
         sendStartupPacket(newStream, paramList);
 
         // Do authentication (until AuthenticationOk).
@@ -288,6 +242,53 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
     throw new PSQLException(GT.tr("The connection url is invalid."),
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+  }
+
+  private HostRequirement getTargetServerType(Properties info) throws PSQLException {
+    HostRequirement targetServerType;
+    String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
+    try {
+      targetServerType = HostRequirement.valueOf(targetServerTypeStr);
+    } catch (IllegalArgumentException ex) {
+      throw new PSQLException(
+          GT.tr("Invalid targetServerType value: {0}", targetServerTypeStr),
+          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+    }
+    return targetServerType;
+  }
+
+  private List<String[]> getParametersForStartup(String user, String database, Properties info) {
+    List<String[]> paramList = new ArrayList<String[]>();
+    paramList.add(new String[]{"user", user});
+    paramList.add(new String[]{"database", database});
+    paramList.add(new String[]{"client_encoding", "UTF8"});
+    paramList.add(new String[]{"DateStyle", "ISO"});
+    paramList.add(new String[]{"TimeZone", createPostgresTimeZone()});
+
+    Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.get(info));
+
+    if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
+      // User is explicitly telling us this is a 9.0+ server so set properties here:
+      paramList.add(new String[]{"extra_float_digits", "3"});
+      String appName = PGProperty.APPLICATION_NAME.get(info);
+      if (appName != null) {
+        paramList.add(new String[]{"application_name", appName});
+      }
+    } else {
+      // User has not explicitly told us that this is a 9.0+ server so stick to old default:
+      paramList.add(new String[]{"extra_float_digits", "2"});
+    }
+
+    String replication = PGProperty.REPLICATION.get(info);
+    if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
+      paramList.add(new String[]{"replication", replication});
+    }
+
+    String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
+    if (currentSchema != null) {
+      paramList.add(new String[]{"search_path", currentSchema});
+    }
+    return paramList;
   }
 
   /**
@@ -528,8 +529,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 final String gsslib = PGProperty.GSS_LIB.get(info);
                 final boolean usespnego = PGProperty.USE_SPNEGO.getBoolean(info);
 
-                boolean useSSPI = false;
-
                 /*
                  * Use SSPI if we're in auto mode on windows and have a request for SSPI auth, or if
                  * it's forced. Otherwise use gssapi. If the user has specified a Kerberos server
@@ -546,7 +545,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       /* Use negotiation for SSPI, or if explicitly requested for GSS */
                       areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego));
 
-                  useSSPI = sspiClient.isSSPISupported();
+                  boolean useSSPI = sspiClient.isSSPISupported();
                   LOGGER.log(Level.FINE, "SSPI support detected: {0}", useSSPI);
 
                   if (!useSSPI) {
@@ -563,16 +562,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "Using SSPI: {0}, gsslib={1} and SSPI support detected", new Object[]{useSSPI, gsslib});
                   }
-                }
 
-                if (useSSPI) {
-                  /* SSPI requested and detected as available */
-                  sspiClient.startSSPI();
-                } else {
-                  /* Use JGSS's GSSAPI for this request */
-                  org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
-                      PGProperty.JAAS_APPLICATION_NAME.get(info),
-                      PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego);
+                  if (useSSPI) {
+                    /* SSPI requested and detected as available */
+                    sspiClient.startSSPI();
+                  } else {
+                    /* Use JGSS's GSSAPI for this request */
+                    org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+                            PGProperty.JAAS_APPLICATION_NAME.get(info),
+                            PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego);
+                  }
                 }
                 break;
 
