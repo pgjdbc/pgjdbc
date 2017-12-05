@@ -3,6 +3,7 @@ language: java
 dist: trusty
 
 before_script:
+  - test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
   -  ./.travis/travis_install_postgres.sh
   - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
@@ -67,7 +68,7 @@ matrix:
     - env: # REMOVE FAILURE extendedCacheEverything
         - PG_VERSION=9.4
         - QUERY_MODE=extendedCacheEverything
-        - COVERAGE=Y
+        - COVERAGE=N
   include:
     - jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
@@ -121,7 +122,7 @@ matrix:
       env:
         - PG_VERSION=9.4
         - QUERY_MODE=extendedCacheEverything
-        - COVERAGE=Y
+        - COVERAGE=N
     - jdk: openjdk7
       sudo: required
       addons:
@@ -130,6 +131,7 @@ matrix:
         - PG_VERSION=9.2
         - ZULU_JDK=7
         - MCENTRAL=Y
+        - COVERAGE=Y
     - jdk: openjdk6
       sudo: required
       addons:
