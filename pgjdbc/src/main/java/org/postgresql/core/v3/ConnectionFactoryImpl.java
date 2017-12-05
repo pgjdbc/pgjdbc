@@ -111,11 +111,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
-    HostRequirement targetServerType = getTargetServerType(info);
+    HostRequirement targetServerType;
+    String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
+    try {
+      targetServerType = HostRequirement.valueOf(targetServerTypeStr);
+    } catch (IllegalArgumentException ex) {
+      throw new PSQLException(
+          GT.tr("Invalid targetServerType value: {0}", targetServerTypeStr),
+          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+    }
 
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
-    HostChooser hostChooser = HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
+    HostChooser hostChooser =
+        HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
     Iterator<HostSpec> hostIter = hostChooser.iterator();
     while (hostIter.hasNext()) {
       HostSpec hostSpec = hostIter.next();
@@ -242,19 +251,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
     throw new PSQLException(GT.tr("The connection url is invalid."),
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-  }
-
-  private HostRequirement getTargetServerType(Properties info) throws PSQLException {
-    HostRequirement targetServerType;
-    String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
-    try {
-      targetServerType = HostRequirement.valueOf(targetServerTypeStr);
-    } catch (IllegalArgumentException ex) {
-      throw new PSQLException(
-          GT.tr("Invalid targetServerType value: {0}", targetServerTypeStr),
-          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-    }
-    return targetServerType;
   }
 
   private List<String[]> getParametersForStartup(String user, String database, Properties info) {
