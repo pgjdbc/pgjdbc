@@ -15,8 +15,16 @@
 
   <modules>
     <module>pgjdbc</module>
-    <module>ubenchmark</module>
   </modules>
+
+  <profiles>
+    <profile>
+      <id>ubenchmark</id>
+      <modules>
+        <module>ubenchmark</module>
+      </modules>
+    </profile>
+  </profiles>
 
   <!-- If inherited from parent pom, maven tries to add artifactId to URLs -->
   <scm>
