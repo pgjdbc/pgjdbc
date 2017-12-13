@@ -71,7 +71,7 @@ matrix:
   include:
     - jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
+      script: mvn -P ubenchmark checkstyle:check
     - env:
         - FEDORA_CI=Y
       services:
