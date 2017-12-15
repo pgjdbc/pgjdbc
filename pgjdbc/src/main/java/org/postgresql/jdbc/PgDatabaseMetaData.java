@@ -2541,7 +2541,41 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
       throws SQLException {
-    return getProcedures(catalog, schemaPattern, functionNamePattern);
+
+    // The pg_get_function_result only exists 8.4 or later
+    boolean pgFuncResultExists = connection.haveMinimumServerVersion(ServerVersion.v8_4);
+
+    // Use query that support pg_get_function_result to get function result, else unknown is defaulted
+    String funcTypeSql = DatabaseMetaData.functionResultUnknown + " ";
+    if (pgFuncResultExists) {
+      funcTypeSql = " CASE "
+              + "   WHEN (format_type(p.prorettype, null) = 'unknown') THEN " + DatabaseMetaData.functionResultUnknown
+              + "   WHEN "
+              + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'TABLE') OR "
+              + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'SETOF') THEN " + DatabaseMetaData.functionReturnsTable
+              + "   ELSE " + DatabaseMetaData.functionNoTable
+              + " END ";
+    }
+
+    // Build query and result
+    String sql;
+    sql = "SELECT current_database() AS FUNCTION_CAT, n.nspname AS FUNCTION_SCHEM, p.proname AS FUNCTION_NAME, "
+        + " d.description AS REMARKS, "
+        + funcTypeSql + " AS FUNCTION_TYPE, "
+        + " p.proname || '_' || p.oid AS SPECIFIC_NAME "
+        + "FROM pg_catalog.pg_proc p "
+        + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
+        + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
+        + "WHERE pg_function_is_visible(p.oid) ";
+    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    }
+    if (functionNamePattern != null && !functionNamePattern.isEmpty()) {
+      sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+    }
+    sql += " ORDER BY FUNCTION_SCHEM, FUNCTION_NAME, p.oid::text ";
+
+    return createMetaDataStatement().executeQuery(sql);
   }
 
   public ResultSet getFunctionColumns(String catalog, String schemaPattern,

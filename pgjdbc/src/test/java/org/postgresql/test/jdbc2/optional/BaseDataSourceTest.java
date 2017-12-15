@@ -5,7 +5,10 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
@@ -167,7 +170,7 @@ public abstract class BaseDataSourceTest {
     con = getDataSourceConnection();
     String name2 = con.toString();
     con.close();
-    assertTrue(!name.equals(name2));
+    assertNotEquals(name, name2);
   }
 
   /**
@@ -198,15 +201,15 @@ public abstract class BaseDataSourceTest {
     try {
       ic.rebind(DATA_SOURCE_JNDI, bds);
       bds = (BaseDataSource) ic.lookup(DATA_SOURCE_JNDI);
-      assertTrue("Got null looking up DataSource from JNDI!", bds != null);
+      assertNotNull("Got null looking up DataSource from JNDI!", bds);
       compareJndiDataSource(oldbds, bds);
     } catch (NamingException e) {
       fail(e.getMessage());
     }
     oldbds = bds;
     testUseConnection();
-    assertTrue("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
-        bds == oldbds);
+    assertSame("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
+        oldbds , bds);
   }
 
   /**
@@ -227,7 +230,6 @@ public abstract class BaseDataSourceTest {
    * Check whether a DS was dereferenced from JNDI or recreated.
    */
   protected void compareJndiDataSource(BaseDataSource oldbds, BaseDataSource bds) {
-    assertTrue("DataSource was dereferenced, should have been serialized or recreated",
-        bds != oldbds);
+    assertNotSame("DataSource was dereferenced, should have been serialized or recreated", oldbds, bds);
   }
 }

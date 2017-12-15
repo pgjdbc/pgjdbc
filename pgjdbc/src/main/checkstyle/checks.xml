@@ -22,10 +22,6 @@
 
   <property name="fileExtensions" value="java, properties, xml"/>
 
-  <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="CHECKSTYLE: OFF"/>
-    <property name="onCommentFormat"  value="CHECKSTYLE: ON"/>
-  </module>
 
   <!-- Checks for whitespace                               -->
   <!-- See http://checkstyle.sf.net/config_whitespace.html -->
@@ -37,8 +33,11 @@
   </module>
 
   <module name="TreeWalker">
-    <!-- For SuppressionCommentFilter -->
-    <module name="FileContentsHolder"/>
+
+    <module name="SuppressionCommentFilter">
+      <property name="offCommentFormat" value="CHECKSTYLE: OFF"/>
+      <property name="onCommentFormat"  value="CHECKSTYLE: ON"/>
+    </module>
 
     <module name="Regexp">
       <property name="format" value="[ \t]++$"/>
@@ -71,9 +70,7 @@
                 value="LITERAL_TRY, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_SWITCH"/>
     </module>
     <module name="NeedBraces"/>
-    <module name="LeftCurly">
-      <property name="maxLineLength" value="100"/>
-    </module>
+    <module name="LeftCurly"/>
     <module name="RightCurly">
       <property name="tokens" value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_DO"/>
     </module>
@@ -93,6 +90,7 @@
                value="WhitespaceAround: ''{0}'' is not preceded with whitespace."/>
     </module>
     <module name="OneStatementPerLine"/>
+    <module name="MissingDeprecated"/>
     <module name="MultipleVariableDeclarations"/>
     <module name="ArrayTypeStyle"/>
     <!--<module name="MissingSwitchDefault"/>-->
@@ -178,7 +176,7 @@
     </module>
     <module name="OverloadMethodsDeclarationOrder"/>
     <module name="VariableDeclarationUsageDistance"/>-->
-    <module name="com.puppycrawl.tools.checkstyle.checks.imports.CustomImportOrder">
+    <module name="CustomImportOrder">
       <property name="specialImportsRegExp" value="org.postgresql"/>
       <property name="sortImportsInGroupAlphabetically" value="true"/>
       <property name="customImportOrderRules"

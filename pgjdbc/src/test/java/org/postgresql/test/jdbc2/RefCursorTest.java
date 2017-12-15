@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -34,7 +35,7 @@ import java.util.Arrays;
 @RunWith(Parameterized.class)
 public class RefCursorTest extends BaseTest4 {
 
-  final int cursorType;
+  private final int cursorType;
 
   public RefCursorTest(String typeName, int cursorType) {
     this.cursorType = cursorType;
@@ -96,24 +97,24 @@ public class RefCursorTest extends BaseTest4 {
     ResultSet rs = (ResultSet) call.getObject(1);
 
     assertTrue(rs.next());
-    assertTrue(rs.getInt(1) == 1);
+    assertEquals(1, rs.getInt(1));
 
     assertTrue(rs.next());
-    assertTrue(rs.getInt(1) == 2);
+    assertEquals(2, rs.getInt(1));
 
     assertTrue(rs.next());
-    assertTrue(rs.getInt(1) == 3);
+    assertEquals(3, rs.getInt(1));
 
     assertTrue(rs.next());
-    assertTrue(rs.getInt(1) == 4);
+    assertEquals(4, rs.getInt(1));
 
     assertTrue(rs.next());
-    assertTrue(rs.getInt(1) == 6);
+    assertEquals(6, rs.getInt(1));
 
     assertTrue(rs.next());
-    assertTrue(rs.getInt(1) == 9);
+    assertEquals(9, rs.getInt(1));
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     rs.close();
 
     call.close();

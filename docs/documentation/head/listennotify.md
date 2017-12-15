@@ -24,7 +24,7 @@ any outstanding notifications.
 
 > A key limitation of the JDBC driver is that it cannot receive asynchronous
 notifications and must poll the backend to check if any notifications were issued.
-I timeout can be given to the poll function, but then the execution of statements
+A timeout can be given to the poll function, but then the execution of statements
 from other threads will block.  
 
 <a name="listen-notify-example"></a>
@@ -86,7 +86,7 @@ class Listener extends Thread
 				
 				if (notifications != null)
 				{
-					for (int i=0; i&lt;notifications.length; i++)
+					for (int i=0; i < notifications.length; i++)
 						System.out.println("Got notification: " + notifications[i].getName());
 				}
 

@@ -10,6 +10,7 @@ import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
+import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.LruCacheTest;
@@ -26,6 +27,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         ANTTest.class,
+        JavaVersionTest.class,
 
         DriverTest.class,
         ConnectionTest.class,

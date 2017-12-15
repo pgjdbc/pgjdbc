@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
@@ -275,7 +276,7 @@ public class BlobTest {
         break;
 
       default:
-        assertTrue("Unknown method in uploadFile", false);
+        fail("Unknown method in uploadFile");
     }
 
     blob.close();
@@ -323,7 +324,7 @@ public class BlobTest {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("Large Object API Blob compare failed at " + c + " of " + blob.size(), false);
+        fail("Large Object API Blob compare failed at " + c + " of " + blob.size());
       }
 
       blob.close();
@@ -364,7 +365,7 @@ public class BlobTest {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("JDBC API Blob compare failed at " + c + " of " + blob.length(), false);
+        fail("JDBC API Blob compare failed at " + c + " of " + blob.length());
       }
 
       bis.close();
@@ -405,7 +406,7 @@ public class BlobTest {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("Clob compare failed at " + c + " of " + clob.length(), false);
+        fail("Clob compare failed at " + c + " of " + clob.length());
       }
 
       bis.close();

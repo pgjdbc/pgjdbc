@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -25,7 +26,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Arrays;
 import java.util.TimeZone;
 
 public class UpdateableResultTest extends BaseTest4 {
@@ -244,21 +244,21 @@ public class UpdateableResultTest extends BaseTest4 {
     assertEquals(2, rs.getInt(1));
     assertEquals(string, rs.getString(2));
     assertEquals(string, rs.getString(3));
-    assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
+    assertArrayEquals(bytes, rs.getBytes(4));
 
     rs.refreshRow();
 
     assertEquals(2, rs.getInt(1));
     assertEquals(string, rs.getString(2));
     assertEquals(string, rs.getString(3));
-    assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
+    assertArrayEquals(bytes, rs.getBytes(4));
 
     rs.next();
 
     assertEquals(3, rs.getInt(1));
     assertEquals(string, rs.getString(2));
     assertEquals(string, rs.getString(3));
-    assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
+    assertArrayEquals(bytes, rs.getBytes(4));
 
     rs.close();
     stmt.close();

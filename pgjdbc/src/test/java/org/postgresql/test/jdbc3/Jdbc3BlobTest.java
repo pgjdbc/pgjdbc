@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -24,7 +25,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 
 public class Jdbc3BlobTest {
   private static final String TABLE = "blobtest";
@@ -180,7 +180,7 @@ public class Jdbc3BlobTest {
     assertTrue(rs.next());
     b = rs.getBlob("DATA");
     byte[] rspData = b.getBytes(offset, data.length);
-    assertTrue("Request should be the same as the response", Arrays.equals(data, rspData));
+    assertArrayEquals("Request should be the same as the response", data, rspData);
 
     rs.close();
     ps.close();
@@ -272,7 +272,7 @@ public class Jdbc3BlobTest {
     in.read(rspData);
     in.close();
 
-    assertTrue("Request should be the same as the response", Arrays.equals(data, rspData));
+    assertArrayEquals("Request should be the same as the response", data, rspData);
 
     rs.close();
     ps.close();
@@ -304,7 +304,7 @@ public class Jdbc3BlobTest {
     b = rs.getBlob("DATA");
     long position = b.position(pattern, 1);
     byte[] rspData = b.getBytes(position, pattern.length);
-    assertTrue("Request should be the same as the response", Arrays.equals(pattern, rspData));
+    assertArrayEquals("Request should be the same as the response", pattern, rspData);
 
     rs.close();
     ps.close();

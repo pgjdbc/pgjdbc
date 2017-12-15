@@ -19,6 +19,7 @@ public class ServerVersionTest {
         Assert.assertTrue(prev + " should be less than " + serverVersion,
             prev.getVersionNum() < serverVersion.getVersionNum());
       }
+      prev = serverVersion;
     }
   }
 }

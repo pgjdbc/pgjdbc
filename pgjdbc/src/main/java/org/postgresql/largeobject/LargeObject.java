@@ -41,7 +41,11 @@ import java.sql.SQLException;
  * @see java.sql.PreparedStatement#setBinaryStream
  * @see java.sql.PreparedStatement#setUnicodeStream
  */
-public class LargeObject {
+public class LargeObject
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+    implements AutoCloseable
+    //#endif
+    /* hi, checkstyle */ {
   /**
    * Indicates a seek from the begining of a file
    */
@@ -137,6 +141,7 @@ public class LargeObject {
    * @return the OID of this LargeObject
    * @deprecated As of 8.3, replaced by {@link #getLongOID()}
    */
+  @Deprecated
   public int getOID() {
     return (int) oid;
   }

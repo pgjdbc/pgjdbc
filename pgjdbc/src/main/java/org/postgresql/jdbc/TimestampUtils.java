@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.JavaVersion;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.util.ByteConverter;
@@ -85,12 +86,16 @@ public class TimestampUtils {
     // This saves the creation of a clone everytime, and the memory associated to all these clones.
     Field tzField;
     try {
-      tzField = TimeZone.class.getDeclaredField("defaultTimeZone");
-      tzField.setAccessible(true);
-      TimeZone defaultTz = TimeZone.getDefault();
-      Object tzFromField = tzField.get(null);
-      if (defaultTz == null || !defaultTz.equals(tzFromField)) {
-        tzField = null;
+      tzField = null;
+      // Avoid reflective access in Java 9+
+      if (JavaVersion.getRuntimeVersion().compareTo(JavaVersion.v1_8) <= 0) {
+        tzField = TimeZone.class.getDeclaredField("defaultTimeZone");
+        tzField.setAccessible(true);
+        TimeZone defaultTz = TimeZone.getDefault();
+        Object tzFromField = tzField.get(null);
+        if (defaultTz == null || !defaultTz.equals(tzFromField)) {
+          tzField = null;
+        }
       }
     } catch (Exception e) {
       tzField = null;
@@ -405,6 +410,11 @@ public class TimestampUtils {
     if (s == null) {
       return null;
     }
+
+    if (s.equals("24:00:00")) {
+      return LocalTime.MAX;
+    }
+
     try {
       return LocalTime.parse(s);
     } catch (DateTimeParseException nfe) {
@@ -638,6 +648,12 @@ public class TimestampUtils {
     if (needZeros > 0) {
       sb.insert(len, ZEROS, 0, needZeros);
     }
+
+    int end = sb.length() - 1;
+    while (sb.charAt(end) == '0') {
+      sb.deleteCharAt(end);
+      end--;
+    }
   }
 
   private void appendTimeZone(StringBuilder sb, java.util.Calendar cal) {
@@ -692,13 +708,12 @@ public class TimestampUtils {
   }
 
   public synchronized String toString(LocalTime localTime) {
-    if (LocalTime.MAX.equals(localTime)) {
-      return "infinity";
-    } else if (LocalTime.MIN.equals(localTime)) {
-      return "-infinity";
-    }
 
     sbuf.setLength(0);
+
+    if (localTime.equals( LocalTime.MAX )) {
+      return "24:00:00";
+    }
 
     appendTime(sbuf, localTime);
 

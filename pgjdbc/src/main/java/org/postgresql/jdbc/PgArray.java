@@ -588,7 +588,31 @@ public class PgArray implements java.sql.Array {
           pa[length++] = o == null ? false : BooleanTypeUtil.castToBoolean((String) o);
         }
       }
-    } else if (type == Types.SMALLINT || type == Types.INTEGER) {
+    } else if (type == Types.SMALLINT) {
+      short[] pa = null;
+      Object[] oa = null;
+
+      if (dims > 1 || useObjects) {
+        ret =
+            oa = (dims > 1
+                ? (Object[]) java.lang.reflect.Array
+                    .newInstance(useObjects ? Short.class : short.class, dimsLength)
+                : new Short[count]);
+      } else {
+        ret = pa = new short[count];
+      }
+
+      for (; count > 0; count--) {
+        Object o = input.get(index++);
+
+        if (dims > 1 || useObjects) {
+          oa[length++] = o == null ? null
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
+        } else {
+          pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
+        }
+      }
+    } else if (type == Types.INTEGER) {
       int[] pa = null;
       Object[] oa = null;
 

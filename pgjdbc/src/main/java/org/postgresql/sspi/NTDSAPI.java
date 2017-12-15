@@ -36,7 +36,7 @@ interface NTDSAPI extends StdCallLibrary {
    *        terminator (out)
    * @param spn SPN buffer (in/out)
    * @return Error code ERROR_SUCCESS, ERROR_BUFFER_OVERFLOW or ERROR_INVALID_PARAMETER
-   * @see http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx
+   * @see "http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx"
    */
   int DsMakeSpnW(WString serviceClass, /* in */
       WString serviceName, /* in */

@@ -311,6 +311,8 @@ public class TimestampTest extends BaseTest4 {
   @Test
   public void testGetTimestampWOTZ() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
+    //Refer to #896
+    assumeMinimumServerVersion(ServerVersion.v8_4);
 
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
@@ -329,17 +331,8 @@ public class TimestampTest extends BaseTest4 {
     assertEquals(1,
         stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS6WOTZ_PGFORMAT + "'")));
     assertEquals(1,
-        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS1WOTZ_PGFORMAT + "'")));
-    assertEquals(1,
-        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS2WOTZ_PGFORMAT + "'")));
-    assertEquals(1,
-        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS3WOTZ_PGFORMAT + "'")));
-    assertEquals(1,
-        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS4WOTZ_PGFORMAT + "'")));
-    assertEquals(1,
-        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS5WOTZ_PGFORMAT + "'")));
-    assertEquals(1,
-        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS6WOTZ_PGFORMAT + "'")));
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS7WOTZ_PGFORMAT + "'")));
+
     assertEquals(1,
         stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS1WOTZ_PGFORMAT + "'")));
     assertEquals(1,
@@ -352,6 +345,24 @@ public class TimestampTest extends BaseTest4 {
         stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS5WOTZ_PGFORMAT + "'")));
     assertEquals(1,
         stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS6WOTZ_PGFORMAT + "'")));
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS7WOTZ_PGFORMAT + "'")));
+
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS1WOTZ_PGFORMAT + "'")));
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS2WOTZ_PGFORMAT + "'")));
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS3WOTZ_PGFORMAT + "'")));
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS4WOTZ_PGFORMAT + "'")));
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS5WOTZ_PGFORMAT + "'")));
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS6WOTZ_PGFORMAT + "'")));
+    assertEquals(1,
+        stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS7WOTZ_PGFORMAT + "'")));
+
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
         "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate1WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
@@ -365,6 +376,9 @@ public class TimestampTest extends BaseTest4 {
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
         "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate6WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
+        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate7WOTZ.getTime())) + "'")));
+
+    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
         "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime1WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
         "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime2WOTZ.getTime())) + "'")));
@@ -376,11 +390,13 @@ public class TimestampTest extends BaseTest4 {
         "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime5WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
         "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime6WOTZ.getTime())) + "'")));
+    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
+        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime7WOTZ.getTime())) + "'")));
 
     // Fall through helper
     timestampTestWOTZ();
 
-    assertEquals(30, stmt.executeUpdate("DELETE FROM " + TSWOTZ_TABLE));
+    assertEquals(35, stmt.executeUpdate("DELETE FROM " + TSWOTZ_TABLE));
 
     stmt.close();
   }
@@ -393,6 +409,8 @@ public class TimestampTest extends BaseTest4 {
   @Test
   public void testSetTimestampWOTZ() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
+    //Refer to #896
+    assumeMinimumServerVersion(ServerVersion.v8_4);
 
     Statement stmt = con.createStatement();
     PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWOTZ_TABLE, "?"));
@@ -415,6 +433,9 @@ public class TimestampTest extends BaseTest4 {
     pstmt.setTimestamp(1, TS6WOTZ);
     assertEquals(1, pstmt.executeUpdate());
 
+    pstmt.setTimestamp(1, TS7WOTZ);
+    assertEquals(1, pstmt.executeUpdate());
+
     // With java.sql.Timestamp
     pstmt.setObject(1, TS1WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
@@ -427,6 +448,8 @@ public class TimestampTest extends BaseTest4 {
     pstmt.setObject(1, TS5WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
     pstmt.setObject(1, TS6WOTZ, Types.TIMESTAMP);
+    assertEquals(1, pstmt.executeUpdate());
+    pstmt.setObject(1, TS7WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With Strings
@@ -442,6 +465,8 @@ public class TimestampTest extends BaseTest4 {
     assertEquals(1, pstmt.executeUpdate());
     pstmt.setObject(1, TS6WOTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
+    pstmt.setObject(1, TS7WOTZ_PGFORMAT, Types.TIMESTAMP);
+    assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Date
     pstmt.setObject(1, tmpDate1WOTZ, Types.TIMESTAMP);
@@ -455,6 +480,8 @@ public class TimestampTest extends BaseTest4 {
     pstmt.setObject(1, tmpDate5WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
     pstmt.setObject(1, tmpDate6WOTZ, Types.TIMESTAMP);
+    assertEquals(1, pstmt.executeUpdate());
+    pstmt.setObject(1, tmpDate7WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Time
@@ -470,10 +497,12 @@ public class TimestampTest extends BaseTest4 {
     assertEquals(1, pstmt.executeUpdate());
     pstmt.setObject(1, tmpTime6WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
+    pstmt.setObject(1, tmpTime7WOTZ, Types.TIMESTAMP);
+    assertEquals(1, pstmt.executeUpdate());
     // Fall through helper
     timestampTestWOTZ();
 
-    assertEquals(30, stmt.executeUpdate("DELETE FROM " + TSWOTZ_TABLE));
+    assertEquals(35, stmt.executeUpdate("DELETE FROM " + TSWOTZ_TABLE));
 
     pstmt.close();
     stmt.close();
@@ -565,42 +594,75 @@ public class TimestampTest extends BaseTest4 {
    */
   private void timestampTestWOTZ() throws SQLException {
     Statement stmt = con.createStatement();
-    ResultSet rs;
     java.sql.Timestamp t;
+    String tString;
 
-    rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); // removed the order by ts
+    ResultSet rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); // removed the order by ts
     assertNotNull(rs);
 
     for (int i = 0; i < 3; i++) {
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS1WOTZ));
+      assertEquals(TS1WOTZ, t);
+
+      tString = rs.getString(1);
+      assertNotNull(tString);
+      assertEquals(TS1WOTZ_PGFORMAT, tString);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS2WOTZ));
+      assertEquals(TS2WOTZ, t);
+
+      tString = rs.getString(1);
+      assertNotNull(tString);
+      assertEquals(TS2WOTZ_PGFORMAT, tString);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS3WOTZ));
+      assertEquals(TS3WOTZ, t);
+
+      tString = rs.getString(1);
+      assertNotNull(tString);
+      assertEquals(TS3WOTZ_PGFORMAT, tString);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS4WOTZ));
+      assertEquals(TS4WOTZ, t);
+
+      tString = rs.getString(1);
+      assertNotNull(tString);
+      assertEquals(TS4WOTZ_PGFORMAT, tString);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS5WOTZ));
+      assertEquals(TS5WOTZ, t);
+
+      tString = rs.getString(1);
+      assertNotNull(tString);
+      assertEquals(TS5WOTZ_PGFORMAT, tString);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertTrue(t.equals(TS6WOTZ));
+      assertEquals(TS6WOTZ, t);
+
+      tString = rs.getString(1);
+      assertNotNull(tString);
+      assertEquals(TS6WOTZ_PGFORMAT, tString);
+
+      assertTrue(rs.next());
+      t = rs.getTimestamp(1);
+      assertNotNull(t);
+      assertEquals(TS7WOTZ, t);
+
+      tString = rs.getString(1);
+      assertNotNull(tString);
+      assertEquals(TS7WOTZ_PGFORMAT, tString);
     }
 
     // Testing for Date
@@ -634,6 +696,11 @@ public class TimestampTest extends BaseTest4 {
     assertNotNull(t);
     assertEquals(tmpDate6WOTZ.getTime(), t.getTime());
 
+    assertTrue(rs.next());
+    t = rs.getTimestamp(1);
+    assertNotNull(t);
+    assertEquals(tmpDate7WOTZ.getTime(), t.getTime());
+
     // Testing for Time
     assertTrue(rs.next());
     t = rs.getTimestamp(1);
@@ -664,6 +731,11 @@ public class TimestampTest extends BaseTest4 {
     t = rs.getTimestamp(1);
     assertNotNull(t);
     assertEquals(tmpTime6WOTZ.getTime(), t.getTime());
+
+    assertTrue(rs.next());
+    t = rs.getTimestamp(1);
+    assertNotNull(t);
+    assertEquals(tmpTime7WOTZ.getTime(), t.getTime());
 
     assertTrue(!rs.next()); // end of table. Fail if more entries exist.
 
@@ -740,6 +812,10 @@ public class TimestampTest extends BaseTest4 {
       new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
   private static final String TS6WOTZ_PGFORMAT = "infinity";
 
+  private static final java.sql.Timestamp TS7WOTZ =
+      getTimestamp(2000, 7, 7, 15, 0, 0, 0, null);
+  private static final String TS7WOTZ_PGFORMAT = "2000-07-07 15:00:00";
+
   private static final String TSWTZ_TABLE = "testtimestampwtz";
   private static final String TSWOTZ_TABLE = "testtimestampwotz";
   private static final String DATE_TABLE = "testtimestampdate";
@@ -765,6 +841,8 @@ public class TimestampTest extends BaseTest4 {
   private static final java.sql.Date tmpTime5WOTZ = new java.sql.Date(TS5WOTZ.getTime());
   private static final java.sql.Date tmpDate6WOTZ = new java.sql.Date(TS6WOTZ.getTime());
   private static final java.sql.Date tmpTime6WOTZ = new java.sql.Date(TS6WOTZ.getTime());
+  private static final java.sql.Date tmpDate7WOTZ = new java.sql.Date(TS7WOTZ.getTime());
+  private static final java.sql.Time tmpTime7WOTZ = new java.sql.Time(TS7WOTZ.getTime());
 
 
 }

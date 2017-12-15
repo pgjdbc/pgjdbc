@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
   <artifactId>pgjdbc-benchmark</artifactId>
   <packaging>jar</packaging>
   <name>PostgreSQL JDBC Driver - benchmarks</name>
-  <version>42.2.0-SNAPSHOT</version>
+  <version>42.1.5-SNAPSHOT</version>
   <description>PostgreSQL JDBC Driver - benchmarks</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 
@@ -80,7 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
-              <version>6.13</version>
+              <version>8.5</version>
             </dependency>
           </dependencies>
           <configuration>

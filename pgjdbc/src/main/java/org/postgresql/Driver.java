@@ -7,6 +7,7 @@ package org.postgresql;
 
 import org.postgresql.jdbc.PgConnection;
 
+import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
@@ -501,6 +502,17 @@ public class Driver implements java.sql.Driver {
   @Override
   public int getMinorVersion() {
     return org.postgresql.util.DriverInfo.MINOR_VERSION;
+  }
+
+  /**
+   * Returns the server version series of this driver and the specific build number.
+   *
+   * @return JDBC driver version
+   * @deprecated use {@link #getMajorVersion()} and {@link #getMinorVersion()} instead
+   */
+  @Deprecated
+  public static String getVersion() {
+    return DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**
