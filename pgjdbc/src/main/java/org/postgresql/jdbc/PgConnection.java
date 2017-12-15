@@ -1289,7 +1289,7 @@ public class PgConnection implements BaseConnection {
       throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName),
           PSQLState.INVALID_NAME);
     }
-    
+
     if (elements == null) {
       return makeArray(oid, null);
     }
@@ -1330,7 +1330,7 @@ public class PgConnection implements BaseConnection {
           GT.tr("Unable to find server array type for provided name {0}.", typeName),
           PSQLState.INVALID_NAME);
     }
-    
+
     if (elements == null) {
       return makeArray(oid, null);
     }

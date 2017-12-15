@@ -171,7 +171,7 @@ public class ArrayTest extends BaseTest4 {
 
     rs.close();
   }
-  
+
   @Test
   public void testSetNullArrays() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
