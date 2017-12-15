@@ -25,15 +25,18 @@ public interface PGConnection {
 
   /**
    * Creates an {@link Array} wrapping <i>elements</i>. This is similar to
-   * java.sql.Connection#createArrayOf(String, Object[]), but also provides
-   * support for primitive arrays.
+   * {@link java.sql.Connection#createArrayOf(String, Object[])}, but also
+   * provides support for primitive arrays.
    *
    * @param typeName
    *          The SQL name of the type to map the <i>elements</i> to.
+   *          Must not be {@code null}.
    * @param elements
-   *          The array of objects to map.
+   *          The array of objects to map. A {@code null} value will result in
+   *          an {@link Array} representing {@code null}.
    * @return An {@link Array} wrapping <i>elements</i>.
-   * @throws SQLException If for some reason the array cannot be created.
+   * @throws SQLException
+   *           If for some reason the array cannot be created.
    * @see java.sql.Connection#createArrayOf(String, Object[])
    */
   Array createArrayOf(String typeName, Object elements) throws SQLException;
