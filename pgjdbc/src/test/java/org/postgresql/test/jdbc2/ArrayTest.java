@@ -171,6 +171,35 @@ public class ArrayTest extends BaseTest4 {
 
     rs.close();
   }
+  
+  @Test
+  public void testSetNullArrays() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+
+    final PGConnection arraySupport = conn.unwrap(PGConnection.class);
+
+    pstmt.setArray(1, arraySupport.createArrayOf("int4", null));
+    pstmt.setObject(2, conn.createArrayOf("float8", null));
+    pstmt.setObject(3, arraySupport.createArrayOf("varchar", null));
+
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    Array arr = rs.getArray(1);
+    Assert.assertNull(arr);
+
+    arr = rs.getArray(2);
+    Assert.assertNull(arr);
+
+    arr = rs.getArray(3);
+    Assert.assertNull(arr);
+
+    rs.close();
+  }
 
   @Test
   public void testRetrieveArrays() throws SQLException {
