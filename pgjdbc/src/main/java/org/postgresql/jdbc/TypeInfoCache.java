@@ -317,6 +317,8 @@ public class TypeInfoCache implements TypeInfo {
       }
       oidStatementComplex = _getOidStatementComplexNonArray;
     }
+    //type name requested may be schema specific, of the form "{schema}"."typeName",
+    //or may check across all schemas where a schema is not specified.
     String fullName = isArray ? pgTypeName.substring(0, pgTypeName.length() - 2) : pgTypeName;
     String schema;
     String name;
