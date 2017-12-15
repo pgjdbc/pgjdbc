@@ -573,10 +573,11 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertNull("null array should return null on getObject", getObject);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void createNullArray() throws SQLException {
     Array arr = con.createArrayOf("float8", null);
-    Assert.fail("createArrayOf(float8, null) should fail with NPE");
+    Assert.assertNotNull(arr);
+    Assert.assertNull(arr.getArray());
   }
 
   @Test
