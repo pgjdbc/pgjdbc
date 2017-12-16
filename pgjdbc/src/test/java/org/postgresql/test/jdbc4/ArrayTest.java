@@ -564,9 +564,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayWithNonCachedTypeAndConnectionStringTypeUnspecified() throws Exception {
-
     PGbox[] in = new PGbox[0];
-
     Array a = _stringTypeUnspecifiedConn.createArrayOf("box", in);
     Assert.assertEquals(1111, a.getBaseType());
   }
