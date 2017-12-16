@@ -11,7 +11,6 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 import java.sql.SQLException;
 
 /**
