@@ -5,25 +5,14 @@
 
 package org.postgresql.jdbc;
 
-import org.junit.Test;
-import org.postgresql.PGConnection;
-import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ParameterList;
-import org.postgresql.core.Query;
-import org.postgresql.core.v3.BatchedQuery;
-import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.test.jdbc2.BatchExecuteTest;
 
-import java.lang.reflect.Method;
-import java.sql.Date;
+import org.junit.Assert;
+import org.junit.Test;
+
+
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * This object tests the internals of the TypeInfoCache.
@@ -53,7 +42,7 @@ public class TypeInfoTest extends BaseTest4 {
     BaseConnection pg = con.unwrap(BaseConnection.class);
     TypeInfoCache cache = new TypeInfoCache(pg, unknownLength);
 
-    assertEquals(cache.getPGType("madeuptype[]"), 0);
+    Assert.assertEquals(cache.getPGType("madeuptype[]"), 0);
   }
 
   @Test
@@ -62,7 +51,7 @@ public class TypeInfoTest extends BaseTest4 {
     BaseConnection pg = con.unwrap(BaseConnection.class);
     TypeInfoCache cache = new TypeInfoCache(pg, unknownLength);
 
-    assertEquals(cache.getPGType("text[]"), 1009);
+    Assert.assertEquals(cache.getPGType("text[]"), 1009);
   }
 
   @Test
@@ -71,6 +60,6 @@ public class TypeInfoTest extends BaseTest4 {
     BaseConnection pg = con.unwrap(BaseConnection.class);
     TypeInfoCache cache = new TypeInfoCache(pg, unknownLength);
 
-    assertEquals(cache.getPGType("box[]"), 1020);
+    Assert.assertEquals(cache.getPGType("box[]"), 1020);
   }
 }
