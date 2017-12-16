@@ -5,8 +5,11 @@
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
+import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
@@ -28,12 +31,14 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Properties;
 import java.util.UUID;
 
 @RunWith(Parameterized.class)
 public class ArrayTest extends BaseTest4 {
 
   private Connection _conn;
+  private Connection _stringTypeUnspecifiedConn;
 
   public ArrayTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
@@ -53,6 +58,10 @@ public class ArrayTest extends BaseTest4 {
     super.setUp();
     _conn = con;
 
+    Properties props = new Properties();
+    PGProperty.STRING_TYPE.set(props, "unspecified");
+    _stringTypeUnspecifiedConn = TestUtil.openDB(props);
+
     TestUtil.createTable(_conn, "arrtest",
         "intarr int[], decarr decimal(2,1)[], strarr text[]"
         + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
@@ -71,6 +80,7 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.dropTable(_conn, "arrcompprnttest");
     TestUtil.dropTable(_conn, "arrcompchldttest");
     TestUtil.dropTable(_conn, "\"CorrectCasing\"");
+    TestUtil.closeDB(_stringTypeUnspecifiedConn);
     super.tearDown();
   }
 
@@ -162,6 +172,7 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(in[1], arrRs.getObject(2));
     Assert.assertFalse(arrRs.next());
   }
+
 
   @Test
   public void testCreateArrayOfNull() throws SQLException {
@@ -549,5 +560,14 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals("{{1,2},{3,4}}", stringValue);
     TestUtil.closeQuietly(rs);
     TestUtil.closeQuietly(ps);
+  }
+
+  @Test
+  public void testCreateArrayWithNonCachedTypeAndConnectionStringTypeUnspecified() throws Exception {
+
+    PGbox[] in = new PGbox[0];
+
+    Array a = _stringTypeUnspecifiedConn.createArrayOf("box", in);
+    Assert.assertEquals(1111, a.getBaseType());
   }
 }
