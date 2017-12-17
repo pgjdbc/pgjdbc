@@ -72,7 +72,7 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
-
+import java.util.regex.Pattern;
 
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
 
@@ -81,6 +81,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private boolean doingUpdates = false;
   private HashMap<String, Object> updateValues = null;
   private boolean usingOID = false; // are we using the OID for the primary key?
+  private boolean usingCTID = false;
   private List<PrimaryKey> primaryKeys; // list of primary keys
   private boolean singleTable = false;
   private String onlyTable = "";
@@ -122,6 +123,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private Map<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
 
   private ResultSetMetaData rsMetaData;
+  
+  /*
+   * Check if the SQL looks like "select ... for update". In this case, we can use CTID as the PK. The "for update" locks the
+   * record, so vacuum won't move the record wich would change the CTID of that row.
+   */
+  private static Pattern usingForUpdatePattern = Pattern.compile("^.*for\\s+update\\s*$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
 
   protected ResultSetMetaData createMetaData() throws SQLException {
     return new PgResultSetMetaData(connection, fields);
@@ -1001,6 +1008,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         updateValues.put("oid", insertedOID);
 
       }
+      
+      // when usingCTID, we're not able to fetch the latest CTID since we don't get this
+      // from the server
 
       // update the underlying row to the new inserted data
       updateRowBuffer();
@@ -1162,7 +1172,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
 
   public synchronized void updateBoolean(int columnIndex, boolean x) throws SQLException {
-    updateValue(columnIndex, x);
+      if (getMetaData().getColumnType(columnIndex) == Types.NUMERIC) {
+          updateValue(columnIndex, x ? 1L : 0L);
+      }
+      else {
+          updateValue(columnIndex, x);
+      }
   }
 
 
@@ -1206,7 +1221,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
 
   public synchronized void updateDate(int columnIndex, java.sql.Date x) throws SQLException {
-    updateValue(columnIndex, x);
+      if (getMetaData().getColumnType(columnIndex) == Types.TIMESTAMP) {
+          updateValue(columnIndex, x == null ? null : new java.sql.Timestamp(x.getTime()));
+      }
+      else {
+          updateValue(columnIndex, x);
+      }
   }
 
 
@@ -1411,8 +1431,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
 
   public synchronized void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
-    updateValue(columnIndex, x);
-
+      if (getMetaData().getColumnType(columnIndex) == Types.DATE) {
+          updateValue(columnIndex, x == null ? null :new java.sql.Date(x.getTime()));
+      }
+      else {
+          updateValue(columnIndex, x);
+      }
   }
 
 
@@ -1557,6 +1581,22 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     usingOID = false;
     int oidIndex = findColumnIndex("oid"); // 0 if not present
 
+    usingCTID = false;
+    int ctidIndex = findColumnIndex("ctid"); // 0 if not present
+    
+    if (ctidIndex > 0) {
+      if (statement instanceof PgPreparedStatement) {
+        String sql = ((PgPreparedStatement) statement).preparedQuery.query.getNativeSql();
+        if (!usingForUpdatePattern.matcher(sql).matches() || statement.getConnection().getAutoCommit()) {
+          /*
+           * Only allow CTID to be used if the statement uses "for update" and auto-commit has been disabled
+           */
+          ctidIndex = 0;
+        }
+      }
+    }
+
+    
     int i = 0;
     int numPKcolumns = 0;
 
@@ -1568,6 +1608,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       numPKcolumns++;
       primaryKeys.add(new PrimaryKey(oidIndex, "oid"));
       usingOID = true;
+    } else if (ctidIndex > 0) {
+      i++;
+      numPKcolumns++;
+      primaryKeys.add(new PrimaryKey(ctidIndex, "ctid"));
+      usingCTID = true;
     } else {
       // otherwise go and get the primary keys and create a list of keys
       String[] s = quotelessTableName(tableName);
@@ -1710,6 +1755,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           //
 
           case Types.DATE:
+            if (valueObject != null) {
+              /*
+               * Allow passing a java.sql.Date instance, and convert to Timestamp
+               */
+              if (valueObject instanceof java.sql.Timestamp) {
+                  valueObject = new java.sql.Date(((Timestamp) valueObject).getTime());
+              }
+            }
+                
             rowBuffer[columnIndex] = connection
                 .encodeString(
                     connection.getTimestampUtils().toString(
@@ -1724,6 +1778,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             break;
 
           case Types.TIMESTAMP:
+            if (valueObject != null) {
+              /*
+               * Allow passing a java.sql.Date instance, and convert to Timestamp
+               */
+              if (valueObject instanceof java.sql.Date) {
+                  valueObject = new Timestamp(((java.sql.Date) valueObject).getTime());
+              }
+            }
+                
             rowBuffer[columnIndex] = connection.encodeString(
                 connection.getTimestampUtils().toString(
                     getDefaultCalendar(), (Timestamp) valueObject));
@@ -1731,6 +1794,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
           case Types.NULL:
             // Should never happen?
+            break;
+            
+          case Types.NUMERIC:
+            // Handle this like Oracke, true -> 1, false -> 0
+            if (valueObject instanceof Boolean) {
+                valueObject = ((Boolean) valueObject).booleanValue() ? 1L : 0L;
+            }
             break;
 
           case Types.BINARY:
@@ -3062,7 +3132,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     checkColumnIndex(columnIndex);
-
+    
     doingUpdates = !onInsertRow;
     if (value == null) {
       updateNull(columnIndex);
