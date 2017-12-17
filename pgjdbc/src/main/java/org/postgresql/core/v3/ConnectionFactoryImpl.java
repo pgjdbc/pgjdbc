@@ -525,6 +525,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 final String gsslib = PGProperty.GSS_LIB.get(info);
                 final boolean usespnego = PGProperty.USE_SPNEGO.getBoolean(info);
 
+                boolean useSSPI = false;
+
                 /*
                  * Use SSPI if we're in auto mode on windows and have a request for SSPI auth, or if
                  * it's forced. Otherwise use gssapi. If the user has specified a Kerberos server
@@ -541,7 +543,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       /* Use negotiation for SSPI, or if explicitly requested for GSS */
                       areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego));
 
-                  boolean useSSPI = sspiClient.isSSPISupported();
+                  useSSPI = sspiClient.isSSPISupported();
                   LOGGER.log(Level.FINE, "SSPI support detected: {0}", useSSPI);
 
                   if (!useSSPI) {
@@ -558,16 +560,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "Using SSPI: {0}, gsslib={1} and SSPI support detected", new Object[]{useSSPI, gsslib});
                   }
+                }
 
-                  if (useSSPI) {
-                    /* SSPI requested and detected as available */
-                    sspiClient.startSSPI();
-                  } else {
-                    /* Use JGSS's GSSAPI for this request */
-                    org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
-                            PGProperty.JAAS_APPLICATION_NAME.get(info),
-                            PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego);
-                  }
+                if (useSSPI) {
+                  /* SSPI requested and detected as available */
+                  sspiClient.startSSPI();
+                } else {
+                  /* Use JGSS's GSSAPI for this request */
+                  org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+                      PGProperty.JAAS_APPLICATION_NAME.get(info),
+                      PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego);
                 }
                 break;
 
