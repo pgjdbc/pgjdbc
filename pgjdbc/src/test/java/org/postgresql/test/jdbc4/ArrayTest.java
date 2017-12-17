@@ -5,11 +5,9 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
-import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
