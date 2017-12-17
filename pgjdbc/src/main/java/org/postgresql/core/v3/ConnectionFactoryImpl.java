@@ -73,9 +73,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       String spnServiceClass,
       boolean enableNegotiate) {
     try {
-      Class c = Class.forName("org.postgresql.sspi.SSPIClient");
-      Class[] cArg = new Class[]{PGStream.class, String.class, boolean.class};
-      return (ISSPIClient) c.getDeclaredConstructor(cArg)
+      @SuppressWarnings("unchecked")
+      Class<ISSPIClient> c = (Class<ISSPIClient>) Class.forName("org.postgresql.sspi.SSPIClient");
+      return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {
       // This catched quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
@@ -84,6 +84,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
+  @Override
   public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
       Properties info) throws SQLException {
     // Extract interesting values from the info properties:
@@ -106,19 +107,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
     }
 
-    // - the TCP keep alive setting
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
-
-    // NOTE: To simplify this code, it is assumed that if we are
-    // using the V3 protocol, then the database is at least 7.4. That
-    // eliminates the need to check database versions and maintain
-    // backward-compatible code here.
-    //
-    // Change by Chris Smith <cdsmith@twu.net>
 
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
-    // - the targetServerType setting
     HostRequirement targetServerType;
     String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
     try {
@@ -189,36 +181,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
         LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
 
-        List<String[]> paramList = new ArrayList<String[]>();
-        paramList.add(new String[]{"user", user});
-        paramList.add(new String[]{"database", database});
-        paramList.add(new String[]{"client_encoding", "UTF8"});
-        paramList.add(new String[]{"DateStyle", "ISO"});
-        paramList.add(new String[]{"TimeZone", createPostgresTimeZone()});
-
-        Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.get(info));
-
-        if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
-          // User is explicitly telling us this is a 9.0+ server so set properties here:
-          paramList.add(new String[]{"extra_float_digits", "3"});
-          String appName = PGProperty.APPLICATION_NAME.get(info);
-          if (appName != null) {
-            paramList.add(new String[]{"application_name", appName});
-          }
-        } else {
-          // User has not explicitly told us that this is a 9.0+ server so stick to old default:
-          paramList.add(new String[]{"extra_float_digits", "2"});
-        }
-
-        String replication = PGProperty.REPLICATION.get(info);
-        if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
-          paramList.add(new String[]{"replication", replication});
-        }
-
-        String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
-        if (currentSchema != null) {
-          paramList.add(new String[]{"search_path", currentSchema});
-        }
+        List<String[]> paramList = getParametersForStartup(user, database, info);
         sendStartupPacket(newStream, paramList);
 
         // Do authentication (until AuthenticationOk).
@@ -288,6 +251,40 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
     throw new PSQLException(GT.tr("The connection url is invalid."),
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+  }
+
+  private List<String[]> getParametersForStartup(String user, String database, Properties info) {
+    List<String[]> paramList = new ArrayList<String[]>();
+    paramList.add(new String[]{"user", user});
+    paramList.add(new String[]{"database", database});
+    paramList.add(new String[]{"client_encoding", "UTF8"});
+    paramList.add(new String[]{"DateStyle", "ISO"});
+    paramList.add(new String[]{"TimeZone", createPostgresTimeZone()});
+
+    Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.get(info));
+
+    if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
+      // User is explicitly telling us this is a 9.0+ server so set properties here:
+      paramList.add(new String[]{"extra_float_digits", "3"});
+      String appName = PGProperty.APPLICATION_NAME.get(info);
+      if (appName != null) {
+        paramList.add(new String[]{"application_name", appName});
+      }
+    } else {
+      // User has not explicitly told us that this is a 9.0+ server so stick to old default:
+      paramList.add(new String[]{"extra_float_digits", "2"});
+    }
+
+    String replication = PGProperty.REPLICATION.get(info);
+    if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
+      paramList.add(new String[]{"replication", replication});
+    }
+
+    String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
+    if (currentSchema != null) {
+      paramList.add(new String[]{"search_path", currentSchema});
+    }
+    return paramList;
   }
 
   /**
