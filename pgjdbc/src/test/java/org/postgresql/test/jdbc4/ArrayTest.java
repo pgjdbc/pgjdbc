@@ -342,11 +342,11 @@ public class ArrayTest extends BaseTest4 {
             "5\",3\""};
 
     PreparedStatement insert_children_pstmt =
-            _conn.prepareStatement("INSERT INTO arrcompchldttest (name,description,parent) "
-                    + "VALUES ('child1',?,1),"
-                    + "('child2',?,1),"
-                    + "('child3',?,1),"
-                    + "('child4',?,1);");
+      _conn.prepareStatement("INSERT INTO arrcompchldttest (name,description,parent) "
+              + "VALUES ('child1',?,1),"
+              + "('child2',?,1),"
+              + "('child3',?,1),"
+              + "('child4',?,1);");
 
     insert_children_pstmt.setString(1, children[0]);
     insert_children_pstmt.setString(2, children[1]);
@@ -356,17 +356,17 @@ public class ArrayTest extends BaseTest4 {
     insert_children_pstmt.execute();
 
     PreparedStatement pstmt = _conn.prepareStatement(
-            "SELECT arrcompprnttest.name, "
-                    + "array_agg("
-                    + "DISTINCT(arrcompchldttest.id, "
-                    + "arrcompchldttest.name, "
-                    + "arrcompchldttest.description)) "
-                    + "AS children "
-                    + "FROM arrcompprnttest "
-                    + "LEFT JOIN arrcompchldttest "
-                    + "ON (arrcompchldttest.parent = arrcompprnttest.id) "
-                    + "WHERE arrcompprnttest.id=? "
-                    + "GROUP BY arrcompprnttest.name;");
+  "SELECT arrcompprnttest.name, "
+        + "array_agg("
+        + "DISTINCT(arrcompchldttest.id, "
+        + "arrcompchldttest.name, "
+        + "arrcompchldttest.description)) "
+        + "AS children "
+        + "FROM arrcompprnttest "
+        + "LEFT JOIN arrcompchldttest "
+        + "ON (arrcompchldttest.parent = arrcompprnttest.id) "
+        + "WHERE arrcompprnttest.id=? "
+        + "GROUP BY arrcompprnttest.name;");
     pstmt.setInt(1, 1);
     ResultSet rs = pstmt.executeQuery();
 

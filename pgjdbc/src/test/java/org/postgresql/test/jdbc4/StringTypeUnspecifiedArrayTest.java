@@ -5,15 +5,18 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.postgresql.PGProperty;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import java.sql.*;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
