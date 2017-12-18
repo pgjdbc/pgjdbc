@@ -54,13 +54,13 @@ public class ArrayTest extends BaseTest4 {
     _conn = con;
 
     TestUtil.createTable(_conn, "arrtest",
-            "intarr int[], decarr decimal(2,1)[], strarr text[]"
-                    + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
-                    + ", floatarr float8[]"
-                    + ", intarr2 int4[][]");
+        "intarr int[], decarr decimal(2,1)[], strarr text[]"
+        + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
+        + ", floatarr float8[]"
+        + ", intarr2 int4[][]");
     TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
     TestUtil.createTable(_conn, "arrcompchldttest",
-            "id serial, name character(10), description character varying, parent integer");
+        "id serial, name character(10), description character varying, parent integer");
     TestUtil.createTable(_conn, "\"CorrectCasing\"", "id serial");
     TestUtil.createTable(_conn, "\"Evil.Table\"", "id serial");
   }
@@ -245,9 +245,9 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testUUIDArray() throws SQLException {
     Assume.assumeTrue("UUID is not supported in PreferQueryMode.SIMPLE",
-            preferQueryMode != PreferQueryMode.SIMPLE);
+        preferQueryMode != PreferQueryMode.SIMPLE);
     Assume.assumeTrue("UUID requires PostgreSQL 8.3+",
-            TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     UUID uuid3 = UUID.randomUUID();
@@ -258,7 +258,7 @@ public class ArrayTest extends BaseTest4 {
     pstmt1.executeUpdate();
 
     PreparedStatement pstmt2 =
-            _conn.prepareStatement("SELECT uuidarr FROM arrtest WHERE uuidarr @> ?");
+        _conn.prepareStatement("SELECT uuidarr FROM arrtest WHERE uuidarr @> ?");
     pstmt2.setObject(1, _conn.createArrayOf("uuid", new UUID[]{uuid1}), Types.OTHER);
     ResultSet rs = pstmt2.executeQuery();
     Assert.assertTrue(rs.next());
@@ -273,7 +273,7 @@ public class ArrayTest extends BaseTest4 {
     // concatenate a uuid, and check
     UUID uuid4 = UUID.randomUUID();
     PreparedStatement pstmt3 =
-            _conn.prepareStatement("UPDATE arrtest SET uuidarr = uuidarr || ? WHERE uuidarr @> ?");
+        _conn.prepareStatement("UPDATE arrtest SET uuidarr = uuidarr || ? WHERE uuidarr @> ?");
     pstmt3.setObject(1, uuid4, Types.OTHER);
     pstmt3.setArray(2, _conn.createArrayOf("uuid", new UUID[]{uuid1}));
     pstmt3.executeUpdate();
@@ -328,25 +328,25 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testGetArrayOfComposites() throws SQLException {
     Assume.assumeTrue("array_agg(expression) requires PostgreSQL 8.4+",
-            TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_4));
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_4));
 
     PreparedStatement insert_parent_pstmt =
-      _conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
-              + "VALUES ('aParent');");
+        _conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
+            + "VALUES ('aParent');");
     insert_parent_pstmt.execute();
 
     String[] children = {
-            "November 5, 2013",
-            "\"A Book Title\"",
-            "4\" by 6\"",
-            "5\",3\""};
+        "November 5, 2013",
+        "\"A Book Title\"",
+        "4\" by 6\"",
+        "5\",3\""};
 
     PreparedStatement insert_children_pstmt =
-      _conn.prepareStatement("INSERT INTO arrcompchldttest (name,description,parent) "
-              + "VALUES ('child1',?,1),"
-              + "('child2',?,1),"
-              + "('child3',?,1),"
-              + "('child4',?,1);");
+        _conn.prepareStatement("INSERT INTO arrcompchldttest (name,description,parent) "
+            + "VALUES ('child1',?,1),"
+            + "('child2',?,1),"
+            + "('child3',?,1),"
+            + "('child4',?,1);");
 
     insert_children_pstmt.setString(1, children[0]);
     insert_children_pstmt.setString(2, children[1]);
@@ -355,19 +355,18 @@ public class ArrayTest extends BaseTest4 {
 
     insert_children_pstmt.execute();
 
-    PreparedStatement pstmt =
-      _conn.prepareStatement("SELECT arrcompprnttest.name, "
-              + "array_agg("
-              + "DISTINCT(arrcompchldttest.id, "
-              + "arrcompchldttest.name, "
-              + "arrcompchldttest.description)) "
-              + "AS children "
-              + "FROM arrcompprnttest "
-              + "LEFT JOIN arrcompchldttest "
-              + "ON (arrcompchldttest.parent = arrcompprnttest.id) "
-              + "WHERE arrcompprnttest.id=? "
-              + "GROUP BY arrcompprnttest.name;");
-
+    PreparedStatement pstmt = _conn.prepareStatement(
+        "SELECT arrcompprnttest.name, "
+            + "array_agg("
+            + "DISTINCT(arrcompchldttest.id, "
+            + "arrcompchldttest.name, "
+            + "arrcompchldttest.description)) "
+            + "AS children "
+            + "FROM arrcompprnttest "
+            + "LEFT JOIN arrcompchldttest "
+            + "ON (arrcompchldttest.parent = arrcompprnttest.id) "
+            + "WHERE arrcompprnttest.id=? "
+            + "GROUP BY arrcompprnttest.name;");
     pstmt.setInt(1, 1);
     ResultSet rs = pstmt.executeQuery();
 
@@ -397,7 +396,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCasingComposite() throws SQLException {
     Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
-            TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
 
     PGobject cc = new PGobject();
     cc.setType("\"CorrectCasing\"");
@@ -447,7 +446,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testEvilCasing() throws SQLException {
     Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
-            TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
 
     PGobject cc = new PGobject();
     cc.setType("\"Evil.Table\"");
@@ -504,7 +503,7 @@ public class ArrayTest extends BaseTest4 {
           actual = actual.replaceAll("\\.0+([^0-9])", "$1");
         }
         Assert.assertEquals("Array.toString should use square braces",
-                "{3.5,-4.5,NULL,77}", actual);
+            "{3.5,-4.5,NULL,77}", actual);
       }
 
     } finally {
