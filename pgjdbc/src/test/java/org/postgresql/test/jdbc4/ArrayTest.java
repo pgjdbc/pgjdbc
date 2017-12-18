@@ -331,8 +331,8 @@ public class ArrayTest extends BaseTest4 {
             TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_4));
 
     PreparedStatement insert_parent_pstmt =
-            _conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
-                    + "VALUES ('aParent');");
+      _conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
+              + "VALUES ('aParent');");
     insert_parent_pstmt.execute();
 
     String[] children = {
@@ -355,18 +355,19 @@ public class ArrayTest extends BaseTest4 {
 
     insert_children_pstmt.execute();
 
-    PreparedStatement pstmt = _conn.prepareStatement(
-  "SELECT arrcompprnttest.name, "
-        + "array_agg("
-        + "DISTINCT(arrcompchldttest.id, "
-        + "arrcompchldttest.name, "
-        + "arrcompchldttest.description)) "
-        + "AS children "
-        + "FROM arrcompprnttest "
-        + "LEFT JOIN arrcompchldttest "
-        + "ON (arrcompchldttest.parent = arrcompprnttest.id) "
-        + "WHERE arrcompprnttest.id=? "
-        + "GROUP BY arrcompprnttest.name;");
+    PreparedStatement pstmt =
+      _conn.prepareStatement("SELECT arrcompprnttest.name, "
+              + "array_agg("
+              + "DISTINCT(arrcompchldttest.id, "
+              + "arrcompchldttest.name, "
+              + "arrcompchldttest.description)) "
+              + "AS children "
+              + "FROM arrcompprnttest "
+              + "LEFT JOIN arrcompchldttest "
+              + "ON (arrcompchldttest.parent = arrcompprnttest.id) "
+              + "WHERE arrcompprnttest.id=? "
+              + "GROUP BY arrcompprnttest.name;");
+
     pstmt.setInt(1, 1);
     ResultSet rs = pstmt.executeQuery();
 
