@@ -23,9 +23,6 @@ import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class StringTypeUnspecifiedArrayTest extends BaseTest4 {
-
-  private Connection _conn;
-
   public StringTypeUnspecifiedArrayTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
@@ -40,17 +37,6 @@ public class StringTypeUnspecifiedArrayTest extends BaseTest4 {
   }
 
   @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    _conn = con;
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    super.tearDown();
-  }
-
-  @Override
   protected void updateProperties(Properties props) {
     PGProperty.STRING_TYPE.set(props, "unspecified");
     super.updateProperties(props);
@@ -59,7 +45,7 @@ public class StringTypeUnspecifiedArrayTest extends BaseTest4 {
   @Test
   public void testCreateArrayWithNonCachedType() throws Exception {
     PGbox[] in = new PGbox[0];
-    Array a = _conn.createArrayOf("box", in);
+    Array a = con.createArrayOf("box", in);
     Assert.assertEquals(1111, a.getBaseType());
   }
 }
