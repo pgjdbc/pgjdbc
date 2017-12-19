@@ -5,8 +5,8 @@ header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
 resource: media
 previoustitle: Server Prepared Statements
 previous: server-prepare.html
-nexttitle: Chapter 10. Using the Driver in a Multithreaded or a Servlet Environment
-next: thread.html
+nexttitle: Arrays
+next: arrays.html
 ---
 
 **Table of Contents**

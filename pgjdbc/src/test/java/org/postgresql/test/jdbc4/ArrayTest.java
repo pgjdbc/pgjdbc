@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc4;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
@@ -27,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -72,6 +74,22 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.dropTable(_conn, "arrcompchldttest");
     TestUtil.dropTable(_conn, "\"CorrectCasing\"");
     super.tearDown();
+  }
+
+  @Test
+  public void testCreateArrayOfBool() throws SQLException {
+    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bool[]");
+    pstmt.setArray(1, _conn.unwrap(PgConnection.class).createArrayOf("boolean", new boolean[] { true, true, false }));
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+    Boolean[] out = (Boolean[]) arr.getArray();
+
+    Assert.assertEquals(3, out.length);
+    Assert.assertEquals(Boolean.TRUE, out[0]);
+    Assert.assertEquals(Boolean.TRUE, out[1]);
+    Assert.assertEquals(Boolean.FALSE, out[2]);
   }
 
   @Test
@@ -150,7 +168,7 @@ public class ArrayTest extends BaseTest4 {
     PGobject p2 = new PGobject();
     p2.setType("json");
     p2.setValue("{\"x\": 20}");
-    PGobject[] in = new PGobject[]{p1, p2};
+    PGobject[] in = new PGobject[] { p1, p2 };
     pstmt.setArray(1, _conn.createArrayOf("json", in));
 
     ResultSet rs = pstmt.executeQuery();
@@ -315,26 +333,32 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testSetObjectFromJavaArray() throws SQLException {
     String[] strArray = new String[]{"a", "b", "c"};
+    Object[] objCopy = Arrays.copyOf(strArray, strArray.length, Object[].class);
 
     PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
 
-    // Incorrect, but commonly attempted by many ORMs:
+    //cannot handle generic Object[]
     try {
-      pstmt.setObject(1, strArray, Types.ARRAY);
+      pstmt.setObject(1, objCopy, Types.ARRAY);
       pstmt.executeUpdate();
       Assert.fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
     } catch (org.postgresql.util.PSQLException ex) {
       // Expected failure.
     }
 
-    // Also incorrect, but commonly attempted by many ORMs:
     try {
-      pstmt.setObject(1, strArray);
+      pstmt.setObject(1, objCopy);
       pstmt.executeUpdate();
       Assert.fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
     } catch (org.postgresql.util.PSQLException ex) {
       // Expected failure.
     }
+
+    pstmt.setObject(1, strArray);
+    pstmt.executeUpdate();
+
+    pstmt.setObject(1, strArray, Types.ARRAY);
+    pstmt.executeUpdate();
 
     // Correct way, though the use of "text" as a type is non-portable.
     // Only supported for JDK 1.6 and JDBC4
@@ -549,10 +573,11 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertNull("null array should return null on getObject", getObject);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void createNullArray() throws SQLException {
     Array arr = con.createArrayOf("float8", null);
-    Assert.fail("createArrayOf(float8, null) should fail with NPE");
+    Assert.assertNotNull(arr);
+    Assert.assertNull(arr.getArray());
   }
 
   @Test

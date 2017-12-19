@@ -13,6 +13,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -656,6 +657,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.ARRAY:
         if (in instanceof Array) {
           setArray(parameterIndex, (Array) in);
+        } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(in)) {
+          setPrimitiveArray(parameterIndex, in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -678,6 +681,21 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       default:
         throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
             PSQLState.INVALID_PARAMETER_TYPE);
+    }
+  }
+
+  private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
+    final PrimitiveArraySupport<A> arrayToString = PrimitiveArraySupport.getArraySupport(in);
+
+    final TypeInfo typeInfo = connection.getTypeInfo();
+
+    final int oid = arrayToString.getDefaultArrayTypeOid(typeInfo);
+
+    if (arrayToString.supportBinaryRepresentation() && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in), oid);
+    } else {
+      final char delim = typeInfo.getArrayDelimiter(oid);
+      setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
     }
   }
 
@@ -942,6 +960,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
+    } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
+      setPrimitiveArray(parameterIndex, x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
