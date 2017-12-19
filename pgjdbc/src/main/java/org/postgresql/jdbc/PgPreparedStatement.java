@@ -83,8 +83,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    */
   protected boolean outParmBeforeFunc = false;
 
-  private TimeZone defaultTimeZone;
-
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
     this(connection, connection.borrowQuery(sql), rsType, rsConcurrency, rsHoldability);
@@ -159,7 +157,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return (result != null && result.getResultSet() != null);
       }
     } finally {
-      defaultTimeZone = null;
+      connection.getTimestampUtils().clearDefaultTimeZone();
     }
   }
 
@@ -565,7 +563,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             break;
             //#endif
           } else {
-            tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
+            tmpd = connection.getTimestampUtils().toDate(null, in.toString());
           }
           setDate(parameterIndex, tmpd);
         }
@@ -583,7 +581,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             break;
             //#endif
           } else {
-            tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
+            tmpt = connection.getTimestampUtils().toTime(null, in.toString());
           }
           setTime(parameterIndex, tmpt);
         }
@@ -603,7 +601,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             break;
             //#endif
           } else {
-            tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
+            tmpts = connection.getTimestampUtils().toTimestamp(null, in.toString());
           }
           setTimestamp(parameterIndex, tmpts);
         }
@@ -1281,9 +1279,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // 2005-01-01 00:00:00+03
     // (1 row)
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
-    }
     bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
   }
 
@@ -1308,9 +1303,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
     }
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
-    }
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
 
@@ -1363,9 +1355,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         oid = Oid.TIMESTAMPTZ;
         cal = pgTimestamp.getCalendar();
       }
-    }
-    if (cal == null) {
-      cal = getDefaultCalendar();
     }
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
@@ -1555,20 +1544,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
       return super.executeBatch();
     } finally {
-      defaultTimeZone = null;
+      connection.getTimestampUtils().clearDefaultTimeZone();
     }
-  }
-
-  private Calendar getDefaultCalendar() {
-    TimestampUtils timestampUtils = connection.getTimestampUtils();
-    if (timestampUtils.hasFastDefaultTimeZone()) {
-      return timestampUtils.getSharedCalendar(null);
-    }
-    Calendar sharedCalendar = timestampUtils.getSharedCalendar(defaultTimeZone);
-    if (defaultTimeZone == null) {
-      defaultTimeZone = sharedCalendar.getTimeZone();
-    }
-    return sharedCalendar;
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {

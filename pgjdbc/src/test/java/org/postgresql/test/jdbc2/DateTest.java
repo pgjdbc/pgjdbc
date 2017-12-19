@@ -12,14 +12,23 @@ import static org.junit.Assert.assertTrue;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /*
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
@@ -143,6 +152,97 @@ public class DateTest {
 
     assertEquals(18, stmt.executeUpdate("DELETE FROM testdate"));
     stmt.close();
+  }
+
+  /*
+   * Try to demonstrate that timestamps (which underly the date and time types as returned by the
+   * JDBC API) are thread-safe over a shared connection.
+   *
+   * From Issue No. 921:
+   *
+   *    Starting with version 9.4-1208, and still present with version 42.1.4, we're finding that
+   *    calls to org.postgresql.jdbc.PgResultSet#getDate(int,java.util.Calendar) in separate threads
+   *    sharing the same connection may return corrupt data under certain conditions.
+   *
+   * This test attempts to replicate one such condition. On my local laptop, this happens by the
+   * fifth iteration of the main loop (number of iterations being configurable via the ITERATIONS
+   * constant), so just capping it at twice that: ten.
+   */
+  @Test
+  public void testDateThreadSafety() throws Exception {
+
+    final int ITERATIONS = 10;
+    final int YEAR = 2017;
+
+    class A implements Callable<Integer> {
+      @Override
+      public Integer call() throws Exception {
+        PreparedStatement statement = null;
+        try {
+          statement = con.prepareStatement(
+              "SELECT unnest(array_fill('12/31/7777'::DATE, ARRAY[5000]))");
+          ResultSet resultSet = null;
+          try {
+            resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+              resultSet.getDate(1); // corrupt B's call to getDate()
+            }
+          } finally {
+            if (resultSet != null) {
+              resultSet.close();
+            }
+          }
+        } finally {
+          if (statement != null) {
+            statement.close();
+          }
+        }
+        return YEAR;
+      }
+    }
+
+    class B implements Callable<Integer> {
+      @Override
+      public Integer call() throws Exception {
+        Statement statement = null;
+        try {
+          statement = con.createStatement();
+          ResultSet resultSet = null;
+          try {
+            resultSet = statement.executeQuery(
+                String.format("SELECT unnest(array_fill('8/10/%d'::date, ARRAY[5000]))", YEAR));
+            while (resultSet.next()) {
+              Date d = resultSet.getDate(1);
+              int year = 1900 + d.getYear();
+              if (year != YEAR) {
+                return year;
+              }
+            }
+          } finally {
+            if (resultSet != null) {
+              resultSet.close();
+            }
+          }
+        } finally {
+          if (statement != null) {
+            statement.close();
+          }
+        }
+        return YEAR;
+      }
+    }
+
+    List<Callable<Integer>> callables = Arrays.asList(new A(), new B());
+    for (int i = 0; i < ITERATIONS; ++i) {
+      ExecutorService e = Executors.newFixedThreadPool(callables.size());
+      for (Future<Integer> future : e.invokeAll(callables)) {
+        int year = future.get();
+        Assert.assertEquals(YEAR, year);
+      }
+      e.shutdown();
+      e.awaitTermination(3, TimeUnit.MINUTES);
+    }
+
   }
 
   /*
