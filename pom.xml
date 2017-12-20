@@ -29,9 +29,6 @@
     </profile>
     <profile>
       <id>skipUbenchmark</id>
-      <modules>
-        <module>pgjdbc</module>
-      </modules>
     </profile>
   </profiles>
 
