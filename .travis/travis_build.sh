@@ -9,7 +9,7 @@ fi
 
 # Build project
 MVN_ARGS="clean package -B -V $MVN_CUSTOM_ARGS"
-MVN_PROFILES="release"
+MVN_PROFILES="release,skipUbenchmark"
 
 if [[ "${NO_WAFFLE_NO_OSGI}" == *"Y"* ]];
 then
@@ -24,6 +24,11 @@ fi
 if [[ "${COVERAGE}" == *"Y"* ]];
 then
     MVN_PROFILES="$MVN_PROFILES,coverage"
+fi
+
+if [[ "${UBENCHMARK}" == *"Y"* ]];
+then
+    MVN_PROFILES="$MVN_PROFILES,ubenchmark"
 fi
 
 if [[ "${JDK}" == *"9"* ]];

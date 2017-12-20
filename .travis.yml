@@ -71,8 +71,10 @@ matrix:
         - COVERAGE=N
   include:
     - jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
+      env:
+        - UBENCHMARK=Y
+        - RUN_CHECKSTYLE=true
+      script: mvn -P ubenchmark checkstyle:check compile
     - env:
         - FEDORA_CI=Y
       services:
