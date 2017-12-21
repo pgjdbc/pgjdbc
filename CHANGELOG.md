@@ -3,7 +3,7 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [Unreleased]nn## [42.1.5] (2017-12-21)
 ### Added
 - Make SELECT INTO and CREATE TABLE AS return row counts to the client in their command tags. [Issue 958](https://github.com/pgjdbc/pgjdbc/issues/958) [PR 962](https://github.com/pgjdbc/pgjdbc/pull/962)
 
@@ -68,7 +68,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 - Deprecated PGPoolingDataSource, instead of this class you should use a fully featured connection pool like HikariCP, vibur-dbcp, commons-dbcp, c3p0, etc. [PR 739](https://github.com/pgjdbc/pgjdbc/pull/739)
 
-### Regresions
+### Regressions
 - Data truncated in setCharacterStream. Fixed in 42.1.0
 - No suitable driver found for jdbc:postgresql when using a DataSource implementation. Fixed in 42.1.0
 
@@ -79,4 +79,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.1.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.1...REL42.1.2
 [42.1.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.2...REL42.1.3
 [42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...HEAD
+[42.1.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.1.5
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.5...HEAD
