@@ -3,9 +3,13 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]nn## [42.1.5] (2017-12-21)
+## [Unreleased]
+
+## [42.2.0] (2017-12-21)
 ### Added
 - Make SELECT INTO and CREATE TABLE AS return row counts to the client in their command tags. [Issue 958](https://github.com/pgjdbc/pgjdbc/issues/958) [PR 962](https://github.com/pgjdbc/pgjdbc/pull/962)
+- Support for primitive arrays [PR#887](https://github.com/pgjdbc/pgjdbc/pull/887) [3e0491a](https://github.com/pgjdbc/pgjdbc/commit/3e0491ac3833800721b98e7437635cf6ab338162)
+
 
 ### Changed
 - Improve behavior of ResultSet.getObject(int, Class). [PR 932](https://github.com/pgjdbc/pgjdbc/pull/932)
@@ -46,7 +50,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fix calculation of lastReceiveLSN for logical replication [PR 801](https://github.com/pgjdbc/pgjdbc/pull/801)
 - Make sure org.postgresql.Driver is loaded when accessing though DataSource interface [Issue 768](https://github.com/pgjdbc/pgjdbc/issues/768)
 
-### Regresions
+### Regressions
 - There's no 42.1.0.jre6 version due to infinity handling bug. Fixed in 42.1.1.jre6
 
 ## [42.0.0] (2017-02-20)
@@ -59,7 +63,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Version bumped to 42.0.0 to avoid version clash with PostgreSQL version and follow a better sematic versioning. [46634923](https://github.com/pgjdbc/pgjdbc/commit/466349236622c6b03bb9cd8d7f517c3ce0586751)
 - Ensure executeBatch() can be used with pgbouncer. Previously pgjdbc could use server-prepared statements for batch execution even with prepareThreshold=0. [Issue 742](https://github.com/pgjdbc/pgjdbc/issues/742)
 - Error position is displayed when SQL has unterminated literals, comments, etc. [Issue 688](https://github.com/pgjdbc/pgjdbc/issues/688)
-- Strict handling of accepted values in getBoolean and setObject(BOOLEAN), now it follows PostgreSQL accepted values, only 1 and 0 for numeric types are acepted (previusly !=0 was true). [PR 732](https://github.com/pgjdbc/pgjdbc/pull/732)
+- Strict handling of accepted values in getBoolean and setObject(BOOLEAN), now it follows PostgreSQL accepted values, only 1 and 0 for numeric types are accepted (previously !=0 was true). [PR 732](https://github.com/pgjdbc/pgjdbc/pull/732)
 - Return correct versions and name of the driver. [PR 668](https://github.com/pgjdbc/pgjdbc/pull/668)
 
 ### Removed
@@ -79,5 +83,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.1.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.1...REL42.1.2
 [42.1.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.2...REL42.1.3
 [42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
-[42.1.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.1.5
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.5...HEAD
+[42.2.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.2.0
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...HEAD
