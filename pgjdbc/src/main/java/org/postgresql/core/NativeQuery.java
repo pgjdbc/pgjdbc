@@ -19,6 +19,11 @@ public class NativeQuery {
   public final SqlCommand command;
   public final boolean multiStatement;
 
+  /**
+   * Used to allow this instance to maintain a strong reference to other items it might be cached with.
+   */
+  volatile Object reference;
+
   static {
     for (int i = 1; i < BIND_NAMES.length; i++) {
       BIND_NAMES[i] = "$" + i;
