@@ -35,6 +35,7 @@ public class Parser {
    * Key for parsed queries.
    */
   private static final class QueryKey {
+
     private final String query;
     private final boolean standardConformingStrings;
     private final boolean withParameters;
@@ -42,6 +43,7 @@ public class Parser {
     private final boolean isBatchedReWriteConfigured;
     private final String[] returningColumnNames;
     private final int hashCode;
+
     /**
      * @param query                     jdbc query to parse
      * @param standardConformingStrings whether to allow backslashes to be used as escape characters
@@ -73,6 +75,7 @@ public class Parser {
       result = prime * result + (withParameters ? 263 : 1237);
       this.hashCode = result;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -81,6 +84,7 @@ public class Parser {
 
       return hashCode;
     }
+
     /**
      * {@inheritDoc}
      */
