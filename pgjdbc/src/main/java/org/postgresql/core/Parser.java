@@ -43,17 +43,18 @@ public class Parser {
     private final String[] returningColumnNames;
     private final int hashCode;
     /**
-     * @param query
-     * @param standardConformingStrings
-     * @param withParameters
-     * @param splitStatements
-     * @param isBatchedReWriteConfigured
-     * @param returningColumnNames
+     * @param query                     jdbc query to parse
+     * @param standardConformingStrings whether to allow backslashes to be used as escape characters
+     *                                  in single quote literals
+     * @param withParameters            whether to replace ?, ? with $1, $2, etc
+     * @param splitStatements           whether to split statements by semicolon
+     * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+     * @param returningColumnNames      for simple insert, update, delete add returning with given column names
      */
-    public QueryKey(String query, boolean standardConformingStrings, boolean withParameters,
+    QueryKey(String query, boolean standardConformingStrings, boolean withParameters,
         boolean splitStatements, boolean isBatchedReWriteConfigured,
         String[] returningColumnNames) {
-      super();
+
       this.query = query;
       this.standardConformingStrings = standardConformingStrings;
       this.withParameters = withParameters;
@@ -76,6 +77,7 @@ public class Parser {
      */
     @Override
     public int hashCode() {
+
       return hashCode;
     }
     /**
@@ -83,26 +85,36 @@ public class Parser {
      */
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+
+      if (this == obj) {
         return true;
-      if (!(obj instanceof QueryKey))
+      }
+      if (!(obj instanceof QueryKey)) {
         return false;
+      }
       final QueryKey other = (QueryKey) obj;
       if (this.query == null) {
-        if (other.query != null)
+        if (other.query != null) {
           return false;
-      } else if (!this.query.equals(other.query))
+        }
+      } else if (!this.query.equals(other.query)) {
         return false;
-      if (!Arrays.equals(this.returningColumnNames, other.returningColumnNames))
+      }
+      if (!Arrays.equals(this.returningColumnNames, other.returningColumnNames)) {
         return false;
-      if (this.splitStatements != other.splitStatements)
+      }
+      if (this.splitStatements != other.splitStatements) {
         return false;
-      if (this.standardConformingStrings != other.standardConformingStrings)
+      }
+      if (this.standardConformingStrings != other.standardConformingStrings) {
         return false;
-      if (this.withParameters != other.withParameters)
+      }
+      if (this.withParameters != other.withParameters) {
         return false;
-      if (this.isBatchedReWriteConfigured != other.isBatchedReWriteConfigured)
+      }
+      if (this.isBatchedReWriteConfigured != other.isBatchedReWriteConfigured) {
         return false;
+      }
       return true;
     }
   }
