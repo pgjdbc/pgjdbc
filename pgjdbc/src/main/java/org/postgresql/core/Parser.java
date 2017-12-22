@@ -55,6 +55,7 @@ public class Parser {
         boolean splitStatements, boolean isBatchedReWriteConfigured,
         String[] returningColumnNames) {
 
+      assert query != null;
       this.query = query;
       this.standardConformingStrings = standardConformingStrings;
       this.withParameters = withParameters;
@@ -64,12 +65,12 @@ public class Parser {
 
       final int prime = 31;
       int result = 1;
-      result = prime * result + (this.isBatchedReWriteConfigured ? 263 : 1237);
-      result = prime * result + ((this.query == null) ? 0 : this.query.hashCode());
-      result = prime * result + Arrays.hashCode(this.returningColumnNames);
-      result = prime * result + (this.splitStatements ? 263 : 1237);
-      result = prime * result + (this.standardConformingStrings ? 263 : 1237);
-      result = prime * result + (this.withParameters ? 263 : 1237);
+      result = prime * result + (isBatchedReWriteConfigured ? 263 : 1237);
+      result = prime * result + query.hashCode();
+      result = prime * result + Arrays.hashCode(returningColumnNames);
+      result = prime * result + (splitStatements ? 263 : 1237);
+      result = prime * result + (standardConformingStrings ? 263 : 1237);
+      result = prime * result + (withParameters ? 263 : 1237);
       this.hashCode = result;
     }
     /**
@@ -93,11 +94,7 @@ public class Parser {
         return false;
       }
       final QueryKey other = (QueryKey) obj;
-      if (this.query == null) {
-        if (other.query != null) {
-          return false;
-        }
-      } else if (!this.query.equals(other.query)) {
+      if (!this.query.equals(other.query)) {
         return false;
       }
       if (!Arrays.equals(this.returningColumnNames, other.returningColumnNames)) {
