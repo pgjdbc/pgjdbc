@@ -14,6 +14,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.core.Oid;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.SQLFeatureNotSupportedException;
@@ -249,5 +250,28 @@ public class PrimitiveArraySupportTest {
     } catch (SQLFeatureNotSupportedException e) {
 
     }
+  }
+
+  @Test
+  public void testByteaToString() throws Exception {
+
+    final byte[][] array = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x34}, {(byte) 0xAC, (byte) 0xE4}};
+
+    final PrimitiveArraySupport<byte[][]> bytesArrays = PrimitiveArraySupport.getArraySupport(new byte[0][]);
+
+    final String arrayString = bytesArrays.toArrayString(',', array);
+
+    assertEquals("{\"\\\\x01ff34\",\"\\\\xace4\"}", arrayString);
+
+    final String altArrayString = bytesArrays.toArrayString(';', array);
+
+    assertEquals("{\"\\\\x01ff34\";\"\\\\xace4\"}", altArrayString);
+  }
+
+  @Test
+  public void testByteaNotSupportBinary() {
+
+    final PrimitiveArraySupport<byte[][]> bytesArrays = PrimitiveArraySupport.getArraySupport(new byte[0][]);
+    Assert.assertFalse(bytesArrays.supportBinaryRepresentation());
   }
 }

@@ -1321,25 +1321,8 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-    checkClosed();
 
-    int oid = getTypeInfo().getPGArrayType(typeName);
-
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(
-          GT.tr("Unable to find server array type for provided name {0}.", typeName),
-          PSQLState.INVALID_NAME);
-    }
-
-    if (elements == null) {
-      return makeArray(oid, null);
-    }
-
-    char delim = getTypeInfo().getArrayDelimiter(oid);
-    StringBuilder sb = new StringBuilder();
-    appendArray(sb, elements, delim);
-
-    return makeArray(oid, sb.toString());
+    return createArrayOf(typeName, (Object) elements);
   }
 
   @Override

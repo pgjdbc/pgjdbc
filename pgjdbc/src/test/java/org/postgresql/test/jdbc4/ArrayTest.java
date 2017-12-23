@@ -113,6 +113,27 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
+  public void testCreateArrayOfBytes() throws SQLException {
+
+    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bytea[]");
+    final byte[][] in = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x12}, {(byte) 0xAC, (byte) 0xE4}};
+    final Array createdArray = _conn.createArrayOf("bytea", in);
+
+    pstmt.setArray(1, createdArray);
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+
+    byte[][] out = (byte[][]) arr.getArray();
+
+    Assert.assertEquals(2, out.length);
+
+    Assert.assertArrayEquals(in[0], out[0]);
+    Assert.assertArrayEquals(in[1], out[1]);
+  }
+
+  @Test
   public void testCreateArrayOfSmallInt() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::smallint[]");
     Short[] in = new Short[3];
