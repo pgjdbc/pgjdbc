@@ -483,7 +483,7 @@ abstract class PrimitiveArraySupport<A> {
      */
     private final char[] HEX_DIGITS = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8',
             '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-    
+
     /**
      * {@inheritDoc}
      */
@@ -500,7 +500,7 @@ abstract class PrimitiveArraySupport<A> {
     public String toArrayString(char delim, byte[][] array) {
 
       int length = 2;
-      for (int i=0; i<array.length; ++i) {
+      for (int i = 0; i < array.length; ++i) {
         length += 6;
         length += (array[i].length * 2);
       }
@@ -523,7 +523,7 @@ abstract class PrimitiveArraySupport<A> {
         }
 
         sb.append("\"\\\\x");
-        for (int j=0; j<array[i].length; ++j) {
+        for (int j = 0; j < array[i].length; ++j) {
           byte b = array[i][j];
 
           // get the value for the left 4 bits (drop sign)
