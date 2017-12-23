@@ -15,6 +15,7 @@ import org.postgresql.core.SetupQueryRunner;
 import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
+import org.postgresql.hostchooser.CandidateHost;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
@@ -125,9 +126,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
-    Iterator<HostSpec> hostIter = hostChooser.iterator();
+    Iterator<CandidateHost> hostIter = hostChooser.iterator();
     while (hostIter.hasNext()) {
-      HostSpec hostSpec = hostIter.next();
+      CandidateHost candidateHost = hostIter.next();
+      HostSpec hostSpec = candidateHost.getHostSpec();
       LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}", hostSpec);
 
       //
@@ -199,7 +201,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Slave;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
-        if (!targetServerType.allowConnectingTo(hostStatus)) {
+        if (!candidateHost.allowConnectingTo(hostStatus)) {
           queryExecutor.close();
           if (hostIter.hasNext()) {
             // still more addresses to try

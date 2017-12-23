@@ -42,7 +42,70 @@ public class MultiHostChooser implements HostChooser {
   }
 
   @Override
-  public Iterator<HostSpec> iterator() {
+  public Iterator<CandidateHost> iterator() {
+    if (targetServerType == HostRequirement.preferSlave ) {
+      // first return candidates for HostRequirement.slave and then for HostRequirement.any
+      Iterator<CandidateHost> candidateHostIter = new Iterator<CandidateHost>() {
+
+        private HostRequirement currentTargetServerType = HostRequirement.slave;
+        private Iterator<HostSpec> iter = hostSpecIterator(currentTargetServerType);
+        private boolean hasNextIter = true;
+
+        @Override
+        public boolean hasNext() {
+          if (!iter.hasNext() && hasNextIter) {
+            currentTargetServerType = HostRequirement.any;
+            iter = hostSpecIterator(currentTargetServerType);
+            hasNextIter = false;
+          }
+
+          return iter.hasNext();
+        }
+
+        @Override
+        public CandidateHost next() {
+          if (!iter.hasNext() && hasNextIter) {
+            currentTargetServerType = HostRequirement.any;
+            iter = hostSpecIterator(currentTargetServerType);
+            hasNextIter = false;
+          }
+
+          return new SimpleCandidateHost(iter.next(), currentTargetServerType);
+        }
+
+        @Override
+        public void remove() {
+          throw new UnsupportedOperationException("remove");
+        }
+      };
+
+      return candidateHostIter;
+    } else {
+      Iterator<CandidateHost> candidateHostIter = new Iterator<CandidateHost>() {
+
+        private Iterator<HostSpec> iter = hostSpecIterator(targetServerType);
+
+        @Override
+        public boolean hasNext() {
+          return iter.hasNext();
+        }
+
+        @Override
+        public CandidateHost next() {
+          return new SimpleCandidateHost(iter.next(), targetServerType);
+        }
+
+        @Override
+        public void remove() {
+          throw new UnsupportedOperationException("remove");
+        }
+      };
+
+      return candidateHostIter;
+    }
+  }
+
+  private Iterator<HostSpec> hostSpecIterator(HostRequirement targetServerType) {
     List<HostSpecStatus> candidates =
         GlobalHostStatusTracker.getCandidateHosts(hostSpecs, targetServerType, hostRecheckTime);
     // if no candidates are suitable (all wrong type or unavailable) then we try original list in
@@ -53,35 +116,20 @@ public class MultiHostChooser implements HostChooser {
     if (candidates.size() == 1) {
       return asList(candidates.get(0).host).iterator();
     }
-    sortCandidates(candidates);
-    shuffleGoodHosts(candidates);
+    if (!loadBalance) {
+      sortCandidates(candidates);
+    } else {
+      shuffleCandidates(candidates);
+    }
     return extractHostSpecs(candidates).iterator();
   }
 
   private void sortCandidates(List<HostSpecStatus> candidates) {
-    if (targetServerType == HostRequirement.any) {
-      return;
-    }
     sort(candidates, new HostSpecByTargetServerTypeComparator());
   }
 
-  private void shuffleGoodHosts(List<HostSpecStatus> candidates) {
-    if (!loadBalance) {
-      return;
-    }
-    int count;
-    for (count = 1; count < candidates.size(); count++) {
-      HostSpecStatus hostSpecStatus = candidates.get(count);
-      if (hostSpecStatus.status != null
-          && !targetServerType.allowConnectingTo(hostSpecStatus.status)) {
-        break;
-      }
-    }
-    if (count == 1) {
-      return;
-    }
-    List<HostSpecStatus> goodHosts = candidates.subList(0, count);
-    shuffle(goodHosts);
+  private void shuffleCandidates(List<HostSpecStatus> candidates) {
+    shuffle(candidates);
   }
 
   private List<HostSpec> extractHostSpecs(List<HostSpecStatus> hostSpecStatuses) {
@@ -101,20 +149,38 @@ public class MultiHostChooser implements HostChooser {
     }
 
     private int rank(HostStatus status, HostRequirement targetServerType) {
-      if (status == HostStatus.ConnectFail) {
-        return -1;
-      }
+      int rankVal = 0;
       switch (targetServerType) {
         case master:
-          return status == HostStatus.Master || status == null ? 1 : 0;
+          if (status == HostStatus.Master) {
+            rankVal = 1;
+          } else if (status == null || status == HostStatus.ConnectOK) {
+            rankVal = 0;
+          } else if (status == HostStatus.Slave) {
+            rankVal = -1;
+          } else { //HostStatus.ConnectFail
+            rankVal = -2;
+          }
+          break;
         case slave:
-          return status == HostStatus.Slave || status == null ? 1 : 0;
-        case preferSlave:
-          return status == HostStatus.Slave || status == null ? 2
-              : status == HostStatus.Master ? 1 : 0;
-        default:
-          return 0;
+          if (status == HostStatus.Slave) {
+            rankVal = 1;
+          } else if (status == null || status == HostStatus.ConnectOK) {
+            rankVal = 0;
+          } else if (status == HostStatus.Master) {
+            rankVal = -1;
+          } else { //HostStatus.ConnectFail
+            rankVal = -2;
+          }
+          break;
+        default: //any, and should never got preferSlave here
+          if (status != HostStatus.ConnectFail) {
+            rankVal = 0;
+          } else {
+            rankVal = -1;
+          }
       }
+      return rankVal;
     }
   }
 }

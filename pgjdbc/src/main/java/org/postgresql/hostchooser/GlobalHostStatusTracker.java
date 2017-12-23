@@ -62,12 +62,14 @@ public class GlobalHostStatusTracker {
     synchronized (hostStatusMap) {
       for (HostSpec hostSpec : hostSpecs) {
         HostSpecStatus hostInfo = hostStatusMap.get(hostSpec);
-        // return null status wrapper if if the current value is not known or is too old
-        if (hostInfo == null || hostInfo.lastUpdated < latestAllowedUpdate) {
+        // return null status wrapper if the current value is not known
+        if (hostInfo == null) {
           hostInfo = new HostSpecStatus(hostSpec, null, Long.MAX_VALUE);
         }
         // candidates are nodes we do not know about and the nodes with correct type
-        if (hostInfo.status == null || targetServerType.allowConnectingTo(hostInfo.status)) {
+        if (hostInfo.status == null
+            || hostInfo.lastUpdated < latestAllowedUpdate
+            || targetServerType.allowConnectingTo(hostInfo.status)) {
           candidates.add(hostInfo);
         }
       }
