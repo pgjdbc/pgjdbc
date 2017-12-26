@@ -103,7 +103,7 @@ public class Parser {
 
         case ')':
           inParen--;
-          if (inParen == 0 && isValuesFound) {
+          if (inParen == 0 && isValuesFound && valuesBraceClosePosition == -1) {
             // If original statement is multi-values like VALUES (...), (...), ... then
             // search for the latest closing paren
             valuesBraceClosePosition = nativeSql.length() + i - fragmentStart;
