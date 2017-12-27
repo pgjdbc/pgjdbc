@@ -255,23 +255,23 @@ public class PrimitiveArraySupportTest {
   @Test
   public void testByteaToString() throws Exception {
 
-    final byte[][] array = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x34}, {(byte) 0xAC, (byte) 0xE4}};
+    final byte[][] array = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x34}, {}, {(byte) 0xAC, (byte) 0xE4}, null};
 
     final PrimitiveArraySupport<byte[][]> bytesArrays = PrimitiveArraySupport.getArraySupport(new byte[0][]);
 
     final String arrayString = bytesArrays.toArrayString(',', array);
 
-    assertEquals("{\"\\\\x01ff34\",\"\\\\xace4\"}", arrayString);
+    assertEquals("{\"\\\\x01ff34\",\"\\\\x\",\"\\\\xace4\",NULL}", arrayString);
 
     final String altArrayString = bytesArrays.toArrayString(';', array);
 
-    assertEquals("{\"\\\\x01ff34\";\"\\\\xace4\"}", altArrayString);
+    assertEquals("{\"\\\\x01ff34\";\"\\\\x\";\"\\\\xace4\";NULL}", altArrayString);
   }
 
   @Test
-  public void testByteaNotSupportBinary() {
+  public void testByteaSupportsBinary() {
 
     final PrimitiveArraySupport<byte[][]> bytesArrays = PrimitiveArraySupport.getArraySupport(new byte[0][]);
-    Assert.assertFalse(bytesArrays.supportBinaryRepresentation());
+    Assert.assertTrue(bytesArrays.supportBinaryRepresentation());
   }
 }

@@ -255,6 +255,10 @@ public class PgArray implements java.sql.Array {
           case Oid.BOOL:
             arr[i] = ByteConverter.bool(fieldBytes, pos);
             break;
+          case Oid.BYTEA:
+            arr[i] = new byte[len];
+            System.arraycopy(fieldBytes, pos, arr[i], 0, len);
+            break;
           default:
             ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
             if (arrAssistant != null) {
@@ -399,6 +403,8 @@ public class PgArray implements java.sql.Array {
         return String.class;
       case Oid.BOOL:
         return Boolean.class;
+      case Oid.BYTEA:
+        return byte[].class;
       default:
         ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
         if (arrElemBuilder != null) {

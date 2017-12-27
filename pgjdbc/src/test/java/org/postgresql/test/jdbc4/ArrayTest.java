@@ -115,11 +115,19 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCreateArrayOfBytes() throws SQLException {
 
-    assumeMinimumServerVersion("support for bytea[] requires hex string support from 9.0", ServerVersion.v9_0);
-
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bytea[]");
-    final byte[][] in = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x12}, {(byte) 0xAC, (byte) 0xE4}, null};
+    final byte[][] in = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x12}, {}, {(byte) 0xAC, (byte) 0xE4}, null};
     final Array createdArray = _conn.createArrayOf("bytea", in);
+
+    byte[][] inCopy = (byte[][]) createdArray.getArray();
+
+    Assert.assertEquals(4, inCopy.length);
+
+    Assert.assertArrayEquals(in[0], inCopy[0]);
+    Assert.assertArrayEquals(in[1], inCopy[1]);
+    Assert.assertArrayEquals(in[2], inCopy[2]);
+    Assert.assertArrayEquals(in[3], inCopy[3]);
+    Assert.assertNull(inCopy[3]);
 
     pstmt.setArray(1, createdArray);
 
@@ -129,12 +137,38 @@ public class ArrayTest extends BaseTest4 {
 
     byte[][] out = (byte[][]) arr.getArray();
 
-    Assert.assertEquals(3, out.length);
+    Assert.assertEquals(4, out.length);
 
     Assert.assertArrayEquals(in[0], out[0]);
     Assert.assertArrayEquals(in[1], out[1]);
     Assert.assertArrayEquals(in[2], out[2]);
-    Assert.assertNull(out[2]);
+    Assert.assertArrayEquals(in[3], out[3]);
+    Assert.assertNull(out[3]);
+  }
+
+  @Test
+  public void testCreateArrayOfBytesFromString() throws SQLException {
+
+    assumeMinimumServerVersion("support for bytea[] as string requires hex string support from 9.0", ServerVersion.v9_0);
+
+    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bytea[]");
+    final byte[][] in = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x12}, {}, {(byte) 0xAC, (byte) 0xE4}, null};
+
+    pstmt.setString(1, "{\"\\\\x01ff12\",\"\\\\x\",\"\\\\xace4\",NULL}");
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+
+    byte[][] out = (byte[][]) arr.getArray();
+
+    Assert.assertEquals(4, out.length);
+
+    Assert.assertArrayEquals(in[0], out[0]);
+    Assert.assertArrayEquals(in[1], out[1]);
+    Assert.assertArrayEquals(in[2], out[2]);
+    Assert.assertArrayEquals(in[3], out[3]);
+    Assert.assertNull(out[3]);
   }
 
   @Test

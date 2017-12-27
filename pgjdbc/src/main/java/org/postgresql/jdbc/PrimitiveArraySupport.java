@@ -552,7 +552,7 @@ abstract class PrimitiveArraySupport<A> {
     @Override
     public boolean supportBinaryRepresentation() {
 
-      return false;
+      return true;
     }
 
     /**
@@ -562,7 +562,41 @@ abstract class PrimitiveArraySupport<A> {
     public byte[] toBinaryRepresentation(Connection connection, byte[][] array)
         throws SQLFeatureNotSupportedException {
 
-      throw new SQLFeatureNotSupportedException();
+      //leading 20 bytes
+      int length = 20;
+      for (int i = 0; i < array.length; ++i) {
+        //length of this item
+        length += 4;
+        if (array[i] != null) {
+          length += array[i].length;
+        }
+      }
+
+      final byte[] bytes = new byte[length];
+
+      // 1 dimension
+      ByteConverter.int4(bytes, 0, 1);
+      // no null
+      ByteConverter.int4(bytes, 4, 0);
+      // oid
+      ByteConverter.int4(bytes, 8, Oid.BYTEA);
+      // length
+      ByteConverter.int4(bytes, 12, array.length);
+
+      int idx = 20;
+      for (int i = 0; i < array.length; ++i) {
+        if (array[i] != null) {
+          ByteConverter.int4(bytes, idx, array[i].length);
+          idx += 4;
+          System.arraycopy(array[i], 0, bytes, idx, array[i].length);
+          idx += array[i].length;
+        } else {
+          ByteConverter.int4(bytes, idx, -1);
+          idx += 4;
+        }
+      }
+
+      return bytes;
     }
   };
 
