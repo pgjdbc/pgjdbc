@@ -115,8 +115,10 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCreateArrayOfBytes() throws SQLException {
 
+    assumeMinimumServerVersion("support for bytea[] requires hex string support from 9.0", ServerVersion.v9_0);
+
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bytea[]");
-    final byte[][] in = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x12}, {(byte) 0xAC, (byte) 0xE4}};
+    final byte[][] in = new byte[][] {{0x01, (byte) 0xFF, (byte) 0x12}, {(byte) 0xAC, (byte) 0xE4}, null};
     final Array createdArray = _conn.createArrayOf("bytea", in);
 
     pstmt.setArray(1, createdArray);
@@ -127,10 +129,12 @@ public class ArrayTest extends BaseTest4 {
 
     byte[][] out = (byte[][]) arr.getArray();
 
-    Assert.assertEquals(2, out.length);
+    Assert.assertEquals(3, out.length);
 
     Assert.assertArrayEquals(in[0], out[0]);
     Assert.assertArrayEquals(in[1], out[1]);
+    Assert.assertArrayEquals(in[2], out[2]);
+    Assert.assertNull(out[2]);
   }
 
   @Test
