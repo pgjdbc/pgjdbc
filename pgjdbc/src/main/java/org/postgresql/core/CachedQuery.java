@@ -7,6 +7,8 @@ package org.postgresql.core;
 
 import org.postgresql.util.CanEstimateSize;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Stores information on the parsed JDBC query. It is used to cut parsing overhead when executing
  * the same query through {@link java.sql.Connection#prepareStatement(String)}.
@@ -22,26 +24,22 @@ public class CachedQuery implements CanEstimateSize {
   public final boolean isFunction;
   public final boolean outParmBeforeFunc;
 
-  private int executeCount;
+  private final AtomicLong executeCount;
 
-  public CachedQuery(Object key, Query query, boolean isFunction, boolean outParmBeforeFunc) {
+  public CachedQuery(Object key, Query query, boolean isFunction, boolean outParmBeforeFunc, AtomicLong counter) {
     this.key = key;
     this.query = query;
     this.isFunction = isFunction;
     this.outParmBeforeFunc = outParmBeforeFunc;
+    this.executeCount = counter;
   }
 
   public void increaseExecuteCount() {
-    if (executeCount < Integer.MAX_VALUE) {
-      executeCount++;
-    }
+    executeCount.incrementAndGet();
   }
 
   public void increaseExecuteCount(int inc) {
-    int newValue = executeCount + inc;
-    if (newValue > 0) { // if overflows, just ignore the update
-      executeCount = newValue;
-    }
+    executeCount.addAndGet(inc);
   }
 
   /**
@@ -50,7 +48,7 @@ public class CachedQuery implements CanEstimateSize {
    * @return number of times this statement has been used
    */
   public int getExecuteCount() {
-    return executeCount;
+    return (int) Math.min(executeCount.get(), Integer.MAX_VALUE);
   }
 
   @Override
