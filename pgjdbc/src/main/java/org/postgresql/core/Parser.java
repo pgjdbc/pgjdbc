@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Basic query parser infrastructure.
@@ -121,14 +122,46 @@ public class Parser {
   }
 
   /**
+   * Wraps a {@code List} of {@code NativeQuery} instances and an {@code AtomicLong} to use
+   * as a shared execution counter.
+   */
+  public static final class QueriesAndCounter {
+
+    private final AtomicLong counter = new AtomicLong();
+    private final List<NativeQuery> nativeQueries;
+
+    /**
+     * @param nativeQueries
+     */
+    public QueriesAndCounter(List<NativeQuery> nativeQueries) {
+      super();
+      this.nativeQueries = nativeQueries;
+    }
+
+    /**
+     * @return the counter
+     */
+    public AtomicLong getCounter() {
+      return this.counter;
+    }
+
+    /**
+     * @return the nativeQueries
+     */
+    public List<NativeQuery> getNativeQueries() {
+      return this.nativeQueries;
+    }
+  }
+
+  /**
    * Caches parsed queries by the attributes used for parsing. Uses a {@code WeakReference} around the
    * {@code List<NativeQuery>} to be sensitive memory utilization within the jvm. By setting each
    * {@link NativeQuery#reference} to the {@code List} in the cache, as long as a {@code Statement}
    * maintains a reference to at least one {@code NativeQuery} instance, the entry will remain in the
    * cache.
    */
-  private static final ConcurrentHashMap<QueryKey, WeakReference<List<NativeQuery>>> PARSED_CACHE
-       = new ConcurrentHashMap<QueryKey, WeakReference<List<NativeQuery>>>();
+  private static final ConcurrentHashMap<QueryKey, WeakReference<QueriesAndCounter>> PARSED_CACHE
+       = new ConcurrentHashMap<QueryKey, WeakReference<QueriesAndCounter>>();
 
   private static final int[] NO_BINDS = new int[0];
 
@@ -150,18 +183,45 @@ public class Parser {
       boolean withParameters, boolean splitStatements,
       boolean isBatchedReWriteConfigured,
       String... returningColumnNames) throws SQLException {
+    return parseJdbcSqlAndCounter(query,
+                                  standardConformingStrings,
+                                  withParameters,
+                                  splitStatements,
+                                  isBatchedReWriteConfigured,
+                                  returningColumnNames).getNativeQueries();
+  }
+
+  /**
+   * Parses JDBC query into PostgreSQL's native format and a shared counter for executions. Several queries
+   * might be given if separated by semicolon.
+   *
+   * @param query                     jdbc query to parse
+   * @param standardConformingStrings whether to allow backslashes to be used as escape characters
+   *                                  in single quote literals
+   * @param withParameters            whether to replace ?, ? with $1, $2, etc
+   * @param splitStatements           whether to split statements by semicolon
+   * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+   * @param returningColumnNames      for simple insert, update, delete add returning with given column names
+   * @return                          list of native queries and a shared counter for executions. The {@code List} 
+   *                                  will never be {@code null}, but might be immutable.
+   * @throws SQLException if unable to add returning clause (invalid column names)
+   */
+  public static QueriesAndCounter parseJdbcSqlAndCounter(String query, boolean standardConformingStrings,
+      boolean withParameters, boolean splitStatements,
+      boolean isBatchedReWriteConfigured,
+      String... returningColumnNames) throws SQLException {
 
     final QueryKey queryKey = new QueryKey(query, standardConformingStrings, withParameters,
         splitStatements, isBatchedReWriteConfigured, returningColumnNames);
-    WeakReference<List<NativeQuery>> ref = PARSED_CACHE.get(queryKey);
+    WeakReference<QueriesAndCounter> ref = PARSED_CACHE.get(queryKey);
     if (ref != null) {
-      List<NativeQuery> nativeQueries = ref.get();
-      if (nativeQueries != null) {
-        return nativeQueries;
+      QueriesAndCounter queryAndCounter = ref.get();
+      if (queryAndCounter != null) {
+        return queryAndCounter;
       }
       PARSED_CACHE.remove(queryKey, ref);
       //if 1 weak reference has cleared, possible others have as well, good to pro-actively clean up
-      for (Iterator<WeakReference<List<NativeQuery>>> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
+      for (Iterator<WeakReference<QueriesAndCounter>> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
         if (refIter.next().get() == null) {
           refIter.remove();
         }
@@ -171,20 +231,36 @@ public class Parser {
     final List<NativeQuery> parsedQueries = _parseJdbcSql(query, standardConformingStrings,
         withParameters, splitStatements, isBatchedReWriteConfigured, returningColumnNames);
 
-    //since we are caching these, might as well minimize the size of backing array
-    if (parsedQueries instanceof ArrayList) {
-      ((ArrayList<NativeQuery>)parsedQueries).trimToSize();
+    //make an immutable copy of the native queries
+    final List<NativeQuery> nativeQueries;
+    if (parsedQueries.size() == 1) {
+      //optimize for a single query
+      nativeQueries = Collections.singletonList(parsedQueries.get(0));
+    } else {
+      //since we are caching these, might as well minimize the size of backing array
+      if (parsedQueries instanceof ArrayList) {
+        ((ArrayList<NativeQuery>)parsedQueries).trimToSize();
+      }
+      nativeQueries = Collections.unmodifiableList(parsedQueries);
     }
 
-    final List<NativeQuery> nativeQueries = Collections.unmodifiableList(parsedQueries);
+    final QueriesAndCounter queryAndCounter = new QueriesAndCounter(nativeQueries);
 
     for (NativeQuery nativeQuery : nativeQueries) {
-      nativeQuery.reference = nativeQueries;
+      nativeQuery.reference = queryAndCounter;
     }
 
-    ref = new WeakReference<List<NativeQuery>>(nativeQueries);
-    PARSED_CACHE.put(queryKey, ref);
-    return nativeQueries;
+    ref = new WeakReference<QueriesAndCounter>(queryAndCounter);
+    if (PARSED_CACHE.putIfAbsent(queryKey, ref) == null) {
+      return queryAndCounter;
+    }
+    //if there was a value there (indicating concurrent activity to populate the map), then recurse and try again
+    return parseJdbcSqlAndCounter(query,
+                                  standardConformingStrings,
+                                  withParameters,
+                                  splitStatements,
+                                  isBatchedReWriteConfigured,
+                                  returningColumnNames);
   }
 
   private static List<NativeQuery> _parseJdbcSql(String query, boolean standardConformingStrings,
