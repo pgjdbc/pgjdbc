@@ -131,9 +131,9 @@ public class Parser {
     private final List<NativeQuery> nativeQueries;
 
     /**
-     * @param nativeQueries
+     * @param nativeQueries List of parsed native queries.
      */
-    public QueriesAndCounter(List<NativeQuery> nativeQueries) {
+    QueriesAndCounter(List<NativeQuery> nativeQueries) {
       super();
       this.nativeQueries = nativeQueries;
     }
@@ -164,6 +164,13 @@ public class Parser {
        = new ConcurrentHashMap<QueryKey, WeakReference<QueriesAndCounter>>();
 
   private static final int[] NO_BINDS = new int[0];
+
+  /**
+   * Utility method used by tests to clear the cache.
+   */
+  static void clearCache() {
+    PARSED_CACHE.clear();
+  }
 
   /**
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
@@ -202,7 +209,7 @@ public class Parser {
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
-   * @return                          list of native queries and a shared counter for executions. The {@code List} 
+   * @return                          list of native queries and a shared counter for executions. The {@code List}
    *                                  will never be {@code null}, but might be immutable.
    * @throws SQLException if unable to add returning clause (invalid column names)
    */

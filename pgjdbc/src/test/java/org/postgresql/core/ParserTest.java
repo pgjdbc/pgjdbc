@@ -190,4 +190,11 @@ public class ParserTest {
     Assert.assertNotSame(qry3, qry5);
     Assert.assertNotSame(qry4, qry5);
   }
+
+  /**
+   * Utility method to allow clearing of cached queries and execution counts.
+   */
+  public static void clearQueryCache() {
+    Parser.clearCache();
+  }
 }
