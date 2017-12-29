@@ -257,22 +257,22 @@ public class SetObject310Test {
       for (TimeZone storeZone : storeZones) {
         TimeZone.setDefault(storeZone);
         insertWithoutType(data, "timestamp_with_time_zone_column");
-  
+
         String readBack = readString("timestamp_with_time_zone_column");
         OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
         assertEquals(data.toInstant(), o.toInstant());
         con.rollback();
       }
-  
+
       for (TimeZone storeZone : storeZones) {
         TimeZone.setDefault(storeZone);
         insertWithType(data, "timestamp_with_time_zone_column");
-  
+
         String readBack = readString("timestamp_with_time_zone_column");
         OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
-  
+
         assertEquals(data.toInstant(), o.toInstant());
-  
+
         con.rollback();
       }
     } finally {
