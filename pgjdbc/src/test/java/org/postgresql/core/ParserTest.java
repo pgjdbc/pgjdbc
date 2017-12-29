@@ -216,4 +216,11 @@ public class ParserTest {
     Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
   }
+
+  /**
+   * Utility method to allow clearing of cached queries and execution counts.
+   */
+  public static void clearQueryCache() {
+    Parser.clearCache();
+  }
 }
