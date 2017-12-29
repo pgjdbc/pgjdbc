@@ -251,27 +251,32 @@ public class SetObject310Test {
 
   private void offsetTimestamps(ZoneId dataZone, LocalDateTime localDateTime, String expected, List<TimeZone> storeZones) throws SQLException {
     OffsetDateTime data = localDateTime.atZone(dataZone).toOffsetDateTime();
-    for (TimeZone storeZone : storeZones) {
-      TimeZone.setDefault(storeZone);
-      insertWithoutType(data, "timestamp_with_time_zone_column");
-
-      String readBack = readString("timestamp_with_time_zone_column");
-      OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
-      assertEquals(data.toInstant(), o.toInstant());
-
-      deleteRows();
-    }
-
-    for (TimeZone storeZone : storeZones) {
-      TimeZone.setDefault(storeZone);
-      insertWithType(data, "timestamp_with_time_zone_column");
-
-      String readBack = readString("timestamp_with_time_zone_column");
-      OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
-
-      assertEquals(data.toInstant(), o.toInstant());
-
-      deleteRows();
+    final boolean startAutoCommit = con.getAutoCommit();
+    try {
+      con.setAutoCommit(false);
+      for (TimeZone storeZone : storeZones) {
+        TimeZone.setDefault(storeZone);
+        insertWithoutType(data, "timestamp_with_time_zone_column");
+  
+        String readBack = readString("timestamp_with_time_zone_column");
+        OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
+        assertEquals(data.toInstant(), o.toInstant());
+        con.rollback();
+      }
+  
+      for (TimeZone storeZone : storeZones) {
+        TimeZone.setDefault(storeZone);
+        insertWithType(data, "timestamp_with_time_zone_column");
+  
+        String readBack = readString("timestamp_with_time_zone_column");
+        OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
+  
+        assertEquals(data.toInstant(), o.toInstant());
+  
+        con.rollback();
+      }
+    } finally {
+      con.setAutoCommit(startAutoCommit);
     }
   }
 
