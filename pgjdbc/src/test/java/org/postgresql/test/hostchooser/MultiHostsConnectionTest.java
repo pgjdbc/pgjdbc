@@ -174,9 +174,9 @@ public class MultiHostsConnectionTest extends TestCase {
 
     getConnection(master, false, fake1, slave1, master1);
     assertRemote(masterIp);
-    assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(master1, "Master");
-    assertGlobalState(slave1, null);
+    assertGlobalState(fake1, "ConnectFail"); // cached
+    assertGlobalState(master1, "Master"); // connected to master
+    assertGlobalState(slave1, "Slave"); // was unknown, so tried to connect in order
   }
 
   public static void testConnectToSlave() throws SQLException {
@@ -188,9 +188,9 @@ public class MultiHostsConnectionTest extends TestCase {
 
     getConnection(slave, false, fake1, master1, slave1);
     assertRemote(slaveIp);
-    assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(slave1, "Slave");
-    assertGlobalState(master1, null);
+    assertGlobalState(fake1, "ConnectFail"); // cached
+    assertGlobalState(slave1, "Slave"); // connected
+    assertGlobalState(master1, "Master"); // tried as it was unknown
   }
 
   public static void testConnectToSlaveFirst() throws SQLException {
@@ -204,7 +204,7 @@ public class MultiHostsConnectionTest extends TestCase {
     assertRemote(slaveIp);
     assertGlobalState(fake1, "ConnectFail");
     assertGlobalState(slave1, "Slave");
-    assertGlobalState(master1, null);
+    assertGlobalState(master1, "Master"); // tried as it was unknown
 
     getConnection(preferSlave, true, fake1, master1, slave1);
     assertRemote(slaveIp);
