@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
@@ -122,6 +123,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
+    long lastKnownTime = System.currentTimeMillis() - PGProperty.HOST_RECHECK_SECONDS.getInt(info) * 1000;
+
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     HostChooser hostChooser =
@@ -129,8 +132,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
     while (hostIter.hasNext()) {
       CandidateHost candidateHost = hostIter.next();
-      HostSpec hostSpec = candidateHost.getHostSpec();
+      HostSpec hostSpec = candidateHost.hostSpec;
       LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}", hostSpec);
+
+      HostStatus knownStatus = GlobalHostStatusTracker.getKnownStatus(hostSpec, lastKnownTime);
+      if (knownStatus != null && candidateHost.targetServerType.allowConnectingTo(knownStatus)) {
+        LOGGER.log(Level.FINER, "Known status of host {0} is {1}, and required status was {2}. Will try next host",
+            new Object[]{hostSpec, knownStatus, candidateHost.targetServerType});
+        continue;
+      }
 
       //
       // Establish a connection.
@@ -197,19 +207,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // Check Master or Slave
         HostStatus hostStatus = HostStatus.ConnectOK;
-        if (targetServerType != HostRequirement.any) {
+        if (candidateHost.targetServerType != HostRequirement.any) {
           hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Slave;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
-        if (!candidateHost.allowConnectingTo(hostStatus)) {
+        if (!candidateHost.targetServerType.allowConnectingTo(hostStatus)) {
           queryExecutor.close();
-          if (hostIter.hasNext()) {
-            // still more addresses to try
-            continue;
-          }
-          throw new PSQLException(GT
-              .tr("Could not find a server with specified targetServerType: {0}", targetServerType),
-              PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+          continue;
         }
 
         runInitialQueries(queryExecutor, info);
@@ -218,7 +222,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return queryExecutor;
       } catch (UnsupportedProtocolException upe) {
         // Swallow this and return null so ConnectionFactory tries the next protocol.
-        LOGGER.log(Level.SEVERE, "Protocol not supported, abandoning connection.");
+        LOGGER.log(Level.SEVERE, "Protocol not supported, abandoning connection.", upe);
         closeStream(newStream);
         return null;
       } catch (ConnectException cex) {
@@ -226,6 +230,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // ConnectException is thrown when the connection cannot be made.
         // we trap this an return a more meaningful message for the end user
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+        log(Level.WARNING, "Got ConnectException while connecting to {0}", cex, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
@@ -236,6 +241,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       } catch (IOException ioe) {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+        log(Level.WARNING, "Got IOException while connecting to {0}", ioe, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
@@ -244,6 +250,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
       } catch (SQLException se) {
         closeStream(newStream);
+        log(Level.WARNING, "Got SQLException while connecting to {0}", se, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
@@ -251,7 +258,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         throw se;
       }
     }
-    throw new PSQLException(GT.tr("The connection url is invalid."),
+    throw new PSQLException(GT
+        .tr("Could not find a server with specified targetServerType: {0}", targetServerType),
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
@@ -287,6 +295,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       paramList.add(new String[]{"search_path", currentSchema});
     }
     return paramList;
+  }
+
+  private static void log(Level level, String msg, Throwable thrown, Object... params) {
+    if (!LOGGER.isLoggable(level)) {
+      return;
+    }
+    LogRecord rec = new LogRecord(level, msg);
+    rec.setParameters(params);
+    rec.setThrown(thrown);
+    LOGGER.log(rec);
   }
 
   /**

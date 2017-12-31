@@ -11,9 +11,12 @@ import org.postgresql.util.HostSpec;
 /**
  * Candidate host to be connected.
  */
-public interface CandidateHost {
+public class CandidateHost {
+  public final HostSpec hostSpec;
+  public final HostRequirement targetServerType;
 
-  HostSpec getHostSpec();
-
-  boolean allowConnectingTo(HostStatus status);
+  public CandidateHost(HostSpec hostSpec, HostRequirement targetServerType) {
+    this.hostSpec = hostSpec;
+    this.targetServerType = targetServerType;
+  }
 }

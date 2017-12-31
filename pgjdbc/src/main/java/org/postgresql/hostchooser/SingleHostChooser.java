@@ -14,12 +14,11 @@ import java.util.Iterator;
 /**
  * Host chooser that returns the single host.
  */
-public class SingleHostChooser implements HostChooser {
+class SingleHostChooser implements HostChooser {
   private final Collection<CandidateHost> candidateHost;
 
-  public SingleHostChooser(HostSpec hostSpec, HostRequirement targetServerType) {
-    this.candidateHost = Collections.singletonList(
-        (CandidateHost) new SimpleCandidateHost(hostSpec, targetServerType));
+  SingleHostChooser(HostSpec hostSpec, HostRequirement targetServerType) {
+    this.candidateHost = Collections.singletonList(new CandidateHost(hostSpec, targetServerType));
   }
 
   @Override

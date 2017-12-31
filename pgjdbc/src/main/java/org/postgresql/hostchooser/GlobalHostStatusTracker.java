@@ -30,21 +30,24 @@ public class GlobalHostStatusTracker {
   public static void reportHostStatus(HostSpec hostSpec, HostStatus hostStatus) {
     long now = currentTimeMillis();
     synchronized (hostStatusMap) {
-      HostSpecStatus oldStatus = hostStatusMap.get(hostSpec);
-      if (oldStatus == null || updateStatusFromTo(oldStatus.status, hostStatus)) {
-        hostStatusMap.put(hostSpec, new HostSpecStatus(hostSpec, hostStatus, now));
+      HostSpecStatus hostSpecStatus = hostStatusMap.get(hostSpec);
+      if (hostSpecStatus == null) {
+        hostSpecStatus = new HostSpecStatus(hostSpec);
+        hostStatusMap.put(hostSpec, hostSpecStatus);
       }
+      hostSpecStatus.status = hostStatus;
+      hostSpecStatus.lastUpdated = now;
     }
   }
 
-  private static boolean updateStatusFromTo(HostStatus oldStatus, HostStatus newStatus) {
-    if (oldStatus == null) {
-      return true;
+  public static HostStatus getKnownStatus(HostSpec hostSpec, long minUpdateTime) {
+    synchronized (hostStatusMap) {
+      HostSpecStatus hostSpecStatus = hostStatusMap.get(hostSpec);
+      if (hostSpecStatus == null || hostSpecStatus.lastUpdated < minUpdateTime) {
+        return null;
+      }
+      return hostSpecStatus.status;
     }
-    if (newStatus == HostStatus.ConnectOK) {
-      return oldStatus != HostStatus.Master && oldStatus != HostStatus.Slave;
-    }
-    return true;
   }
 
   /**
@@ -55,40 +58,31 @@ public class GlobalHostStatusTracker {
    * @param hostRecheckMillis How stale information is allowed.
    * @return candidate hosts to connect to.
    */
-  static List<HostSpecStatus> getCandidateHosts(HostSpec[] hostSpecs,
+  static List<HostSpec> getCandidateHosts(HostSpec[] hostSpecs,
       HostRequirement targetServerType, long hostRecheckMillis) {
-    List<HostSpecStatus> candidates = new ArrayList<HostSpecStatus>(hostSpecs.length);
+    List<HostSpec> candidates = new ArrayList<HostSpec>(hostSpecs.length);
     long latestAllowedUpdate = currentTimeMillis() - hostRecheckMillis;
     synchronized (hostStatusMap) {
       for (HostSpec hostSpec : hostSpecs) {
         HostSpecStatus hostInfo = hostStatusMap.get(hostSpec);
-        // return null status wrapper if the current value is not known
-        if (hostInfo == null) {
-          hostInfo = new HostSpecStatus(hostSpec, null, Long.MAX_VALUE);
-        }
         // candidates are nodes we do not know about and the nodes with correct type
-        if (hostInfo.status == null
+        if (hostInfo == null
             || hostInfo.lastUpdated < latestAllowedUpdate
             || targetServerType.allowConnectingTo(hostInfo.status)) {
-          candidates.add(hostInfo);
+          candidates.add(hostSpec);
         }
       }
     }
     return candidates;
   }
 
-  /**
-   * Immutable structure of known status of one HostSpec.
-   */
   static class HostSpecStatus {
     final HostSpec host;
-    final HostStatus status;
-    final long lastUpdated;
+    HostStatus status;
+    long lastUpdated;
 
-    HostSpecStatus(HostSpec host, HostStatus hostStatus, long lastUpdated) {
+    HostSpecStatus(HostSpec host) {
       this.host = host;
-      this.status = hostStatus;
-      this.lastUpdated = lastUpdated;
     }
 
     @Override
