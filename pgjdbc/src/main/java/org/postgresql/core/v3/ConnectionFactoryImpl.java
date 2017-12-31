@@ -136,7 +136,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}", hostSpec);
 
       HostStatus knownStatus = GlobalHostStatusTracker.getKnownStatus(hostSpec, lastKnownTime);
-      if (knownStatus != null && candidateHost.targetServerType.allowConnectingTo(knownStatus)) {
+      if (knownStatus != null && !candidateHost.targetServerType.allowConnectingTo(knownStatus)) {
         LOGGER.log(Level.FINER, "Known status of host {0} is {1}, and required status was {2}. Will try next host",
             new Object[]{hostSpec, knownStatus, candidateHost.targetServerType});
         continue;
