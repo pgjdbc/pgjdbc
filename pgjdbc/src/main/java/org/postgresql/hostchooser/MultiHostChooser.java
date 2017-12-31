@@ -12,6 +12,9 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -39,6 +42,20 @@ class MultiHostChooser implements HostChooser {
 
   @Override
   public Iterator<CandidateHost> iterator() {
+    Iterator<CandidateHost> res = candidateIterator();
+    if (!res.hasNext()) {
+      // In case all the candidate hosts are unavailable or do not match, try all the hosts just in case
+      List<HostSpec> allHosts = Arrays.asList(hostSpecs);
+      if (loadBalance) {
+        allHosts = new ArrayList<>(allHosts);
+        Collections.shuffle(allHosts);
+      }
+      res = withReqStatus(HostRequirement.any, allHosts).iterator();
+    }
+    return res;
+  }
+
+  private Iterator<CandidateHost> candidateIterator() {
     if (targetServerType != HostRequirement.preferSlave) {
       return getCandidateHosts(targetServerType).iterator();
     }
