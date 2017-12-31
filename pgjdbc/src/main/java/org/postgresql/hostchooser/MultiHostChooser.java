@@ -5,7 +5,6 @@
 
 package org.postgresql.hostchooser;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.shuffle;
 
 import org.postgresql.PGProperty;
@@ -13,7 +12,6 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
