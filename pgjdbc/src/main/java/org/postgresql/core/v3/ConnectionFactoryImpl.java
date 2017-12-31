@@ -230,7 +230,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // ConnectException is thrown when the connection cannot be made.
         // we trap this an return a more meaningful message for the end user
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
-        log(Level.WARNING, "Got ConnectException while connecting to {0}", cex, hostSpec);
+        log(Level.WARNING, "ConnectException occurred while connecting to {0}", cex, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
@@ -241,7 +241,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       } catch (IOException ioe) {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
-        log(Level.WARNING, "Got IOException while connecting to {0}", ioe, hostSpec);
+        log(Level.WARNING, "IOException occurred while connecting to {0}", ioe, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
@@ -250,7 +250,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
       } catch (SQLException se) {
         closeStream(newStream);
-        log(Level.WARNING, "Got SQLException while connecting to {0}", se, hostSpec);
+        log(Level.WARNING, "SQLException occurred while connecting to {0}", se, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
