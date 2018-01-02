@@ -66,16 +66,19 @@ public class GeneratedKeysTest extends BaseTest4 {
   private final ReturningInQuery returningInQuery;
   private final String returningClause;
 
-  public GeneratedKeysTest(ReturningInQuery returningInQuery) throws Exception {
+  public GeneratedKeysTest(ReturningInQuery returningInQuery, BinaryMode binaryMode) throws Exception {
     this.returningInQuery = returningInQuery;
     this.returningClause = returningInQuery.getClause();
+    setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "returningInQuery = {0}")
+  @Parameterized.Parameters(name = "returningInQuery = {0}, binary = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (ReturningInQuery returningInQuery : ReturningInQuery.values()) {
-      ids.add(new Object[]{returningInQuery});
+      for (BinaryMode binaryMode : BinaryMode.values()) {
+        ids.add(new Object[]{returningInQuery, binaryMode});
+      }
     }
     return ids;
   }
