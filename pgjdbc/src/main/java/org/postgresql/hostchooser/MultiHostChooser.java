@@ -47,10 +47,10 @@ class MultiHostChooser implements HostChooser {
       // In case all the candidate hosts are unavailable or do not match, try all the hosts just in case
       List<HostSpec> allHosts = Arrays.asList(hostSpecs);
       if (loadBalance) {
-        allHosts = new ArrayList<>(allHosts);
+        allHosts = new ArrayList<HostSpec>(allHosts);
         Collections.shuffle(allHosts);
       }
-      res = withReqStatus(HostRequirement.any, allHosts).iterator();
+      res = withReqStatus(targetServerType, allHosts).iterator();
     }
     return res;
   }
