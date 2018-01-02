@@ -12,8 +12,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,7 +88,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTempTable(con, "genkeys", "a serial, b text, c int");
+    TestUtil.createTempTable(con, "genkeys", "a serial, b varchar(5), c int");
   }
 
   @Override
@@ -448,6 +450,37 @@ public class GeneratedKeysTest extends BaseTest4 {
     assertNotNull("SELECT statement should return results via getResultSet, not getGeneratedKeys", rs);
     assertFalse("genkeys table is empty, thus rs.next() should return false", rs.next());
     s.close();
+  }
+
+  @Test
+  public void breakDescribeOnFirstServerPreparedExecution() throws SQLException {
+    // Test code is adapted from https://github.com/pgjdbc/pgjdbc/issues/811#issuecomment-352468388
+
+    PreparedStatement ps =
+        con.prepareStatement("insert into genkeys(b) values(?)" + returningClause,
+            Statement.RETURN_GENERATED_KEYS);
+    ps.setString(1, "TEST");
+
+    // The below "prepareThreshold - 1" executions ensure that bind failure would happen
+    // exactly on prepareThreshold execution (the first one when server flips to server-prepared)
+    int prepareThreshold = ps.unwrap(PGStatement.class).getPrepareThreshold();
+    for (int i = 0; i < prepareThreshold - 1; i++) {
+      ps.executeUpdate();
+    }
+    try {
+      // Send a value that's too long on the 5th request
+      ps.setString(1, "TESTTESTTEST");
+      ps.executeUpdate();
+    } catch (SQLException e) {
+      // Expected error: org.postgresql.util.PSQLException: ERROR: value
+      // too long for type character varying(10)
+      if (!PSQLState.STRING_DATA_RIGHT_TRUNCATION.getState().equals(e.getSQLState())) {
+        throw e;
+      }
+    }
+    // Send a valid value on the next request
+    ps.setString(1, "TEST");
+    ps.executeUpdate();
   }
 
 }

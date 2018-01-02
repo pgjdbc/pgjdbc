@@ -53,6 +53,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1394,6 +1395,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar('S'); // Sync
     pgStream.sendInteger4(4); // Length
     pgStream.flush();
+    // Below "add queues" are likely not required at all
     pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
     pendingDescribePortalQueue.add(sync);
   }
@@ -2331,8 +2333,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
 
           pendingParseQueue.clear(); // No more ParseComplete messages expected.
-          pendingDescribeStatementQueue.clear(); // No more ParameterDescription messages expected.
-          pendingDescribePortalQueue.clear(); // No more RowDescription messages expected.
+          // Pending "describe" requests might be there in case of error
+          // If that is the case, reset "described" status, so the statement is properly
+          // described on next execution
+          while (!pendingDescribeStatementQueue.isEmpty()) {
+            DescribeRequest request = pendingDescribeStatementQueue.removeFirst();
+            LOGGER.log(Level.FINEST, " FE marking setStatementDescribed(false) for query {0}", request.query);
+            request.query.setStatementDescribed(false);
+          }
+          while (!pendingDescribePortalQueue.isEmpty()) {
+            SimpleQuery describePortalQuery = pendingDescribePortalQueue.removeFirst();
+            LOGGER.log(Level.FINEST, " FE marking setPortalDescribed(false) for query {0}", describePortalQuery);
+            describePortalQuery.setPortalDescribed(false);
+          }
           pendingBindQueue.clear(); // No more BindComplete messages expected.
           pendingExecuteQueue.clear(); // No more query executions expected.
           break;
