@@ -3,7 +3,7 @@ To run the SSL tests, the following properties are used:
 
 certdir: directory where the certificates and keys are store
 
-ssl<TYPE><gh|bh><8|9>: a connection string to the appropiate database
+ssl<TYPE><gh|bh><8|9>: a connection string to the appropriate database
 TYPE is the TYPE or METHOD field from pg_hba.conf that is: host, hostnossl,
 hostssl and the special types hostsslcert, that corresponds
 to a hostssl type with clientcert=1 and cert that corresponds
