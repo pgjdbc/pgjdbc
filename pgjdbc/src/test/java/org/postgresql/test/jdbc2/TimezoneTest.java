@@ -191,8 +191,8 @@ public class TimezoneTest {
       ts = rs.getTimestamp(4, cGMT13);
       // 1970-01-01 15:00:00 +0300 -> 1970-01-02 01:00:00 +1300 (CHECK ME)
       assertEquals(-43200000L, ts.getTime());
-      str = rs.getString(3);
-      assertEquals("timetz -> getString" + format, "15:00:00", str);
+      str = rs.getString(4);
+      assertEquals("timetz -> getString" + format, "15:00:00+03", str);
 
       // date: 2005-01-01
       ts = rs.getTimestamp(5);
