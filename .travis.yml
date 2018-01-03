@@ -5,6 +5,8 @@ dist: trusty
 before_script:
   - test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
+  - export PG_SLAVE1_DATADIR="/etc/postgresql/${PG_VERSION}/slave1"
+  - export PG_SLAVE2_DATADIR="/etc/postgresql/${PG_VERSION}/slave2"
   -  ./.travis/travis_install_postgres.sh
   - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
   - test "x$REPLICATION" == 'x' || ./.travis/travis_configure_replication.sh
@@ -13,6 +15,7 @@ before_script:
   - test "x$PG_VERSION" = 'xHEAD' || psql -U postgres -c "create user test with password 'test';"
   - test "x$REPLICATION" == 'x' || psql -U postgres -c "alter user test with replication;"
   - psql -c 'create database test owner test;' -U postgres
+  - test "x$REPLICATION" == 'x' || ./.travis/travis_create_slaves.sh
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test

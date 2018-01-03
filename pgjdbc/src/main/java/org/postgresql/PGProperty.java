@@ -359,7 +359,7 @@ public enum PGProperty {
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   HOST_RECHECK_SECONDS("hostRecheckSeconds", "10",
-      "Specifies period (seconds) after host statuses are checked again in case they have changed"),
+      "Specifies period (seconds) after which the host status is checked again in case it has changed"),
 
   /**
    * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),

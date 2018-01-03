@@ -31,6 +31,17 @@ public class MultiHostTestSuite extends TestSuite {
     return DriverManager.getConnection(TestUtil.getURL(getSlaveServer(), getSlavePort()), props);
   }
 
+  public static java.sql.Connection openSlaveDB2() throws Exception {
+    TestUtil.initDriver();
+
+    Properties props = new Properties();
+
+    props.setProperty("user", TestUtil.getUser());
+    props.setProperty("password", TestUtil.getPassword());
+
+    return DriverManager.getConnection(TestUtil.getURL(getSlaveServer2(), getSlavePort2()), props);
+  }
+
   /*
    * Returns the Test server
    */
@@ -47,6 +58,21 @@ public class MultiHostTestSuite extends TestSuite {
   }
 
   /*
+   * Returns the Test server
+   */
+  public static String getSlaveServer2() {
+    return System.getProperty("slaveServer2", TestUtil.getServer());
+  }
+
+  /*
+   * Returns the Test port
+   */
+  public static int getSlavePort2() {
+    return Integer
+        .parseInt(System.getProperty("slavePort2", String.valueOf(TestUtil.getPort() + 2)));
+  }
+
+  /*
    * The main entry point for JUnit
    */
   public static TestSuite suite() throws Exception {
@@ -54,6 +80,9 @@ public class MultiHostTestSuite extends TestSuite {
 
     try {
       Connection connection = openSlaveDB();
+      TestUtil.closeDB(connection);
+
+      connection = openSlaveDB2();
       TestUtil.closeDB(connection);
     } catch (PSQLException ex) {
       // replication instance is not available, but suite must have at lest one test case
