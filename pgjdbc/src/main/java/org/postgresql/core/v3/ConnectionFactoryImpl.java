@@ -33,8 +33,10 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -130,12 +132,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
+    Map<HostSpec, HostStatus> knownStates = new HashMap<HostSpec, HostStatus>();
     while (hostIter.hasNext()) {
       CandidateHost candidateHost = hostIter.next();
       HostSpec hostSpec = candidateHost.hostSpec;
       LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}", hostSpec);
 
-      HostStatus knownStatus = GlobalHostStatusTracker.getKnownStatus(hostSpec, lastKnownTime);
+      // Note: per-connect-attempt status map is used here instead of GlobalHostStatusTracker
+      // for the case when "no good hosts" match (e.g. all the hosts are known as "connectfail")
+      // In that case, the system tries to connect to each host in order, thus it should not look into
+      // GlobalHostStatusTracker
+      HostStatus knownStatus = knownStates.get(hostSpec);
       if (knownStatus != null && !candidateHost.targetServerType.allowConnectingTo(knownStatus)) {
         LOGGER.log(Level.FINER, "Known status of host {0} is {1}, and required status was {2}. Will try next host",
             new Object[]{hostSpec, knownStatus, candidateHost.targetServerType});
@@ -211,6 +218,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Slave;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
+        knownStates.put(hostSpec, hostStatus);
         if (!candidateHost.targetServerType.allowConnectingTo(hostStatus)) {
           queryExecutor.close();
           continue;
@@ -230,6 +238,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // ConnectException is thrown when the connection cannot be made.
         // we trap this an return a more meaningful message for the end user
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+        knownStates.put(hostSpec, HostStatus.ConnectFail);
         log(Level.WARNING, "ConnectException occurred while connecting to {0}", cex, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
@@ -241,6 +250,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       } catch (IOException ioe) {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+        knownStates.put(hostSpec, HostStatus.ConnectFail);
         log(Level.WARNING, "IOException occurred while connecting to {0}", ioe, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
@@ -251,6 +261,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       } catch (SQLException se) {
         closeStream(newStream);
         log(Level.WARNING, "SQLException occurred while connecting to {0}", se, hostSpec);
+        GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+        knownStates.put(hostSpec, HostStatus.ConnectFail);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;

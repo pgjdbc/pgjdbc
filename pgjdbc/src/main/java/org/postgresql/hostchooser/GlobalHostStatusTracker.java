@@ -40,16 +40,6 @@ public class GlobalHostStatusTracker {
     }
   }
 
-  public static HostStatus getKnownStatus(HostSpec hostSpec, long minUpdateTime) {
-    synchronized (hostStatusMap) {
-      HostSpecStatus hostSpecStatus = hostStatusMap.get(hostSpec);
-      if (hostSpecStatus == null || hostSpecStatus.lastUpdated < minUpdateTime) {
-        return null;
-      }
-      return hostSpecStatus.status;
-    }
-  }
-
   /**
    * Returns a list of candidate hosts that have the required targetServerType.
    *
