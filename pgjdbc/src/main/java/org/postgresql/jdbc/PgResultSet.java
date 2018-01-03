@@ -72,7 +72,7 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
+
 
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
 
@@ -81,7 +81,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private boolean doingUpdates = false;
   private HashMap<String, Object> updateValues = null;
   private boolean usingOID = false; // are we using the OID for the primary key?
-  private boolean usingCTID = false;
   private List<PrimaryKey> primaryKeys; // list of primary keys
   private boolean singleTable = false;
   private String onlyTable = "";
@@ -124,12 +123,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private ResultSetMetaData rsMetaData;
   
-  /*
-   * Check if the SQL looks like "select ... for update". In this case, we can use CTID as the PK. The "for update" locks the
-   * record, so vacuum won't move the record wich would change the CTID of that row.
-   */
-  private static Pattern usingForUpdatePattern = Pattern.compile("^.*for\\s+update\\s*$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-
   protected ResultSetMetaData createMetaData() throws SQLException {
     return new PgResultSetMetaData(connection, fields);
   }
@@ -1008,9 +1001,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         updateValues.put("oid", insertedOID);
 
       }
-      
-      // when usingCTID, we're not able to fetch the latest CTID since we don't get this
-      // from the server
 
       // update the underlying row to the new inserted data
       updateRowBuffer();
@@ -1581,22 +1571,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     usingOID = false;
     int oidIndex = findColumnIndex("oid"); // 0 if not present
 
-    usingCTID = false;
-    int ctidIndex = findColumnIndex("ctid"); // 0 if not present
-    
-    if (ctidIndex > 0) {
-      if (statement instanceof PgPreparedStatement) {
-        String sql = ((PgPreparedStatement) statement).preparedQuery.query.getNativeSql();
-        if (!usingForUpdatePattern.matcher(sql).matches() || statement.getConnection().getAutoCommit()) {
-          /*
-           * Only allow CTID to be used if the statement uses "for update" and auto-commit has been disabled
-           */
-          ctidIndex = 0;
-        }
-      }
-    }
-
-    
     int i = 0;
     int numPKcolumns = 0;
 
@@ -1608,11 +1582,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       numPKcolumns++;
       primaryKeys.add(new PrimaryKey(oidIndex, "oid"));
       usingOID = true;
-    } else if (ctidIndex > 0) {
-      i++;
-      numPKcolumns++;
-      primaryKeys.add(new PrimaryKey(ctidIndex, "ctid"));
-      usingCTID = true;
     } else {
       // otherwise go and get the primary keys and create a list of keys
       String[] s = quotelessTableName(tableName);
@@ -1634,6 +1603,60 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       rs.close();
     }
 
+    if (numPKcolumns == 0) {
+        // Innotas hack... try to use the main columns "ttcustomer_id", "${base_name}_id", "modify_date", and "current_entry"
+        String[] s = quotelessTableName(tableName);
+        String tableName = s[0].toLowerCase();
+        String schemaName = s[1].toLowerCase();
+        
+        if (tableName.startsWith("t_") && schemaName.equals("arena")) {
+            List<PrimaryKey> fakePrimaryKeys = new ArrayList<>();
+            String baseName = tableName.substring(2);
+            
+            boolean hasCustomerIdColumn = false;
+            boolean hasItemIdColumn = false;
+            boolean hasModifyDateColumn = false;
+            boolean hasCurrentEntryColumn = false;
+            boolean hasCTIDColumn = false;
+            
+            int index = findColumnIndex("ttcustomer_id");
+            if (index > 0) {
+                hasCustomerIdColumn = true;
+                fakePrimaryKeys.add(new PrimaryKey(index, "ttcustomer_id"));
+            }
+            
+            index = findColumnIndex(baseName + "_id");
+            if (index > 0) {
+                hasItemIdColumn = true;
+                fakePrimaryKeys.add(new PrimaryKey(index, baseName + "_id"));
+            }
+            
+            index = findColumnIndex("modify_date");
+            if (index > 0) {
+                hasModifyDateColumn = true;
+                fakePrimaryKeys.add(new PrimaryKey(index, "modify_date"));
+            }
+            
+            index = findColumnIndex("current_entry");
+            if (index > 0) {
+                hasCurrentEntryColumn = true;
+                fakePrimaryKeys.add(new PrimaryKey(index, "current_entry"));
+            }
+ 
+            index = findColumnIndex("ctid");
+            if (index > 0) {
+                hasCTIDColumn = true;
+                fakePrimaryKeys.add(new PrimaryKey(index, "ctid"));
+            }
+            
+            if (hasCustomerIdColumn && hasItemIdColumn && hasModifyDateColumn && hasCurrentEntryColumn && hasCTIDColumn) {
+                primaryKeys.addAll(fakePrimaryKeys);
+                numPKcolumns = primaryKeys.size();
+                i = numPKcolumns;
+            }
+        }
+    }
+        
     connection.getLogger().log(Level.FINE, "no of keys={0}", i);
 
 
