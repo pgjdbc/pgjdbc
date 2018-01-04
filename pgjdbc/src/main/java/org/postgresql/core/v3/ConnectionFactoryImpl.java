@@ -601,7 +601,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   /* Use JGSS's GSSAPI for this request */
                   org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
-                      PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego);
+                      PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
+                      PGProperty.JAAS_LOGIN.getBoolean(info));
                 }
                 break;
 

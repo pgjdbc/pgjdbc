@@ -305,6 +305,13 @@ public enum PGProperty {
   APPLICATION_NAME("ApplicationName", DriverInfo.DRIVER_NAME, "Name of the Application (backend >= 9.0)"),
 
   /**
+   * Flag to enable/disable obtaining a GSS credential via JAAS login before authenticating.
+   * Useful if setting system property javax.security.auth.useSubjectCredsOnly=false
+   * or using native GSS with system property sun.security.jgss.native=true
+   */
+  JAAS_LOGIN("jaasLogin", "true", "Login with JAAS before doing GSSAPI authentication"),
+
+  /**
    * Specifies the name of the JAAS system or application login configuration.
    */
   JAAS_APPLICATION_NAME("jaasApplicationName", null,
