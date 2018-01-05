@@ -1529,6 +1529,41 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     updateObject(findColumn(columnName), x);
   }
 
+  private static Map<String,String> innotasPKCandidateColumns = new HashMap<>();
+  
+  
+  static {
+      /*
+       * Innotas hack. The following tables have no PK, and do not have "create_date" and "modify_date", so using CTID
+       * as primary to for updatable result set is a bit risky. 
+       * 
+       * The following columns are added to the candidate key to make sure we don't update the wrong record in case CTID
+       * changes. Yes, this is a hack. 
+       * 
+       * How could CTID change? We do run with "select ... for update", but our architecture allows for a _preUpdate handler
+       * to make other changes, which could commit the transaction early. By the time we update the record, the lock could
+       * have been lost, and that could have allowed vaccuum to relocate the record, invalidating the CTID that we
+       * got part of the query.
+       * 
+       * In general, we probably are fine, but the following is a safety measure...
+       */
+      innotasPKCandidateColumns.put("t_alert_queue", "alert_id");
+      innotasPKCandidateColumns.put("t_exp_account_entry", "expense_entry_id");
+      innotasPKCandidateColumns.put("t_exp_project_entry", "expense_entry_id");
+      innotasPKCandidateColumns.put("t_issue_rollup", "issue_id");
+      innotasPKCandidateColumns.put("t_opt_sc_result", "opt_scenario_id");
+      innotasPKCandidateColumns.put("t_opt_scr_kv", "opt_scenario_id");
+      innotasPKCandidateColumns.put("t_opt_scr_prj_shortfall", "opt_scr_project_id");
+      innotasPKCandidateColumns.put("t_opt_scr_suggestions", "opt_scenario_id");
+      innotasPKCandidateColumns.put("t_project_rollup", "project_id");
+      innotasPKCandidateColumns.put("t_project_rollup_request", "rollup_request_id");
+      innotasPKCandidateColumns.put("t_scheduled_job_history", "event_id");
+      innotasPKCandidateColumns.put("t_task_rollup", "task_id");
+      innotasPKCandidateColumns.put("t_ts_account_entry", "timesheet_entry_id");
+      innotasPKCandidateColumns.put("t_ts_portfolio_entry", "timesheet_entry_id");
+      innotasPKCandidateColumns.put("t_ts_project_entry", "timesheet_entry_id");
+  }
+  
 
   /**
    * Is this ResultSet updateable?
@@ -1612,12 +1647,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (tableName.startsWith("t_") && schemaName.equals("arena")) {
             List<PrimaryKey> fakePrimaryKeys = new ArrayList<>();
             String baseName = tableName.substring(2);
-            
+            boolean hasCustomCandidateKey = false;
             boolean hasCustomerIdColumn = false;
-            boolean hasItemIdColumn = false;
-            boolean hasModifyDateColumn = false;
-            boolean hasCurrentEntryColumn = false;
-            boolean hasCTIDColumn = false;
             
             int index = findColumnIndex("ttcustomer_id");
             if (index > 0) {
@@ -1625,31 +1656,43 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                 fakePrimaryKeys.add(new PrimaryKey(index, "ttcustomer_id"));
             }
             
-            index = findColumnIndex(baseName + "_id");
-            if (index > 0) {
-                hasItemIdColumn = true;
-                fakePrimaryKeys.add(new PrimaryKey(index, baseName + "_id"));
-            }
-            
             index = findColumnIndex("modify_date");
             if (index > 0) {
-                hasModifyDateColumn = true;
                 fakePrimaryKeys.add(new PrimaryKey(index, "modify_date"));
             }
             
-            index = findColumnIndex("current_entry");
+            index = findColumnIndex("create_date");
             if (index > 0) {
-                hasCurrentEntryColumn = true;
-                fakePrimaryKeys.add(new PrimaryKey(index, "current_entry"));
+                fakePrimaryKeys.add(new PrimaryKey(index, "create_date"));
             }
- 
+            
+            if (innotasPKCandidateColumns.containsKey(tableName)) {
+                String columnName = innotasPKCandidateColumns.get(tableName);
+                index = findColumnIndex(columnName);
+                if (index > 0) {
+                    hasCustomCandidateKey = true;
+                    fakePrimaryKeys.add(new PrimaryKey(index, columnName));
+                }
+            }
+            
             index = findColumnIndex("ctid");
             if (index > 0) {
-                hasCTIDColumn = true;
                 fakePrimaryKeys.add(new PrimaryKey(index, "ctid"));
             }
             
-            if (hasCustomerIdColumn && hasItemIdColumn && hasModifyDateColumn && hasCurrentEntryColumn && hasCTIDColumn) {
+            /*
+             * For most tables, we require "ttcustomer_id", "create_date", "modify_date", and "ctid". However, for the "special" tables
+             * in innotasPKCandidateColumns we allow a candiate key that consists of "ttcustomer_id" and that special column.  
+             * 
+             * You say this is ugly? Yes it is. This is meant as a temporary workaround. 
+             * 
+             * Oracle uses ROWID to support updatable result sets. By default, Oracle tables have no row movement, therefore ROWID is stable.
+             * However, Postgres CTID is not as stable as Oracle's ROWID, so we need to do extra work to support updatable result sets
+             * on tables that have no PK. 
+             * 
+             * In the future, moving on, we should add PK to add our tables (which is a problem for tables that have HISTORY_SAME_TABLE
+             */
+            if (fakePrimaryKeys.size() == 4 || hasCustomCandidateKey && hasCustomerIdColumn) {
                 primaryKeys.addAll(fakePrimaryKeys);
                 numPKcolumns = primaryKeys.size();
                 i = numPKcolumns;
