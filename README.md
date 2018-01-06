@@ -111,7 +111,7 @@ jdbc:postgresql://host:port/
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
-jdbc:postgresql://[host][:port][/[database]][?property1=value1[&property2=value2]...]
+jdbc:postgresql:[//host[:port]/][database][?property1=value1[&property2=value2]...]
 ```
 where:
  * **jdbc:postgresql:** (Required) is known as the sub-protocol and is constant.
