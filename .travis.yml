@@ -2,18 +2,23 @@ sudo: false
 language: java
 dist: trusty
 
+branches:
+  except:
+    - /^tmp\/.*/
+    - /^REL.*/
+
 stages:
   - name: test
-    if: not branch =~ ^release/.*$ AND not branch =~ ^tmp/.*$
+    if: not branch =~ ^release\/.*$
   - name: release
     # releases pgjdbc for Java 8
     # It does set release tag and update pom.xml versions
-    if: branch =~ ^release/.*$ AND not branch =~ ^tmp/.*$
+    if: branch =~ ^release\/.*$
   - name: release_prev
     # releases pgjdbc for Java 6, Java 7
     # pgjdbc-jreX requires release pom.xml versions of the main project, so pgjdbc-jreX should be
     # released after the release of the main version, thus second stage
-    if: branch =~ ^release/.*$ AND not branch =~ ^tmp/.*$
+    if: branch =~ ^release\/.*$
 
 before_script:
   - test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
@@ -87,6 +92,7 @@ matrix:
         - FEDORA_CI=Y
       services:
         - docker
+      if: type != pull_request
     - jdk: oraclejdk9
       addons:
         postgresql: "9.6"
