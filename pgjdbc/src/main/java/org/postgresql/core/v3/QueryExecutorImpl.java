@@ -1198,44 +1198,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
         case 'S': // Parameter Status
         {
-          int l_len = pgStream.receiveInteger4();
-          String name = pgStream.receiveString();
-          String value = pgStream.receiveString();
-
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
-          }
-
-          if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
-              && !allowEncodingChanges) {
-            close(); // we're screwed now; we can't trust any subsequent string.
-            error = new PSQLException(GT.tr(
-                "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE);
+          try {
+            receiveParameterStatus();
+          } catch (SQLException e) {
+            error = e;
             endReceiving = true;
-          }
-
-          if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
-            close(); // we're screwed now; we can't trust any subsequent date.
-            error = new PSQLException(GT.tr(
-                "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE);
-            endReceiving = true;
-          }
-
-          if (name.equals("standard_conforming_strings")) {
-            if (value.equals("on")) {
-              setStandardConformingStrings(true);
-            } else if (value.equals("off")) {
-              setStandardConformingStrings(false);
-            } else {
-              close();
-              // we're screwed now; we don't know how to escape string literals
-              error = new PSQLException(GT.tr(
-                  "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
-                  value), PSQLState.CONNECTION_FAILURE);
-              endReceiving = true;
-            }
           }
           break;
         }
@@ -2236,51 +2203,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'S': // Parameter Status
         {
-          int l_len = pgStream.receiveInteger4();
-          String name = pgStream.receiveString();
-          String value = pgStream.receiveString();
-
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
-          }
-
-          if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
-              && !allowEncodingChanges) {
-            close(); // we're screwed now; we can't trust any subsequent string.
-            handler.handleError(new PSQLException(GT.tr(
-                "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE));
+          try {
+            receiveParameterStatus();
+          } catch (SQLException e) {
+            handler.handleError(e);
             endQuery = true;
-          }
-
-          if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
-            close(); // we're screwed now; we can't trust any subsequent date.
-            handler.handleError(new PSQLException(GT.tr(
-                "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE));
-            endQuery = true;
-          }
-
-          if (name.equals("standard_conforming_strings")) {
-            if (value.equals("on")) {
-              setStandardConformingStrings(true);
-            } else if (value.equals("off")) {
-              setStandardConformingStrings(false);
-            } else {
-              close();
-              // we're screwed now; we don't know how to escape string literals
-              handler.handleError(new PSQLException(GT.tr(
-                  "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
-                  value), PSQLState.CONNECTION_FAILURE));
-              endQuery = true;
-            }
-          }
-
-          if ("TimeZone".equals(name)) {
-            setTimeZone(TimestampUtils.parseBackendTimeZone(value));
-          }
-          if ("application_name".equals(name)) {
-            setApplicationName(value);
           }
           break;
         }
@@ -2639,43 +2566,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'S':
           // ParameterStatus
-          int l_len = pgStream.receiveInteger4();
-          String name = pgStream.receiveString();
-          String value = pgStream.receiveString();
-
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
-          }
-
-          if ("server_version_num".equals(name)) {
-            setServerVersionNum(Integer.parseInt(value));
-          } else if ("server_version".equals(name)) {
-            setServerVersion(value);
-          } else if ("client_encoding".equals(name)) {
-            if (!"UTF8".equals(value)) {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-            pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
-          } else if ("standard_conforming_strings".equals(name)) {
-            if ("on".equals(value)) {
-              setStandardConformingStrings(true);
-            } else if ("off".equals(value)) {
-              setStandardConformingStrings(false);
-            } else {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-          } else if ("integer_datetimes".equals(name)) {
-            if ("on".equals(value)) {
-              setIntegerDateTimes(true);
-            } else if ("off".equals(value)) {
-              setIntegerDateTimes(false);
-            } else {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-          }
+          receiveParameterStatus();
 
           break;
 
@@ -2689,7 +2580,80 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         PSQLState.PROTOCOL_VIOLATION);
   }
 
+  public void receiveParameterStatus() throws IOException, SQLException {
+    // ParameterStatus
+    int l_len = pgStream.receiveInteger4();
+    String name = pgStream.receiveString();
+    String value = pgStream.receiveString();
 
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+    }
+
+    if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
+        && !allowEncodingChanges) {
+      close(); // we're screwed now; we can't trust any subsequent string.
+      throw new PSQLException(GT.tr(
+          "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
+          value), PSQLState.CONNECTION_FAILURE);
+    }
+
+    if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
+      close(); // we're screwed now; we can't trust any subsequent date.
+      throw new PSQLException(GT.tr(
+          "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
+          value), PSQLState.CONNECTION_FAILURE);
+    }
+
+    if (name.equals("standard_conforming_strings")) {
+      if (value.equals("on")) {
+        setStandardConformingStrings(true);
+      } else if (value.equals("off")) {
+        setStandardConformingStrings(false);
+      } else {
+        close();
+        // we're screwed now; we don't know how to escape string literals
+        throw new PSQLException(GT.tr(
+            "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
+            value), PSQLState.CONNECTION_FAILURE);
+      }
+      return;
+    }
+
+    if ("TimeZone".equals(name)) {
+      setTimeZone(TimestampUtils.parseBackendTimeZone(value));
+    } else if ("application_name".equals(name)) {
+      setApplicationName(value);
+    } else if ("server_version_num".equals(name)) {
+      setServerVersionNum(Integer.parseInt(value));
+    } else if ("server_version".equals(name)) {
+      setServerVersion(value);
+    } else if ("client_encoding".equals(name)) {
+      if (!"UTF8".equals(value)) {
+        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
+      pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
+    } else if ("standard_conforming_strings".equals(name)) {
+      if ("on".equals(value)) {
+        setStandardConformingStrings(true);
+      } else if ("off".equals(value)) {
+        setStandardConformingStrings(false);
+      } else {
+        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
+    } else if ("integer_datetimes".equals(name)) {
+      if ("on".equals(value)) {
+        setIntegerDateTimes(true);
+      } else if ("off".equals(value)) {
+        setIntegerDateTimes(false);
+      } else {
+        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
+    }
+  }
 
   public void setTimeZone(TimeZone timeZone) {
     this.timeZone = timeZone;
