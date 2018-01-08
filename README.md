@@ -85,7 +85,7 @@ For more information you can read [the PgJDBC driver documentation](https://jdbc
 The driver recognises JDBC URLs of the form:
 ```
 jdbc:postgresql:database
-jdbc:postgresql:/
+jdbc:postgresql:
 jdbc:postgresql://host/database
 jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
