@@ -92,6 +92,7 @@ matrix:
         - PG_VERSION=10
         - JDK=9
         - OPENJ9=181
+        - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk8
       sudo: required
       env:
@@ -99,6 +100,7 @@ matrix:
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
+        - TZ=Pacific/Chatham # flips between +12:45 and +13:45
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -126,6 +128,7 @@ matrix:
         - PG_VERSION=9.4
         - QUERY_MODE=extendedCacheEverything
         - COVERAGE=N
+        - TZ=Europe/Moscow # +03:00, no DST
     - jdk: openjdk7
       sudo: required
       addons:
@@ -135,6 +138,7 @@ matrix:
         - ZULU_JDK=7
         - MCENTRAL=Y
         - COVERAGE=Y
+        - TZ=UTC
     - jdk: openjdk6
       sudo: required
       addons:
