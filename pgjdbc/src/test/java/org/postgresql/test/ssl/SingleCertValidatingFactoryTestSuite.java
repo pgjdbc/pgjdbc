@@ -27,9 +27,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RunWith(Parameterized.class)
 public class SingleCertValidatingFactoryTestSuite {
+  private static final Logger LOGGER = Logger.getLogger(SingleCertValidatingFactoryTestSuite.class.getName());
   private static String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
 
   /**
@@ -52,8 +55,8 @@ public class SingleCertValidatingFactoryTestSuite {
     String testSingleCertFactory = props.getProperty(IS_ENABLED_PROP_NAME);
     boolean skipTest = testSingleCertFactory == null || "".equals(testSingleCertFactory);
     if (skipTest) {
-      System.out.println("Skipping SingleCertSocketFactoryTests. To enable set the property "
-          + IS_ENABLED_PROP_NAME + "=true in the ssltest.properties file.");
+      LOGGER.log(Level.INFO, "Skipping SingleCertSocketFactoryTests. To enable set the property"
+          + " {0}=true in the ssltest.properties file.", IS_ENABLED_PROP_NAME);
       return Collections.emptyList();
     }
 
@@ -288,7 +291,7 @@ public class SingleCertValidatingFactoryTestSuite {
   public void connectSSLWithValidationProperCertEnvVar() throws SQLException, IOException {
     String envVarName = "DATASOURCE_SSL_CERT";
     if (System.getenv(envVarName) == null) {
-      System.out.println(
+      LOGGER.log(Level.INFO,
           "Skipping test connectSSLWithValidationProperCertEnvVar (env variable is not defined)");
       return;
     }
@@ -332,8 +335,8 @@ public class SingleCertValidatingFactoryTestSuite {
     // Use an environment variable that does *not* exist:
     String envVarName = "MISSING_DATASOURCE_SSL_CERT";
     if (System.getenv(envVarName) != null) {
-      System.out
-          .println("Skipping test connectSSLWithValidationMissingEnvVar (env variable is defined)");
+      LOGGER.log(Level.INFO,
+          "Skipping test connectSSLWithValidationMissingEnvVar (env variable is defined)");
       return;
     }
 

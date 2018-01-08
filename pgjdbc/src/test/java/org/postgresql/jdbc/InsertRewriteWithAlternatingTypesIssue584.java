@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Prepared statements are, by nature, prepared. This test makes sure that new preparation sequences
@@ -37,6 +39,7 @@ import java.util.Properties;
  */
 @RunWith(Parameterized.class)
 public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
+  private static final Logger LOGGER = Logger.getLogger(InsertRewriteWithAlternatingTypesIssue584.class.getName());
 
   @Override
   public void setUp() throws Exception {
@@ -135,8 +138,7 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
       e.printStackTrace();
       SQLException nextException = e.getNextException();
       if (nextException != null) {
-        System.err.println("Next Exception:");
-        nextException.printStackTrace();
+        LOGGER.log(Level.INFO, "Next Exception", nextException);
       }
       throw e;
     }

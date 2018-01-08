@@ -25,11 +25,15 @@ import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Utility class for JDBC tests
  */
 public class TestUtil {
+  private static final Logger LOGGER = Logger.getLogger(TestUtil.class.getName());
+
   /*
    * Returns the Test database JDBC URL
    */
@@ -206,8 +210,8 @@ public class TestUtil {
         }
         File f = getFile(name);
         if (!f.exists()) {
-          System.out.println("Configuration file " + f.getAbsolutePath()
-              + " does not exist. Consider adding it to specify test db host and login");
+          LOGGER.log(Level.INFO, "Configuration file {0} does not exist."
+              + " Consider adding it to specify test db host and login", f.getAbsolutePath());
           continue;
         }
         try {
@@ -674,25 +678,34 @@ public class TestUtil {
   }
 
   /**
-   * Print a ResultSet to System.out. This is useful for debugging tests.
+   * Log a ResultSet with Level.FINE. This is useful for debugging tests.
    */
-  public static void printResultSet(ResultSet rs) throws SQLException {
+  public static void logResultSet(Logger logger, ResultSet rs) throws SQLException {
+    logResultSet(logger, Level.FINE, rs);
+  }
+
+  /**
+   * Log a ResultSet. This is useful for debugging tests.
+   */
+  public static void logResultSet(Logger logger, Level level, ResultSet rs) throws SQLException {
     ResultSetMetaData rsmd = rs.getMetaData();
+    StringBuilder header = new StringBuilder();
     for (int i = 1; i <= rsmd.getColumnCount(); i++) {
       if (i != 1) {
-        System.out.print(", ");
+        header.append(", ");
       }
-      System.out.print(rsmd.getColumnName(i));
+      header.append(rsmd.getColumnName(i));
     }
-    System.out.println();
+    logger.log(level, header.toString());
     while (rs.next()) {
+      StringBuilder row = new StringBuilder();
       for (int i = 1; i <= rsmd.getColumnCount(); i++) {
         if (i != 1) {
-          System.out.print(", ");
+          row.append(", ");
         }
-        System.out.print(rs.getString(i));
+        row.append(rs.getString(i));
       }
-      System.out.println();
+      logger.log(level, row.toString());
     }
   }
 

@@ -22,8 +22,11 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LoginTimeoutTest {
+  private static final Logger LOGGER = Logger.getLogger(LoginTimeoutTest.class.getName());
 
   @Before
   public void setUp() throws Exception {
@@ -91,7 +94,7 @@ public class LoginTimeoutTest {
       try {
         localAddr = InetAddress.getLocalHost();
       } catch (UnknownHostException ex) {
-        System.err.println("WARNING: Could not resolve local host name, trying 'localhost'. " + ex);
+        LOGGER.log(Level.WARNING, "Could not resolve local host name, trying 'localhost'.", ex);
         localAddr = InetAddress.getByName("localhost");
       }
       this.listenSocket = new ServerSocket(0, 1, localAddr);

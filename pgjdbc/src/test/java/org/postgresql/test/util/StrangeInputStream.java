@@ -10,21 +10,23 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link InputStream} implementation that reads less data than is provided in the destination
  * array. This allows to stress test {@link org.postgresql.copy.CopyManager} or other consumers.
  */
 public class StrangeInputStream extends FilterInputStream {
+  private static final Logger LOGGER = Logger.getLogger(FilterInputStream.class.getName());
   private Random rand; // generator of fun events
 
   public StrangeInputStream(InputStream is) throws FileNotFoundException {
     super(is);
     rand = new Random();
     long seed = Long.getLong("StrangeInputStream.seed", System.currentTimeMillis());
-    System.out
-        .println("Using seed = " + seed + " for StrangeInputStream. Set -DStrangeInputStream.seed="
-            + seed + " to reproduce the test");
+    LOGGER.log(Level.INFO, "Using seed = {0,number,#} for StrangeInputStream."
+        + " Set -DStrangeInputStream.seed={0,number,#} to reproduce the test", new Object[]{seed, seed});
     rand.setSeed(seed);
   }
 

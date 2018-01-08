@@ -10,13 +10,16 @@ import org.postgresql.test.TestUtil;
 import junit.framework.TestSuite;
 
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SslTestSuite extends TestSuite {
+  private static final Logger LOGGER = Logger.getLogger(SslTestSuite.class.getName());
   private static Properties prop;
 
   private static void add(TestSuite suite, String param) {
     if (prop.getProperty(param, "").equals("")) {
-      System.out.println("Skipping " + param + ".");
+      LOGGER.log(Level.INFO, "Skipping {0}.", param);
     } else {
       suite.addTest(SslTest.getSuite(prop, param));
     }
