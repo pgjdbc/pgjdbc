@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -761,6 +762,10 @@ public class TimestampUtils {
     return sbuf.toString();
   }
 
+  /**
+   * Formats {@link LocalDateTime} to be sent to the backend, thus it adds time zone.
+   * Do not use this method in {@link java.sql.ResultSet#getString(int)}
+   */
   public synchronized String toString(LocalDateTime localDateTime) {
     if (LocalDateTime.MAX.equals(localDateTime)) {
       return "infinity";
@@ -768,15 +773,9 @@ public class TimestampUtils {
       return "-infinity";
     }
 
-    sbuf.setLength(0);
-
-    LocalDate localDate = localDateTime.toLocalDate();
-    appendDate(sbuf, localDate);
-    sbuf.append(' ');
-    appendTime(sbuf, localDateTime.toLocalTime());
-    appendEra(sbuf, localDate);
-
-    return sbuf.toString();
+    // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
+    ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
+    return toString(zonedDateTime.toOffsetDateTime());
   }
 
   private static void appendDate(StringBuilder sb, LocalDate localDate) {
