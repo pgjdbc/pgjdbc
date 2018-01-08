@@ -67,11 +67,6 @@ cache:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: # REMOVE FAILURE extendedCacheEverything
-        - PG_VERSION=9.4
-        - QUERY_MODE=extendedCacheEverything
-        - COVERAGE=N
   include:
     - jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true

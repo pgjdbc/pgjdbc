@@ -353,10 +353,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null)) {
       sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
-          updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA)
+          QUERY_NO_RESULTS | QUERY_NO_METADATA
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
-              | (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE));
+              | QUERY_EXECUTE_AS_SIMPLE);
       return true;
     }
     return false;
@@ -367,8 +367,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && getTransactionState() == TransactionState.FAILED
         && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
       try {
+        // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
         execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
-            1, 0, updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA));
+            1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       } catch (SQLException e2) {
         // That's O(N), sorry
         e.setNextException(e2);
