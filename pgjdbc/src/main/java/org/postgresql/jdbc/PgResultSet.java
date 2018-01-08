@@ -12,6 +12,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.PGBindException;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
@@ -81,6 +82,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private boolean doingUpdates = false;
   private HashMap<String, Object> updateValues = null;
   private boolean usingOID = false; // are we using the OID for the primary key?
+  private boolean usingCTID = false; // are we using the CTID for the primary key?
   private List<PrimaryKey> primaryKeys; // list of primary keys
   private boolean singleTable = false;
   private String onlyTable = "";
@@ -932,16 +934,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
       }
 
+      //System.out.println("*** deleteSQL = " + deleteSQL);
+
       deleteStatement = connection.prepareStatement(deleteSQL.toString());
     }
     deleteStatement.clearParameters();
 
     for (int i = 0; i < numKeys; i++) {
+      //System.out.println("*** setObject(" + (i+1) + " " + primaryKeys.get(i).getValue() + " (" + primaryKeys.get(i).getValue().getClass());
       deleteStatement.setObject(i + 1, primaryKeys.get(i).getValue());
     }
 
 
-    deleteStatement.executeUpdate();
+    int count = deleteStatement.executeUpdate();
+    //System.out.println("*** executeUpdate -> " + count);
 
     rows.remove(current_row);
     current_row--;
@@ -981,8 +987,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
 
       }
-
+      
       insertSQL.append(paramSQL.toString());
+      
+      if (usingCTID) {
+          insertSQL.append(" returning ctid as __new_ctid__");
+      }
+      
+      //System.out.println("*** insertSQL : " + insertSQL);
+      
       insertStatement = connection.prepareStatement(insertSQL.toString());
 
       Iterator<Object> values = updateValues.values().iterator();
@@ -991,7 +1004,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         insertStatement.setObject(i, values.next());
       }
 
-      insertStatement.executeUpdate();
+      if (usingCTID) {
+          insertStatement.execute();
+          
+          //int count = insertStatement.getUpdateCount();
+          //System.out.println("execute() -> " + count);
+      }
+      else {
+          int count = insertStatement.executeUpdate();
+          //System.out.println("executeUpdate() -> " + count);
+      }
 
       if (usingOID) {
         // we have to get the last inserted OID and put it in the resultset
@@ -999,9 +1021,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         long insertedOID = ((PgStatement) insertStatement).getLastOID();
 
         updateValues.put("oid", insertedOID);
-
       }
 
+      if (usingCTID) {
+          ResultSet rs = insertStatement.getResultSet();
+          if (rs != null) {
+              if (rs.next()) {
+                  Object newCTID = rs.getObject("__new_ctid__");
+                  //System.out.println("*** newCTID = " + newCTID);
+                  updateValues.put("ctid", newCTID);
+              }
+          }
+      }
+      
+      
       // update the underlying row to the new inserted data
       updateRowBuffer();
 
@@ -1371,8 +1404,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         updateSQL.append(" and ");
       }
     }
+    
+    if (usingCTID) {
+        updateSQL.append(" returning ctid as __new_ctid__");
+    }
 
     String sqlText = updateSQL.toString();
+    
+    //System.out.println("*** updateSQL: " + sqlText);
+    
     if (connection.getLogger().isLoggable(Level.FINE)) {
       connection.getLogger().log(Level.FINE, "updating {0}", sqlText);
     }
@@ -1383,17 +1423,44 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (; iterator.hasNext(); i++) {
       Object o = iterator.next();
       updateStatement.setObject(i + 1, o);
+      
+      //System.out.println("*** setObject(" + (i+1) + ", " + o + ") -- " + (o == null ? "null" : o.getClass()));
     }
 
     for (int j = 0; j < numKeys; j++, i++) {
-      updateStatement.setObject(i + 1, primaryKeys.get(j).getValue());
+      Object o = primaryKeys.get(j).getValue();
+      updateStatement.setObject(i + 1, o);
+      //System.out.println("*** setObject(" + (i+1) + ", " + o + ") -- " + (o == null ? "null" : o.getClass()));
     }
 
-    updateStatement.executeUpdate();
-    updateStatement.close();
-    updateStatement = null;
+    if (usingCTID) {
+        //System.out.println("*** updateStatement: " + updateStatement);
+        boolean flag = updateStatement.execute();
+        //System.out.println("*** execute() -> " + flag + " count: " + updateStatement.getUpdateCount());
+    }
+    else {
+        int count = updateStatement.executeUpdate();
+        //System.out.println("*** executeUpdate() ->  " + count);
+    }
+    
+    if (usingCTID) {
+        ResultSet rs = updateStatement.getResultSet();
+        if (rs == null) {
+            throw new PSQLException("ResultSet was null", PSQLState.UNEXPECTED_ERROR);
+        }
+        else {
+            if (rs.next()) {
+                Object newCTID = updateStatement.getResultSet().getObject("__new_ctid__");
+                updateValues.put("ctid", newCTID);
+            }
+        }
+        
+    }
 
     updateRowBuffer();
+    
+    updateStatement.close();
+    updateStatement = null;
 
     connection.getLogger().log(Level.FINE, "copying data");
     System.arraycopy(rowBuffer, 0, this_row, 0, rowBuffer.length);
@@ -1550,6 +1617,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       innotasPKCandidateColumns.put("t_alert_queue", "alert_id");
       innotasPKCandidateColumns.put("t_exp_account_entry", "expense_entry_id");
       innotasPKCandidateColumns.put("t_exp_project_entry", "expense_entry_id");
+      innotasPKCandidateColumns.put("t_ppa_hm_colors", "color");
       innotasPKCandidateColumns.put("t_issue_rollup", "issue_id");
       innotasPKCandidateColumns.put("t_opt_sc_result", "opt_scenario_id");
       innotasPKCandidateColumns.put("t_opt_scr_kv", "opt_scenario_id");
@@ -1639,7 +1707,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     if (numPKcolumns == 0) {
-        // Innotas hack... try to use the main columns "ttcustomer_id", "${base_name}_id", "modify_date", and "current_entry"
+        // Innotas hack... try to use the main columns "ttcustomer_id", "${base_name}_id", and "create_date"
         String[] s = quotelessTableName(tableName);
         String tableName = s[0].toLowerCase();
         String schemaName = s[1].toLowerCase();
@@ -1647,22 +1715,28 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (tableName.startsWith("t_") && schemaName.equals("arena")) {
             List<PrimaryKey> fakePrimaryKeys = new ArrayList<>();
             String baseName = tableName.substring(2);
-            boolean hasCustomCandidateKey = false;
+            boolean hasEntityInstanceIdKey = false;
             boolean hasCustomerIdColumn = false;
+            boolean hasCreateDateColumn = false;
+            boolean hasCTIDColumn = false;
             
             int index = findColumnIndex("ttcustomer_id");
             if (index > 0) {
                 hasCustomerIdColumn = true;
                 fakePrimaryKeys.add(new PrimaryKey(index, "ttcustomer_id"));
             }
-            
-            index = findColumnIndex("modify_date");
-            if (index > 0) {
-                fakePrimaryKeys.add(new PrimaryKey(index, "modify_date"));
-            }
+
+            /*
+             * Can't use modify_date, as we update that value on delete... 
+             */
+//            index = findColumnIndex("modify_date");
+//            if (index > 0) {
+//                fakePrimaryKeys.add(new PrimaryKey(index, "modify_date"));
+//            }
             
             index = findColumnIndex("create_date");
             if (index > 0) {
+                hasCreateDateColumn = true;
                 fakePrimaryKeys.add(new PrimaryKey(index, "create_date"));
             }
             
@@ -1670,18 +1744,35 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                 String columnName = innotasPKCandidateColumns.get(tableName);
                 index = findColumnIndex(columnName);
                 if (index > 0) {
-                    hasCustomCandidateKey = true;
+                    hasEntityInstanceIdKey = true;
                     fakePrimaryKeys.add(new PrimaryKey(index, columnName));
+                }
+            }
+            else {
+                index = findColumnIndex(baseName + "_id");
+                if (index > 0) {
+                    hasEntityInstanceIdKey = true;
+                    fakePrimaryKeys.add(new PrimaryKey(index, baseName + "_id"));
+                }
+                else if (baseName.endsWith("s")) {
+                    String columnName = baseName.substring(0, baseName.length()-1);
+                    index = findColumnIndex(columnName);
+                    if (index > 0) {
+                        hasEntityInstanceIdKey = true;
+                        fakePrimaryKeys.add(new PrimaryKey(index, columnName));
+                    }
                 }
             }
             
             index = findColumnIndex("ctid");
             if (index > 0) {
+                hasCTIDColumn = true;
+                usingCTID = true;
                 fakePrimaryKeys.add(new PrimaryKey(index, "ctid"));
             }
             
             /*
-             * For most tables, we require "ttcustomer_id", "create_date", "modify_date", and "ctid". However, for the "special" tables
+             * For most tables, we require "ttcustomer_id", "create_date", "${entity_instance_id}", and "ctid". However, for the "special" tables
              * in innotasPKCandidateColumns we allow a candiate key that consists of "ttcustomer_id" and that special column.  
              * 
              * You say this is ugly? Yes it is. This is meant as a temporary workaround. 
@@ -1692,7 +1783,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
              * 
              * In the future, moving on, we should add PK to add our tables (which is a problem for tables that have HISTORY_SAME_TABLE
              */
-            if (fakePrimaryKeys.size() == 4 || hasCustomCandidateKey && hasCustomerIdColumn) {
+            if (hasCustomerIdColumn && hasCTIDColumn && (hasEntityInstanceIdKey || hasCreateDateColumn)) {
                 primaryKeys.addAll(fakePrimaryKeys);
                 numPKcolumns = primaryKeys.size();
                 i = numPKcolumns;
