@@ -1755,7 +1755,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                     fakePrimaryKeys.add(new PrimaryKey(index, baseName + "_id"));
                 }
                 else if (baseName.endsWith("s")) {
-                    String columnName = baseName.substring(0, baseName.length()-1);
+                    String columnName = baseName.substring(0, baseName.length()-1) + "_id";
                     index = findColumnIndex(columnName);
                     if (index > 0) {
                         hasEntityInstanceIdKey = true;
@@ -3875,4 +3875,5 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
     return sharedCalendar;
   }
+  
 }
