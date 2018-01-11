@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2017, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -11,8 +11,10 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.EOFException;
 import java.io.FilterOutputStream;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -20,7 +22,6 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
-
 import javax.net.SocketFactory;
 
 /**
@@ -30,7 +31,7 @@ import javax.net.SocketFactory;
  * In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
  * at a time is accessing a particular PGStream instance.
  */
-public class PGStream {
+public class PGStream implements Closeable, Flushable {
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
 
@@ -62,7 +63,7 @@ public class PGStream {
       // When using a SOCKS proxy, the host might not be resolvable locally,
       // thus we defer resolution until the traffic reaches the proxy. If there
       // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = System.getProperty("socksProxyHost") == null
+      InetSocketAddress address = hostSpec.shouldResolve()
           ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
           : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
       socket.connect(address, timeout);
@@ -82,6 +83,7 @@ public class PGStream {
    * @throws IOException if an IOException occurs below it.
    * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int)}
    */
+  @Deprecated
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec) throws IOException {
     this(socketFactory, hostSpec, 0);
   }
@@ -145,6 +147,9 @@ public class PGStream {
    * @throws IOException if something goes wrong
    */
   public void setEncoding(Encoding encoding) throws IOException {
+    if (this.encoding != null && this.encoding.name().equals(encoding.name())) {
+      return;
+    }
     // Close down any old writer.
     if (encodingWriter != null) {
       encodingWriter.close();
@@ -417,57 +422,6 @@ public class PGStream {
   }
 
   /**
-   * Read a tuple from the back end. A tuple is a two dimensional array of bytes. This variant reads
-   * the V2 protocol's tuple representation.
-   *
-   * @param nf the number of fields expected
-   * @param bin true if the tuple is a binary tuple
-   * @return null if the current response has no more tuples, otherwise an array of bytearrays
-   * @throws IOException if a data I/O error occurs
-   */
-  public byte[][] receiveTupleV2(int nf, boolean bin) throws IOException, OutOfMemoryError {
-    int i;
-    int bim = (nf + 7) / 8;
-    byte[] bitmask = receive(bim);
-    byte[][] answer = new byte[nf][];
-
-    int whichbit = 0x80;
-    int whichbyte = 0;
-
-    OutOfMemoryError oom = null;
-    for (i = 0; i < nf; ++i) {
-      boolean isNull = ((bitmask[whichbyte] & whichbit) == 0);
-      whichbit >>= 1;
-      if (whichbit == 0) {
-        ++whichbyte;
-        whichbit = 0x80;
-      }
-      if (!isNull) {
-        int len = receiveInteger4();
-        if (!bin) {
-          len -= 4;
-        }
-        if (len < 0) {
-          len = 0;
-        }
-        try {
-          answer[i] = new byte[len];
-          receive(answer[i], 0, len);
-        } catch (OutOfMemoryError oome) {
-          oom = oome;
-          skip(len);
-        }
-      }
-    }
-
-    if (oom != null) {
-      throw oom;
-    }
-
-    return answer;
-  }
-
-  /**
    * Reads in a given number of bytes from the backend
    *
    * @param siz number of bytes to read
@@ -552,6 +506,7 @@ public class PGStream {
    *
    * @throws IOException if an I/O error occurs
    */
+  @Override
   public void flush() throws IOException {
     if (encodingWriter != null) {
       encodingWriter.flush();
@@ -579,6 +534,7 @@ public class PGStream {
    *
    * @throws IOException if an I/O Error occurs
    */
+  @Override
   public void close() throws IOException {
     if (encodingWriter != null) {
       encodingWriter.close();
@@ -587,5 +543,13 @@ public class PGStream {
     pg_output.close();
     pg_input.close();
     connection.close();
+  }
+
+  public void setNetworkTimeout(int milliseconds) throws IOException {
+    connection.setSoTimeout(milliseconds);
+  }
+
+  public int getNetworkTimeout() throws IOException {
+    return connection.getSoTimeout();
   }
 }

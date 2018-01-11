@@ -250,6 +250,9 @@ public class PgArray implements java.sql.Array {
             Encoding encoding = connection.getEncoding();
             arr[i] = encoding.decode(fieldBytes, pos, len);
             break;
+          case Oid.BOOL:
+            arr[i] = ByteConverter.bool(fieldBytes, pos);
+            break;
           default:
             ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
             if (arrAssistant != null) {
@@ -392,6 +395,8 @@ public class PgArray implements java.sql.Array {
       case Oid.TEXT:
       case Oid.VARCHAR:
         return String.class;
+      case Oid.BOOL:
+        return Boolean.class;
       default:
         ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
         if (arrElemBuilder != null) {
@@ -583,7 +588,31 @@ public class PgArray implements java.sql.Array {
           pa[length++] = o == null ? false : BooleanTypeUtil.castToBoolean((String) o);
         }
       }
-    } else if (type == Types.SMALLINT || type == Types.INTEGER) {
+    } else if (type == Types.SMALLINT) {
+      short[] pa = null;
+      Object[] oa = null;
+
+      if (dims > 1 || useObjects) {
+        ret =
+            oa = (dims > 1
+                ? (Object[]) java.lang.reflect.Array
+                    .newInstance(useObjects ? Short.class : short.class, dimsLength)
+                : new Short[count]);
+      } else {
+        ret = pa = new short[count];
+      }
+
+      for (; count > 0; count--) {
+        Object o = input.get(index++);
+
+        if (dims > 1 || useObjects) {
+          oa[length++] = o == null ? null
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
+        } else {
+          pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
+        }
+      }
+    } else if (type == Types.INTEGER) {
       int[] pa = null;
       Object[] oa = null;
 
@@ -876,11 +905,17 @@ public class PgArray implements java.sql.Array {
   public String toString() {
     if (fieldString == null && fieldBytes != null) {
       try {
-        Object array = readBinaryArray(1,0);
-        java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
-        fieldString = tmpArray.toString();
+        Object array = readBinaryArray(1, 0);
+
+        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
+        if (arraySupport != null) {
+          fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+        } else {
+          java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
+          fieldString = tmpArray.toString();
+        }
       } catch (SQLException e) {
-        fieldString = "NULL"; //punt
+        fieldString = "NULL"; // punt
       }
     }
     return fieldString;

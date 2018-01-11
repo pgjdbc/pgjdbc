@@ -252,14 +252,14 @@ public class DatabaseMetaDataTest {
 
     ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
     assertTrue(rs.next());
-    assertTrue(rs.getInt("UPDATE_RULE") == DatabaseMetaData.importedKeyRestrict);
-    assertTrue(rs.getInt("DELETE_RULE") == DatabaseMetaData.importedKeyCascade);
+    assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
+    assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
     rs.close();
 
     rs = dbmd.getImportedKeys(null, "", "fkt2");
     assertTrue(rs.next());
-    assertTrue(rs.getInt("UPDATE_RULE") == DatabaseMetaData.importedKeySetNull);
-    assertTrue(rs.getInt("DELETE_RULE") == DatabaseMetaData.importedKeySetDefault);
+    assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("UPDATE_RULE"));
+    assertEquals(DatabaseMetaData.importedKeySetDefault, rs.getInt("DELETE_RULE"));
     rs.close();
 
     TestUtil.dropTable(conn, "fkt2");
@@ -280,12 +280,12 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
     int j = 0;
     for (; rs.next(); j++) {
-      assertTrue("pkt".equals(rs.getString("PKTABLE_NAME")));
-      assertTrue("fkt".equals(rs.getString("FKTABLE_NAME")));
-      assertTrue("pkt_un_b".equals(rs.getString("PK_NAME")));
-      assertTrue("b".equals(rs.getString("PKCOLUMN_NAME")));
+      assertEquals("pkt", rs.getString("PKTABLE_NAME"));
+      assertEquals("fkt", rs.getString("FKTABLE_NAME"));
+      assertEquals("pkt_un_b", rs.getString("PK_NAME"));
+      assertEquals("b", rs.getString("PKCOLUMN_NAME"));
     }
-    assertTrue(j == 1);
+    assertEquals(1, j);
 
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
@@ -304,18 +304,18 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
     int j = 0;
     for (; rs.next(); j++) {
-      assertTrue("pkt".equals(rs.getString("PKTABLE_NAME")));
-      assertTrue("fkt".equals(rs.getString("FKTABLE_NAME")));
-      assertTrue(j + 1 == rs.getInt("KEY_SEQ"));
+      assertEquals("pkt", rs.getString("PKTABLE_NAME"));
+      assertEquals("fkt", rs.getString("FKTABLE_NAME"));
+      assertEquals(j + 1, rs.getInt("KEY_SEQ"));
       if (j == 0) {
-        assertTrue("b".equals(rs.getString("PKCOLUMN_NAME")));
-        assertTrue("c".equals(rs.getString("FKCOLUMN_NAME")));
+        assertEquals("b", rs.getString("PKCOLUMN_NAME"));
+        assertEquals("c", rs.getString("FKCOLUMN_NAME"));
       } else {
-        assertTrue("a".equals(rs.getString("PKCOLUMN_NAME")));
-        assertTrue("d".equals(rs.getString("FKCOLUMN_NAME")));
+        assertEquals("a", rs.getString("PKCOLUMN_NAME"));
+        assertEquals("d", rs.getString("FKCOLUMN_NAME"));
       }
     }
-    assertTrue(j == 2);
+    assertEquals(2, j);
 
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
@@ -375,7 +375,7 @@ public class DatabaseMetaDataTest {
         // continue foreign key, i.e. fkName matches the last foreign key
         assertEquals(fkNames.get(fkNames.size() - 1), fkName);
         // see always increases by 1
-        assertTrue(seq == lastFieldCount + 1);
+        assertEquals(seq, lastFieldCount + 1);
       }
       lastFieldCount = seq;
     }
@@ -427,7 +427,7 @@ public class DatabaseMetaDataTest {
 
     }
 
-    assertTrue(j == 2);
+    assertEquals(2, j);
 
     rs = dbmd.getExportedKeys(null, "", "people");
 
@@ -490,7 +490,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("quest", rs.getString("COLUMN_NAME"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     rs.close();
 
     /* getFunctionColumns also has to be aware of dropped columns
@@ -973,22 +973,15 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
-      String cat;
-      String schema;
-      String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
-      typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
+      String typeName = rs.getString("type_name");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", !rs.wasNull());
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
@@ -1013,22 +1006,16 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]{Types.DISTINCT, Types.STRUCT});
       assertTrue(rs.next());
-      String cat;
-      String schema;
       String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
       typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", !rs.wasNull());
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
@@ -1052,22 +1039,15 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]{Types.DISTINCT});
       assertTrue(rs.next());
-      String cat;
-      String schema;
-      String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
-      typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
+      String typeName = rs.getString("type_name");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", !rs.wasNull());
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
@@ -1090,22 +1070,15 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
-      String cat;
-      String schema;
-      String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
-      typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
+      String typeName = rs.getString("type_name");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", rs.wasNull());
       assertEquals("data type", Types.STRUCT, dataType);
       assertEquals("type name ", "testint8", typeName);
@@ -1123,38 +1096,36 @@ public class DatabaseMetaDataTest {
   public void testTypes() throws SQLException {
     // https://www.postgresql.org/docs/8.2/static/datatype.html
     List<String> stringTypeList = new ArrayList<String>();
-    stringTypeList.addAll(Arrays.asList(new String[]{
-        "bit",
-        "bool",
-        "box",
-        "bytea",
-        "char",
-        "cidr",
-        "circle",
-        "date",
-        "float4",
-        "float8",
-        "inet",
-        "int2",
-        "int4",
-        "int8",
-        "interval",
-        "line",
-        "lseg",
-        "macaddr",
-        "money",
-        "numeric",
-        "path",
-        "point",
-        "polygon",
-        "text",
-        "time",
-        "timestamp",
-        "timestamptz",
-        "timetz",
-        "varbit",
-        "varchar"
-    }));
+    stringTypeList.addAll(Arrays.asList("bit",
+            "bool",
+            "box",
+            "bytea",
+            "char",
+            "cidr",
+            "circle",
+            "date",
+            "float4",
+            "float8",
+            "inet",
+            "int2",
+            "int4",
+            "int8",
+            "interval",
+            "line",
+            "lseg",
+            "macaddr",
+            "money",
+            "numeric",
+            "path",
+            "point",
+            "polygon",
+            "text",
+            "time",
+            "timestamp",
+            "timestamptz",
+            "timetz",
+            "varbit",
+            "varchar"));
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
       stringTypeList.add("tsquery");
       stringTypeList.add("tsvector");

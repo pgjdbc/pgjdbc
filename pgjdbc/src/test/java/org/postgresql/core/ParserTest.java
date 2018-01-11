@@ -146,7 +146,7 @@ public class ParserTest {
         "insert test(id, name) select 1, 'value' as RETURNING from test2";
     List<NativeQuery> qry =
         Parser.parseJdbcSql(
-            query, true, true, true, true, new String[0]);
+            query, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertFalse("Query does not have returning clause " + query, returningKeywordPresent);
   }
@@ -157,7 +157,7 @@ public class ParserTest {
         "insert test(id, name) select 1, 'value' from test2 RETURNING id";
     List<NativeQuery> qry =
         Parser.parseJdbcSql(
-            query, true, true, true, true, new String[0]);
+            query, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertTrue("Query has a returning clause " + query, returningKeywordPresent);
   }

@@ -79,6 +79,7 @@ public class PgConnection implements BaseConnection {
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
 
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
+  private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
   //
   // Data initialized on construction:
@@ -1155,7 +1156,12 @@ public class PgConnection implements BaseConnection {
       if (o == null) {
         sb.append("NULL");
       } else if (o.getClass().isArray()) {
-        appendArray(sb, o, delim);
+        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(o);
+        if (arraySupport != null) {
+          arraySupport.appendArray(sb, delim, o);
+        } else {
+          appendArray(sb, o, delim);
+        }
       } else {
         String s = o.toString();
         PgArray.escapeArrayElement(sb, s);
@@ -1271,6 +1277,49 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  public Array createArrayOf(String typeName, Object elements) throws SQLException {
+    checkClosed();
+
+    final TypeInfo typeInfo = getTypeInfo();
+
+    final int oid = typeInfo.getPGArrayType(typeName);
+    final char delim = typeInfo.getArrayDelimiter(oid);
+
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName),
+          PSQLState.INVALID_NAME);
+    }
+
+    if (elements == null) {
+      return makeArray(oid, null);
+    }
+
+    final String arrayString;
+
+    final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(elements);
+
+    if (arraySupport != null) {
+      // if the oid for the given type matches the default type, we might be
+      // able to go straight to binary representation
+      if (oid == arraySupport.getDefaultArrayTypeOid(typeInfo) && arraySupport.supportBinaryRepresentation()
+          && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements));
+      }
+      arrayString = arraySupport.toArrayString(delim, elements);
+    } else {
+      final Class<?> clazz = elements.getClass();
+      if (!clazz.isArray()) {
+        throw new PSQLException(GT.tr("Invalid elements {0}", elements), PSQLState.INVALID_PARAMETER_TYPE);
+      }
+      StringBuilder sb = new StringBuilder();
+      appendArray(sb, elements, delim);
+      arrayString = sb.toString();
+    }
+
+    return makeArray(oid, arrayString);
+  }
+
+  @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     checkClosed();
 
@@ -1280,6 +1329,10 @@ public class PgConnection implements BaseConnection {
       throw new PSQLException(
           GT.tr("Unable to find server array type for provided name {0}.", typeName),
           PSQLState.INVALID_NAME);
+    }
+
+    if (elements == null) {
+      return makeArray(oid, null);
     }
 
     char delim = getTypeInfo().getArrayDelimiter(oid);
@@ -1480,12 +1533,36 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "setNetworkTimeout(Executor, int)");
+  public void setNetworkTimeout(Executor executor /*not used*/, int milliseconds) throws SQLException {
+    checkClosed();
+
+    if (milliseconds < 0) {
+      throw new PSQLException(GT.tr("Network timeout must be a value greater than or equal to 0."),
+              PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    SecurityManager securityManager = System.getSecurityManager();
+    if (securityManager != null) {
+      securityManager.checkPermission(SQL_PERMISSION_NETWORK_TIMEOUT);
+    }
+
+    try {
+      queryExecutor.setNetworkTimeout(milliseconds);
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Unable to set network timeout."),
+              PSQLState.COMMUNICATION_ERROR, ioe);
+    }
   }
 
   public int getNetworkTimeout() throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
+    checkClosed();
+
+    try {
+      return queryExecutor.getNetworkTimeout();
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Unable to get network timeout."),
+              PSQLState.COMMUNICATION_ERROR, ioe);
+    }
   }
 
   @Override

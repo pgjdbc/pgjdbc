@@ -881,6 +881,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if perform JAAS login before GSS authentication
+   * @see PGProperty#JAAS_LOGIN
+   */
+  public boolean getJaasLogin() {
+    return PGProperty.JAAS_LOGIN.getBoolean(properties);
+  }
+
+  /**
+   * @param doLogin true if perform JAAS login before GSS authentication
+   * @see PGProperty#JAAS_LOGIN
+   */
+  public void setJaasLogin(boolean doLogin) {
+    PGProperty.JAAS_LOGIN.set(properties, doLogin);
+  }
+
+  /**
    * @return Kerberos server name
    * @see PGProperty#KERBEROS_SERVER_NAME
    */
@@ -1076,6 +1092,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * Generates a {@link DriverManager} URL from the other properties supplied.
+   *
+   * @return {@link DriverManager} URL from the other properties supplied
+   */
+  public String getURL() {
+    return getUrl();
+  }
+
+  /**
    * Sets properties from a {@link DriverManager} URL.
    *
    * @param url properties to set
@@ -1087,6 +1112,16 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     for (PGProperty property : PGProperty.values()) {
       setProperty(property, property.get(p));
     }
+  }
+
+  /**
+   * Sets properties from a {@link DriverManager} URL.
+   * Added to follow convention used in other DBMS.
+   *
+   * @param url properties to set
+   */
+  public void setURL(String url) {
+    setUrl(url);
   }
 
   public String getProperty(String name) throws SQLException {

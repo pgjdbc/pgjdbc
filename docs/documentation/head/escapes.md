@@ -21,10 +21,8 @@ some vendor specific SQL may be required for certain RDBMS features. To aid
 developers in writing portable JDBC applications across multiple database products,
 a special escape syntax is used to specify the generic commands the developer
 wants to be run. The JDBC driver translates these escape sequences into native
-syntax for its specific database. For more information consult the section 4.1.5
-from the [JDBC Technology Guide](http://java.sun.com/j2se/1.4.2/docs/guide/jdbc/getstart/statement.html#999472)
-(bundled with the Oracle™ JRE documentation) and the section 13.4 from the
-[JDBC 3.0 specification](http://java.sun.com/products/jdbc/download.html#corespec30).
+syntax for its specific database. For more information consult the 
+[Java DB Technical Documentation](http://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html).
 
 The parsing of the sql statements for these escapes can be disabled using
 `Statement.setEscapeProcessing(false)`. 
@@ -33,7 +31,7 @@ The parsing of the sql statements for these escapes can be disabled using
 It translates the given SQL to a SQL suitable for the PostgreSQL™ backend.
 
 <a name="escape-use-example"></a>
-**Example 8.1. Using jdbc escapes**
+**Example 8.1. Using JDBC escapes**
 
 To use the JDBC escapes, you simply write your SQL replacing date/time literal
 values, outer join and functions by the JDBC escape syntax. For example :

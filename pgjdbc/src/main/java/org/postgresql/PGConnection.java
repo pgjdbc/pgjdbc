@@ -13,6 +13,7 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.PGobject;
 
+import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -21,6 +22,25 @@ import java.sql.Statement;
  * returned by the PostgreSQL driver implement PGConnection.
  */
 public interface PGConnection {
+
+  /**
+   * Creates an {@link Array} wrapping <i>elements</i>. This is similar to
+   * {@link java.sql.Connection#createArrayOf(String, Object[])}, but also
+   * provides support for primitive arrays.
+   *
+   * @param typeName
+   *          The SQL name of the type to map the <i>elements</i> to.
+   *          Must not be {@code null}.
+   * @param elements
+   *          The array of objects to map. A {@code null} value will result in
+   *          an {@link Array} representing {@code null}.
+   * @return An {@link Array} wrapping <i>elements</i>.
+   * @throws SQLException
+   *           If for some reason the array cannot be created.
+   * @see java.sql.Connection#createArrayOf(String, Object[])
+   */
+  Array createArrayOf(String typeName, Object elements) throws SQLException;
+
   /**
    * This method returns any notifications that have been received since the last call to this
    * method. Returns null if there have been no notifications.
@@ -83,6 +103,7 @@ public interface PGConnection {
    *             does not work correctly for registering classes that cannot be directly loaded by
    *             the JDBC driver's classloader.
    */
+  @Deprecated
   void addDataType(String type, String className);
 
   /**

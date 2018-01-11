@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -40,7 +41,7 @@ public class GetXXXTest {
 
     pstmt.setTimestamp(1, new Timestamp(cal.getTime().getTime()));
     pstmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-    assertTrue(pstmt.executeUpdate() == 1);
+    assertEquals(1, pstmt.executeUpdate());
     pstmt.close();
   }
 

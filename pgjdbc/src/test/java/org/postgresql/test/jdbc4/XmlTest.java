@@ -21,6 +21,9 @@ import org.w3c.dom.Node;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,6 +31,9 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Result;
@@ -253,6 +259,55 @@ public class XmlTest extends BaseTest4 {
     ResultSet rs = getRS();
     assertTrue(rs.next());
     SQLXML xml = (SQLXML) rs.getObject(1);
+  }
+
+  private SQLXML newConsumableSQLXML(String content) throws Exception {
+    SQLXML xml = (SQLXML) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { SQLXML.class }, new InvocationHandler() {
+      SQLXML xml = con.createSQLXML();
+      boolean consumed = false;
+      Set<Method> consumingMethods = new HashSet<Method>(Arrays.asList(
+          SQLXML.class.getMethod("getBinaryStream"),
+          SQLXML.class.getMethod("getCharacterStream"),
+          SQLXML.class.getMethod("getString")
+      ));
+
+      @Override
+      public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (consumingMethods.contains(method)) {
+          if (consumed) {
+            fail("SQLXML-object already consumed");
+          } else {
+            consumed = true;
+          }
+        }
+        return method.invoke(xml, args);
+      }
+    });
+    xml.setString(content);
+    return xml;
+  }
+
+  @Test
+  public void testSet() throws Exception {
+    Statement stmt = con.createStatement();
+    stmt.execute("DELETE FROM xmltest");
+    stmt.close();
+
+    PreparedStatement ps = con.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
+    ps.setInt(1, 1);
+    ps.setSQLXML(2, newConsumableSQLXML(_xmlDocument));
+    assertEquals(1, ps.executeUpdate());
+    ps.setInt(1, 2);
+    ps.setObject(2, newConsumableSQLXML(_xmlDocument));
+    assertEquals(1, ps.executeUpdate());
+    ResultSet rs = getRS();
+    assertTrue(rs.next());
+    Object o = rs.getObject(1);
+    assertTrue(o instanceof SQLXML);
+    assertEquals(_xmlDocument, ((SQLXML) o).getString());
+    assertTrue(rs.next());
+    assertEquals(_xmlDocument, rs.getSQLXML(1).getString());
+    assertTrue(!rs.next());
   }
 
   @Test

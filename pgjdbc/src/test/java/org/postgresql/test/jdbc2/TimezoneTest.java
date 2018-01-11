@@ -189,10 +189,10 @@ public class TimezoneTest {
       // 1970-01-01 15:00:00 +0300 -> 1970-01-01 07:00:00 -0500
       assertEquals(43200000L, ts.getTime());
       ts = rs.getTimestamp(4, cGMT13);
-      // 1970-01-01 15:00:00 +0300 -> 1970-01-02 01:00:00 +1300 (CHECK ME)
-      assertEquals(-43200000L, ts.getTime());
-      str = rs.getString(3);
-      assertEquals("timetz -> getString" + format, "15:00:00", str);
+      // 1970-01-01 15:00:00 +0300 -> 1970-01-02 01:00:00 +1300
+      assertEquals(43200000L, ts.getTime());
+      str = rs.getString(4);
+      assertEquals("timetz -> getString" + format, "15:00:00+03", str);
 
       // date: 2005-01-01
       ts = rs.getTimestamp(5);
@@ -299,7 +299,7 @@ public class TimezoneTest {
       assertEquals(43200000L, t.getTime());
       t = rs.getTime(1, cGMT13);
       // 2005-01-02 01:00:00 +1300 -> 1970-01-01 01:00:00 +1300
-      assertEquals(-43200000L, t.getTime());
+      assertEquals(43200000L, t.getTime());
 
       // timestamp: 2005-01-01 15:00:00
       t = rs.getTime(2);
@@ -335,7 +335,7 @@ public class TimezoneTest {
       t = rs.getTime(4, cGMT05);
       assertEquals(43200000L, t.getTime()); // 1970-01-01 07:00:00 -0500
       t = rs.getTime(4, cGMT13);
-      assertEquals(-43200000L, t.getTime()); // 1970-01-01 01:00:00 +1300
+      assertEquals(43200000L, t.getTime()); // 1970-01-01 01:00:00 +1300
       rs.close();
     }
   }
@@ -732,22 +732,22 @@ public class TimezoneTest {
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tUTC, rs.getTime(2, cUTC));
-      assertEquals(tUTC, rs.getTime(2, cUTC));
+      assertEquals(tUTC, rs.getTime(3, cUTC));
 
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tGMT03, rs.getTime(2, cGMT03));
-      assertEquals(tGMT03, rs.getTime(2, cGMT03));
+      assertEquals(tGMT03, rs.getTime(3, cGMT03));
 
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tGMT05, rs.getTime(2, cGMT05));
-      assertEquals(tGMT05, rs.getTime(2, cGMT05));
+      assertEquals(tGMT05, rs.getTime(3, cGMT05));
 
       assertTrue(rs.next());
       assertEquals(seq++, rs.getInt(1));
       assertEquals(tGMT13, rs.getTime(2, cGMT13));
-      assertEquals(tGMT13, rs.getTime(2, cGMT13));
+      assertEquals(tGMT13, rs.getTime(3, cGMT13));
 
       assertTrue(!rs.next());
       ps.close();

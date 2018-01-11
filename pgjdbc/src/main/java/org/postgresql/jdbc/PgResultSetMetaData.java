@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.LruCache;
@@ -233,9 +234,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
     StringBuilder sql = new StringBuilder(
         "SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, "
-            + "a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), "
-            + "pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' "
-            + "FROM pg_catalog.pg_class c "
+            + "a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), ");
+
+    if ( connection.haveMinimumServerVersion(ServerVersion.v10)) {
+      sql.append("a.attidentity != '' OR pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");
+    } else {
+      sql.append("pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");
+    }
+    sql.append( "FROM pg_catalog.pg_class c "
             + "JOIN pg_catalog.pg_namespace n ON (c.relnamespace = n.oid) "
             + "JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) "
             + "JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) "
@@ -392,7 +398,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    *
-   * @return column name, or "" if not applicable
+   * @return 0 if column data foramt is TEXT, or 1 if BINARY
    *
    * @exception SQLException if a database access error occurs
    */

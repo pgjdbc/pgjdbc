@@ -116,7 +116,7 @@ Connection conn = DriverManager.getConnection(url);
 
 	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.jdbc4.LibPQFactory.verify()`
 
-* **sslpaswordcallback** = String
+* **sslpasswordcallback** = String
 
 	Class name of the SSL password provider. Defaults to `org.postgresql.ssl.jdbc4.LibPQFactory.ConsoleCallbackHandler`
 
@@ -304,7 +304,15 @@ Connection conn = DriverManager.getConnection(url);
 
 * **jaasApplicationName** = String
 
-	Specifies the name of the JAAS system or application login configuration. 
+	Specifies the name of the JAAS system or application login configuration.
+
+* **jaasLogin** = boolean
+
+	Specifies whether to perform a JAAS login before authenticating with GSSAPI.
+	If set to `true` (the default), the driver will attempt to obtain GSS credentials
+	using the configured JAAS login module(s) (e.g. `Krb5LoginModule`) before
+	authenticating. To skip the JAAS login, for example if the native GSS
+	implementation is being used to obtain credentials, set this to `false`.
 
 * **ApplicationName** = String
 

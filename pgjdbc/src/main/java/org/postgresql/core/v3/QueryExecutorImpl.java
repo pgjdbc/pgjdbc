@@ -53,6 +53,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,6 +63,9 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 /**
  * QueryExecutor implementation for the V3 protocol.
@@ -69,6 +73,8 @@ import java.util.logging.Logger;
 public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
+  private static final Pattern COMMAND_COMPLETE_PATTERN = Pattern.compile("^([A-Za-z]++)(?: (\\d++))?+(?: (\\d++))?+$");
+
   /**
    * TimeZone of the current connection (TimeZone backend parameter)
    */
@@ -347,10 +353,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null)) {
       sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
-          updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA)
+          QUERY_NO_RESULTS | QUERY_NO_METADATA
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
-              | (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE));
+              | QUERY_EXECUTE_AS_SIMPLE);
       return true;
     }
     return false;
@@ -361,8 +367,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && getTransactionState() == TransactionState.FAILED
         && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
       try {
+        // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
         execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
-            1, 0, updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA));
+            1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       } catch (SQLException e2) {
         // That's O(N), sorry
         e.setNextException(e2);
@@ -1191,44 +1198,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
         case 'S': // Parameter Status
         {
-          int l_len = pgStream.receiveInteger4();
-          String name = pgStream.receiveString();
-          String value = pgStream.receiveString();
-
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
-          }
-
-          if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
-              && !allowEncodingChanges) {
-            close(); // we're screwed now; we can't trust any subsequent string.
-            error = new PSQLException(GT.tr(
-                "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE);
+          try {
+            receiveParameterStatus();
+          } catch (SQLException e) {
+            error = e;
             endReceiving = true;
-          }
-
-          if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
-            close(); // we're screwed now; we can't trust any subsequent date.
-            error = new PSQLException(GT.tr(
-                "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE);
-            endReceiving = true;
-          }
-
-          if (name.equals("standard_conforming_strings")) {
-            if (value.equals("on")) {
-              setStandardConformingStrings(true);
-            } else if (value.equals("off")) {
-              setStandardConformingStrings(false);
-            } else {
-              close();
-              // we're screwed now; we don't know how to escape string literals
-              error = new PSQLException(GT.tr(
-                  "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
-                  value), PSQLState.CONNECTION_FAILURE);
-              endReceiving = true;
-            }
           }
           break;
         }
@@ -1389,6 +1363,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar('S'); // Sync
     pgStream.sendInteger4(4); // Length
     pgStream.flush();
+    // Below "add queues" are likely not required at all
     pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
     pendingDescribePortalQueue.add(sync);
   }
@@ -2062,8 +2037,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Portal currentPortal = executeData.portal;
 
           Field[] fields = currentQuery.getFields();
-          if (fields != null && !noResults && tuples == null) {
-            tuples = new ArrayList<byte[][]>();
+          if (fields != null && tuples == null) {
+            // When no results expected, pretend an empty resultset was returned
+            // Not sure if new ArrayList can be always replaced with emptyList
+            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<byte[][]>();
           }
 
           handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
@@ -2110,8 +2087,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
 
           Field[] fields = currentQuery.getFields();
-          if (fields != null && !noResults && tuples == null) {
-            tuples = new ArrayList<byte[][]>();
+          if (fields != null && tuples == null) {
+            // When no results expected, pretend an empty resultset was returned
+            // Not sure if new ArrayList can be always replaced with emptyList
+            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<byte[][]>();
           }
 
           // If we received tuples we must know the structure of the
@@ -2224,51 +2203,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'S': // Parameter Status
         {
-          int l_len = pgStream.receiveInteger4();
-          String name = pgStream.receiveString();
-          String value = pgStream.receiveString();
-
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
-          }
-
-          if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
-              && !allowEncodingChanges) {
-            close(); // we're screwed now; we can't trust any subsequent string.
-            handler.handleError(new PSQLException(GT.tr(
-                "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE));
+          try {
+            receiveParameterStatus();
+          } catch (SQLException e) {
+            handler.handleError(e);
             endQuery = true;
-          }
-
-          if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
-            close(); // we're screwed now; we can't trust any subsequent date.
-            handler.handleError(new PSQLException(GT.tr(
-                "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
-                value), PSQLState.CONNECTION_FAILURE));
-            endQuery = true;
-          }
-
-          if (name.equals("standard_conforming_strings")) {
-            if (value.equals("on")) {
-              setStandardConformingStrings(true);
-            } else if (value.equals("off")) {
-              setStandardConformingStrings(false);
-            } else {
-              close();
-              // we're screwed now; we don't know how to escape string literals
-              handler.handleError(new PSQLException(GT.tr(
-                  "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
-                  value), PSQLState.CONNECTION_FAILURE));
-              endQuery = true;
-            }
-          }
-
-          if ("TimeZone".equals(name)) {
-            setTimeZone(TimestampUtils.parseBackendTimeZone(value));
-          }
-          if ("application_name".equals(name)) {
-            setApplicationName(value);
           }
           break;
         }
@@ -2322,8 +2261,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
 
           pendingParseQueue.clear(); // No more ParseComplete messages expected.
-          pendingDescribeStatementQueue.clear(); // No more ParameterDescription messages expected.
-          pendingDescribePortalQueue.clear(); // No more RowDescription messages expected.
+          // Pending "describe" requests might be there in case of error
+          // If that is the case, reset "described" status, so the statement is properly
+          // described on next execution
+          while (!pendingDescribeStatementQueue.isEmpty()) {
+            DescribeRequest request = pendingDescribeStatementQueue.removeFirst();
+            LOGGER.log(Level.FINEST, " FE marking setStatementDescribed(false) for query {0}", request.query);
+            request.query.setStatementDescribed(false);
+          }
+          while (!pendingDescribePortalQueue.isEmpty()) {
+            SimpleQuery describePortalQuery = pendingDescribePortalQueue.removeFirst();
+            LOGGER.log(Level.FINEST, " FE marking setPortalDescribed(false) for query {0}", describePortalQuery);
+            describePortalQuery.setPortalDescribed(false);
+          }
           pendingBindQueue.clear(); // No more BindComplete messages expected.
           pendingExecuteQueue.clear(); // No more query executions expected.
           break;
@@ -2508,34 +2458,41 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void interpretCommandStatus(String status, ResultHandler handler) {
-    int update_count = 0;
-    long insert_oid = 0;
-
-    if (status.startsWith("INSERT") || status.startsWith("UPDATE") || status.startsWith("DELETE")
-        || status.startsWith("MOVE")) {
+    long oid = 0;
+    long count = 0;
+    Matcher matcher = COMMAND_COMPLETE_PATTERN.matcher(status);
+    if (matcher.matches()) {
+      // String command = matcher.group(1);
+      String group2 = matcher.group(2);
+      String group3 = matcher.group(3);
       try {
-        long updates = Long.parseLong(status.substring(1 + status.lastIndexOf(' ')));
-
-        // deal with situations where the update modifies more than 2^32 rows
-        if (updates > Integer.MAX_VALUE) {
-          update_count = Statement.SUCCESS_NO_INFO;
-        } else {
-          update_count = (int) updates;
+        if (group3 != null) {
+          // COMMAND OID ROWS
+          oid = Long.parseLong(group2);
+          count = Long.parseLong(group3);
+        } else if (group2 != null) {
+          // COMMAND ROWS
+          count = Long.parseLong(group2);
         }
-
-        if (status.startsWith("INSERT")) {
-          insert_oid =
-              Long.parseLong(status.substring(1 + status.indexOf(' '), status.lastIndexOf(' ')));
-        }
-      } catch (NumberFormatException nfe) {
+      } catch (NumberFormatException e) {
+        // As we're performing a regex validation prior to parsing, this should only
+        // occurr if the oid or count are out of range.
         handler.handleError(new PSQLException(
-            GT.tr("Unable to interpret the update count in command completion tag: {0}.", status),
+            GT.tr("Unable to parse the count in command completion tag: {0}.", status),
             PSQLState.CONNECTION_FAILURE));
         return;
       }
     }
-
-    handler.handleCommandStatus(status, update_count, insert_oid);
+    int countAsInt = 0;
+    if (count > Integer.MAX_VALUE) {
+      // If command status indicates that we've modified more than Integer.MAX_VALUE rows
+      // then we set the result count to reflect that we cannot provide the actual number
+      // due to the JDBC field being an int rather than a long.
+      countAsInt = Statement.SUCCESS_NO_INFO;
+    } else if (count > 0) {
+      countAsInt = (int) count;
+    }
+    handler.handleCommandStatus(status, countAsInt, oid);
   }
 
   private void receiveRFQ() throws IOException {
@@ -2609,43 +2566,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'S':
           // ParameterStatus
-          int l_len = pgStream.receiveInteger4();
-          String name = pgStream.receiveString();
-          String value = pgStream.receiveString();
-
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
-          }
-
-          if ("server_version_num".equals(name)) {
-            setServerVersionNum(Integer.parseInt(value));
-          } else if ("server_version".equals(name)) {
-            setServerVersion(value);
-          } else if ("client_encoding".equals(name)) {
-            if (!"UTF8".equals(value)) {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-            pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
-          } else if ("standard_conforming_strings".equals(name)) {
-            if ("on".equals(value)) {
-              setStandardConformingStrings(true);
-            } else if ("off".equals(value)) {
-              setStandardConformingStrings(false);
-            } else {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-          } else if ("integer_datetimes".equals(name)) {
-            if ("on".equals(value)) {
-              setIntegerDateTimes(true);
-            } else if ("off".equals(value)) {
-              setIntegerDateTimes(false);
-            } else {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-          }
+          receiveParameterStatus();
 
           break;
 
@@ -2659,7 +2580,80 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         PSQLState.PROTOCOL_VIOLATION);
   }
 
+  public void receiveParameterStatus() throws IOException, SQLException {
+    // ParameterStatus
+    int l_len = pgStream.receiveInteger4();
+    String name = pgStream.receiveString();
+    String value = pgStream.receiveString();
 
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+    }
+
+    if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
+        && !allowEncodingChanges) {
+      close(); // we're screwed now; we can't trust any subsequent string.
+      throw new PSQLException(GT.tr(
+          "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
+          value), PSQLState.CONNECTION_FAILURE);
+    }
+
+    if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
+      close(); // we're screwed now; we can't trust any subsequent date.
+      throw new PSQLException(GT.tr(
+          "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
+          value), PSQLState.CONNECTION_FAILURE);
+    }
+
+    if (name.equals("standard_conforming_strings")) {
+      if (value.equals("on")) {
+        setStandardConformingStrings(true);
+      } else if (value.equals("off")) {
+        setStandardConformingStrings(false);
+      } else {
+        close();
+        // we're screwed now; we don't know how to escape string literals
+        throw new PSQLException(GT.tr(
+            "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
+            value), PSQLState.CONNECTION_FAILURE);
+      }
+      return;
+    }
+
+    if ("TimeZone".equals(name)) {
+      setTimeZone(TimestampUtils.parseBackendTimeZone(value));
+    } else if ("application_name".equals(name)) {
+      setApplicationName(value);
+    } else if ("server_version_num".equals(name)) {
+      setServerVersionNum(Integer.parseInt(value));
+    } else if ("server_version".equals(name)) {
+      setServerVersion(value);
+    } else if ("client_encoding".equals(name)) {
+      if (!"UTF8".equals(value)) {
+        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
+      pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
+    } else if ("standard_conforming_strings".equals(name)) {
+      if ("on".equals(value)) {
+        setStandardConformingStrings(true);
+      } else if ("off".equals(value)) {
+        setStandardConformingStrings(false);
+      } else {
+        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
+    } else if ("integer_datetimes".equals(name)) {
+      if ("on".equals(value)) {
+        setIntegerDateTimes(true);
+      } else if ("off".equals(value)) {
+        setIntegerDateTimes(false);
+      } else {
+        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
+    }
+  }
 
   public void setTimeZone(TimeZone timeZone) {
     this.timeZone = timeZone;

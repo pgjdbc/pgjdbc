@@ -62,6 +62,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * Adds a listener for close or fatal error events on the connection handed out to a client.
    */
+  @Override
   public void addConnectionEventListener(ConnectionEventListener connectionEventListener) {
     listeners.add(connectionEventListener);
   }
@@ -69,6 +70,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * Removes a listener for close or fatal error events on the connection handed out to a client.
    */
+  @Override
   public void removeConnectionEventListener(ConnectionEventListener connectionEventListener) {
     listeners.remove(connectionEventListener);
   }
@@ -77,6 +79,7 @@ public class PGPooledConnection implements PooledConnection {
    * Closes the physical database connection represented by this PooledConnection. If any client has
    * a connection based on this PooledConnection, it is forcibly closed as well.
    */
+  @Override
   public void close() throws SQLException {
     if (last != null) {
       last.close();
@@ -107,6 +110,7 @@ public class PGPooledConnection implements PooledConnection {
    * called, the previous one is forcibly closed and its work rolled back.
    * </p>
    */
+  @Override
   public Connection getConnection() throws SQLException {
     if (con == null) {
       // Before throwing the exception, let's notify the registered listeners about the error
@@ -432,9 +436,11 @@ public class PGPooledConnection implements PooledConnection {
     }
   }
 
+  @Override
   public void removeStatementEventListener(StatementEventListener listener) {
   }
 
+  @Override
   public void addStatementEventListener(StatementEventListener listener) {
   }
 
