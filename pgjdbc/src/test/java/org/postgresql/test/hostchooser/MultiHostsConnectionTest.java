@@ -48,10 +48,10 @@ public class MultiHostsConnectionTest {
   private static final String slave1 = getSlaveServer() + ":" + getSlavePort();
   private static final String slave2 = getSlaveServer2() + ":" + getSlavePort2();
   private static final String fake1 = "127.127.217.217:1";
-  private static String masterIp;
-  private static String slaveIp;
-  private static String slaveIp2;
 
+  private String masterIp;
+  private String slaveIp;
+  private String slaveIp2;
   private Connection con;
   private Map<HostSpec, Object> hostStatusMap;
 
@@ -85,7 +85,6 @@ public class MultiHostsConnectionTest {
       closeDB(connection);
       return true;
     } catch (Exception e) {
-      e.printStackTrace();
       return false;
     }
   }
