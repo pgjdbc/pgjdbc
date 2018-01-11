@@ -181,7 +181,8 @@ public enum PGProperty {
    * {@code verify-full}, or {@code disable} ({@code allow} and {@code prefer} are not implemented)
    * If not set, the {@code ssl} property may be checked to enable SSL mode.
    */
-  SSL_MODE("sslmode", null, "Parameter governing the use of SSL"),
+  SSL_MODE("sslmode", null, "Parameter governing the use of SSL",false,
+      "disable", "require", "verify-ca", "verify-full"),
 
   /**
    * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).

@@ -95,8 +95,11 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslmode** = String
 
-	possible values are "verify-ca" and "verify-full" setting these will 
-	necessitate storing the server certificate on the client machine ["Configuring the client"](ssl-client.html).
+	possible values include "disable", "require", "verify-ca" and "verify-full", "allow" and "prefer" 
+	will throw an exception. "require" will default to a non validating SSL factory and not check the 
+	validity of the certificates. "verify-ca" and "verify-full" use a validating SSL factory and will 
+	check that the ca is correct and the host is correct. Setting these will necessitate storing the 
+	server certificate on the client machine ["Configuring the client"](ssl-client.html).
 
 * **sslcert** = String
 
