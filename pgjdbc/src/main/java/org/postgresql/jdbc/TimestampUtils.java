@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -463,25 +464,45 @@ public class TimestampUtils {
 
   public synchronized Time toTime(Calendar cal, String s) throws SQLException {
     // 1) Parse backend string
-    Timestamp timestamp = toTimestamp(cal, s);
-
-    if (timestamp == null) {
+    if (s == null) {
       return null;
     }
+    ParsedTimestamp ts = parseBackendTimestamp(s);
+    Calendar useCal = ts.tz != null ? ts.tz : setupCalendar(cal);
+    if (ts.tz == null) {
+      // When no time zone provided (e.g. time or timestamp)
+      // We get the year-month-day from the string, then truncate the day to 1970-01-01
+      // This is used for timestamp -> time conversion
+      // Note: this cannot be merged with "else" branch since
+      // timestamps at which the time flips to/from DST depend on the date
+      // For instance, 2000-03-26 02:00:00 is invalid timestamp in Europe/Moscow time zone
+      // and the valid one is 2000-03-26 03:00:00. That is why we parse full timestamp
+      // then set year to 1970 later
+      useCal.set(Calendar.ERA, ts.era);
+      useCal.set(Calendar.YEAR, ts.year);
+      useCal.set(Calendar.MONTH, ts.month - 1);
+      useCal.set(Calendar.DAY_OF_MONTH, ts.day);
+    } else {
+      // When time zone is given, we just pick the time part and assume date to be 1970-01-01
+      // this is used for time, timez, and timestamptz parsing
+      useCal.set(Calendar.ERA, GregorianCalendar.AD);
+      useCal.set(Calendar.YEAR, 1970);
+      useCal.set(Calendar.MONTH, Calendar.JANUARY);
+      useCal.set(Calendar.DAY_OF_MONTH, 1);
+    }
+    useCal.set(Calendar.HOUR_OF_DAY, ts.hour);
+    useCal.set(Calendar.MINUTE, ts.minute);
+    useCal.set(Calendar.SECOND, ts.second);
+    useCal.set(Calendar.MILLISECOND, 0);
 
-    long millis = timestamp.getTime();
-    // infinity cannot be represented as Time
-    // so there's not much we can do here.
-    if (millis <= PGStatement.DATE_NEGATIVE_INFINITY
-        || millis >= PGStatement.DATE_POSITIVE_INFINITY) {
-      throw new PSQLException(
-          GT.tr("Infinite value found for timestamp/date. This cannot be represented as time."),
-          PSQLState.DATETIME_OVERFLOW);
+    long timeMillis = useCal.getTimeInMillis() + ts.nanos / 1000000;
+    if (ts.tz != null || (ts.year == 1970 && ts.era == GregorianCalendar.AD)) {
+      // time with time zone has proper time zone, so the value can be returned as is
+      return new Time(timeMillis);
     }
 
-
-    // 2) Truncate date part so in given time zone the date would be formatted as 00:00
-    return convertToTime(timestamp.getTime(), cal == null ? null : cal.getTimeZone());
+    // 2) Truncate date part so in given time zone the date would be formatted as 01/01/1970
+    return convertToTime(timeMillis, useCal == null ? null : useCal.getTimeZone());
   }
 
   public synchronized Date toDate(Calendar cal, String s) throws SQLException {
@@ -741,6 +762,10 @@ public class TimestampUtils {
     return sbuf.toString();
   }
 
+  /**
+   * Formats {@link LocalDateTime} to be sent to the backend, thus it adds time zone.
+   * Do not use this method in {@link java.sql.ResultSet#getString(int)}
+   */
   public synchronized String toString(LocalDateTime localDateTime) {
     if (LocalDateTime.MAX.equals(localDateTime)) {
       return "infinity";
@@ -748,15 +773,9 @@ public class TimestampUtils {
       return "-infinity";
     }
 
-    sbuf.setLength(0);
-
-    LocalDate localDate = localDateTime.toLocalDate();
-    appendDate(sbuf, localDate);
-    sbuf.append(' ');
-    appendTime(sbuf, localDateTime.toLocalTime());
-    appendEra(sbuf, localDate);
-
-    return sbuf.toString();
+    // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
+    ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
+    return toString(zonedDateTime.toOffsetDateTime());
   }
 
   private static void appendDate(StringBuilder sb, LocalDate localDate) {
@@ -913,15 +932,16 @@ public class TimestampUtils {
       timeOffset = ByteConverter.int4(bytes, 8);
       timeOffset *= -1000;
       millis -= timeOffset;
-    } else {
-      if (tz == null) {
-        tz = getDefaultTz();
-      }
-
-      // Here be dragons: backend did not provide us the timezone, so we guess the actual point in
-      // time
-      millis = guessTimestamp(millis, tz);
+      return new Time(millis);
     }
+
+    if (tz == null) {
+      tz = getDefaultTz();
+    }
+
+    // Here be dragons: backend did not provide us the timezone, so we guess the actual point in
+    // time
+    millis = guessTimestamp(millis, tz);
 
     return convertToTime(millis, tz); // Ensure date part is 1970-01-01
   }

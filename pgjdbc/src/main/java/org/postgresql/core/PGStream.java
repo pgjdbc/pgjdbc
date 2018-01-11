@@ -147,6 +147,9 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something goes wrong
    */
   public void setEncoding(Encoding encoding) throws IOException {
+    if (this.encoding != null && this.encoding.name().equals(encoding.name())) {
+      return;
+    }
     // Close down any old writer.
     if (encodingWriter != null) {
       encodingWriter.close();

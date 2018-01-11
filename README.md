@@ -85,7 +85,7 @@ For more information you can read [the PgJDBC driver documentation](https://jdbc
 The driver recognises JDBC URLs of the form:
 ```
 jdbc:postgresql:database
-jdbc:postgresql:/
+jdbc:postgresql:
 jdbc:postgresql://host/database
 jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
@@ -93,7 +93,7 @@ jdbc:postgresql://host:port/
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
-jdbc:postgresql://[host][:port][/[database]][?property1=value1[&property2=value2]...]
+jdbc:postgresql:[//host[:port]/][database][?property1=value1[&property2=value2]...]
 ```
 where:
  * **jdbc:postgresql:** (Required) is known as the sub-protocol and is constant.
@@ -141,7 +141,7 @@ In addition to the standard connection parameters the driver supports a number o
 | assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
 | currentSchema                 | String  | null    | Specify the schema to be set in the search-path |
 | targetServerType              | String  | any     | Specifies what kind of server to connect, possible values: any, master, slave, preferSlave |
-| hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after host statuses are checked again in case they have changed |
+| hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after which the host status is checked again in case it has changed |
 | loadBalanceHosts              | Boolean | false   | If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates |
 | socketFactory                 | String  | null    | Specify a socket factory for socket creation |
 | socketFactoryArg              | String  | null    | Argument forwarded to constructor of SocketFactory class. |

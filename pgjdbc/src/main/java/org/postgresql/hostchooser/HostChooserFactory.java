@@ -17,7 +17,7 @@ public class HostChooserFactory {
   public static HostChooser createHostChooser(HostSpec[] hostSpecs,
       HostRequirement targetServerType, Properties info) {
     if (hostSpecs.length == 1) {
-      return new SingleHostChooser(hostSpecs[0]);
+      return new SingleHostChooser(hostSpecs[0], targetServerType);
     }
     return new MultiHostChooser(hostSpecs, targetServerType, info);
   }
