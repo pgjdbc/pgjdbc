@@ -51,7 +51,6 @@ public class BatchResultHandler extends ResultHandlerBase {
     this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<List<byte[][]>>();
   }
 
-  @Override
   public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
       ResultCursor cursor) {
     // If SELECT, then handleCommandStatus call would just be missing
@@ -74,7 +73,6 @@ public class BatchResultHandler extends ResultHandlerBase {
     latestGeneratedRows = tuples;
   }
 
-  @Override
   public void handleCommandStatus(String status, int updateCount, long insertOID) {
     if (latestGeneratedRows != null) {
       // We have DML. Decrease resultIndex that was just increased in handleResultRows
@@ -127,7 +125,6 @@ public class BatchResultHandler extends ResultHandlerBase {
     allGeneratedRows.clear();
   }
 
-  @Override
   public void handleWarning(SQLWarning warning) {
     pgStatement.addWarning(warning);
   }
@@ -148,7 +145,8 @@ public class BatchResultHandler extends ResultHandlerBase {
       BatchUpdateException batchException = new BatchUpdateException(
           GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see other errors in the batch.",
               resultIndex, queryString, newError.getMessage()),
-          newError.getSQLState(), uncompressUpdateCount(), newError);
+          newError.getSQLState(), uncompressUpdateCount());
+      batchException.initCause(newError);
       super.handleError(batchException);
     }
     resultIndex++;
@@ -156,7 +154,6 @@ public class BatchResultHandler extends ResultHandlerBase {
     super.handleError(newError);
   }
 
-  @Override
   public void handleCompletion() throws SQLException {
     updateGeneratedKeys();
     SQLException batchException = getException();
@@ -166,8 +163,9 @@ public class BatchResultHandler extends ResultHandlerBase {
         BatchUpdateException newException = new BatchUpdateException(
             batchException.getMessage(),
             batchException.getSQLState(),
-            uncompressUpdateCount(),
-            batchException.getCause());
+            uncompressUpdateCount()
+        );
+        newException.initCause(batchException.getCause());
         SQLException next = batchException.getNextException();
         if (next != null) {
           newException.setNextException(next);

@@ -65,7 +65,6 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     copyBuffer = new byte[bufferSize];
   }
 
-  @Override
   public void write(int b) throws IOException {
     checkClosed();
     if (b < 0 || b > 255) {
@@ -75,18 +74,18 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     write(singleByteBuffer, 0, 1);
   }
 
-  @Override
   public void write(byte[] buf) throws IOException {
     write(buf, 0, buf.length);
   }
 
-  @Override
   public void write(byte[] buf, int off, int siz) throws IOException {
     checkClosed();
     try {
       writeToCopy(buf, off, siz);
     } catch (SQLException se) {
-      throw new IOException("Write to copy failed.", se);
+      IOException ioe = new IOException("Write to copy failed.");
+      ioe.initCause(se);
+      throw ioe;
     }
   }
 
@@ -96,7 +95,6 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
   }
 
-  @Override
   public void close() throws IOException {
     // Don't complain about a double close.
     if (op == null) {
@@ -106,23 +104,25 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     try {
       endCopy();
     } catch (SQLException se) {
-      throw new IOException("Ending write to copy failed.", se);
+      IOException ioe = new IOException("Ending write to copy failed.");
+      ioe.initCause(se);
+      throw ioe;
     }
     op = null;
   }
 
-  @Override
   public void flush() throws IOException {
     try {
       op.writeToCopy(copyBuffer, 0, at);
       at = 0;
       op.flushCopy();
     } catch (SQLException e) {
-      throw new IOException("Unable to flush stream", e);
+      IOException ioe = new IOException("Unable to flush stream");
+      ioe.initCause(e);
+      throw ioe;
     }
   }
 
-  @Override
   public void writeToCopy(byte[] buf, int off, int siz) throws SQLException {
     if (at > 0
         && siz > copyBuffer.length - at) { // would not fit into rest of our buf, so flush buf
@@ -137,37 +137,30 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
   }
 
-  @Override
   public int getFormat() {
     return op.getFormat();
   }
 
-  @Override
   public int getFieldFormat(int field) {
     return op.getFieldFormat(field);
   }
 
-  @Override
   public void cancelCopy() throws SQLException {
     op.cancelCopy();
   }
 
-  @Override
   public int getFieldCount() {
     return op.getFieldCount();
   }
 
-  @Override
   public boolean isActive() {
     return op.isActive();
   }
 
-  @Override
   public void flushCopy() throws SQLException {
     op.flushCopy();
   }
 
-  @Override
   public long endCopy() throws SQLException {
     if (at > 0) {
       op.writeToCopy(copyBuffer, 0, at);
@@ -176,7 +169,6 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     return getHandledRowCount();
   }
 
-  @Override
   public long getHandledRowCount() {
     return op.getHandledRowCount();
   }
