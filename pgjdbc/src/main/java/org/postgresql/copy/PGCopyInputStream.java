@@ -69,24 +69,20 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   }
 
 
-  @Override
   public int available() throws IOException {
     checkClosed();
     return (buf != null ? len - at : 0);
   }
 
-  @Override
   public int read() throws IOException {
     checkClosed();
     return gotBuf() ? buf[at++] : -1;
   }
 
-  @Override
   public int read(byte[] buf) throws IOException {
     return read(buf, 0, buf.length);
   }
 
-  @Override
   public int read(byte[] buf, int off, int siz) throws IOException {
     checkClosed();
     int got = 0;
@@ -97,14 +93,15 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     return got == 0 && !didReadSomething ? -1 : got;
   }
 
-  @Override
   public byte[] readFromCopy() throws SQLException {
     byte[] result = buf;
     try {
       if (gotBuf()) {
         if (at > 0 || len < buf.length) {
           byte[] ba = new byte[len - at];
-          System.arraycopy(buf, at, ba, 0, len - at);
+          for (int i = at; i < len; i++) {
+            ba[i - at] = buf[i];
+          }
           result = ba;
         }
         at = len; // either partly or fully returned, buffer is exhausted
@@ -120,7 +117,6 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     return readFromCopy();
   }
 
-  @Override
   public void close() throws IOException {
     // Don't complain about a double close.
     if (op == null) {
@@ -131,38 +127,34 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
       try {
         op.cancelCopy();
       } catch (SQLException se) {
-        throw new IOException("Failed to close copy reader.", se);
+        IOException ioe = new IOException("Failed to close copy reader.");
+        ioe.initCause(se);
+        throw ioe;
       }
     }
     op = null;
   }
 
-  @Override
   public void cancelCopy() throws SQLException {
     op.cancelCopy();
   }
 
-  @Override
   public int getFormat() {
     return op.getFormat();
   }
 
-  @Override
   public int getFieldFormat(int field) {
     return op.getFieldFormat(field);
   }
 
-  @Override
   public int getFieldCount() {
     return op.getFieldCount();
   }
 
-  @Override
   public boolean isActive() {
     return op != null && op.isActive();
   }
 
-  @Override
   public long getHandledRowCount() {
     return op.getHandledRowCount();
   }
