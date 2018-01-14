@@ -292,10 +292,10 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
   }
 
-  private Set<Integer> getBinaryOids(Properties info) throws PSQLException {
+  private static Set<Integer> getBinaryOids(Properties info) throws PSQLException {
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // Formats that currently have binary protocol support
-    Set<Integer> binaryOids = new HashSet<Integer>();
+    Set<Integer> binaryOids = new HashSet<Integer>(32);
     if (binaryTransfer) {
       binaryOids.add(Oid.BYTEA);
       binaryOids.add(Oid.INT2);
@@ -325,7 +325,7 @@ public class PgConnection implements BaseConnection {
     return binaryOids;
   }
 
-  private Set<Integer> getOidSet(String oidList) throws PSQLException {
+  private static Set<Integer> getOidSet(String oidList) throws PSQLException {
     Set<Integer> oids = new HashSet<Integer>();
     StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
     while (tokenizer.hasMoreTokens()) {
