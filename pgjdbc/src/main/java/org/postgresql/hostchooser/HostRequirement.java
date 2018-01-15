@@ -19,12 +19,12 @@ public enum HostRequirement {
       return status == HostStatus.Master || status == HostStatus.ConnectOK;
     }
   },
-  slave {
+  secondary {
     public boolean allowConnectingTo(HostStatus status) {
-      return status == HostStatus.Slave || status == HostStatus.ConnectOK;
+      return status == HostStatus.Secondary || status == HostStatus.ConnectOK;
     }
   },
-  preferSlave {
+  preferSecondary {
     public boolean allowConnectingTo(HostStatus status) {
       return status != HostStatus.ConnectFail;
     }

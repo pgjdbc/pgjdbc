@@ -212,10 +212,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, user, database,
             cancelSignalTimeout, info);
 
-        // Check Master or Slave
+        // Check Master or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;
         if (candidateHost.targetServerType != HostRequirement.any) {
-          hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Slave;
+          hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Secondary;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         knownStates.put(hostSpec, hostStatus);

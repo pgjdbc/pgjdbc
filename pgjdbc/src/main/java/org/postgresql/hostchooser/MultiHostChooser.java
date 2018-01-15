@@ -56,32 +56,32 @@ class MultiHostChooser implements HostChooser {
   }
 
   private Iterator<CandidateHost> candidateIterator() {
-    if (targetServerType != HostRequirement.preferSlave) {
+    if (targetServerType != HostRequirement.preferSecondary) {
       return getCandidateHosts(targetServerType).iterator();
     }
 
-    // preferSlave tries to find slave hosts first
+    // preferSecondary tries to find secondary hosts first
     // Note: sort does not work here since there are "unknown" hosts,
-    // and that "unkown" might turn out to be master, so we should discard that
-    // if other slaves exist
-    List<CandidateHost> slaves = getCandidateHosts(HostRequirement.slave);
+    // and that "unknown" might turn out to be master, so we should discard that
+    // if other secondaries exist
+    List<CandidateHost> secondaries = getCandidateHosts(HostRequirement.secondary);
     List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
 
-    if (slaves.isEmpty()) {
+    if (secondaries.isEmpty()) {
       return any.iterator();
     }
 
     if (any.isEmpty()) {
-      return slaves.iterator();
+      return secondaries.iterator();
     }
 
-    if (slaves.get(slaves.size() - 1).equals(any.get(0))) {
-      // When the last slave's hostspec is the same as the first in "any" list, there's no need
-      // to attempt to connect it as "slave"
+    if (secondaries.get(secondaries.size() - 1).equals(any.get(0))) {
+      // When the last secondary's hostspec is the same as the first in "any" list, there's no need
+      // to attempt to connect it as "secondary"
       // Note: this is only an optimization
-      slaves = rtrim(1, slaves);
+      secondaries = rtrim(1, secondaries);
     }
-    return append(slaves, any).iterator();
+    return append(secondaries, any).iterator();
   }
 
   private List<CandidateHost> getCandidateHosts(HostRequirement hostRequirement) {

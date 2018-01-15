@@ -385,9 +385,9 @@ Connection conn = DriverManager.getConnection(url);
 * **targetServerType** = String
 
 	Allows opening connections to only servers with required state, 
-	the allowed values are any, master, slave and preferSlave. 
+	the allowed values are any, master, slave, secondary, preferSlave and preferSecondary. 
 	The master/slave distinction is currently done by observing if the server allows writes. 
-	The value preferSlave tries to connect to slaves if any are available, 
+	The value preferSecondary tries to connect to secondary if any are available, 
 	otherwise allows falls back to connecting also to master.
 
 * **hostRecheckSeconds** = int
