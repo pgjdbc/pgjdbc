@@ -118,7 +118,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     HostRequirement targetServerType;
     String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
     try {
-      targetServerType = HostRequirement.valueOf(targetServerTypeStr);
+      targetServerType = HostRequirement.getTargetServerType(targetServerTypeStr);
     } catch (IllegalArgumentException ex) {
       throw new PSQLException(
           GT.tr("Invalid targetServerType value: {0}", targetServerTypeStr),
@@ -212,10 +212,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, user, database,
             cancelSignalTimeout, info);
 
-        // Check Master or Slave
+        // Check Master or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;
         if (candidateHost.targetServerType != HostRequirement.any) {
-          hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Slave;
+          hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Secondary;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         knownStates.put(hostSpec, hostStatus);

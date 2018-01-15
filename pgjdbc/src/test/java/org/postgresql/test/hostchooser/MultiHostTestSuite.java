@@ -20,7 +20,7 @@ import java.util.Properties;
  */
 public class MultiHostTestSuite extends TestSuite {
 
-  public static java.sql.Connection openSlaveDB() throws Exception {
+  public static java.sql.Connection openSecondaryDB() throws Exception {
     TestUtil.initDriver();
 
     Properties props = new Properties();
@@ -28,10 +28,10 @@ public class MultiHostTestSuite extends TestSuite {
     props.setProperty("user", TestUtil.getUser());
     props.setProperty("password", TestUtil.getPassword());
 
-    return DriverManager.getConnection(TestUtil.getURL(getSlaveServer(), getSlavePort()), props);
+    return DriverManager.getConnection(TestUtil.getURL(getSecondaryServer(), getSecondaryPort()), props);
   }
 
-  public static java.sql.Connection openSlaveDB2() throws Exception {
+  public static java.sql.Connection openSecondaryDB2() throws Exception {
     TestUtil.initDriver();
 
     Properties props = new Properties();
@@ -39,37 +39,37 @@ public class MultiHostTestSuite extends TestSuite {
     props.setProperty("user", TestUtil.getUser());
     props.setProperty("password", TestUtil.getPassword());
 
-    return DriverManager.getConnection(TestUtil.getURL(getSlaveServer2(), getSlavePort2()), props);
+    return DriverManager.getConnection(TestUtil.getURL(getSecondaryServer2(), getSecondaryPort2()), props);
   }
 
   /*
    * Returns the Test server
    */
-  public static String getSlaveServer() {
-    return System.getProperty("slaveServer", TestUtil.getServer());
+  public static String getSecondaryServer() {
+    return System.getProperty("secondaryServer", TestUtil.getServer());
   }
 
   /*
    * Returns the Test port
    */
-  public static int getSlavePort() {
+  public static int getSecondaryPort() {
     return Integer
-        .parseInt(System.getProperty("slavePort", String.valueOf(TestUtil.getPort() + 1)));
+        .parseInt(System.getProperty("secondaryPort", String.valueOf(TestUtil.getPort() + 1)));
   }
 
   /*
    * Returns the Test server
    */
-  public static String getSlaveServer2() {
-    return System.getProperty("slaveServer2", TestUtil.getServer());
+  public static String getSecondaryServer2() {
+    return System.getProperty("secondaryServer2", TestUtil.getServer());
   }
 
   /*
    * Returns the Test port
    */
-  public static int getSlavePort2() {
+  public static int getSecondaryPort2() {
     return Integer
-        .parseInt(System.getProperty("slavePort2", String.valueOf(TestUtil.getPort() + 2)));
+        .parseInt(System.getProperty("secondaryPort2", String.valueOf(TestUtil.getPort() + 2)));
   }
 
   /*
@@ -79,10 +79,10 @@ public class MultiHostTestSuite extends TestSuite {
     TestSuite suite = new TestSuite();
 
     try {
-      Connection connection = openSlaveDB();
+      Connection connection = openSecondaryDB();
       TestUtil.closeDB(connection);
 
-      connection = openSlaveDB2();
+      connection = openSecondaryDB2();
       TestUtil.closeDB(connection);
     } catch (PSQLException ex) {
       // replication instance is not available, but suite must have at lest one test case
