@@ -34,8 +34,15 @@ public enum HostRequirement {
 
   /**
    *
+   * The postgreSQL project has decided not to use the term slave to refer to alternate servers.
+   * secondary or standby is preferred. We have arbitrarily chosen secondary.
+   * As of Jan 2018 in order not to break existint code we are going to accept both slave or
+   * secondary for names of alternate servers.
+   * 
+   * The current policy is to keep accepting this silently but not document slave, or slave preferSlave
+   *
    * @param targetServerType
-   * @return
+   * @return HostRequirement
    */
 
   public static HostRequirement getTargetServerType(String targetServerType) {
