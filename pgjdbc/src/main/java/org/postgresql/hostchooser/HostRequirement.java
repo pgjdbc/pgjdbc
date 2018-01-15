@@ -39,7 +39,7 @@ public enum HostRequirement {
    */
 
   public static HostRequirement getTargetServerType(String targetServerType) {
-    String allowSlave = targetServerType.replaceFirst("slave", targetServerType);
+    String allowSlave = targetServerType.replace("lave", "econdary");
     return valueOf(allowSlave);
   }
 
