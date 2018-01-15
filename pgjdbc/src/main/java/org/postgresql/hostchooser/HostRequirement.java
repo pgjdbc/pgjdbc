@@ -31,4 +31,16 @@ public enum HostRequirement {
   };
 
   public abstract boolean allowConnectingTo(HostStatus status);
+
+  /**
+   *
+   * @param targetServerType
+   * @return
+   */
+
+  public static HostRequirement getTargetServerType(String targetServerType) {
+    String allowSlave = targetServerType.replaceFirst("slave", targetServerType);
+    return valueOf(allowSlave);
+  }
+
 }
