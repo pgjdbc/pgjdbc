@@ -100,5 +100,4 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.1.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.2...REL42.1.3
 [42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
 [42.2.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.2.0
-[42.2.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...HEAD
 [Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...HEAD
