@@ -220,8 +220,8 @@ public class GetObjectTest {
   @Test
   public void testGetJavaUtilDate() throws SQLException {
     Statement stmt = _conn.createStatement();
-    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp timestamp_without_time_zone_column"
-        + ", null::timestamp null_timestamp");
+    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp as timestamp_without_time_zone_column"
+        + ", null::timestamp as null_timestamp");
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
@@ -288,8 +288,8 @@ public class GetObjectTest {
   public void testGetCalendar() throws SQLException {
     Statement stmt = _conn.createStatement();
 
-    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp timestamp_without_time_zone_column"
-        + ", TIMESTAMP '2004-10-19 10:23:54+02'::timestamp timestamp_with_time_zone_column, null::timestamp null_timestamp");
+    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp as timestamp_without_time_zone_column"
+        + ", TIMESTAMP '2004-10-19 10:23:54+02'::timestamp as timestamp_with_time_zone_column, null::timestamp as null_timestamp");
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
