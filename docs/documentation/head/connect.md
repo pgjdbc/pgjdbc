@@ -453,3 +453,7 @@ One data source is for writes, another for reads. The write pool limits connecti
 And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
+
+If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
+the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
+will be made to connect to all of the hosts in the URL in order.

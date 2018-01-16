@@ -6,7 +6,10 @@ my $version = shift;
 my %author_url = (
   'Alexander Kjäll' => 'https://github.com/alexanderkjall',
   'AlexElin' => 'https://github.com/AlexElin',
+  'Álvaro Hernández Tortosa' => 'https://github.com/ahachete',
   'aryabukhin' => 'https://github.com/aryabukhin',
+  'Brett Okken' => 'https://github.com/bokken',
+  'Brett Wooldridge' => 'https://github.com/brettwooldridge',
   'bd-infor' => 'https://github.com/bd-infor',
   'Christian Ullrich' => 'https://github.com/chrullrich',
   'Christopher Deckers' => 'https://github.com/Chrriis',
@@ -24,6 +27,8 @@ my %author_url = (
   'Jordan Lewis' => 'https://github.com/jordanlewis',
   'Jorge Solorzano' => 'https://github.com/jorsol',
   'Laurenz Albe' => 'https://github.com/laurenz',
+  'Magnus' => 'https://github.com/magJ',
+  'Magnus Hagander' => 'https://github.com/mhagander',
   'Marc Petzold' => 'https://github.com/dosimeta',
   'Marios Trivyzas' => 'https://github.com/matriv',
   'Mathias Fußenegger' => 'https://github.com/mfussenegger',
@@ -31,7 +36,6 @@ my %author_url = (
   'Minglei Tu' => 'https://github.com/tminglei',
   'Pavel Raiskup' => 'https://github.com/praiskup',
   'Petro Semeniuk' => 'https://github.com/PetroSemeniuk',
-  'Philippe Marschall' => 'https://github.com/marschall',
   'Philippe Marschall' => 'https://github.com/marschall',
   'Rikard Pavelic' => 'https://github.com/zapov',
   'Robert Zenz' => 'https://github.com/RobertZenz',
@@ -44,6 +48,7 @@ my %author_url = (
   'Trygve Laugstøl' => 'https://github.com/trygvis',
   'Vladimir Gordiychuk' => 'https://github.com/Gordiychuk',
   'Vladimir Sitnikov' => 'https://github.com/vlsi',
+  'zapov' => 'https://github.com/zapov',
 );
 
 
