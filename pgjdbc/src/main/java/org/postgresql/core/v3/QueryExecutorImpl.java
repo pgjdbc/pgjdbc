@@ -1197,7 +1197,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           block = true;
           break;
         case 'S': // Parameter Status
-        {
           try {
             receiveParameterStatus();
           } catch (SQLException e) {
@@ -1205,7 +1204,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             endReceiving = true;
           }
           break;
-        }
 
         case 'Z': // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
 
