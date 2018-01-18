@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.ParserTest;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -54,6 +55,7 @@ public class BaseTest4 {
     con = TestUtil.openDB(props);
     PGConnection pg = con.unwrap(PGConnection.class);
     preferQueryMode = pg == null ? PreferQueryMode.EXTENDED : pg.getPreferQueryMode();
+    ParserTest.clearQueryCache();
   }
 
   @After
