@@ -881,6 +881,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if perform JAAS login before GSS authentication
+   * @see PGProperty#JAAS_LOGIN
+   */
+  public boolean getJaasLogin() {
+    return PGProperty.JAAS_LOGIN.getBoolean(properties);
+  }
+
+  /**
+   * @param doLogin true if perform JAAS login before GSS authentication
+   * @see PGProperty#JAAS_LOGIN
+   */
+  public void setJaasLogin(boolean doLogin) {
+    PGProperty.JAAS_LOGIN.set(properties, doLogin);
+  }
+
+  /**
    * @return Kerberos server name
    * @see PGProperty#KERBEROS_SERVER_NAME
    */

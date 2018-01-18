@@ -71,6 +71,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 
@@ -518,8 +519,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         // If backend provides just TIMESTAMP, we use "cal" timezone
         // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
         Timestamp timestamp = getTimestamp(i, cal);
+        long timeMillis = timestamp.getTime();
+        if (oid == Oid.TIMESTAMPTZ) {
+          // time zone == UTC since BINARY "timestamp with time zone" is always sent in UTC
+          // So we truncate days
+          return new Time(timeMillis % TimeUnit.DAYS.toMillis(1));
+        }
         // Here we just truncate date part
-        return connection.getTimestampUtils().convertToTime(timestamp.getTime(), tz);
+        return connection.getTimestampUtils().convertToTime(timeMillis, tz);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -529,13 +536,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     String string = getString(i);
-    if (string.equals("24:00:00")) {
-      return Time.valueOf(string);
-    } else if (string.equals("00:00:00")) {
-      return new Time(0);
-    } else {
-      return connection.getTimestampUtils().toTime(cal, string);
-    }
+    return connection.getTimestampUtils().toTime(cal, string);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
@@ -3293,6 +3294,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       //#endif
       ) {
         Timestamp timestampValue = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
         Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
@@ -3317,6 +3321,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     } else if (type == java.util.Date.class) {
       if (sqlType == Types.TIMESTAMP) {
         Timestamp timestamp = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
         return type.cast(new java.util.Date(timestamp.getTime()));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),

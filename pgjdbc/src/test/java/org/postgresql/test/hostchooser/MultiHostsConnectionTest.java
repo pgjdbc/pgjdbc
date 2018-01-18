@@ -10,10 +10,10 @@ import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.postgresql.hostchooser.HostRequirement.any;
 import static org.postgresql.hostchooser.HostRequirement.master;
-import static org.postgresql.hostchooser.HostRequirement.preferSlave;
-import static org.postgresql.hostchooser.HostRequirement.slave;
-import static org.postgresql.hostchooser.HostStatus.ConnectFail;
-import static org.postgresql.hostchooser.HostStatus.Slave;
+import static org.postgresql.hostchooser.HostRequirement.preferSecondary;
+import static org.postgresql.hostchooser.HostRequirement.secondary;
+import static org.postgresql.hostchooser.HostStatus.Master;
+import static org.postgresql.hostchooser.HostStatus.Secondary;
 import static org.postgresql.test.TestUtil.closeDB;
 
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
@@ -39,11 +39,14 @@ public class MultiHostsConnectionTest extends TestCase {
   static final String user = TestUtil.getUser();
   static final String password = TestUtil.getPassword();
   static final String master1 = TestUtil.getServer() + ":" + TestUtil.getPort();
-  static final String slave1 =
-      MultiHostTestSuite.getSlaveServer() + ":" + MultiHostTestSuite.getSlavePort();
+  static final String secondary1 =
+      MultiHostTestSuite.getSecondaryServer() + ":" + MultiHostTestSuite.getSecondaryPort();
+  static final String secondary2 =
+      MultiHostTestSuite.getSecondaryServer2() + ":" + MultiHostTestSuite.getSecondaryPort2();
   static final String fake1 = "127.127.217.217:1";
   static String masterIp;
-  static String slaveIp;
+  static String secondaryIP;
+  static String secondaryIP2;
   static String fakeIp = fake1;
 
   static Connection con;
@@ -59,8 +62,12 @@ public class MultiHostsConnectionTest extends TestCase {
       masterIp = getRemoteHostSpec();
       closeDB(con);
 
-      con = MultiHostTestSuite.openSlaveDB();
-      slaveIp = getRemoteHostSpec();
+      con = MultiHostTestSuite.openSecondaryDB();
+      secondaryIP = getRemoteHostSpec();
+      closeDB(con);
+
+      con = MultiHostTestSuite.openSecondaryDB2();
+      secondaryIP2 = getRemoteHostSpec();
       closeDB(con);
 
     } catch (Exception e) {
@@ -106,7 +113,8 @@ public class MultiHostsConnectionTest extends TestCase {
       sb.append(target).append(',');
     }
     sb.setLength(sb.length() - 1);
-    sb.append("/test");
+    sb.append("/");
+    sb.append(TestUtil.getDatabase());
 
     return con = DriverManager.getConnection(sb.toString(), props);
   }
@@ -147,9 +155,9 @@ public class MultiHostsConnectionTest extends TestCase {
     assertGlobalState(master1, "ConnectOK");
     assertGlobalState(fake1, "ConnectFail");
 
-    getConnection(any, fake1, slave1);
-    assertRemote(slaveIp);
-    assertGlobalState(slave1, "ConnectOK");
+    getConnection(any, fake1, secondary1);
+    assertRemote(secondaryIP);
+    assertGlobalState(secondary1, "ConnectOK");
 
     getConnection(any, fake1, master1);
     assertRemote(masterIp);
@@ -158,50 +166,50 @@ public class MultiHostsConnectionTest extends TestCase {
   }
 
   public static void testConnectToMaster() throws SQLException {
-    getConnection(master, true, fake1, master1, slave1);
+    getConnection(master, true, fake1, master1, secondary1);
     assertRemote(masterIp);
     assertGlobalState(fake1, "ConnectFail");
     assertGlobalState(master1, "Master");
-    assertGlobalState(slave1, null);
+    assertGlobalState(secondary1, null);
 
-    getConnection(master, false, fake1, slave1, master1);
+    getConnection(master, false, fake1, secondary1, master1);
     assertRemote(masterIp);
-    assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(master1, "Master");
-    assertGlobalState(slave1, "Slave");
+    assertGlobalState(fake1, "ConnectFail"); // cached
+    assertGlobalState(master1, "Master"); // connected to master
+    assertGlobalState(secondary1, "Secondary"); // was unknown, so tried to connect in order
   }
 
   public static void testConnectToSlave() throws SQLException {
-    getConnection(slave, true, fake1, slave1, master1);
-    assertRemote(slaveIp);
+    getConnection(secondary, true, fake1, secondary1, master1);
+    assertRemote(secondaryIP);
     assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(slave1, "Slave");
+    assertGlobalState(secondary1, "Secondary");
     assertGlobalState(master1, null);
 
-    getConnection(slave, false, fake1, master1, slave1);
-    assertRemote(slaveIp);
-    assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(slave1, "Slave");
-    assertGlobalState(master1, "Master");
+    getConnection(secondary, false, fake1, master1, secondary1);
+    assertRemote(secondaryIP);
+    assertGlobalState(fake1, "ConnectFail"); // cached
+    assertGlobalState(secondary1, "Secondary"); // connected
+    assertGlobalState(master1, "Master"); // tried as it was unknown
   }
 
   public static void testConnectToSlaveFirst() throws SQLException {
-    getConnection(preferSlave, true, fake1, slave1, master1);
-    assertRemote(slaveIp);
+    getConnection(preferSecondary, true, fake1, secondary1, master1);
+    assertRemote(secondaryIP);
     assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(slave1, "Slave");
+    assertGlobalState(secondary1, "Secondary");
     assertGlobalState(master1, null);
 
-    getConnection(preferSlave, false, fake1, master1, slave1);
-    assertRemote(masterIp);
+    getConnection(secondary, false, fake1, master1, secondary1);
+    assertRemote(secondaryIP);
     assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(slave1, "Slave");
-    assertGlobalState(master1, "Master");
+    assertGlobalState(secondary1, "Secondary");
+    assertGlobalState(master1, "Master"); // tried as it was unknown
 
-    getConnection(preferSlave, false, fake1, master1, slave1);
-    assertRemote(slaveIp);
+    getConnection(preferSecondary, true, fake1, master1, secondary1);
+    assertRemote(secondaryIP);
     assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(slave1, "Slave");
+    assertGlobalState(secondary1, "Secondary");
     assertGlobalState(master1, "Master");
   }
 
@@ -217,45 +225,114 @@ public class MultiHostsConnectionTest extends TestCase {
     Set<String> connectedHosts = new HashSet<String>();
     boolean fake1FoundTried = false;
     for (int i = 0; i < 20; ++i) {
-      getConnection(any, true, true, fake1, master1, slave1);
+      getConnection(any, true, true, fake1, master1, secondary1);
       connectedHosts.add(getRemoteHostSpec());
       fake1FoundTried |= hostStatusMap.containsKey(hostSpec(fake1));
       if (connectedHosts.size() == 2 && fake1FoundTried) {
         break;
       }
     }
-    assertEquals("Never connected to all hosts", new HashSet<String>(asList(masterIp, slaveIp)),
+    assertEquals("Never connected to all hosts", new HashSet<String>(asList(masterIp, secondaryIP)),
         connectedHosts);
     assertTrue("Never tried to connect to fake node", fake1FoundTried);
   }
 
-  public static void testHostRechecks() throws SQLException, InterruptedException {
-    getConnection(master, true, fake1, master1, slave1);
-    assertRemote(masterIp);
-    assertGlobalState(fake1, "ConnectFail");
-    assertGlobalState(slave1, null);
+  public static void testLoadBalancing_preferSecondary() throws SQLException {
+    Set<String> connectedHosts = new HashSet<String>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    for (int i = 0; i < 20; ++i) {
+      getConnection(preferSecondary, true, true, fake1, master1, secondary1, secondary2);
+      connectedHosts.add(getRemoteHostSpec());
+      tryConnectedHosts.addAll(hostStatusMap.keySet());
+      if (tryConnectedHosts.size() == 4) {
+        break;
+      }
+    }
+    assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP,
+        secondaryIP2)),
+        connectedHosts);
+    assertEquals("Never tried to connect to fake node",4, tryConnectedHosts.size());
 
-    GlobalHostStatusTracker.reportHostStatus(hostSpec(master1), ConnectFail);
-    assertGlobalState(master1, "ConnectFail");
+    getConnection(preferSecondary, false, true, fake1, master1, secondary1);
+    assertRemote(secondaryIP);
+    connectedHosts.clear();
+    for (int i = 0; i < 20; ++i) {
+      getConnection(preferSecondary, false, true, fake1, master1, secondary1, secondary2);
+      connectedHosts.add(getRemoteHostSpec());
+      if (connectedHosts.size() == 2) {
+        break;
+      }
+    }
+    assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP,
+        secondaryIP2)),
+        connectedHosts);
+
+    // connect to master when there's no secondary
+    getConnection(preferSecondary, true, true, fake1, master1);
+    assertRemote(masterIp);
+
+    getConnection(preferSecondary, false, true, fake1, master1);
+    assertRemote(masterIp);
+  }
+
+  public static void testLoadBalancing_slave() throws SQLException {
+    Set<String> connectedHosts = new HashSet<String>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    for (int i = 0; i < 20; ++i) {
+      getConnection(secondary, true, true, fake1, master1, secondary1, secondary2);
+      connectedHosts.add(getRemoteHostSpec());
+      tryConnectedHosts.addAll(hostStatusMap.keySet());
+      if (tryConnectedHosts.size() == 4) {
+        break;
+      }
+    }
+    assertEquals("Did not connect to all secondary hosts", new HashSet<String>(asList(secondaryIP,
+        secondaryIP2)),
+        connectedHosts);
+    assertEquals("Did not attempt to connect to master and fake node", 4, tryConnectedHosts.size());
+
+    getConnection(preferSecondary, false, true, fake1, master1, secondary1);
+    assertRemote(secondaryIP);
+    connectedHosts.clear();
+    for (int i = 0; i < 20; ++i) {
+      getConnection(secondary, false, true, fake1, master1, secondary1, secondary2);
+      connectedHosts.add(getRemoteHostSpec());
+      if (connectedHosts.size() == 2) {
+        break;
+      }
+    }
+    assertEquals("Did not connect to all secondary hosts", new HashSet<String>(asList(secondaryIP,
+        secondaryIP2)),
+        connectedHosts);
+  }
+
+  public static void testHostRechecks() throws SQLException, InterruptedException {
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(master1), Secondary);
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(secondary1), Master);
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(fake1), Secondary);
 
     try {
-      getConnection(master, false, fake1, slave1, master1);
+      getConnection(master, false, fake1, secondary1, master1);
       fail();
     } catch (SQLException ex) {
     }
 
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(master1), Secondary);
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(secondary1), Master);
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(fake1), Secondary);
+
     SECONDS.sleep(3);
 
-    getConnection(master, false, slave1, fake1, master1);
+    getConnection(master, false, secondary1, fake1, master1);
     assertRemote(masterIp);
   }
 
   public static void testNoGoodHostsRechecksEverything() throws SQLException, InterruptedException {
-    GlobalHostStatusTracker.reportHostStatus(hostSpec(master1), Slave);
-    GlobalHostStatusTracker.reportHostStatus(hostSpec(slave1), Slave);
-    GlobalHostStatusTracker.reportHostStatus(hostSpec(fake1), Slave);
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(master1), Secondary);
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(secondary1), Secondary);
+    GlobalHostStatusTracker.reportHostStatus(hostSpec(fake1), Secondary);
 
-    getConnection(master, false, slave1, fake1, master1);
+    getConnection(master, false, secondary1, fake1, master1);
     assertRemote(masterIp);
   }
 }

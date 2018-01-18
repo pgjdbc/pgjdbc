@@ -63,6 +63,7 @@ BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
 BuildRequires:	java-comment-preprocessor
 BuildRequires:	properties-maven-plugin
+BuildRequires:	maven-clean-plugin
 BuildRequires:	maven-enforcer-plugin
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	maven-plugin-build-helper

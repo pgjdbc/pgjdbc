@@ -95,8 +95,11 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslmode** = String
 
-	possible values are "verify-ca" and "verify-full" setting these will 
-	necessitate storing the server certificate on the client machine ["Configuring the client"](ssl-client.html).
+	possible values include "disable", "require", "verify-ca" and "verify-full", "allow" and "prefer" 
+	will throw an exception. "require" will default to a non validating SSL factory and not check the 
+	validity of the certificates. "verify-ca" and "verify-full" use a validating SSL factory and will 
+	check that the ca is correct and the host is correct. Setting these will necessitate storing the 
+	server certificate on the client machine ["Configuring the client"](ssl-client.html).
 
 * **sslcert** = String
 
@@ -304,7 +307,15 @@ Connection conn = DriverManager.getConnection(url);
 
 * **jaasApplicationName** = String
 
-	Specifies the name of the JAAS system or application login configuration. 
+	Specifies the name of the JAAS system or application login configuration.
+
+* **jaasLogin** = boolean
+
+	Specifies whether to perform a JAAS login before authenticating with GSSAPI.
+	If set to `true` (the default), the driver will attempt to obtain GSS credentials
+	using the configured JAAS login module(s) (e.g. `Krb5LoginModule`) before
+	authenticating. To skip the JAAS login, for example if the native GSS
+	implementation is being used to obtain credentials, set this to `false`.
 
 * **ApplicationName** = String
 
@@ -374,9 +385,9 @@ Connection conn = DriverManager.getConnection(url);
 * **targetServerType** = String
 
 	Allows opening connections to only servers with required state, 
-	the allowed values are any, master, slave and preferSlave. 
+	the allowed values are any, master, slave, secondary, preferSlave and preferSecondary. 
 	The master/slave distinction is currently done by observing if the server allows writes. 
-	The value preferSlave tries to connect to slaves if any are available, 
+	The value preferSecondary tries to connect to secondary if any are available, 
 	otherwise allows falls back to connecting also to master.
 
 * **hostRecheckSeconds** = int
@@ -442,3 +453,7 @@ One data source is for writes, another for reads. The write pool limits connecti
 And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
+
+If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
+the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
+will be made to connect to all of the hosts in the URL in order.

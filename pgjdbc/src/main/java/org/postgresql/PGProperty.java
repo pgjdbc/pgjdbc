@@ -181,7 +181,8 @@ public enum PGProperty {
    * {@code verify-full}, or {@code disable} ({@code allow} and {@code prefer} are not implemented)
    * If not set, the {@code ssl} property may be checked to enable SSL mode.
    */
-  SSL_MODE("sslmode", null, "Parameter governing the use of SSL"),
+  SSL_MODE("sslmode", null, "Parameter governing the use of SSL",false,
+      "disable", "require", "verify-ca", "verify-full"),
 
   /**
    * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
@@ -305,6 +306,13 @@ public enum PGProperty {
   APPLICATION_NAME("ApplicationName", DriverInfo.DRIVER_NAME, "Name of the Application (backend >= 9.0)"),
 
   /**
+   * Flag to enable/disable obtaining a GSS credential via JAAS login before authenticating.
+   * Useful if setting system property javax.security.auth.useSubjectCredsOnly=false
+   * or using native GSS with system property sun.security.jgss.native=true
+   */
+  JAAS_LOGIN("jaasLogin", "true", "Login with JAAS before doing GSSAPI authentication"),
+
+  /**
    * Specifies the name of the JAAS system or application login configuration.
    */
   JAAS_APPLICATION_NAME("jaasApplicationName", null,
@@ -353,13 +361,13 @@ public enum PGProperty {
   CURRENT_SCHEMA("currentSchema", null, "Specify the schema to be set in the search-path"),
 
   TARGET_SERVER_TYPE("targetServerType", "any", "Specifies what kind of server to connect", false,
-      "any", "master", "slave", "preferSlave"),
+      "any", "master", "slave", "secondary",  "preferSlave", "preferSecondary"),
 
   LOAD_BALANCE_HOSTS("loadBalanceHosts", "false",
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   HOST_RECHECK_SECONDS("hostRecheckSeconds", "10",
-      "Specifies period (seconds) after host statuses are checked again in case they have changed"),
+      "Specifies period (seconds) after which the host status is checked again in case it has changed"),
 
   /**
    * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),

@@ -31,9 +31,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(Parameterized.class)
 public class AutoRollbackTestSuite extends BaseTest4 {
+  private static final AtomicInteger counter = new AtomicInteger();
 
   private enum FailMode {
     /**
@@ -343,7 +345,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
       con.setAutoCommit(false);
       Statement st = con.createStatement();
       st.executeUpdate(
-          "insert into rollbacktest(a, str) values (42, '" + System.currentTimeMillis() + "')");
+          "insert into rollbacktest(a, str) values (42, '" + System.currentTimeMillis() + "," + counter.getAndIncrement() + "')");
       st.close();
     }
     con.commit();

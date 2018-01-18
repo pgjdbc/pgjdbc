@@ -23,36 +23,36 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.1.4-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.2.0-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.4</version>
+    <version>42.2.0</version>
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-42.1.4.jre7-blue.svg)][mvn-jre7]
+[![Java 7](https://img.shields.io/badge/Java_7-42.2.0.jre7-blue.svg)][mvn-jre7]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.4.jre7</version>
+    <version>42.2.0.jre7</version>
 </dependency>
 ```
 
-[![Java 6](https://img.shields.io/badge/Java_6-42.1.4.jre6-blue.svg)][mvn-jre6]
+[![Java 6](https://img.shields.io/badge/Java_6-42.2.0.jre6-blue.svg)][mvn-jre6]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.4.jre6</version>
+    <version>42.2.0.jre6</version>
 </dependency>
 ```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.4.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.4.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.4|bundle
+[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.0.jre6|bundle
+[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.0.jre7|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.0|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -60,9 +60,9 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.1.5-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.1.5.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.1.5.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.2.1-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.2.1.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.2.1.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
@@ -85,7 +85,7 @@ For more information you can read [the PgJDBC driver documentation](https://jdbc
 The driver recognises JDBC URLs of the form:
 ```
 jdbc:postgresql:database
-jdbc:postgresql:/
+jdbc:postgresql:
 jdbc:postgresql://host/database
 jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
@@ -93,7 +93,7 @@ jdbc:postgresql://host:port/
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
-jdbc:postgresql://[host][:port][/[database]][?property1=value1[&property2=value2]...]
+jdbc:postgresql:[//host[:port]/][database][?property1=value1[&property2=value2]...]
 ```
 where:
  * **jdbc:postgresql:** (Required) is known as the sub-protocol and is constant.
@@ -140,8 +140,8 @@ In addition to the standard connection parameters the driver supports a number o
 | disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
 | assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
 | currentSchema                 | String  | null    | Specify the schema to be set in the search-path |
-| targetServerType              | String  | any     | Specifies what kind of server to connect, possible values: any, master, slave, preferSlave |
-| hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after host statuses are checked again in case they have changed |
+| targetServerType              | String  | any     | Specifies what kind of server to connect, possible values: any, master, slave (deprecated), secondary, preferSlave (deprecated), preferSecondary |
+| hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after which the host status is checked again in case it has changed |
 | loadBalanceHosts              | Boolean | false   | If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates |
 | socketFactory                 | String  | null    | Specify a socket factory for socket creation |
 | socketFactoryArg              | String  | null    | Argument forwarded to constructor of SocketFactory class. |

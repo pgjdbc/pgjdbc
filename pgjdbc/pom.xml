@@ -3,14 +3,14 @@
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-core-parent</artifactId>
-    <version>1.1.2</version>
+    <version>1.1.3</version>
     <relativePath />
   </parent>
 
   <artifactId>postgresql</artifactId>
   <packaging>bundle</packaging>
   <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-  <version>42.1.5-SNAPSHOT</version>
+  <version>42.2.1-SNAPSHOT</version>
   <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 

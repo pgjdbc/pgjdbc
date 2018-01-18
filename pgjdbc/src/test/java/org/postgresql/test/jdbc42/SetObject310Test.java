@@ -30,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.chrono.IsoEra;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -103,10 +104,6 @@ public class SetObject310Test {
     insert(data, columnName, null);
   }
 
-  private void insertWithType(OffsetDateTime data, String columnName) throws SQLException {
-    insert(data, columnName, Types.TIMESTAMP_WITH_TIMEZONE);
-  }
-
   private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expectedType) throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
     try {
@@ -178,7 +175,9 @@ public class SetObject310Test {
       ZoneId zone = ZoneId.of(zoneId);
       for (String date : datesToTest) {
         LocalDateTime localDateTime = LocalDateTime.parse(date);
-        String expected = date.replace('T', ' ');
+        String expected = localDateTime.atZone(zone)
+            .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .replace('T', ' ');
         localTimestamps(zone, localDateTime, expected);
       }
     }
@@ -241,42 +240,42 @@ public class SetObject310Test {
   private void localTimestamps(ZoneId zoneId, LocalDateTime localDateTime, String expected) throws SQLException {
     TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
     String readBack = insertThenReadStringWithoutType(localDateTime, "timestamp_without_time_zone_column");
-    assertEquals(expected, readBack);
+    assertEquals(
+        "LocalDateTime=" + localDateTime + ", with TimeZone.default=" + zoneId + ", setObject(int, Object)",
+        expected, readBack);
     deleteRows();
 
     readBack = insertThenReadStringWithType(localDateTime, "timestamp_without_time_zone_column");
-    assertEquals(expected, readBack);
+    assertEquals(
+        "LocalDateTime=" + localDateTime + ", with TimeZone.default=" + zoneId + ", setObject(int, Object, TIMESTAMP)",
+        expected, readBack);
     deleteRows();
   }
 
   private void offsetTimestamps(ZoneId dataZone, LocalDateTime localDateTime, String expected, List<TimeZone> storeZones) throws SQLException {
     OffsetDateTime data = localDateTime.atZone(dataZone).toOffsetDateTime();
-    final boolean startAutoCommit = con.getAutoCommit();
-    try {
-      con.setAutoCommit(false);
+    try (PreparedStatement ps = con.prepareStatement(
+        "select ?::timestamp with time zone, ?::timestamp with time zone")) {
       for (TimeZone storeZone : storeZones) {
         TimeZone.setDefault(storeZone);
-        insertWithoutType(data, "timestamp_with_time_zone_column");
-
-        String readBack = readString("timestamp_with_time_zone_column");
-        OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
-        assertEquals(data.toInstant(), o.toInstant());
-        con.rollback();
+        ps.setObject(1, data);
+        ps.setObject(2, data, Types.TIMESTAMP_WITH_TIMEZONE);
+        try (ResultSet rs = ps.executeQuery()) {
+          rs.next();
+          String noType = rs.getString(1);
+          OffsetDateTime noTypeRes = OffsetDateTime.parse(noType.replace(' ', 'T') + ":00");
+          assertEquals(
+              "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
+                  + storeZone + ", setObject(int, Object)", data.toInstant(),
+              noTypeRes.toInstant());
+          String withType = rs.getString(1);
+          OffsetDateTime withTypeRes = OffsetDateTime.parse(withType.replace(' ', 'T') + ":00");
+          assertEquals(
+              "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
+                  + storeZone + ", setObject(int, Object, TIMESTAMP_WITH_TIMEZONE)",
+              data.toInstant(), withTypeRes.toInstant());
+        }
       }
-
-      for (TimeZone storeZone : storeZones) {
-        TimeZone.setDefault(storeZone);
-        insertWithType(data, "timestamp_with_time_zone_column");
-
-        String readBack = readString("timestamp_with_time_zone_column");
-        OffsetDateTime o = OffsetDateTime.parse(readBack.replace(' ', 'T') + ":00");
-
-        assertEquals(data.toInstant(), o.toInstant());
-
-        con.rollback();
-      }
-    } finally {
-      con.setAutoCommit(startAutoCommit);
     }
   }
 
