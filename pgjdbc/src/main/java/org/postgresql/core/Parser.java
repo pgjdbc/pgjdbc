@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -17,7 +19,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -64,7 +65,9 @@ public class Parser {
       this.withParameters = withParameters;
       this.splitStatements = splitStatements;
       this.isBatchedReWriteConfigured = isBatchedReWriteConfigured;
-      this.returningColumnNames = returningColumnNames;
+
+      //make defensive copy for query key
+      this.returningColumnNames = returningColumnNames.length == 0 ? returningColumnNames : returningColumnNames.clone();
 
       final int prime = 31;
       int result = 1;
@@ -82,7 +85,6 @@ public class Parser {
      */
     @Override
     public int hashCode() {
-
       return hashCode;
     }
 
@@ -154,14 +156,34 @@ public class Parser {
   }
 
   /**
+   * By extending {@link WeakReference} we can also keep the key to use to remove from the cache
+   * when this object is found in the reference queue.
+   */
+  private static final class WeakReferenceWithKey extends WeakReference<QueriesAndCounter> {
+    final QueryKey queryKey;
+
+    public WeakReferenceWithKey(QueryKey queryKey, QueriesAndCounter referent,
+        ReferenceQueue<? super QueriesAndCounter> q) {
+      super(referent, q);
+      this.queryKey = queryKey;
+    }
+    
+  }
+
+  /**
    * Caches parsed queries by the attributes used for parsing. Uses a {@code WeakReference} around the
    * {@code List<NativeQuery>} to be sensitive memory utilization within the jvm. By setting each
    * {@link NativeQuery#reference} to the {@code List} in the cache, as long as a {@code Statement}
    * maintains a reference to at least one {@code NativeQuery} instance, the entry will remain in the
    * cache.
    */
-  private static final ConcurrentHashMap<QueryKey, WeakReference<QueriesAndCounter>> PARSED_CACHE
-       = new ConcurrentHashMap<QueryKey, WeakReference<QueriesAndCounter>>();
+  private static final ConcurrentHashMap<QueryKey, WeakReferenceWithKey> PARSED_CACHE
+       = new ConcurrentHashMap<QueryKey, WeakReferenceWithKey>();
+
+  /**
+   * {@link ReferenceQueue} for expired {@link WeakReferenceWithKey} instances to facilitate removal from {@link #PARSED_CACHE}.
+   */
+  private static final ReferenceQueue<QueriesAndCounter> REFERENCE_QUEUE = new ReferenceQueue<QueriesAndCounter>();
 
   private static final int[] NO_BINDS = new int[0];
 
@@ -220,20 +242,17 @@ public class Parser {
 
     final QueryKey queryKey = new QueryKey(query, standardConformingStrings, withParameters,
         splitStatements, isBatchedReWriteConfigured, returningColumnNames);
-    WeakReference<QueriesAndCounter> ref = PARSED_CACHE.get(queryKey);
+    WeakReferenceWithKey ref = PARSED_CACHE.get(queryKey);
     if (ref != null) {
-      QueriesAndCounter queryAndCounter = ref.get();
-      if (queryAndCounter != null) {
+      final QueriesAndCounter queryAndCounter = ref.get();
+      //only return value if it has not been enqueued
+      if (queryAndCounter != null && !ref.isEnqueued()) {
         return queryAndCounter;
       }
-      PARSED_CACHE.remove(queryKey, ref);
-      //if 1 weak reference has cleared, possible others have as well, good to pro-actively clean up
-      for (Iterator<WeakReference<QueriesAndCounter>> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
-        if (refIter.next().get() == null) {
-          refIter.remove();
-        }
-      }
     }
+
+    //before we add another reference, find and clear out any references which have been released
+    clearEmtpyRefs();
 
     final List<NativeQuery> parsedQueries = _parseJdbcSql(query, standardConformingStrings,
         withParameters, splitStatements, isBatchedReWriteConfigured, returningColumnNames);
@@ -257,17 +276,32 @@ public class Parser {
       nativeQuery.reference = queryAndCounter;
     }
 
-    ref = new WeakReference<QueriesAndCounter>(queryAndCounter);
+    ref = new WeakReferenceWithKey(queryKey, queryAndCounter, REFERENCE_QUEUE);
     if (PARSED_CACHE.putIfAbsent(queryKey, ref) == null) {
       return queryAndCounter;
     }
-    //if there was a value there (indicating concurrent activity to populate the map), then recurse and try again
+    //if there was a value there (indicating concurrent activity to populate the map),
+    //clear the created ref, then recurse and try again
+    if (ref.enqueue()) {
+      clearEmtpyRefs();
+    }
     return parseJdbcSqlAndCounter(query,
                                   standardConformingStrings,
                                   withParameters,
                                   splitStatements,
                                   isBatchedReWriteConfigured,
                                   returningColumnNames);
+  }
+
+  /**
+   * {@link ReferenceQueue#poll() Polls} {@link #REFERENCE_QUEUE} and removes any entries found from {@link #PARSED_CACHE}.
+   */
+  private static void clearEmtpyRefs() {
+    Reference<? extends QueriesAndCounter> goneRef;
+    while ((goneRef = REFERENCE_QUEUE.poll()) != null) {
+      assert goneRef instanceof WeakReferenceWithKey;
+      PARSED_CACHE.remove(((WeakReferenceWithKey)goneRef).queryKey, goneRef);
+    }
   }
 
   private static List<NativeQuery> _parseJdbcSql(String query, boolean standardConformingStrings,
