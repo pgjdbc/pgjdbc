@@ -33,6 +33,20 @@ public class HostSpecTest {
   }
 
   @Test
+  public void testShouldResolveWithEmptySocksProxyHost() throws Exception {
+    System.setProperty("socksProxyHost", "");
+    HostSpec hostSpec = new HostSpec("localhost", 5432);
+    assertFalse(hostSpec.shouldResolve());
+  }
+
+  @Test
+  public void testShouldResolveWithWhiteSpaceSocksProxyHost() throws Exception {
+    System.setProperty("socksProxyHost", " ");
+    HostSpec hostSpec = new HostSpec("localhost", 5432);
+    assertFalse(hostSpec.shouldResolve());
+  }
+
+  @Test
   public void testShouldResolveWithSocksProxyHost() throws Exception {
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     HostSpec hostSpec = new HostSpec("example.com", 5432);
