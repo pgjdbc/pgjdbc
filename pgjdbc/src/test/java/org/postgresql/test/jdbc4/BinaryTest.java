@@ -35,6 +35,7 @@ public class BinaryTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
+    //clear the cache so that counts get reset between test runs
     ParserTest.clearQueryCache();
     Assume.assumeTrue("Server-prepared statements are not supported in 'simple protocol only'",
         preferQueryMode != PreferQueryMode.SIMPLE);
