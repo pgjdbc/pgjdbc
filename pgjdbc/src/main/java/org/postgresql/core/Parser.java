@@ -5,7 +5,6 @@
 
 package org.postgresql.core;
 
-import org.postgresql.core.Parser.QueriesAndCounter;
 import org.postgresql.jdbc.EscapedFunctions;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -161,7 +160,7 @@ public class Parser {
    * By extending {@link WeakReference} we can also keep the key to use to remove from the cache
    * when this object is found in the reference queue.
    */
-  private static final class WeakReferenceWithKey extends WeakReference<QueriesAndCounter> {
+  private static final class WeakReferenceWithKey extends WeakReference<Parser.QueriesAndCounter> {
     final QueryKey queryKey;
 
     WeakReferenceWithKey(QueryKey queryKey, QueriesAndCounter referent,
