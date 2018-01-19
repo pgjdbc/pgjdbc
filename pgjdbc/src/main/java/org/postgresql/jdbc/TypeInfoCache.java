@@ -474,7 +474,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-  public int getSQLType(int oid) throws SQLException {
+  public synchronized int getSQLType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return Types.OTHER;
     }
