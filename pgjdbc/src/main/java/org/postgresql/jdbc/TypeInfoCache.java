@@ -548,6 +548,10 @@ public class TypeInfoCache implements TypeInfo {
   comparison to time spent over the wire and the overhead in maintaining a separate code path for 8.2.
    */
 
+  /*
+    getOidStatement(ParsedTypeName) is private and only called from fetchPgType(String), which
+    is synchronized. As such, we forgo marking getOidStatement as synchronized.
+   */
   private PreparedStatement getOidStatement(ParsedTypeName typeName) throws SQLException {
     if (typeName.isSimple()) {
       if (_getOidStatementSimple == null) {
@@ -602,6 +606,10 @@ public class TypeInfoCache implements TypeInfo {
     return oidStatementComplex;
   }
 
+  /*
+    getArrayOidStatement(ParsedTypeName) is private and only called from fetchPgType(String), which
+    is synchronized. As such, we forgo marking getArrayOidStatement as synchronized.
+   */
   private PreparedStatement getArrayOidStatement(ParsedTypeName typeName) throws SQLException {
     PreparedStatement oidStatementComplex;
     if (_getOidStatementComplexArray == null) {
