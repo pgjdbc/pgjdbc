@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.core.Parser.QueriesAndCounter;
 import org.postgresql.jdbc.EscapedFunctions;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -191,7 +192,7 @@ public class Parser {
    * Utility method used by tests to clear the cache.
    */
   static void clearCache() {
-    for(Iterator<WeakReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
+    for (Iterator<WeakReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
       final WeakReferenceWithKey ref = refIter.next();
       //remove from the map
       refIter.remove();
