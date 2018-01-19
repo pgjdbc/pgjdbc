@@ -6,6 +6,7 @@ then
   # Try to prevent "stdout: write error"
   # WA is taken from https://github.com/travis-ci/travis-ci/issues/4704#issuecomment-348435959
   python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
+  export PROJECT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\[')
   export PARENT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.parent.version | grep -v '\[')
   exec ./packaging/rpm_ci
 fi
