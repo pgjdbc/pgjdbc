@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -162,12 +163,11 @@ public class Parser {
   private static final class WeakReferenceWithKey extends WeakReference<QueriesAndCounter> {
     final QueryKey queryKey;
 
-    public WeakReferenceWithKey(QueryKey queryKey, QueriesAndCounter referent,
+    WeakReferenceWithKey(QueryKey queryKey, QueriesAndCounter referent,
         ReferenceQueue<? super QueriesAndCounter> q) {
       super(referent, q);
       this.queryKey = queryKey;
     }
-    
   }
 
   /**
@@ -191,7 +191,14 @@ public class Parser {
    * Utility method used by tests to clear the cache.
    */
   static void clearCache() {
-    PARSED_CACHE.clear();
+    for(Iterator<WeakReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
+      final WeakReferenceWithKey ref = refIter.next();
+      //remove from the map
+      refIter.remove();
+      //encourage enqueing to ref queue
+      ref.enqueue();
+    }
+    clearEmtpyRefs();
   }
 
   /**
@@ -249,6 +256,7 @@ public class Parser {
       if (queryAndCounter != null && !ref.isEnqueued()) {
         return queryAndCounter;
       }
+      PARSED_CACHE.remove(queryKey, ref);
     }
 
     //before we add another reference, find and clear out any references which have been released
@@ -277,14 +285,24 @@ public class Parser {
     }
 
     ref = new WeakReferenceWithKey(queryKey, queryAndCounter, REFERENCE_QUEUE);
-    if (PARSED_CACHE.putIfAbsent(queryKey, ref) == null) {
+    final WeakReferenceWithKey concurrent = PARSED_CACHE.putIfAbsent(queryKey, ref);
+    if (concurrent == null) {
       return queryAndCounter;
     }
-    //if there was a value there (indicating concurrent activity to populate the map),
-    //clear the created ref, then recurse and try again
+    //the map was populated concurrently
+    //get a strong reference to the concurrently created instance
+    final QueriesAndCounter concurrentQueryAndCounter = concurrent.get();
+    //enqueue the created ref and clear de-referenced items
     if (ref.enqueue()) {
+      ref = null;
       clearEmtpyRefs();
     }
+    //if the strong reference was good, then return it
+    if (concurrentQueryAndCounter != null && !concurrent.isEnqueued()) {
+      return concurrentQueryAndCounter;
+    }
+    //if strong reference was not good, start over (this is quite unlikely and indicates significant memory pressure)
+    PARSED_CACHE.remove(queryKey, concurrent);
     return parseJdbcSqlAndCounter(query,
                                   standardConformingStrings,
                                   withParameters,
