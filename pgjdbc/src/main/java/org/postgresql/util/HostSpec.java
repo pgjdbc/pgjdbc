@@ -48,7 +48,7 @@ public class HostSpec {
   }
 
   public Boolean shouldResolve() {
-	String socksProxy = System.getProperty("socksProxyHost");
+    String socksProxy = System.getProperty("socksProxyHost");
     if (socksProxy == null || socksProxy.trim().isEmpty()) {
       return true;
     }
