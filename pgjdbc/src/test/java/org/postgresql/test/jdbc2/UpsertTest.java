@@ -20,7 +20,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 
 
@@ -38,7 +37,7 @@ public class UpsertTest extends BaseTest4 {
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
-      for(ReWriteBatchedInserts rewrite : ReWriteBatchedInserts.values()) {
+      for (ReWriteBatchedInserts rewrite : ReWriteBatchedInserts.values()) {
         ids.add(new Object[]{binaryMode, rewrite});
       }
     }

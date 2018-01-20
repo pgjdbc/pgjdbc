@@ -36,7 +36,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (AutoCommit autoCommit : AutoCommit.values()) {
-      for(BinaryMode binaryMode : BinaryMode.values()) {
+      for (BinaryMode binaryMode : BinaryMode.values()) {
         ids.add(new Object[]{autoCommit, binaryMode});
       }
     }
