@@ -31,6 +31,7 @@ import org.junit.runners.Suite;
 
         DriverTest.class,
         ConnectionTest.class,
+        DateStyleTest.class,
         DatabaseMetaDataTest.class,
         DatabaseMetaDataPropertiesTest.class,
         SearchPathLookupTest.class,
