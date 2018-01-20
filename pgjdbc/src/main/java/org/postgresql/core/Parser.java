@@ -63,6 +63,7 @@ public class Parser {
     boolean isValuesFound = false;
     int valuesBraceOpenPosition = -1;
     int valuesBraceClosePosition = -1;
+    boolean valuesBraceCloseFound = false;
     boolean isInsertPresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
@@ -103,7 +104,7 @@ public class Parser {
 
         case ')':
           inParen--;
-          if (inParen == 0 && isValuesFound) {
+          if (inParen == 0 && isValuesFound && !valuesBraceCloseFound) {
             // If original statement is multi-values like VALUES (...), (...), ... then
             // search for the latest closing paren
             valuesBraceClosePosition = nativeSql.length() + i - fragmentStart;
@@ -168,6 +169,7 @@ public class Parser {
               nativeSql.setLength(0);
               valuesBraceOpenPosition = -1;
               valuesBraceClosePosition = -1;
+              valuesBraceCloseFound = false;
             }
           }
           break;
@@ -184,6 +186,11 @@ public class Parser {
           isKeyWordChar = isIdentifierStartChar(aChar);
           if (isKeyWordChar) {
             keywordStart = i;
+            if (valuesBraceOpenPosition != -1 && inParen == 0) {
+              // When the statement already has multi-values, stop looking for more of them
+              // Since values(?,?),(?,?),... should not contain keywords in the middle
+              valuesBraceCloseFound = true;
+            }
           }
           break;
       }
