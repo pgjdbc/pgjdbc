@@ -161,4 +161,22 @@ public class ParserTest {
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertTrue("Query has a returning clause " + query, returningKeywordPresent);
   }
+  
+  @Test
+  public void insertBatchedReWriteOnConflict() throws SQLException {
+    String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34,command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(44,command.getBatchRewriteValuesBraceClosePosition());
+  }
+  
+  @Test
+  public void insertMultiInsert() throws SQLException {
+    String query = "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34,command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(44,command.getBatchRewriteValuesBraceClosePosition());
+  }
 }
