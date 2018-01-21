@@ -2593,7 +2593,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           value), PSQLState.CONNECTION_FAILURE);
     }
 
-    if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
+    if (name.equals("DateStyle") && !value.startsWith("ISO")
+        && !value.toUpperCase().startsWith("ISO")) {
       close(); // we're screwed now; we can't trust any subsequent date.
       throw new PSQLException(GT.tr(
           "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",

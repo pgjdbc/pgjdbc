@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Avoid connection failure when `DateStyle` is set to `ISO` [Issue 1080](https://github.com/pgjdbc/pgjdbc/issues/1080)
+
 ## [42.2.0] (2018-01-17)
 ### Added
 - Support SCRAM-SHA-256 for PostgreSQL 10 in the JDBC 4.2 version (Java 8+) using the Ongres SCRAM library. [PR 842](https://github.com/pgjdbc/pgjdbc/pull/842)
