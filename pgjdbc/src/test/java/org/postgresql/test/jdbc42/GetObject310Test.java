@@ -214,6 +214,10 @@ public class GetObject310Test extends BaseTest4 {
         LocalDateTime localDateTime = LocalDateTime.parse(timestamp);
         assertEquals(localDateTime, rs.getObject("timestamp_without_time_zone_column", LocalDateTime.class));
         assertEquals(localDateTime, rs.getObject(1, LocalDateTime.class));
+
+        //Also test that we get the correct values when retrieving the data as LocalDate objects
+        assertEquals(localDateTime.toLocalDate(), rs.getObject("timestamp_without_time_zone_column", LocalDate.class));
+        assertEquals(localDateTime.toLocalDate(), rs.getObject(1, LocalDate.class));
       } finally {
         rs.close();
       }
