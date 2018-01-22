@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.test.jdbc4;
+package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
 import org.postgresql.geometric.PGbox;
