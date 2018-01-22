@@ -469,7 +469,7 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(BaseConnection connection, String[] array) throws SQLException{
+    public byte[] toBinaryRepresentation(BaseConnection connection, String[] array) throws SQLException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
 
       final byte[] buffer = new byte[4];
@@ -493,7 +493,7 @@ abstract class PrimitiveArraySupport<A> {
         baos.write(buffer);
 
         final Encoding encoding = connection.getEncoding();
-        for (int i=0; i<array.length; ++i) {
+        for (int i = 0; i < array.length; ++i) {
           final String string = array[i];
           if (string != null) {
             final byte[] encoded;
