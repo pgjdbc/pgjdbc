@@ -5,15 +5,12 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertEquals;
-
-import org.postgresql.test.TestUtil;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.postgresql.test.TestUtil;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -22,9 +19,12 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.TimeZone;
+
+import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
 public class UpdateObject310Test {
@@ -35,9 +35,9 @@ public class UpdateObject310Test {
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{
-        {LocalDateTime.now(), "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
+        {LocalDateTime.now().truncatedTo(ChronoUnit.MICROS), "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
         {LocalDate.now(), "date_column", "'2003-01-01'::DATE"},
-        {LocalTime.now(), "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
+        {LocalTime.now().truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
     });
   }
 
