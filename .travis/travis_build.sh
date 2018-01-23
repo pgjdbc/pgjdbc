@@ -72,13 +72,10 @@ then
   sbt test
 
   cd ..
-  if [[ "${PG_VERSION}" == "HEAD" ]];
-  then
-    # test to make sure the jar is complete
-    git clone --depth=10 https://github.com/clojure/java.jdbc.git
-    cd java.jdbc
-    TEST_DBS=postgres TEST_POSTGRES_USER=test TEST_POSTGRES_DBNAME=test mvn test -Djava.jdbc.test.pgjdbc.version=$PROJECT_VERSION
-  fi
+  # test to make sure the jar is complete
+  git clone --depth=10 https://github.com/clojure/java.jdbc.git
+  cd java.jdbc
+  TEST_DBS=postgres TEST_POSTGRES_USER=test TEST_POSTGRES_DBNAME=test mvn test -Djava.jdbc.test.pgjdbc.version=$PROJECT_VERSION
 fi
 
 if [[ "${COVERAGE}" == "Y" ]];
