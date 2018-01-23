@@ -62,6 +62,7 @@ import org.junit.runners.Suite;
 
         ResultSetTest.class,
         ResultSetMetaDataTest.class,
+        StringTypeUnspecifiedArrayTest.class,
         ArrayTest.class,
         PrimitiveArraySupportTest.class,
         RefCursorTest.class,
