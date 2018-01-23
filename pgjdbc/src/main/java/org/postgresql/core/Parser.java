@@ -157,13 +157,22 @@ public class Parser {
   }
 
   /**
-   * By extending {@link WeakReference} we can also keep the key to use to remove from the cache
-   * when this object is found in the reference queue.
+   * <p>
+   * Extending {@link WeakReference} to also keep key to use to remove from the cache when this object is
+   * found in the reference queue.
+   * </p>
+   *
+   * <p>
+   * Using a {@link WeakReference} allows the garbage collector to reclaim at any point after the last strong
+   * reference to the {@link QueriesAndCounter} instance is released. In practice, this means that as long as
+   * at least 1 caller maintains a reference to a returned {@link NativeQuery} the entry will remain in the
+   * {@link Parser#PARSED_CACHE}.
+   * </p>
    */
-  private static final class WeakReferenceWithKey extends WeakReference<Parser.QueriesAndCounter> {
+  private static final class ReferenceWithKey extends WeakReference<Parser.QueriesAndCounter> {
     final QueryKey queryKey;
 
-    WeakReferenceWithKey(QueryKey queryKey, QueriesAndCounter referent,
+    ReferenceWithKey(QueryKey queryKey, QueriesAndCounter referent,
         ReferenceQueue<? super QueriesAndCounter> q) {
       super(referent, q);
       this.queryKey = queryKey;
@@ -177,11 +186,11 @@ public class Parser {
    * maintains a reference to at least one {@code NativeQuery} instance, the entry will remain in the
    * cache.
    */
-  private static final ConcurrentHashMap<QueryKey, WeakReferenceWithKey> PARSED_CACHE
-       = new ConcurrentHashMap<QueryKey, WeakReferenceWithKey>();
+  private static final ConcurrentHashMap<QueryKey, ReferenceWithKey> PARSED_CACHE
+       = new ConcurrentHashMap<QueryKey, ReferenceWithKey>();
 
   /**
-   * {@link ReferenceQueue} for expired {@link WeakReferenceWithKey} instances to facilitate removal from {@link #PARSED_CACHE}.
+   * {@link ReferenceQueue} for expired {@link ReferenceWithKey} instances to facilitate removal from {@link #PARSED_CACHE}.
    */
   private static final ReferenceQueue<QueriesAndCounter> REFERENCE_QUEUE = new ReferenceQueue<QueriesAndCounter>();
 
@@ -191,8 +200,8 @@ public class Parser {
    * Utility method used by tests to clear the cache.
    */
   static void clearCache() {
-    for (Iterator<WeakReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
-      final WeakReferenceWithKey ref = refIter.next();
+    for (Iterator<ReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
+      final ReferenceWithKey ref = refIter.next();
       //remove from the map
       refIter.remove();
       //encourage enqueing to ref queue
@@ -204,6 +213,11 @@ public class Parser {
   /**
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
    * by semicolon.
+   *
+   * <p>
+   * The results may be cached such that subsequent calls with equivalent args may result in the identical
+   * result as long as strong references to the returned {@link NativeQuery} instances are maintained.
+   * </p>
    *
    * @param query                     jdbc query to parse
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
@@ -231,6 +245,11 @@ public class Parser {
    * Parses JDBC query into PostgreSQL's native format and a shared counter for executions. Several queries
    * might be given if separated by semicolon.
    *
+   * <p>
+   * The results may be cached such that subsequent calls with equivalent args may result in the identical
+   * result as long as strong references to the returned {@link NativeQuery} instances are maintained.
+   * </p>
+   *
    * @param query                     jdbc query to parse
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
    *                                  in single quote literals
@@ -249,11 +268,11 @@ public class Parser {
 
     final QueryKey queryKey = new QueryKey(query, standardConformingStrings, withParameters,
         splitStatements, isBatchedReWriteConfigured, returningColumnNames);
-    WeakReferenceWithKey ref = PARSED_CACHE.get(queryKey);
+    ReferenceWithKey ref = PARSED_CACHE.get(queryKey);
     if (ref != null) {
       final QueriesAndCounter queryAndCounter = ref.get();
-      //only return value if it has not been enqueued
-      if (queryAndCounter != null && !ref.isEnqueued()) {
+      //could be null if GC has reclaimed in background
+      if (queryAndCounter != null) {
         return queryAndCounter;
       }
       PARSED_CACHE.remove(queryKey, ref);
@@ -284,8 +303,8 @@ public class Parser {
       nativeQuery.reference = queryAndCounter;
     }
 
-    ref = new WeakReferenceWithKey(queryKey, queryAndCounter, REFERENCE_QUEUE);
-    final WeakReferenceWithKey concurrent = PARSED_CACHE.putIfAbsent(queryKey, ref);
+    ref = new ReferenceWithKey(queryKey, queryAndCounter, REFERENCE_QUEUE);
+    final ReferenceWithKey concurrent = PARSED_CACHE.putIfAbsent(queryKey, ref);
     if (concurrent == null) {
       return queryAndCounter;
     }
@@ -298,7 +317,7 @@ public class Parser {
       clearEmtpyRefs();
     }
     //if the strong reference was good, then return it
-    if (concurrentQueryAndCounter != null && !concurrent.isEnqueued()) {
+    if (concurrentQueryAndCounter != null) {
       return concurrentQueryAndCounter;
     }
     //if strong reference was not good, start over (this is quite unlikely and indicates significant memory pressure)
@@ -317,8 +336,8 @@ public class Parser {
   private static void clearEmtpyRefs() {
     Reference<? extends QueriesAndCounter> goneRef;
     while ((goneRef = REFERENCE_QUEUE.poll()) != null) {
-      assert goneRef instanceof WeakReferenceWithKey;
-      PARSED_CACHE.remove(((WeakReferenceWithKey)goneRef).queryKey, goneRef);
+      assert goneRef instanceof ReferenceWithKey;
+      PARSED_CACHE.remove(((ReferenceWithKey)goneRef).queryKey, goneRef);
     }
   }
 
