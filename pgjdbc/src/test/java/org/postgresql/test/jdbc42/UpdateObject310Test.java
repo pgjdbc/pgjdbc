@@ -5,12 +5,15 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.Assert.assertEquals;
+
+import org.postgresql.test.TestUtil;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.postgresql.test.TestUtil;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -23,8 +26,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.TimeZone;
-
-import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
 public class UpdateObject310Test {
