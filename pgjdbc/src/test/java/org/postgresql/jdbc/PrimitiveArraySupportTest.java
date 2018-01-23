@@ -316,7 +316,7 @@ public class PrimitiveArraySupportTest {
 
     final String arrayString = stringArrays.toArrayString(',', strings);
 
-    assertEquals("{\"1.235\",NULL,\"\",\"have some \u03C0\"}", arrayString);
+    assertEquals("{\"1.235\",NULL,\"\",\"have some \u03C0\"}", arrayString); //unicode escape for pi character
   }
 
   private static final class EncodingConnection implements BaseConnection {
