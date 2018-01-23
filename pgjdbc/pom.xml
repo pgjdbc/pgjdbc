@@ -267,7 +267,7 @@
             <filter>
               <artifact>com.ongres.scram:client</artifact>
               <includes>
-                <include>*.*</include>
+                <include>**</include>
               </includes>
             </filter>
             <filter>

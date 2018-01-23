@@ -7,8 +7,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Avoid connection failure when `DateStyle` is set to `ISO` [Issue 1080](https://github.com/pgjdbc/pgjdbc/issues/1080)
+- Support SCRAM-SHA-256 for PostgreSQL 10 in the JDBC 4.2 version (Java 8+) using the Ongres SCRAM library
 
 ## [42.2.0] (2018-01-17)
+### Known issues
+- SCRAM does not work as scram:client library is not packaged
+
 ### Added
 - Support SCRAM-SHA-256 for PostgreSQL 10 in the JDBC 4.2 version (Java 8+) using the Ongres SCRAM library. [PR 842](https://github.com/pgjdbc/pgjdbc/pull/842)
 - Make SELECT INTO and CREATE TABLE AS return row counts to the client in their command tags. [Issue 958](https://github.com/pgjdbc/pgjdbc/issues/958) [PR 962](https://github.com/pgjdbc/pgjdbc/pull/962)
