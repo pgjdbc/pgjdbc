@@ -11,8 +11,10 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,13 +26,42 @@ public class Encoding {
 
   private static final Logger LOGGER = Logger.getLogger(Encoding.class.getName());
 
+  /**
+   * String with all integer related chars.
+   */
+  private static final String NUMBER_TEST_STRING = "-0123456789";
+
+  /**
+   * Binary representation of {@link #NUMBER_TEST_STRING} in ascii.
+   */
+  private static final byte[] NUMBER_TEST_BYTES;
+
+  static {
+    try {
+      NUMBER_TEST_BYTES = NUMBER_TEST_STRING.getBytes("ascii");
+    } catch (UnsupportedEncodingException e) {
+      //ascii must be supported
+      throw new java.lang.AssertionError(e);
+    }
+  }
+
   private static final Encoding DEFAULT_ENCODING = new Encoding();
-  private static final Encoding UTF8_ENCODING = new Encoding("UTF-8");
+  private static final Encoding UTF8_ENCODING = new Encoding("UTF-8", true);
+
+  /**
+   * Custom utf-8 decoding is faster than jre until java 9.
+   */
+  private static final boolean USE_UTF8_CUSTOM_CLASS;
+
+  static {
+    final String version = System.getProperty("java.version", "1.6");
+    USE_UTF8_CUSTOM_CLASS = version.startsWith("1.");
+  }
 
   /*
    * Preferred JVM encodings for backend encodings.
    */
-  private static final HashMap<String, String[]> encodings = new HashMap<String, String[]>();
+  private static final HashMap<String, String[]> encodings = new HashMap<String, String[]>(48);
 
   static {
     //Note: this list should match the set of supported server
@@ -76,6 +107,7 @@ public class Encoding {
     encodings.put("LATIN10", new String[0]);
   }
 
+  private final Charset charset;
   private final String encoding;
   private final boolean fastASCIINumbers;
 
@@ -91,12 +123,20 @@ public class Encoding {
    *
    * @param encoding charset name to use
    */
-  protected Encoding(String encoding) {
+  Encoding(String encoding) {
+    this(encoding, testAsciiNumbers(encoding));
+  }
+
+  /**
+   * Constructor which allows {@link UTF8Encoding} to specify that fast ascii numbers are supported without a test.
+   */
+  Encoding(String encoding, boolean fastASCIINumbers) {
     if (encoding == null) {
       throw new NullPointerException("Null encoding charset not supported");
     }
     this.encoding = encoding;
-    fastASCIINumbers = testAsciiNumbers();
+    this.charset = Charset.forName(encoding);
+    this.fastASCIINumbers = fastASCIINumbers;
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "Creating new Encoding {0} with fastASCIINumbers {1}",
           new Object[]{encoding, fastASCIINumbers});
@@ -122,13 +162,13 @@ public class Encoding {
    */
   public static Encoding getJVMEncoding(String jvmEncoding) {
     if ("UTF-8".equals(jvmEncoding)) {
-      return new UTF8Encoding(jvmEncoding);
+      return USE_UTF8_CUSTOM_CLASS ? new UTF8Encoding() : UTF8_ENCODING;
     }
     if (Charset.isSupported(jvmEncoding)) {
       return new Encoding(jvmEncoding);
-    } else {
-      return DEFAULT_ENCODING;
     }
+
+    return DEFAULT_ENCODING;
   }
 
   /**
@@ -172,7 +212,7 @@ public class Encoding {
    * @return the JVM encoding name used by this instance.
    */
   public String name() {
-    return Charset.isSupported(encoding) ? Charset.forName(encoding).name() : encoding;
+    return charset.name();
   }
 
   /**
@@ -187,7 +227,7 @@ public class Encoding {
       return null;
     }
 
-    return s.getBytes(encoding);
+    return s.getBytes(charset);
   }
 
   /**
@@ -201,7 +241,7 @@ public class Encoding {
    * @throws IOException if something goes wrong
    */
   public String decode(byte[] encodedString, int offset, int length) throws IOException {
-    return new String(encodedString, offset, length, encoding);
+    return new String(encodedString, offset, length, charset);
   }
 
   /**
@@ -223,7 +263,7 @@ public class Encoding {
    * @throws IOException if something goes wrong
    */
   public Reader getDecodingReader(InputStream in) throws IOException {
-    return new InputStreamReader(in, encoding);
+    return new InputStreamReader(in, charset);
   }
 
   /**
@@ -234,7 +274,7 @@ public class Encoding {
    * @throws IOException if something goes wrong
    */
   public Writer getEncodingWriter(OutputStream out) throws IOException {
-    return new OutputStreamWriter(out, encoding);
+    return new OutputStreamWriter(out, charset);
   }
 
   /**
@@ -256,18 +296,14 @@ public class Encoding {
    *
    * @return If faster ASCII number parsing can be used with this encoding.
    */
-  private boolean testAsciiNumbers() {
+  private static boolean testAsciiNumbers(final String encoding) {
     // TODO: test all postgres supported encoding to see if there are
     // any which do _not_ have ascii numbers in same location
     // at least all the encoding listed in the encodings hashmap have
     // working ascii numbers
     try {
-      String test = "-0123456789";
-      byte[] bytes = encode(test);
-      String res = new String(bytes, "US-ASCII");
-      return test.equals(res);
-    } catch (java.io.UnsupportedEncodingException e) {
-      return false;
+      final byte[] bytes = "-0123456789".getBytes(encoding);
+      return Arrays.equals(NUMBER_TEST_BYTES, bytes);
     } catch (IOException e) {
       return false;
     }
