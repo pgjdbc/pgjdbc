@@ -113,6 +113,7 @@ matrix:
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
+        - TEST_CLIENTS=Y
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
     - jdk: oraclejdk8
       sudo: required
