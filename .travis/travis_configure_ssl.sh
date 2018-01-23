@@ -16,7 +16,7 @@ enable_ssl_property() {
 
 if [ -z "$PG_VERSION" ]
 then
-    echo "env PG_VERSION not define";
+    echo "env PG_VERSION is not defined";
 
 else
 set_conf_property "ssl" "on"
