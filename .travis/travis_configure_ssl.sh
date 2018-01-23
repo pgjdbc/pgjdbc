@@ -45,12 +45,12 @@ enable_ssl_property "sslcertgh9prefix"
 enable_ssl_property "sslcertbh9"
 enable_ssl_property "sslcertbh9prefix"
 
-sudo cp certdir/server/pg_hba.conf /etc/postgresql/${PG_VERSION}/main/pg_hba.conf
-sudo cp certdir/server/root.crt ${PG_DATADIR}
-sudo chmod 0600 ${PG_DATADIR}/root.crt
-sudo cp certdir/server/server.crt ${PG_DATADIR}
-sudo chmod 0600 ${PG_DATADIR}/server.crt
-sudo cp certdir/server/server.key ${PG_DATADIR}
-sudo chmod 0600 ${PG_DATADIR}/server.key
+sudo cp certdir/server/pg_hba.conf "/etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
+sudo cp certdir/server/root.crt "${PG_DATADIR}"
+sudo chmod 0600 "${PG_DATADIR}/root.crt"
+sudo cp certdir/server/server.crt "${PG_DATADIR}"
+sudo chmod 0600 "${PG_DATADIR}/server.crt"
+sudo cp certdir/server/server.key "${PG_DATADIR}"
+sudo chmod 0600 "${PG_DATADIR}/server.key"
 
 fi
