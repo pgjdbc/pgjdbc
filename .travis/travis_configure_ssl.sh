@@ -25,25 +25,17 @@ set_conf_property "ssl_key_file" "server.key"
 set_conf_property "ssl_ca_file" "root.crt"
 
 enable_ssl_property "sslhostgh9"
-enable_ssl_property "sslhostgh9prefix"
 
 enable_ssl_property "sslhostbh9"
-enable_ssl_property "sslhostbh9prefix"
 
 enable_ssl_property "sslhostsslgh9"
-enable_ssl_property "sslhostsslgh9prefix"
 enable_ssl_property "sslhostsslbh9"
-enable_ssl_property "sslhostsslbh9prefix"
 
 enable_ssl_property "sslhostsslcertgh9"
-enable_ssl_property "sslhostsslcertgh9prefix"
 enable_ssl_property "sslhostsslcertbh9"
-enable_ssl_property "sslhostsslcertbh9prefix"
 
 enable_ssl_property "sslcertgh9"
-enable_ssl_property "sslcertgh9prefix"
 enable_ssl_property "sslcertbh9"
-enable_ssl_property "sslcertbh9prefix"
 
 sudo cp certdir/server/pg_hba.conf "/etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
 sudo cp certdir/server/root.crt "${PG_DATADIR}"
