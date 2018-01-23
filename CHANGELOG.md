@@ -5,9 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [42.2.1] (2018-01-24)
+### Changed
+- socksProxyHost is ignored in case it contains empty string [PR 1079](https://github.com/pgjdbc/pgjdbc/pull/1079)
+
 ### Fixed
-- Avoid connection failure when `DateStyle` is set to `ISO` [Issue 1080](https://github.com/pgjdbc/pgjdbc/issues/1080)
+- Avoid connection failure when `DateStyle` is set to `ISO` (~PgBouncer) [Issue 1080](https://github.com/pgjdbc/pgjdbc/issues/1080)
 - Support SCRAM-SHA-256 for PostgreSQL 10 in the JDBC 4.2 version (Java 8+) using the Ongres SCRAM library
+- reWriteBatchedInserts=true causes syntax error with ON CONFLICT [Issue 1045](https://github.com/pgjdbc/pgjdbc/issues/1045) [PR 1082](https://github.com/pgjdbc/pgjdbc/pull/1082)
+- Avoid failure in getPGArrayType when stringType=unspecified [PR 1036](https://github.com/pgjdbc/pgjdbc/pull/1036)
 
 ## [42.2.0] (2018-01-17)
 ### Known issues
@@ -107,4 +113,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.1.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.2...REL42.1.3
 [42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
 [42.2.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.2.0
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...HEAD
+[42.2.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...REL42.2.1
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...HEAD
