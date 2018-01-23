@@ -14,9 +14,10 @@ enable_ssl_property() {
 }
 
 
-}if [ -z "$PG_VERSION" ]
+if [ -z "$PG_VERSION" ]
 then
     echo "env PG_VERSION not define";
+
 else
 set_conf_property "ssl" "on"
 set_conf_property "ssl_cert_file" "server.crt"
@@ -44,7 +45,7 @@ enable_ssl_property "sslcertgh9prefix"
 enable_ssl_property "sslcertbh9"
 enable_ssl_property "sslcertbh9prefix"
 
-sudo cp certdir/server/pg_hba.conf /etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
+sudo cp certdir/server/pg_hba.conf /etc/postgresql/${PG_VERSION}/main/pg_hba.conf
 sudo cp certdir/server/root.crt ${PG_DATADIR}
 sudo chmod 0600 ${PG_DATADIR}/root.crt
 sudo cp certdir/server/server.crt ${PG_DATADIR}
