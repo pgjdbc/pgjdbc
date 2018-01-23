@@ -145,6 +145,7 @@ matrix:
         - COVERAGE=N
         - TZ=Europe/Moscow # +03:00, no DST
     - jdk: oraclejdk8
+      sudo: required
       addons:
         postgresql: "9.6"
       env:
