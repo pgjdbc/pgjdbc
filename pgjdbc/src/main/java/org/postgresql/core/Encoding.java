@@ -123,7 +123,7 @@ public class Encoding {
    *
    * @param encoding charset name to use
    */
-  Encoding(String encoding) {
+  protected Encoding(String encoding) {
     this(encoding, testAsciiNumbers(encoding));
   }
 

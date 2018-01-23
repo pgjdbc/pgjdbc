@@ -73,17 +73,17 @@ final class AtomicUTF8Encoding extends Encoding {
             actualLen, expectedLen, ch));
   }
 
-  private final char[] getArray(int length) {
+  private char[] getArray(int length) {
     //replace any existing value with null so that any concurrent thread using this instance
     //does not get a reference to the same char[]
     final char[] existing = decoderArrayRef.getAndSet(null);
     return existing != null && existing.length >= length ? existing : new char[length];
   }
 
-  private final void putArray(char[] array) {
+  private void putArray(char[] array) {
     //in the face of concurrent usage we might lose a larger array
     //however concurrent usage is rare and this /can/ be faster as it allows
-    //the jvm more room for optimization of ordering. it is guaranteed to be visible to next 
+    //the jvm more room for optimization of ordering. it is guaranteed to be visible to next
     //call of decoderArrayRef.get, but other instructions might get re-ordered between now and then
     //https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/package-summary.html
     decoderArrayRef.lazySet(array);
