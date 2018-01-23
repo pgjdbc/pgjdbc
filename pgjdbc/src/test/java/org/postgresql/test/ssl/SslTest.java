@@ -125,7 +125,7 @@ public class SslTest extends TestCase {
       "(Connection rejected: )?FATAL:  ?no pg_hba.conf entry for host .*, user .*, database .*, SSL off(?s-d:.*)";
   static String FAILED = "The connection attempt failed.";
   static String BROKEN =
-      "SSL error: (Broken pipe|Received fatal alert: unknown_ca|Connection reset)";
+      "(SSL error: Broken pipe \\(Write failed\\)|Received fatal alert: unknown_ca|Connection reset)";
   static String SSLMODEALLOW  = "Invalid sslmode value: allow";
   static String SSLMODEPREFER  = "Invalid sslmode value: prefer";
   // static String UNKNOWN = "SSL error: Broken pipe";
