@@ -46,6 +46,8 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class UTF8Decoding {
 
+  private static final Charset UTF_8 = Charset.forName("UTF-8");
+
   @Param({"1", "5", "10", "50", "100"})
   public int length;
 
@@ -55,7 +57,6 @@ public class UTF8Decoding {
   private Encoding encodingVol;
   private Encoding atomicEncoding;
   private CharBuffer buf;
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   @Setup
   public void setup() {
