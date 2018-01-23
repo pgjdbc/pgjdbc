@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -23,6 +24,7 @@ import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
@@ -34,6 +36,13 @@ import java.util.logging.Logger;
  *
  */
 public class DriverTest {
+
+  @Test
+  public void urlIsNotForPostgreSQL() throws SQLException {
+    Driver driver = new Driver();
+
+    assertNull(driver.connect("jdbc:otherdb:database", new Properties()));
+  }
 
   /*
    * This tests the acceptsURL() method with a couple of well and poorly formed jdbc urls.

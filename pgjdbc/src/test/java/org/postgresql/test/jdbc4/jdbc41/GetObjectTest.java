@@ -220,9 +220,8 @@ public class GetObjectTest {
   @Test
   public void testGetJavaUtilDate() throws SQLException {
     Statement stmt = _conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column","TIMESTAMP '2004-10-19 10:23:54'"));
-
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
+    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp as timestamp_without_time_zone_column"
+        + ", null::timestamp as null_timestamp");
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
@@ -236,6 +235,7 @@ public class GetObjectTest {
       java.util.Date expected = new java.util.Date(calendar.getTimeInMillis());
       assertEquals(expected, rs.getObject("timestamp_without_time_zone_column", java.util.Date.class));
       assertEquals(expected, rs.getObject(1, java.util.Date.class));
+      assertNull(rs.getObject(2, java.util.Date.class));
     } finally {
       rs.close();
     }
@@ -287,9 +287,9 @@ public class GetObjectTest {
   @Test
   public void testGetCalendar() throws SQLException {
     Statement stmt = _conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column,timestamp_with_time_zone_column","TIMESTAMP '2004-10-19 10:23:54', TIMESTAMP '2004-10-19 10:23:54+02'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column, timestamp_with_time_zone_column"));
+    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp as timestamp_without_time_zone_column"
+        + ", TIMESTAMP '2004-10-19 10:23:54+02'::timestamp as timestamp_with_time_zone_column, null::timestamp as null_timestamp");
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
@@ -303,10 +303,12 @@ public class GetObjectTest {
       long expected = calendar.getTimeInMillis();
       assertEquals(expected, rs.getObject("timestamp_without_time_zone_column", Calendar.class).getTimeInMillis());
       assertEquals(expected, rs.getObject(1, Calendar.class).getTimeInMillis());
+      assertNull(rs.getObject(3, Calendar.class));
       calendar.setTimeZone(TimeZone.getTimeZone("GMT+2:00"));
       expected = calendar.getTimeInMillis();
       assertEquals(expected, rs.getObject("timestamp_with_time_zone_column", Calendar.class).getTimeInMillis());
       assertEquals(expected, rs.getObject(2, Calendar.class).getTimeInMillis());
+      assertNull(rs.getObject(3, Calendar.class));
     } finally {
       rs.close();
     }

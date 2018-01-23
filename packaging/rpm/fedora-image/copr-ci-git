@@ -7,6 +7,8 @@ copr_be_link=https://copr-be.cloud.fedoraproject.org/results/@pgjdbc/pgjdbc-trav
 status_file=copr_build_id
 
 test -z "$PARENT_VERSION" && exit 1
+test -z "$PROJECT_VERSION" && exit 1
+PROJECT_VERSION=${PROJECT_VERSION//-/_}
 
 copr_wrapper ()
 (
@@ -32,6 +34,7 @@ git_rev=$(git rev-parse --short=7 HEAD)
 date_rev=$(date +%Y%m%d_%H%M%S)
 release=${date_rev}.git$git_rev
 sed -e "s!^Release:.*\$!Release: 1.$release%{?dist}!" \
+    -e "s!^Version:.*\$!Version: $PROJECT_VERSION!" \
     -e "s!%global parent_ver.*!%global parent_ver $PARENT_VERSION!" \
     "$2".spec.tpl > "$2".spec
 

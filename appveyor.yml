@@ -8,7 +8,12 @@ init:
 - ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "max_replication_slots=10"
 - ps: Add-Content "c:\program files\postgresql\9.6\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
 
-services: 
+branches:
+  except:
+    - /^tmp\/.*/
+    - /^REL.*/
+
+services:
   - postgresql96
 
 before_build:

@@ -48,7 +48,8 @@ public class HostSpec {
   }
 
   public Boolean shouldResolve() {
-    if (System.getProperty("socksProxyHost") == null) {
+    String socksProxy = System.getProperty("socksProxyHost");
+    if (socksProxy == null || socksProxy.trim().isEmpty()) {
       return true;
     }
     return matchesNonProxyHosts();

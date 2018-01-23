@@ -3294,6 +3294,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       //#endif
       ) {
         Timestamp timestampValue = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
         Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
@@ -3318,6 +3321,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     } else if (type == java.util.Date.class) {
       if (sqlType == Types.TIMESTAMP) {
         Timestamp timestamp = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
         return type.cast(new java.util.Date(timestamp.getTime()));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
@@ -3365,6 +3371,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return type.cast(LocalDate.MIN);
         }
         return type.cast(dateValue.toLocalDate());
+      } else if (sqlType == Types.TIMESTAMP) {
+        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(localDateTimeValue.toLocalDate());
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
                 PSQLState.INVALID_PARAMETER_VALUE);

@@ -1197,7 +1197,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           block = true;
           break;
         case 'S': // Parameter Status
-        {
           try {
             receiveParameterStatus();
           } catch (SQLException e) {
@@ -1205,7 +1204,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             endReceiving = true;
           }
           break;
-        }
 
         case 'Z': // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
 
@@ -1951,12 +1949,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           break;
 
-        case 't': // ParameterDescription
+        case 't': { // ParameterDescription
           pgStream.receiveInteger4(); // len, discarded
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
-        {
+
           DescribeRequest describeData = pendingDescribeStatementQueue.getFirst();
           SimpleQuery query = describeData.query;
           SimpleParameterList params = describeData.parameterList;
@@ -2024,14 +2022,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           break;
 
-        case 's': // Portal Suspended (end of Execute)
+        case 's': { // Portal Suspended (end of Execute)
           // nb: this appears *instead* of CommandStatus.
           // Must be a SELECT if we suspended, so don't worry about it.
 
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
-        {
+
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
@@ -2048,7 +2046,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
         }
 
-        case 'C': // Command Status (end of Execute)
+        case 'C': { // Command Status (end of Execute)
           // Handle status.
           String status = receiveCommandStatus();
           if (isFlushCacheOnDeallocate()
@@ -2058,7 +2056,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           doneAfterRowDescNoData = false;
 
-        {
+
           ExecuteRequest executeData = pendingExecuteQueue.peekFirst();
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
@@ -2181,12 +2179,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // keep processing
           break;
 
-        case 'I': // Empty Query (end of Execute)
+        case 'I': { // Empty Query (end of Execute)
           pgStream.receiveInteger4();
 
           LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
-        {
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
           Portal currentPortal = executeData.portal;
           handler.handleCommandStatus("EMPTY", 0, 0);
@@ -2202,7 +2199,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case 'S': // Parameter Status
-        {
           try {
             receiveParameterStatus();
           } catch (SQLException e) {
@@ -2210,7 +2206,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             endQuery = true;
           }
           break;
-        }
 
         case 'T': // Row Description (response to Describe)
           Field[] fields = receiveFields();
@@ -2598,7 +2593,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           value), PSQLState.CONNECTION_FAILURE);
     }
 
-    if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
+    if (name.equals("DateStyle") && !value.startsWith("ISO")
+        && !value.toUpperCase().startsWith("ISO")) {
       close(); // we're screwed now; we can't trust any subsequent date.
       throw new PSQLException(GT.tr(
           "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",

@@ -149,7 +149,29 @@ Prerequisites:
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/) -
   possibly bump `parent poms` or `pgjdbc` versions in RPM [spec file](packaging/rpm/postgresql-jdbc.spec).
 
-Procedure:
+### Release via Travis
+
+To release a branch via Travis, perform the following:
+
+TL;DR:
+
+    git checkout -B release/master origin/master
+    git push origin release/master
+
+1. Check if `pom.xml` includes proper `-SNAPSHOT` versions (release versions would be the ones without `-SNAPSHOT`)
+1. Push `release/master` branch to pointing to the commit you want to release.
+
+    Note: `master..release/master` should be a fast-forward or both branches should point to the same commit.
+
+    Travis would build new version, create a tag, update `pom.xml` to the next snapshot versions, and update `master` branch accordingly.
+
+    Note: .jre6 and .jre7 builds will be built and staged to Maven Central automatically
+
+    Note: the artifacts will not be visible in Maven Central before you manually release them.
+
+1. Navigate to [Sonatype Nexus Repository Manager](https://oss.sonatype.org/#stagingRepositories), find staging `orgpostgresql` repository there and release it
+
+### Manual release procedure
 
 Release a version for JDK8
 - From a root folder, perform `mvn release:clean release:prepare`. That will ask you new version, update pom.xml, commit and push it to git.
@@ -196,7 +218,8 @@ If staged artifacts look fine, release it
  mvn nexus-staging:release -DstagingRepositoryId=orgpostgresql-1082
 ```
 
-Update changelog:
+### Updating changelog
+
 - run `./release_notes.sh`, edit as desired
 
 ## Dependencies
