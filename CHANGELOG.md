@@ -20,7 +20,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Support isAutoIncrement metadata for PostgreSQL 10 IDENTITY column. [PR 1004](https://github.com/pgjdbc/pgjdbc/pull/1004)
 - Support for primitive arrays [PR#887](https://github.com/pgjdbc/pgjdbc/pull/887) [3e0491a](https://github.com/pgjdbc/pgjdbc/commit/3e0491ac3833800721b98e7437635cf6ab338162)
 - Implement support for get/setNetworkTimeout() in connections. [PR 849](https://github.com/pgjdbc/pgjdbc/pull/849)
-- Make GSS JAAS login optional, add an option "jaasLogin" [PR 922](https://github.com/pgjdbc/pgjdbc/pull/922) see [Connecting to the Database](https://jdbc.postgresql.org/documentation/head/connect.html)
+- Make GSS JAAS login optional, add an option "jaasLogin" [PR 922](https://github.com/pgjdbc/pgjdbc/pull/922) see [Connecting to the Database]{https://jdbc.postgresql.org/documentation/head/connect.html
+- Support for primitive arrays [PR#887](https://github.com/pgjdbc/pgjdbc/pull/887) [3e0491a](https://github.com/pgjdbc/pgjdbc/commit/3e0491ac3833800721b98e7437635cf6ab338162)
+
 
 ### Changed
 - Improve behaviour of ResultSet.getObject(int, Class). [PR 932](https://github.com/pgjdbc/pgjdbc/pull/932)
