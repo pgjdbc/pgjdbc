@@ -26,15 +26,19 @@ import java.util.Properties;
 public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   private final AutoCommit autoCommit;
 
-  public BatchedInsertReWriteEnabledTest(AutoCommit autoCommit) {
+  public BatchedInsertReWriteEnabledTest(AutoCommit autoCommit,
+      BinaryMode binaryMode) {
     this.autoCommit = autoCommit;
+    setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "{index}: autoCommit={0}")
+  @Parameterized.Parameters(name = "{index}: autoCommit={0}, binary={1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (AutoCommit autoCommit : AutoCommit.values()) {
-      ids.add(new Object[]{autoCommit});
+      for (BinaryMode binaryMode : BinaryMode.values()) {
+        ids.add(new Object[]{autoCommit, binaryMode});
+      }
     }
     return ids;
   }
