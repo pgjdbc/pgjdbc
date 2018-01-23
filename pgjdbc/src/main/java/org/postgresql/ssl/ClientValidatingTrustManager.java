@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2018, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.ssl;
 
 import org.postgresql.util.GT;
@@ -20,7 +25,7 @@ public class ClientValidatingTrustManager implements X509TrustManager {
   X509TrustManager trustManager;
 
   public ClientValidatingTrustManager() throws IOException, GeneralSecurityException {
-    InputStream in=null;
+    InputStream in = null;
     KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
     // Note: KeyStore requires it be loaded even if you don't load anything into it:
     ks.load(null);
@@ -40,6 +45,7 @@ public class ClientValidatingTrustManager implements X509TrustManager {
       throw new GeneralSecurityException(GT.tr("No X509TrustManager found"));
     }
   }
+
   @Override
   public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
       throws CertificateException {

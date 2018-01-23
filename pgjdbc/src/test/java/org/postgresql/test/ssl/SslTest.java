@@ -70,7 +70,7 @@ public class SslTest extends TestCase {
         + "&sslcert=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt")
         + "&sslkey=" + certdir + "/" + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8")
         + "&sslrootcert=" + certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt")
-//        + "&sslfactory=org.postgresql.ssl.NonValidatingFactory"
+        // + "&sslfactory=org.postgresql.ssl.NonValidatingFactory"
         + "&loglevel=" + TestUtil.getLogLevel();
   }
 
