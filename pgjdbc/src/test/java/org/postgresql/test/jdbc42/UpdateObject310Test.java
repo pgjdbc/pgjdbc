@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
@@ -42,16 +43,16 @@ public class UpdateObject310Test {
             "'2003-01-01'::TIMESTAMP",
             "ERROR: column \"timestamp_without_time_zone_column\" is of type timestamp without time zone but expression is of type integer\n"
                 + "  Hint: You will need to rewrite or cast the expression.\n"
-                + "  Position: 59"},
+                + "  Position:"},
         {LocalDate.now(), "date_column", "'2003-01-01'::DATE",
             "ERROR: column \"date_column\" is of type date but expression is of type integer\n"
                 + "  Hint: You will need to rewrite or cast the expression.\n"
-                + "  Position: 36"},
+                + "  Position:"},
         {LocalTime.now().truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column",
             "'07:23'::TIME WITHOUT TIME ZONE",
             "ERROR: column \"time_without_time_zone_column\" is of type time without time zone but expression is of type integer\n"
                 + "  Hint: You will need to rewrite or cast the expression.\n"
-                + "  Position: 54"}
+                + "  Position:"}
     });
   }
 
@@ -128,7 +129,7 @@ public class UpdateObject310Test {
 
       fail("should have thrown an Exception");
     } catch (PSQLException e) {
-      assertEquals(errorMessage, e.getMessage());
+      assertTrue(e.getMessage().contains(errorMessage));
     } finally {
       if (rs != null) {
         rs.close();
