@@ -71,7 +71,7 @@ public class MultiHostsConnectionTest {
     masterIp = getRemoteHostSpec();
     closeDB(con);
 
-    con = openSlaveDB();
+    con = openSecondaryDB();
     secondaryIP = getRemoteHostSpec();
     closeDB(con);
 
@@ -82,7 +82,7 @@ public class MultiHostsConnectionTest {
 
   private static boolean isReplicationInstanceAvailable() {
     try {
-      Connection connection = openSlaveDB();
+      Connection connection = openSecondaryDB();
       closeDB(connection);
       return true;
     } catch (Exception e) {
@@ -90,7 +90,7 @@ public class MultiHostsConnectionTest {
     }
   }
 
-  private static Connection openSlaveDB() throws Exception {
+  private static Connection openSecondaryDB() throws Exception {
     TestUtil.initDriver();
 
     Properties props = userAndPassword();
@@ -236,7 +236,7 @@ public class MultiHostsConnectionTest {
   }
 
   @Test
-  public void testConnectToSlave() throws SQLException {
+  public void testConnectToSecondary() throws SQLException {
     getConnection(secondary, true, fake1, secondary1, master1);
     assertRemote(secondaryIP);
     assertGlobalState(fake1, "ConnectFail");
@@ -251,7 +251,7 @@ public class MultiHostsConnectionTest {
   }
 
   @Test
-  public void testConnectToSlaveFirst() throws SQLException {
+  public void testConnectToSecondaryFirst() throws SQLException {
     getConnection(preferSecondary, true, fake1, secondary1, master1);
     assertRemote(secondaryIP);
     assertGlobalState(fake1, "ConnectFail");
@@ -298,7 +298,7 @@ public class MultiHostsConnectionTest {
   }
 
   @Test
-  public void testLoadBalancing_preferSlave() throws SQLException {
+  public void testLoadBalancing_preferSecondary() throws SQLException {
     Set<String> connectedHosts = new HashSet<String>();
     Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
     for (int i = 0; i < 20; ++i) {
@@ -335,7 +335,7 @@ public class MultiHostsConnectionTest {
   }
 
   @Test
-  public void testLoadBalancing_slave() throws SQLException {
+  public void testLoadBalancing_secondary() throws SQLException {
     Set<String> connectedHosts = new HashSet<String>();
     Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
     for (int i = 0; i < 20; ++i) {
