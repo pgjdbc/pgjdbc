@@ -86,9 +86,10 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   private static void createTestDataObjectsWithRangeOfPrivilegesInSchema(String schema)
       throws SQLException {
     TestUtil.createSchema(privilegedCon, schema);
-    createSimpleTablesInSchema(schema,
-        new String[]{"owned_table", "all_grants_table", "insert_granted_table",
-            "select_granted_table", "no_grants_table"});
+
+    String[] tables = new String[]{"owned_table", "all_grants_table", "insert_granted_table",
+        "select_granted_table", "no_grants_table"};
+    createSimpleTablesInSchema(schema,tables);
 
     Statement stmt = privilegedCon.createStatement();
     stmt.executeUpdate(
@@ -129,16 +130,26 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
           "GRANT USAGE on TYPE " + schema + "." + "usage_granted_us_postal_code_domain TO "
               + TestUtil.getUser());
     }
+
     stmt.executeUpdate(
-        "REVOKE ALL ON ALL FUNCTIONS IN SCHEMA " + schema + " FROM public RESTRICT");
+        "REVOKE ALL ON FUNCTION " + schema + ".execute_granted_add_function(integer, integer) FROM public RESTRICT");
     stmt.executeUpdate(
-        "REVOKE ALL ON ALL FUNCTIONS IN SCHEMA " + schema + " FROM " + TestUtil.getUser()
+        "REVOKE ALL ON FUNCTION " + schema + ".no_grants_add_function(integer, integer) FROM public RESTRICT");
+    stmt.executeUpdate(
+        "REVOKE ALL ON FUNCTION " + schema + ".execute_granted_add_function(integer, integer) FROM " + TestUtil.getUser()
             + " RESTRICT");
     stmt.executeUpdate(
-        "REVOKE ALL ON ALL TABLES IN SCHEMA " + schema + " FROM public RESTRICT");
-    stmt.executeUpdate(
-        "REVOKE ALL ON ALL TABLES IN SCHEMA " + schema + " FROM " + TestUtil.getUser()
+        "REVOKE ALL ON FUNCTION " + schema + ".no_grants_add_function(integer, integer) FROM " + TestUtil.getUser()
             + " RESTRICT");
+
+    for (String table : tables) {
+      stmt.executeUpdate(
+          "REVOKE ALL ON TABLE " + schema + "." + table + " FROM public RESTRICT");
+      stmt.executeUpdate(
+          "REVOKE ALL ON TABLE " + schema + "." + table + " FROM " + TestUtil.getUser()
+              + " RESTRICT");
+    }
+
     stmt.executeUpdate(
         "GRANT ALL ON FUNCTION " + schema + "."
             + "execute_granted_add_function(integer, integer) TO "
