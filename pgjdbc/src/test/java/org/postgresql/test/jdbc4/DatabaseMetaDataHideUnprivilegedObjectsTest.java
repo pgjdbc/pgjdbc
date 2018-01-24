@@ -12,6 +12,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.Utils;
 import org.postgresql.test.TestUtil;
 
 import org.junit.AfterClass;
@@ -395,8 +396,11 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     // has a WHERE clause that uses pg_function_is_visible(oid). This function returns
     // a boolean that describes whether or not the function is visible in your
     // session's search_path (as well as whether or not the role has usage on the schema).
-    databaseMetaData.getConnection().setSchema(schemaPattern);
-
+    // N.B. do not use Connection.setSchema() because pgjdbc needs to work with openjdk6.
+    Statement stmt = databaseMetaData.getConnection().createStatement();
+    stmt.executeUpdate("SET SESSION search_path TO '"+schemaPattern+"',public");
+    stmt.close();
+    
     ResultSet rs = databaseMetaData.getFunctions(null, schemaPattern, null);
     while (rs.next()) {
       functionNames.add(rs.getString("FUNCTION_NAME"));
