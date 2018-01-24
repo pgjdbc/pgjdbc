@@ -28,12 +28,9 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.TimeZone;
 
 @RunWith(Parameterized.class)
 public class UpdateObject310Test {
-  private static final TimeZone saveTZ = TimeZone.getDefault();
-
   private Connection con;
 
   @Parameterized.Parameters
@@ -56,7 +53,6 @@ public class UpdateObject310Test {
 
   @After
   public void tearDown() throws SQLException {
-    TimeZone.setDefault(saveTZ);
     TestUtil.dropTable(con, "table1");
     TestUtil.closeDB(con);
   }
