@@ -61,12 +61,12 @@ public class UpdateObject310Test {
     TestUtil.closeDB(con);
   }
 
-  private Object updateDate;
+  private Object newValue;
   private String columnName;
   private String originalValue;
 
-  public UpdateObject310Test(Object updateDate, String columnName, String originalValue) {
-    this.updateDate = updateDate;
+  public UpdateObject310Test(Object newValue, String columnName, String originalValue) {
+    this.newValue = newValue;
     this.columnName = columnName;
     this.originalValue = originalValue;
   }
@@ -83,13 +83,13 @@ public class UpdateObject310Test {
       s.executeUpdate("INSERT INTO table1(" + columnName + ") VALUES(" + originalValue + ")");
       rs = s.executeQuery(TestUtil.selectSQL("table1", "table1_id, " + columnName));
       rs.next();
-      rs.updateObject(2, updateDate);
+      rs.updateObject(2, newValue);
       rs.updateRow();
       rs.close();
 
       rs = s.executeQuery(TestUtil.selectSQL("table1", columnName));
       rs.next();
-      assertEquals(updateDate, rs.getObject(1, updateDate.getClass()));
+      assertEquals(newValue, rs.getObject(1, newValue.getClass()));
     } finally {
       if (rs != null) {
         rs.close();
