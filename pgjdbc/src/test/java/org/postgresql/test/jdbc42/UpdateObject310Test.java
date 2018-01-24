@@ -6,11 +6,11 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -39,20 +39,9 @@ public class UpdateObject310Test {
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{
-        {LocalDateTime.now().truncatedTo(ChronoUnit.MICROS), "timestamp_without_time_zone_column",
-            "'2003-01-01'::TIMESTAMP",
-            "ERROR: column \"timestamp_without_time_zone_column\" is of type timestamp without time zone but expression is of type integer\n"
-                + "  Hint: You will need to rewrite or cast the expression.\n"
-                + "  Position:"},
-        {LocalDate.now(), "date_column", "'2003-01-01'::DATE",
-            "ERROR: column \"date_column\" is of type date but expression is of type integer\n"
-                + "  Hint: You will need to rewrite or cast the expression.\n"
-                + "  Position:"},
-        {LocalTime.now().truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column",
-            "'07:23'::TIME WITHOUT TIME ZONE",
-            "ERROR: column \"time_without_time_zone_column\" is of type time without time zone but expression is of type integer\n"
-                + "  Hint: You will need to rewrite or cast the expression.\n"
-                + "  Position:"}
+        {LocalDateTime.now().truncatedTo(ChronoUnit.MICROS), "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
+        {LocalDate.now(), "date_column", "'2003-01-01'::DATE"},
+        {LocalTime.now().truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
     });
   }
 
@@ -75,13 +64,11 @@ public class UpdateObject310Test {
   private Object updateDate;
   private String columnName;
   private String originalValue;
-  private String errorMessage;
 
-  public UpdateObject310Test(Object updateDate, String columnName, String originalValue, String errorMessage) {
+  public UpdateObject310Test(Object updateDate, String columnName, String originalValue) {
     this.updateDate = updateDate;
     this.columnName = columnName;
     this.originalValue = originalValue;
-    this.errorMessage = errorMessage;
   }
 
   /**
@@ -129,7 +116,7 @@ public class UpdateObject310Test {
 
       fail("should have thrown an Exception");
     } catch (PSQLException e) {
-      assertTrue(e.getMessage().contains(errorMessage));
+      assertEquals(PSQLState.DATATYPE_MISMATCH.getState(), e.getSQLState());
     } finally {
       if (rs != null) {
         rs.close();
