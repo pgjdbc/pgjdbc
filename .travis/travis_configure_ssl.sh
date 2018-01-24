@@ -13,13 +13,6 @@ enable_ssl_property() {
     sed  -i -e "s/^#${property}\(.*\)/${property}\1 /" ssltest.properties
 }
 
-create_databases() {
-    for db in hostssldb hostnossldb certdb hostsslcertdb; do
-        createdb $db
-        psql $db -c "create extension sslinfo"
-    done
-
-}
 if [ -z "$PG_VERSION" ]
 then
     echo "env PG_VERSION is not defined";
@@ -51,5 +44,4 @@ sudo chmod 0600 "${PG_DATADIR}/server.crt"
 sudo cp certdir/server/server.key "${PG_DATADIR}"
 sudo chmod 0600 "${PG_DATADIR}/server.key"
 
-create_databases
 fi
