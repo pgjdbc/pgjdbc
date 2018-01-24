@@ -1,25 +1,22 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2016, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2017, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
-import org.postgresql.test.TestUtil;
 import org.postgresql.PGProperty;
+import org.postgresql.test.TestUtil;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -393,13 +390,13 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   List<String> getFunctionNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
     List<String> functionNames = new ArrayList<String>();
-    
+
     // Set the search_path to schemaPattern because PgDatabaseMetaData.getFunctions()
     // has a WHERE clause that uses pg_function_is_visible(oid). This function returns
-    // a boolean that describes whether or not the function is visible in your 
+    // a boolean that describes whether or not the function is visible in your
     // session's search_path (as well as whether or not the role has usage on the schema).
     databaseMetaData.getConnection().setSchema(schemaPattern);
-    
+
     ResultSet rs = databaseMetaData.getFunctions(null, schemaPattern, null);
     while (rs.next()) {
       functionNames.add(rs.getString("FUNCTION_NAME"));
