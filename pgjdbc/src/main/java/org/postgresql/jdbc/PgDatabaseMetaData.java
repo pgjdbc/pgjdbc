@@ -2598,8 +2598,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (functionNamePattern != null && !functionNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
     }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
+    }
     sql += " ORDER BY FUNCTION_SCHEM, FUNCTION_NAME, p.oid::text ";
-
     return createMetaDataStatement().executeQuery(sql);
   }
 
