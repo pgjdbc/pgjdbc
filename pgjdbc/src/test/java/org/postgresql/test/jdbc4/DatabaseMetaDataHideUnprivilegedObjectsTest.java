@@ -372,28 +372,37 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     assertThat(functionsWithNoHiding,
         hasItems("execute_granted_add_function", "no_grants_add_function"));
 
-    // Or should the the function names not be returned because the schema is not visible?
     functionsWithHiding =
         getFunctionNames(hidingDatabaseMetaData, "no_privileges_schema");
     assertThat(functionsWithHiding,
-        hasItem("execute_granted_add_function"));
+        not(hasItem("execute_granted_add_function")));
     assertThat(functionsWithHiding,
         not(hasItem("no_grants_add_function")));
 
+    // PgDatabaseMetaData.getFunctions() has a WHERE clause that uses pg_function_is_visible(oid)
+    // which will return false if current role does not have usage on the schema. Therefore, even though
+    // this test is using the nonhidingDatabaseMetaData, we do not expect that getFunctions() will return
+    // anything for the no_privileges_schema (because both the test and public roles have been revoked
+    // from all privileges).
     functionsWithNoHiding =
         getFunctionNames(nonhidingDatabaseMetaData, "no_privileges_schema");
     assertThat(functionsWithNoHiding,
-        hasItems("execute_granted_add_function", "no_grants_add_function"));
-
+        not(hasItems("execute_granted_add_function", "no_grants_add_function")));
   }
 
   List<String> getFunctionNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
     List<String> functionNames = new ArrayList<String>();
+    
+    // Set the search_path to schemaPattern because PgDatabaseMetaData.getFunctions()
+    // has a WHERE clause that uses pg_function_is_visible(oid). This function returns
+    // a boolean that describes whether or not the function is visible in your 
+    // session's search_path (as well as whether or not the role has usage on the schema).
+    databaseMetaData.getConnection().setSchema(schemaPattern);
+    
     ResultSet rs = databaseMetaData.getFunctions(null, schemaPattern, null);
     while (rs.next()) {
-      // TODO: According to JDBC JavaDoc, column should be called FUNCTION_NAME.
-      functionNames.add(rs.getString("PROCEDURE_NAME"));
+      functionNames.add(rs.getString("FUNCTION_NAME"));
     }
     return functionNames;
   }
