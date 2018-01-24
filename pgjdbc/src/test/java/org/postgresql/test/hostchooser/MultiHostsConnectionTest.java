@@ -346,9 +346,9 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Never connected to all salve hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+    assertEquals("Did not attempt to connect to all salve hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
-    assertEquals("Never tried to connect to maste and fake node", 4, tryConnectedHosts.size());
+    assertEquals("Did not attempt to connect to master and fake node", 4, tryConnectedHosts.size());
 
     getConnection(preferSecondary, false, true, fake1, master1, secondary1);
     assertRemote(secondaryIP);
@@ -360,7 +360,7 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+    assertEquals("Did not connect to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
   }
 
