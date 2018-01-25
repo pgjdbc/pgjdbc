@@ -1231,8 +1231,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      select += " AND has_table_privilege(c.oid, "
-        + " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
+      select += " AND ( has_table_privilege(c.oid, 'SELECT') "
+        + " OR  has_table_privilege(c.oid, 'INSERT')"
+        + " OR  has_table_privilege(c.oid, 'UPDATE')"
+        + " OR  has_table_privilege(c.oid, 'DELETE')"
+        + " OR  has_table_privilege(c.oid, 'RULE')"
+        + " OR  has_table_privilege(c.oid, 'REFERENCES')"
+        + " OR  has_table_privilege(c.oid, 'TRIGGER') )";
     }
     orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
 
@@ -1351,7 +1356,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
+      sql += " AND ( has_schema_privilege(nspname, 'USAGE') OR has_schema_privilege(nspname, 'CREATE') )";
     }
     sql += " ORDER BY TABLE_SCHEM";
 
