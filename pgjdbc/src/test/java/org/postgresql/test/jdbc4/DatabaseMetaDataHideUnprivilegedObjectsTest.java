@@ -49,18 +49,23 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
     createTestDataObjectsWithRangeOfPrivilegesInSchema("high_privileges_schema");
     // Grant Test User ALL privileges on schema.
-    stmt.executeUpdate("GRANT ALL ON SCHEMA high_privileges_schema TO " + TestUtil.getUser());
-    stmt.executeUpdate("REVOKE ALL ON SCHEMA high_privileges_schema FROM public");
+    stmt.executeUpdate("GRANT USAGE ON SCHEMA high_privileges_schema TO " + TestUtil.getUser());
+    stmt.executeUpdate("GRANT CREATE ON SCHEMA high_privileges_schema TO " + TestUtil.getUser());
+    stmt.executeUpdate("REVOKE USAGE ON SCHEMA high_privileges_schema FROM public");
+    stmt.executeUpdate("REVOKE CREATE ON SCHEMA high_privileges_schema FROM public");
 
     createTestDataObjectsWithRangeOfPrivilegesInSchema("low_privileges_schema");
     // Grant Test User USAGE privileges on schema.
     stmt.executeUpdate("GRANT USAGE ON SCHEMA low_privileges_schema TO " + TestUtil.getUser());
-    stmt.executeUpdate("REVOKE ALL ON SCHEMA low_privileges_schema FROM public");
+    stmt.executeUpdate("REVOKE USAGE ON SCHEMA low_privileges_schema FROM public");
+    stmt.executeUpdate("REVOKE CREATE ON SCHEMA low_privileges_schema FROM public");
 
     createTestDataObjectsWithRangeOfPrivilegesInSchema("no_privileges_schema");
     // Revoke ALL privileges from Test User USAGE on schema.
-    stmt.executeUpdate("REVOKE ALL ON SCHEMA no_privileges_schema FROM " + TestUtil.getUser());
-    stmt.executeUpdate("REVOKE ALL ON SCHEMA no_privileges_schema FROM public");
+    stmt.executeUpdate("REVOKE USAGE ON SCHEMA no_privileges_schema FROM " + TestUtil.getUser());
+    stmt.executeUpdate("REVOKE CREATE ON SCHEMA no_privileges_schema FROM " + TestUtil.getUser());
+    stmt.executeUpdate("REVOKE USAGE ON SCHEMA no_privileges_schema FROM public");
+    stmt.executeUpdate("REVOKE CREATE ON SCHEMA no_privileges_schema FROM public");
 
     stmt.close();
 
@@ -143,11 +148,13 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
             + " RESTRICT");
 
     for (String table : tables) {
-      stmt.executeUpdate(
-          "REVOKE ALL ON TABLE " + schema + "." + table + " FROM public RESTRICT");
-      stmt.executeUpdate(
-          "REVOKE ALL ON TABLE " + schema + "." + table + " FROM " + TestUtil.getUser()
-              + " RESTRICT");
+      for (String privilege : getTablePrivileges()) {
+        stmt.executeUpdate(
+            "REVOKE " + privilege + " ON TABLE " + schema + "." + table + " FROM public RESTRICT");
+        stmt.executeUpdate(
+            "REVOKE " + privilege + " ON TABLE " + schema + "." + table + " FROM " + TestUtil.getUser()
+                + " RESTRICT");
+      }
     }
 
     stmt.executeUpdate(
@@ -156,8 +163,11 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
             + TestUtil.getUser());
     stmt.executeUpdate(
         "ALTER TABLE " + schema + "." + "owned_table OWNER TO " + TestUtil.getUser());
-    stmt.executeUpdate(
-        "GRANT ALL ON TABLE " + schema + "." + "all_grants_table TO " + TestUtil.getUser());
+
+    for (String privilege : getTablePrivileges()) {
+      stmt.executeUpdate(
+          "GRANT " + privilege + " ON TABLE " + schema + "." + "all_grants_table TO " + TestUtil.getUser());
+    }
     stmt.executeUpdate("GRANT INSERT ON TABLE " + schema + "." + "insert_granted_table TO "
         + TestUtil.getUser());
     stmt.executeUpdate("GRANT SELECT ON TABLE " + schema + "." + "select_granted_table TO "
@@ -165,6 +175,10 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     stmt.executeUpdate("GRANT SELECT ON TABLE " + schema + "." + "select_granted_view TO "
         + TestUtil.getUser());
     stmt.close();
+  }
+
+  private static String[] getTablePrivileges() {
+    return new String[] { "SELECT", "INSERT", "UPDATE", "DELETE", "RULE", "REFERENCES", "TRIGGER" };
   }
 
   private static void createSimpleTablesInSchema(String schema, String[] tables
