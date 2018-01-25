@@ -125,11 +125,11 @@ public class SslTest extends TestCase {
       "(Connection rejected: )?FATAL:  ?no pg_hba.conf entry for host .*, user .*, database .*, SSL off(?s-d:.*)";
   static String FAILED = "The connection attempt failed.";
   static String BROKEN =
-      "(SSL error: Broken pipe \\(Write failed\\)|Received fatal alert: unknown_ca|Connection reset)";
+      "SSL error: (Broken pipe( \\(Write failed\\))?|Received fatal alert: unknown_ca|Connection reset|Protocol wrong type for socket)";
   static String SSLMODEALLOW  = "Invalid sslmode value: allow";
   static String SSLMODEPREFER  = "Invalid sslmode value: prefer";
   // static String UNKNOWN = "SSL error: Broken pipe";
-  // static String UNKNOWN = "SSL error: Received fatal alert: unknown_ca";
+  //static String UNKNOWN = "SSL error: Received fatal alert: unknown_ca";
   static String ANY = ".*";
   static String VALIDATOR =
       "SSL error: sun.security.validator.ValidatorException: PKIX path (building|validation) failed:.*";
@@ -192,13 +192,13 @@ public class SslTest extends TestCase {
     work.put("preferBG", new Object[]{SSLMODEPREFER, Boolean.FALSE});
     work.put("requireGG", new Object[]{PG_HBA_ON, Boolean.TRUE});
     work.put("requireGB", new Object[]{PG_HBA_ON, Boolean.TRUE});
-    work.put("requireBG", new Object[]{PG_HBA_ON, Boolean.TRUE});
+    work.put("requireBG", new Object[]{BROKEN, Boolean.TRUE});
     work.put("verify-caGG", new Object[]{PG_HBA_ON, Boolean.TRUE});
     work.put("verify-caGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-caBG", new Object[]{PG_HBA_ON, Boolean.TRUE});
+    work.put("verify-caBG", new Object[]{BROKEN, Boolean.TRUE});
     work.put("verify-fullGG", new Object[]{PG_HBA_ON, Boolean.TRUE});
     work.put("verify-fullGB", new Object[]{VALIDATOR, Boolean.TRUE});
-    work.put("verify-fullBG", new Object[]{PG_HBA_ON, Boolean.TRUE});
+    work.put("verify-fullBG", new Object[]{BROKEN, Boolean.TRUE});
     expectedmap.put("sslhostnossl9", work);
 
     work = (TreeMap) defaultexpected.clone();
