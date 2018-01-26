@@ -25,6 +25,8 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +39,7 @@ public class UpdateObject310Test {
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {LocalDateTime.now().truncatedTo(ChronoUnit.MICROS), "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
+        {OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS), "timestamp_with_time_zone_column", "'2007-06-03'::TIMESTAMP"},
         {LocalDate.now(), "date_column", "'2003-01-01'::DATE"},
         {LocalTime.now().truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
     });
@@ -46,6 +49,7 @@ public class UpdateObject310Test {
   public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTableWithPrimaryKey(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
+        + "timestamp_with_time_zone_column timestamp with time zone,"
         + "date_column date,"
         + "time_without_time_zone_column time without time zone"
     );
