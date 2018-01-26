@@ -5,7 +5,7 @@ set_conf_property() {
     local key=${1}
     local value=${2}
 
-    sudo sed -i -e "s/^#\?${key}.*/${key} = ${value}/" /etc/postgresql/${PG_VERSION}/main/postgresql.conf
+    sudo sed -i -e "s/^#\?${key}.*/${key} = /etc/postgresql/${PG_VERSION}/main/${value}/" /etc/postgresql/${PG_VERSION}/main/postgresql.conf
 }
 
 enable_ssl_property() {
@@ -32,7 +32,7 @@ enable_ssl_property "sslhostsslcertbh9"
 enable_ssl_property "sslcertgh9"
 enable_ssl_property "sslcertbh9"
 
-PG_DATA_DIR="/var/lib/postgresql/${PG_VERSION}/main"
+PG_DATA_DIR="/etc/postgresql/${PG_VERSION}/main/"
 sudo cp certdir/server/pg_hba.conf "/etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
 sudo cp certdir/server/root.crt "${PG_DATA_DIR}"
 sudo chmod 0600 "${PG_DATA_DIR}/root.crt"
