@@ -44,6 +44,6 @@ sudo cp certdir/server/server.key "${PG_DATA_DIR}"
 sudo chmod 0600 "${PG_DATA_DIR}/server.key"
 sudo chown postgres:postgres "${PG_DATA_DIR}/server.key"
 
-sudo cat "/etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
+sudo cat "/etc/postgresql/${PG_VERSION}/main/pg_hba.conf" 2>&1
 
 fi
