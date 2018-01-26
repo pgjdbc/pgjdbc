@@ -5,7 +5,7 @@ set_conf_property() {
     local key=${1}
     local value=${2}
 
-    sudo sed -i -e "s/^#\?${key}.*/${key} = /etc/postgresql/${PG_VERSION}/main/${value}/" /etc/postgresql/${PG_VERSION}/main/postgresql.conf
+    sudo sed -i -e "s/^#\?${key}.*/${key} = \/etc\/postgresql\/${PG_VERSION}\/main\/${value}/" /etc/postgresql/${PG_VERSION}/main/postgresql.conf
 }
 
 enable_ssl_property() {
