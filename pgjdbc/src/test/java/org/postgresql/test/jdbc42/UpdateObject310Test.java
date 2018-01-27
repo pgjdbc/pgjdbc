@@ -89,7 +89,7 @@ public class UpdateObject310Test {
 
       rs = s.executeQuery(TestUtil.selectSQL("table1", columnName));
       rs.next();
-      assertEquals(newValue, rs.getObject(1, newValue.getClass()));
+      assertEquals("Object wasn't identical when it got read back from the database", newValue, rs.getObject(1, newValue.getClass()));
     } finally {
       TestUtil.closeQuietly(rs);
       TestUtil.closeQuietly(s);
@@ -114,7 +114,7 @@ public class UpdateObject310Test {
 
       fail("should have thrown an PSQLException because integers can't represent the date");
     } catch (PSQLException e) {
-      assertEquals(PSQLState.DATATYPE_MISMATCH.getState(), e.getSQLState());
+      assertEquals("Should have thrown an DATATYPE_MISMATCH error, since integers can't represent the date", PSQLState.DATATYPE_MISMATCH.getState(), e.getSQLState());
     } finally {
       TestUtil.closeQuietly(rs);
       TestUtil.closeQuietly(s);
