@@ -61,44 +61,44 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * Flag for query execution that indicates that resultset metadata isn't needed and can be safely
    * omitted.
    */
-  int QUERY_NO_METADATA = 2;
+  int QUERY_NO_METADATA = 1 << 1;
 
   /**
    * Flag for query execution that indicates that a resultset isn't expected and the query executor
    * can safely discard any rows (although the resultset should still appear to be from a
    * resultset-returning query).
    */
-  int QUERY_NO_RESULTS = 4;
+  int QUERY_NO_RESULTS = 1 << 2;
 
   /**
    * Flag for query execution that indicates a forward-fetch-capable cursor should be used if
    * possible.
    */
-  int QUERY_FORWARD_CURSOR = 8;
+  int QUERY_FORWARD_CURSOR = 1 << 3;
 
   /**
    * Flag for query execution that indicates the automatic BEGIN on the first statement when outside
    * a transaction should not be done.
    */
-  int QUERY_SUPPRESS_BEGIN = 16;
+  int QUERY_SUPPRESS_BEGIN = 1 << 4;
 
   /**
    * Flag for query execution when we don't really want to execute, we just want to get the
    * parameter metadata for the statement.
    */
-  int QUERY_DESCRIBE_ONLY = 32;
+  int QUERY_DESCRIBE_ONLY = 1 << 5;
 
   /**
    * Flag for query execution used by generated keys where we want to receive both the ResultSet and
    * associated update count from the command status.
    */
-  int QUERY_BOTH_ROWS_AND_STATUS = 64;
+  int QUERY_BOTH_ROWS_AND_STATUS = 1 << 6;
 
   /**
    * Force this query to be described at each execution. This is done in pipelined batches where we
    * might need to detect mismatched result types.
    */
-  int QUERY_FORCE_DESCRIBE_PORTAL = 512;
+  int QUERY_FORCE_DESCRIBE_PORTAL = 1 << 7;
 
   /**
    * Flag to disable batch execution when we expect results (generated keys) from a statement.
@@ -106,19 +106,19 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @deprecated in PgJDBC 9.4 as we now auto-size batches.
    */
   @Deprecated
-  int QUERY_DISALLOW_BATCHING = 128;
+  int QUERY_DISALLOW_BATCHING = 1 << 8;
 
   /**
    * Flag for query execution to avoid using binary transfer.
    */
-  int QUERY_NO_BINARY_TRANSFER = 256;
+  int QUERY_NO_BINARY_TRANSFER = 1 << 9;
 
   /**
    * Execute the query via simple 'Q' command (not parse, bind, exec, but simple execute).
    * This sends query text on each execution, however it supports sending multiple queries
    * separated with ';' as a single command.
    */
-  int QUERY_EXECUTE_AS_SIMPLE = 1024;
+  int QUERY_EXECUTE_AS_SIMPLE = 1 << 10;
 
   /**
    * Execute a Query, passing results to a provided ResultHandler.
