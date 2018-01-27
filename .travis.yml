@@ -28,11 +28,13 @@ before_script:
   -  ./.travis/travis_install_postgres.sh
   - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
   - test "x$REPLICATION" == 'x' || ./.travis/travis_configure_replication.sh
+  - test "x$SSLTEST" == 'x' || ./.travis/travis_configure_ssl.sh
   - ./.travis/travis_start_postgres.sh
   - test "x$PG_VERSION" != 'xHEAD' || psql -U postgres -c "set password_encryption='scram-sha-256'; create user test with password 'test';"
   - test "x$PG_VERSION" = 'xHEAD' || psql -U postgres -c "create user test with password 'test';"
   - test "x$REPLICATION" == 'x' || psql -U postgres -c "alter user test with replication;"
   - psql -c 'create database test owner test;' -U postgres
+  - test "x$SSLTEST" == 'x' || ./.travis/travis_ssl_users.sh
   - test "x$REPLICATION" == 'x' || ./.travis/travis_create_slaves.sh
   - if [[ $TRAVIS_BRANCH == release/* ]]; then echo "MAVEN_OPTS='-Xmx1g'" > ~/.mavenrc; else echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc; fi
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
@@ -143,6 +145,13 @@ matrix:
         - QUERY_MODE=extendedCacheEverything
         - COVERAGE=N
         - TZ=Europe/Moscow # +03:00, no DST
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        postgresql: "9.6"
+      env:
+        - PG_VERSION=9.6
+        - SSLTEST=Y
     - jdk: openjdk7
       sudo: required
       addons:
