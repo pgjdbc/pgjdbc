@@ -38,10 +38,10 @@ public class UpdateObject310Test {
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{
-        {LocalDateTime.now().truncatedTo(ChronoUnit.MICROS), "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
-        {OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS), "timestamp_with_time_zone_column", "'2007-06-03'::TIMESTAMP"},
-        {LocalDate.now(), "date_column", "'2003-01-01'::DATE"},
-        {LocalTime.now().truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
+        {LocalDateTime.of(2017, 1, 2, 3, 4, 5, 6000).truncatedTo(ChronoUnit.MICROS), "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
+        {OffsetDateTime.of(2017, 1, 2, 3, 4, 5, 6000, ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS), "timestamp_with_time_zone_column", "'2007-06-03'::TIMESTAMP"},
+        {LocalDate.of(2017, 1, 2), "date_column", "'2003-01-01'::DATE"},
+        {LocalTime.of(11, 12, 13).truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
     });
   }
 
@@ -91,10 +91,8 @@ public class UpdateObject310Test {
       rs.next();
       assertEquals(newValue, rs.getObject(1, newValue.getClass()));
     } finally {
-      if (rs != null) {
-        rs.close();
-      }
-      s.close();
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(s);
     }
   }
 
@@ -114,14 +112,12 @@ public class UpdateObject310Test {
       rs.updateRow();
       rs.close();
 
-      fail("should have thrown an Exception");
+      fail("should have thrown an PSQLException because integers can't represent the date");
     } catch (PSQLException e) {
       assertEquals(PSQLState.DATATYPE_MISMATCH.getState(), e.getSQLState());
     } finally {
-      if (rs != null) {
-        rs.close();
-      }
-      s.close();
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(s);
     }
   }
 }
