@@ -152,6 +152,7 @@ matrix:
       env:
         - PG_VERSION=9.6
         - SSLTEST=Y
+        - COVERAGE=Y
     - jdk: openjdk7
       sudo: required
       addons:
@@ -211,12 +212,6 @@ matrix:
         - PG_VERSION=9.3
         - QUERY_MODE=extendedForPrepared
         - COVERAGE=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - TEST_CLIENTS=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
