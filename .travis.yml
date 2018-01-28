@@ -152,6 +152,7 @@ matrix:
       env:
         - PG_VERSION=9.6
         - SSLTEST=Y
+        - COVERAGE=Y
     - jdk: openjdk7
       sudo: required
       addons:
