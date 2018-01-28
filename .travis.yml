@@ -204,12 +204,6 @@ matrix:
         - COVERAGE=Y
     - jdk: oraclejdk8
       addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - TEST_CLIENTS=Y
-    - jdk: oraclejdk8
-      addons:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
