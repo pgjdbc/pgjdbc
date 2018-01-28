@@ -59,10 +59,10 @@ public class SingleCertValidatingFactoryTestSuite {
 
     return Arrays.asList(new Object[][]{
         {"jdbc:postgresql://localhost:5432/test"},
-//        {"jdbc:postgresql://localhost:10090/test"},
-//        {"jdbc:postgresql://localhost:10091/test"},
-//        {"jdbc:postgresql://localhost:10092/test"},
-//        {"jdbc:postgresql://localhost:10093/test"},
+        //        {"jdbc:postgresql://localhost:10090/test"},
+        //        {"jdbc:postgresql://localhost:10091/test"},
+        //        {"jdbc:postgresql://localhost:10092/test"},
+        //        {"jdbc:postgresql://localhost:10093/test"},
     });
   }
 

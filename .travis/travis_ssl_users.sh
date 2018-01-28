@@ -8,3 +8,5 @@ create_databases() {
 }
 
 create_databases
+
+psql -U postgres test -c "create extension sslinfo"
