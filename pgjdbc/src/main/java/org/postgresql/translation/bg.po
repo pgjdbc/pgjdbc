@@ -1523,8 +1523,8 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:196
 #: org/postgresql/xa/PGXAConnection.java:265
-msgid "Invalid flags"
-msgstr "Невалидни флагове"
+msgid "Invalid flags {0}"
+msgstr "Невалидни флагове {0}"
 
 #: org/postgresql/xa/PGXAConnection.java:200
 #: org/postgresql/xa/PGXAConnection.java:269
@@ -1544,36 +1544,36 @@ msgstr "спиране / започване не се поддържа за мо
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented"
-msgstr "Транзакция в транзакция не се поддържа за момента"
+msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
+msgstr "Транзакция в транзакция не се поддържа за момента. xid={0}, currentXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"
 msgstr "Грешка при изключване на autocommit"
 
 #: org/postgresql/xa/PGXAConnection.java:273
-msgid "tried to call end without corresponding start call"
-msgstr "опита да извика end без съответстващо извикване на start"
+msgid "tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
+msgstr "опита да извика end без съответстващо извикване на start. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:305
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
-"started the transaction"
+"started the transaction. currentXid={0}, prepare xid={1}"
 msgstr ""
 "Невъзможна комбинация: Prepare трябва да бъде издадено чрез използване на "
-"същата връзка, при която е започната транзакцията"
+"същата връзка, при която е започната транзакцията. currentXid={0}, prepare xid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:309
-msgid "Prepare called before end"
-msgstr "Prepare извикано преди края"
+msgid "Prepare called before end. prepare xid={0}, state={1}"
+msgstr "Prepare извикано преди края. prepare xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:317
 msgid "Server versions prior to 8.1 do not support two-phase commit."
 msgstr "Сървър версии преди 8.1 не поддържат дву-фазов commit."
 
 #: org/postgresql/xa/PGXAConnection.java:334
-msgid "Error preparing transaction"
-msgstr "Грешка при подготвяне на транзакция"
+msgid "Error preparing transaction. prepare xid={0}"
+msgstr "Грешка при подготвяне на транзакция. prepare xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:349
 msgid "Invalid flag"
@@ -1585,8 +1585,8 @@ msgstr "Грешка при възстановяване"
 
 #: org/postgresql/xa/PGXAConnection.java:423
 #: org/postgresql/xa/PGXAConnection.java:426
-msgid "Error rolling back prepared transaction"
-msgstr "Грешка при възстановяване на състоянието преди подготвена транзакция"
+msgid "Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Грешка при възстановяване на състоянието преди подготвена транзакция. rollback xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:464
 msgid ""
@@ -1597,28 +1597,28 @@ msgstr ""
 "използване на същата връзка, при която е започнал"
 
 #: org/postgresql/xa/PGXAConnection.java:468
-msgid "commit called before end"
-msgstr "commit извикан преди end"
+msgid "commit called before end. commit xid={0}, state={1}"
+msgstr "commit извикан преди end. commit xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:478
-msgid "Error during one-phase commit"
-msgstr "Грешка при едно-фазов commit"
+msgid "Error during one-phase commit. commit xid={0}"
+msgstr "Грешка при едно-фазов commit. commit xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:497
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection"
+"Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 msgstr ""
 "Невъзможна комбинация: втората фаза на commit задължително трябва да бъде "
-"издадена при свободна връзка"
+"издадена при свободна връзка. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:513
 #, fuzzy
-msgid "Error committing prepared transaction"
-msgstr "Грешка при възстановяване на състоянието преди подготвена транзакция"
+msgid "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Грешка при възстановяване на състоянието преди подготвена транзакция. commit xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:529
-msgid "Heuristic commit/rollback not supported"
-msgstr "Евристичен commit или rollback не се поддържа"
+msgid "Heuristic commit/rollback not supported. forget xid={0}"
+msgstr "Евристичен commit или rollback не се поддържа. forget xid={0}"
 
 #~ msgid "The class {0} does not implement org.postgresql.util.PGobject."
 #~ msgstr "Клас {0} не изпълнява org.postgresql.util.PGobject."

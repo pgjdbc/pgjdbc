@@ -1497,8 +1497,8 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:196
 #: org/postgresql/xa/PGXAConnection.java:265
-msgid "Invalid flags"
-msgstr "Geçersiz seçenekler"
+msgid "Invalid flags {0}"
+msgstr "Geçersiz seçenekler {0}"
 
 #: org/postgresql/xa/PGXAConnection.java:200
 #: org/postgresql/xa/PGXAConnection.java:269
@@ -1518,28 +1518,28 @@ msgstr "suspend/resume desteklenmiyor"
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented"
-msgstr "Transaction interleaving desteklenmiyor."
+msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
+msgstr "Transaction interleaving desteklenmiyor. xid={0}, currentXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"
 msgstr "autocommit'i devre dışı bırakma sırasında hata"
 
 #: org/postgresql/xa/PGXAConnection.java:273
-msgid "tried to call end without corresponding start call"
-msgstr "start çağırımı olmadan end çağırılmıştır"
+msgid "tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
+msgstr "start çağırımı olmadan end çağırılmıştır. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:305
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
-"started the transaction"
+"started the transaction. currentXid={0}, prepare xid={1}"
 msgstr ""
 "Desteklenmiyor: Prepare, transaction başlatran bağlantı tarafından "
-"çağırmalıdır"
+"çağırmalıdır. currentXid={0}, prepare xid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:309
-msgid "Prepare called before end"
-msgstr "Sondan önce prepare çağırılmış"
+msgid "Prepare called before end. prepare xid={0}, state={1}"
+msgstr "Sondan önce prepare çağırılmış. prepare xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:317
 msgid "Server versions prior to 8.1 do not support two-phase commit."
@@ -1547,8 +1547,8 @@ msgstr ""
 "Sunucunun 8.1''den  önceki sürümler two-phase commit desteklememektedir."
 
 #: org/postgresql/xa/PGXAConnection.java:334
-msgid "Error preparing transaction"
-msgstr "Transaction hazırlama hatası"
+msgid "Error preparing transaction. prepare xid={0}"
+msgstr "Transaction hazırlama hatası. prepare xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:349
 msgid "Invalid flag"
@@ -1560,8 +1560,8 @@ msgstr "Kurtarma sırasında hata"
 
 #: org/postgresql/xa/PGXAConnection.java:423
 #: org/postgresql/xa/PGXAConnection.java:426
-msgid "Error rolling back prepared transaction"
-msgstr "Hazırlanmış transaction rollback hatası"
+msgid "Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Hazırlanmış transaction rollback hatası. rollback xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:464
 msgid ""
@@ -1572,26 +1572,26 @@ msgstr ""
 "aynı olmalıdır"
 
 #: org/postgresql/xa/PGXAConnection.java:468
-msgid "commit called before end"
-msgstr "commit, sondan önce çağırıldı"
+msgid "commit called before end. commit xid={0}, state={1}"
+msgstr "commit, sondan önce çağırıldı. commit xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:478
-msgid "Error during one-phase commit"
-msgstr "One-phase commit sırasında hata"
+msgid "Error during one-phase commit. commit xid={0}"
+msgstr "One-phase commit sırasında hata. commit xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:497
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection"
-msgstr "Desteklenmiyor: 2nd phase commit, atıl bir bağlantıdan başlatılmalıdır"
+"Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
+msgstr "Desteklenmiyor: 2nd phase commit, atıl bir bağlantıdan başlatılmalıdır. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:513
 #, fuzzy
-msgid "Error committing prepared transaction"
-msgstr "Hazırlanmış transaction rollback hatası"
+msgid "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Hazırlanmış transaction rollback hatası. commit xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:529
-msgid "Heuristic commit/rollback not supported"
-msgstr "Heuristic commit/rollback desteklenmiyor"
+msgid "Heuristic commit/rollback not supported. forget xid={0}"
+msgstr "Heuristic commit/rollback desteklenmiyor. forget xid={0}"
 
 #~ msgid "The class {0} does not implement org.postgresql.util.PGobject."
 #~ msgstr "{0} sınıfı org.postgresql.util.PGobject implemente etmiyor."

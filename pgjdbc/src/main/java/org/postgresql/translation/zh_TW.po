@@ -1452,8 +1452,8 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:196
 #: org/postgresql/xa/PGXAConnection.java:265
-msgid "Invalid flags"
-msgstr "無效的旗標"
+msgid "Invalid flags {0}"
+msgstr "無效的旗標 {0}"
 
 #: org/postgresql/xa/PGXAConnection.java:200
 #: org/postgresql/xa/PGXAConnection.java:269
@@ -1473,25 +1473,25 @@ msgstr "暫停(suspend)/再繼續(resume)尚未被實作。"
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented"
-msgstr "事物交易隔絕(Transaction interleaving)未被實作。"
+msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
+msgstr "事物交易隔絕(Transaction interleaving)未被實作。xid={0}, currentXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:273
-msgid "tried to call end without corresponding start call"
+msgid "tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:305
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
-"started the transaction"
+"started the transaction. currentXid={0}, prepare xid={1}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:309
-msgid "Prepare called before end"
+msgid "Prepare called before end. prepare xid={0}, state={1}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:317
@@ -1499,7 +1499,7 @@ msgid "Server versions prior to 8.1 do not support two-phase commit."
 msgstr "8.1 版之前的伺服器不支援二段式提交(Two-Phase Commit)。"
 
 #: org/postgresql/xa/PGXAConnection.java:334
-msgid "Error preparing transaction"
+msgid "Error preparing transaction. prepare xid={0}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:349
@@ -1512,7 +1512,7 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:423
 #: org/postgresql/xa/PGXAConnection.java:426
-msgid "Error rolling back prepared transaction"
+msgid "Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:464
@@ -1522,24 +1522,24 @@ msgid ""
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:468
-msgid "commit called before end"
+msgid "commit called before end. commit xid={0}, state={1}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:478
-msgid "Error during one-phase commit"
+msgid "Error during one-phase commit. commit xid={0}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:497
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection"
+"Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:513
-msgid "Error committing prepared transaction"
+msgid "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:529
-msgid "Heuristic commit/rollback not supported"
+msgid "Heuristic commit/rollback not supported. forget xid={0}"
 msgstr ""
 
 #~ msgid "The class {0} does not implement org.postgresql.util.PGobject."

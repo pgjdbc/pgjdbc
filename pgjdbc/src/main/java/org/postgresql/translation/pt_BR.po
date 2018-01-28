@@ -1535,8 +1535,8 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:196
 #: org/postgresql/xa/PGXAConnection.java:265
-msgid "Invalid flags"
-msgstr "Marcadores inválidos"
+msgid "Invalid flags {0}"
+msgstr "Marcadores={0} inválidos"
 
 #: org/postgresql/xa/PGXAConnection.java:200
 #: org/postgresql/xa/PGXAConnection.java:269
@@ -1556,28 +1556,28 @@ msgstr "suspender/recomeçar não está implementado"
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented"
-msgstr "Intercalação de transação não está implementado"
+msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
+msgstr "Intercalação de transação não está implementado. xid={0}, currentXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"
 msgstr "Erro ao desabilitar autocommit"
 
 #: org/postgresql/xa/PGXAConnection.java:273
-msgid "tried to call end without corresponding start call"
-msgstr "tentou executar end sem a chamada ao start correspondente"
+msgid "tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
+msgstr "tentou executar end sem a chamada ao start correspondente. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:305
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
-"started the transaction"
+"started the transaction. currentXid={0}, prepare xid={1}"
 msgstr ""
 "Não está implementado: Prepare deve ser executado utilizando a mesma conexão "
-"que iniciou a transação"
+"que iniciou a transação. currentXid={0}, prepare xid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:309
-msgid "Prepare called before end"
-msgstr "Prepare executado antes do end"
+msgid "Prepare called before end. prepare xid={0}, state={1}"
+msgstr "Prepare executado antes do end. prepare xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:317
 msgid "Server versions prior to 8.1 do not support two-phase commit."
@@ -1585,8 +1585,8 @@ msgstr ""
 "Versões do servidor anteriores a 8.1 não suportam efetivação em duas fases."
 
 #: org/postgresql/xa/PGXAConnection.java:334
-msgid "Error preparing transaction"
-msgstr "Erro ao preparar transação"
+msgid "Error preparing transaction. prepare xid={0}"
+msgstr "Erro ao preparar transação. prepare xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:349
 msgid "Invalid flag"
@@ -1598,8 +1598,8 @@ msgstr "Erro durante recuperação"
 
 #: org/postgresql/xa/PGXAConnection.java:423
 #: org/postgresql/xa/PGXAConnection.java:426
-msgid "Error rolling back prepared transaction"
-msgstr "Erro ao cancelar transação preparada"
+msgid "Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Erro ao cancelar transação preparada. rollback xid={0}, preparedXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:464
 msgid ""
@@ -1610,28 +1610,28 @@ msgstr ""
 "utilizando a mesma conexão que foi utilizada para iniciá-la"
 
 #: org/postgresql/xa/PGXAConnection.java:468
-msgid "commit called before end"
-msgstr "commit executado antes do end"
+msgid "commit called before end. commit xid={0}, state={1}"
+msgstr "commit executado antes do end. commit xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:478
-msgid "Error during one-phase commit"
-msgstr "Erro durante efetivação de uma fase"
+msgid "Error during one-phase commit. commit xid={0}"
+msgstr "Erro durante efetivação de uma fase. commit xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:497
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection"
+"Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 msgstr ""
 "Não está implementado: efetivação da segunda fase deve ser executada "
-"utilizado uma conexão ociosa"
+"utilizado uma conexão ociosa. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:513
 #, fuzzy
-msgid "Error committing prepared transaction"
-msgstr "Erro ao cancelar transação preparada"
+msgid "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Erro ao cancelar transação preparada. commit xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:529
-msgid "Heuristic commit/rollback not supported"
-msgstr "Efetivação/Cancelamento heurístico não é suportado"
+msgid "Heuristic commit/rollback not supported. forget xid={0}"
+msgstr "Efetivação/Cancelamento heurístico não é suportado. forget xid={0}"
 
 #~ msgid "The class {0} does not implement org.postgresql.util.PGobject."
 #~ msgstr "A classe {0} não implementa org.postgresql.util.PGobject."

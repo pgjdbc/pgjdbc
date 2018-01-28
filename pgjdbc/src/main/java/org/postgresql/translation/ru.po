@@ -1531,8 +1531,8 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:196
 #: org/postgresql/xa/PGXAConnection.java:265
-msgid "Invalid flags"
-msgstr ""
+msgid "Invalid flags {0}"
+msgstr "Неверные флаги {0}"
 
 #: org/postgresql/xa/PGXAConnection.java:200
 #: org/postgresql/xa/PGXAConnection.java:269
@@ -1554,34 +1554,34 @@ msgstr "Операции XA suspend/resume не реализованы"
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented"
-msgstr ""
+msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
+msgstr "Чередование транзакций в одном соединении не поддерживается. Предыдущую транзакцию нужно завершить xid={0}, currentXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:273
-msgid "tried to call end without corresponding start call"
-msgstr ""
+msgid "tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
+msgstr "Невозможно завершить транзакцию, т.к. транзакция не была начата. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:305
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
-"started the transaction"
-msgstr ""
+"started the transaction. currentXid={0}, prepare xid={1}"
+msgstr "В каком соединении транзакцию начинали, в таком и вызывайте prepare. По-другому не работает. currentXid={0}, prepare xid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:309
-msgid "Prepare called before end"
-msgstr ""
+msgid "Prepare called before end. prepare xid={0}, state={1}"
+msgstr "Вызов prepare должен происходить только после вызова end. prepare xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:317
 msgid "Server versions prior to 8.1 do not support two-phase commit."
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:334
-msgid "Error preparing transaction"
-msgstr ""
+msgid "Error preparing transaction. prepare xid={0}"
+msgstr "Ошибка при выполнении prepare для транзакции {0}"
 
 #: org/postgresql/xa/PGXAConnection.java:349
 msgid "Invalid flag"
@@ -1593,8 +1593,8 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:423
 #: org/postgresql/xa/PGXAConnection.java:426
-msgid "Error rolling back prepared transaction"
-msgstr ""
+msgid "Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Ошибка при откате подготовленной транзакции. rollback xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:464
 msgid ""
@@ -1603,24 +1603,24 @@ msgid ""
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:468
-msgid "commit called before end"
-msgstr ""
+msgid "commit called before end. commit xid={0}, state={1}"
+msgstr "Операция commit должна вызываться только после операции end. commit xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:478
-msgid "Error during one-phase commit"
-msgstr ""
+msgid "Error during one-phase commit. commit xid={0}"
+msgstr "Ошибка при однофазной фиксации транзакции. commit xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:497
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection"
-msgstr ""
+"Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
+msgstr "Духфазная фиксация работает только, если соединение неактивно (state=idle и транзакцция отсутствует). commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:513
-msgid "Error committing prepared transaction"
-msgstr ""
+msgid "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "Ошибка при фиксации подготовленной транзакции. commit xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:529
-msgid "Heuristic commit/rollback not supported"
+msgid "Heuristic commit/rollback not supported. forget xid={0}"
 msgstr ""
 
 #~ msgid "The class {0} does not implement org.postgresql.util.PGobject."

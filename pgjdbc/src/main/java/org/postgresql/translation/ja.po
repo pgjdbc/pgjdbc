@@ -1504,8 +1504,8 @@ msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:196
 #: org/postgresql/xa/PGXAConnection.java:265
-msgid "Invalid flags"
-msgstr "無効なフラグです。"
+msgid "Invalid flags {0}"
+msgstr "無効なフラグです。{0}"
 
 #: org/postgresql/xa/PGXAConnection.java:200
 #: org/postgresql/xa/PGXAConnection.java:269
@@ -1525,36 +1525,36 @@ msgstr "停止/再開 は実装されていません。"
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented"
-msgstr "Transaction interleaving は実装されていません。"
+msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
+msgstr "Transaction interleaving は実装されていません。xid={0}, currentXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"
 msgstr "自動コミットの無効化エラー"
 
 #: org/postgresql/xa/PGXAConnection.java:273
-msgid "tried to call end without corresponding start call"
-msgstr "対応する開始呼び出しなしで、終了呼び出しました。"
+msgid "tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
+msgstr "対応する開始呼び出しなしで、終了呼び出しました。state={0}, start xid={1}, currentXid={2}, preparedXid={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:305
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
-"started the transaction"
+"started the transaction. currentXid={0}, prepare xid={1}"
 msgstr ""
 "実装されていません: Prepareは、トランザクションを開始したときと同じ接続で使わ"
-"なくてはなりません。"
+"なくてはなりません。currentXid={0}, prepare xid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:309
-msgid "Prepare called before end"
-msgstr "終了前に\"Prepare\"が呼ばれました"
+msgid "Prepare called before end. prepare xid={0}, state={1}"
+msgstr "終了前に\"Prepare\"が呼ばれました prepare xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:317
 msgid "Server versions prior to 8.1 do not support two-phase commit."
 msgstr "2相コミット は、サーバのバージョン 8.1以前はサポートされません。"
 
 #: org/postgresql/xa/PGXAConnection.java:334
-msgid "Error preparing transaction"
-msgstr "トランザクションの準備エラー"
+msgid "Error preparing transaction. prepare xid={0}"
+msgstr "トランザクションの準備エラー。prepare xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:349
 msgid "Invalid flag"
@@ -1566,8 +1566,8 @@ msgstr "回復中にエラー"
 
 #: org/postgresql/xa/PGXAConnection.java:423
 #: org/postgresql/xa/PGXAConnection.java:426
-msgid "Error rolling back prepared transaction"
-msgstr "準備トランザクションのロールバックエラー"
+msgid "Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "準備トランザクションのロールバックエラー rollback xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:464
 msgid ""
@@ -1578,27 +1578,27 @@ msgstr ""
 "ばなりません。"
 
 #: org/postgresql/xa/PGXAConnection.java:468
-msgid "commit called before end"
-msgstr "終了の前に COMMIT を呼びました"
+msgid "commit called before end. commit xid={0}, state={1}"
+msgstr "終了の前に COMMIT を呼びました commit xid={0}, state={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:478
-msgid "Error during one-phase commit"
-msgstr "単一フェーズのCOMMITの最中にエラー"
+msgid "Error during one-phase commit. commit xid={0}"
+msgstr "単一フェーズのCOMMITの最中にエラー commit xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:497
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection"
+"Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}"
 msgstr ""
 "実装されていません: 第二フェーズの COMMIT は、待機接続で使わなくてはなりませ"
-"ん。"
+"ん。xid={0}, currentXid={1}, state={2], transactionState={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:513
-msgid "Error committing prepared transaction"
-msgstr "準備トランザクションのコミットエラー"
+msgid "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}"
+msgstr "準備トランザクションのコミットエラー。commit xid={0}, preparedXid={1}, currentXid={2}"
 
 #: org/postgresql/xa/PGXAConnection.java:529
-msgid "Heuristic commit/rollback not supported"
-msgstr "サポートされない commit/rollback が見つかりました。"
+msgid "Heuristic commit/rollback not supported. forget xid={0}"
+msgstr "サポートされない commit/rollback が見つかりました。forget xid={0}"
 
 #~ msgid "The class {0} does not implement org.postgresql.util.PGobject."
 #~ msgstr "クラス {0} は、org.postgresql.util.PGobject を実装していません。"
