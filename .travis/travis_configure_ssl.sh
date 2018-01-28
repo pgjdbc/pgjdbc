@@ -22,6 +22,7 @@ set_conf_property "ssl_cert_file" "server.crt"
 set_conf_property "ssl_key_file" "server.key"
 set_conf_property "ssl_ca_file" "root.crt"
 
+enable_ssl_property "testsinglecertfactory"
 enable_ssl_property "sslhostnossl9"
 enable_ssl_property "sslhostgh9"
 enable_ssl_property "sslhostbh9"
