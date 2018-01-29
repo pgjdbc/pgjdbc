@@ -163,6 +163,25 @@ public class ParserTest {
   }
 
   @Test
+  public void insertBatchedReWriteOnConflict() throws SQLException {
+    String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
+  }
+
+  @Test
+  public void insertMultiInsert() throws SQLException {
+    String query =
+        "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
+  }
+
+  @Test
   public void testSameListReturned() throws SQLException {
     List<NativeQuery> qry = Parser.parseJdbcSql(
             "insert test(id, name) select 1, 'value' from test2 RETURNING id", true, true, true, true);

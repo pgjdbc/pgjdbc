@@ -27,15 +27,15 @@ The PostgreSQL™ JDBC driver implements native support for the
       <td>LocalDate</td>
     </tr>
     <tr>
-      <td>TIME [ WITHOUT TIMEZONE ]</td>
+      <td>TIME [ WITHOUT TIME ZONE ]</td>
       <td>LocalTime</td>
     </tr>
     <tr>
-      <td>TIMESTAMP [ WITHOUT TIMEZONE ]</td>
+      <td>TIMESTAMP [ WITHOUT TIME ZONE ]</td>
       <td>LocalDateTime</td>
     </tr>
     <tr>
-      <td>TIMESTAMP WITH TIMEZONE</td>
+      <td>TIMESTAMP WITH TIME ZONE</td>
       <td>OffsetDateTime</td>
     </tr>
   </tbody>
@@ -43,7 +43,7 @@ The PostgreSQL™ JDBC driver implements native support for the
 
 This is closely aligned with tables B-4 and B-5 of the JDBC 4.2 specification.
 Note that `ZonedDateTime`, `Instant` and
-`OffsetTime / TIME [ WITHOUT TIMEZONE ]` are not supported. Also note
+`OffsetTime / TIME [ WITHOUT TIME ZONE ]` are not supported. Also note
 that all `OffsetDateTime` will instances will have be in UTC (have offset 0).
 This is because the backend stores them as UTC.
 

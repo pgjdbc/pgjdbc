@@ -3371,6 +3371,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return type.cast(LocalDate.MIN);
         }
         return type.cast(dateValue.toLocalDate());
+      } else if (sqlType == Types.TIMESTAMP) {
+        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(localDateTimeValue.toLocalDate());
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
                 PSQLState.INVALID_PARAMETER_VALUE);

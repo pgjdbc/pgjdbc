@@ -25,17 +25,25 @@ public class BaseTest4 {
     REGULAR, FORCE
   }
 
+  public enum ReWriteBatchedInserts {
+    YES, NO
+  }
+
   public enum AutoCommit {
     YES, NO
   }
 
   protected Connection con;
   private BinaryMode binaryMode;
+  private ReWriteBatchedInserts reWriteBatchedInserts;
   protected PreferQueryMode preferQueryMode;
 
   protected void updateProperties(Properties props) {
     if (binaryMode == BinaryMode.FORCE) {
       forceBinary(props);
+    }
+    if (reWriteBatchedInserts == ReWriteBatchedInserts.YES) {
+      PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
     }
   }
 
@@ -45,6 +53,11 @@ public class BaseTest4 {
 
   public final void setBinaryMode(BinaryMode binaryMode) {
     this.binaryMode = binaryMode;
+  }
+
+  public void setReWriteBatchedInserts(
+      ReWriteBatchedInserts reWriteBatchedInserts) {
+    this.reWriteBatchedInserts = reWriteBatchedInserts;
   }
 
   @Before

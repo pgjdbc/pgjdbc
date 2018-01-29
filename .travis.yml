@@ -113,6 +113,7 @@ matrix:
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
+        - TEST_CLIENTS=Y
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
     - jdk: oraclejdk8
       sudo: required
@@ -193,7 +194,7 @@ matrix:
         - PG_VERSION=9.6
         - QUERY_MODE=simple
         - COVERAGE=Y
-        - ANORM_SBT=Y
+        - TEST_CLIENTS=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.3"
@@ -201,12 +202,6 @@ matrix:
         - PG_VERSION=9.3
         - QUERY_MODE=extendedForPrepared
         - COVERAGE=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - TEST_CLIENTS=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
