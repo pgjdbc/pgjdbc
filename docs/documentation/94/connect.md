@@ -121,7 +121,11 @@ connection.
 * `recvBufferSize = int`
 
 	Sets SO_RCVBUF on the connection stream
+
+* `receiveBufferSize = int`  
 	
+	Sets SO_RCVBUF on the connection stream
+
 * `protocolVersion = String`
 
 	The driver supports both the V2 and V3 frontend/backend protocols. The
@@ -329,14 +333,6 @@ connection.
 *	`useSpnego = boolean`
 	
 	Use SPNEGO in SSPI authentication requests
-
-*	`sendBufferSize = int`  
-	
-	Sets SO_SNDBUF on the connection stream
-
-*	`receiveBufferSize = int`  
-	
-	Sets SO_RCVBUF on the connection stream
 
 *	`readOnly = boolean`
 	
