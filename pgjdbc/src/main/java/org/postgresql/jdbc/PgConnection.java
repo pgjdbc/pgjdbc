@@ -311,6 +311,14 @@ public class PgConnection implements BaseConnection {
       types.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
     }
 
+    if (haveMinimumServerVersion(ServerVersion.v9_2)) {
+      types.addCoreType("json", Oid.JSON, Types.JAVA_OBJECT, "org.postgresql.util.PGobject", Oid.JSON_ARRAY);
+    }
+
+    if (haveMinimumServerVersion(ServerVersion.v9_4)) {
+      types.addCoreType("jsonb", Oid.JSONB, Types.JAVA_OBJECT, "org.postgresql.util.PGobject", Oid.JSONB_ARRAY);
+    }
+
     this._clientInfo = new Properties();
     if (haveMinimumServerVersion(ServerVersion.v9_0)) {
       String appName = PGProperty.APPLICATION_NAME.get(info);
