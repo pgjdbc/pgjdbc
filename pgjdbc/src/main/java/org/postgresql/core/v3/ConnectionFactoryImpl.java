@@ -125,8 +125,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
-    long lastKnownTime = System.currentTimeMillis() - PGProperty.HOST_RECHECK_SECONDS.getInt(info) * 1000;
-
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     HostChooser hostChooser =
