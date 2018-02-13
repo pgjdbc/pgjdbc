@@ -82,7 +82,9 @@ public class ScramAuthenticator {
           PSQLState.CONNECTION_REJECTED
       );
     }
-    LOGGER.log(Level.FINEST, " Using SCRAM mechanism {0}", scramClient.getScramMechanism().getName());
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " Using SCRAM mechanism {0}", scramClient.getScramMechanism().getName());
+    }
 
     scramSession =
         scramClient.scramSession("*");   // Real username is ignored by server, uses startup one
@@ -90,7 +92,9 @@ public class ScramAuthenticator {
 
   public void sendScramClientFirstMessage() throws IOException {
     String clientFirstMessage = scramSession.clientFirstMessage();
-    LOGGER.log(Level.FINEST, " FE=> SASLInitialResponse( {0} )", clientFirstMessage);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " FE=> SASLInitialResponse( {0} )", clientFirstMessage);
+    }
 
     String scramMechanismName = scramClient.getScramMechanism().getName();
     byte[] scramMechanismNameBytes = scramMechanismName.getBytes(StandardCharsets.UTF_8);
@@ -108,7 +112,9 @@ public class ScramAuthenticator {
 
   public void processServerFirstMessage(int length) throws IOException, PSQLException {
     String serverFirstMessage = pgStream.receiveString(length);
-    LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue( {0} )", serverFirstMessage);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue( {0} )", serverFirstMessage);
+    }
 
     try {
       serverFirstProcessor = scramSession.receiveServerFirstMessage(serverFirstMessage);
@@ -119,15 +125,19 @@ public class ScramAuthenticator {
           e
       );
     }
-    LOGGER.log(Level.FINEST,
-            " <=BE AuthenticationSASLContinue(salt={0}, iterations={1})",
-        new Object[] { serverFirstProcessor.getSalt(), serverFirstProcessor.getIteration() }
-    );
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST,
+                 " <=BE AuthenticationSASLContinue(salt={0}, iterations={1})",
+                 new Object[] { serverFirstProcessor.getSalt(), serverFirstProcessor.getIteration() }
+                 );
+    }
 
     clientFinalProcessor = serverFirstProcessor.clientFinalProcessor(password);
 
     String clientFinalMessage = clientFinalProcessor.clientFinalMessage();
-    LOGGER.log(Level.FINEST, " FE=> SASLResponse( {0} )", clientFinalMessage);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " FE=> SASLResponse( {0} )", clientFinalMessage);
+    }
 
     byte[] clientFinalMessageBytes = clientFinalMessage.getBytes(StandardCharsets.UTF_8);
     sendAuthenticationMessage(
@@ -138,7 +148,9 @@ public class ScramAuthenticator {
 
   public void verifyServerSignature(int length) throws IOException, PSQLException {
     String serverFinalMessage = pgStream.receiveString(length);
-    LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLFinal( {0} )", serverFinalMessage);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLFinal( {0} )", serverFinalMessage);
+    }
 
     try {
       clientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);

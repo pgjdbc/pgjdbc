@@ -53,10 +53,14 @@ public class SharedTimer {
     int count = refCount.decrementAndGet();
     if (count > 0) {
       // There are outstanding references to the timer so do nothing
-      LOGGER.log(Level.FINEST, "Outstanding references still exist so not closing shared Timer");
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, "Outstanding references still exist so not closing shared Timer");
+      }
     } else if (count == 0) {
       // This is the last usage of the Timer so cancel it so it's resources can be release.
-      LOGGER.log(Level.FINEST, "No outstanding references to shared Timer, will cancel and close it");
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, "No outstanding references to shared Timer, will cancel and close it");
+      }
       if (timer != null) {
         timer.cancel();
         timer = null;

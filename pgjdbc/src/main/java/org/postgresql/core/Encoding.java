@@ -148,7 +148,9 @@ public class Encoding {
     String[] candidates = encodings.get(databaseEncoding);
     if (candidates != null) {
       for (String candidate : candidates) {
-        LOGGER.log(Level.FINEST, "Search encoding candidate {0}", candidate);
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, "Search encoding candidate {0}", candidate);
+        }
         if (Charset.isSupported(candidate)) {
           return new Encoding(candidate);
         }
@@ -162,7 +164,9 @@ public class Encoding {
     }
 
     // Fall back to default JVM encoding.
-    LOGGER.log(Level.FINEST, "{0} encoding not found, returning default encoding", databaseEncoding);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "{0} encoding not found, returning default encoding", databaseEncoding);
+    }
     return DEFAULT_ENCODING;
   }
 
