@@ -28,7 +28,7 @@ public class GT {
 
   private GT() {
     try {
-      _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
+      _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages", Locale.getDefault(Locale.Category.DISPLAY));
     } catch (MissingResourceException mre) {
       // translation files have not been installed
       _bundle = null;
