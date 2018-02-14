@@ -29,7 +29,7 @@ public class GT {
 
   private GT() {
     try {
-      //#if mvn.project.property.current.jdk < "1.7"
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
       _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
       //#else
       _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages", Locale.getDefault(Locale.Category.DISPLAY));
