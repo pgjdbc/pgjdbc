@@ -2597,18 +2597,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     if (name.equals("client_encoding")) {
-       if (allowEncodingChanges) {
-         if (!value.equalsIgnoreCase("UTF8")) {
-           LOGGER.log(Level.WARNING, "pgjdbc expects client_encoding to be UTF8 for proper operation. Actual encoding is {0}", value);
-         }
-         pgStream.setEncoding(Encoding.getDatabaseEncoding(value));
-       } else if (!value.equalsIgnoreCase("UTF8")) {
-         close(); // we're screwed now; we can't trust any subsequent string.
-         throw new PSQLException(GT.tr(
-             "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
-             value), PSQLState.CONNECTION_FAILURE);
+      if (allowEncodingChanges) {
+        if (!value.equalsIgnoreCase("UTF8")) {
+          LOGGER.log(Level.WARNING,
+              "pgjdbc expects client_encoding to be UTF8 for proper operation. Actual encoding is {0}",
+              value);
+        }
+        pgStream.setEncoding(Encoding.getDatabaseEncoding(value));
+      } else if (!value.equalsIgnoreCase("UTF8")) {
+        close(); // we're screwed now; we can't trust any subsequent string.
+        throw new PSQLException(GT.tr(
+            "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
+            value), PSQLState.CONNECTION_FAILURE);
 
-       }
+      }
     }
 
     if (name.equals("DateStyle") && !value.startsWith("ISO")
