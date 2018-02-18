@@ -204,6 +204,9 @@ class SimpleQuery implements Query {
     return false;
   }
 
+  public void resetNeedUpdateFieldFormats() {
+    needUpdateFieldFormats = fields != null;
+  }
 
   public boolean hasBinaryFields() {
     return hasBinaryFields;

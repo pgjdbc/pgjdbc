@@ -1489,6 +1489,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       }
     }
+    // If text-only results are required (e.g. updateable resultset), and the query has binary columns,
+    // flip to text format.
+    if (noBinaryTransfer && query.hasBinaryFields()) {
+      for (Field field : fields) {
+        if (field.getFormat() != Field.TEXT_FORMAT) {
+          field.setFormat(Field.TEXT_FORMAT);
+        }
+      }
+      query.resetNeedUpdateFieldFormats();
+      query.setHasBinaryFields(false);
+    }
 
     // This is not the number of binary fields, but the total number
     // of fields if any of them are binary or zero if all of them
