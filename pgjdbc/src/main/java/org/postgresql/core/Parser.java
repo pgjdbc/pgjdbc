@@ -149,7 +149,7 @@ public class Parser {
                   nativeQueries = new ArrayList<NativeQuery>();
                 }
 
-                if (!isValuesFound || !isCurrentReWriteCompatible || !valuesBraceCloseFound
+                if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
                     || (bindPositions != null
                     && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
                   valuesBraceOpenPosition = -1;
@@ -244,7 +244,7 @@ public class Parser {
       }
     }
 
-    if (!isValuesFound || !isCurrentReWriteCompatible || !valuesBraceCloseFound
+    if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
         || (bindPositions != null
         && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
       valuesBraceOpenPosition = -1;
