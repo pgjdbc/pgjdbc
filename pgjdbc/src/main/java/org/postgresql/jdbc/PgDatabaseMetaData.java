@@ -46,7 +46,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       + "prepared,procedural,quote,recheck,reindex,rename,replace,reset,restrict,returns,rule,"
       + "setof,share,show,stable,statistics,stdin,stdout,storage,strict,superuser,sysid,tablespace,"
       + "temp,template,toast,truncate,trusted,unencrypted,unlisten,until,vacuum,valid,validator,"
-      + "verbose";
+      + "verbose,volatile";
 
   protected final PgConnection connection; // The connection association
 
