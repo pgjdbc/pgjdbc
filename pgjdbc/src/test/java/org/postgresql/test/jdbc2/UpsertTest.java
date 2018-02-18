@@ -148,4 +148,46 @@ public class UpsertTest extends BaseTest4 {
       TestUtil.closeQuietly(ps);
     }
   }
+
+  @Test
+  public void testSingleValuedUpsertUpdateBatch() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement(
+          "insert into test_statement(i, t) values (?,?) ON CONFLICT (i) DO update set t=?");
+      ps.setInt(1, 50);
+      ps.setString(2, "50U");
+      ps.setString(3, "50U");
+      ps.addBatch();
+      ps.setInt(1, 53);
+      ps.setString(2, "53U");
+      ps.setString(3, "53U");
+      ps.addBatch();
+      int[] actual = ps.executeBatch();
+      BatchExecuteTest.assertSimpleInsertBatch(2, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testSingleValuedUpsertUpdateConstantBatch() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      // For reWriteBatchedInserts=YES the following is expected
+      // FE=> Parse(stmt=null,query="insert into test_statement(i, t) values ($1,$2),($3,$4) ON CONFLICT (i) DO update set t='DEF'",oids={23,1043,23,1043})
+      ps = con.prepareStatement(
+          "insert into test_statement(i, t) values (?,?) ON CONFLICT (i) DO update set t='DEF'");
+      ps.setInt(1, 50);
+      ps.setString(2, "50");
+      ps.addBatch();
+      ps.setInt(1, 53);
+      ps.setString(2, "53");
+      ps.addBatch();
+      int[] actual = ps.executeBatch();
+      BatchExecuteTest.assertSimpleInsertBatch(2, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
 }

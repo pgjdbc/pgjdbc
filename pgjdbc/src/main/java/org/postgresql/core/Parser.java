@@ -149,6 +149,13 @@ public class Parser {
                   nativeQueries = new ArrayList<NativeQuery>();
                 }
 
+                if (!isValuesFound || !isCurrentReWriteCompatible || !valuesBraceCloseFound
+                    || (bindPositions != null
+                    && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
+                  valuesBraceOpenPosition = -1;
+                  valuesBraceClosePosition = -1;
+                }
+
                 nativeQueries.add(new NativeQuery(nativeSql.toString(),
                     toIntArray(bindPositions), false,
                     SqlCommand.createStatementTypeInfo(
@@ -236,10 +243,10 @@ public class Parser {
         }
       }
     }
-    if (!isValuesFound) {
-      isCurrentReWriteCompatible = false;
-    }
-    if (!isCurrentReWriteCompatible) {
+
+    if (!isValuesFound || !isCurrentReWriteCompatible || !valuesBraceCloseFound
+        || (bindPositions != null
+        && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
       valuesBraceOpenPosition = -1;
       valuesBraceClosePosition = -1;
     }
