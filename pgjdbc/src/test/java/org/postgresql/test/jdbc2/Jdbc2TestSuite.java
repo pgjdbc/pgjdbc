@@ -93,6 +93,7 @@ import org.junit.runners.Suite;
         MiscTest.class,
         NotifyTest.class,
         DatabaseEncodingTest.class,
+        ClientEncodingTest.class,
 
         BlobTest.class,
         BlobTransactionTest.class,
