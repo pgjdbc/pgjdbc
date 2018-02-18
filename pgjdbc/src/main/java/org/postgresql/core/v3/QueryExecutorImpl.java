@@ -1504,7 +1504,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     // backend's MaxAllocSize is the largest message that can
     // be received from a client. If we have a bigger value
-    // from either very large parameters or incorrent length
+    // from either very large parameters or incorrect length
     // descriptions of setXXXStream we do not send the bind
     // messsage.
     //
