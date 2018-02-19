@@ -197,16 +197,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     // It's ok to join an ended transaction. WebLogic does that.
     if (flags == TMJOIN) {
       if (state != State.ENDED) {
-        throw new PGXAException(GT.tr("Transaction interleaving not implemented. xid={0}, currentXid={1}", xid, currentXid),
-            XAException.XAER_RMERR);
+        throw new PGXAException(
+            GT.tr(
+                "Invalid protocol state requested. Attempted transaction interleaving is not supported. xid={0}, currentXid={1}",
+                xid, currentXid), XAException.XAER_RMERR);
       }
 
       if (!xid.equals(currentXid)) {
-        throw new PGXAException(GT.tr("Transaction interleaving not implemented. xid={0}, currentXid={1}", xid, currentXid),
-            XAException.XAER_RMERR);
+        throw new PGXAException(
+            GT.tr(
+                "Invalid protocol state requested. Attempted transaction interleaving is not supported. xid={0}, currentXid={1}",
+                xid, currentXid), XAException.XAER_RMERR);
       }
     } else if (state == State.ENDED) {
-      throw new PGXAException(GT.tr("Transaction interleaving not implemented"),
+      throw new PGXAException(GT.tr("Invalid protocol state requested. Attempted transaction interleaving is not supported."),
           XAException.XAER_RMERR);
     }
 
