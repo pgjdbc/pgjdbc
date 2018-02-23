@@ -17,6 +17,7 @@ nav: ../
 * [3. Problems](#problems)
  * [3.1. executeBatch hangs without error Possible solutions](#executeBatch-hangs-without-error)
  * [3.2. I upgraded from 7.x to 8.x.  Why did my application break?](#upgradeTo80)
+ * [3.3. I upgraded from 9.x to 42.x.  Why did my application break?](#upgradeTo42)
 
 ***
 <a name="versioning"></a>
@@ -30,22 +31,24 @@ We have three issues we are trying to address here.
 a) We do not want to be tied to the server release schedule.
 
 Previously the version was based on the server release to declare some kind
-of compatibility, from 9.4.xxxx this was no longer the case and the
-increments was just in the last 4 digits, this leads us to the second issue.
+of compatibility. This has not been the case since the first 9.4.xxxx release.
+Each 9.4.xxxx release merely incremented the last 4 digits, this leads us to the second issue.
 
-b) Avoid confusion as to which version to use with which server version.
+b) Avoid confusion as to which version of PgJDBC to use with which server version.
 
-The naming scheme previously has 9.4 in it which leads people to believe it
-is for server version 9.4 only, when in fact it support PostgreSQL 8.2 and higher.
-That means that some users looking for PostgreSQL 9.5 were asking what is the
-version to use, and some users that still use PostgreSQL 8.4 were using
-the JDBC driver 8.4 Build 703.
+The naming scheme previously had 9.4 in it which led people to believe it
+was only for server version 9.4, when in fact PgJDBC 9.4.xxxx supported all
+versions of PostgreSQL 8.2 and higher.
+The use of 9.4 in the PgJDBC version caused some users to ask when we would release
+a version of PgJDBC for PostgreSQL 9.5 (or 9.6 or 10). And the 9.4 caused other
+users to continue using outdated versions of PgJDBC like 8.4 build 703 because they
+were connecting to PostgreSQL 8.4.
 
 The driver is version agnostic for the most point so there is no reason to
 tie it to a specific server version. Unless you have unusual requirements
-(running old applications or JVMs), this is the driver you should be using.
+(running old applications or JVMs), you should be using the latest driver version..
 
-c) The previous version policy don't leave room for differentiate from
+c) The previous version policy did not allow us to clearly differentiate between
 bug fixes releases and feature releases.
 
 The new version policy will allow us to use more or less
@@ -63,10 +66,10 @@ Some say that "The answer to the ultimate question of life,
 the universe and everything is 42."
 
 <a name="42-is-not"></a>
-### 1.3. What is not the 42.0.0 release?
+### 1.3. What is the 42.0.0 release not?
 
 This release is not a rewrite of the driver, is not using a new architecture,
-nor is using something special, it's the continuation of the same driver
+and is not using something special. It is the continuation of the same driver
 following a better versioning policy.
 
 <a name="xa"></a>
@@ -108,7 +111,8 @@ mailing list archives for more information.
 ***
 <a name="problems"></a>
 ## 3. Problems
-<a name="executeBatch-hangs-without-error">
+
+<a name="executeBatch-hangs-without-error"></a>
 ### 3.1. executeBatch hangs without error Possible solutions
 
 This is related to batched queries and synchronous TCP.
@@ -131,12 +135,14 @@ of two categories:
 __Parameter Typing.__ Previous versions of the driver
 sent all PreparedStatement parameters to the server as untyped
 strings, and allowed the server to infer their types as appropriate.
-When running protocol version 3 however, the driver specifies the
-type of each parameter as it is being sent.  The upshot of this is
+When running protocol version 3 however, the driver specifies
+the type of each parameter as it is being sent.  The upshot of this is
 that code which was previously able to call (for example):
 <span style="font-family: Courier New,Courier,monospace;">PreparedStatement.setObject(1, "5")</span>
 to set an integer parameter now breaks, because setting a String value
-for an integer parameter is not allowed.
+for an integer parameter is not allowed. As an alternative, you can call
+<span style="font-family: Courier New,Courier,monospace;">PreparedStatement.setObject(1, "5", java.sql.Types.OTHER)</span>
+which explicitly tells the driver to send that String parameter as Oid.UNSPECIFIED.
 
 __Parameter Position.__ Previous versions of the driver
 emulated PreparedStatements by performing string replacements
@@ -148,7 +154,17 @@ PostgreSQL back-end allows parameters.
 
 In situations where it is difficult to modify the Java code and/or
 queries to work with the newer protocol version, it is possible to
-force the driver to use an older protocol version to restore the old
-behavior.  Look in the documentation for the
+force a pre-42.x version of the driver to use an older protocol version
+to restore the old behavior. Look for the
 <span style="font-family: Courier New,Courier,monospace;">protocolVersion</span>
-connection parameter.
+connection parameter in the documentation for the PgJDBC driver version
+that you are using.
+
+<a name="upgradeTo42"></a>
+### 3.3. I upgraded from 9.x to 42.x.  Why did my application break?
+
+Support for the V2 frontend/backend protocol was removed in PgJDBC 42.0.0.
+If you were using the
+<span style="font-family: Courier New,Courier,monospace;">protocolVersion</span>
+connection parameter, your connections will fail when you upgrade to 42.x.
+
