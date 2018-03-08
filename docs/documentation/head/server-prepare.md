@@ -137,6 +137,49 @@ however the driver has an option to cache simple statements as well.
 You can do that by setting `preferQueryMode` to `extendedCacheEverything`.
 Note: the option is more of a diagnostinc/debugging sort, so be careful as you change it.
 
+#### Bind placeholder datatypes
+
+The database optimizes the execution plan for given parameter types.
+Consider the below case:
+
+    -- create table rooms (id int4, name varchar);
+    -- create index name__rooms on rooms(name);
+    PreparedStatement ps = con.prepareStatement("select id from rooms where name=?");
+    ps.setString(1, "42");
+
+It works as expected, however what would happen if one uses `setInt` instead?
+
+    ps.setInt(1, 42);
+
+Even though the result would be identical, the first variation (`setString` case) enables the database
+to use index `name__rooms`, and the latter does not.
+In case the database gets `42` as integer, it uses the plan like `where cast(name as int4) = ?`.
+
+The plan has to be specific for the (`SQL text`; `parameter types`) combination, so the driver
+has to invalidate server side prepared statements in case the statement is used with different
+parameter types.
+
+This gets especially painful for batch operations as you don't want to interrupt the batch
+by using alternating datatypes.
+
+The most typical case is as follows (don't **ever** use that in production):
+
+    PreparedStatement ps = con.prepareStatement("select id from rooms where ...");
+    if (param instanceof String) {
+        ps.setString(1, param);
+    } else if (param instanceof String) {
+        ps.setInt(1, ((Integer) param).intValue());
+    } else {
+        // Does it really matter which type of NULL to use?
+        ps.setNull(1, Types.OTHER);
+    }
+
+As you might guess, `setString` vs `setNull(..., Types.OTHER)` result in alternating datatypes,
+and it forces the driver to invalidate and re-prepare server side statement.
+
+Recommendation is to use the consistent datatype for each bind placeholder, and use the same type
+for `setNull`.
+
 #### Debugging
 
 In case you run into `cached plan must not change result type` or `prepared statement \"S_2\" does not exist`
