@@ -2596,12 +2596,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
     }
 
-    if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
-        && !allowEncodingChanges) {
-      close(); // we're screwed now; we can't trust any subsequent string.
-      throw new PSQLException(GT.tr(
-          "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
-          value), PSQLState.CONNECTION_FAILURE);
+    if (name.equals("client_encoding")) {
+      if (allowEncodingChanges) {
+        if (!value.equalsIgnoreCase("UTF8") && !value.equalsIgnoreCase("UTF-8")) {
+          LOGGER.log(Level.WARNING,
+              "pgjdbc expects client_encoding to be UTF8 for proper operation. Actual encoding is {0}",
+              value);
+        }
+        pgStream.setEncoding(Encoding.getDatabaseEncoding(value));
+      } else if (!value.equalsIgnoreCase("UTF8") && !value.equalsIgnoreCase("UTF-8")) {
+        close(); // we're screwed now; we can't trust any subsequent string.
+        throw new PSQLException(GT.tr(
+            "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
+            value), PSQLState.CONNECTION_FAILURE);
+
+      }
     }
 
     if (name.equals("DateStyle") && !value.startsWith("ISO")
@@ -2635,22 +2644,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       setServerVersionNum(Integer.parseInt(value));
     } else if ("server_version".equals(name)) {
       setServerVersion(value);
-    } else if ("client_encoding".equals(name)) {
-      if (!"UTF8".equals(value)) {
-        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-            PSQLState.PROTOCOL_VIOLATION);
-      }
-      pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
-    } else if ("standard_conforming_strings".equals(name)) {
-      if ("on".equals(value)) {
-        setStandardConformingStrings(true);
-      } else if ("off".equals(value)) {
-        setStandardConformingStrings(false);
-      } else {
-        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-            PSQLState.PROTOCOL_VIOLATION);
-      }
-    } else if ("integer_datetimes".equals(name)) {
+    }  else if ("integer_datetimes".equals(name)) {
       if ("on".equals(value)) {
         setIntegerDateTimes(true);
       } else if ("off".equals(value)) {
