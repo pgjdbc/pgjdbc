@@ -210,7 +210,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   @Test
   public void run() throws SQLException {
     if (continueMode == ContinueMode.IS_VALID) {
-      // make "isValid" a server-prepared testSql
+      // make "isValid" a server-prepared statement
       con.isValid(4);
     } else if (continueMode == ContinueMode.COMMIT) {
       doCommit();
@@ -284,7 +284,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
           if (!flushCacheOnDeallocate && DEALLOCATES.contains(failMode)
               && autoSave == AutoSave.NEVER) {
             Assert.assertEquals(
-                "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared testSql \"...\" does not exist'"
+                "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
                     + " error message is " + e.getMessage(),
                 PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
             return;
@@ -309,7 +309,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     }
 
     try {
-      // Try execute server-prepared testSql again
+      // Try execute server-prepared statement again
       ps.executeQuery().close();
       rowsExpected += testSql.rowsInserted;
       executeSqlSuccess();
@@ -325,7 +325,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
       if (autoSave == AutoSave.NEVER && autoCommit == AutoCommit.NO) {
         if (DEALLOCATES.contains(failMode) && !flushCacheOnDeallocate) {
           Assert.assertEquals(
-              "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared testSql \"...\" does not exist'"
+              "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
                   + " error message is " + e.getMessage(),
               PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
         } else if (failMode == FailMode.ALTER) {
