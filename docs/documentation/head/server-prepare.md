@@ -26,8 +26,8 @@ side prepared statements globally.
 
 Server side prepared statements can improve execution speed as
 1. It sends just statement handle (e.g. `S_1`) instead of full SQL text
-1. It enables use of binary transfer (e.g. binary int4, binary timestamps, etc), and it is much faster to parse
-1. It enables to reuse server-side execution plan
+1. It enables use of binary transfer (e.g. binary int4, binary timestamps, etc); the parameters and results are much faster to parse
+1. It enables the reuse server-side execution plan
 1. The client can reuse result set column definition, so it does not have to receive and parse metadata on each execution
 
 ### Activation
