@@ -135,6 +135,10 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
+    if (testSql == TestStatement.WITH_INSERT_SELECT) {
+      assumeMinimumServerVersion(ServerVersion.v9_1);
+    }
+
     TestUtil.createTable(con, "rollbacktest", "a int, str text");
     con.setAutoCommit(autoCommit == AutoCommit.YES);
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
