@@ -18,11 +18,10 @@ beginning with server version 7.3, and at the protocol level beginning with serv
 version 7.4, but as Java developers we really just want to use the standard
 `PreparedStatement` interface.
 
-> Server side prepared statements are planned only once by the server. This avoids
-the cost of replanning the query every time, but also means that the planner
-cannot take advantage of the particular parameter values used in a particular
-execution of the query. You should be cautious about enabling the use of server
-side prepared statements globally.
+> PostgreSQL 9.2 release notes: prepared statements used to be optimized once, without any knowledge
+of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters
+sent (the query will be planned at execution), except if the query is executed several times and
+the planner decides that the generic plan is not too much more expensive than the specific plans.
 
 Server side prepared statements can improve execution speed as
 1. It sends just statement handle (e.g. `S_1`) instead of full SQL text
