@@ -172,6 +172,22 @@ public class ParserTest {
   }
 
   @Test
+  public void insertBatchedReWriteOnConflictUpdateBind() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("update set name=? is NOT compatible with insert rewrite", command.isBatchedReWriteCompatible());
+  }
+
+  @Test
+  public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertTrue("update set name='default' is compatible with insert rewrite", command.isBatchedReWriteCompatible());
+  }
+
+  @Test
   public void insertMultiInsert() throws SQLException {
     String query =
         "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
