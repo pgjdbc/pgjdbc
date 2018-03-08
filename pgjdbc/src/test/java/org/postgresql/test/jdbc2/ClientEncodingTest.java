@@ -70,7 +70,7 @@ public class ClientEncodingTest extends BaseTest4 {
 
   private void checkConnectionSanity() throws SQLException {
     Statement st = con.createStatement();
-    ResultSet rs = st.executeQuery("select 'abc' x");
+    ResultSet rs = st.executeQuery("select 'abc' as x");
     rs.next();
     Assert.assertEquals("abc", rs.getString(1));
     TestUtil.closeQuietly(rs);
