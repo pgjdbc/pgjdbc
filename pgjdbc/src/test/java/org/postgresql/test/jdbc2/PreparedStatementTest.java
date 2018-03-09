@@ -34,6 +34,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1306,4 +1307,40 @@ public class PreparedStatementTest extends BaseTest4 {
         getNumberOfServerPreparedStatements("SELECT 42"));
   }
 
+  @Test
+  public void testInappropriateStatementSharing() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
+    try {
+      Timestamp ts = new Timestamp(1474997614836L);
+      // Since PreparedStatement isn't cached immediately, we need to some warm up
+      for (int i = 0; i < 3; ++i) {
+        ResultSet rs;
+
+        // Flip statement to use Oid.DATE
+        ps.setNull(1, Types.DATE);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertNull("NULL DATE converted to TIMESTAMP should return NULL value on getObject",
+              rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+
+        // Flop statement to use Oid.UNSPECIFIED
+        ps.setTimestamp(1, ts);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertEquals(
+              "Looks like we got a narrowing of the data (TIMESTAMP -> DATE). It might caused by inappropriate caching of the statement.",
+              ts, rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+      }
+    } finally {
+      ps.close();
+    }
+  }
 }

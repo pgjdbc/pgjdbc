@@ -1393,7 +1393,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // the SimpleParameterList's internal array that might be modified
       // under us.
       query.setStatementName(statementName, deallocateEpoch);
-      query.setStatementTypes(typeOIDs.clone());
+      query.setPrepareTypes(typeOIDs);
       registerParsedQuery(query, statementName);
     }
 
@@ -1460,7 +1460,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       for (int i = 1; i <= params.getParameterCount(); ++i) {
         sbuf.append(",$").append(i).append("=<")
             .append(params.toString(i,true))
-            .append(">");
+            .append(">,type=").append(Oid.toString(params.getTypeOID(i)));
       }
       sbuf.append(")");
       LOGGER.log(Level.FINEST, sbuf.toString());
@@ -1771,7 +1771,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
-      int[] queryOIDs = query.getStatementTypes();
+      int[] queryOIDs = query.getPrepareTypes();
       int[] paramOIDs = params.getTypeOIDs();
       for (int i = 0; i < paramOIDs.length; i++) {
         // Only supply type information when there isn't any
@@ -1988,7 +1988,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if ((origStatementName == null && query.getStatementName() == null)
               || (origStatementName != null
                   && origStatementName.equals(query.getStatementName()))) {
-            query.setStatementTypes(params.getTypeOIDs().clone());
+            query.setPrepareTypes(params.getTypeOIDs());
           }
 
           if (describeOnly) {
