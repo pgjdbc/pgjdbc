@@ -113,7 +113,7 @@ public class Oid {
     if (oid.length() > 0 && !Character.isDigit(oid.charAt(0))) {
       Integer id = NAME_TO_OID.get(oid);
       if (id == null) {
-        id = NAME_TO_OID.get(oid);
+        id = NAME_TO_OID.get(oid.toUpperCase());
       }
       if (id != null) {
         return id;
