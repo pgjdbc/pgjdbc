@@ -223,6 +223,19 @@ public class GeneratedKeysTest extends BaseTest4 {
   }
 
   @Test
+  public void testWithInsertInsert() throws SQLException {
+    Statement stmt = con.createStatement();
+    int count = stmt.executeUpdate(
+        "WITH x as (INSERT INTO genkeys (b,c) VALUES ('a', 2) returning c) insert into genkeys(a,b,c) VALUES (1, 'a', 2)" + returningClause + "",
+        new String[]{"c", "b"});
+    assertEquals(1, count);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertCB1(rs);
+    assertTrue(!rs.next());
+  }
+
+  @Test
   public void testDelete() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");

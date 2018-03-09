@@ -294,7 +294,8 @@ public class Parser {
     }
     if (currentCommandType != SqlCommandType.INSERT
         && currentCommandType != SqlCommandType.UPDATE
-        && currentCommandType != SqlCommandType.DELETE) {
+        && currentCommandType != SqlCommandType.DELETE
+        && currentCommandType != SqlCommandType.WITH) {
       return false;
     }
 
