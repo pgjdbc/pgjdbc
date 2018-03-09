@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
@@ -224,6 +225,7 @@ public class GeneratedKeysTest extends BaseTest4 {
 
   @Test
   public void testWithInsertInsert() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v9_1);
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
         "WITH x as (INSERT INTO genkeys (b,c) VALUES ('a', 2) returning c) insert into genkeys(a,b,c) VALUES (1, 'a', 2)" + returningClause + "",
