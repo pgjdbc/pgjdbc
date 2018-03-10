@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
@@ -91,7 +92,7 @@ public class UUIDTest extends BaseTest4 {
     ps.setString(1, uuid);
     try {
       ps.executeUpdate();
-      if (getStringType() == StringType.VARCHAR) {
+      if (getStringType() == StringType.VARCHAR && preferQueryMode != PreferQueryMode.SIMPLE) {
         Assert.fail(
             "setString(, uuid) should fail to insert value into UUID column when stringType=varchar."
                 + " Expecting error <<column \"id\" is of type uuid but expression is of type character varying>>");
