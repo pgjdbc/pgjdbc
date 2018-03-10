@@ -17,6 +17,7 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,7 +39,11 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 
 @RunWith(Parameterized.class)
@@ -1341,6 +1346,78 @@ public class PreparedStatementTest extends BaseTest4 {
       }
     } finally {
       ps.close();
+    }
+  }
+
+  @Test
+  public void testAlternatingBindType() throws SQLException {
+    assumeBinaryModeForce();
+    PreparedStatement ps = con.prepareStatement("SELECT /*testAlternatingBindType*/ ?");
+    ResultSet rs;
+    Logger log = Logger.getLogger("org.postgresql");
+    AtomicInteger numOfReParses = new AtomicInteger();
+    Handler handler = new Handler() {
+      @Override
+      public void publish(LogRecord record) {
+        if (record.getMessage().contains("un-prepare it and parse")) {
+          numOfReParses.incrementAndGet();
+        }
+      }
+
+      @Override
+      public void flush() {
+      }
+
+      @Override
+      public void close() throws SecurityException {
+      }
+    };
+    log.addHandler(handler);
+    try {
+      ps.setString(1, "42");
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
+      rs.close();
+
+      // The bind type is flipped from VARCHAR to INTEGER, and it causes the driver to prepare statement again
+      ps.setNull(1, Types.INTEGER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("A re-parse was expected, so the number of parses should be 1",
+          1, numOfReParses.get());
+      rs.close();
+
+      // The bind type is flipped from INTEGER to VARCHAR, and it causes the driver to prepare statement again
+      ps.setString(1, "42");
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
+      Assert.assertEquals("One more re-parse is expected, so the number of parses should be 2",
+          2, numOfReParses.get());
+      rs.close();
+
+      // Types.OTHER null is sent as UNSPECIFIED, and pgjdbc does not re-parse on UNSPECIFIED nulls
+      // Note: do not rely on absence of re-parse on using Types.OTHER. Try using consistent data types
+      ps.setNull(1, Types.OTHER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.OTHER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("setNull(, Types.OTHER) should not cause re-parse",
+          2, numOfReParses.get());
+
+      // Types.INTEGER null is sent as int4 null, and it leads to re-parse
+      ps.setNull(1, Types.INTEGER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("setNull(, Types.INTEGER) causes re-parse",
+          3, numOfReParses.get());
+      rs.close();
+    } finally {
+      TestUtil.closeQuietly(ps);
+      log.removeHandler(handler);
     }
   }
 }

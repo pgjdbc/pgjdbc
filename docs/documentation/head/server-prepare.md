@@ -167,18 +167,20 @@ The most typical case is as follows (don't **ever** use that in production):
     PreparedStatement ps = con.prepareStatement("select id from rooms where ...");
     if (param instanceof String) {
         ps.setString(1, param);
-    } else if (param instanceof String) {
+    } else if (param instanceof Integer) {
         ps.setInt(1, ((Integer) param).intValue());
     } else {
         // Does it really matter which type of NULL to use?
-        ps.setNull(1, Types.OTHER);
+        // In fact, it does since data types specify which server-procedure to call
+        ps.setNull(1, Types.INTEGER);
     }
 
-As you might guess, `setString` vs `setNull(..., Types.OTHER)` result in alternating datatypes,
+As you might guess, `setString` vs `setNull(..., Types.INTEGER)` result in alternating datatypes,
 and it forces the driver to invalidate and re-prepare server side statement.
 
 Recommendation is to use the consistent datatype for each bind placeholder, and use the same type
 for `setNull`.
+Check out `org.postgresql.test.jdbc2.PreparedStatementTest.testAlternatingBindType` example for more details.
 
 #### Debugging
 
