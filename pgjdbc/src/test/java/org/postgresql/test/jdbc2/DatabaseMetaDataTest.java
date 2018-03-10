@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
@@ -1310,6 +1311,10 @@ public class DatabaseMetaDataTest {
 
     for (String s : excludeSQL2003) {
       assertFalse("Keyword from SQL:2003 \"" + s + "\" found", returnedSet.contains(s));
+    }
+
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
+      Assert.assertTrue("reindex should be in keywords", returnedSet.contains("reindex"));
     }
   }
 
