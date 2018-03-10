@@ -36,14 +36,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     this.connection = conn;
   }
 
-  private static final String keywords = "abort,acl,add,aggregate,append,archive,"
-      + "arch_store,backward,binary,boolean,change,cluster,"
-      + "copy,database,delimiter,delimiters,do,extend,"
-      + "explain,forward,heavy,index,inherits,isnull,"
-      + "light,listen,load,merge,nothing,notify,"
-      + "notnull,oids,purge,rename,replace,retrieve,"
-      + "returns,rule,recipe,setof,stdin,stdout,store,"
-      + "vacuum,verbose,version";
+  private static final String keywords = "abort,access,add,aggregate,also,analyse,analyze,backward,"
+      + "binary,bit,boolean,cache,checkpoint,class,cluster,comment,connection,conversion,copy,"
+      + "createdb,createrole,createuser,csv,database,delimiter,delimiters,disable,do,enable,"
+      + "encoding,encrypted,exclusive,explain,force,forward,freeze,greatest,handler,header,ilike,"
+      + "immutable,implicit,index,inherit,inherits,instead,isnull,lancompiler,least,limit,listen,"
+      + "load,location,lock,login,mode,move,nocreatedb,nocreaterole,nocreateuser,noinherit,nologin,"
+      + "nosuperuser,nothing,notify,notnull,nowait,off,offset,oids,operator,owner,password,"
+      + "prepared,procedural,quote,recheck,reindex,rename,replace,reset,restrict,returns,rule,"
+      + "setof,share,show,stable,statistics,stdin,stdout,storage,strict,superuser,sysid,tablespace,"
+      + "temp,template,toast,truncate,trusted,unencrypted,unlisten,until,vacuum,valid,validator,"
+      + "verbose,volatile";
 
   protected final PgConnection connection; // The connection association
 
