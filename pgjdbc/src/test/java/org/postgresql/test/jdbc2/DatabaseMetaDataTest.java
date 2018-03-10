@@ -15,6 +15,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,7 +28,9 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
@@ -1300,11 +1303,13 @@ public class DatabaseMetaDataTest {
         + "user_defined_type_name,user_defined_type_schema,using,value,values,var_pop,var_samp,varchar,"
         + "varying,view,when,whenever,where,width_bucket,window,with,within,without,work,write,year,zone";
 
-    List<String> excludeSQL2003 = Arrays.asList(sql2003.split(","));
-    List<String> returned = Arrays.asList(keywords.split(","));
+    String[] excludeSQL2003 = sql2003.split(",");
+    String[] returned = keywords.split(",");
+    Set<String> returnedSet = new HashSet<>(Arrays.asList(returned));
+    Assert.assertEquals("Returned keywords should be unique", returnedSet.size(), returned.length);
 
     for (String s : excludeSQL2003) {
-      assertFalse("Keyword from SQL:2003 \"" + s + "\" found", returned.contains(s));
+      assertFalse("Keyword from SQL:2003 \"" + s + "\" found", returnedSet.contains(s));
     }
   }
 
