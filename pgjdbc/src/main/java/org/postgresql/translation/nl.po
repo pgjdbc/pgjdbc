@@ -1480,7 +1480,7 @@ msgstr "Deze methode is nog niet geimplementeerd"
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
+msgid "Invalid protocol state requested. Attempted transaction interleaving is not supported. xid={0}, currentXid={1}, state={2}, flags={3}"
 msgstr ""
 
 #: org/postgresql/xa/PGXAConnection.java:239

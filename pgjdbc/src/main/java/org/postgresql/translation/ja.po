@@ -1525,8 +1525,8 @@ msgstr "停止/再開 は実装されていません。"
 #: org/postgresql/xa/PGXAConnection.java:219
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
-msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
-msgstr "Transaction interleaving は実装されていません。xid={0}, currentXid={1}"
+msgid "Invalid protocol state requested. Attempted transaction interleaving is not supported. xid={0}, currentXid={1}, state={2}, flags={3}"
+msgstr "Transaction interleaving は実装されていません。xid={0}, currentXid={1}, state={2}, flags={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"

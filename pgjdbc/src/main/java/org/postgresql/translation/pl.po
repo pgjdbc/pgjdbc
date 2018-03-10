@@ -1496,8 +1496,8 @@ msgstr ""
 #: org/postgresql/xa/PGXAConnection.java:224
 #: org/postgresql/xa/PGXAConnection.java:228
 #, fuzzy
-msgid "Transaction interleaving not implemented. xid={0}, currentXid={1}"
-msgstr "Poziom izolacji transakcji {0} nie jest obsługiwany. xid={0}, currentXid={1}"
+msgid "Invalid protocol state requested. Attempted transaction interleaving is not supported. xid={0}, currentXid={1}, state={2}, flags={3}"
+msgstr "Poziom izolacji transakcji {0} nie jest obsługiwany. xid={0}, currentXid={1}, state={2}, flags={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:239
 msgid "Error disabling autocommit"
