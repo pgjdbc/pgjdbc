@@ -78,8 +78,8 @@ public class Oid {
   public static final int REF_CURSOR = 1790;
   public static final int REF_CURSOR_ARRAY = 2201;
 
-  private static final Map<Integer, String> OID_TO_NAME = new HashMap<Integer, String>();
-  private static final Map<String, Integer> NAME_TO_OID = new HashMap<String, Integer>();
+  private static final Map<Integer, String> OID_TO_NAME = new HashMap<Integer, String>(100);
+  private static final Map<String, Integer> NAME_TO_OID = new HashMap<String, Integer>(100);
 
   static {
     for (Field field : Oid.class.getFields()) {
@@ -120,7 +120,7 @@ public class Oid {
       }
     } else {
       try {
-        return (int) Long.parseLong(oid);
+        return Integer.parseInt(oid);
       } catch (NumberFormatException ex) {
       }
     }
