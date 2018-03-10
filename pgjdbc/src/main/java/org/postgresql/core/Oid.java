@@ -120,7 +120,8 @@ public class Oid {
       }
     } else {
       try {
-        return Integer.parseInt(oid);
+        // OID are unsigned 32bit integers, so Integer.parseInt is not enough
+        return (int) Long.parseLong(oid);
       } catch (NumberFormatException ex) {
       }
     }
