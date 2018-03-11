@@ -5,6 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.OidToStringTest;
+import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.v3.V3ParameterListTests;
@@ -76,6 +78,9 @@ import org.junit.runners.Suite;
         TimezoneCachingTest.class,
         ParserTest.class,
         ReturningParserTest.class,
+
+        OidToStringTest.class,
+        OidValueOfTest.class,
 
         PreparedStatementTest.class,
         StatementTest.class,

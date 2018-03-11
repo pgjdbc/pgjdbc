@@ -10,6 +10,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Provides constants for well-known backend OIDs for the types we commonly use.
@@ -76,6 +78,22 @@ public class Oid {
   public static final int REF_CURSOR = 1790;
   public static final int REF_CURSOR_ARRAY = 2201;
 
+  private static final Map<Integer, String> OID_TO_NAME = new HashMap<Integer, String>(100);
+  private static final Map<String, Integer> NAME_TO_OID = new HashMap<String, Integer>(100);
+
+  static {
+    for (Field field : Oid.class.getFields()) {
+      try {
+        int oid = field.getInt(null);
+        String name = field.getName().toUpperCase();
+        OID_TO_NAME.put(oid, name);
+        NAME_TO_OID.put(name, oid);
+      } catch (IllegalAccessException e) {
+        // ignore
+      }
+    }
+  }
+
   /**
    * Returns the name of the oid as string.
    *
@@ -84,34 +102,28 @@ public class Oid {
    *         defined.
    */
   public static String toString(int oid) {
-    try {
-      Field[] fields = Oid.class.getFields();
-      for (Field field : fields) {
-        if (field.getInt(null) == oid) {
-          return field.getName();
-        }
-      }
-    } catch (IllegalAccessException e) {
-      // never happens
+    String name = OID_TO_NAME.get(oid);
+    if (name == null) {
+      name = "<unknown:" + oid + ">";
     }
-    return "<unknown:" + oid + ">";
+    return name;
   }
 
   public static int valueOf(String oid) throws PSQLException {
-    try {
-      return (int) Long.parseLong(oid);
-    } catch (NumberFormatException ex) {
-    }
-    try {
-      oid = oid.toUpperCase();
-      Field[] fields = Oid.class.getFields();
-      for (Field field : fields) {
-        if (field.getName().toUpperCase().equals(oid)) {
-          return field.getInt(null);
-        }
+    if (oid.length() > 0 && !Character.isDigit(oid.charAt(0))) {
+      Integer id = NAME_TO_OID.get(oid);
+      if (id == null) {
+        id = NAME_TO_OID.get(oid.toUpperCase());
       }
-    } catch (IllegalAccessException e) {
-      // never happens
+      if (id != null) {
+        return id;
+      }
+    } else {
+      try {
+        // OID are unsigned 32bit integers, so Integer.parseInt is not enough
+        return (int) Long.parseLong(oid);
+      } catch (NumberFormatException ex) {
+      }
     }
     throw new PSQLException(GT.tr("oid type {0} not known and not a number", oid),
         PSQLState.INVALID_PARAMETER_VALUE);
