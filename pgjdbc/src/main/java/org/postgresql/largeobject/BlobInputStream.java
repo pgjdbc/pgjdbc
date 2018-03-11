@@ -41,7 +41,7 @@ public class BlobInputStream extends InputStream {
   /**
    * The mark position
    */
-  private int mpos = 0;
+  private long mpos = 0;
 
   /**
    * The limit
@@ -156,12 +156,7 @@ public class BlobInputStream extends InputStream {
    * @see java.io.InputStream#reset()
    */
   public synchronized void mark(int readlimit) {
-    try {
-      mpos = lo.tell();
-    } catch (SQLException se) {
-      // Can't throw this because mark API doesn't allow it.
-      // throw new IOException(se.toString());
-    }
+    mpos = apos;
   }
 
   /**
@@ -174,7 +169,13 @@ public class BlobInputStream extends InputStream {
   public synchronized void reset() throws IOException {
     checkClosed();
     try {
-      lo.seek(mpos);
+      if (mpos <= Integer.MAX_VALUE) {
+        lo.seek((int)mpos);
+      } else {
+        lo.seek64(mpos, LargeObject.SEEK_SET);
+      }
+      buffer = null;
+      apos = mpos;
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }
