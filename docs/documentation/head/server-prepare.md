@@ -107,7 +107,7 @@ The recommendation is:
 
 There are explicit commands to deallocate all server side prepared statements. It would result in
 the following server-side error message: `prepared statement name is invalid`.
-Of course it could defeat pgjdbc, however there are cases when you need to discard statements (e.g. after lots of DLLs)
+Of course it could defeat pgjdbc, however there are cases when you need to discard statements (e.g. after lots of DDLs)
 
 The recommendation is:
 1. Use simple `DEALLOCATE ALL` and/or `DISCARD ALL` commands, avoid nesting the commands into pl/pgsql or alike. The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalidates client-side cache as well
