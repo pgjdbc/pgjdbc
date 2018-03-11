@@ -43,8 +43,34 @@ configured via `prepareThreshold` connection property).
 An internal counter keeps track of how many times the statement has been executed and when it
 reaches the threshold it will start to use server side prepared statements.
 
-Even though reusing of the same `PreparedStatement` object good for performance reasons, the driver
-is able to server-prepare statements automatically across `connection.prepareStatement(...)` calls.
+It is generally a good idea to reuse the same `PreparedStatement` object for performance reasons,
+however the driver is able to server-prepare statements automatically across `connection.prepareStatement(...)` calls.
+
+For instance:
+
+    PreparedStatement ps = con.prepareStatement("select /*test*/ ?::int4");
+    ps.setInt(1, 42);
+    ps.executeQuery().close();
+    ps.close();
+
+    PreparedStatement ps = con.prepareStatement("select /*test*/ ?::int4");
+    ps.setInt(1, 43);
+    ps.executeQuery().close();
+    ps.close();
+
+is less efficient than
+
+    PreparedStatement ps = con.prepareStatement("select /*test*/ ?::int4");
+    ps.setInt(1, 42);
+    ps.executeQuery().close();
+
+    ps.setInt(1, 43);
+    ps.executeQuery().close();
+
+however pgjdbc can use server side prepared statements in both cases.
+
+Note: the `Statement` object is bound to a `Connection`, and it is not a good idea to access the same
+`Statement` and/or `Connection` from multiple concurrent threads (except `cancel()`, `close()`, and alike cases). It might be safer to just `close()` the statement rather than trying to cache it somehow.
 
 Server-prepared statements consume memory both on the client and the server, so pgjdbc limits the number
 of server-prepared statements per connection. It can be configured via `preparedStatementCacheQueries`
