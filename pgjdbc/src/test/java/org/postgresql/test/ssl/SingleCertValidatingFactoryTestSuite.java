@@ -58,17 +58,17 @@ public class SingleCertValidatingFactoryTestSuite {
     }
 
     return Arrays.asList(new Object[][]{
-        {"jdbc:postgresql://localhost:10084/test"},
-        {"jdbc:postgresql://localhost:10090/test"},
-        {"jdbc:postgresql://localhost:10091/test"},
-        {"jdbc:postgresql://localhost:10092/test"},
-        {"jdbc:postgresql://localhost:10093/test"},
+        {"jdbc:postgresql://localhost:5432/test"},
+        //        {"jdbc:postgresql://localhost:10090/test"},
+        //        {"jdbc:postgresql://localhost:10091/test"},
+        //        {"jdbc:postgresql://localhost:10092/test"},
+        //        {"jdbc:postgresql://localhost:10093/test"},
     });
   }
 
   // The valid and invalid server SSL certfiicates:
-  private static final String goodServerCertPath = "certdir/goodroot.crt";
-  private static final String badServerCertPath = "certdir/badroot.crt";
+  private static final String goodServerCertPath = "../certdir/goodroot.crt";
+  private static final String badServerCertPath = "../certdir/badroot.crt";
 
   private String getGoodServerCert() {
     return loadFile(goodServerCertPath);

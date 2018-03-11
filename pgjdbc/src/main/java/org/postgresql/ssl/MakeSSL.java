@@ -37,7 +37,7 @@ public class MakeSSL extends ObjectFactory {
     // unless sslmode is set
     String classname = PGProperty.SSL_FACTORY.get(info);
     if (classname == null) {
-      // If sslmode is set, use the libp compatible factory
+      // If sslmode is set, use the libpq compatible factory
       if (sslmode != null) {
         factory = new LibPQFactory(info);
       } else {
