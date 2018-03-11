@@ -18,6 +18,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -240,12 +241,14 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Test
   public void testWithInsertSelect() throws SQLException {
     assumeMinimumServerVersion(ServerVersion.v9_1);
+    Assume.assumeTrue(returningInQuery != ReturningInQuery.NO);
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) returning "+returningClause+") select * from x",
+        "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) "+returningClause+") select * from x",
         new String[]{"c", "b"});
-    assertEquals(1, count);
-    ResultSet rs = stmt.getGeneratedKeys();
+    assertEquals("rowcount", -1, count);
+    // TODO: should SELECT produce rows through getResultSet or getGeneratedKeys?
+    ResultSet rs = stmt.getResultSet();
     assertTrue(rs.next());
     assertCB1(rs);
     assertTrue(!rs.next());

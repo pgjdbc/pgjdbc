@@ -16,6 +16,7 @@ import org.junit.runners.Suite;
     Jdbc3CallableStatementTest.class,
     GeneratedKeysTest.class,
     CompositeQueryParseTest.class,
+    SqlCommandParseTest.class,
     Jdbc3SavepointTest.class,
     TypesTest.class,
     ResultSetTest.class,

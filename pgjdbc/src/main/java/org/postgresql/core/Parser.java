@@ -74,11 +74,13 @@ public class Parser {
     boolean whitespaceOnly = true;
     int keyWordCount = 0;
     int keywordStart = -1;
+    int keywordEnd = -1;
     for (int i = 0; i < aChars.length; ++i) {
       char aChar = aChars[i];
       boolean isKeyWordChar = false;
       // ';' is ignored as it splits the queries
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
+      keywordEnd = i; // parseSingleQuotes, parseDoubleQuotes, etc move index so we keep old value
       switch (aChar) {
         case '\'': // single-quotes
           i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
@@ -202,7 +204,7 @@ public class Parser {
           break;
       }
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
-        int wordLength = (isKeyWordChar ? i + 1 : i) - keywordStart;
+        int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
         if (currentCommandType == SqlCommandType.BLANK) {
           if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.UPDATE;
@@ -224,6 +226,12 @@ public class Parser {
             } else {
               isCurrentReWriteCompatible = false;
             }
+          }
+        } else if (currentCommandType == SqlCommandType.WITH
+            && inParen == 0) {
+          SqlCommandType command = parseWithCommandType(aChars, i, keywordStart, wordLength);
+          if (command != null) {
+            currentCommandType = command;
           }
         }
         if (inParen != 0 || aChar == ')') {
@@ -285,6 +293,47 @@ public class Parser {
       nativeQueries.add(lastQuery);
     }
     return nativeQueries;
+  }
+
+  private static SqlCommandType parseWithCommandType(char[] aChars, int i, int keywordStart,
+      int wordLength) {
+    // This parses `with x as (...) ...`
+    // Corner case is `with select as (insert ..) select * from select
+    SqlCommandType command;
+    if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.UPDATE;
+    } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.DELETE;
+    } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.INSERT;
+    } else if (wordLength == 6 && parseSelectKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.SELECT;
+    } else {
+      return null;
+    }
+    // update/delete/insert/select keyword detected
+    // Check if `AS` follows
+    int nextInd = i;
+    // The loop should skip whitespace and comments
+    for (; nextInd < aChars.length; nextInd++) {
+      char nextChar = aChars[nextInd];
+      if (nextChar == '-') {
+        nextInd = Parser.parseLineComment(aChars, nextInd);
+      } else if (nextChar == '/') {
+        nextInd = Parser.parseBlockComment(aChars, nextInd);
+      } else if (Character.isWhitespace(nextChar)) {
+        // Skip whitespace
+        continue;
+      } else {
+        break;
+      }
+    }
+    if (nextInd + 2 >= aChars.length
+        || (!parseAsKeyword(aChars, nextInd)
+        || isIdentifierContChar(aChars[nextInd + 2]))) {
+      return command;
+    }
+    return null;
   }
 
   private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
@@ -658,6 +707,22 @@ public class Parser {
         && (query[offset + 1] | 32) == 'i'
         && (query[offset + 2] | 32) == 't'
         && (query[offset + 3] | 32) == 'h';
+  }
+
+  /**
+   * Parse string to check presence of AS keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseAsKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 2)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'a'
+        && (query[offset + 1] | 32) == 's';
   }
 
   /**
