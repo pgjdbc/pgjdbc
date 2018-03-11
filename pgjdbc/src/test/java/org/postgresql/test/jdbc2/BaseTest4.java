@@ -104,6 +104,11 @@ public class BaseTest4 {
     Assume.assumeTrue(binaryMode == BinaryMode.REGULAR);
   }
 
+  public void assumeBinaryModeForce() {
+    Assume.assumeTrue(binaryMode == BinaryMode.FORCE);
+    Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
+  }
+
   /**
    * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}
    */
