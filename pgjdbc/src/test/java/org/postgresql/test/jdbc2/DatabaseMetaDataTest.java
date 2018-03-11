@@ -11,7 +11,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
@@ -1306,7 +1305,7 @@ public class DatabaseMetaDataTest {
 
     String[] excludeSQL2003 = sql2003.split(",");
     String[] returned = keywords.split(",");
-    Set<String> returnedSet = new HashSet<>(Arrays.asList(returned));
+    Set<String> returnedSet = new HashSet<String>(Arrays.asList(returned));
     Assert.assertEquals("Returned keywords should be unique", returnedSet.size(), returned.length);
 
     for (String s : excludeSQL2003) {
