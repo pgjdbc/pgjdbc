@@ -383,7 +383,25 @@ public class StatementTest {
     rs = stmt.executeQuery(
         "select {fn timestampdiff(SQL_TSI_DAY,{fn now()},{fn timestampadd(SQL_TSI_DAY,-3,{fn now()})})} ");
     assertTrue(rs.next());
-    assertEquals(-3, rs.getInt(1));
+    int res = rs.getInt(1);
+    if (res != -3 && res != -2) {
+      // set TimeZone='America/New_York';
+      // select CAST(-3 || ' day' as interval);
+      // interval
+      //----------
+      // -3 days
+      //
+      // select CAST(-3 || ' day' as interval)+now();
+      //           ?column?
+      //-------------------------------
+      // 2018-03-08 07:59:13.586895-05
+      //
+      // select CAST(-3 || ' day' as interval)+now()-now();
+      //     ?column?
+      //-------------------
+      // -2 days -23:00:00
+      fail("CAST(-3 || ' day' as interval)+now()-now() is expected to return -3 or -2. Actual value is " + res);
+    }
     // WEEK => extract week from interval is not supported by backend
     // rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_WEEK,{fn now()},{fn
     // timestampadd(SQL_TSI_WEEK,3,{fn now()})})} ");
