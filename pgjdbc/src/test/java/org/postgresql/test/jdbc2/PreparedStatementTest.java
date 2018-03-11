@@ -1355,7 +1355,7 @@ public class PreparedStatementTest extends BaseTest4 {
     PreparedStatement ps = con.prepareStatement("SELECT /*testAlternatingBindType*/ ?");
     ResultSet rs;
     Logger log = Logger.getLogger("org.postgresql");
-    AtomicInteger numOfReParses = new AtomicInteger();
+    final AtomicInteger numOfReParses = new AtomicInteger();
     Handler handler = new Handler() {
       @Override
       public void publish(LogRecord record) {
