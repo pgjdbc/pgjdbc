@@ -46,23 +46,23 @@ reaches the threshold it will start to use server side prepared statements.
 Even though reusing of the same `PreparedStatement` object good for performance reasons, the driver
 is able to server-prepare statements automatically across `connection.prepareStatement(...)` calls.
 
-Server-prepared statements consume memory both at client and server side, so pgjdbc limits the number
+Server-prepared statements consume memory both on the client and the server, so pgjdbc limits the number
 of server-prepared statements per connection. It can be configured via `preparedStatementCacheQueries`
 (default `256`, the number of queries known to pgjdbc), and `preparedStatementCacheSizeMiB` (default `5`,
-that is client side cache size in megabytes per connection). Only a subset of `statement cache` is
+that is the client side cache size in megabytes per connection). Only a subset of `statement cache` is
 server-prepared as some of the statements might fail to reach `prepareThreshold`.
 
 ### Deactivation
 
 There might be cases when you would want to disable use of server-prepared statements.
-For instance, if you route connections through a balancer that is unable to speak server-prepared statements,
+For instance, if you route connections through a balancer that is incompatible with server-prepared statements,
 you have little choice.
 
 You can disable usage of server side prepared statements by setting `prepareThreshold=0`
 
 ### Corner cases
 
-#### DLL
+#### DDL
 
 V3 protocol avoids sending column metadata on each execution, and BIND message specifies output column format.
 That creates a problem for cases like
@@ -98,7 +98,7 @@ With great power the following case could happen:
     SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable here?
 
 Server side prepared statements are linked to database object IDs, so it could fetch data from "old"
-`app_v1.mytable` table. It is hard to tell which behavior is expected, however pgjdbc tries to track
+`app_v1.mytable` table. It is hard to tell which behaviour is expected, however pgjdbc tries to track
 `search_path` changes, and it invalidates prepare cache accordingly.
 
 The recommendation is:
@@ -108,14 +108,14 @@ pgjdbc won't be able to identify `search_path` change
 
 #### Re-execution of failed statements
 
-It is a pity that a single `cached plan must not change result type` could fail the whole transaction.
+It is a pity that a single `cached plan must not change result type` could cause the whole transaction to fail.
 The driver could re-execute the statement automatically in certain cases.
 
-1. In case the transaction is not failed (e.g. the transaction did not exist before execution of
+1. In case the transaction has not failed (e.g. the transaction did not exist before execution of
 the statement that caused `cached plan...` error), then pgjdbc re-executes the statement automatically.
-This makes application happy, and avoids unnecessary errors.
+This makes the application happy, and avoids unnecessary errors.
 1. In case the transaction is in a failed state, there's nothing to do but rollback it. pgjdbc does have
-"automatic savepoint" feature, and it could automatically rollback and retry the statement. The behavior
+"automatic savepoint" feature, and it could automatically rollback and retry the statement. The behaviour
 is controlled via `autosave` property (default `never`). The value of `conservative` would auto-rollback
 for the errors related to invalid server-prepared statements.
 Note: `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL backend
@@ -124,7 +124,7 @@ is not optimized for the case of long transactions and lots of savepoints.
 #### Replication connection
 
 PostgreSQL replication connection does not allow to use server side prepared statements, so pgjdbc
-uses simple queries in case `replication` connection property is activated.
+uses simple queries in the case where `replication` connection property is activated.
 
 #### Use of server-prepared statements for con.createStatement()
 
@@ -135,7 +135,7 @@ performance by caching the statement. Of course it is better to use `PreparedSta
 however the driver has an option to cache simple statements as well.
 
 You can do that by setting `preferQueryMode` to `extendedCacheEverything`.
-Note: the option is more of a diagnostinc/debugging sort, so be careful as you change it.
+Note: the option is more of a diagnostinc/debugging sort, so be careful how you use it .
 
 #### Bind placeholder datatypes
 
@@ -162,7 +162,7 @@ parameter types.
 This gets especially painful for batch operations as you don't want to interrupt the batch
 by using alternating datatypes.
 
-The most typical case is as follows (don't **ever** use that in production):
+The most typical case is as follows (don't ever use this in production):
 
     PreparedStatement ps = con.prepareStatement("select id from rooms where ...");
     if (param instanceof String) {
