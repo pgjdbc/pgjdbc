@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
@@ -1354,8 +1355,12 @@ public class PreparedStatementTest extends BaseTest4 {
     assumeBinaryModeForce();
     PreparedStatement ps = con.prepareStatement("SELECT /*testAlternatingBindType*/ ?");
     ResultSet rs;
-    Logger log = Logger.getLogger("org.postgresql");
-    AtomicInteger numOfReParses = new AtomicInteger();
+    Logger log = Logger.getLogger("org.postgresql.core.v3.SimpleQuery");
+    Level prevLevel = log.getLevel();
+    if (prevLevel == null || prevLevel.intValue() > Level.FINER.intValue()) {
+      log.setLevel(Level.FINER);
+    }
+    final AtomicInteger numOfReParses = new AtomicInteger();
     Handler handler = new Handler() {
       @Override
       public void publish(LogRecord record) {
@@ -1418,6 +1423,7 @@ public class PreparedStatementTest extends BaseTest4 {
     } finally {
       TestUtil.closeQuietly(ps);
       log.removeHandler(handler);
+      log.setLevel(prevLevel);
     }
   }
 }
