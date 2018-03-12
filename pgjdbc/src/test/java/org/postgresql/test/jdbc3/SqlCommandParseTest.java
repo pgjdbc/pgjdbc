@@ -31,6 +31,7 @@ public class SqlCommandParseTest {
     return Arrays.asList(new Object[][]{
         {SqlCommandType.INSERT, "insert/**/ into table(select) values(1)"},
         {SqlCommandType.SELECT, "select'abc'/**/ as insert"},
+        {SqlCommandType.INSERT, "INSERT/*fool /*nest comments -- parser*/*/ INTO genkeys (b,c) VALUES ('a', 2), ('b', 4) SELECT"},
         {SqlCommandType.INSERT, "with update as (update foo set (a=?,b=?,c=?)) insert into table(select) values(1)"},
         {SqlCommandType.INSERT, "with update as (update foo set (a=?,b=?,c=?)) insert into table(select) select * from update"},
         {SqlCommandType.INSERT, "with update as (update foo set (a=?,b=?,c=?)) insert/**/ into table(select) values(1)"},
