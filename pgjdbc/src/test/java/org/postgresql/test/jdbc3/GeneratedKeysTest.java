@@ -244,7 +244,8 @@ public class GeneratedKeysTest extends BaseTest4 {
     Assume.assumeTrue(returningInQuery != ReturningInQuery.NO);
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) "+returningClause+") select * from x",
+        "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) " + returningClause
+            + ") select * from x",
         new String[]{"c", "b"});
     assertEquals("rowcount", -1, count);
     // TODO: should SELECT produce rows through getResultSet or getGeneratedKeys?
