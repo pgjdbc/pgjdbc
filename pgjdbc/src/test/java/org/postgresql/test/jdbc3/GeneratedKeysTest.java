@@ -200,7 +200,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   public void testSerialWorks() throws SQLException {
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "INSERT INTO genkeys (b,c) VALUES ('a', 2), ('b', 4)" + returningClause + "; ",
+        "INSERT/*fool parser*/ INTO genkeys (b,c) VALUES ('a', 2), ('b', 4)" + returningClause + "; ",
         new String[]{"a"});
     assertEquals(2, count);
     ResultSet rs = stmt.getGeneratedKeys();
