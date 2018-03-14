@@ -5,7 +5,7 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.postgresql.ssl.jdbc4.LibPQFactory;
+import org.postgresql.ssl.jdbc4.LibPQVerifier;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -15,13 +15,13 @@ import org.junit.runners.Parameterized;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
-public class LibPQFactoryHostNameTest {
+public class LibPQVerifierHostNameTest {
 
   private final String hostname;
   private final String pattern;
   private final boolean expected;
 
-  public LibPQFactoryHostNameTest(String hostname, String pattern, boolean expected) {
+  public LibPQVerifierHostNameTest(String hostname, String pattern, boolean expected) {
     this.hostname = hostname;
     this.pattern = pattern;
     this.expected = expected;
@@ -52,6 +52,6 @@ public class LibPQFactoryHostNameTest {
 
   @Test
   public void checkPattern() throws Exception {
-    Assert.assertEquals(expected, LibPQFactory.verifyHostName(hostname, pattern));
+    Assert.assertEquals(expected, LibPQVerifier.verifyHostName(hostname, pattern));
   }
 }

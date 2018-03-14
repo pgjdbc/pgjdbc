@@ -8,6 +8,7 @@ package org.postgresql.ssl;
 import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.ssl.jdbc4.LibPQFactory;
+import org.postgresql.ssl.jdbc4.LibPQVerifier;
 import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
@@ -86,8 +87,8 @@ public class MakeSSL extends ObjectFactory {
             PSQLState.CONNECTION_FAILURE);
       }
     } else {
-      if ("verify-full".equals(sslmode) && factory instanceof LibPQFactory) {
-        if (!(((LibPQFactory) factory).verify(stream.getHostSpec().getHost(),
+      if ("verify-full".equals(sslmode)) {
+        if (!(new LibPQVerifier().verify(stream.getHostSpec().getHost(),
             newConnection.getSession()))) {
           throw new PSQLException(
               GT.tr("The hostname {0} could not be verified.", stream.getHostSpec().getHost()),
