@@ -13,10 +13,12 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -198,7 +200,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   public void testSerialWorks() throws SQLException {
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "INSERT INTO genkeys (b,c) VALUES ('a', 2), ('b', 4)" + returningClause + "; ",
+        "INSERT/*fool parser*/ INTO genkeys (b,c) VALUES ('a', 2), ('b', 4)" + returningClause + "; ",
         new String[]{"a"});
     assertEquals(2, count);
     ResultSet rs = stmt.getGeneratedKeys();
@@ -217,6 +219,37 @@ public class GeneratedKeysTest extends BaseTest4 {
     stmt.executeUpdate("UPDATE genkeys SET c=2 WHERE a = 1" + returningClause,
         new String[]{"c", "b"});
     ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertCB1(rs);
+    assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testWithInsertInsert() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v9_1);
+    Statement stmt = con.createStatement();
+    int count = stmt.executeUpdate(
+        "WITH x as (INSERT INTO genkeys (b,c) VALUES ('a', 2) returning c) insert into genkeys(a,b,c) VALUES (1, 'a', 2)" + returningClause + "",
+        new String[]{"c", "b"});
+    assertEquals(1, count);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertCB1(rs);
+    assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testWithInsertSelect() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v9_1);
+    Assume.assumeTrue(returningInQuery != ReturningInQuery.NO);
+    Statement stmt = con.createStatement();
+    int count = stmt.executeUpdate(
+        "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) " + returningClause
+            + ") select * from x",
+        new String[]{"c", "b"});
+    assertEquals("rowcount", -1, count);
+    // TODO: should SELECT produce rows through getResultSet or getGeneratedKeys?
+    ResultSet rs = stmt.getResultSet();
     assertTrue(rs.next());
     assertCB1(rs);
     assertTrue(!rs.next());

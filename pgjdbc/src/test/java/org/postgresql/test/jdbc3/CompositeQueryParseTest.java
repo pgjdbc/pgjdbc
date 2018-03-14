@@ -156,11 +156,19 @@ public class CompositeQueryParseTest {
   }
 
   @Test
-  public void testWith() throws SQLException {
+  public void testWithSelect() throws SQLException {
     List<NativeQuery> queries;
-    queries = Parser.parseJdbcSql("with update as insert (update foo set (a=?,b=?,c=?)) select * from update", true, true, false, true);
+    queries = Parser.parseJdbcSql("with update as (update foo set (a=?,b=?,c=?)) select * from update", true, true, false, true);
     NativeQuery query = queries.get(0);
-    assertEquals("This is a WITH command", SqlCommandType.WITH, query.command.getType());
+    assertEquals("with ... () select", SqlCommandType.SELECT, query.command.getType());
+  }
+
+  @Test
+  public void testWithInsert() throws SQLException {
+    List<NativeQuery> queries;
+    queries = Parser.parseJdbcSql("with update as (update foo set (a=?,b=?,c=?)) insert into table(select) values(1)", true, true, false, true);
+    NativeQuery query = queries.get(0);
+    assertEquals("with ... () insert", SqlCommandType.INSERT, query.command.getType());
   }
 
   @Test
