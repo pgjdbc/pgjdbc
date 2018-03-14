@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.ssl.jdbc4;
 
 import java.security.cert.CertificateParsingException;
