@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [42.2.2] (2018-03-14)
+## [42.2.2] (2018-03-15)
 ### Added
 - Documentation on server-side prepared statements [PR 1135](https://github.com/pgjdbc/pgjdbc/pull/1135)
 
