@@ -4,6 +4,8 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [42.2.2] (2018-03-15)
 ### Added
 - Documentation on server-side prepared statements [PR 1135](https://github.com/pgjdbc/pgjdbc/pull/1135)
 
@@ -130,4 +132,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
 [42.2.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.2.0
 [42.2.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...REL42.2.1
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...HEAD
+[42.2.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...REL42.2.2
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...HEAD
