@@ -38,10 +38,14 @@ public class UpdateObject310Test {
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{
-        {LocalDateTime.of(2017, 1, 2, 3, 4, 5, 6000).truncatedTo(ChronoUnit.MICROS), "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
-        {OffsetDateTime.of(2017, 1, 2, 3, 4, 5, 6000, ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS), "timestamp_with_time_zone_column", "'2007-06-03'::TIMESTAMP"},
-        {LocalDate.of(2017, 1, 2), "date_column", "'2003-01-01'::DATE"},
-        {LocalTime.of(11, 12, 13).truncatedTo(ChronoUnit.MICROS), "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
+        {LocalDateTime.of(2017, 1, 2, 3, 4, 5, 6000).truncatedTo(ChronoUnit.MICROS), LocalDateTime.class, "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
+        {OffsetDateTime.of(2017, 1, 2, 3, 4, 5, 6000, ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS), OffsetDateTime.class, "timestamp_with_time_zone_column", "'2007-06-03'::TIMESTAMP"},
+        {LocalDate.of(2017, 1, 2), LocalDate.class, "date_column", "'2003-01-01'::DATE"},
+        {LocalTime.of(11, 12, 13).truncatedTo(ChronoUnit.MICROS), LocalTime.class, "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"},
+        {null, LocalDateTime.class, "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
+        {null, OffsetDateTime.class, "timestamp_with_time_zone_column", "'2007-06-03'::TIMESTAMP"},
+        {null, LocalDate.class, "date_column", "'2003-01-01'::DATE"},
+        {null, LocalTime.class, "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"}
     });
   }
 
@@ -62,11 +66,13 @@ public class UpdateObject310Test {
   }
 
   private Object newValue;
+  private Class newValueClass;
   private String columnName;
   private String originalValue;
 
-  public UpdateObject310Test(Object newValue, String columnName, String originalValue) {
+  public UpdateObject310Test(Object newValue, Class newValueClass, String columnName, String originalValue) {
     this.newValue = newValue;
+    this.newValueClass = newValueClass;
     this.columnName = columnName;
     this.originalValue = originalValue;
   }
@@ -89,7 +95,7 @@ public class UpdateObject310Test {
 
       rs = s.executeQuery(TestUtil.selectSQL("table1", columnName));
       rs.next();
-      assertEquals("Object wasn't identical when it got read back from the database", newValue, rs.getObject(1, newValue.getClass()));
+      assertEquals("Object wasn't identical when it got read back from the database", newValue, rs.getObject(1, newValueClass));
     } finally {
       TestUtil.closeQuietly(rs);
       TestUtil.closeQuietly(s);

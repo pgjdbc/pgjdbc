@@ -1861,7 +1861,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             rowBuffer.set(columnIndex, connection
                 .encodeString(
                     connection.getTimestampUtils().toString(
-                        getDefaultCalendar(), (java.sql.Date) valueObject)));
+                        getDefaultCalendar(), (Date) valueObject)));
 
           } else if (valueObject instanceof LocalDate) {
             rowBuffer.set(columnIndex, connection
