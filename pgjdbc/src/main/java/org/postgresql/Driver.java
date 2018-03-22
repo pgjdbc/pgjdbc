@@ -260,7 +260,7 @@ public class Driver implements java.sql.Driver {
       thread.start();
       return ct.getResult(timeout);
     } catch (PSQLException ex1) {
-      LOGGER.log(Level.SEVERE, "Connection error: ", ex1);
+      LOGGER.log(Level.WARNING, "Connection error: {0}", ex1.getServerErrorMessage());
       // re-throw the exception, otherwise it will be caught next, and a
       // org.postgresql.unusual error will be returned instead.
       throw ex1;
@@ -270,7 +270,7 @@ public class Driver implements java.sql.Driver {
               "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
           PSQLState.UNEXPECTED_ERROR, ace);
     } catch (Exception ex2) {
-      LOGGER.log(Level.SEVERE, "Unexpected connection error: ", ex2);
+      LOGGER.log(Level.WARNING, "Unexpected connection error: {0}", ex2.getMessage());
       throw new PSQLException(
           GT.tr(
               "Something unusual has occurred to cause the driver to fail. Please report this exception."),
