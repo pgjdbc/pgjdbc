@@ -1901,7 +1901,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       Field field = fields[columnIndex - 1];
       Object obj = internalGetObject(columnIndex, field);
       if (obj == null) {
-        return null;
+        return getObject(columnIndex).toString();
+        // return null;
       }
       // hack to be compatible with text protocol
       if (obj instanceof java.util.Date) {
