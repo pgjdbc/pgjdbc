@@ -55,6 +55,7 @@ script:
   - rm -rf $HOME/.m2/repository/org/postgresql || true
   - test -d "${JDK6_HOME}" || export JDK6_HOME=$(jdk_switcher home openjdk6)
   - test -d "${JDK7_HOME}" || export JDK7_HOME=$(jdk_switcher home openjdk7)
+  - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home openjdk8)
   - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home oraclejdk8)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
@@ -153,6 +154,13 @@ matrix:
         - PG_VERSION=9.6
         - SSLTEST=Y
         - COVERAGE=Y
+    - jdk: openjdk8
+      addons:
+        postgresql: "9.6"
+      env:
+        - PG_VERSION=9.6
+        - JDK=8
+        - TZ=UTC
     - jdk: openjdk7
       sudo: required
       addons:
