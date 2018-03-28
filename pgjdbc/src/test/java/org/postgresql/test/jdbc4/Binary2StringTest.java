@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2018, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.test.jdbc4;
 
 import static org.junit.Assert.assertNotNull;
@@ -17,6 +22,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ *
+ * @author kib
+ */
 public class Binary2StringTest extends BaseTest4 {
 
   private PreparedStatement statement;
