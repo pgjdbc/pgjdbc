@@ -68,6 +68,22 @@ public class GeometricTest {
     rs.close();
 
     stmt.executeUpdate("DELETE FROM testgeometric");
+    Statement insert2 =
+        con.createStatement();
+    insert2.execute("INSERT INTO testgeometric(" + column + ") VALUES ('" + obj.toString() + "')");
+    insert2.close();
+
+    stmt = con.createStatement();
+    rs = stmt.executeQuery("SELECT " + column + " FROM testgeometric");
+    assertTrue(rs.next());
+    PGobject obj2 = (PGobject) rs.getObject(1);
+    obj2 = (PGobject) rs.getObject(1);
+    assertEquals(obj, obj2);
+    obj2.setValue(rs.getString(1));
+    assertEquals(obj, obj2);
+    rs.close();
+
+    stmt.executeUpdate("DELETE FROM testgeometric");
     stmt.close();
   }
 
