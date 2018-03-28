@@ -25,8 +25,7 @@ import org.junit.runners.Suite;
         CharacterStreamTest.class,
         UUIDTest.class,
         LibPQFactoryHostNameTest.class,
-    XmlTest.class,
-    Binary2StringTest.class
+    XmlTest.class
 })
 public class Jdbc4TestSuite {
 }
