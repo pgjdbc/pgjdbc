@@ -1,7 +1,3 @@
-/*
- * PgsqlOuterJoinTest.java
- * Copyright (c) 1999-2018 by community4you AG
- */
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertTrue;
