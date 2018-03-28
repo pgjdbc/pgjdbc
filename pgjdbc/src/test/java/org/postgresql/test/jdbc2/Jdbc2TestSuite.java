@@ -5,6 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
@@ -19,9 +21,6 @@ import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.ReaderInputStreamTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for JDBC2 and includes some utility methods.
@@ -125,7 +124,9 @@ import org.junit.runners.Suite;
         CopyTest.class,
         CopyLargeFileTest.class,
         ServerErrorTest.class,
-        UpsertTest.class
+        UpsertTest.class,
+        
+        OuterJoinSyntaxTest.class
 })
 public class Jdbc2TestSuite {
 }
