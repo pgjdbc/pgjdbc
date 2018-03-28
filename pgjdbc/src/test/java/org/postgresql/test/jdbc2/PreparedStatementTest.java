@@ -39,6 +39,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Handler;
@@ -284,6 +285,17 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setNull(1, Types.OTHER);
     pstmt.executeUpdate();
 
+    pstmt.close();
+
+    pstmt = con.prepareStatement("select 'ok' where ?=? or (? is null) ");
+    pstmt.setObject(1, UUID.randomUUID(), Types.OTHER);
+    pstmt.setNull(2, Types.OTHER, "uuid");
+    pstmt.setNull(3, Types.OTHER, "uuid");
+    ResultSet rs = pstmt.executeQuery();
+
+    while (rs.next()) {
+      rs.getObject(1);
+    }
     pstmt.close();
   }
 
