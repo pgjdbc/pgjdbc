@@ -294,9 +294,11 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
 
     while (rs.next()) {
-      rs.getObject(1);
+      assertEquals("ok",rs.getObject(1));
     }
+    rs.close();
     pstmt.close();
+
   }
 
   @Test
