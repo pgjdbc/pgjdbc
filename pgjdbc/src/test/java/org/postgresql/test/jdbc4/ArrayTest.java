@@ -560,7 +560,7 @@ public class ArrayTest extends BaseTest4 {
   public void nullArray() throws SQLException {
     PreparedStatement ps = con.prepareStatement("INSERT INTO arrtest(floatarr) VALUES (?)");
 
-    ps.setNull(1, Types.ARRAY, "float8");
+    ps.setNull(1, Types.ARRAY, "float8[]");
     ps.execute();
 
     ps.close();
