@@ -21,7 +21,7 @@ stages:
     if: branch =~ ^release\/.*$
 
 before_script:
-  - test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
+#  - test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
   - export PG_SLAVE1_DATADIR="/etc/postgresql/${PG_VERSION}/slave1"
   - export PG_SLAVE2_DATADIR="/etc/postgresql/${PG_VERSION}/slave2"
