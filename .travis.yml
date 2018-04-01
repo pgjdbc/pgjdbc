@@ -49,6 +49,7 @@ before_install:
   - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
   - ./.travis/travis_install_openj9.sh
   - test -z "${OPENJ9}" || export JDK${JDK}_HOME=${HOME}/jdk-9+${OPENJ9}
+  - wget https://raw.githubusercontent.com/sormuras/bach/903a59b48a220b37886e994d605f41191ceacda6/install-jdk.sh
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
@@ -86,158 +87,20 @@ cache:
 matrix:
   fast_finish: true
   include:
-    - stage: test
-      jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
-    - env:
-        - FEDORA_CI=Y
-      services:
-        - docker
-      if: type != pull_request
     - jdk: oraclejdk9
+      install: unset _JAVA_OPTIONS; . ./install-jdk.sh -F 10 -L GPL
       addons:
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
-        - JDK=9
+        - JDK=10
     - jdk: oraclejdk9
-      sudo: required
-      env:
-        - PG_VERSION=10
-        - JDK=9
-        - OPENJ9=181
-        - TZ=America/New_York # flips between −05:00 and −04:00
-    - jdk: oraclejdk8
-      sudo: required
-      env:
-        - PG_VERSION=HEAD
-        - XA=true
-        - REPLICATION=Y
-        - COVERAGE=Y
-        - TEST_CLIENTS=Y
-        - TZ=Pacific/Chatham # flips between +12:45 and +13:45
-    - jdk: oraclejdk8
-      sudo: required
+      install: unset _JAVA_OPTIONS; . ./install-jdk.sh -F 11 -L BCL
       addons:
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
-        - ZULU_JDK=8
-        - XA=true
-        - REPLICATION=Y
-        - COVERAGE=Y
-        - MCENTRAL=Y
-        - JDOC=Y
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "9.5"
-      env:
-        - PG_VERSION=9.5
-        - XA=true
-        - REPLICATION=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - QUERY_MODE=extendedCacheEverything
-        - COVERAGE=N
-        - TZ=Europe/Moscow # +03:00, no DST
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - SSLTEST=Y
-        - COVERAGE=Y
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=7
-        - MCENTRAL=Y
-        - COVERAGE=Y
-        - TZ=UTC
-    - jdk: openjdk6
-      sudo: required
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
-        - MCENTRAL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      env:
-        - PG_VERSION=8.4
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.3
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.2
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - QUERY_MODE=simple
-        - COVERAGE=Y
-        - TEST_CLIENTS=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.3"
-      env:
-        - PG_VERSION=9.3
-        - QUERY_MODE=extendedForPrepared
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - NO_WAFFLE_NO_OSGI=Y
-    - stage: release
-      jdk: oraclejdk8
-      env:
-        - PG_VERSION=9.6
-    - stage: release_prev
-      jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=7
-    - stage: release_prev
-      jdk: openjdk6
-      sudo: required
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
+        - JDK=11
 
 # Deploy snapshots to Maven Central
 after_success:
