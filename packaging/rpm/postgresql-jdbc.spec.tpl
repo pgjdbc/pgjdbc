@@ -71,8 +71,7 @@ BuildRequires:	mvn(org.apache.maven.plugins:maven-clean-plugin)
 
 %if %runselftest
 BuildRequires:	postgresql-contrib
-BuildRequires:	postgresql-devel
-BuildRequires:	postgresql-server
+BuildRequires:	postgresql-test-rpm-macros
 %endif
 
 # gettext is only needed if we try to update translations
