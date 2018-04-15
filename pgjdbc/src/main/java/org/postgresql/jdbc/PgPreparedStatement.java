@@ -1401,12 +1401,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    setObject(parameterIndex,x,targetSqlType.getVendorTypeNumber(),scaleOrLength);
   }
 
   public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    setObject(parameterIndex,x,targetSqlType.getVendorTypeNumber());
   }
   //#endif
 
