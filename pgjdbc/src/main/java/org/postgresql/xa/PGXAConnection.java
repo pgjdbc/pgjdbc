@@ -328,7 +328,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
       return XA_OK;
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error preparing transaction. prepare xid={0}", xid), ex, XAException.XAER_RMERR);
+      throw new PGXAException(GT.tr("Error preparing transaction. prepare xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
   }
 
@@ -495,7 +495,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       conn.commit();
       conn.setAutoCommit(localAutoCommitMode);
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error during one-phase commit. commit xid={0}", xid), ex, XAException.XAER_RMFAIL);
+      throw new PGXAException(GT.tr("Error during one-phase commit. commit xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
   }
 
@@ -582,6 +582,18 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   @Override
   public boolean setTransactionTimeout(int seconds) {
     return false;
+  }
+
+  private int mapSQLStateToXAErrorCode(SQLException sqlException) {
+    if (isPostgreSQLIntegrityConstraintViolation(sqlException)) {
+      return XAException.XA_RBROLLBACK;
+    }
+
+    return XAException.XAER_RMFAIL;
+  }
+
+  private boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
+    return sqlException instanceof PSQLException && sqlException.getSQLState().matches("23\\d{3}");
   }
 
   private enum State {
