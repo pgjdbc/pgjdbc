@@ -89,7 +89,12 @@ public interface PGConnection {
    * @return Fastpath API for the current connection
    * @throws SQLException if something wrong happens
    * @since 7.3
+   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+   *         and greater functionality by setting up a prepared statement to define
+   *         the function call. Then, executing the statement with binary transmission of parameters
+   *         and results substitutes for a fast-path function call.
    */
+  @Deprecated
   Fastpath getFastpathAPI() throws SQLException;
 
   /**
