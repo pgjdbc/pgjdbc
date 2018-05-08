@@ -308,9 +308,11 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.TIMETZ);
       binaryOids.add(Oid.TIMESTAMP);
       binaryOids.add(Oid.TIMESTAMPTZ);
+      binaryOids.add(Oid.BYTEA_ARRAY);
       binaryOids.add(Oid.INT2_ARRAY);
       binaryOids.add(Oid.INT4_ARRAY);
       binaryOids.add(Oid.INT8_ARRAY);
+      binaryOids.add(Oid.OID_ARRAY);
       binaryOids.add(Oid.FLOAT4_ARRAY);
       binaryOids.add(Oid.FLOAT8_ARRAY);
       binaryOids.add(Oid.VARCHAR_ARRAY);
@@ -1285,9 +1287,8 @@ public class PgConnection implements BaseConnection {
     }
 
     final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(elements);
-    if (arraySupport.supportBinaryRepresentation(oid)
-          && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
+    if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
     final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
