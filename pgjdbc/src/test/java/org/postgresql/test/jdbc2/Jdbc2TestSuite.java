@@ -5,11 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.v3.V3ParameterListTests;
+import org.postgresql.jdbc.ArraysTest;
+import org.postgresql.jdbc.ArraysTestSuite;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
-import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
@@ -17,9 +20,6 @@ import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.ReaderInputStreamTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for JDBC2 and includes some utility methods.
@@ -63,7 +63,8 @@ import org.junit.runners.Suite;
         ResultSetTest.class,
         ResultSetMetaDataTest.class,
         ArrayTest.class,
-        PrimitiveArraySupportTest.class,
+        ArraysTest.class,
+        ArraysTestSuite.class,
         RefCursorTest.class,
 
         DateTest.class,

@@ -206,7 +206,7 @@ public class PgConnection implements BaseConnection {
 
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // Formats that currently have binary protocol support
-    Set<Integer> binaryOids = new HashSet<Integer>();
+    Set<Integer> binaryOids = new HashSet<Integer>(34);
     if (binaryTransfer && queryExecutor.getProtocolVersion() >= 3) {
       binaryOids.add(Oid.BYTEA);
       binaryOids.add(Oid.INT2);
@@ -219,6 +219,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.TIMETZ);
       binaryOids.add(Oid.TIMESTAMP);
       binaryOids.add(Oid.TIMESTAMPTZ);
+      binaryOids.add(Oid.BYTEA_ARRAY);
       binaryOids.add(Oid.INT2_ARRAY);
       binaryOids.add(Oid.INT4_ARRAY);
       binaryOids.add(Oid.INT8_ARRAY);
@@ -1143,33 +1144,6 @@ public class PgConnection implements BaseConnection {
     return new PGReplicationConnectionImpl(this);
   }
 
-  private static void appendArray(StringBuilder sb, Object elements, char delim) {
-    sb.append('{');
-
-    int nElements = java.lang.reflect.Array.getLength(elements);
-    for (int i = 0; i < nElements; i++) {
-      if (i > 0) {
-        sb.append(delim);
-      }
-
-      Object o = java.lang.reflect.Array.get(elements, i);
-      if (o == null) {
-        sb.append("NULL");
-      } else if (o.getClass().isArray()) {
-        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(o);
-        if (arraySupport != null) {
-          arraySupport.appendArray(sb, delim, o);
-        } else {
-          appendArray(sb, o, delim);
-        }
-      } else {
-        String s = o.toString();
-        PgArray.escapeArrayElement(sb, s);
-      }
-    }
-    sb.append('}');
-  }
-
   // Parse a "dirty" integer surrounded by non-numeric characters
   private static int integerPart(String dirtyString) {
     int start;
@@ -1276,6 +1250,7 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Override
   public Array createArrayOf(String typeName, Object elements) throws SQLException {
     checkClosed();
@@ -1293,53 +1268,19 @@ public class PgConnection implements BaseConnection {
     if (elements == null) {
       return makeArray(oid, null);
     }
-
-    final String arrayString;
-
-    final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(elements);
-
-    if (arraySupport != null) {
-      // if the oid for the given type matches the default type, we might be
-      // able to go straight to binary representation
-      if (oid == arraySupport.getDefaultArrayTypeOid(typeInfo) && arraySupport.supportBinaryRepresentation()
+    
+    final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(elements);
+    if (arraySupport.supportBinaryRepresentation(oid)
           && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements));
-      }
-      arrayString = arraySupport.toArrayString(delim, elements);
-    } else {
-      final Class<?> clazz = elements.getClass();
-      if (!clazz.isArray()) {
-        throw new PSQLException(GT.tr("Invalid elements {0}", elements), PSQLState.INVALID_PARAMETER_TYPE);
-      }
-      StringBuilder sb = new StringBuilder();
-      appendArray(sb, elements, delim);
-      arrayString = sb.toString();
+        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
-
+    final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
   }
 
   @Override
-  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-    checkClosed();
-
-    int oid = getTypeInfo().getPGArrayType(typeName);
-
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(
-          GT.tr("Unable to find server array type for provided name {0}.", typeName),
-          PSQLState.INVALID_NAME);
-    }
-
-    if (elements == null) {
-      return makeArray(oid, null);
-    }
-
-    char delim = getTypeInfo().getArrayDelimiter(oid);
-    StringBuilder sb = new StringBuilder();
-    appendArray(sb, elements, delim);
-
-    return makeArray(oid, sb.toString());
+  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {      
+      return createArrayOf(typeName, (Object) elements);
   }
 
   @Override
