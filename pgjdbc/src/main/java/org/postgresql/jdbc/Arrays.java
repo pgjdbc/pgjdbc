@@ -35,7 +35,7 @@ final class Arrays {
      * @param tiCache
      * @return The default array type oid supported by this instance.
      */
-    abstract int getDefaultArrayTypeOid(TypeInfo tiCache);
+    int getDefaultArrayTypeOid();
 
     /**
      * Creates {@code String} representation of the <i>array</i>.
@@ -46,7 +46,7 @@ final class Arrays {
      *          The array to represent as a {@code String}.
      * @return {@code String} representation of the <i>array</i>.
      */
-    abstract String toArrayString(char delim, A array);
+    String toArrayString(char delim, A array);
 
     /**
      * Indicates if an array can be encoded in binary form to array <i>oid</i>.
@@ -78,7 +78,7 @@ final class Arrays {
      *           If {@link #supportBinaryRepresentation(int)} is false for
      *           <i>oid</i>.
      */
-    abstract byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
+    byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
         throws SQLException, SQLFeatureNotSupportedException;
   }
 
@@ -89,7 +89,7 @@ final class Arrays {
    * @param <A>
    *          Base array type supported.
    */
-  private static abstract class AbstractArraySupport<A> implements ArraySupport<A> {
+  private abstract static class AbstractArraySupport<A> implements ArraySupport<A> {
 
     private final int oid;
 
@@ -110,6 +110,7 @@ final class Arrays {
     /**
      *
      * @param arrayOid
+     *          The array oid to get base oid type for.
      * @return The base oid type for the given array oid type given to
      *         {@link #toBinaryRepresentation(BaseConnection, Object, int)}.
      */
@@ -121,7 +122,7 @@ final class Arrays {
      * By default returns the <i>arrayOid</i> this instance was instantiated with.
      */
     @Override
-    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
+    public int getDefaultArrayTypeOid() {
       return arrayOid;
     }
 
@@ -147,12 +148,14 @@ final class Arrays {
      * Creates {@code byte[]} of just the raw data (no metadata).
      *
      * @param connection
+     *          The connection the binary representation will be used on.
      * @param array
      *          The array to create binary representation of. Will not be
      *          {@code null}, but may contain {@code null} elements.
      * @return {@code byte[]} of just the raw data (no metadata).
-     * @throws SQLException
      * @throws SQLFeatureNotSupportedException
+     *           If {@link #supportBinaryRepresentation(int)} is false for
+     *           <i>oid</i>.
      */
     abstract byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, A array)
         throws SQLException, SQLFeatureNotSupportedException;
@@ -1028,7 +1031,7 @@ final class Arrays {
   private static final AbstractArraySupport<Object[]> OBJECT_ARRAY = new AbstractArraySupport<Object[]>(0, 0) {
 
     @Override
-    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
+    public int getDefaultArrayTypeOid() {
       return 0;
     }
 
@@ -1165,8 +1168,8 @@ final class Arrays {
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
-      return support.getDefaultArrayTypeOid(tiCache);
+    public int getDefaultArrayTypeOid() {
+      return support.getDefaultArrayTypeOid();
     }
 
     /**
@@ -1274,8 +1277,8 @@ final class Arrays {
      * {@inheritDoc}
      */
     @Override
-    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
-      return support.getDefaultArrayTypeOid(tiCache);
+    public int getDefaultArrayTypeOid() {
+      return support.getDefaultArrayTypeOid();
     }
 
     /**

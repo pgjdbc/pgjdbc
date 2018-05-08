@@ -103,7 +103,7 @@ public abstract class AbstractArraysTest<A> {
 
     Arrays.ArraySupport<A> support = Arrays.getArraySupport(data);
 
-    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid(null);
+    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid();
 
     assertEquals(binarySupported, support.supportBinaryRepresentation(defaultArrayTypeOid));
 
@@ -141,13 +141,13 @@ public abstract class AbstractArraysTest<A> {
 
     Arrays.ArraySupport<A[]> support = Arrays.getArraySupport(data);
 
-    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid(null);
+    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid();
 
     assertEquals(binarySupported, support.supportBinaryRepresentation(defaultArrayTypeOid));
 
     if (binarySupported) {
 
-      final PgArray pgArray = new PgArray(ENCODING_CONNECTION, support.getDefaultArrayTypeOid(null),
+      final PgArray pgArray = new PgArray(ENCODING_CONNECTION, support.getDefaultArrayTypeOid(),
           support.toBinaryRepresentation(ENCODING_CONNECTION, data, defaultArrayTypeOid));
 
       Object[] actual = (Object[]) pgArray.getArray();
@@ -185,13 +185,13 @@ public abstract class AbstractArraysTest<A> {
 
     Arrays.ArraySupport<A[][]> support = Arrays.getArraySupport(testData);
 
-    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid(null);
+    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid();
 
     assertEquals(binarySupported, support.supportBinaryRepresentation(defaultArrayTypeOid));
 
     if (binarySupported) {
 
-      final PgArray pgArray = new PgArray(ENCODING_CONNECTION, support.getDefaultArrayTypeOid(null),
+      final PgArray pgArray = new PgArray(ENCODING_CONNECTION, support.getDefaultArrayTypeOid(),
           support.toBinaryRepresentation(ENCODING_CONNECTION, testData, defaultArrayTypeOid));
 
       Object[][] actual = (Object[][]) pgArray.getArray();
