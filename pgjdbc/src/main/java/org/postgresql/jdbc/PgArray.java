@@ -14,10 +14,12 @@ import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -251,6 +253,10 @@ public class PgArray implements java.sql.Array {
           case Oid.BOOL:
             arr[i] = ByteConverter.bool(fieldBytes, pos);
             break;
+          case Oid.BYTEA:
+            arr[i] = new byte[len];
+            System.arraycopy(fieldBytes, pos, arr[i], 0, len);
+            break;
           default:
             ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
             if (arrAssistant != null) {
@@ -395,6 +401,8 @@ public class PgArray implements java.sql.Array {
         return String.class;
       case Oid.BOOL:
         return Boolean.class;
+      case Oid.BYTEA:
+        return byte[].class;
       default:
         ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
         if (arrElemBuilder != null) {
@@ -759,6 +767,20 @@ public class PgArray implements java.sql.Array {
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
             : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
       }
+    } else if ((type == Types.BINARY || type == Types.VARBINARY) && "bytea".equals(getBaseTypeName())) {
+      Object[] oa = null;
+      ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(byte[].class, dimsLength)
+          : new byte[count][]);
+
+      for (; count > 0; count--) {
+        Object v = input.get(index++);
+        try {
+          oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
+              : (v == null ? null : PGbytea.toBytes(((String) v).getBytes("ascii")));
+        } catch (UnsupportedEncodingException e) {
+          throw new java.lang.Error("ascii must be supported");
+        }
+      }
     } else if (ArrayAssistantRegistry.getAssistant(oid) != null) {
       ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
 
@@ -905,13 +927,9 @@ public class PgArray implements java.sql.Array {
       try {
         Object array = readBinaryArray(1, 0);
 
-        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
-        if (arraySupport != null) {
-          fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
-        } else {
-          java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
-          fieldString = tmpArray.toString();
-        }
+        final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(array);
+        assert arraySupport != null;
+        fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
       } catch (SQLException e) {
         fieldString = "NULL"; // punt
       }

@@ -652,13 +652,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.ARRAY:
         if (in instanceof Array) {
           setArray(parameterIndex, (Array) in);
-        } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(in)) {
-          setPrimitiveArray(parameterIndex, in);
         } else {
-          throw new PSQLException(
-              GT.tr("Cannot cast an instance of {0} to type {1}",
-                  in.getClass().getName(), "Types.ARRAY"),
-              PSQLState.INVALID_PARAMETER_TYPE);
+          try {
+            setObjectArray(parameterIndex, in);
+          } catch (Exception e) {
+            throw new PSQLException(
+                GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types.ARRAY"),
+                PSQLState.INVALID_PARAMETER_TYPE, e);
+          }
         }
         break;
       case Types.DISTINCT:
@@ -679,15 +680,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
-    final PrimitiveArraySupport<A> arrayToString = PrimitiveArraySupport.getArraySupport(in);
+  private <A> void setObjectArray(int parameterIndex, A in) throws SQLException {
+    final Arrays.ArraySupport<A> arrayToString = Arrays.getArraySupport(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 
     final int oid = arrayToString.getDefaultArrayTypeOid(typeInfo);
 
-    if (arrayToString.supportBinaryRepresentation() && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in), oid);
+    if (arrayToString.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in, oid), oid);
     } else {
       final char delim = typeInfo.getArrayDelimiter(oid);
       setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
@@ -955,8 +956,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
-    } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
-      setPrimitiveArray(parameterIndex, x);
+    } else if (x.getClass().isArray()) {
+      setObjectArray(parameterIndex, x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(

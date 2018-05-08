@@ -1,20 +1,13 @@
-/*
- * Copyright (c) 2003, PostgreSQL Global Development Group
- * See the LICENSE file in the project root for more information.
- */
-
 package org.postgresql.jdbc;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
+import org.junit.Test;
 import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Encoding;
-import org.postgresql.core.Oid;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.TransactionState;
@@ -27,9 +20,7 @@ import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
 
-import org.junit.Test;
-
-import java.sql.Array;
+import java.lang.reflect.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
@@ -50,273 +41,184 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
-public class PrimitiveArraySupportTest {
+public abstract class AbstractArraysTest<A> {
 
-  public PrimitiveArraySupport<long[]> longArrays = PrimitiveArraySupport.getArraySupport(new long[] {});
-  public PrimitiveArraySupport<int[]> intArrays = PrimitiveArraySupport.getArraySupport(new int[] {});
-  public PrimitiveArraySupport<short[]> shortArrays = PrimitiveArraySupport.getArraySupport(new short[] {});
-  public PrimitiveArraySupport<double[]> doubleArrays = PrimitiveArraySupport.getArraySupport(new double[] {});
-  public PrimitiveArraySupport<float[]> floatArrays = PrimitiveArraySupport.getArraySupport(new float[] {});
-  public PrimitiveArraySupport<boolean[]> booleanArrays = PrimitiveArraySupport.getArraySupport(new boolean[] {});
+  private static final BaseConnection ENCODING_CONNECTION = new EncodingConnection(Encoding.getJVMEncoding("utf-8"));
 
-  @Test
-  public void testLongBinary() throws Exception {
-    final long[] longs = new long[84];
-    for (int i = 0; i < 84; ++i) {
-      longs[i] = i - 3;
-    }
+  private final A[][] testData;
 
-    final PgArray pgArray = new PgArray(null, Oid.INT8_ARRAY, longArrays.toBinaryRepresentation(null, longs));
+  private final boolean binarySupported;
 
-    Object arrayObj = pgArray.getArray();
+  /**
+   * @param testData
+   */
+  public AbstractArraysTest(A[][] testData, boolean binarySupported) {
+    super();
+    this.testData = testData;
+    this.binarySupported = binarySupported;
+  }
 
-    assertThat(arrayObj, instanceOf(Long[].class));
-
-    final Long[] actual = (Long[]) arrayObj;
-
-    assertEquals(longs.length, actual.length);
-
-    for (int i = 0; i < longs.length; ++i) {
-      assertEquals(Long.valueOf(longs[i]), actual[i]);
+  protected void assertArraysEquals(String message, A expected, Object actual) {
+    final int expectedLength = Array.getLength(expected);
+    assertEquals(message + " size", expectedLength, Array.getLength(actual));
+    for (int i = 0; i < expectedLength; ++i) {
+      assertEquals(message + " value at " + i, Array.get(expected, i), Array.get(actual, i));
     }
   }
 
-  @Test
-  public void testLongToString() throws Exception {
-    final long[] longs = new long[] { 12367890987L, 987664198234L, -2982470923874L };
-
-    final String arrayString = longArrays.toArrayString(',', longs);
-
-    assertEquals("{12367890987,987664198234,-2982470923874}", arrayString);
-
-    final String altArrayString = longArrays.toArrayString(';', longs);
-
-    assertEquals("{12367890987;987664198234;-2982470923874}", altArrayString);
+  protected String getExpectedString(A expected, char delim) {
+    final StringBuilder sb = new StringBuilder();
+    sb.append('{');
+    for (int i = 0; i < Array.getLength(expected); ++i) {
+      if (i > 0) {
+        sb.append(delim);
+      }
+      if (Array.get(expected, i) == null) {
+        sb.append('N');
+        sb.append('U');
+        sb.append('L');
+        sb.append('L');
+      } else {
+        PgArray.escapeArrayElement(sb, Array.get(expected, i).toString());
+      }
+    }
+    sb.append('}');
+    return sb.toString();
   }
 
   @Test
-  public void testIntBinary() throws Exception {
-    final int[] ints = new int[13];
-    for (int i = 0; i < 13; ++i) {
-      ints[i] = i - 3;
-    }
+  public void testBinary() throws Exception {
 
-    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, intArrays.toBinaryRepresentation(null, ints));
+    A data = testData[0][0];
 
-    Object arrayObj = pgArray.getArray();
+    Arrays.ArraySupport<A> support = Arrays.getArraySupport(data);
 
-    assertThat(arrayObj, instanceOf(Integer[].class));
+    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid(null);
 
-    final Integer[] actual = (Integer[]) arrayObj;
+    assertEquals(binarySupported, support.supportBinaryRepresentation(defaultArrayTypeOid));
 
-    assertEquals(ints.length, actual.length);
+    if (binarySupported) {
 
-    for (int i = 0; i < ints.length; ++i) {
-      assertEquals(Integer.valueOf(ints[i]), actual[i]);
-    }
-  }
+      final PgArray pgArray = new PgArray(ENCODING_CONNECTION, defaultArrayTypeOid,
+          support.toBinaryRepresentation(ENCODING_CONNECTION, data, defaultArrayTypeOid));
 
-  @Test
-  public void testIntToString() throws Exception {
-    final int[] ints = new int[] { 12367890, 987664198, -298247092 };
+      Object actual = pgArray.getArray();
 
-    final String arrayString = intArrays.toArrayString(',', ints);
-
-    assertEquals("{12367890,987664198,-298247092}", arrayString);
-
-    final String altArrayString = intArrays.toArrayString(';', ints);
-
-    assertEquals("{12367890;987664198;-298247092}", altArrayString);
-
-  }
-
-  @Test
-  public void testShortToBinary() throws Exception {
-    final short[] shorts = new short[13];
-    for (int i = 0; i < 13; ++i) {
-      shorts[i] = (short) (i - 3);
-    }
-
-    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, shortArrays.toBinaryRepresentation(null, shorts));
-
-    Object arrayObj = pgArray.getArray();
-
-    assertThat(arrayObj, instanceOf(Short[].class));
-
-    final Short[] actual = (Short[]) arrayObj;
-
-    assertEquals(shorts.length, actual.length);
-
-    for (int i = 0; i < shorts.length; ++i) {
-      assertEquals(Short.valueOf(shorts[i]), actual[i]);
+      assertArraysEquals("", data, actual);
     }
   }
 
   @Test
-  public void testShortToString() throws Exception {
-    final short[] shorts = new short[] { 123, 34, -57 };
+  public void testString() throws Exception {
 
-    final String arrayString = shortArrays.toArrayString(',', shorts);
+    A data = testData[0][0];
 
-    assertEquals("{123,34,-57}", arrayString);
+    Arrays.ArraySupport<A> support = Arrays.getArraySupport(data);
 
-    final String altArrayString = shortArrays.toArrayString(';', shorts);
+    final String arrayString = support.toArrayString(',', data);
 
-    assertEquals("{123;34;-57}", altArrayString);
+    assertEquals(getExpectedString(data, ','), arrayString);
 
+    final String altArrayString = support.toArrayString(';', data);
+
+    assertEquals(getExpectedString(data, ';'), altArrayString);
   }
 
   @Test
-  public void testDoubleBinary() throws Exception {
-    final double[] doubles = new double[13];
-    for (int i = 0; i < 13; ++i) {
-      doubles[i] = i - 3.1;
-    }
+  public void test2dBinary() throws Exception {
 
-    final PgArray pgArray = new PgArray(null, Oid.FLOAT8_ARRAY, doubleArrays.toBinaryRepresentation(null, doubles));
+    A[] data = testData[0];
 
-    Object arrayObj = pgArray.getArray();
+    Arrays.ArraySupport<A[]> support = Arrays.getArraySupport(data);
 
-    assertThat(arrayObj, instanceOf(Double[].class));
+    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid(null);
 
-    final Double[] actual = (Double[]) arrayObj;
+    assertEquals(binarySupported, support.supportBinaryRepresentation(defaultArrayTypeOid));
 
-    assertEquals(doubles.length, actual.length);
+    if (binarySupported) {
 
-    for (int i = 0; i < doubles.length; ++i) {
-      assertEquals(Double.valueOf(doubles[i]), actual[i]);
-    }
-  }
+      final PgArray pgArray = new PgArray(ENCODING_CONNECTION, support.getDefaultArrayTypeOid(null),
+          support.toBinaryRepresentation(ENCODING_CONNECTION, data, defaultArrayTypeOid));
 
-  @Test
-  public void testdoubleToString() throws Exception {
-    final double[] doubles = new double[] { 122353.345, 923487.235987, -23.239486 };
+      Object[] actual = (Object[]) pgArray.getArray();
 
-    final String arrayString = doubleArrays.toArrayString(',', doubles);
+      assertEquals(data.length, actual.length);
 
-    assertEquals("{\"122353.345\",\"923487.235987\",\"-23.239486\"}", arrayString);
-
-    final String altArrayString = doubleArrays.toArrayString(';', doubles);
-
-    assertEquals("{\"122353.345\";\"923487.235987\";\"-23.239486\"}", altArrayString);
-
-  }
-
-  @Test
-  public void testFloatBinary() throws Exception {
-    final float[] floats = new float[13];
-    for (int i = 0; i < 13; ++i) {
-      floats[i] = (float) (i - 3.1);
-    }
-
-    final PgArray pgArray = new PgArray(null, Oid.FLOAT4_ARRAY, floatArrays.toBinaryRepresentation(null, floats));
-
-    Object arrayObj = pgArray.getArray();
-
-    assertThat(arrayObj, instanceOf(Float[].class));
-
-    final Float[] actual = (Float[]) arrayObj;
-
-    assertEquals(floats.length, actual.length);
-
-    for (int i = 0; i < floats.length; ++i) {
-      assertEquals(Float.valueOf(floats[i]), actual[i]);
+      for (int i = 0; i < data.length; ++i) {
+        assertArraysEquals("array at position " + i, data[i], actual[i]);
+      }
     }
   }
 
   @Test
-  public void testfloatToString() throws Exception {
-    final float[] floats = new float[] { 122353.34f, 923487.25f, -23.2394f };
+  public void test2dString() throws Exception {
 
-    final String arrayString = floatArrays.toArrayString(',', floats);
+    A[] data = testData[0];
 
-    assertEquals("{\"122353.34\",\"923487.25\",\"-23.2394\"}", arrayString);
+    Arrays.ArraySupport<A[]> support = Arrays.getArraySupport(data);
 
-    final String altArrayString = floatArrays.toArrayString(';', floats);
+    final StringBuilder sb = new StringBuilder(1024);
+    sb.append('{');
+    for (int i = 0; i < data.length; ++i) {
+      if (i != 0) {
+        sb.append(',');
+      }
+      sb.append(getExpectedString(data[i], ','));
+    }
+    sb.append('}');
 
-    assertEquals("{\"122353.34\";\"923487.25\";\"-23.2394\"}", altArrayString);
-
+    assertEquals(sb.toString(), support.toArrayString(',', data));
   }
 
   @Test
-  public void testBooleanBinary() throws Exception {
-    final boolean[] bools = new boolean[] { true, true, false };
+  public void test3dBinary() throws Exception {
 
-    final PgArray pgArray = new PgArray(null, Oid.BIT, booleanArrays.toBinaryRepresentation(null, bools));
+    Arrays.ArraySupport<A[][]> support = Arrays.getArraySupport(testData);
 
-    Object arrayObj = pgArray.getArray();
+    final int defaultArrayTypeOid = support.getDefaultArrayTypeOid(null);
 
-    assertThat(arrayObj, instanceOf(Boolean[].class));
+    assertEquals(binarySupported, support.supportBinaryRepresentation(defaultArrayTypeOid));
 
-    final Boolean[] actual = (Boolean[]) arrayObj;
+    if (binarySupported) {
 
-    assertEquals(bools.length, actual.length);
+      final PgArray pgArray = new PgArray(ENCODING_CONNECTION, support.getDefaultArrayTypeOid(null),
+          support.toBinaryRepresentation(ENCODING_CONNECTION, testData, defaultArrayTypeOid));
 
-    for (int i = 0; i < bools.length; ++i) {
-      assertEquals(Boolean.valueOf(bools[i]), actual[i]);
+      Object[][] actual = (Object[][]) pgArray.getArray();
+
+      assertEquals(testData.length, actual.length);
+
+      for (int i = 0; i < testData.length; ++i) {
+        assertEquals("array length at " + i, testData[i].length, actual[i].length);
+        for (int j = 0; j < testData[i].length; ++j) {
+          assertArraysEquals("array at " + i + ',' + j, testData[i][j], actual[i][j]);
+        }
+      }
     }
   }
 
   @Test
-  public void testBooleanToString() throws Exception {
-    final boolean[] bools = new boolean[] { true, true, false };
+  public void test3dString() throws Exception {
+    Arrays.ArraySupport<A[][]> support = Arrays.getArraySupport(testData);
 
-    final String arrayString = booleanArrays.toArrayString(',', bools);
-
-    assertEquals("{1,1,0}", arrayString);
-
-    final String altArrayString = booleanArrays.toArrayString(';', bools);
-
-    assertEquals("{1;1;0}", altArrayString);
-  }
-
-  @Test
-  public void testStringBinary() throws Exception {
-    final PrimitiveArraySupport<String[]> stringArrays = PrimitiveArraySupport.getArraySupport(new String[] {});
-    final String[] strings = new String[] {"1.235", null, "", "have some \u03C0"}; //unicode escape for pi character
-    final BaseConnection conn = new EncodingConnection(Encoding.getJVMEncoding("UTF-8"));
-    final PgArray pgArray = new PgArray(conn, Oid.VARCHAR, stringArrays.toBinaryRepresentation(conn, strings));
-
-    Object arrayObj = pgArray.getArray();
-
-    assertThat(arrayObj, instanceOf(String[].class));
-
-    final String[] actual = (String[]) arrayObj;
-
-    assertEquals(strings.length, actual.length);
-
-    for (int i = 0; i < strings.length; ++i) {
-      assertEquals(strings[i], actual[i]);
+    final StringBuilder sb = new StringBuilder(1024);
+    sb.append('{');
+    for (int i = 0; i < testData.length; ++i) {
+      if (i != 0) {
+        sb.append(',');
+      }
+      sb.append('{');
+      for (int j = 0; j < testData[i].length; ++j) {
+        if (j != 0) {
+          sb.append(',');
+        }
+        sb.append(getExpectedString(testData[i][j], ','));
+      }
+      sb.append('}');
     }
-  }
+    sb.append('}');
 
-  @Test
-  public void testStringBinary_unsupportedCharacter() throws Exception {
-    final PrimitiveArraySupport<String[]> stringArrays = PrimitiveArraySupport.getArraySupport(new String[] {});
-    final String[] strings = new String[] {"1.235", null, "", "have some \u03C0"}; //unicode escape for pi character
-    final BaseConnection conn = new EncodingConnection(Encoding.getJVMEncoding("ASCII"));
-
-    final PgArray pgArray = new PgArray(conn, Oid.VARCHAR, stringArrays.toBinaryRepresentation(conn, strings));
-
-    Object arrayObj = pgArray.getArray();
-
-    assertThat(arrayObj, instanceOf(String[].class));
-
-    final String[] actual = (String[]) arrayObj;
-
-    assertEquals(strings.length, actual.length);
-
-    assertEquals("have some ?", actual[3]);
-  }
-
-  @Test
-  public void testStringToString() throws Exception {
-    final PrimitiveArraySupport<String[]> stringArrays = PrimitiveArraySupport.getArraySupport(new String[] {});
-    final String[] strings = new String[] {"1.235", null, "", "have some \u03C0"}; //unicode escape for pi character
-
-    final String arrayString = stringArrays.toArrayString(',', strings);
-
-    assertEquals("{\"1.235\",NULL,\"\",\"have some \u03C0\"}", arrayString); //unicode escape for pi character
+    assertEquals(sb.toString(), support.toArrayString(',', testData));
   }
 
   private static final class EncodingConnection implements BaseConnection {
@@ -350,8 +252,7 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
-        throws SQLException {
+    public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency) throws SQLException {
       throw new UnsupportedOperationException();
     }
 
@@ -491,8 +392,8 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
-        String... columnNames) throws SQLException {
+    public CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized, String... columnNames)
+        throws SQLException {
       throw new UnsupportedOperationException();
     }
 
@@ -639,7 +540,14 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public Statement createStatement(int resultSetType, int resultSetConcurrency)
+    public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
         throws SQLException {
       throw new UnsupportedOperationException();
     }
@@ -647,16 +555,7 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public PreparedStatement prepareStatement(String sql, int resultSetType,
-        int resultSetConcurrency) throws SQLException {
-      throw new UnsupportedOperationException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
-        throws SQLException {
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
       throw new UnsupportedOperationException();
     }
 
@@ -719,16 +618,16 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public Statement createStatement(int resultSetType, int resultSetConcurrency,
-        int resultSetHoldability) throws SQLException {
+    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+        throws SQLException {
       throw new UnsupportedOperationException();
     }
 
     /**
      * {@inheritDoc}
      */
-    public PreparedStatement prepareStatement(String sql, int resultSetType,
-        int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
+        int resultSetHoldability) throws SQLException {
       throw new UnsupportedOperationException();
     }
 
@@ -743,8 +642,7 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
-        throws SQLException {
+    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
       throw new UnsupportedOperationException();
     }
 
@@ -758,8 +656,7 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public PreparedStatement prepareStatement(String sql, String[] columnNames)
-        throws SQLException {
+    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
       throw new UnsupportedOperationException();
     }
 
@@ -829,7 +726,7 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+    public java.sql.Array createArrayOf(String typeName, Object[] elements) throws SQLException {
       throw new UnsupportedOperationException();
     }
 
@@ -892,7 +789,7 @@ public class PrimitiveArraySupportTest {
     /**
      * {@inheritDoc}
      */
-    public Array createArrayOf(String typeName, Object elements) throws SQLException {
+    public java.sql.Array createArrayOf(String typeName, Object elements) throws SQLException {
       throw new UnsupportedOperationException();
     }
 
