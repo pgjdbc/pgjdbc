@@ -654,4 +654,23 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.closeQuietly(rs);
     TestUtil.closeQuietly(ps);
   }
+
+  @Test
+  public void insertAndQueryMultiDimArray() throws SQLException {
+    Array arr = con.createArrayOf("int4", new int[][] { { 1, 2 }, { 3, 4 } });
+    PreparedStatement insertPs = con.prepareStatement("INSERT INTO arrtest(intarr2) VALUES (?)");
+    insertPs.setArray(1, arr);
+    insertPs.execute();
+    insertPs.close();
+
+    PreparedStatement selectPs = con.prepareStatement("SELECT intarr2 FROM arrtest");
+    ResultSet rs = selectPs.executeQuery();
+    rs.next();
+
+    Array array = rs.getArray(1);
+    Integer[][] secondRowValues = (Integer[][]) array.getArray(2, 1);
+
+    Assert.assertEquals(3, secondRowValues[0][0].intValue());
+    Assert.assertEquals(4, secondRowValues[0][1].intValue());
+  }
 }
