@@ -1268,18 +1268,17 @@ public class PgConnection implements BaseConnection {
     if (elements == null) {
       return makeArray(oid, null);
     }
-    
+
     final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(elements);
-    if (arraySupport.supportBinaryRepresentation(oid)
-          && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
+    if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
     final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
   }
 
   @Override
-  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {      
+  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
       return createArrayOf(typeName, (Object) elements);
   }
 
