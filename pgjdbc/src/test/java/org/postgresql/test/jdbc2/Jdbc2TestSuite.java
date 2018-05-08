@@ -5,8 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.postgresql.core.OidToStringTest;
+import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.v3.V3ParameterListTests;
@@ -20,6 +20,9 @@ import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.ReaderInputStreamTest;
+
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for JDBC2 and includes some utility methods.
@@ -62,6 +65,7 @@ import org.postgresql.util.ReaderInputStreamTest;
 
         ResultSetTest.class,
         ResultSetMetaDataTest.class,
+        StringTypeUnspecifiedArrayTest.class,
         ArrayTest.class,
         ArraysTest.class,
         ArraysTestSuite.class,
@@ -76,6 +80,9 @@ import org.postgresql.util.ReaderInputStreamTest;
         TimezoneCachingTest.class,
         ParserTest.class,
         ReturningParserTest.class,
+
+        OidToStringTest.class,
+        OidValueOfTest.class,
 
         PreparedStatementTest.class,
         StatementTest.class,
@@ -93,6 +100,7 @@ import org.postgresql.util.ReaderInputStreamTest;
         MiscTest.class,
         NotifyTest.class,
         DatabaseEncodingTest.class,
+        ClientEncodingTest.class,
 
         BlobTest.class,
         BlobTransactionTest.class,

@@ -654,17 +654,18 @@ public class TimestampUtils {
     sb.append(':');
     sb.append(NUMBERS[seconds]);
 
-    // Add nanoseconds.
+    // Add microseconds, rounded.
     // This won't work for server versions < 7.2 which only want
     // a two digit fractional second, but we don't need to support 7.1
     // anymore and getting the version number here is difficult.
     //
-    if (nanos == 0) {
+    int microseconds = (nanos / 1000) + (((nanos % 1000) + 500) / 1000);
+    if (microseconds == 0) {
       return;
     }
     sb.append('.');
     int len = sb.length();
-    sb.append(nanos / 1000); // append microseconds
+    sb.append(microseconds);
     int needZeros = 6 - (sb.length() - len);
     if (needZeros > 0) {
       sb.insert(len, ZEROS, 0, needZeros);

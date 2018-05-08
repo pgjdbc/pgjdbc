@@ -63,6 +63,7 @@ public class Parser {
     boolean isValuesFound = false;
     int valuesBraceOpenPosition = -1;
     int valuesBraceClosePosition = -1;
+    boolean valuesBraceCloseFound = false;
     boolean isInsertPresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
@@ -73,11 +74,13 @@ public class Parser {
     boolean whitespaceOnly = true;
     int keyWordCount = 0;
     int keywordStart = -1;
+    int keywordEnd = -1;
     for (int i = 0; i < aChars.length; ++i) {
       char aChar = aChars[i];
       boolean isKeyWordChar = false;
       // ';' is ignored as it splits the queries
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
+      keywordEnd = i; // parseSingleQuotes, parseDoubleQuotes, etc move index so we keep old value
       switch (aChar) {
         case '\'': // single-quotes
           i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
@@ -103,7 +106,7 @@ public class Parser {
 
         case ')':
           inParen--;
-          if (inParen == 0 && isValuesFound) {
+          if (inParen == 0 && isValuesFound && !valuesBraceCloseFound) {
             // If original statement is multi-values like VALUES (...), (...), ... then
             // search for the latest closing paren
             valuesBraceClosePosition = nativeSql.length() + i - fragmentStart;
@@ -148,6 +151,13 @@ public class Parser {
                   nativeQueries = new ArrayList<NativeQuery>();
                 }
 
+                if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
+                    || (bindPositions != null
+                    && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
+                  valuesBraceOpenPosition = -1;
+                  valuesBraceClosePosition = -1;
+                }
+
                 nativeQueries.add(new NativeQuery(nativeSql.toString(),
                     toIntArray(bindPositions), false,
                     SqlCommand.createStatementTypeInfo(
@@ -168,6 +178,7 @@ public class Parser {
               nativeSql.setLength(0);
               valuesBraceOpenPosition = -1;
               valuesBraceClosePosition = -1;
+              valuesBraceCloseFound = false;
             }
           }
           break;
@@ -184,11 +195,16 @@ public class Parser {
           isKeyWordChar = isIdentifierStartChar(aChar);
           if (isKeyWordChar) {
             keywordStart = i;
+            if (valuesBraceOpenPosition != -1 && inParen == 0) {
+              // When the statement already has multi-values, stop looking for more of them
+              // Since values(?,?),(?,?),... should not contain keywords in the middle
+              valuesBraceCloseFound = true;
+            }
           }
           break;
       }
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
-        int wordLength = (isKeyWordChar ? i + 1 : i) - keywordStart;
+        int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
         if (currentCommandType == SqlCommandType.BLANK) {
           if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.UPDATE;
@@ -211,6 +227,12 @@ public class Parser {
               isCurrentReWriteCompatible = false;
             }
           }
+        } else if (currentCommandType == SqlCommandType.WITH
+            && inParen == 0) {
+          SqlCommandType command = parseWithCommandType(aChars, i, keywordStart, wordLength);
+          if (command != null) {
+            currentCommandType = command;
+          }
         }
         if (inParen != 0 || aChar == ')') {
           // RETURNING and VALUES cannot be present in braces
@@ -229,10 +251,10 @@ public class Parser {
         }
       }
     }
-    if (!isValuesFound) {
-      isCurrentReWriteCompatible = false;
-    }
-    if (!isCurrentReWriteCompatible) {
+
+    if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
+        || (bindPositions != null
+        && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
       valuesBraceOpenPosition = -1;
       valuesBraceClosePosition = -1;
     }
@@ -273,6 +295,47 @@ public class Parser {
     return nativeQueries;
   }
 
+  private static SqlCommandType parseWithCommandType(char[] aChars, int i, int keywordStart,
+      int wordLength) {
+    // This parses `with x as (...) ...`
+    // Corner case is `with select as (insert ..) select * from select
+    SqlCommandType command;
+    if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.UPDATE;
+    } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.DELETE;
+    } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.INSERT;
+    } else if (wordLength == 6 && parseSelectKeyword(aChars, keywordStart)) {
+      command = SqlCommandType.SELECT;
+    } else {
+      return null;
+    }
+    // update/delete/insert/select keyword detected
+    // Check if `AS` follows
+    int nextInd = i;
+    // The loop should skip whitespace and comments
+    for (; nextInd < aChars.length; nextInd++) {
+      char nextChar = aChars[nextInd];
+      if (nextChar == '-') {
+        nextInd = Parser.parseLineComment(aChars, nextInd);
+      } else if (nextChar == '/') {
+        nextInd = Parser.parseBlockComment(aChars, nextInd);
+      } else if (Character.isWhitespace(nextChar)) {
+        // Skip whitespace
+        continue;
+      } else {
+        break;
+      }
+    }
+    if (nextInd + 2 >= aChars.length
+        || (!parseAsKeyword(aChars, nextInd)
+        || isIdentifierContChar(aChars[nextInd + 2]))) {
+      return command;
+    }
+    return null;
+  }
+
   private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
       String[] returningColumnNames, boolean isReturningPresent) throws SQLException {
     if (isReturningPresent || returningColumnNames.length == 0) {
@@ -280,7 +343,8 @@ public class Parser {
     }
     if (currentCommandType != SqlCommandType.INSERT
         && currentCommandType != SqlCommandType.UPDATE
-        && currentCommandType != SqlCommandType.DELETE) {
+        && currentCommandType != SqlCommandType.DELETE
+        && currentCommandType != SqlCommandType.WITH) {
       return false;
     }
 
@@ -643,6 +707,22 @@ public class Parser {
         && (query[offset + 1] | 32) == 'i'
         && (query[offset + 2] | 32) == 't'
         && (query[offset + 3] | 32) == 'h';
+  }
+
+  /**
+   * Parse string to check presence of AS keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseAsKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 2)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'a'
+        && (query[offset + 1] | 32) == 's';
   }
 
   /**

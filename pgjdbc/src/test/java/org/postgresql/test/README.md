@@ -222,7 +222,15 @@ public class FooTest {
     }
 }
 
-8. Running the JDBC 2 test suite from Sun against PostgreSQL
+8 ssltests
+----------------
+- requires ssl to be turned on in the database 'postgresql.conf ssl=true'
+- pg_hba.conf requires entries for hostssl, and hostnossl
+- contrib module sslinfo needs to be installed in the databases
+- databases certdb, hostdb, hostnossldb, hostssldb, and hostsslcertdb need to be created
+
+
+9 Running the JDBC 2 test suite from Sun against PostgreSQL
 ------------------------------------------------------------
 Download the test suite from
 http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html
@@ -295,7 +303,7 @@ This is the JDBC 2 test suite that includes J2EE requirements.
 At the time of writing of this document, a great number of tests
 in this test suite fail.
 
-9 Credits, feedback
+10 Credits, feedback
 -------------------
 The parts of this document describing the PostgreSQL test suite
 were originally written by Rene Pijlman. Liam Stewart contributed

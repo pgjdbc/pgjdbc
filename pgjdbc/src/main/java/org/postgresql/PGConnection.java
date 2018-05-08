@@ -89,7 +89,12 @@ public interface PGConnection {
    * @return Fastpath API for the current connection
    * @throws SQLException if something wrong happens
    * @since 7.3
+   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+   *         and greater functionality by setting up a prepared statement to define
+   *         the function call. Then, executing the statement with binary transmission of parameters
+   *         and results substitutes for a fast-path function call.
    */
+  @Deprecated
   Fastpath getFastpathAPI() throws SQLException;
 
   /**
@@ -204,12 +209,14 @@ public interface PGConnection {
   String escapeLiteral(String literal) throws SQLException;
 
   /**
-   * Returns true if the connection is configured to use "simple 'Q' execute" commands only
-   * When running in simple protocol only, certain features are not available: callable statements,
+   * Returns the query mode for this connection.
+   * <p>
+   * When running in simple query mode, certain features are not available: callable statements,
    * partial result set fetch, bytea type, etc.
    * The list of supported features is subject to change.
    *
-   * @return true if the connection is configured to use "simple 'Q' execute" commands only
+   * @return the preferred query mode
+   * @see PreferQueryMode
    */
   PreferQueryMode getPreferQueryMode();
 

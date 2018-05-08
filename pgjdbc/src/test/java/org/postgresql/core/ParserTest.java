@@ -161,4 +161,50 @@ public class ParserTest {
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertTrue("Query has a returning clause " + query, returningKeywordPresent);
   }
+
+  @Test
+  public void insertReturningInWith() throws SQLException {
+    String query =
+        "with x as (insert into mytab(x) values(1) returning x) insert test(id, name) select 1, 'value' from test2";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(
+            query, true, true, true, true);
+    boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
+    Assert.assertFalse("There's no top-level <<returning>> clause " + query, returningKeywordPresent);
+  }
+
+  @Test
+  public void insertBatchedReWriteOnConflict() throws SQLException {
+    String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
+  }
+
+  @Test
+  public void insertBatchedReWriteOnConflictUpdateBind() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("update set name=? is NOT compatible with insert rewrite", command.isBatchedReWriteCompatible());
+  }
+
+  @Test
+  public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertTrue("update set name='default' is compatible with insert rewrite", command.isBatchedReWriteCompatible());
+  }
+
+  @Test
+  public void insertMultiInsert() throws SQLException {
+    String query =
+        "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
+  }
 }

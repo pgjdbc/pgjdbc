@@ -1,6 +1,7 @@
 .classpath
 .settings
 .project
+.checkstyle
 .DS_Store
 .externalToolBuilders
 build

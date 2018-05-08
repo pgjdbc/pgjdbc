@@ -125,8 +125,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
-    long lastKnownTime = System.currentTimeMillis() - PGProperty.HOST_RECHECK_SECONDS.getInt(info) * 1000;
-
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     HostChooser hostChooser =
@@ -623,7 +621,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 //#else
                 if (true) {
                   throw new PSQLException(GT.tr(
-                          "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" vesions)",
+                          "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" versions)",
                           areq), PSQLState.CONNECTION_REJECTED);
                 }
                 //#endif

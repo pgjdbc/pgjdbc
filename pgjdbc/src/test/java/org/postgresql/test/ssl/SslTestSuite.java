@@ -28,8 +28,6 @@ public class SslTestSuite extends TestSuite {
   public static TestSuite suite() throws Exception {
     TestSuite suite = new TestSuite();
     prop = TestUtil.loadPropertyFiles("ssltest.properties");
-    add(suite, "ssloff8");
-    add(suite, "sslhostnossl8");
     add(suite, "ssloff9");
     add(suite, "sslhostnossl9");
 
@@ -38,7 +36,6 @@ public class SslTestSuite extends TestSuite {
 
     for (String hostMode : hostModes) {
       for (String certMode : certModes) {
-        add(suite, hostMode + certMode + "8");
         add(suite, hostMode + certMode + "9");
       }
     }
