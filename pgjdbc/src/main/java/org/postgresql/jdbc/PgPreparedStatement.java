@@ -685,7 +685,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 
-    final int oid = arrayToString.getDefaultArrayTypeOid(typeInfo);
+    final int oid = arrayToString.getDefaultArrayTypeOid();
 
     if (arrayToString.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in, oid), oid);
