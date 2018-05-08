@@ -8,7 +8,6 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
-import org.postgresql.core.TypeInfo;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -32,7 +31,6 @@ final class Arrays {
     /**
      * The default array type oid supported by this instance.
      *
-     * @param tiCache
      * @return The default array type oid supported by this instance.
      */
     int getDefaultArrayTypeOid();
@@ -1105,7 +1103,7 @@ final class Arrays {
    *         minimum. Some types may support binary encoding.
    * @throws PSQLException
    *           if <i>array</i> is not a supported type.
-   * @see ArraySupport#supportBinaryRepresentation(int)
+   * @see Arrays.ArraySupport#supportBinaryRepresentation(int)
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public static <A> ArraySupport<A> getArraySupport(A array) throws PSQLException {
