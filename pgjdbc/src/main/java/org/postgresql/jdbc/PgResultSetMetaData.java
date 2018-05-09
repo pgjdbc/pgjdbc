@@ -10,8 +10,9 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.util.GT;
+import org.postgresql.util.Gettable;
+import org.postgresql.util.GettableHashMap;
 import org.postgresql.util.JdbcBlackHole;
-import org.postgresql.util.LruCache;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -202,9 +203,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return "";
   }
 
-  private boolean populateFieldsWithCachedMetadata() {
+  private boolean populateFieldsWithMetadata(Gettable<FieldMetadata.Key, FieldMetadata> metadata) {
     boolean allOk = true;
-    LruCache<FieldMetadata.Key, FieldMetadata> metadata = connection.getFieldMetadataCache();
     for (Field field : fields) {
       if (field.getMetadata() != null) {
         // No need to update metadata
@@ -219,6 +219,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
         field.setMetadata(fieldMetadata);
       }
     }
+    fieldInfoFetched |= allOk;
     return allOk;
   }
 
@@ -227,8 +228,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return;
     }
 
-    if (populateFieldsWithCachedMetadata()) {
-      fieldInfoFetched = true;
+    if (populateFieldsWithMetadata(connection.getFieldMetadataCache())) {
       return;
     }
 
@@ -285,8 +285,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
     Statement stmt = connection.createStatement();
     ResultSet rs = null;
+    GettableHashMap<FieldMetadata.Key, FieldMetadata> md = new GettableHashMap<FieldMetadata.Key, FieldMetadata>();
     try {
-      LruCache<FieldMetadata.Key, FieldMetadata> metadataCache = connection.getFieldMetadataCache();
       rs = stmt.executeQuery(sql.toString());
       while (rs.next()) {
         int table = (int) rs.getLong(1);
@@ -300,13 +300,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
         FieldMetadata fieldMetadata =
             new FieldMetadata(columnName, tableName, schemaName, nullable, autoIncrement);
         FieldMetadata.Key key = new FieldMetadata.Key(table, column);
-        metadataCache.put(key, fieldMetadata);
+        md.put(key, fieldMetadata);
       }
     } finally {
       JdbcBlackHole.close(rs);
       JdbcBlackHole.close(stmt);
     }
-    populateFieldsWithCachedMetadata();
+    populateFieldsWithMetadata(md);
+    connection.getFieldMetadataCache().putAll(md);
   }
 
   public String getBaseSchemaName(int column) throws SQLException {
