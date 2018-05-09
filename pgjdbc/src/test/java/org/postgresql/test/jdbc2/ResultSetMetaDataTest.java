@@ -318,12 +318,13 @@ public class ResultSetMetaDataTest extends BaseTest4 {
       ResultSet rs = pstmt.executeQuery();
       PGResultSetMetaData pgrsmd = (PGResultSetMetaData) rs.getMetaData();
       assertEquals("a", pgrsmd.getBaseColumnName(1));
-      rs.close();
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
     }
 
     Statement stmt = conn.createStatement();
     stmt.execute("ALTER TABLE rsmd_cache RENAME COLUMN a TO b");
-    stmt.close();
+    TestUtil.closeQuietly(stmt);
 
     {
       PreparedStatement pstmt = conn.prepareStatement("SELECT b FROM rsmd_cache");
@@ -331,7 +332,8 @@ public class ResultSetMetaDataTest extends BaseTest4 {
       PGResultSetMetaData pgrsmd = (PGResultSetMetaData) rs.getMetaData();
       // Unless the cache is disabled, we expect to see stale results.
       assertEquals(isCacheDisabled ? "b" : "a", pgrsmd.getBaseColumnName(1));
-      rs.close();
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
     }
   }
 
