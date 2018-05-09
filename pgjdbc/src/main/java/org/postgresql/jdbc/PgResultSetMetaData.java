@@ -219,6 +219,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
         field.setMetadata(fieldMetadata);
       }
     }
+    fieldInfoFetched |= allOk;
     return allOk;
   }
 
@@ -228,7 +229,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     }
 
     if (populateFieldsWithMetadata(connection.getFieldMetadataCache())) {
-      fieldInfoFetched = true;
       return;
     }
 
