@@ -108,7 +108,7 @@ public enum PGProperty {
           "Specifies the maximum number of fields to be cached per connection. A value of {@code 0} disables the cache."),
 
   /**
-   * Specifies the maximum number of fields to be cached per connection. A value of {@code 0} disables the cache.
+   * Specifies the maximum size (in megabytes) of fields to be cached per connection. A value of {@code 0} disables the cache.
    */
   DATABASE_METADATA_CACHE_FIELDS_MIB("databaseMetadataCacheFieldsMiB", "5",
           "Specifies the maximum size (in megabytes) of fields to be cached per connection. A value of {@code 0} disables the cache."),
