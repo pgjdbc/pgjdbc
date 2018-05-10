@@ -466,7 +466,141 @@ abstract class PrimitiveArraySupport<A> {
 
   };
 
-  private static final Map<Class, PrimitiveArraySupport> ARRAY_CLASS_TO_SUPPORT = new HashMap<Class, PrimitiveArraySupport>((int) (7 / .75) + 1);
+  private static final PrimitiveArraySupport<byte[][]> BYTEA_ARRAY = new PrimitiveArraySupport<byte[][]>() {
+
+    /**
+      * Bit Mask for first 4 bits.
+      */
+    private final int BITS_1111_0000 = 0xF0;
+
+    /**
+     * Bit Mask for last 4 bits.
+     */
+    private final int BITS_0000_1111 = 0x0F;
+
+    /**
+     * The possible characters to use for representing hex binary data.
+     */
+    private final char[] HEX_DIGITS = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getDefaultArrayTypeOid(TypeInfo tiCache) {
+
+      return Oid.BYTEA_ARRAY;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toArrayString(char delim, byte[][] array) {
+
+      //opening and closing brackets
+      int length = 2;
+      for (int i = 0; i < array.length; ++i) {
+        if (array[i] != null) {
+          //quotes (2), slash escaped x (3), comma (1)
+          length += 6;
+          length +=  (array[i].length * 2);
+        } else {
+          //word NULL and comma
+          length += 5;
+        }
+      }
+
+      final StringBuilder sb = new StringBuilder(length);
+      appendArray(sb, delim, array);
+      return sb.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void appendArray(StringBuilder sb, char delim, byte[][] array) {
+
+      sb.append('{');
+      for (int i = 0; i < array.length; ++i) {
+        if (i > 0) {
+          sb.append(delim);
+        }
+
+        if (array[i] != null) {
+          sb.append("\"\\\\x");
+          for (int j = 0; j < array[i].length; ++j) {
+            byte b = array[i][j];
+
+            // get the value for the left 4 bits (drop sign)
+            sb.append(HEX_DIGITS[(b & BITS_1111_0000) >>> 4]);
+            // get the value for the right 4 bits
+            sb.append(HEX_DIGITS[b & BITS_0000_1111]);
+          }
+          sb.append('"');
+        } else {
+          sb.append("NULL");
+        }
+      }
+      sb.append('}');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean supportBinaryRepresentation() {
+
+      return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public byte[] toBinaryRepresentation(Connection connection, byte[][] array)
+        throws SQLFeatureNotSupportedException {
+
+      //leading 20 bytes
+      int length = 20;
+      for (int i = 0; i < array.length; ++i) {
+        //length of this item
+        length += 4;
+        if (array[i] != null) {
+          length += array[i].length;
+        }
+      }
+
+      final byte[] bytes = new byte[length];
+
+      // 1 dimension
+      ByteConverter.int4(bytes, 0, 1);
+      // no null
+      ByteConverter.int4(bytes, 4, 0);
+      // oid
+      ByteConverter.int4(bytes, 8, Oid.BYTEA);
+      // length
+      ByteConverter.int4(bytes, 12, array.length);
+
+      int idx = 20;
+      for (int i = 0; i < array.length; ++i) {
+        if (array[i] != null) {
+          ByteConverter.int4(bytes, idx, array[i].length);
+          idx += 4;
+          System.arraycopy(array[i], 0, bytes, idx, array[i].length);
+          idx += array[i].length;
+        } else {
+          ByteConverter.int4(bytes, idx, -1);
+          idx += 4;
+        }
+      }
+
+      return bytes;
+    }
+  };
+
+  private static final Map<Class, PrimitiveArraySupport> ARRAY_CLASS_TO_SUPPORT = new HashMap<Class, PrimitiveArraySupport>((int) (8 / .75) + 1);
 
   static {
     ARRAY_CLASS_TO_SUPPORT.put(long[].class, LONG_ARRAY);
@@ -476,6 +610,7 @@ abstract class PrimitiveArraySupport<A> {
     ARRAY_CLASS_TO_SUPPORT.put(float[].class, FLOAT_ARRAY);
     ARRAY_CLASS_TO_SUPPORT.put(boolean[].class, BOOLEAN_ARRAY);
     ARRAY_CLASS_TO_SUPPORT.put(String[].class, STRING_ARRAY);
+    ARRAY_CLASS_TO_SUPPORT.put(byte[][].class, BYTEA_ARRAY);
   }
 
   public static boolean isSupportedPrimitiveArray(Object obj) {

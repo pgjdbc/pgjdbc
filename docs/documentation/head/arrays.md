@@ -27,3 +27,4 @@ Java Type | Default PostgreSQL™  Type
 `double[]` | `float8[]`
 `boolean[]` | `bool[]`
 `String[]` | `varchar[]`
+`byte[][]` | `bytea[]`

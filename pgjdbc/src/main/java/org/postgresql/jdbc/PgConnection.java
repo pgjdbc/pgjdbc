@@ -206,7 +206,7 @@ public class PgConnection implements BaseConnection {
 
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // Formats that currently have binary protocol support
-    Set<Integer> binaryOids = new HashSet<Integer>();
+    Set<Integer> binaryOids = new HashSet<Integer>(32);
     if (binaryTransfer && queryExecutor.getProtocolVersion() >= 3) {
       binaryOids.add(Oid.BYTEA);
       binaryOids.add(Oid.INT2);
@@ -219,6 +219,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.TIMETZ);
       binaryOids.add(Oid.TIMESTAMP);
       binaryOids.add(Oid.TIMESTAMPTZ);
+      binaryOids.add(Oid.BYTEA_ARRAY);
       binaryOids.add(Oid.INT2_ARRAY);
       binaryOids.add(Oid.INT4_ARRAY);
       binaryOids.add(Oid.INT8_ARRAY);
@@ -236,11 +237,9 @@ public class PgConnection implements BaseConnection {
     binaryOids.removeAll(getOidSet(PGProperty.BINARY_TRANSFER_DISABLE.get(info)));
 
     // split for receive and send for better control
-    Set<Integer> useBinarySendForOids = new HashSet<Integer>();
-    useBinarySendForOids.addAll(binaryOids);
+    Set<Integer> useBinarySendForOids = new HashSet<Integer>(binaryOids);
 
-    Set<Integer> useBinaryReceiveForOids = new HashSet<Integer>();
-    useBinaryReceiveForOids.addAll(binaryOids);
+    Set<Integer> useBinaryReceiveForOids = new HashSet<Integer>(binaryOids);
 
     /*
      * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
@@ -1321,25 +1320,8 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-    checkClosed();
 
-    int oid = getTypeInfo().getPGArrayType(typeName);
-
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(
-          GT.tr("Unable to find server array type for provided name {0}.", typeName),
-          PSQLState.INVALID_NAME);
-    }
-
-    if (elements == null) {
-      return makeArray(oid, null);
-    }
-
-    char delim = getTypeInfo().getArrayDelimiter(oid);
-    StringBuilder sb = new StringBuilder();
-    appendArray(sb, elements, delim);
-
-    return makeArray(oid, sb.toString());
+    return createArrayOf(typeName, (Object) elements);
   }
 
   @Override
