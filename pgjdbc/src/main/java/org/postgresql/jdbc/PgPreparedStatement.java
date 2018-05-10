@@ -995,7 +995,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
     } else if (x.getClass().isArray()) {
-      setObjectArray(parameterIndex, x);
+      try {
+        setObjectArray(parameterIndex, x);
+      } catch (Exception e) {
+        throw new PSQLException(
+            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.ARRAY"),
+            PSQLState.INVALID_PARAMETER_TYPE, e);
+      }
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
