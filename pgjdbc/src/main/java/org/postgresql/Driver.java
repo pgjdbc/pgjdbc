@@ -122,11 +122,14 @@ public class Driver implements java.sql.Driver {
     // neither case can throw SecurityException.
     ClassLoader cl = getClass().getClassLoader();
     if (cl == null) {
+      LOGGER.log(Level.FINE, "Can't find our classloader for the Driver; "
+          + "attempt to use the system class loader");
       cl = ClassLoader.getSystemClassLoader();
     }
 
     if (cl == null) {
-      LOGGER.log(Level.WARNING, "Can't find a classloader for the Driver; not loading driver configuration");
+      LOGGER.log(Level.WARNING, "Can't find a classloader for the Driver; not loading driver "
+          + "configuration from org/postgresql/driverconfig.properties");
       return merged; // Give up on finding defaults.
     }
 
@@ -233,7 +236,6 @@ public class Driver implements java.sql.Driver {
     }
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
-      LOGGER.log(Level.SEVERE, "Error in url: {0}", url);
       return null;
     }
     try {
@@ -261,7 +263,7 @@ public class Driver implements java.sql.Driver {
       thread.start();
       return ct.getResult(timeout);
     } catch (PSQLException ex1) {
-      LOGGER.log(Level.SEVERE, "Connection error: ", ex1);
+      LOGGER.log(Level.FINE, "Connection error: ", ex1);
       // re-throw the exception, otherwise it will be caught next, and a
       // org.postgresql.unusual error will be returned instead.
       throw ex1;
@@ -271,7 +273,7 @@ public class Driver implements java.sql.Driver {
               "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
           PSQLState.UNEXPECTED_ERROR, ace);
     } catch (Exception ex2) {
-      LOGGER.log(Level.SEVERE, "Unexpected connection error: ", ex2);
+      LOGGER.log(Level.FINE, "Unexpected connection error: ", ex2);
       throw new PSQLException(
           GT.tr(
               "Something unusual has occurred to cause the driver to fail. Please report this exception."),
@@ -552,6 +554,7 @@ public class Driver implements java.sql.Driver {
     }
 
     if (!l_urlServer.startsWith("jdbc:postgresql:")) {
+      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
       return null;
     }
     l_urlServer = l_urlServer.substring("jdbc:postgresql:".length());
@@ -560,6 +563,7 @@ public class Driver implements java.sql.Driver {
       l_urlServer = l_urlServer.substring(2);
       int slash = l_urlServer.indexOf('/');
       if (slash == -1) {
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a slash at the end of the host or port: {0}", url);
         return null;
       }
       urlProps.setProperty("PGDBNAME", URLCoder.decode(l_urlServer.substring(slash + 1)));
@@ -572,10 +576,13 @@ public class Driver implements java.sql.Driver {
         if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
           String portStr = address.substring(portIdx + 1);
           try {
-            // squid:S2201 The return value of "parseInt" must be used.
-            // The side effect is NumberFormatException, thus ignore sonar error here
-            Integer.parseInt(portStr); //NOSONAR
-          } catch (NumberFormatException ex) {
+            int port = Integer.parseInt(portStr);
+            if (port < 1 || port > 65535) {
+              LOGGER.log(Level.WARNING, "JDBC URL port in invalid range: {0}", portStr);
+              return null;
+            }
+          } catch (NumberFormatException ignore) {
+            LOGGER.log(Level.WARNING, "JDBC URL invalid port number: {0}", portStr);
             return null;
           }
           ports.append(portStr);

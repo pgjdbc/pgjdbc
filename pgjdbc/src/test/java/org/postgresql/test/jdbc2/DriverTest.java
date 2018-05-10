@@ -65,10 +65,13 @@ public class DriverTest {
     verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "[::1]", "5740", "db");
 
     // Badly formatted url's
-    assertTrue(!drv.acceptsURL("jdbc:postgres:test"));
-    assertTrue(!drv.acceptsURL("postgresql:test"));
-    assertTrue(!drv.acceptsURL("db"));
-    assertTrue(!drv.acceptsURL("jdbc:postgresql://localhost:5432a/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgres:test"));
+    assertFalse(drv.acceptsURL("postgresql:test"));
+    assertFalse(drv.acceptsURL("db"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:5432a/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:500000/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:0/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:-2/test"));
 
     // failover urls
     verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",

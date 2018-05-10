@@ -1386,7 +1386,7 @@ public class PgConnection implements BaseConnection {
         // "current transaction aborted", assume the connection is up and running
         return true;
       }
-      LOGGER.log(Level.WARNING, GT.tr("Validating connection."), e);
+      LOGGER.log(Level.FINE, GT.tr("Validating connection."), e);
     }
     return false;
   }

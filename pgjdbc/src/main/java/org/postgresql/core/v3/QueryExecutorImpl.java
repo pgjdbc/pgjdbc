@@ -2608,7 +2608,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (name.equals("client_encoding")) {
       if (allowEncodingChanges) {
         if (!value.equalsIgnoreCase("UTF8") && !value.equalsIgnoreCase("UTF-8")) {
-          LOGGER.log(Level.WARNING,
+          LOGGER.log(Level.FINE,
               "pgjdbc expects client_encoding to be UTF8 for proper operation. Actual encoding is {0}",
               value);
         }
