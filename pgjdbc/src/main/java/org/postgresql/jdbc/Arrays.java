@@ -23,6 +23,25 @@ import java.util.Map;
 
 /**
  * Utility for using arrays in requests.
+ *
+ * <p>
+ * Binary format:
+ * <ul>
+ * <li>4 bytes with number of dimensions</li>
+ * <li>4 bytes, boolean indicating nulls present or not</li>
+ * <li>4 bytes type oid</li>
+ * <li>8 bytes describing the length of each dimension (repeated for each dimension)</li>
+ * <ul>
+ * <li>4 bytes for length</li>
+ * <li>4 bytes for lower bound on length to check for overflow (it appears this value can always be 0)</li>
+ * </ul>
+ * <li>data in depth first element order corresponding number and length of dimensions</li>
+ * <ul>
+ * <li>4 bytes describing length of element, {@code 0xFFFFFFFF} ({@code -1}) means {@code null}</li>
+ * <li>binary representation of element (iff not {@code null}).
+ * </ul>
+ * </ul>
+ * </p>
  */
 final class Arrays {
 
@@ -1352,7 +1371,7 @@ final class Arrays {
         // length
         ByteConverter.int4(buffer, 0, Array.getLength(array));
         baos.write(buffer);
-        // write 4 empty bytes
+        // write 4 empty bytes for lower bounds value. this is
         java.util.Arrays.fill(buffer, (byte) 0);
         baos.write(buffer);
 
