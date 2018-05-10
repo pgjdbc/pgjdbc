@@ -250,6 +250,7 @@ public class PgArray implements java.sql.Array {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len == -1) {
+          arr[i] = null;
           continue;
         }
         switch (elementOid) {
