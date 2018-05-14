@@ -328,10 +328,7 @@ final class Arrays {
           sb.append(delim);
         }
         if (array[i] == null) {
-          sb.append('N');
-          sb.append('U');
-          sb.append('L');
-          sb.append('L');
+          sb.append('N').append('U').append('L').append('L');
         } else {
           sb.append('"');
           sb.append(array[i].toString());
@@ -744,10 +741,7 @@ final class Arrays {
           sb.append(delim);
         }
         if (array[i] == null) {
-          sb.append('N');
-          sb.append('U');
-          sb.append('L');
-          sb.append('L');
+          sb.append('N').append('U').append('L').append('L');
         } else {
           sb.append(array[i].booleanValue() ? '1' : '0');
         }
@@ -810,10 +804,7 @@ final class Arrays {
           sb.append(delim);
         }
         if (array[i] == null) {
-          sb.append('N');
-          sb.append('U');
-          sb.append('L');
-          sb.append('L');
+          sb.append('N').append('U').append('L').append('L');
         } else {
           PgArray.escapeArrayElement(sb, array[i]);
         }
@@ -1080,10 +1071,7 @@ final class Arrays {
           sb.append(delim);
         }
         if (array[i] == null) {
-          sb.append('N');
-          sb.append('U');
-          sb.append('L');
-          sb.append('L');
+          sb.append('N').append('U').append('L').append('L');
         } else {
           PgArray.escapeArrayElement(sb, array[i].toString());
         }
