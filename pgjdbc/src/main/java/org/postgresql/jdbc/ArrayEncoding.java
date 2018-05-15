@@ -43,9 +43,9 @@ import java.util.Map;
  * </ul>
  * </p>
  */
-final class Arrays {
+final class ArrayEncoding {
 
-  public interface ArraySupport<A> {
+  public interface ArrayEncoder<A> {
 
     /**
      * The default array type oid supported by this instance.
@@ -100,13 +100,13 @@ final class Arrays {
   }
 
   /**
-   * Base class to implement {@link Arrays.ArraySupport} and provide
+   * Base class to implement {@link ArrayEncoding.ArrayEncoder} and provide
    * multi-dimensional support.
    *
    * @param <A>
    *          Base array type supported.
    */
-  private abstract static class AbstractArraySupport<A> implements ArraySupport<A> {
+  private abstract static class AbstractArrayEncoder<A> implements ArrayEncoder<A> {
 
     private final int oid;
 
@@ -119,7 +119,7 @@ final class Arrays {
      * @param arrayOid
      *          The default/primary array oid type.
      */
-    AbstractArraySupport(int oid, int arrayOid) {
+    AbstractArrayEncoder(int oid, int arrayOid) {
       this.oid = oid;
       this.arrayOid = arrayOid;
     }
@@ -216,7 +216,7 @@ final class Arrays {
    * @param <N>
    *          The base type of array.
    */
-  private abstract static class NumberArraySupport<N extends Number> extends AbstractArraySupport<N[]> {
+  private abstract static class NumberArrayEncoder<N extends Number> extends AbstractArrayEncoder<N[]> {
 
     private final int fieldSize;
 
@@ -229,7 +229,7 @@ final class Arrays {
      * @param arrayOid
      *          The array type oid.
      */
-    NumberArraySupport(int fieldSize, int oid, int arrayOid) {
+    NumberArrayEncoder(int fieldSize, int oid, int arrayOid) {
       super(oid, arrayOid);
       this.fieldSize = fieldSize;
     }
@@ -345,11 +345,11 @@ final class Arrays {
    * @param <A>
    *          The primitive array to support.
    */
-  private abstract static class FixedSizePrimitiveArraySupport<A> extends AbstractArraySupport<A> {
+  private abstract static class FixedSizePrimitiveArrayEncoder<A> extends AbstractArrayEncoder<A> {
 
     private final int fieldSize;
 
-    FixedSizePrimitiveArraySupport(int fieldSize, int oid, int arrayOid) {
+    FixedSizePrimitiveArrayEncoder(int fieldSize, int oid, int arrayOid) {
       super(oid, arrayOid);
       this.fieldSize = fieldSize;
     }
@@ -417,7 +417,7 @@ final class Arrays {
     protected abstract void write(A array, byte[] bytes, int offset);
   }
 
-  private static final AbstractArraySupport<long[]> LONG_ARRAY = new FixedSizePrimitiveArraySupport<long[]>(8, Oid.INT8,
+  private static final AbstractArrayEncoder<long[]> LONG_ARRAY = new FixedSizePrimitiveArrayEncoder<long[]>(8, Oid.INT8,
       Oid.INT8_ARRAY) {
 
     /**
@@ -449,7 +449,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<Long[]> LONG_OBJ_ARRAY = new NumberArraySupport<Long>(8, Oid.INT8,
+  private static final AbstractArrayEncoder<Long[]> LONG_OBJ_ARRAY = new NumberArrayEncoder<Long>(8, Oid.INT8,
       Oid.INT8_ARRAY) {
 
     @Override
@@ -458,7 +458,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<int[]> INT_ARRAY = new FixedSizePrimitiveArraySupport<int[]>(4, Oid.INT4,
+  private static final AbstractArrayEncoder<int[]> INT_ARRAY = new FixedSizePrimitiveArrayEncoder<int[]>(4, Oid.INT4,
       Oid.INT4_ARRAY) {
 
     /**
@@ -490,7 +490,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<Integer[]> INT_OBJ_ARRAY = new NumberArraySupport<Integer>(4, Oid.INT4,
+  private static final AbstractArrayEncoder<Integer[]> INT_OBJ_ARRAY = new NumberArrayEncoder<Integer>(4, Oid.INT4,
       Oid.INT4_ARRAY) {
 
     @Override
@@ -499,7 +499,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<short[]> SHORT_ARRAY = new FixedSizePrimitiveArraySupport<short[]>(2,
+  private static final AbstractArrayEncoder<short[]> SHORT_ARRAY = new FixedSizePrimitiveArrayEncoder<short[]>(2,
       Oid.INT2, Oid.INT2_ARRAY) {
 
     /**
@@ -531,7 +531,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<Short[]> SHORT_OBJ_ARRAY = new NumberArraySupport<Short>(2, Oid.INT2,
+  private static final AbstractArrayEncoder<Short[]> SHORT_OBJ_ARRAY = new NumberArrayEncoder<Short>(2, Oid.INT2,
       Oid.INT2_ARRAY) {
 
     /**
@@ -543,7 +543,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<double[]> DOUBLE_ARRAY = new FixedSizePrimitiveArraySupport<double[]>(8,
+  private static final AbstractArrayEncoder<double[]> DOUBLE_ARRAY = new FixedSizePrimitiveArrayEncoder<double[]>(8,
       Oid.FLOAT8, Oid.FLOAT8_ARRAY) {
 
     /**
@@ -578,7 +578,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<Double[]> DOUBLE_OBJ_ARRAY = new NumberArraySupport<Double>(8, Oid.FLOAT8,
+  private static final AbstractArrayEncoder<Double[]> DOUBLE_OBJ_ARRAY = new NumberArrayEncoder<Double>(8, Oid.FLOAT8,
       Oid.FLOAT8_ARRAY) {
 
     /**
@@ -590,7 +590,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<float[]> FLOAT_ARRAY = new FixedSizePrimitiveArraySupport<float[]>(4,
+  private static final AbstractArrayEncoder<float[]> FLOAT_ARRAY = new FixedSizePrimitiveArrayEncoder<float[]>(4,
       Oid.FLOAT4, Oid.FLOAT4_ARRAY) {
 
     /**
@@ -625,7 +625,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<Float[]> FLOAT_OBJ_ARRAY = new NumberArraySupport<Float>(4, Oid.FLOAT4,
+  private static final AbstractArrayEncoder<Float[]> FLOAT_OBJ_ARRAY = new NumberArrayEncoder<Float>(4, Oid.FLOAT4,
       Oid.FLOAT4_ARRAY) {
 
     /**
@@ -637,7 +637,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<boolean[]> BOOLEAN_ARRAY = new FixedSizePrimitiveArraySupport<boolean[]>(1,
+  private static final AbstractArrayEncoder<boolean[]> BOOLEAN_ARRAY = new FixedSizePrimitiveArrayEncoder<boolean[]>(1,
       Oid.BOOL, Oid.BOOL_ARRAY) {
 
     /**
@@ -669,7 +669,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<Boolean[]> BOOLEAN_OBJ_ARRAY = new AbstractArraySupport<Boolean[]>(Oid.BOOL,
+  private static final AbstractArrayEncoder<Boolean[]> BOOLEAN_OBJ_ARRAY = new AbstractArrayEncoder<Boolean[]>(Oid.BOOL,
       Oid.BOOL_ARRAY) {
 
     /**
@@ -750,7 +750,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<String[]> STRING_ARRAY = new AbstractArraySupport<String[]>(Oid.VARCHAR,
+  private static final AbstractArrayEncoder<String[]> STRING_ARRAY = new AbstractArrayEncoder<String[]>(Oid.VARCHAR,
       Oid.VARCHAR_ARRAY) {
 
     /**
@@ -907,7 +907,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<byte[][]> BYTEA_ARRAY = new AbstractArraySupport<byte[][]>(Oid.BYTEA,
+  private static final AbstractArrayEncoder<byte[][]> BYTEA_ARRAY = new AbstractArrayEncoder<byte[][]>(Oid.BYTEA,
       Oid.BYTEA_ARRAY) {
 
     /**
@@ -1036,7 +1036,7 @@ final class Arrays {
     }
   };
 
-  private static final AbstractArraySupport<Object[]> OBJECT_ARRAY = new AbstractArraySupport<Object[]>(0, 0) {
+  private static final AbstractArrayEncoder<Object[]> OBJECT_ARRAY = new AbstractArrayEncoder<Object[]>(0, 0) {
 
     @Override
     public int getDefaultArrayTypeOid() {
@@ -1081,24 +1081,24 @@ final class Arrays {
   };
 
   @SuppressWarnings("rawtypes")
-  private static final Map<Class, AbstractArraySupport> ARRAY_CLASS_TO_SUPPORT = new HashMap<Class, AbstractArraySupport>(
+  private static final Map<Class, AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<Class, AbstractArrayEncoder>(
       (int) (14 / .75) + 1);
 
   static {
-    ARRAY_CLASS_TO_SUPPORT.put(long.class, LONG_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(Long.class, LONG_OBJ_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(int.class, INT_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(Integer.class, INT_OBJ_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(short.class, SHORT_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(Short.class, SHORT_OBJ_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(double.class, DOUBLE_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(Double.class, DOUBLE_OBJ_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(float.class, FLOAT_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(Float.class, FLOAT_OBJ_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(boolean.class, BOOLEAN_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(Boolean.class, BOOLEAN_OBJ_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(byte[].class, BYTEA_ARRAY);
-    ARRAY_CLASS_TO_SUPPORT.put(String.class, STRING_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(long.class, LONG_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(Long.class, LONG_OBJ_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(int.class, INT_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(Integer.class, INT_OBJ_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(short.class, SHORT_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(Short.class, SHORT_OBJ_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(double.class, DOUBLE_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(Double.class, DOUBLE_OBJ_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(float.class, FLOAT_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(Float.class, FLOAT_OBJ_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(boolean.class, BOOLEAN_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(Boolean.class, BOOLEAN_OBJ_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(byte[].class, BYTEA_ARRAY);
+    ARRAY_CLASS_TO_ENCODER.put(String.class, STRING_ARRAY);
   }
 
   /**
@@ -1110,13 +1110,13 @@ final class Arrays {
    *         minimum. Some types may support binary encoding.
    * @throws PSQLException
    *           if <i>array</i> is not a supported type.
-   * @see Arrays.ArraySupport#supportBinaryRepresentation(int)
+   * @see ArrayEncoding.ArrayEncoder#supportBinaryRepresentation(int)
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static <A> ArraySupport<A> getArraySupport(A array) throws PSQLException {
+  public static <A> ArrayEncoder<A> getArrayEncoder(A array) throws PSQLException {
     final Class<? extends Object> arrayClazz = array.getClass();
     Class<?> subClazz = arrayClazz.getComponentType();
-    AbstractArraySupport<A> support = ARRAY_CLASS_TO_SUPPORT.get(subClazz);
+    AbstractArrayEncoder<A> support = ARRAY_CLASS_TO_ENCODER.get(subClazz);
     if (support != null) {
       return support;
     }
@@ -1126,7 +1126,7 @@ final class Arrays {
     Class<?> subSubClazz = subClazz.getComponentType();
     if (subSubClazz == null) {
       if (Object.class.isAssignableFrom(subClazz)) {
-        return (ArraySupport<A>) OBJECT_ARRAY;
+        return (ArrayEncoder<A>) OBJECT_ARRAY;
       }
       throw new PSQLException(GT.tr("Invalid elements {0}", array), PSQLState.INVALID_PARAMETER_TYPE);
     }
@@ -1134,16 +1134,16 @@ final class Arrays {
     subClazz = subSubClazz;
     int dimensions = 2;
     while (subClazz != null) {
-      support = ARRAY_CLASS_TO_SUPPORT.get(subClazz);
+      support = ARRAY_CLASS_TO_ENCODER.get(subClazz);
       if (support != null) {
-        return dimensions == 2 ? new TwoDimensionPrimitiveArraySupport(support)
-            : new RecursiveArraySupport(support, dimensions);
+        return dimensions == 2 ? new TwoDimensionPrimitiveArrayEncoder(support)
+            : new RecursiveArrayEncoder(support, dimensions);
       }
       subSubClazz = subClazz.getComponentType();
       if (subSubClazz == null) {
         if (Object.class.isAssignableFrom(subClazz)) {
-          return dimensions == 2 ? new TwoDimensionPrimitiveArraySupport(OBJECT_ARRAY)
-              : new RecursiveArraySupport(OBJECT_ARRAY, dimensions);
+          return dimensions == 2 ? new TwoDimensionPrimitiveArrayEncoder(OBJECT_ARRAY)
+              : new RecursiveArrayEncoder(OBJECT_ARRAY, dimensions);
         }
       }
       ++dimensions;
@@ -1154,17 +1154,17 @@ final class Arrays {
   }
 
   /**
-   * Wraps an {@link AbstractArraySupport} implementation and provides optimized
+   * Wraps an {@link AbstractArrayEncoder} implementation and provides optimized
    * support for 2 dimensions.
    */
-  private static final class TwoDimensionPrimitiveArraySupport<A> implements ArraySupport<A[]> {
-    private final AbstractArraySupport<A> support;
+  private static final class TwoDimensionPrimitiveArrayEncoder<A> implements ArrayEncoder<A[]> {
+    private final AbstractArrayEncoder<A> support;
 
     /**
      * @param support
      *          The instance providing support for the base array type.
      */
-    TwoDimensionPrimitiveArraySupport(AbstractArraySupport<A> support) {
+    TwoDimensionPrimitiveArrayEncoder(AbstractArrayEncoder<A> support) {
       super();
       this.support = support;
     }
@@ -1258,20 +1258,20 @@ final class Arrays {
   }
 
   /**
-   * Wraps an {@link AbstractArraySupport} implementation and provides support for
+   * Wraps an {@link AbstractArrayEncoder} implementation and provides support for
    * 2 or more dimensions using recursion.
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private static final class RecursiveArraySupport implements ArraySupport {
+  private static final class RecursiveArrayEncoder implements ArrayEncoder {
 
-    private final AbstractArraySupport support;
+    private final AbstractArrayEncoder support;
     private final int dimensions;
 
     /**
      * @param support
      *          The instance providing support for the base array type.
      */
-    RecursiveArraySupport(AbstractArraySupport support, int dimensions) {
+    RecursiveArrayEncoder(AbstractArrayEncoder support, int dimensions) {
       super();
       this.support = support;
       this.dimensions = dimensions;

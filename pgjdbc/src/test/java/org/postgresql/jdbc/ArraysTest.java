@@ -19,17 +19,17 @@ public class ArraysTest {
 
   @Test(expected = PSQLException.class)
   public void testNonArrayNotSupported() throws Exception {
-    Arrays.getArraySupport("asdflkj");
+    ArrayEncoding.getArrayEncoder("asdflkj");
   }
 
   @Test(expected = PSQLException.class)
   public void testNoByteArray() throws Exception {
-    Arrays.getArraySupport(new byte[] {});
+    ArrayEncoding.getArrayEncoder(new byte[] {});
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
   public void testBinaryNotSupported() throws Exception {
-    final Arrays.ArraySupport<BigDecimal[]> support = Arrays.getArraySupport(new BigDecimal[] {});
+    final ArrayEncoding.ArrayEncoder<BigDecimal[]> support = ArrayEncoding.getArrayEncoder(new BigDecimal[] {});
 
     assertFalse(support.supportBinaryRepresentation(Oid.FLOAT8_ARRAY));
 
