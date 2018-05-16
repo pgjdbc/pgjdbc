@@ -179,6 +179,11 @@ public enum PGProperty {
       "Enable optimization that disables column name sanitiser"),
 
   /**
+   * Service name to pick properties from service file.
+   */
+  SERVICE("service", null, "Service name to pick properties from service file"),
+
+  /**
    * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
    */
   SSL("ssl", null, "Control use of SSL (any non-null value causes SSL to be required)"),

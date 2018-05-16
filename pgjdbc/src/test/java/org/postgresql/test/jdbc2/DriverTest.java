@@ -74,6 +74,7 @@ public class DriverTest {
     verifyUrl(drv, "jdbc:postgresql://127.0.0.1/anydbname", "127.0.0.1", "5432", "anydbname");
     verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden", "127.0.0.1", "5433", "hidden");
     verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "[::1]", "5740", "db");
+    verifyUrl(drv, "jdbc:postgresql:///?service=testsrv", "srvhost", "5434", "srvdb");
 
     // Badly formatted url's
     assertFalse(drv.acceptsURL("jdbc:postgres:test"));

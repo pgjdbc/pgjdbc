@@ -86,6 +86,13 @@ Connection conn = DriverManager.getConnection(url);
 	are considered to separate command-line arguments, unless escaped with
 	a backslash (`\`); `\\` represents a literal backslash.
 
+* **service** = String
+
+    Name of a service defined in a [Connection Service
+    File](https://www.postgresql.org/docs/current/static/libpq-pgservice.html).
+    You can override default service file using `PGSERVICEFILE` environment
+    variable or `org.postgresql.pgservicefile` property.
+
 * **ssl** = boolean
 
 	Connect using SSL. The driver must have been compiled with SSL support.

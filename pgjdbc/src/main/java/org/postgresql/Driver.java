@@ -10,6 +10,7 @@ import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PGServiceFile;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
@@ -29,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Formatter;
@@ -560,7 +562,8 @@ public class Driver implements java.sql.Driver {
     }
     urlServer = urlServer.substring("jdbc:postgresql:".length());
 
-    if (urlServer.startsWith("//")) {
+    boolean hasDoubleSlashes = urlServer.startsWith("//");
+    if (hasDoubleSlashes) {
       urlServer = urlServer.substring(2);
       int slash = urlServer.indexOf('/');
       if (slash == -1) {
@@ -626,6 +629,20 @@ public class Driver implements java.sql.Driver {
         urlProps.setProperty(token, "");
       } else {
         urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
+      }
+    }
+
+    if (urlProps.containsKey("service")) {
+      if (!hasDoubleSlashes) {
+        return null;
+      }
+
+      try {
+        Map prefs = PGServiceFile.load(urlProps.getProperty("service"));
+        PGServiceFile.copyProperties(prefs, urlProps);
+      } catch (Exception e) {
+        LOGGER.log(Level.SEVERE, "Failed to load service: {0}.", e.toString());
+        return null;
       }
     }
 

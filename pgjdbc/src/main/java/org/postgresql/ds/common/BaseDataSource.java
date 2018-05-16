@@ -1351,6 +1351,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
   }
 
+  public String getService() {
+    return PGProperty.SERVICE.get(properties);
+  }
+
+  public void setService(String service) {
+    PGProperty.SERVICE.set(properties, service);
+  }
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
