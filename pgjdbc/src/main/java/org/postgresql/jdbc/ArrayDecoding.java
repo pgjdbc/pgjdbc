@@ -46,22 +46,22 @@ final class ArrayDecoding {
 
   }
 
-  private static interface ArrayDecoder<A> {
+  private interface ArrayDecoder<A> {
 
-    public A createArray(int size);
+    A createArray(int size);
 
-    public Object[] createMultiDimensionalArray(int[] sizes);
+    Object[] createMultiDimensionalArray(int[] sizes);
 
-    public boolean supportBinary();
+    boolean supportBinary();
 
-    abstract void populateFromBinary(A array, int index, int count, ByteBuffer bytes, BaseConnection connection)
+    void populateFromBinary(A array, int index, int count, ByteBuffer bytes, BaseConnection connection)
         throws SQLException;
 
-    abstract void populateFromString(A array, int index, int count, List<String> strings, BaseConnection connection)
+    void populateFromString(A array, int index, int count, List<String> strings, BaseConnection connection)
         throws SQLException;
   }
 
-  private static abstract class AbstractObjectStringArrayDecoder<A> implements ArrayDecoder<A> {
+  private abstract static class AbstractObjectStringArrayDecoder<A> implements ArrayDecoder<A> {
     final Class<?> baseClazz;
 
     AbstractObjectStringArrayDecoder(Class<?> baseClazz) {
@@ -103,7 +103,6 @@ final class ArrayDecoding {
     public void populateFromString(A arr, int index, int count, List<String> strings, BaseConnection connection)
         throws SQLException {
       final Object[] array = (Object[]) arr;
-      assert count == -1 || strings.size() == count;
 
       for (int i = 0; i < count; ++i) {
         final String stringVal = strings.get(i + index);
@@ -114,7 +113,7 @@ final class ArrayDecoding {
     abstract Object parseValue(String stringVal, BaseConnection connection) throws SQLException;
   }
 
-  private static abstract class AbstractObjectArrayDecoder<A> extends AbstractObjectStringArrayDecoder<A> {
+  private abstract static class AbstractObjectArrayDecoder<A> extends AbstractObjectStringArrayDecoder<A> {
 
     AbstractObjectArrayDecoder(Class<?> baseClazz) {
       super(baseClazz);
@@ -132,7 +131,6 @@ final class ArrayDecoding {
     public void populateFromBinary(A arr, int index, int count, ByteBuffer bytes, BaseConnection connection)
         throws SQLException {
       final Object[] array = (Object[]) arr;
-      assert count == -1 || array.length == count;
 
       // skip through to the requested index
       for (int i = 0; i < index; ++i) {
@@ -367,9 +365,6 @@ final class ArrayDecoding {
   private static final class ArrayAssistantObjectArrayDecoder extends AbstractObjectArrayDecoder {
     private final ArrayAssistant arrayAssistant;
 
-    /**
-     * @param arrayAssistant
-     */
     @SuppressWarnings("unchecked")
     ArrayAssistantObjectArrayDecoder(ArrayAssistant arrayAssistant) {
       super(arrayAssistant.baseType());
@@ -405,9 +400,6 @@ final class ArrayDecoding {
 
     private final String typeName;
 
-    /**
-     * @param baseClazz
-     */
     MappedTypeObjectArrayDecoder(String baseTypeName) {
       super(Object.class);
       this.typeName = baseTypeName;
