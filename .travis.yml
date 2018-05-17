@@ -143,7 +143,7 @@ matrix:
       env:
         - PG_VERSION=9.4
         - QUERY_MODE=extendedCacheEverything
-        - COVERAGE=N
+        - COVERAGE=Y
         - TZ=Europe/Moscow # +03:00, no DST
     - jdk: oraclejdk8
       sudo: required
