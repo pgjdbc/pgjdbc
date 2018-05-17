@@ -277,7 +277,9 @@ list.  Make sure your patch includes additional unit tests demonstrating and
 testing any new features. In the case of bug fixes, where possible include a
 new unit test that failed before the fix and passes after it.
 
-For information on working with GitHub, see: http://help.github.com/articles/fork-a-repo and http://learn.github.com/p/intro.html.
+For information on working with GitHub, see:
+https://guides.github.com/activities/forking/ and
+https://guides.github.com/introduction/flow/.
 
 ### Testing
 
