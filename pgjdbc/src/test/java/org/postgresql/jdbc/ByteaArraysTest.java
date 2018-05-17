@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import static org.junit.Assert.assertEquals;
 
+import org.postgresql.core.Oid;
+
 import org.junit.Assert;
 
 import java.lang.reflect.Array;
@@ -26,38 +28,7 @@ public class ByteaArraysTest extends AbstractArraysTest<byte[][]> {
               { 0x1, 0x2, (byte) 0xFF, 0x4 } } } };
 
   public ByteaArraysTest() {
-    super(longs, true);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected String getExpectedString(byte[][] expected, char delim) {
-    final StringBuilder sb = new StringBuilder(1024);
-    sb.append('{');
-    for (int i = 0; i < expected.length; ++i) {
-      if (i != 0) {
-        sb.append(delim);
-      }
-      if (expected[i] == null) {
-        sb.append("NULL");
-      } else {
-        sb.append('"');
-        sb.append("\\\\x");
-        for (int j = 0; j < expected[i].length; ++j) {
-          final String hexString = Integer.toHexString(expected[i][j] & 0xFF);
-          if (hexString.length() == 1) {
-            sb.append('0');
-          }
-          sb.append(hexString);
-        }
-        sb.append('"');
-      }
-    }
-    sb.append('}');
-
-    return sb.toString();
+    super(longs, true, Oid.BYTEA_ARRAY);
   }
 
   /**
