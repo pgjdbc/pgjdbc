@@ -337,12 +337,14 @@ final class ArrayDecoding {
    */
   @SuppressWarnings("rawtypes")
   private static final Map<Integer, ArrayDecoder> OID_TO_DECODER = new HashMap<Integer, ArrayDecoder>(
-      (int) (19 / .75) + 1);
+      (int) (21 / .75) + 1);
 
   static {
+    OID_TO_DECODER.put(Oid.OID, LONG_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.INT8, LONG_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.INT4, INTEGER_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.INT2, SHORT_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.MONEY, DOUBLE_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.FLOAT8, DOUBLE_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.FLOAT4, FLOAT_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.TEXT, STRING_ARRAY);
