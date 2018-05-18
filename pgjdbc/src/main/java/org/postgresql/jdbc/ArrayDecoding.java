@@ -165,6 +165,21 @@ final class ArrayDecoding {
     }
   };
 
+  private static final ArrayDecoder<Long[]> INT4_UNSIGNED_OBJ_ARRAY = new AbstractObjectArrayDecoder<Long[]>(
+      Long.class) {
+
+    @Override
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
+      final long value = bytes.getInt() & 0xFFFFFFFFL;
+      return value;
+    }
+
+    @Override
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
+      return PgResultSet.toLong(stringVal);
+    }
+  };
+
   private static final ArrayDecoder<Integer[]> INTEGER_OBJ_ARRAY = new AbstractObjectArrayDecoder<Integer[]>(
       Integer.class) {
 
@@ -336,7 +351,7 @@ final class ArrayDecoding {
       (int) (21 / .75) + 1);
 
   static {
-    OID_TO_DECODER.put(Oid.OID, LONG_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.OID, INT4_UNSIGNED_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.INT8, LONG_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.INT4, INTEGER_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.INT2, SHORT_OBJ_ARRAY);
