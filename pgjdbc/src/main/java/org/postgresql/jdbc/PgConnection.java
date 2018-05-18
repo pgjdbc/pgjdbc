@@ -206,7 +206,7 @@ public class PgConnection implements BaseConnection {
 
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // Formats that currently have binary protocol support
-    Set<Integer> binaryOids = new HashSet<Integer>(34);
+    Set<Integer> binaryOids = new HashSet<Integer>(35);
     if (binaryTransfer && queryExecutor.getProtocolVersion() >= 3) {
       binaryOids.add(Oid.BYTEA);
       binaryOids.add(Oid.INT2);
@@ -223,6 +223,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.INT2_ARRAY);
       binaryOids.add(Oid.INT4_ARRAY);
       binaryOids.add(Oid.INT8_ARRAY);
+      binaryOids.add(Oid.OID_ARRAY);
       binaryOids.add(Oid.FLOAT4_ARRAY);
       binaryOids.add(Oid.FLOAT8_ARRAY);
       binaryOids.add(Oid.FLOAT8_ARRAY);
