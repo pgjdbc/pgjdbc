@@ -57,8 +57,7 @@ final class ArrayDecoding {
     void populateFromBinary(A array, int index, int count, ByteBuffer bytes, BaseConnection connection)
         throws SQLException;
 
-    void populateFromString(A array, int index, int count, List<String> strings, BaseConnection connection)
-        throws SQLException;
+    void populateFromString(A array, List<String> strings, BaseConnection connection) throws SQLException;
   }
 
   private abstract static class AbstractObjectStringArrayDecoder<A> implements ArrayDecoder<A> {
@@ -100,12 +99,11 @@ final class ArrayDecoding {
      * {@inheritDoc}
      */
     @Override
-    public void populateFromString(A arr, int index, int count, List<String> strings, BaseConnection connection)
-        throws SQLException {
+    public void populateFromString(A arr, List<String> strings, BaseConnection connection) throws SQLException {
       final Object[] array = (Object[]) arr;
 
-      for (int i = 0; i < count; ++i) {
-        final String stringVal = strings.get(i + index);
+      for (int i = 0, j = strings.size(); i < j; ++i) {
+        final String stringVal = strings.get(i);
         array[i] = stringVal != null ? parseValue(stringVal, connection) : null;
       }
     }
@@ -690,11 +688,10 @@ final class ArrayDecoding {
    * @throws SQLException
    *           For failures encountered during parsing.
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   public static Object readStringArray(int index, int count, int oid, final PgArrayList list, BaseConnection connection)
       throws SQLException {
 
-    @SuppressWarnings("rawtypes")
     final ArrayDecoder decoder = getDecoder(oid, connection);
 
     final int dims = list.dimensionsCount;
@@ -703,56 +700,63 @@ final class ArrayDecoding {
       return decoder.createArray(0);
     }
 
-    final int adjustedSkipIndex = index > 0 ? index - 1 : 0;
+    boolean sublist = false;
+
+    int adjustedSkipIndex = 0;
+    if (index > 1) {
+      sublist = true;
+      adjustedSkipIndex = index - 1;
+    }
+
+    int adjustedCount = list.size();
+    if (count > 0 && count != adjustedCount) {
+      sublist = true;
+      adjustedCount = Math.min(adjustedCount, count);
+    }
+
+    final List adjustedList = sublist ? list.subList(adjustedSkipIndex, adjustedSkipIndex + adjustedCount) : list;
 
     if (dims == 1) {
-      int length = list.size();
+      int length = adjustedList.size();
       if (count > 0) {
         length = Math.min(length, count);
       }
       final Object array = decoder.createArray(length);
-      decoder.populateFromString(array, adjustedSkipIndex, count, list, connection);
+      decoder.populateFromString(array, adjustedList, connection);
       return array;
     }
 
     // dimensions length array (to be used with
     // java.lang.reflect.Array.newInstance(Class<?>, int[]))
     final int[] dimensionLengths = new int[dims];
+    dimensionLengths[0] = adjustedCount;
     {
-      PgArrayList tmpList = list;
-      for (int i = 0; i < dims; i++) {
+      List tmpList = (List) adjustedList.get(0);
+      for (int i = 1; i < dims; i++) {
         dimensionLengths[i] = tmpList.size();
         if (i != dims - 1) {
-          tmpList = (PgArrayList) tmpList.get(0);
+          tmpList = (List) tmpList.get(0);
         }
       }
     }
 
-    if (count > 0) {
-      dimensionLengths[0] = Math.min(count, dimensionLengths[0]);
-    }
-
-    for (int i = 0; i < adjustedSkipIndex; ++i) {
-      list.remove(0);
-    }
-
     final Object[] array = decoder.createMultiDimensionalArray(dimensionLengths);
 
-    storeStringValues(array, decoder, list, dimensionLengths, 0, connection);
+    storeStringValues(array, decoder, adjustedList, dimensionLengths, 0, connection);
 
     return array;
   }
 
-  @SuppressWarnings({ "unchecked" })
-  private static <A> void storeStringValues(A[] array, ArrayDecoder<A> decoder, PgArrayList list,
-      int[] dimensionLengths, int dim, BaseConnection connection) throws SQLException {
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  private static <A> void storeStringValues(A[] array, ArrayDecoder<A> decoder, List list, int[] dimensionLengths,
+      int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 
     for (int i = 0; i < dimensionLengths[dim]; ++i) {
       if (dim == dimensionLengths.length - 2) {
-        decoder.populateFromString(array[i], 0, dimensionLengths[dim + 1], (List<String>) list.get(i), connection);
+        decoder.populateFromString(array[i], (List<String>) list.get(i), connection);
       } else {
-        storeStringValues((A[]) array[i], decoder, (PgArrayList) list.get(i), dimensionLengths, dim + 1, connection);
+        storeStringValues((A[]) array[i], decoder, (List) list.get(i), dimensionLengths, dim + 1, connection);
       }
     }
   }
