@@ -47,8 +47,6 @@ env:
 before_install:
   - ./.travis/travis_install_zulu.sh
   - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
-  - ./.travis/travis_install_openj9.sh
-  - test -z "${OPENJ9}" || export JDK${JDK}_HOME=${HOME}/jdk-9+${OPENJ9}
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
@@ -101,12 +99,6 @@ matrix:
       env:
         - PG_VERSION=9.6
         - JDK=9
-    - jdk: oraclejdk9
-      sudo: required
-      env:
-        - PG_VERSION=10
-        - JDK=9
-        - OPENJ9=181
         - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk8
       sudo: required
@@ -148,9 +140,9 @@ matrix:
     - jdk: oraclejdk8
       sudo: required
       addons:
-        postgresql: "9.6"
+        postgresql: "10"
       env:
-        - PG_VERSION=9.6
+        - PG_VERSION=10
         - SSLTEST=Y
         - COVERAGE=Y
     - jdk: openjdk7
