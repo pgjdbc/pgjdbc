@@ -47,8 +47,7 @@ env:
 before_install:
   - ./.travis/travis_install_zulu.sh
   - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
-  - ./.travis/travis_install_openj9.sh
-  - test -z "${OPENJ9}" || export JDK${JDK}_HOME=${HOME}/jdk-9+${OPENJ9}
+  - test -z "${IBM_JDK}" || export JDK${IBM_JDK}_HOME=/usr/lib/jvm/java-${IBM_JDK}-ibm
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
@@ -59,6 +58,8 @@ script:
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
+  - ls /usr/lib/jvm
+  - cat ~/.m2/toolchains.xml
   - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
   - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
   - if [[ $TRAVIS_BRANCH == release/* ]]; then .travis/travis_release.sh; else ./.travis/travis_build.sh; fi
@@ -101,12 +102,12 @@ matrix:
       env:
         - PG_VERSION=9.6
         - JDK=9
-    - jdk: oraclejdk9
+    - jdk: ibmjava8
       sudo: required
+      group: edge # for ibmjava8
       env:
         - PG_VERSION=10
-        - JDK=9
-        - OPENJ9=181
+        - IBM_JDK=8
         - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk8
       sudo: required
