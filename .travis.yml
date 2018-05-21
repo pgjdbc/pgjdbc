@@ -102,6 +102,7 @@ matrix:
         - PG_VERSION=9.6
         - JDK=9
     - jdk: ibmjava8
+      sudo: required
       env:
         - PG_VERSION=10
         - IBM_JDK=8
