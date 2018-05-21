@@ -104,6 +104,7 @@ matrix:
         - JDK=9
     - jdk: ibmjava8
       sudo: required
+      group: edge # for ibmjava8
       env:
         - PG_VERSION=10
         - IBM_JDK=8
