@@ -47,7 +47,7 @@ env:
 before_install:
   - ./.travis/travis_install_zulu.sh
   - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
-  - test -z "${OPENJ9}" || export JDK${JDK}_HOME=${HOME}/jdk-9+${OPENJ9}
+  - test -z "${IBM_JDK}" || export JDK${IBM_JDK}_HOME=/usr/lib/jvm/java-${IBM_JDK}-ibm
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
