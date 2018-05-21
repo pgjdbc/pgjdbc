@@ -58,6 +58,7 @@ script:
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
+  - ls /usr/lib/jvm
   - cat ~/.m2/toolchains.xml
   - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
   - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
