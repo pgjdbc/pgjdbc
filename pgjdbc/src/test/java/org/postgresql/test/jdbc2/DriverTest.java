@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -106,7 +107,7 @@ public class DriverTest {
 
     // Test with the username in the url
     con = DriverManager.getConnection(
-        TestUtil.getURL() + "&user=" + TestUtil.getUser() + "&password=" + TestUtil.getPassword());
+        TestUtil.getURL() + "&user=" + TestUtil.getUser() + "&password=" + URLEncoder.encode(TestUtil.getPassword()));
     assertNotNull(con);
     con.close();
 

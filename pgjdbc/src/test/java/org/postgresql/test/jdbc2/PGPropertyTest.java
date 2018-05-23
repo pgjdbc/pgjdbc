@@ -257,4 +257,25 @@ public class PGPropertyTest {
       }
     }
   }
+
+  @Test
+  public void testEncodedUrlValuesFromDataSource() {
+    String databaseName = "d&a%ta+base";
+    String userName = "&u%ser";
+    String password = "p%a&s^s#w!o@r*";
+    String applicationName = "Laurel&Hardy=Best?Yes";
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+
+    dataSource.setDatabaseName(databaseName);
+    dataSource.setUser(userName);
+    dataSource.setPassword(password);
+    dataSource.setApplicationName(applicationName);
+
+    Properties parsed = Driver.parseURL(dataSource.getURL(), new Properties());
+    assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
+    // datasources do not pass username and password as URL parameters
+    assertNull("user", PGProperty.USER.get(parsed));
+    assertNull("password", PGProperty.PASSWORD.get(parsed));
+    assertEquals("APPLICATION_NAME", applicationName, PGProperty.APPLICATION_NAME.get(parsed));
+  }
 }

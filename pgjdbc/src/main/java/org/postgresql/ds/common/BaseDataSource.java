@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -1063,32 +1065,36 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return {@link DriverManager} URL from the other properties supplied
    */
   public String getUrl() {
-    StringBuilder url = new StringBuilder(100);
-    url.append("jdbc:postgresql://");
-    url.append(serverName);
-    if (portNumber != 0) {
-      url.append(":").append(portNumber);
-    }
-    url.append("/").append(databaseName);
-
-    StringBuilder query = new StringBuilder(100);
-    for (PGProperty property : PGProperty.values()) {
-      if (property.isPresent(properties)) {
-        if (query.length() != 0) {
-          query.append("&");
-        }
-        query.append(property.getName());
-        query.append("=");
-        query.append(property.get(properties));
+    try {
+      StringBuilder url = new StringBuilder(100);
+      url.append("jdbc:postgresql://");
+      url.append(serverName);
+      if (portNumber != 0) {
+        url.append(":").append(portNumber);
       }
-    }
+      url.append("/").append(URLEncoder.encode(databaseName, "UTF-8"));
 
-    if (query.length() > 0) {
-      url.append("?");
-      url.append(query);
-    }
+      StringBuilder query = new StringBuilder(100);
+      for (PGProperty property : PGProperty.values()) {
+        if (property.isPresent(properties)) {
+          if (query.length() != 0) {
+            query.append("&");
+          }
+          query.append(property.getName());
+          query.append("=");
+          query.append(URLEncoder.encode(property.get(properties), "UTF-8"));
+        }
+      }
 
-    return url.toString();
+      if (query.length() > 0) {
+        url.append("?");
+        url.append(query);
+      }
+
+      return url.toString();
+    } catch (UnsupportedEncodingException e) {
+      throw new AssertionError("JVM claims UTF-8 is unsupported, cannot happen");
+    }
   }
 
   /**
