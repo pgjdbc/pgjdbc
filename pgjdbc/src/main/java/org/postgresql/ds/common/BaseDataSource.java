@@ -1216,11 +1216,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       portNumber = Integer.parseInt(port);
     }
     serverName = getReferenceProperty(ref, "serverName");
-    user = getReferenceProperty(ref, "user");
-    password = getReferenceProperty(ref, "password");
 
     for (PGProperty property : PGProperty.values()) {
-      property.set(properties, getReferenceProperty(ref, property.getName()));
+      setProperty(property, getReferenceProperty(ref, property.getName()));
     }
   }
 

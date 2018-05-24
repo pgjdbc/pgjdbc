@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2.optional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -197,6 +198,7 @@ public abstract class BaseDataSourceTest {
   public void testJndi() {
     initializeDataSource();
     BaseDataSource oldbds = bds;
+    String oldurl = bds.getURL();
     InitialContext ic = getInitialContext();
     try {
       ic.rebind(DATA_SOURCE_JNDI, bds);
@@ -207,9 +209,12 @@ public abstract class BaseDataSourceTest {
       fail(e.getMessage());
     }
     oldbds = bds;
+    String url = bds.getURL();
     testUseConnection();
     assertSame("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
         oldbds , bds);
+    assertEquals("Test should not have changed DataSource URL",
+        oldurl, url);
   }
 
   /**
