@@ -104,6 +104,18 @@ public class OuterJoinSyntaxTest
         + " left outer join (values (1, 'a'), (2, 'b')) as t2 (id, text) on (t1.id = t2.id)"
         + " left outer join (values (1, '1'), (2, '2')) as t3 (id, text) on (t2.id = t3.id)}");
   }
+  
+  @Test
+  public void testOuterJoinSyntaxWithMultipleJoinsAndWithOj3()
+      throws Exception
+  {
+    // multiple joins with oj and missing space character after oj and some more parenthesis
+    testOuterJoinSyntax(
+        "select *"
+        + " from {oj(((values (1, 'one'), (2, 'two')) as t1 (id, text)"
+        + " left outer join (values (1, 'a'), (2, 'b')) as t2 (id, text) on (t1.id = t2.id))"
+        + " left outer join (values (1, '1'), (2, '2')) as t3 (id, text) on (t2.id = t3.id))}");
+  }
 
   /**
    * Executes the statment.
