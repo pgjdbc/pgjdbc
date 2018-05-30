@@ -69,7 +69,7 @@ public final class LogSequenceNumber {
 
   /**
    * @return String represent position in the write-ahead log stream as two hexadecimal numbers of
-   * up to 8 digits each, separated by a slash. For example {@code 16/3002D50}, {@code 0/15D68C50}
+   *     up to 8 digits each, separated by a slash. For example {@code 16/3002D50}, {@code 0/15D68C50}
    */
   public String asString() {
     ByteBuffer buf = ByteBuffer.allocate(8);

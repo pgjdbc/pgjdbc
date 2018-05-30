@@ -736,7 +736,7 @@ public class Parser {
   /**
    * @param c character
    * @return true if the given character is a valid character for an operator in the backend's
-   * parser
+   *     parser
    */
   public static boolean isOperatorChar(char c) {
     /*

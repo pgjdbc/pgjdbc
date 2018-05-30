@@ -19,7 +19,7 @@ public interface ReplicationProtocol {
   /**
    * @param options not null options for logical replication stream
    * @return not null stream instance from which available fetch wal logs that was decode by output
-   * plugin
+   *     plugin
    * @throws SQLException on error
    */
   PGReplicationStream startLogical(LogicalReplicationOptions options) throws SQLException;

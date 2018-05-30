@@ -33,7 +33,7 @@ public interface PGReplicationStream
    * can be sent in different XLogData messages.
    *
    * @return not null byte array received by replication protocol, return ByteBuffer wrap around
-   * received byte array with use offset, so, use {@link ByteBuffer#array()} carefully
+   *     received byte array with use offset, so, use {@link ByteBuffer#array()} carefully
    * @throws SQLException when some internal exception occurs during read from stream
    */
   ByteBuffer read() throws SQLException;
@@ -50,8 +50,8 @@ public interface PGReplicationStream
    * can be sent in different XLogData messages.
    *
    * @return byte array received by replication protocol or null if pending message from server
-   * absent. Returns ByteBuffer wrap around received byte array with use offset, so, use {@link
-   * ByteBuffer#array()} carefully.
+   *     absent. Returns ByteBuffer wrap around received byte array with use offset, so, use {@link
+   *     ByteBuffer#array()} carefully.
    * @throws SQLException when some internal exception occurs during read from stream
    */
   ByteBuffer readPending() throws SQLException;
@@ -60,7 +60,7 @@ public interface PGReplicationStream
    * Parameter updates by execute {@link PGReplicationStream#read()} method.
    *
    * @return not null LSN position that was receive last time via {@link PGReplicationStream#read()}
-   * method
+   *     method
    */
   LogSequenceNumber getLastReceiveLSN();
 
