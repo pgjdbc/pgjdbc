@@ -77,7 +77,7 @@ public class Base64 {
 
 
   /**
-   * Don't break lines when encoding (violates strict Base64 specification)
+   * Don't break lines when encoding (violates strict Base64 specification).
    */
   public static final int DONT_BREAK_LINES = 8;
 

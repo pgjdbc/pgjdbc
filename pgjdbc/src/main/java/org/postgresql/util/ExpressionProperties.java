@@ -51,7 +51,7 @@ public class ExpressionProperties extends Properties {
   }
 
   /**
-   * Returns raw value of a property without any replacements
+   * Returns raw value of a property without any replacements.
    * @param key property name
    * @return raw property value
    */

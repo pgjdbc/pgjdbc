@@ -15,16 +15,16 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * This implements a path (a multiple segmented line, which may be closed)
+ * This implements a path (a multiple segmented line, which may be closed).
  */
 public class PGpath extends PGobject implements Serializable, Cloneable {
   /**
-   * True if the path is open, false if closed
+   * True if the path is open, false if closed.
    */
   public boolean open;
 
   /**
-   * The points defining this path
+   * The points defining this path.
    */
   public PGpoint[] points;
 
@@ -39,7 +39,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Required by the driver
+   * Required by the driver.
    */
   public PGpath() {
     setType("path");
@@ -127,7 +127,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * This returns the path in the syntax expected by org.postgresql
+   * This returns the path in the syntax expected by org.postgresql.
    */
   public String getValue() {
     StringBuilder b = new StringBuilder(open ? "[" : "(");

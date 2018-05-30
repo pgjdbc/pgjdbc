@@ -44,7 +44,7 @@ public class CachedQuery implements CanEstimateSize {
   }
 
   /**
-   * Number of times this statement has been used
+   * Number of times this statement has been used.
    *
    * @return number of times this statement has been used
    */

@@ -347,7 +347,7 @@ public class SingleCertValidatingFactoryTestSuite {
   ///////////////////////////////////////////////////////////////////
 
   /**
-   * Utility function to load a file as a string
+   * Utility function to load a file as a string.
    */
   public static String loadFile(String path) {
     BufferedReader br = null;

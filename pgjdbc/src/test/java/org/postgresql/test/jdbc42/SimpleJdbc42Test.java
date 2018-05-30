@@ -12,12 +12,12 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.junit.Test;
 
 /**
- * Most basic test to check that the right package is compiled
+ * Most basic test to check that the right package is compiled.
  */
 public class SimpleJdbc42Test extends BaseTest4 {
 
   /**
-   * Test presence of JDBC 4.2 specific methods
+   * Test presence of JDBC 4.2 specific methods.
    */
   @Test
   public void testSupportsRefCursors() throws Exception {

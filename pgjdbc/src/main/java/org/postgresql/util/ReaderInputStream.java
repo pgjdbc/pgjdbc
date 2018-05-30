@@ -33,7 +33,7 @@ public class ReaderInputStream extends InputStream {
   private final CharBuffer cbuf;
 
   /**
-   * true when all of the characters have been read from the reader into inbuf
+   * true when all of the characters have been read from the reader into inbuf.
    */
   private boolean endOfInput;
   private final byte[] oneByte = new byte[1];

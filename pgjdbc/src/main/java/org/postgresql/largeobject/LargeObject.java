@@ -47,17 +47,17 @@ public class LargeObject
     //#endif
     /* hi, checkstyle */ {
   /**
-   * Indicates a seek from the begining of a file
+   * Indicates a seek from the begining of a file.
    */
   public static final int SEEK_SET = 0;
 
   /**
-   * Indicates a seek from the current position
+   * Indicates a seek from the current position.
    */
   public static final int SEEK_CUR = 1;
 
   /**
-   * Indicates a seek from the end of a file
+   * Indicates a seek from the end of a file.
    */
   public static final int SEEK_END = 2;
 
@@ -184,7 +184,7 @@ public class LargeObject
   }
 
   /**
-   * Reads some data from the object, and return as a byte[] array
+   * Reads some data from the object, and return as a byte[] array.
    *
    * @param len number of bytes to read
    * @return byte[] array containing data read
@@ -200,7 +200,7 @@ public class LargeObject
   }
 
   /**
-   * Reads some data from the object into an existing array
+   * Reads some data from the object into an existing array.
    *
    * @param buf destination array
    * @param off offset within array
@@ -218,7 +218,7 @@ public class LargeObject
   }
 
   /**
-   * Writes an array to the object
+   * Writes an array to the object.
    *
    * @param buf array to write
    * @throws SQLException if a database-access error occurs.
@@ -231,7 +231,7 @@ public class LargeObject
   }
 
   /**
-   * Writes some data from an array to the object
+   * Writes some data from an array to the object.
    *
    * @param buf destination array
    * @param off offset within array
@@ -265,7 +265,7 @@ public class LargeObject
   }
 
   /**
-   * Sets the current position within the object using 64-bit value (9.3+)
+   * Sets the current position within the object using 64-bit value (9.3+).
    *
    * @param pos position within object
    * @param ref Either SEEK_SET, SEEK_CUR or SEEK_END
@@ -390,7 +390,7 @@ public class LargeObject
 
   /**
    * Returns an {@link InputStream} from this object, that will limit the amount of data that is
-   * visible
+   * visible.
    *
    * @param limit maximum number of bytes the resulting stream will serve
    * @return {@link InputStream} from this object

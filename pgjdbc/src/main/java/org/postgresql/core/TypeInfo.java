@@ -64,7 +64,7 @@ public interface TypeInfo {
   int getPGArrayElement(int oid) throws SQLException;
 
   /**
-   * Determine the oid of the given base postgresql type's array type
+   * Determine the oid of the given base postgresql type's array type.
    *
    * @param elementTypeName the base type's
    * @return the array type's OID, or 0 if unknown

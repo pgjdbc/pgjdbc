@@ -535,7 +535,7 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * Constructs a new DriverURL, splitting the specified URL into its component parts
+   * Constructs a new DriverURL, splitting the specified URL into its component parts.
    *
    * @param url JDBC URL to parse
    * @param defaults Default properties

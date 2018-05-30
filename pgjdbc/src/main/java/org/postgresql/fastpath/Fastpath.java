@@ -47,7 +47,7 @@ public class Fastpath {
   private final BaseConnection connection;
 
   /**
-   * Initialises the fastpath system
+   * Initialises the fastpath system.
    *
    * @param conn BaseConnection to attach to
    */
@@ -57,7 +57,7 @@ public class Fastpath {
   }
 
   /**
-   * Send a function call to the PostgreSQL backend
+   * Send a function call to the PostgreSQL backend.
    *
    * @param fnId Function id
    * @param resultType True if the result is a numeric (Integer or Long)
@@ -89,7 +89,7 @@ public class Fastpath {
   }
 
   /**
-   * Send a function call to the PostgreSQL backend
+   * Send a function call to the PostgreSQL backend.
    *
    * @param fnId Function id
    * @param args FastpathArguments to pass to fastpath
@@ -149,7 +149,7 @@ public class Fastpath {
   }
 
   /**
-   * This convenience method assumes that the return value is an integer
+   * This convenience method assumes that the return value is an integer.
    *
    * @param name Function name
    * @param args Function arguments
@@ -174,7 +174,7 @@ public class Fastpath {
   }
 
   /**
-   * This convenience method assumes that the return value is a long (bigint)
+   * This convenience method assumes that the return value is a long (bigint).
    *
    * @param name Function name
    * @param args Function arguments
@@ -216,7 +216,7 @@ public class Fastpath {
   }
 
   /**
-   * This convenience method assumes that the return value is not an Integer
+   * This convenience method assumes that the return value is not an Integer.
    *
    * @param name Function name
    * @param args Function arguments

@@ -22,7 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/*
+/**
  * DataSource test to ensure the BaseConnection is configured with column sanitiser disabled.
  */
 public class CaseOptimiserDataSourceTest {
@@ -73,7 +73,7 @@ public class CaseOptimiserDataSourceTest {
   }
 
   /**
-   * Gets a connection from the current BaseDataSource
+   * Gets a connection from the current BaseDataSource.
    */
   protected Connection getDataSourceConnection() throws SQLException {
     if (bds == null) {

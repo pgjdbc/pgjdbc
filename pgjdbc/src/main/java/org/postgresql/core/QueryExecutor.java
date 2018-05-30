@@ -202,7 +202,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void releaseQuery(CachedQuery cachedQuery);
 
   /**
-   * Wrap given native query into a ready for execution format
+   * Wrap given native query into a ready for execution format.
    * @param queries list of queries in native to database syntax
    * @return query object ready for execution by this query executor
    */

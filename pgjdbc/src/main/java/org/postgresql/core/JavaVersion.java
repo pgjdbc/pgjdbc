@@ -25,7 +25,7 @@ public enum JavaVersion {
   }
 
   /**
-   * Java version string like in {@code "java.version"} property
+   * Java version string like in {@code "java.version"} property.
    *
    * @param version string like 1.6, 1.7, etc
    * @return JavaVersion enum

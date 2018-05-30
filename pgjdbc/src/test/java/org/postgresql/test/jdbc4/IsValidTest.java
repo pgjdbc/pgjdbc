@@ -36,7 +36,7 @@ public class IsValidTest extends BaseTest4 {
   }
 
   /**
-   * Test that the transaction state is left unchanged
+   * Test that the transaction state is left unchanged.
    */
   @Test
   public void testTransactionState() throws Exception {

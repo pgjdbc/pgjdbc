@@ -161,7 +161,7 @@ public interface PGConnection {
   int getPrepareThreshold();
 
   /**
-   * Set the default fetch size for statements created from this connection
+   * Set the default fetch size for statements created from this connection.
    *
    * @param fetchSize new default fetch size
    * @throws SQLException if specified negative <code>fetchSize</code> parameter
@@ -171,7 +171,7 @@ public interface PGConnection {
 
 
   /**
-   * Get the default fetch size for statements created from this connection
+   * Get the default fetch size for statements created from this connection.
    *
    * @return current state for default fetch size
    * @see PGProperty#DEFAULT_ROW_FETCH_SIZE

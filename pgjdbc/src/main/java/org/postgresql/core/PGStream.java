@@ -190,7 +190,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Sends a single character to the back end
+   * Sends a single character to the back end.
    *
    * @param val the character to be sent
    * @throws IOException if an I/O error occurs
@@ -200,7 +200,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Sends a 4-byte integer to the back end
+   * Sends a 4-byte integer to the back end.
    *
    * @param val the integer to be sent
    * @throws IOException if an I/O error occurs
@@ -214,7 +214,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Sends a 2-byte integer (short) to the back end
+   * Sends a 2-byte integer (short) to the back end.
    *
    * @param val the integer to be sent
    * @throws IOException if an I/O error occurs or {@code val} cannot be encoded in 2 bytes
@@ -230,7 +230,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Send an array of bytes to the backend
+   * Send an array of bytes to the backend.
    *
    * @param buf The array of bytes to be sent
    * @throws IOException if an I/O error occurs
@@ -284,7 +284,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Receives a single character from the backend
+   * Receives a single character from the backend.
    *
    * @return the character received
    * @throws IOException if an I/O Error occurs
@@ -298,7 +298,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Receives a four byte integer from the backend
+   * Receives a four byte integer from the backend.
    *
    * @return the integer received from the backend
    * @throws IOException if an I/O error occurs
@@ -313,7 +313,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Receives a two byte integer from the backend
+   * Receives a two byte integer from the backend.
    *
    * @return the integer received from the backend
    * @throws IOException if an I/O error occurs
@@ -422,7 +422,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Reads in a given number of bytes from the backend
+   * Reads in a given number of bytes from the backend.
    *
    * @param siz number of bytes to read
    * @return array of bytes received
@@ -435,7 +435,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Reads in a given number of bytes from the backend
+   * Reads in a given number of bytes from the backend.
    *
    * @param buf buffer to store result
    * @param off offset in buffer
@@ -515,7 +515,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Consume an expected EOF from the backend
+   * Consume an expected EOF from the backend.
    *
    * @throws IOException if an I/O error occurs
    * @throws SQLException if we get something other than an EOF
@@ -530,7 +530,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Closes the connection
+   * Closes the connection.
    *
    * @throws IOException if an I/O Error occurs
    */

@@ -107,7 +107,7 @@ public class PgConnection implements BaseConnection {
   protected int prepareThreshold;
 
   /**
-   * Default fetch size for statement
+   * Default fetch size for statement.
    *
    * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
    */
@@ -356,7 +356,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * The current type mappings
+   * The current type mappings.
    */
   protected Map<String, Class<?>> typemap;
 
@@ -493,7 +493,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Method getUserName() brings back the User Name (again, we saved it)
+   * Method getUserName() brings back the User Name (again, we saved it).
    *
    * @return the user name
    * @throws SQLException just in case...
@@ -902,7 +902,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Get server version number
+   * Get server version number.
    *
    * @return server version number
    */
@@ -911,7 +911,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Get server major version
+   * Get server major version.
    *
    * @return server major version
    */
@@ -925,7 +925,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Get server minor version
+   * Get server minor version.
    *
    * @return server minor version
    */
@@ -1004,7 +1004,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Handler for transaction queries
+   * Handler for transaction queries.
    */
   private class TransactionCommandHandler extends ResultHandlerBase {
     public void handleCompletion() throws SQLException {

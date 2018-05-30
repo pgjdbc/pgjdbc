@@ -119,7 +119,7 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
   }
 
   /**
-   * Returns given value to the cache
+   * Returns given value to the cache.
    *
    * @param key key
    * @param value value

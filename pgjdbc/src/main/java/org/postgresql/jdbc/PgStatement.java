@@ -101,7 +101,7 @@ public class PgStatement implements Statement, BaseStatement {
   protected volatile PSQLWarningWrapper warnings = null;
 
   /**
-   * Maximum number of rows to return, 0 = unlimited
+   * Maximum number of rows to return, 0 = unlimited.
    */
   protected int maxrows = 0;
 
@@ -111,7 +111,7 @@ public class PgStatement implements Statement, BaseStatement {
   protected int fetchSize = 0;
 
   /**
-   * Timeout (in milliseconds) for a query
+   * Timeout (in milliseconds) for a query.
    */
   protected long timeout = 0;
 
@@ -342,7 +342,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * Returns true if query is unlikely to be reused
+   * Returns true if query is unlikely to be reused.
    *
    * @param cachedQuery to check (null if current query)
    * @return true if query is unlikely to be reused
@@ -543,7 +543,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * Sets the queryTimeout limit
+   * Sets the queryTimeout limit.
    *
    * @param millis - the new query timeout limit in milliseconds
    * @throws SQLException if a database access error occurs

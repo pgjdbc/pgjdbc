@@ -76,7 +76,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * XAConnection interface
+   * XAConnection interface.
    */
   @Override
   public Connection getConnection() throws SQLException {
@@ -557,7 +557,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Does nothing, since we don't do heuristics,
+   * Does nothing, since we don't do heuristics.
    */
   @Override
   public void forget(Xid xid) throws XAException {

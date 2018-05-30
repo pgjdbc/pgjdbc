@@ -14,37 +14,37 @@ import java.sql.SQLException;
  */
 public class BlobInputStream extends InputStream {
   /**
-   * The parent LargeObject
+   * The parent LargeObject.
    */
   private LargeObject lo;
 
   /**
-   * The absolute position
+   * The absolute position.
    */
   private long apos;
 
   /**
-   * Buffer used to improve performance
+   * Buffer used to improve performance.
    */
   private byte[] buffer;
 
   /**
-   * Position within buffer
+   * Position within buffer.
    */
   private int bpos;
 
   /**
-   * The buffer size
+   * The buffer size.
    */
   private int bsize;
 
   /**
-   * The mark position
+   * The mark position.
    */
   private long mpos = 0;
 
   /**
-   * The limit
+   * The limit.
    */
   private long limit = -1;
 
@@ -79,7 +79,7 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * The minimum required to implement input stream
+   * The minimum required to implement input stream.
    */
   public int read() throws java.io.IOException {
     checkClosed();
@@ -161,7 +161,7 @@ public class BlobInputStream extends InputStream {
 
   /**
    * Repositions this stream to the position at the time the <code>mark</code> method was last
-   * called on this input stream. NB: If mark is not called we move to the begining.
+   * called on this input stream. NB: If mark is not called we move to the beginning.
    *
    * @see java.io.InputStream#mark(int)
    * @see java.io.IOException

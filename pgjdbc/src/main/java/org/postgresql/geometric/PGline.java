@@ -15,22 +15,22 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * This implements a line represented by the linear equation Ax + By + C = 0
+ * This implements a line represented by the linear equation Ax + By + C = 0.
  **/
 public class PGline extends PGobject implements Serializable, Cloneable {
 
   /**
-   * Coefficient of x
+   * Coefficient of x.
    */
   public double a;
 
   /**
-   * Coefficient of y
+   * Coefficient of y.
    */
   public double b;
 
   /**
-   * Constant
+   * Constant.
    */
   public double c;
 
@@ -89,7 +89,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * required by the driver
+   * required by the driver.
    */
   public PGline() {
     setType("line");

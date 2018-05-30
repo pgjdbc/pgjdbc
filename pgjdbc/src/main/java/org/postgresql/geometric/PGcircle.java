@@ -15,16 +15,16 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * This represents org.postgresql's circle datatype, consisting of a point and a radius
+ * This represents org.postgresql's circle datatype, consisting of a point and a radius.
  */
 public class PGcircle extends PGobject implements Serializable, Cloneable {
   /**
-   * This is the center point
+   * This is the center point.
    */
   public PGpoint center;
 
   /**
-   * This is the radius
+   * This is the radius.
    */
   public double radius;
 

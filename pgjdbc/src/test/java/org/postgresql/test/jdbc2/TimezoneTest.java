@@ -950,7 +950,7 @@ public class TimezoneTest {
   }
 
   /**
-   * Converts the given time
+   * Converts the given time.
    *
    * @param t The time of day. Must be within -24 and + 24 hours of epoc.
    * @param tz The timezone to normalize to.

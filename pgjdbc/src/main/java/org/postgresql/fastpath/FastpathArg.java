@@ -33,7 +33,7 @@ public class FastpathArg {
   private final int bytesLength;
 
   /**
-   * Constructs an argument that consists of an integer value
+   * Constructs an argument that consists of an integer value.
    *
    * @param value int value to set
    */
@@ -48,7 +48,7 @@ public class FastpathArg {
   }
 
   /**
-   * Constructs an argument that consists of an integer value
+   * Constructs an argument that consists of an integer value.
    *
    * @param value int value to set
    */
@@ -67,7 +67,7 @@ public class FastpathArg {
   }
 
   /**
-   * Constructs an argument that consists of an array of bytes
+   * Constructs an argument that consists of an array of bytes.
    *
    * @param bytes array to store
    */
@@ -76,7 +76,7 @@ public class FastpathArg {
   }
 
   /**
-   * Constructs an argument that consists of part of a byte array
+   * Constructs an argument that consists of part of a byte array.
    *
    * @param buf source array
    * @param off offset within array

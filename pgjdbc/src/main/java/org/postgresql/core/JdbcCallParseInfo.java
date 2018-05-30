@@ -18,7 +18,7 @@ public class JdbcCallParseInfo {
   }
 
   /**
-   * SQL in a native for certain backend version
+   * SQL in a native for certain backend version.
    *
    * @return SQL in a native for certain backend version
    */
@@ -27,7 +27,7 @@ public class JdbcCallParseInfo {
   }
 
   /**
-   * Returns if given SQL is a function
+   * Returns if given SQL is a function.
    *
    * @return {@code true} if given SQL is a function
    */

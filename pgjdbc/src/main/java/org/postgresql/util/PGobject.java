@@ -11,7 +11,7 @@ import java.sql.SQLException;
 
 /**
  * PGobject is a class used to describe unknown types An unknown type is any type that is unknown by
- * JDBC Standards
+ * JDBC Standards.
  */
 public class PGobject implements Serializable, Cloneable {
   protected String type;
@@ -65,7 +65,7 @@ public class PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * This must be overidden to allow comparisons of objects
+   * This must be overidden to allow comparisons of objects.
    *
    * @param obj Object to compare with
    * @return true if the two boxes are identical
@@ -83,7 +83,7 @@ public class PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * This must be overidden to allow the object to be cloned
+   * This must be overidden to allow the object to be cloned.
    */
   public Object clone() throws CloneNotSupportedException {
     return super.clone();

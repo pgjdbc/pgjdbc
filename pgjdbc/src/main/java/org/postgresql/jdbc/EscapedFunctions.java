@@ -17,7 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * This class stores supported escaped function
+ * This class stores supported escaped function.
  *
  * @author Xavier Poinsard
  * @deprecated see {@link EscapedFunctions2}
@@ -115,7 +115,7 @@ public class EscapedFunctions {
 
 
   /**
-   * storage for functions implementations
+   * storage for functions implementations.
    */
   private static Map<String, Method> functionMap = createFunctionMap();
 
@@ -131,7 +131,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * get Method object implementing the given function
+   * get Method object implementing the given function.
    *
    * @param functionName name of the searched function
    * @return a Method object or null if not found
@@ -143,7 +143,7 @@ public class EscapedFunctions {
   // ** numeric functions translations **
 
   /**
-   * ceiling to ceil translation
+   * ceiling to ceil translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -154,7 +154,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * log to ln translation
+   * log to ln translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -165,7 +165,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * log10 to log translation
+   * log10 to log translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -176,7 +176,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * power to pow translation
+   * power to pow translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -187,7 +187,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * truncate to trunc translation
+   * truncate to trunc translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -200,7 +200,7 @@ public class EscapedFunctions {
   // ** string functions translations **
 
   /**
-   * char to chr translation
+   * char to chr translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -211,7 +211,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * concat translation
+   * concat translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -229,7 +229,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * insert to overlay translation
+   * insert to overlay translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -248,7 +248,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * lcase to lower translation
+   * lcase to lower translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -259,7 +259,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * left to substring translation
+   * left to substring translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -277,7 +277,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * length translation
+   * length translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -295,7 +295,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * locate translation
+   * locate translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -315,7 +315,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * ltrim translation
+   * ltrim translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -326,7 +326,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * right to substring translation
+   * right to substring translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -348,7 +348,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * rtrim translation
+   * rtrim translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -359,7 +359,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * space translation
+   * space translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -370,7 +370,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * substring to substr translation
+   * substring to substr translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -389,7 +389,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * ucase to upper translation
+   * ucase to upper translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -400,7 +400,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * curdate to current_date translation
+   * curdate to current_date translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -415,7 +415,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * curtime to current_time translation
+   * curtime to current_time translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -430,7 +430,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * dayname translation
+   * dayname translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -445,7 +445,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * dayofmonth translation
+   * dayofmonth translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -456,7 +456,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * dayofweek translation adding 1 to postgresql function since we expect values from 1 to 7
+   * dayofweek translation adding 1 to postgresql function since we expect values from 1 to 7.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -471,7 +471,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * dayofyear translation
+   * dayofyear translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -482,7 +482,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * hour translation
+   * hour translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -493,7 +493,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * minute translation
+   * minute translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -504,7 +504,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * month translation
+   * month translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -515,7 +515,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * monthname translation
+   * monthname translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -530,7 +530,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * quarter translation
+   * quarter translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -541,7 +541,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * second translation
+   * second translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -552,7 +552,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * week translation
+   * week translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -563,7 +563,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * year translation
+   * year translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -574,7 +574,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * time stamp add
+   * time stamp add.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -627,7 +627,7 @@ public class EscapedFunctions {
 
 
   /**
-   * time stamp diff
+   * time stamp diff.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -682,7 +682,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * database translation
+   * database translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -697,7 +697,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * ifnull translation
+   * ifnull translation.
    *
    * @param parsedArgs arguments
    * @return sql call
@@ -708,7 +708,7 @@ public class EscapedFunctions {
   }
 
   /**
-   * user translation
+   * user translation.
    *
    * @param parsedArgs arguments
    * @return sql call

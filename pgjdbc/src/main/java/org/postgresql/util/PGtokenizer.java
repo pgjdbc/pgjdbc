@@ -130,7 +130,7 @@ public class PGtokenizer {
   }
 
   /**
-   * This removes the lead/trailing strings from a string
+   * This removes the lead/trailing strings from a string.
    *
    * @param s Source string
    * @param l Leading string to remove
@@ -148,7 +148,7 @@ public class PGtokenizer {
   }
 
   /**
-   * This removes the lead/trailing strings from all tokens
+   * This removes the lead/trailing strings from all tokens.
    *
    * @param l Leading string to remove
    * @param t Trailing string to remove
@@ -160,7 +160,7 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes ( and ) from the beginning and end of a string
+   * Removes ( and ) from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the ( or )
@@ -170,14 +170,14 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes ( and ) from the beginning and end of all tokens
+   * Removes ( and ) from the beginning and end of all tokens.
    */
   public void removePara() {
     remove("(", ")");
   }
 
   /**
-   * Removes [ and ] from the beginning and end of a string
+   * Removes [ and ] from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the [ or ]
@@ -187,14 +187,14 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes [ and ] from the beginning and end of all tokens
+   * Removes [ and ] from the beginning and end of all tokens.
    */
   public void removeBox() {
     remove("[", "]");
   }
 
   /**
-   * Removes &lt; and &gt; from the beginning and end of a string
+   * Removes &lt; and &gt; from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the &lt; or &gt;
@@ -204,14 +204,14 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes &lt; and &gt; from the beginning and end of all tokens
+   * Removes &lt; and &gt; from the beginning and end of all tokens.
    */
   public void removeAngle() {
     remove("<", ">");
   }
 
   /**
-   * Removes curly braces { and } from the beginning and end of a string
+   * Removes curly braces { and } from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the { or }
@@ -221,7 +221,7 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes &lt; and &gt; from the beginning and end of all tokens
+   * Removes &lt; and &gt; from the beginning and end of all tokens.
    */
   public void removeCurlyBrace() {
     remove("{", "}");

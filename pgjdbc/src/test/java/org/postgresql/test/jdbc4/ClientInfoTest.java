@@ -78,7 +78,7 @@ public class ClientInfoTest extends BaseTest4 {
   }
 
   /**
-   * Test that no exception is thrown when an unknown property is set
+   * Test that no exception is thrown when an unknown property is set.
    */
   @Test
   public void testWarningOnUnknownName() throws SQLException {
@@ -91,7 +91,7 @@ public class ClientInfoTest extends BaseTest4 {
   }
 
   /**
-   * Test that a name missing in the properties given to setClientInfo should be unset (spec)
+   * Test that a name missing in the properties given to setClientInfo should be unset (spec).
    */
   @Test
   public void testMissingName() throws SQLException {

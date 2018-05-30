@@ -40,7 +40,7 @@ public interface Query {
   String toString(ParameterList parameters);
 
   /**
-   * Returns SQL in native for database format
+   * Returns SQL in native for database format.
    * @return SQL in native for database format
    */
   String getNativeSql();

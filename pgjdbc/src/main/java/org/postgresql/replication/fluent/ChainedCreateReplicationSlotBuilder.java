@@ -13,6 +13,7 @@ import org.postgresql.replication.fluent.physical.ChainedPhysicalCreateSlotBuild
  */
 public interface ChainedCreateReplicationSlotBuilder {
   /**
+   * Get the logical slot builder.
    * Example usage:
    * <pre>
    *   {@code

@@ -33,7 +33,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private LogSequenceNumber lastServerLSN = LogSequenceNumber.INVALID_LSN;
   /**
-   * Last receive LSN + payload size
+   * Last receive LSN + payload size.
    */
   private LogSequenceNumber lastReceiveLSN = LogSequenceNumber.INVALID_LSN;
   private LogSequenceNumber lastAppliedLSN = LogSequenceNumber.INVALID_LSN;

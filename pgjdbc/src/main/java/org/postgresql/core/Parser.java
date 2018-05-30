@@ -1247,7 +1247,7 @@ public class Parser {
   }
 
   /**
-   * generate sql for escaped functions
+   * Generate sql for escaped functions.
    *
    * @param newsql destination StringBuilder
    * @param functionName the escaped function name

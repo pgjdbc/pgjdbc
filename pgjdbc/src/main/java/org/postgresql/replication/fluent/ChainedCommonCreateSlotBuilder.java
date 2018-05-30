@@ -23,7 +23,7 @@ public interface ChainedCommonCreateSlotBuilder<T extends ChainedCommonCreateSlo
   T withSlotName(String slotName);
 
   /**
-   * Create slot with specified parameters in database
+   * Create slot with specified parameters in database.
    * @throws SQLException on error
    */
   void make() throws SQLException;

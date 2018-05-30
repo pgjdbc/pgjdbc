@@ -8,7 +8,7 @@ package org.postgresql.replication.fluent.logical;
 import org.postgresql.replication.fluent.ChainedCommonCreateSlotBuilder;
 
 /**
- * Logical replication slot specific parameters
+ * Logical replication slot specific parameters.
  */
 public interface ChainedLogicalCreateSlotBuilder
     extends ChainedCommonCreateSlotBuilder<ChainedLogicalCreateSlotBuilder> {

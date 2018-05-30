@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Utility class for JDBC tests
+ * Utility class for JDBC tests.
  */
 public class TestUtil {
   /*
@@ -256,7 +256,7 @@ public class TestUtil {
 
   /**
    * Get a connection using a priviliged user mostly for tests that the ability to load C functions
-   * now as of 4/14
+   * now as of 4/14.
    *
    * @return connection using a priviliged user mostly for tests that the ability to load C
    *         functions now as of 4/14
@@ -393,7 +393,7 @@ public class TestUtil {
   }
 
   /**
-   * Helper creates a temporary table
+   * Helper creates a temporary table.
    *
    * @param con Connection
    * @param table String
@@ -415,7 +415,7 @@ public class TestUtil {
   }
 
   /**
-   * Helper creates an enum type
+   * Helper creates an enum type.
    *
    * @param con Connection
    * @param name String
@@ -437,7 +437,7 @@ public class TestUtil {
   }
 
   /**
-   * Helper creates an composite type
+   * Helper creates an composite type.
    *
    * @param con Connection
    * @param name String
@@ -459,7 +459,7 @@ public class TestUtil {
   }
 
   /**
-   * Drops a domain
+   * Drops a domain.
    *
    * @param con Connection
    * @param name String
@@ -479,7 +479,7 @@ public class TestUtil {
   }
 
   /**
-   * Helper creates a domain
+   * Helper creates a domain.
    *
    * @param con Connection
    * @param name String

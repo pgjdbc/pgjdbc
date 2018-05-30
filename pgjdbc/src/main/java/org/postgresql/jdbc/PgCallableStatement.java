@@ -388,7 +388,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * helperfunction for the getXXX calls to check isFunction and index == 1
+   * Helper function for the getXXX calls to check isFunction and index == 1.
    *
    * @param parameterIndex parameter index (1-based)
    * @param type type
@@ -411,7 +411,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * helperfunction for the getXXX calls to check isFunction and index == 1
+   * Helper function for the getXXX calls to check isFunction and index == 1.
    *
    * @param parameterIndex index of getXXX (index) check to make sure is a function and index == 1
    * @param fetchingData fetching data

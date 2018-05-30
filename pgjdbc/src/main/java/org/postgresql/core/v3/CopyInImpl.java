@@ -13,7 +13,9 @@ import org.postgresql.util.PSQLState;
 import java.sql.SQLException;
 
 /**
- * Anticipated flow of a COPY FROM STDIN operation:
+ * COPY FROM STDIN operation.
+ *
+ * Anticipated flow:
  *
  * CopyManager.copyIn() -&gt;QueryExecutor.startCopy() - sends given query to server
  * -&gt;processCopyResults(): - receives CopyInResponse from Server - creates new CopyInImpl

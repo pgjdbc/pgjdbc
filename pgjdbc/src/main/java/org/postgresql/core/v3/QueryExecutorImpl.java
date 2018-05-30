@@ -76,12 +76,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final Pattern COMMAND_COMPLETE_PATTERN = Pattern.compile("^([A-Za-z]++)(?: (\\d++))?+(?: (\\d++))?+$");
 
   /**
-   * TimeZone of the current connection (TimeZone backend parameter)
+   * TimeZone of the current connection (TimeZone backend parameter).
    */
   private TimeZone timeZone;
 
   /**
-   * application_name connection property
+   * application_name connection property.
    */
   private String applicationName;
 
@@ -102,7 +102,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   /**
    * This is a fake query object so processResults can distinguish "ReadyForQuery" messages
-   * from Sync messages vs from simple execute (aka 'Q')
+   * from Sync messages vs from simple execute (aka 'Q').
    */
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
@@ -847,9 +847,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   /**
    * Locks connection and calls initializer for a new CopyOperation Called via startCopy ->
-   * processCopyResults
+   * processCopyResults.
    *
-   * @param op an unitialized CopyOperation
+   * @param op an uninitialized CopyOperation
    * @throws SQLException on locking failure
    * @throws IOException on database connection failure
    */
@@ -941,7 +941,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * Finishes writing to copy and unlocks connection
+   * Finishes writing to copy and unlocks connection.
    *
    * @param op the copy operation presumably currently holding lock on this connection
    * @return number of rows updated for server versions 8.2 or newer
@@ -1017,7 +1017,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   /**
    * Wait for a row of data to be received from server on an active copy operation
-   * Connection gets unlocked by processCopyResults() at end of operation
+   * Connection gets unlocked by processCopyResults() at end of operation.
    *
    * @param op the copy operation presumably currently holding lock on this connection
    * @param block whether to block waiting for input

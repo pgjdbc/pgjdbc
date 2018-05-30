@@ -938,7 +938,7 @@ public class StatementTest {
 
   /**
    * Tests that calling {@code java.sql.Statement#close()} from a concurrent thread does not result
-   * in {@link java.util.ConcurrentModificationException}
+   * in {@link java.util.ConcurrentModificationException}.
    */
   @Test
   public void testSideStatementFinalizers() throws SQLException {

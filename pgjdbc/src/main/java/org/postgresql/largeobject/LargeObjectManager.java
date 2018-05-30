@@ -68,22 +68,22 @@ public class LargeObjectManager {
   private BaseConnection conn;
 
   /**
-   * This mode indicates we want to write to an object
+   * This mode indicates we want to write to an object.
    */
   public static final int WRITE = 0x00020000;
 
   /**
-   * This mode indicates we want to read an object
+   * This mode indicates we want to read an object.
    */
   public static final int READ = 0x00040000;
 
   /**
-   * This mode is the default. It indicates we want read and write access to a large object
+   * This mode is the default. It indicates we want read and write access to a large object.
    */
   public static final int READWRITE = READ | WRITE;
 
   /**
-   * This prevents us being created by mere mortals
+   * This prevents us being created by mere mortals.
    */
   private LargeObjectManager() {
   }
@@ -195,7 +195,7 @@ public class LargeObjectManager {
 
   /**
    * This opens an existing large object, same as previous method, but commits the transaction on
-   * close if asked
+   * close if asked.
    *
    * @param oid of large object
    * @param commitOnClose commit the transaction when this LOB will be closed
@@ -208,7 +208,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This opens an existing large object, based on its OID
+   * This opens an existing large object, based on its OID.
    *
    * @param oid of large object
    * @param mode mode of open
@@ -223,7 +223,7 @@ public class LargeObjectManager {
 
   /**
    * This opens an existing large object, same as previous method, but commits the transaction on
-   * close if asked
+   * close if asked.
    *
    * @param oid of large object
    * @param mode mode of open
@@ -237,7 +237,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This opens an existing large object, based on its OID
+   * This opens an existing large object, based on its OID.
    *
    * @param oid of large object
    * @param mode mode of open
@@ -249,7 +249,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This opens an existing large object, based on its OID
+   * This opens an existing large object, based on its OID.
    *
    * @param oid of large object
    * @param mode mode of open
@@ -294,7 +294,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This creates a large object, returning its OID
+   * This creates a large object, returning its OID.
    *
    * @param mode a bitmask describing different attributes of the new object
    * @return oid of new object
@@ -311,7 +311,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * This creates a large object, returning its OID
+   * This creates a large object, returning its OID.
    *
    * @param mode a bitmask describing different attributes of the new object
    * @return oid of new object

@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.Deque;
 
 /**
- * Tests {@link org.postgresql.util.LruCache}
+ * Tests {@link org.postgresql.util.LruCache}.
  */
 public class LruCacheTest {
 

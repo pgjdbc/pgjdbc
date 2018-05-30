@@ -16,7 +16,7 @@ import se.jiderhamn.classloader.leak.Leaks;
 
 /**
  * Test case that verifies that the use of {@link org.postgresql.util.SharedTimer} within
- * {@link org.postgresql.Driver} does not cause ClassLoader leaks
+ * {@link org.postgresql.Driver} does not cause ClassLoader leaks.
  *
  * The class is placed in {@code jdbc41} package so it won't be tested in JRE6 build.
  * {@link JUnitClassloaderRunner} does not support JRE6, so we have to skip the test there.
@@ -27,7 +27,7 @@ import se.jiderhamn.classloader.leak.Leaks;
 @PackagesLoadedOutsideClassLoader(packages = "org.postgresql", addToDefaults = true)
 public class SharedTimerClassLoaderLeakTest {
 
-  /** Starting a {@link org.postgresql.util.SharedTimer} should not cause ClassLoader leaks */
+  /** Starting a {@link org.postgresql.util.SharedTimer} should not cause ClassLoader leaks. */
   @Leaks(false)
   @Test
   public void sharedTimerDoesNotCauseLeak() {

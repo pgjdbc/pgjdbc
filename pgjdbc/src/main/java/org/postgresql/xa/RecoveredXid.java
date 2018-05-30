@@ -63,7 +63,7 @@ class RecoveredXid implements Xid {
   }
 
   /**
-   * This is for debugging purposes only
+   * This is for debugging purposes only.
    */
   public String toString() {
     return xidToString(this);

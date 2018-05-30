@@ -75,7 +75,7 @@ public class Utils {
   }
 
   /**
-   * Common part for {@link #escapeLiteral(StringBuilder, String, boolean)}
+   * Common part for {@link #escapeLiteral(StringBuilder, String, boolean)}.
    *
    * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
    *        thrown
@@ -143,7 +143,7 @@ public class Utils {
   }
 
   /**
-   * Common part for appendEscapedIdentifier
+   * Common part for appendEscapedIdentifier.
    *
    * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
    *        thrown.

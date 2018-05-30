@@ -15,7 +15,7 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * This implements a lseg (line segment) consisting of two points
+ * This implements a lseg (line segment) consisting of two points.
  */
 public class PGlseg extends PGobject implements Serializable, Cloneable {
   /**
@@ -53,7 +53,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * reuired by the driver
+   * required by the driver.
    */
   public PGlseg() {
     setType("lseg");

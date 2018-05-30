@@ -29,7 +29,7 @@ public class SocksProxyTest {
   }
 
   /**
-   * Tests the connect method by connecting to the test database
+   * Tests the connect method by connecting to the test database.
    */
   @Test
   public void testConnectWithSocksNonProxyHost() throws Exception {

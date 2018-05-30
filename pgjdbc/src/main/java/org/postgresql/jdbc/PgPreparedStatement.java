@@ -72,9 +72,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
   /**
-   * used to differentiate between new function call logic and old function call logic will be set
-   * to true if the server is &lt; 8.1 or if we are using v2 protocol There is an exception to this
-   * where we are using v3, and the call does not have an out parameter before the call
+   * Used to differentiate between new function call logic and old function call logic. Will be set
+   * to true if the server is &lt; 8.1 or if we are using v2 protocol. There is an exception to this
+   * where we are using v3, and the call does not have an out parameter before the call.
    */
   protected boolean adjustIndex = false;
 

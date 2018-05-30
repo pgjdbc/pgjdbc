@@ -184,7 +184,7 @@ public interface BaseConnection extends PGConnection, Connection {
   void purgeTimerTasks();
 
   /**
-   * Return metadata cache for given connection
+   * Return metadata cache for given connection.
    *
    * @return metadata cache
    */

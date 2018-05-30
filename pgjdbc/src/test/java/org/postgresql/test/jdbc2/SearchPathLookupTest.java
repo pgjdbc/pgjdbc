@@ -34,7 +34,7 @@ public class SearchPathLookupTest {
 
   /**
    * This usecase is most common, here the object we are searching for is in the current_schema (the
-   * first schema in the search_path)
+   * first schema in the search_path).
    */
   @Test
   public void testSearchPathNormalLookup() throws Exception {
