@@ -233,6 +233,7 @@ public class PgArray implements java.sql.Array {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len == -1) {
+          // explicitly set to null for reader's clarity
           arr[i] = null;
           continue;
         }
