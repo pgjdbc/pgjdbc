@@ -1278,6 +1278,7 @@ public class Parser {
   }
 
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
+  private static final char[] QUOTE_OR_ALPHABETIC_MARKER_OR_PARANTHESIS = {'\"', '0', '('};
   private static final char[] SINGLE_QUOTE = {'\''};
 
   // Static variables for parsing SQL when replaceProcessing is true.
@@ -1288,7 +1289,7 @@ public class Parser {
 
     ESC_TIMESTAMP("ts", SINGLE_QUOTE, "TIMESTAMP "),
     ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
-    ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER_OR_PARANTHESIS, null),
     ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
 
     private final char[] escapeKeyword;
