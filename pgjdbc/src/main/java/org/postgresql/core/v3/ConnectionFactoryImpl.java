@@ -312,6 +312,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return;
     }
     LogRecord rec = new LogRecord(level, msg);
+    // Set the loggerName of the LogRecord with the current logger
+    rec.setLoggerName(LOGGER.getName());
     rec.setParameters(params);
     rec.setThrown(thrown);
     LOGGER.log(rec);
