@@ -65,6 +65,18 @@
                 </goals>
               </execution>
               <execution>
+                <id>remove_obsolete_translations</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>attrib</goal>
+                </goals>
+                <configuration>
+                  <extraArgs>
+                    <extraArg>--no-obsolete</extraArg>
+                  </extraArgs>
+                </configuration>
+              </execution>
+              <execution>
                 <id>generate_pot_and_po_files</id>
                 <phase>generate-resources</phase>
                 <goals>

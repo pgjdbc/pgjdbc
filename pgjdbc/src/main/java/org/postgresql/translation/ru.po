@@ -1729,29 +1729,3 @@ msgstr ""
 #, java-format
 msgid "Heuristic commit/rollback not supported. forget xid={0}"
 msgstr ""
-
-# key: postgresql.con.backend
-#~ msgid "Backend start-up failed: {0}."
-#~ msgstr "Запуск бэкенда не удался: {0}."
-
-# key: postgresql.con.failed
-#~ msgid "The connection url is invalid."
-#~ msgstr "Неверное значение connection url"
-
-#~ msgid "The class {0} does not implement org.postgresql.util.PGobject."
-#~ msgstr "Класс {0} не реализует org.postgresql.util.PGobject."
-
-# key: postgresql.con.misc
-#~ msgid "Connection rejected: {0}."
-#~ msgstr "Подсоединение отвергнуто: {0}."
-
-# key: postgresql.con.refused
-#~ msgid ""
-#~ "Connection refused. Check that the hostname and port are correct and that "
-#~ "the postmaster is accepting TCP/IP connections."
-#~ msgstr ""
-#~ "Подсоединение отклонено. Проверьте что хост и порт указаны правильно и "
-#~ "что postmaster принимает TCP/IP-подсоединения."
-
-#~ msgid "Copy not implemented for protocol version 2"
-#~ msgstr "Команда COPY не реализована для протокола версии 2"
