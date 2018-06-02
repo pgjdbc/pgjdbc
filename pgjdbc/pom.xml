@@ -53,19 +53,23 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>com.googlecode.gettext-commons</groupId>
+            <groupId>com.github.vlsi.gettext</groupId>
             <artifactId>gettext-maven-plugin</artifactId>
-            <version>1.2.4</version>
+            <version>1.2.11</version>
             <executions>
+              <execution>
+                <id>update_po_with_new_messages</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>gettext</goal>
+                </goals>
+              </execution>
               <execution>
                 <id>generate_pot_and_po_files</id>
                 <phase>generate-resources</phase>
                 <goals>
                   <goal>merge</goal>
                 </goals>
-                <configuration>
-                  <outputDirectory>src/main/resources</outputDirectory>
-                </configuration>
               </execution>
               <execution>
                 <id>generate_resource_bundles</id>
@@ -76,48 +80,15 @@
               </execution>
             </executions>
             <configuration>
+              <outputFormat>java</outputFormat>
               <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
-              <outputDirectory>src/main/resources</outputDirectory>
+              <outputDirectory>${project.build.sourceDirectory}</outputDirectory>
               <keysFile>messages.pot</keysFile>
               <poDirectory>src/main/java/org/postgresql/translation</poDirectory>
               <targetBundle>org.postgresql.translation.messages</targetBundle>
               <keywords>-kGT.tr</keywords>
               <msgmergeCmd>msgmerge</msgmergeCmd>
             </configuration>
-          </plugin>
-          <plugin>
-            <artifactId>maven-clean-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>clean_msmerge_backups</id>
-                <goals>
-                  <goal>clean</goal>
-                </goals>
-                <phase>compile</phase>
-                <configuration>
-                  <!-- Do not delete target folder -->
-                  <excludeDefaultDirectories>true</excludeDefaultDirectories>
-                  <filesets>
-                    <fileset>
-                      <directory>src/main/resources/org/postgresql/translation</directory>
-                      <includes>
-                        <include>**$*.class</include>
-                        <include>messages.properties</include>
-                        <include>messages_en.properties</include>
-                      </includes>
-                      <followSymlinks>false</followSymlinks>
-                    </fileset>
-                    <fileset>
-                      <directory>src/main/java/org/postgresql/translation</directory>
-                      <includes>
-                        <include>*.po.~*~</include>
-                      </includes>
-                      <followSymlinks>false</followSymlinks>
-                    </fileset>
-                  </filesets>
-                </configuration>
-              </execution>
-            </executions>
           </plugin>
         </plugins>
       </build>
