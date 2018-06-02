@@ -8,3 +8,5 @@ coverage:
   status:
     patch: false
   range: "60...100"
+ignore:
+  - "**/translation/message*.java"

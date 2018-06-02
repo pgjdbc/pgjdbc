@@ -6,4 +6,5 @@
 
 <suppressions>
     <suppress files="WriterHandler\.java" checks="RegexpHeader"/>
+    <suppress checks=".*" files=".*[/\\]messages_[^.]*.java"/>
 </suppressions>
