@@ -1623,26 +1623,3 @@ msgstr ""
 #, java-format
 msgid "Heuristic commit/rollback not supported. forget xid={0}"
 msgstr ""
-
-#~ msgid ""
-#~ "Connection refused. Check that the hostname and port are correct and that "
-#~ "the postmaster is accepting TCP/IP connections."
-#~ msgstr ""
-#~ "Conexión rechazada. Verifique que el nombre del Host y el puerto sean "
-#~ "correctos y que postmaster este aceptando conexiones TCP/IP."
-
-#~ msgid "The class {0} does not implement org.postgresql.util.PGobject."
-#~ msgstr "La clase {0} no implementa org.postgresql.util.PGobject."
-
-#, fuzzy
-#~ msgid "The connection url is invalid."
-#~ msgstr "El intento de conexión falló."
-
-#~ msgid "The driver does not support SSL."
-#~ msgstr "Este driver no soporta SSL."
-
-#~ msgid "Backend start-up failed: {0}."
-#~ msgstr "Falló el arranque del Backend: {0}. "
-
-#~ msgid "Connection rejected: {0}."
-#~ msgstr "Conexión rechazada: {0}."
