@@ -106,10 +106,10 @@ public class OuterJoinSyntaxTest extends BaseTest4 {
       try {
         Assert.assertEquals("SQL " + theQuery, TestUtil.join(TestUtil.resultSetToLines(rs)), TestUtil.join(expectedResult));
       } finally {
-        rs.close();
+        TestUtil.closeQuietly(rs);
       }
     } finally {
-      st.close();
+      TestUtil.closeQuietly(st);
     }
   }
 
