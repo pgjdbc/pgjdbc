@@ -182,6 +182,8 @@ msgstr "Байт с кодом 0 не может втречаться в стр�
 #: org/postgresql/core/Utils.java:120 org/postgresql/core/Utils.java:170
 msgid "No IOException expected from StringBuffer or StringBuilder"
 msgstr ""
+"Что-то пошло не так: из классов StringBuffer и StringBuilder исключений не "
+"ожидалось"
 
 #: org/postgresql/core/Utils.java:159
 msgid "Zero bytes may not occur in identifiers."
