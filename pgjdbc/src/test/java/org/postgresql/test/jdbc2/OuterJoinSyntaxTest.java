@@ -100,10 +100,16 @@ public class OuterJoinSyntaxTest extends BaseTest4 {
    * @throws Exception on error
    */
   private void testOuterJoinSyntax(String theQuery, List<String> expectedResult) throws Exception {
-    try (Statement st = con.createStatement()) {
-      try (ResultSet rs = st.executeQuery(theQuery)) {
+    final Statement st = con.createStatement();
+    try {
+      final ResultSet rs = st.executeQuery(theQuery);
+      try {
         Assert.assertEquals("SQL " + theQuery, TestUtil.join(TestUtil.resultSetToLines(rs)), TestUtil.join(expectedResult));
+      } finally {
+        rs.close();
       }
+    } finally {
+      st.close();
     }
   }
 
