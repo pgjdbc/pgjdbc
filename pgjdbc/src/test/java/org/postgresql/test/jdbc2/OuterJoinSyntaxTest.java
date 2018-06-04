@@ -130,31 +130,31 @@ public class OuterJoinSyntaxTest {
    * @throws Exception on error
    */
   private void testOuterJoinSyntax(final String theQuery, List<String> theExpectedColumns) throws Exception {
-    final Statement _st = connection.createStatement();
+    final Statement st = connection.createStatement();
 
     try {
-      final ResultSet _rs = _st.executeQuery(theQuery);
+      final ResultSet rs = st.executeQuery(theQuery);
 
       try {
-        final ResultSetMetaData _md = _rs.getMetaData();
-        Assert.assertEquals(theExpectedColumns.size(), _md.getColumnCount());
-        for (int _i = 0; _i < _md.getColumnCount(); _i++) {
-          Assert.assertTrue(theExpectedColumns.contains(_md.getColumnLabel(_i + 1)));
+        final ResultSetMetaData md = rs.getMetaData();
+        Assert.assertEquals(theExpectedColumns.size(), md.getColumnCount());
+        for (int i = 0; i < md.getColumnCount(); i++) {
+          Assert.assertTrue(theExpectedColumns.contains(md.getColumnLabel(i + 1)));
         }
 
-        int _count = 0;
-        while (_rs.next()) {
-          for (final String _label : theExpectedColumns) {
-            _rs.getObject(_label); // just try to get the values without check
+        int count = 0;
+        while (rs.next()) {
+          for (final String label : theExpectedColumns) {
+            rs.getObject(label); // just try to get the values without check
           }
-          _count++;
+          count++;
         }
-        Assert.assertEquals(_count, 2);
+        Assert.assertEquals(count, 2);
       } finally {
-        _rs.close();
+        rs.close();
       }
     } finally {
-      _st.close();
+      st.close();
     }
   }
 
