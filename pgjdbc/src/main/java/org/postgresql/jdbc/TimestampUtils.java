@@ -50,14 +50,14 @@ public class TimestampUtils {
   private static final char[][] NUMBERS;
   private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<String, TimeZone>();
   private static final int MAX_NANOS_BEFORE_WRAP_ON_ROUND = 999999500;
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   private static final Duration ONE_MICROSECOND = Duration.ofNanos(1000);
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
   // since PostgreSQL has microsecond resolution only
   private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofMillis(500));
   private static final OffsetDateTime MAX_OFFSET_DATETIME = OffsetDateTime.MAX.minus(Duration.ofMillis(500));
   private static final LocalDateTime MAX_LOCAL_DATETIME = LocalDateTime.MAX.minus(Duration.ofMillis(500));
-//#endif
+  //#endif
 
   private static final Field DEFAULT_TIME_ZONE_FIELD;
 
