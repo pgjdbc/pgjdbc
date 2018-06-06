@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -48,6 +49,15 @@ public class TimestampUtils {
   private static final char[] ZEROS = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
   private static final char[][] NUMBERS;
   private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<String, TimeZone>();
+  private static final int MAX_NANOS_BEFORE_WRAP_ON_ROUND = 999999500;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  private static final Duration ONE_MICROSECOND = Duration.ofNanos(1000);
+  // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
+  // since PostgreSQL has microsecond resolution only
+  private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofMillis(500));
+  private static final OffsetDateTime MAX_OFFSET_DATETIME = OffsetDateTime.MAX.minus(Duration.ofMillis(500));
+  private static final LocalDateTime MAX_LOCAL_DATETIME = LocalDateTime.MAX.minus(Duration.ofMillis(500));
+//#endif
 
   private static final Field DEFAULT_TIME_ZONE_FIELD;
 
@@ -551,13 +561,23 @@ public class TimestampUtils {
     }
 
     cal = setupCalendar(cal);
-    cal.setTime(x);
+    long timeMillis = x.getTime();
+
+    // Round to microseconds
+    int nanos = x.getNanos();
+    if (nanos >= MAX_NANOS_BEFORE_WRAP_ON_ROUND) {
+      nanos = 0;
+      timeMillis++;
+    } else if (nanos % 1000 >= 500) {
+      nanos = nanos + 1000 - nanos % 1000;
+    }
+    cal.setTimeInMillis(timeMillis);
 
     sbuf.setLength(0);
 
     appendDate(sbuf, cal);
     sbuf.append(' ');
-    appendTime(sbuf, cal, x.getNanos());
+    appendTime(sbuf, cal, nanos);
     if (withTimeZone) {
       appendTimeZone(sbuf, cal);
     }
@@ -654,18 +674,17 @@ public class TimestampUtils {
     sb.append(':');
     sb.append(NUMBERS[seconds]);
 
-    // Add microseconds, rounded.
+    // Add nanoseconds.
     // This won't work for server versions < 7.2 which only want
     // a two digit fractional second, but we don't need to support 7.1
     // anymore and getting the version number here is difficult.
     //
-    int microseconds = (nanos / 1000) + (((nanos % 1000) + 500) / 1000);
-    if (microseconds == 0) {
+    if (nanos < 1000) {
       return;
     }
     sb.append('.');
     int len = sb.length();
-    sb.append(microseconds);
+    sb.append(nanos / 1000); // append microseconds
     int needZeros = 6 - (sb.length() - len);
     if (needZeros > 0) {
       sb.insert(len, ZEROS, 0, needZeros);
@@ -733,10 +752,14 @@ public class TimestampUtils {
 
     sbuf.setLength(0);
 
-    if (localTime.equals( LocalTime.MAX )) {
+    if (localTime.isAfter(MAX_TIME)) {
       return "24:00:00";
     }
 
+    int nano = localTime.getNano();
+    if (nano % 1000 >= 500) {
+      localTime = localTime.plus(ONE_MICROSECOND);
+    }
     appendTime(sbuf, localTime);
 
     return sbuf.toString();
@@ -744,7 +767,7 @@ public class TimestampUtils {
 
 
   public synchronized String toString(OffsetDateTime offsetDateTime) {
-    if (OffsetDateTime.MAX.equals(offsetDateTime)) {
+    if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
       return "infinity";
     } else if (OffsetDateTime.MIN.equals(offsetDateTime)) {
       return "-infinity";
@@ -752,6 +775,10 @@ public class TimestampUtils {
 
     sbuf.setLength(0);
 
+    int nano = offsetDateTime.getNano();
+    if (nano % 1000 >= 500) {
+      offsetDateTime = offsetDateTime.plus(ONE_MICROSECOND);
+    }
     LocalDateTime localDateTime = offsetDateTime.toLocalDateTime();
     LocalDate localDate = localDateTime.toLocalDate();
     appendDate(sbuf, localDate);
@@ -768,7 +795,7 @@ public class TimestampUtils {
    * Do not use this method in {@link java.sql.ResultSet#getString(int)}
    */
   public synchronized String toString(LocalDateTime localDateTime) {
-    if (LocalDateTime.MAX.equals(localDateTime)) {
+    if (localDateTime.isAfter(MAX_LOCAL_DATETIME)) {
       return "infinity";
     } else if (LocalDateTime.MIN.equals(localDateTime)) {
       return "-infinity";

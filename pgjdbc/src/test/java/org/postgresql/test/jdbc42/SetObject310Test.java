@@ -279,6 +279,27 @@ public class SetObject310Test {
     }
   }
 
+  @Test
+  public void testLocalDateTimeRounding() throws SQLException {
+    LocalDateTime dateTime = LocalDateTime.parse("2018-06-03T23:59:59.999999500");
+    localTimestamps(ZoneOffset.UTC, dateTime, "2018-06-04 00:00:00");
+  }
+
+  @Test
+  public void testTimeStampRounding() throws SQLException {
+    LocalTime time = LocalTime.parse("23:59:59.999999500");
+    Time actual = insertThenReadWithoutType(time, "time_without_time_zone_column", Time.class);
+    assertEquals(Time.valueOf("24:00:00"), actual);
+  }
+
+  @Test
+  public void testTimeStampRoundingWithType() throws SQLException {
+    LocalTime time = LocalTime.parse("23:59:59.999999500");
+    Time actual =
+        insertThenReadWithType(time, Types.TIME, "time_without_time_zone_column", Time.class);
+    assertEquals(Time.valueOf("24:00:00"), actual);
+  }
+
   /**
    * Test the behavior of setObject for timestamp columns.
    */
