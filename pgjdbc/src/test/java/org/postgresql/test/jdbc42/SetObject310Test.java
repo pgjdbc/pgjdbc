@@ -281,8 +281,8 @@ public class SetObject310Test {
 
   @Test
   public void testLocalDateTimeRounding() throws SQLException {
-    LocalDateTime dateTime = LocalDateTime.parse("2018-06-03T23:59:59.999999500");
-    localTimestamps(ZoneOffset.UTC, dateTime, "2018-06-04 00:00:00");
+    LocalDateTime dateTime = LocalDateTime.parse("2018-12-31T23:59:59.999999500");
+    localTimestamps(ZoneOffset.UTC, dateTime, "2019-01-01 00:00:00");
   }
 
   @Test

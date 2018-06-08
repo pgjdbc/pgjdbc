@@ -912,11 +912,11 @@ public class TimestampTest extends BaseTest4 {
   private static final String TS9WOTZ_ROUNDED_PGFORMAT = "2000-02-07 15:00:00.000001";
 
   private static final java.sql.Timestamp TS10WOTZ =
-      getTimestamp(2000, 2, 7, 23, 59, 59, 999999500, null);
-  private static final String TS10WOTZ_PGFORMAT = "2000-02-07 23:59:59.999999500";
+      getTimestamp(2018, 12, 31, 23, 59, 59, 999999500, null);
+  private static final String TS10WOTZ_PGFORMAT = "2018-12-31 23:59:59.999999500";
   private static final java.sql.Timestamp TS10WOTZ_ROUNDED =
-      getTimestamp(2000, 2, 8, 0, 0, 0, 0, null);
-  private static final String TS10WOTZ_ROUNDED_PGFORMAT = "2000-02-08 00:00:00";
+      getTimestamp(2019, 1, 1, 0, 0, 0, 0, null);
+  private static final String TS10WOTZ_ROUNDED_PGFORMAT = "2019-01-01 00:00:00";
 
   private static final String TSWTZ_TABLE = "testtimestampwtz";
   private static final String TSWOTZ_TABLE = "testtimestampwotz";

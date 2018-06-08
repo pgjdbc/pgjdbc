@@ -548,6 +548,16 @@ public class TimestampUtils {
     return tmp;
   }
 
+  /**
+   * Returns true when microsecond part of the time should be increased
+   * when rounding to microseconds
+   * @param nanos nanosecond part of the time
+   * @return true when microsecond part of the time should be increased when rounding to microseconds
+   */
+  private static boolean nanosExceed499(int nanos) {
+    return nanos % 1000 > 499;
+  }
+
   public synchronized String toString(Calendar cal, Timestamp x) {
     return toString(cal, x, true);
   }
@@ -568,8 +578,11 @@ public class TimestampUtils {
     if (nanos >= MAX_NANOS_BEFORE_WRAP_ON_ROUND) {
       nanos = 0;
       timeMillis++;
-    } else if (nanos % 1000 >= 500) {
-      nanos = nanos + 1000 - nanos % 1000;
+    } else if (nanosExceed499(nanos)) {
+      // PostgreSQL does not support nanosecond resolution yet, and appendTime will just ignore
+      // 0..999 part of the nanoseconds, however we subtract nanos % 1000 to make the value
+      // a little bit saner for debugging reasons
+      nanos += 1000 - nanos % 1000;
     }
     cal.setTimeInMillis(timeMillis);
 
@@ -665,6 +678,16 @@ public class TimestampUtils {
     appendTime(sb, hours, minutes, seconds, nanos);
   }
 
+  /**
+   * Appends time part to the {@code StringBuilder} in PostgreSQL-compatible format.
+   * The function truncates {@param nanos} to microseconds. The value is expected to be rounded
+   * beforehand.
+   * @param sb destination
+   * @param hours hours
+   * @param minutes minutes
+   * @param seconds seconds
+   * @param nanos nanoseconds
+   */
   private static void appendTime(StringBuilder sb, int hours, int minutes, int seconds, int nanos) {
     sb.append(NUMBERS[hours]);
 
@@ -757,7 +780,9 @@ public class TimestampUtils {
     }
 
     int nano = localTime.getNano();
-    if (nano % 1000 >= 500) {
+    if (nanosExceed499(nano)) {
+      // Technically speaking this is not a proper rounding, however
+      // it relies on the fact that appendTime just truncates 000..999 nanosecond part
       localTime = localTime.plus(ONE_MICROSECOND);
     }
     appendTime(sbuf, localTime);
@@ -776,7 +801,9 @@ public class TimestampUtils {
     sbuf.setLength(0);
 
     int nano = offsetDateTime.getNano();
-    if (nano % 1000 >= 500) {
+    if (nanosExceed499(nano)) {
+      // Technically speaking this is not a proper rounding, however
+      // it relies on the fact that appendTime just truncates 000..999 nanosecond part
       offsetDateTime = offsetDateTime.plus(ONE_MICROSECOND);
     }
     LocalDateTime localDateTime = offsetDateTime.toLocalDateTime();
