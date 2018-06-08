@@ -35,7 +35,7 @@ import java.sql.Types;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-@Fork(value = 0, jvmArgsPrepend = "-Xmx128m")
+@Fork(value = 1, jvmArgsPrepend = "-Xmx128m")
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @State(Scope.Thread)
