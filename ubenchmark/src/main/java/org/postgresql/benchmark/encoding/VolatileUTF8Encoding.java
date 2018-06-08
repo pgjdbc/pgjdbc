@@ -3,22 +3,30 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.core;
+package org.postgresql.benchmark.encoding;
 
+import org.postgresql.core.Encoding;
 import org.postgresql.util.GT;
 
 import java.io.IOException;
+import java.sql.Connection;
 
-final class UTF8Encoding extends Encoding {
+/**
+ * Similar to {@code org.postgresql.core.UTF8Encoding}, but the member {@code char[]} is {@code volatile}
+ * rather than making {@link #decode(byte[], int, int)} {@code synchronized}. While this makes an instance
+ * safe to use on different threads over time, it does not support concurrent threads interacting with the
+ * same {@link Connection}.
+ */
+public class VolatileUTF8Encoding extends Encoding {
   private static final int MIN_2_BYTES = 0x80;
   private static final int MIN_3_BYTES = 0x800;
   private static final int MIN_4_BYTES = 0x10000;
   private static final int MAX_CODE_POINT = 0x10ffff;
 
-  private char[] decoderArray = new char[1024];
+  private volatile char[] decoderArray = new char[1024];
 
-  UTF8Encoding() {
-    super("UTF-8", true);
+  public VolatileUTF8Encoding() {
+    super("utf-8");
   }
 
   // helper for decode
@@ -80,7 +88,7 @@ final class UTF8Encoding extends Encoding {
    * @throws IOException if something goes wrong
    */
   @Override
-  public synchronized String decode(byte[] data, int offset, int length) throws IOException {
+  public String decode(byte[] data, int offset, int length) throws IOException {
     char[] cdata = decoderArray;
     if (cdata.length < length) {
       cdata = decoderArray = new char[length];
@@ -164,16 +172,5 @@ final class UTF8Encoding extends Encoding {
     }
 
     return new String(cdata, 0, out);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public byte[] encode(String s) throws IOException {
-    if (s == null) {
-      return null;
-    }
-    return s.getBytes("UTF-8");
   }
 }

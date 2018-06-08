@@ -31,6 +31,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,14 +46,17 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class UTF8Decoding {
 
+  private static final Charset UTF_8 = Charset.forName("UTF-8");
+
   @Param({"1", "5", "10", "50", "100"})
   public int length;
 
   private byte[] source;
   private CharsetDecoder decoder;
   private Encoding encoding;
+  private Encoding encodingVol;
+  private Encoding atomicEncoding;
   private CharBuffer buf;
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   @Setup
   public void setup() {
@@ -62,8 +66,11 @@ public class UTF8Decoding {
     }
     source = sb.toString().getBytes(UTF_8);
     decoder = UTF_8.newDecoder();
+    decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
     encoding = Encoding.getJVMEncoding("UTF-8");
-    buf = CharBuffer.allocate(10240);
+    encodingVol = new VolatileUTF8Encoding();
+    atomicEncoding = new AtomicUTF8Encoding();
+    buf = CharBuffer.allocate(source.length);
   }
 
   @Benchmark
@@ -80,6 +87,16 @@ public class UTF8Decoding {
   }
 
   @Benchmark
+  public String encodingDecodeUTF8_volatile() throws IOException {
+    return encodingVol.decode(source, 0, source.length);
+  }
+
+  @Benchmark
+  public String encodingDecodeUTF8_atomic() throws IOException {
+    return atomicEncoding.decode(source, 0, source.length);
+  }
+
+  @Benchmark
   public String string_string() throws UnsupportedEncodingException {
     return new String(source, 0, source.length, "UTF-8");
   }
@@ -90,9 +107,10 @@ public class UTF8Decoding {
   }
 
   @Benchmark
-  public Object decoder_byteBufferReuse() throws CharacterCodingException {
+  public String decoder_byteBufferReuse() throws CharacterCodingException {
     buf.clear();
-    return decoder.decode(ByteBuffer.wrap(source), buf, true);
+    decoder.decode(ByteBuffer.wrap(source), buf, true);
+    return new String(buf.array(), 0, buf.position());
   }
 
   public static void main(String[] args) throws RunnerException {

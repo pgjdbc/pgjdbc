@@ -25,6 +25,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -82,14 +83,22 @@ public class UTF8Encoding {
   }
 
   @Benchmark
+  public byte[] string_getBytes_string() throws UnsupportedEncodingException {
+    return source.getBytes("UTF-8");
+  }
+
+  @Benchmark
   public ByteBuffer charset_encode() {
     return UTF_8.encode(source);
   }
 
   @Benchmark
-  public Object encoder_byteBufferReuse() throws CharacterCodingException {
+  public byte[] encoder_byteBufferReuse() throws CharacterCodingException {
     buf.clear();
-    return encoder.encode(CharBuffer.wrap(source), buf, true);
+    encoder.encode(CharBuffer.wrap(source), buf, true);
+    byte[] b = new byte[buf.limit()];
+    buf.get(b, 0, buf.limit());
+    return b;
   }
 
   public static void main(String[] args) throws RunnerException {
