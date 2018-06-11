@@ -93,6 +93,7 @@ public class CopyManager {
       while ((buf = cp.readFromCopy()) != null) {
         to.write(encoding.decode(buf));
       }
+      to.flush();
       return cp.getHandledRowCount();
     } catch (IOException ioEX) {
       // if not handled this way the close call will hang, at least in 8.2
