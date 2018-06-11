@@ -23,6 +23,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -222,7 +223,8 @@ public class CopyTest {
     testCopyInByRow(); // ensure we have some data.
     String sql = "COPY copytest TO STDOUT";
     ByteArrayOutputStream copydata = new ByteArrayOutputStream();
-    copyAPI.copyOut(sql, copydata);
+    BufferedOutputStream bufferedStream = new BufferedOutputStream(copydata);
+    copyAPI.copyOut(sql, bufferedStream);
     assertEquals(dataRows, getCount());
     // deep comparison of data written and read
     byte[] copybytes = copydata.toByteArray();
