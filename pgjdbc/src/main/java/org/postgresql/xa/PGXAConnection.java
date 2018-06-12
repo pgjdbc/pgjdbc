@@ -593,7 +593,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   private boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
-    return sqlException instanceof PSQLException && sqlException.getSQLState().matches("23\\d{3}");
+    return sqlException instanceof PSQLException
+        && sqlException.getSQLState().length() == 5
+        && sqlException.getSQLState().substring(0, 2).equals("23");
   }
 
   private enum State {
