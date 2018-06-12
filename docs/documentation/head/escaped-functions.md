@@ -10,7 +10,7 @@ next: ext.html
 ---
 
 The JDBC specification defines functions with an escape call syntax : `{fn function_name(arguments)}`.
-The following tables show which functions are supported by the PostgresSQL™ driver. 
+The following tables show which functions are supported by the PostgreSQL™ driver. 
 The driver supports the nesting and the mixing of escaped functions and escaped
 values. The appendix C of the JDBC specification describes the functions.
 

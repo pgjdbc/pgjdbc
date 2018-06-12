@@ -15,7 +15,6 @@
 
   <modules>
     <module>pgjdbc</module>
-    <module>ubenchmark</module>
   </modules>
 
   <!-- If inherited from parent pom, maven tries to add artifactId to URLs -->

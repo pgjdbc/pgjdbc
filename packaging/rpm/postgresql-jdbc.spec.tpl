@@ -107,8 +107,6 @@ mv pgjdbc-parent-poms-REL%parent_ver pgjdbc-parent-poms
 # remove any binary libs
 find -name "*.jar" -or -name "*.class" | xargs rm -f
 
-%pom_disable_module ubenchmark
-
 # Build parent POMs in the same Maven call.
 %pom_xpath_inject pom:modules "<module>%parent_poms_builddir</module>"
 %pom_xpath_inject pom:parent "<relativePath>pgjdbc-parent-poms/pgjdbc-versions</relativePath>"

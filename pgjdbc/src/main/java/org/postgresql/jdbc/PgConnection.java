@@ -655,6 +655,11 @@ public class PgConnection implements BaseConnection {
    * {@inheritDoc}
    */
   public void close() throws SQLException {
+    if (queryExecutor == null) {
+      // This might happen in case constructor throws an exception (e.g. host being not available).
+      // When that happens the connection is still registered in the finalizer queue, so it gets finalized
+      return;
+    }
     releaseTimer();
     queryExecutor.close();
     openStackTrace = null;

@@ -22,6 +22,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -694,6 +696,34 @@ public class TestUtil {
       }
       System.out.println();
     }
+  }
+
+  public static List<String> resultSetToLines(ResultSet rs) throws SQLException {
+    List<String> res = new ArrayList<String>();
+    ResultSetMetaData rsmd = rs.getMetaData();
+    StringBuilder sb = new StringBuilder();
+    while (rs.next()) {
+      sb.setLength(0);
+      for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+        if (i != 1) {
+          sb.append(',');
+        }
+        sb.append(rs.getString(i));
+      }
+      res.add(sb.toString());
+    }
+    return res;
+  }
+
+  public static String join(List<String> list) {
+    StringBuilder sb = new StringBuilder();
+    for (String s : list) {
+      if (sb.length() > 0) {
+        sb.append('\n');
+      }
+      sb.append(s);
+    }
+    return sb.toString();
   }
 
   /*

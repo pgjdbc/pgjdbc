@@ -239,7 +239,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    *
    * @param count the number of parameters the fastpath call will take
    * @return a ParameterList suitable for passing to {@link #fastpathCall}.
+   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+   *         and greater functionality by setting up a prepared statement to define
+   *         the function call. Then, executing the statement with binary transmission of parameters
+   *         and results substitutes for a fast-path function call.
    */
+  @Deprecated
   ParameterList createFastpathParameters(int count);
 
   /**
@@ -252,7 +257,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @return the binary-format result of the fastpath call, or <code>null</code> if a void result
    *         was returned
    * @throws SQLException if an error occurs while executing the fastpath call
+   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+   *         and greater functionality by setting up a prepared statement to define
+   *         the function call. Then, executing the statement with binary transmission of parameters
+   *         and results substitutes for a fast-path function call.
    */
+  @Deprecated
   byte[] fastpathCall(int fnid, ParameterList params, boolean suppressBegin) throws SQLException;
 
   /**
