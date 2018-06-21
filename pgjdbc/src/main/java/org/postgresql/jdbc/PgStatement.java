@@ -113,7 +113,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * Timeout (in milliseconds) for a query
    */
-  protected int timeout = 0;
+  protected long timeout = 0;
 
   protected boolean replaceProcessingEnabled = true;
 
@@ -518,11 +518,16 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public int getQueryTimeout() throws SQLException {
-    return getQueryTimeoutMs() / 1000;
+    checkClosed();
+    long seconds = timeout / 1000;
+    if (seconds >= Integer.MAX_VALUE) {
+      return Integer.MAX_VALUE;
+    }
+    return (int) seconds;
   }
 
   public void setQueryTimeout(int seconds) throws SQLException {
-    setQueryTimeoutMs(seconds * 1000);
+    setQueryTimeoutMs(seconds * 1000L);
   }
 
   /**
@@ -532,7 +537,7 @@ public class PgStatement implements Statement, BaseStatement {
    * @return the current query timeout limit in milliseconds; 0 = unlimited
    * @throws SQLException if a database access error occurs
    */
-  public int getQueryTimeoutMs() throws SQLException {
+  public long getQueryTimeoutMs() throws SQLException {
     checkClosed();
     return timeout;
   }
@@ -543,7 +548,7 @@ public class PgStatement implements Statement, BaseStatement {
    * @param millis - the new query timeout limit in milliseconds
    * @throws SQLException if a database access error occurs
    */
-  public void setQueryTimeoutMs(int millis) throws SQLException {
+  public void setQueryTimeoutMs(long millis) throws SQLException {
     checkClosed();
 
     if (millis < 0) {

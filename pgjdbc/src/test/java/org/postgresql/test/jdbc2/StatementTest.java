@@ -695,6 +695,17 @@ public class StatementTest {
     }
   }
 
+  @Test
+  public void testLongQueryTimeout() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.setQueryTimeout(Integer.MAX_VALUE);
+    Assert.assertEquals("setQueryTimeout(Integer.MAX_VALUE)", Integer.MAX_VALUE,
+        stmt.getQueryTimeout());
+    stmt.setQueryTimeout(Integer.MAX_VALUE - 1);
+    Assert.assertEquals("setQueryTimeout(Integer.MAX_VALUE-1)", Integer.MAX_VALUE - 1,
+        stmt.getQueryTimeout());
+  }
+
   /**
    * Test executes two queries one after another. The first one has timeout of 1ms, and the second
    * one does not. The timeout of the first query should not impact the second one.
