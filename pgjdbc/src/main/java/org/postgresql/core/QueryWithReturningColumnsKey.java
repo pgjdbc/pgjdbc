@@ -28,6 +28,17 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   }
 
   @Override
+  public long getSize() {
+    long size = super.getSize();
+    if (columnNames != null) {
+      for (String columnName: columnNames) {
+        size += columnName.length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
+      }
+    }
+    return size;
+  }
+
+  @Override
   public String toString() {
     return "QueryWithReturningColumnsKey{"
         + "sql='" + sql + '\''
