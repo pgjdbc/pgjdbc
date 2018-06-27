@@ -1157,7 +1157,7 @@ public class Parser {
             break;
           } else if (c == '{') { // start of an escape code?
             if (i + 1 < len) {
-              SqlParseState[] availableStates = SqlParseState.values();
+              SqlParseState[] availableStates = SqlParseState.VALUES;
               // skip first state, it's not a escape code state
               for (int j = 1; j < availableStates.length; j++) {
                 SqlParseState availableState = availableStates[j];
@@ -1191,7 +1191,7 @@ public class Parser {
             StringBuilder args = new StringBuilder();
             i = parseSql(p_sql, i, args, false, stdStrings);
             // translate the function and parse arguments
-            newsql.append(escapeFunction(functionName, args.toString(), stdStrings));
+            newsql.append(escapeFunction(functionName, args, stdStrings));
           }
           // go to the end of the function copying anything found
           i++;
@@ -1236,11 +1236,12 @@ public class Parser {
    * @return the right postgreSql sql
    * @throws SQLException if something goes wrong
    */
-  private static String escapeFunction(String functionName, String args, boolean stdStrings)
+  private static String escapeFunction(String functionName, StringBuilder args, boolean stdStrings)
       throws SQLException {
     // parse function arguments
     int len = args.length();
-    char[] argChars = args.toCharArray();
+    char[] argChars = new char[len];
+    args.getChars(0, len, argChars, 0);
     int i = 0;
     ArrayList<StringBuilder> parsedArgs = new ArrayList<StringBuilder>();
     while (i < len) {
@@ -1255,6 +1256,9 @@ public class Parser {
     // we can now translate escape functions
     try {
       Method escapeMethod = EscapedFunctions.getFunction(functionName);
+      if (escapeMethod == null) {
+        return constructDefaultFunctionCall(functionName, parsedArgs);
+      }
       return (String) escapeMethod.invoke(null, parsedArgs);
     } catch (InvocationTargetException e) {
       if (e.getTargetException() instanceof SQLException) {
@@ -1264,17 +1268,21 @@ public class Parser {
       }
     } catch (Exception e) {
       // by default the function name is kept unchanged
-      StringBuilder buf = new StringBuilder();
-      buf.append(functionName).append('(');
-      for (int iArg = 0; iArg < parsedArgs.size(); iArg++) {
-        buf.append(parsedArgs.get(iArg));
-        if (iArg != (parsedArgs.size() - 1)) {
-          buf.append(',');
-        }
-      }
-      buf.append(')');
-      return buf.toString();
+      return constructDefaultFunctionCall(functionName, parsedArgs);
     }
+  }
+
+  private static String constructDefaultFunctionCall(String functionName, List<StringBuilder> parsedArgs) {
+    StringBuilder buf = new StringBuilder(functionName.length() + parsedArgs.size() * 10); //heuristics !
+    buf.append(functionName).append('(');
+    for (int iArg = 0; iArg < parsedArgs.size(); iArg++) {
+      buf.append(parsedArgs.get(iArg));
+      if (iArg != (parsedArgs.size() - 1)) {
+        buf.append(',');
+      }
+    }
+    buf.append(')');
+    return buf.toString();
   }
 
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
@@ -1291,6 +1299,8 @@ public class Parser {
     ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
     ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS, null),
     ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
+
+    private static final SqlParseState[] VALUES = values();
 
     private final char[] escapeKeyword;
     private final char[] allowedValues;
