@@ -31,6 +31,7 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   public long getSize() {
     long size = super.getSize();
     if (columnNames != null) {
+      size += 16L; // array itself
       for (String columnName: columnNames) {
         size += columnName.length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
       }
