@@ -16,6 +16,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
@@ -25,6 +26,37 @@ public class PropertyLoader {
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.util.PropertyLogger");
   private static final String DEFAULT_PORT =
     /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5431";
+
+  /**
+   * <p>Full libpq-style property loading</p>
+   *
+   * <p>Loads properties from standard location like PG* env vars. The precedence
+   * of the sources of properties is the same as in libpq.</p>
+   *
+   * @param url the URL of the database to connect to
+   * @param info a list of arbitrary tag/value pairs as connection arguments
+   * @return Properties with elements added from the URL, info and env vars
+   * @throws PSQLException on bad input
+   */
+  public static Properties load(String url, Properties info) throws PSQLException {
+    return load(url, info, System.getenv());
+  }
+
+  public static Properties load(String url, Properties info, Map<String, String> env) throws PSQLException {
+    Properties defaults;
+    PropertyLoader loader = new PropertyLoader();
+    defaults = loader.getDefaultProperties();
+    Properties props = new Properties(defaults);
+    overrideProperties(props, defaults);
+    loadEnv(props, env);
+    overrideProperties(props, info);
+    Properties urlProps = parseURL(url);
+    if (urlProps == null) {
+      return null;
+    }
+    overrideProperties(props, urlProps);
+    return props;
+  }
 
   // Pure pgJDBC-style property loading. It's more an internal method, the
   // Driver.connect() should be used instead.
@@ -214,5 +246,26 @@ public class PropertyLoader {
     }
 
     return urlProps;
+  }
+
+  public static void loadEnv(Properties props, Map<String, String> env) {
+    if (env.containsKey("PGHOST")) {
+      PGProperty.PG_HOST.set(props, env.get("PGHOST"));
+    }
+    if (env.containsKey("PGPORT")) {
+      PGProperty.PG_PORT.set(props, env.get("PGPORT"));
+    }
+    if (env.containsKey("PGDATABASE")) {
+      PGProperty.PG_DBNAME.set(props, env.get("PGDATABASE"));
+    }
+    if (env.containsKey("PGUSER")) {
+      PGProperty.USER.set(props, env.get("PGUSER"));
+    }
+    if (env.containsKey("PGPASSWORD")) {
+      PGProperty.PASSWORD.set(props, env.get("PGPASSWORD"));
+    }
+    if (env.containsKey("PGAPPAME")) {
+      PGProperty.APPLICATION_NAME.set(props, env.get("PGAPPNAME"));
+    }
   }
 }

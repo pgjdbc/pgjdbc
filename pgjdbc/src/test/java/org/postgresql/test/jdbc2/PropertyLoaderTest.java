@@ -15,6 +15,8 @@ import org.postgresql.util.PropertyLoader;
 
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 public class PropertyLoaderTest {
@@ -54,5 +56,54 @@ public class PropertyLoaderTest {
     assertEquals(url, dbName, p.getProperty(PGProperty.PG_DBNAME.getName()));
     assertEquals(url, hosts, p.getProperty(PGProperty.PG_HOST.getName()));
     assertEquals(url, ports, p.getProperty(PGProperty.PG_PORT.getName()));
+  }
+
+  @Test
+  public void testEnvironment() throws Exception {
+    Map<String, String> env = new HashMap();
+    env.put("PGHOST", "localhost");
+    env.put("PGPORT", "5432");
+    env.put("PGUSER", "me");
+    env.put("PGAPPNAME", "myapp");
+
+    Properties props = new Properties();
+    PropertyLoader.loadEnv(props, env);
+
+    assertTrue(PGProperty.PG_HOST.isPresent(props));
+    assertEquals("localhost", PGProperty.PG_HOST.get(props));
+
+    assertTrue(PGProperty.PG_PORT.isPresent(props));
+    assertEquals(5432, PGProperty.PG_PORT.getInt(props));
+
+    assertTrue(PGProperty.USER.isPresent(props));
+    assertEquals("me", PGProperty.USER.get(props));
+  }
+
+  @Test
+  public void testOrder() throws Exception {
+    Map<String, String> env = new HashMap();
+    env.put("PGHOST", "fromenv");
+    env.put("PGPORT", "5433");  // To override with URL
+    env.put("PGDATABASE", "fromenv");  // To override with info
+
+    Properties info = new Properties();
+    PGProperty.PG_DBNAME.set(info, "frominfo");  // Override env
+    PGProperty.PG_PORT.set(info, "5434");  // To override with URL
+
+    String url = "jdbc:postgresql:?PGPORT=5435";
+    Properties props = PropertyLoader.load(url, info, env);
+
+    assertNotNull(props);
+
+    assertTrue(PGProperty.PG_HOST.isPresent(props));
+    assertEquals("fromenv", PGProperty.PG_HOST.get(props));
+
+    assertTrue(PGProperty.PG_PORT.isPresent(props));
+    assertEquals(5435, PGProperty.PG_PORT.getInt(props));
+
+    assertTrue(PGProperty.USER.isPresent(props));
+
+    assertTrue(PGProperty.PG_DBNAME.isPresent(props));
+    assertEquals("frominfo", PGProperty.PG_DBNAME.get(props));
   }
 }
