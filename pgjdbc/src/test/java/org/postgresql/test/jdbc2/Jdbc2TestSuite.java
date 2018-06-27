@@ -115,6 +115,7 @@ import org.junit.runners.Suite;
         ConnectTimeoutTest.class,
 
         PGPropertyTest.class,
+        PropertyLoaderTest.class,
 
         V3ParameterListTests.class,
 
