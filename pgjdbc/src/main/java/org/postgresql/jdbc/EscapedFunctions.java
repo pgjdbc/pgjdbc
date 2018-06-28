@@ -234,12 +234,12 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlinsert(List<?> parsedArgs) throws SQLException {
-    StringBuilder buf = new StringBuilder();
-    buf.append("overlay(");
     if (parsedArgs.size() != 4) {
       throw new PSQLException(GT.tr("{0} function takes four and only four argument.", "insert"),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
+    buf.append("overlay(");
     buf.append(parsedArgs.get(0)).append(" placing ").append(parsedArgs.get(3));
     buf.append(" from ").append(parsedArgs.get(1)).append(" for ").append(parsedArgs.get(2));
     return buf.append(')').toString();
@@ -264,12 +264,12 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlleft(List<?> parsedArgs) throws SQLException {
-    StringBuilder buf = new StringBuilder();
-    buf.append("substring(");
     if (parsedArgs.size() != 2) {
       throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "left"),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
+    buf.append("substring(");
     buf.append(parsedArgs.get(0)).append(" for ").append(parsedArgs.get(1));
     return buf.append(')').toString();
   }
@@ -282,12 +282,12 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqllength(List<?> parsedArgs) throws SQLException {
-    StringBuilder buf = new StringBuilder();
-    buf.append("length(trim(trailing from ");
     if (parsedArgs.size() != 1) {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "length"),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
+    buf.append("length(trim(trailing from ");
     buf.append(parsedArgs.get(0));
     return buf.append("))").toString();
   }
@@ -320,14 +320,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlltrim(List<?> parsedArgs) throws SQLException {
-    StringBuilder buf = new StringBuilder();
-    buf.append("trim(leading from ");
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "ltrim"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    buf.append(parsedArgs.get(0));
-    return buf.append(')').toString();
+    return singleArgumentFunctionCall("trim(leading from ", "ltrim", parsedArgs);
   }
 
   /**
@@ -338,12 +331,12 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlright(List<?> parsedArgs) throws SQLException {
-    StringBuilder buf = new StringBuilder();
-    buf.append("substring(");
     if (parsedArgs.size() != 2) {
       throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "right"),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
+    buf.append("substring(");
     buf.append(parsedArgs.get(0))
         .append(" from (length(")
         .append(parsedArgs.get(0))
@@ -457,11 +450,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqldayofmonth(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "dayofmonth"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(day from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(day from ", "dayofmonth", parsedArgs);
   }
 
   /**
@@ -487,11 +476,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqldayofyear(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "dayofyear"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(doy from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(doy from ", "dayofyear", parsedArgs);
   }
 
   /**
@@ -502,11 +487,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlhour(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "hour"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(hour from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(hour from ", "hour", parsedArgs);
   }
 
   /**
@@ -517,11 +498,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlminute(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "minute"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(minute from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(minute from ", "minute", parsedArgs);
   }
 
   /**
@@ -532,11 +509,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlmonth(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "month"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(month from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(month from ", "month", parsedArgs);
   }
 
   /**
@@ -562,11 +535,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlquarter(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "quarter"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(quarter from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(quarter from ", "quarter", parsedArgs);
   }
 
   /**
@@ -577,11 +546,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlsecond(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "second"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(second from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(second from ", "second", parsedArgs);
   }
 
   /**
@@ -592,11 +557,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlweek(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "week"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(week from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(week from ", "week", parsedArgs);
   }
 
   /**
@@ -607,11 +568,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlyear(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "year"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "extract(year from " + parsedArgs.get(0) + ")";
+    return singleArgumentFunctionCall("extract(year from ", "year", parsedArgs);
   }
 
   /**
@@ -745,11 +702,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlifnull(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 2) {
-      throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "ifnull"),
-          PSQLState.SYNTAX_ERROR);
-    }
-    return "coalesce(" + parsedArgs.get(0) + "," + parsedArgs.get(1) + ")";
+    return twoArgumentsFunctionCall("coalesce(", "ifnull", parsedArgs);
   }
 
   /**
@@ -769,24 +722,24 @@ public class EscapedFunctions {
 
   private static String singleArgumentFunctionCall(String call, String functionName,
       List<?> parsedArgs) throws PSQLException {
-    StringBuilder buf = new StringBuilder();
-    buf.append(call);
     if (parsedArgs.size() != 1) {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", functionName),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
+    buf.append(call);
     buf.append(parsedArgs.get(0));
     return buf.append(')').toString();
   }
 
   private static String twoArgumentsFunctionCall(String call, String functionName,
       List<?> parsedArgs) throws PSQLException {
-    StringBuilder buf = new StringBuilder();
-    buf.append(call);
     if (parsedArgs.size() != 2) {
       throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", functionName),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
+    buf.append(call);
     buf.append(parsedArgs.get(0)).append(',').append(parsedArgs.get(1));
     return buf.append(')').toString();
   }
