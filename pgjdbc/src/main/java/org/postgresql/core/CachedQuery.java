@@ -55,7 +55,12 @@ public class CachedQuery implements CanEstimateSize {
 
   @Override
   public long getSize() {
-    int queryLength = String.valueOf(key).length() * 2 /* 2 bytes per char */;
+    long queryLength = 0;
+    if (key instanceof BaseQueryKey) {
+      queryLength = ((BaseQueryKey) key).getEstimatedSize();
+    } else {
+      queryLength = String.valueOf(key).length() * 2L /* 2 bytes per char */;
+    }
     return queryLength * 2 /* original query and native sql */
         + 100L /* entry in hash map, CachedQuery wrapper, etc */;
   }

@@ -31,6 +31,11 @@ class BaseQueryKey {
         + '}';
   }
 
+  public long getEstimatedSize() {
+    return (sql != null ? sql.length() : 0) * 2L
+        + 2L;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

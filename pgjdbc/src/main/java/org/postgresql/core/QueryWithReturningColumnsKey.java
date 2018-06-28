@@ -38,6 +38,16 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   }
 
   @Override
+  public long getEstimatedSize() {
+    long size = super.getEstimatedSize();
+    for (String name : columnNames) {
+      size += name.length() * 2L;
+    }
+
+    return size;
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -61,4 +71,5 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
     result = 31 * result + Arrays.hashCode(columnNames);
     return result;
   }
+
 }
