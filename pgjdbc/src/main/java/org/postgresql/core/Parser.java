@@ -1157,7 +1157,7 @@ public class Parser {
             break;
           } else if (c == '{') { // start of an escape code?
             if (i + 1 < len) {
-              SqlParseState[] availableStates = SqlParseState.values();
+              SqlParseState[] availableStates = SqlParseState.VALUES;
               // skip first state, it's not a escape code state
               for (int j = 1; j < availableStates.length; j++) {
                 SqlParseState availableState = availableStates[j];
@@ -1291,6 +1291,8 @@ public class Parser {
     ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
     ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS, null),
     ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
+
+    private static final SqlParseState[] VALUES = values();
 
     private final char[] escapeKeyword;
     private final char[] allowedValues;
