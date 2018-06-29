@@ -145,16 +145,13 @@ public class EscapedFunctions {
       return null;
     }
     method = FUNCTION_MAP.get(nameLower);
-    if (method != null) {
-      if (FUNCTION_MAP.size() < 1000) {
-        // Avoid OutOfMemoryError in case input function names are randomized
-        // The number of methods is finite, however the number of upper-lower case combinations
-        // is quite a few (e.g. substr, Substr, sUbstr, SUbstr, etc).
-        FUNCTION_MAP.put(functionName, method);
-      }
-      return method;
+    if (method != null && FUNCTION_MAP.size() < 1000) {
+      // Avoid OutOfMemoryError in case input function names are randomized
+      // The number of methods is finite, however the number of upper-lower case combinations
+      // is quite a few (e.g. substr, Substr, sUbstr, SUbstr, etc).
+      FUNCTION_MAP.putIfAbsent(functionName, method);
     }
-    return null;
+    return method;
   }
 
   // ** numeric functions translations **
