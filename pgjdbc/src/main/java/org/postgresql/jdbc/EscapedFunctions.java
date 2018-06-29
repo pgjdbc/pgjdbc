@@ -268,9 +268,7 @@ public class EscapedFunctions {
       throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "left"),
           PSQLState.SYNTAX_ERROR);
     }
-    buf.append("substring(");
-    buf.append(parsedArgs.get(0)).append(" for ").append(parsedArgs.get(1));
-    buf.append(')');
+    appendCall(buf, "substring(", " for ", ")", parsedArgs);
   }
 
   /**
@@ -284,9 +282,7 @@ public class EscapedFunctions {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "length"),
           PSQLState.SYNTAX_ERROR);
     }
-    buf.append("length(trim(trailing from ");
-    buf.append(parsedArgs.get(0));
-    buf.append("))");
+    appendCall(buf, "length(trim(trailing from ", "", "))", parsedArgs);
   }
 
   /**
