@@ -11,16 +11,18 @@ import org.postgresql.util.PSQLState;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
 
 /**
  * This class stores supported escaped function
  *
  * @author Xavier Poinsard
+ * @deprecated see {@link EscapedFunctions2}
  */
+@Deprecated
 public class EscapedFunctions {
   // numeric functions names
   public static final String ABS = "abs";
@@ -95,15 +97,15 @@ public class EscapedFunctions {
 
   // constants for timestampadd and timestampdiff
   public static final String SQL_TSI_ROOT = "SQL_TSI_";
-  public static final String SQL_TSI_DAY = "SQL_TSI_DAY";
-  public static final String SQL_TSI_FRAC_SECOND = "SQL_TSI_FRAC_SECOND";
-  public static final String SQL_TSI_HOUR = "SQL_TSI_HOUR";
-  public static final String SQL_TSI_MINUTE = "SQL_TSI_MINUTE";
-  public static final String SQL_TSI_MONTH = "SQL_TSI_MONTH";
-  public static final String SQL_TSI_QUARTER = "SQL_TSI_QUARTER";
-  public static final String SQL_TSI_SECOND = "SQL_TSI_SECOND";
-  public static final String SQL_TSI_WEEK = "SQL_TSI_WEEK";
-  public static final String SQL_TSI_YEAR = "SQL_TSI_YEAR";
+  public static final String SQL_TSI_DAY = "DAY";
+  public static final String SQL_TSI_FRAC_SECOND = "FRAC_SECOND";
+  public static final String SQL_TSI_HOUR = "HOUR";
+  public static final String SQL_TSI_MINUTE = "MINUTE";
+  public static final String SQL_TSI_MONTH = "MONTH";
+  public static final String SQL_TSI_QUARTER = "QUARTER";
+  public static final String SQL_TSI_SECOND = "SECOND";
+  public static final String SQL_TSI_WEEK = "WEEK";
+  public static final String SQL_TSI_YEAR = "YEAR";
 
 
   // system functions
@@ -115,14 +117,14 @@ public class EscapedFunctions {
   /**
    * storage for functions implementations
    */
-  private static final ConcurrentMap<String, Method> FUNCTION_MAP = createFunctionMap("sql");
+  private static Map<String, Method> functionMap = createFunctionMap();
 
-  private static ConcurrentMap<String, Method> createFunctionMap(String prefix) {
-    Method[] methods = EscapedFunctions.class.getMethods();
-    ConcurrentMap<String, Method> functionMap = new ConcurrentHashMap<String, Method>(methods.length * 2);
-    for (Method method : methods) {
-      if (method.getName().startsWith(prefix)) {
-        functionMap.put(method.getName().substring(prefix.length()).toLowerCase(Locale.US), method);
+  private static Map<String, Method> createFunctionMap() {
+    Method[] arrayMeths = EscapedFunctions.class.getDeclaredMethods();
+    Map<String, Method> functionMap = new HashMap<String, Method>(arrayMeths.length * 2);
+    for (Method meth : arrayMeths) {
+      if (meth.getName().startsWith("sql")) {
+        functionMap.put(meth.getName().toLowerCase(Locale.US), meth);
       }
     }
     return functionMap;
@@ -135,23 +137,7 @@ public class EscapedFunctions {
    * @return a Method object or null if not found
    */
   public static Method getFunction(String functionName) {
-    Method method = FUNCTION_MAP.get(functionName);
-    if (method != null) {
-      return method;
-    }
-    String nameLower = functionName.toLowerCase(Locale.US);
-    if (nameLower == functionName) {
-      // Input name was in lower case, the function is not there
-      return null;
-    }
-    method = FUNCTION_MAP.get(nameLower);
-    if (method != null && FUNCTION_MAP.size() < 1000) {
-      // Avoid OutOfMemoryError in case input function names are randomized
-      // The number of methods is finite, however the number of upper-lower case combinations
-      // is quite a few (e.g. substr, Substr, sUbstr, SUbstr, etc).
-      FUNCTION_MAP.putIfAbsent(functionName, method);
-    }
-    return method;
+    return functionMap.get("sql" + functionName.toLowerCase(Locale.US));
   }
 
   // ** numeric functions translations **
@@ -160,50 +146,55 @@ public class EscapedFunctions {
    * ceiling to ceil translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlceiling(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "ceil(", "ceiling", parsedArgs);
+  public static String sqlceiling(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("ceil(", "ceiling", parsedArgs);
   }
 
   /**
    * log to ln translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqllog(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "ln(", "log", parsedArgs);
+  public static String sqllog(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("ln(", "log", parsedArgs);
   }
 
   /**
    * log10 to log translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqllog10(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "log(", "log10", parsedArgs);
+  public static String sqllog10(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("log(", "log10", parsedArgs);
   }
 
   /**
    * power to pow translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlpower(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    twoArgumentsFunctionCall(buf, "pow(", "power", parsedArgs);
+  public static String sqlpower(List<?> parsedArgs) throws SQLException {
+    return twoArgumentsFunctionCall("pow(", "power", parsedArgs);
   }
 
   /**
    * truncate to trunc translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqltruncate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    twoArgumentsFunctionCall(buf, "trunc(", "truncate", parsedArgs);
+  public static String sqltruncate(List<?> parsedArgs) throws SQLException {
+    return twoArgumentsFunctionCall("trunc(", "truncate", parsedArgs);
   }
 
   // ** string functions translations **
@@ -212,95 +203,111 @@ public class EscapedFunctions {
    * char to chr translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlchar(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "chr(", "char", parsedArgs);
+  public static String sqlchar(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("chr(", "char", parsedArgs);
   }
 
   /**
    * concat translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    */
-  public static void sqlconcat(StringBuilder buf, List<? extends CharSequence> parsedArgs) {
-    appendCall(buf, "(", "||", ")", parsedArgs);
+  public static String sqlconcat(List<?> parsedArgs) {
+    StringBuilder buf = new StringBuilder();
+    buf.append('(');
+    for (int iArg = 0; iArg < parsedArgs.size(); iArg++) {
+      buf.append(parsedArgs.get(iArg));
+      if (iArg != (parsedArgs.size() - 1)) {
+        buf.append(" || ");
+      }
+    }
+    return buf.append(')').toString();
   }
 
   /**
    * insert to overlay translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlinsert(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqlinsert(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 4) {
       throw new PSQLException(GT.tr("{0} function takes four and only four argument.", "insert"),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
     buf.append("overlay(");
     buf.append(parsedArgs.get(0)).append(" placing ").append(parsedArgs.get(3));
     buf.append(" from ").append(parsedArgs.get(1)).append(" for ").append(parsedArgs.get(2));
-    buf.append(')');
+    return buf.append(')').toString();
   }
 
   /**
    * lcase to lower translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqllcase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "lower(", "lcase", parsedArgs);
+  public static String sqllcase(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("lower(", "lcase", parsedArgs);
   }
 
   /**
    * left to substring translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlleft(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqlleft(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 2) {
       throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "left"),
           PSQLState.SYNTAX_ERROR);
     }
-    appendCall(buf, "substring(", " for ", ")", parsedArgs);
+    StringBuilder buf = new StringBuilder();
+    buf.append("substring(");
+    buf.append(parsedArgs.get(0)).append(" for ").append(parsedArgs.get(1));
+    return buf.append(')').toString();
   }
 
   /**
    * length translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqllength(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqllength(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 1) {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "length"),
           PSQLState.SYNTAX_ERROR);
     }
-    appendCall(buf, "length(trim(trailing from ", "", "))", parsedArgs);
+    StringBuilder buf = new StringBuilder();
+    buf.append("length(trim(trailing from ");
+    buf.append(parsedArgs.get(0));
+    return buf.append("))").toString();
   }
 
   /**
    * locate translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqllocate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqllocate(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() == 2) {
-      appendCall(buf, "position(", " in ", ")", parsedArgs);
+      return "position(" + parsedArgs.get(0) + " in " + parsedArgs.get(1) + ")";
     } else if (parsedArgs.size() == 3) {
       String tmp = "position(" + parsedArgs.get(0) + " in substring(" + parsedArgs.get(1) + " from "
           + parsedArgs.get(2) + "))";
-      buf.append("(")
-          .append(parsedArgs.get(2))
-          .append("*sign(")
-          .append(tmp)
-          .append(")+")
-          .append(tmp)
-          .append(")");
+      return "(" + parsedArgs.get(2) + "*sign(" + tmp + ")+" + tmp + ")";
     } else {
       throw new PSQLException(GT.tr("{0} function takes two or three arguments.", "locate"),
           PSQLState.SYNTAX_ERROR);
@@ -311,296 +318,311 @@ public class EscapedFunctions {
    * ltrim translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlltrim(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "trim(leading from ", "ltrim", parsedArgs);
+  public static String sqlltrim(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("trim(leading from ", "ltrim", parsedArgs);
   }
 
   /**
    * right to substring translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlright(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqlright(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 2) {
       throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "right"),
           PSQLState.SYNTAX_ERROR);
     }
+    StringBuilder buf = new StringBuilder();
     buf.append("substring(");
     buf.append(parsedArgs.get(0))
         .append(" from (length(")
         .append(parsedArgs.get(0))
         .append(")+1-")
         .append(parsedArgs.get(1));
-    buf.append("))");
+    return buf.append("))").toString();
   }
 
   /**
    * rtrim translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlrtrim(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "trim(trailing from ", "rtrim", parsedArgs);
+  public static String sqlrtrim(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("trim(trailing from ", "rtrim", parsedArgs);
   }
 
   /**
    * space translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlspace(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "repeat(' ',", "space", parsedArgs);
+  public static String sqlspace(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("repeat(' ',", "space", parsedArgs);
   }
 
   /**
    * substring to substr translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlsubstring(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    int argSize = parsedArgs.size();
-    if (argSize != 2 && argSize != 3) {
+  public static String sqlsubstring(List<?> parsedArgs) throws SQLException {
+    if (parsedArgs.size() == 2) {
+      return "substr(" + parsedArgs.get(0) + "," + parsedArgs.get(1) + ")";
+    } else if (parsedArgs.size() == 3) {
+      return "substr(" + parsedArgs.get(0) + "," + parsedArgs.get(1) + "," + parsedArgs.get(2)
+          + ")";
+    } else {
       throw new PSQLException(GT.tr("{0} function takes two or three arguments.", "substring"),
           PSQLState.SYNTAX_ERROR);
     }
-    appendCall(buf, "substr(", ",", ")", parsedArgs);
   }
 
   /**
    * ucase to upper translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlucase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "upper(", "ucase", parsedArgs);
+  public static String sqlucase(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("upper(", "ucase", parsedArgs);
   }
 
   /**
    * curdate to current_date translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlcurdate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    zeroArgumentFunctionCall(buf, "current_date", "curdate", parsedArgs);
+  public static String sqlcurdate(List<?> parsedArgs) throws SQLException {
+    if (!parsedArgs.isEmpty()) {
+      throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "curdate"),
+          PSQLState.SYNTAX_ERROR);
+    }
+    return "current_date";
   }
 
   /**
    * curtime to current_time translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlcurtime(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    zeroArgumentFunctionCall(buf, "current_time", "curtime", parsedArgs);
+  public static String sqlcurtime(List<?> parsedArgs) throws SQLException {
+    if (!parsedArgs.isEmpty()) {
+      throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "curtime"),
+          PSQLState.SYNTAX_ERROR);
+    }
+    return "current_time";
   }
 
   /**
    * dayname translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqldayname(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqldayname(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 1) {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "dayname"),
           PSQLState.SYNTAX_ERROR);
     }
-    appendCall(buf, "to_char(", ",", ",'Day')", parsedArgs);
+    return "to_char(" + parsedArgs.get(0) + ",'Day')";
   }
 
   /**
    * dayofmonth translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqldayofmonth(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(day from ", "dayofmonth", parsedArgs);
+  public static String sqldayofmonth(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(day from ", "dayofmonth", parsedArgs);
   }
 
   /**
    * dayofweek translation adding 1 to postgresql function since we expect values from 1 to 7
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqldayofweek(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqldayofweek(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 1) {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "dayofweek"),
           PSQLState.SYNTAX_ERROR);
     }
-    appendCall(buf, "extract(dow from ", ",", ")+1", parsedArgs);
+    return "extract(dow from " + parsedArgs.get(0) + ")+1";
   }
 
   /**
    * dayofyear translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqldayofyear(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(doy from ", "dayofyear", parsedArgs);
+  public static String sqldayofyear(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(doy from ", "dayofyear", parsedArgs);
   }
 
   /**
    * hour translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlhour(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(hour from ", "hour", parsedArgs);
+  public static String sqlhour(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(hour from ", "hour", parsedArgs);
   }
 
   /**
    * minute translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlminute(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(minute from ", "minute", parsedArgs);
+  public static String sqlminute(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(minute from ", "minute", parsedArgs);
   }
 
   /**
    * month translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlmonth(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(month from ", "month", parsedArgs);
+  public static String sqlmonth(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(month from ", "month", parsedArgs);
   }
 
   /**
    * monthname translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlmonthname(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqlmonthname(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 1) {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "monthname"),
           PSQLState.SYNTAX_ERROR);
     }
-    appendCall(buf, "to_char(", ",", ",'Month')", parsedArgs);
+    return "to_char(" + parsedArgs.get(0) + ",'Month')";
   }
 
   /**
    * quarter translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlquarter(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(quarter from ", "quarter", parsedArgs);
+  public static String sqlquarter(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(quarter from ", "quarter", parsedArgs);
   }
 
   /**
    * second translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlsecond(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(second from ", "second", parsedArgs);
+  public static String sqlsecond(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(second from ", "second", parsedArgs);
   }
 
   /**
    * week translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlweek(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(week from ", "week", parsedArgs);
+  public static String sqlweek(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(week from ", "week", parsedArgs);
   }
 
   /**
    * year translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlyear(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    singleArgumentFunctionCall(buf, "extract(year from ", "year", parsedArgs);
+  public static String sqlyear(List<?> parsedArgs) throws SQLException {
+    return singleArgumentFunctionCall("extract(year from ", "year", parsedArgs);
   }
 
   /**
    * time stamp add
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqltimestampadd(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqltimestampadd(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 3) {
       throw new PSQLException(
           GT.tr("{0} function takes three and only three arguments.", "timestampadd"),
           PSQLState.SYNTAX_ERROR);
     }
-    buf.append('(');
-    appendInterval(buf, parsedArgs.get(0).toString(), parsedArgs.get(1).toString());
-    buf.append('+').append(parsedArgs.get(2)).append(')');
+    String interval = EscapedFunctions.constantToInterval(parsedArgs.get(0).toString(),
+        parsedArgs.get(1).toString());
+    StringBuilder buf = new StringBuilder();
+    buf.append("(").append(interval).append("+");
+    buf.append(parsedArgs.get(2)).append(")");
+    return buf.toString();
   }
 
-  private static void appendInterval(StringBuilder buf, String type, String value) throws SQLException {
-    if (!isTsi(type)) {
+  private static String constantToInterval(String type, String value) throws SQLException {
+    if (!type.startsWith(SQL_TSI_ROOT)) {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);
     }
-    if (appendSingleIntervalCast(buf, SQL_TSI_DAY, type, value, "day")
-        || appendSingleIntervalCast(buf, SQL_TSI_SECOND, type, value, "second")
-        || appendSingleIntervalCast(buf, SQL_TSI_HOUR, type, value, "hour")
-        || appendSingleIntervalCast(buf, SQL_TSI_MINUTE, type, value, "minute")
-        || appendSingleIntervalCast(buf, SQL_TSI_MONTH, type, value, "month")
-        || appendSingleIntervalCast(buf, SQL_TSI_WEEK, type, value, "week")
-        || appendSingleIntervalCast(buf, SQL_TSI_YEAR, type, value, "year")
-    ) {
-      return;
+    String shortType = type.substring(SQL_TSI_ROOT.length());
+    if (SQL_TSI_DAY.equalsIgnoreCase(shortType)) {
+      return "CAST(" + value + " || ' day' as interval)";
+    } else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType)) {
+      return "CAST(" + value + " || ' second' as interval)";
+    } else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType)) {
+      return "CAST(" + value + " || ' hour' as interval)";
+    } else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType)) {
+      return "CAST(" + value + " || ' minute' as interval)";
+    } else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType)) {
+      return "CAST(" + value + " || ' month' as interval)";
+    } else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType)) {
+      return "CAST((" + value + "::int * 3) || ' month' as interval)";
+    } else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType)) {
+      return "CAST(" + value + " || ' week' as interval)";
+    } else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType)) {
+      return "CAST(" + value + " || ' year' as interval)";
+    } else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType)) {
+      throw new PSQLException(GT.tr("Interval {0} not yet implemented", "SQL_TSI_FRAC_SECOND"),
+          PSQLState.SYNTAX_ERROR);
+    } else {
+      throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
+          PSQLState.SYNTAX_ERROR);
     }
-    if (areSameTsi(SQL_TSI_QUARTER, type)) {
-      buf.append("CAST((").append(value).append("::int * 3) || ' month' as interval)");
-      return;
-    }
-    throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
-        PSQLState.NOT_IMPLEMENTED);
-  }
-
-  private static boolean appendSingleIntervalCast(StringBuilder buf, String cmp, String type, String value, String pgType) {
-    if (!areSameTsi(type, cmp)) {
-      return false;
-    }
-    buf.ensureCapacity(buf.length() + 5 + 4 + 14 + value.length() + pgType.length());
-    buf.append("CAST(").append(value).append("||' ").append(pgType).append("' as interval)");
-    return true;
-  }
-
-  /**
-   * Compares two TSI intervals. It is
-   * @param a first interval to compare
-   * @param b second interval to compare
-   * @return true when both intervals are equal (case insensitive)
-   */
-  private static boolean areSameTsi(String a, String b) {
-    return a.length() == b.length() && b.length() > SQL_TSI_ROOT.length()
-        && a.regionMatches(true, SQL_TSI_ROOT.length(), b, SQL_TSI_ROOT.length(), SQL_TSI_ROOT.length() - b.length());
-  }
-
-  /**
-   * Checks if given input starts with {@link #SQL_TSI_ROOT}
-   * @param interval input string
-   * @return true if interval.startsWithIgnoreCase(SQL_TSI_ROOT)
-   */
-  private static boolean isTsi(String interval) {
-    return interval.regionMatches(true, 0, SQL_TSI_ROOT, 0, SQL_TSI_ROOT.length());
   }
 
 
@@ -608,36 +630,44 @@ public class EscapedFunctions {
    * time stamp diff
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqltimestampdiff(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static String sqltimestampdiff(List<?> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 3) {
       throw new PSQLException(
           GT.tr("{0} function takes three and only three arguments.", "timestampdiff"),
           PSQLState.SYNTAX_ERROR);
     }
+    String datePart = EscapedFunctions.constantToDatePart(parsedArgs.get(0).toString());
+    StringBuilder buf = new StringBuilder();
     buf.append("extract( ")
-        .append(constantToDatePart(buf, parsedArgs.get(0).toString()))
+        .append(datePart)
         .append(" from (")
         .append(parsedArgs.get(2))
         .append("-")
         .append(parsedArgs.get(1))
         .append("))");
+    return buf.toString();
   }
 
-  private static String constantToDatePart(StringBuilder buf, String type) throws SQLException {
-    if (!isTsi(type)) {
+  private static String constantToDatePart(String type) throws SQLException {
+    if (!type.startsWith(SQL_TSI_ROOT)) {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);
     }
-    if (areSameTsi(SQL_TSI_DAY, type)) {
+    String shortType = type.substring(SQL_TSI_ROOT.length());
+    if (SQL_TSI_DAY.equalsIgnoreCase(shortType)) {
       return "day";
-    } else if (areSameTsi(SQL_TSI_SECOND, type)) {
+    } else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType)) {
       return "second";
-    } else if (areSameTsi(SQL_TSI_HOUR, type)) {
+    } else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType)) {
       return "hour";
-    } else if (areSameTsi(SQL_TSI_MINUTE, type)) {
+    } else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType)) {
       return "minute";
+    } else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType)) {
+      throw new PSQLException(GT.tr("Interval {0} not yet implemented", "SQL_TSI_FRAC_SECOND"),
+          PSQLState.SYNTAX_ERROR);
     } else {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);
@@ -655,90 +685,64 @@ public class EscapedFunctions {
    * database translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqldatabase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    zeroArgumentFunctionCall(buf, "current_database()", "database", parsedArgs);
+  public static String sqldatabase(List<?> parsedArgs) throws SQLException {
+    if (!parsedArgs.isEmpty()) {
+      throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "database"),
+          PSQLState.SYNTAX_ERROR);
+    }
+    return "current_database()";
   }
 
   /**
    * ifnull translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqlifnull(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    twoArgumentsFunctionCall(buf, "coalesce(", "ifnull", parsedArgs);
+  public static String sqlifnull(List<?> parsedArgs) throws SQLException {
+    return twoArgumentsFunctionCall("coalesce(", "ifnull", parsedArgs);
   }
 
   /**
    * user translation
    *
    * @param parsedArgs arguments
+   * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static void sqluser(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
-    zeroArgumentFunctionCall(buf, "user", "user", parsedArgs);
-  }
-
-  private static void zeroArgumentFunctionCall(StringBuilder buf, String call, String functionName,
-      List<? extends CharSequence> parsedArgs) throws PSQLException {
+  public static String sqluser(List<?> parsedArgs) throws SQLException {
     if (!parsedArgs.isEmpty()) {
-      throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", functionName),
+      throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "user"),
           PSQLState.SYNTAX_ERROR);
     }
-    buf.append(call);
+    return "user";
   }
 
-  private static void singleArgumentFunctionCall(StringBuilder buf, String call, String functionName,
-      List<? extends CharSequence> parsedArgs) throws PSQLException {
+  private static String singleArgumentFunctionCall(String call, String functionName,
+      List<?> parsedArgs) throws PSQLException {
     if (parsedArgs.size() != 1) {
       throw new PSQLException(GT.tr("{0} function takes one and only one argument.", functionName),
           PSQLState.SYNTAX_ERROR);
     }
-    CharSequence arg0 = parsedArgs.get(0);
-    buf.ensureCapacity(buf.length() + call.length() + arg0.length() + 1);
-    buf.append(call).append(arg0).append(')');
+    StringBuilder buf = new StringBuilder();
+    buf.append(call);
+    buf.append(parsedArgs.get(0));
+    return buf.append(')').toString();
   }
 
-  private static void twoArgumentsFunctionCall(StringBuilder buf, String call, String functionName,
-      List<? extends CharSequence> parsedArgs) throws PSQLException {
+  private static String twoArgumentsFunctionCall(String call, String functionName,
+      List<?> parsedArgs) throws PSQLException {
     if (parsedArgs.size() != 2) {
       throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", functionName),
           PSQLState.SYNTAX_ERROR);
     }
-    appendCall(buf, call, ",", ")", parsedArgs);
-  }
-
-  /**
-   * Appends {@code begin arg0 separator arg1 separator end} sequence to the input {@link StringBuilder}
-   * @param sb destination StringBuilder
-   * @param begin begin string
-   * @param separator separator string
-   * @param end end string
-   * @param args arguments
-   */
-  public static void appendCall(StringBuilder sb, String begin, String separator,
-      String end, List<? extends CharSequence> args) {
-    int size = begin.length();
-    // Typically just-in-time compiler would eliminate Iterator in case foreach is used,
-    // however the code below uses indexed iteration to keep the conde independent from
-    // various JIT implementations (== avoid Iterator allocations even for not-so-smart JITs)
-    // see https://bugs.openjdk.java.net/browse/JDK-8166840
-    // see http://2016.jpoint.ru/talks/cheremin/ (video and slides)
-    int numberOfArguments = args.size();
-    for (int i = 0; i < numberOfArguments; i++) {
-      size += args.get(i).length();
-    }
-    size += separator.length() * (numberOfArguments - 1);
-    sb.ensureCapacity(sb.length() + size + 1);
-    sb.append(begin);
-    for (int i = 0; i < numberOfArguments; i++) {
-      if (i > 0) {
-        sb.append(separator);
-      }
-      sb.append(args.get(i));
-    }
-    sb.append(end);
+    StringBuilder buf = new StringBuilder();
+    buf.append(call);
+    buf.append(parsedArgs.get(0)).append(',').append(parsedArgs.get(1));
+    return buf.append(')').toString();
   }
 }

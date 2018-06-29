@@ -5,7 +5,7 @@
 
 package org.postgresql.core;
 
-import org.postgresql.jdbc.EscapedFunctions;
+import org.postgresql.jdbc.EscapedFunctions2;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1264,10 +1264,10 @@ public class Parser {
       }
       i++;
     }
-    Method method = EscapedFunctions.getFunction(functionName);
+    Method method = EscapedFunctions2.getFunction(functionName);
     if (method == null) {
       newsql.append(functionName);
-      EscapedFunctions.appendCall(newsql, "(", ",", ")", parsedArgs);
+      EscapedFunctions2.appendCall(newsql, "(", ",", ")", parsedArgs);
       return i;
     }
     try {
