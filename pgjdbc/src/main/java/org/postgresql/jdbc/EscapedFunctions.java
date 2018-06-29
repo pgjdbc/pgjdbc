@@ -724,15 +724,17 @@ public class EscapedFunctions {
   public static void appendCall(StringBuilder sb, String begin, String separator,
       String end, List<? extends CharSequence> args) {
     int size = begin.length();
-    // Avoid Iterator instantiations just in case, so plain for, not forach
-    for (int i = 0; i < args.size(); i++) {
+    // Typically just-in-time compiler would eliminate Iterator in case foreach is used,
+    // however the code below uses indexed iteration to keep the conde independent from
+    // various JIT implementations (== avoid Iterator allocations even for not-so-smart JITs)
+    int numberOfArguments = args.size();
+    for (int i = 0; i < numberOfArguments; i++) {
       size += args.get(i).length();
     }
-    size += separator.length() * (args.size() - 1);
+    size += separator.length() * (numberOfArguments - 1);
     sb.ensureCapacity(sb.length() + size + 1);
     sb.append(begin);
-    // Avoid Iterator instantiations just in case, so plain for, not forach
-    for (int i = 0; i < args.size(); i++) {
+    for (int i = 0; i < numberOfArguments; i++) {
       if (i > 0) {
         sb.append(separator);
       }
