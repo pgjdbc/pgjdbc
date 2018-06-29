@@ -5,7 +5,7 @@
 
 package org.postgresql.core;
 
-import org.postgresql.jdbc.EscapedFunctions;
+import org.postgresql.jdbc.EscapedFunctions2;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1179,25 +1179,7 @@ public class Parser {
 
         case ESC_FUNCTION:
           // extract function name
-          String functionName;
-          int posArgs;
-          for (posArgs = i; posArgs < len && p_sql[posArgs] != '('; posArgs++) {
-            ;
-          }
-          if (posArgs < len) {
-            functionName = new String(p_sql, i, posArgs - i).trim();
-            // extract arguments
-            i = posArgs + 1;// we start the scan after the first (
-            StringBuilder args = new StringBuilder();
-            i = parseSql(p_sql, i, args, false, stdStrings);
-            // translate the function and parse arguments
-            newsql.append(escapeFunction(functionName, args.toString(), stdStrings));
-          }
-          // go to the end of the function copying anything found
-          i++;
-          while (i < len && p_sql[i] != '}') {
-            newsql.append(p_sql[i++]);
-          }
+          i = escapeFunction(p_sql, i, newsql, stdStrings);
           state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
           break;
         case ESC_DATE:
@@ -1216,6 +1198,14 @@ public class Parser {
     return i;
   }
 
+  private static int findOpenBrace(char[] p_sql, int i) {
+    int posArgs;
+    for (posArgs = i; posArgs < p_sql.length && p_sql[posArgs] != '('; posArgs++) {
+      ;
+    }
+    return posArgs;
+  }
+
   private static void checkParsePosition(int i, int len, int i0, char[] p_sql,
       String message)
       throws PSQLException {
@@ -1227,54 +1217,71 @@ public class Parser {
         PSQLState.SYNTAX_ERROR);
   }
 
+  private static int escapeFunction(char[] p_sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
+    String functionName;
+    int argPos = findOpenBrace(p_sql, i);
+    if (argPos < p_sql.length) {
+      functionName = new String(p_sql, i, argPos - i).trim();
+      // extract arguments
+      i = argPos + 1;// we start the scan after the first (
+      i = escapeFunctionArguments(newsql, functionName, p_sql, i, stdStrings);
+    }
+    // go to the end of the function copying anything found
+    i++;
+    while (i < p_sql.length && p_sql[i] != '}') {
+      newsql.append(p_sql[i++]);
+    }
+    return i;
+  }
+
   /**
    * generate sql for escaped functions
    *
+   * @param newsql destination StringBuilder
    * @param functionName the escaped function name
-   * @param args the arguments for this function
+   * @param p_sql input SQL text (containing arguments of a function call with possible JDBC escapes)
+   * @param i position in the input SQL
    * @param stdStrings whether standard_conforming_strings is on
-   * @return the right postgreSql sql
+   * @return the right PostgreSQL sql
    * @throws SQLException if something goes wrong
    */
-  private static String escapeFunction(String functionName, String args, boolean stdStrings)
+  private static int escapeFunctionArguments(StringBuilder newsql, String functionName, char[] p_sql, int i,
+      boolean stdStrings)
       throws SQLException {
-    // parse function arguments
-    int len = args.length();
-    char[] argChars = args.toCharArray();
-    int i = 0;
-    ArrayList<StringBuilder> parsedArgs = new ArrayList<StringBuilder>();
-    while (i < len) {
+    // Maximum arity of functions in EscapedFunctions is 3
+    List<CharSequence> parsedArgs = new ArrayList<CharSequence>(3);
+    while (true) {
       StringBuilder arg = new StringBuilder();
       int lastPos = i;
-      i = parseSql(argChars, i, arg, true, stdStrings);
-      if (lastPos != i) {
+      i = parseSql(p_sql, i, arg, true, stdStrings);
+      if (i != lastPos) {
         parsedArgs.add(arg);
+      }
+      if (i >= p_sql.length // should not happen
+          || p_sql[i] != ',') {
+        break;
       }
       i++;
     }
-    // we can now translate escape functions
-    try {
-      Method escapeMethod = EscapedFunctions.getFunction(functionName);
-      return (String) escapeMethod.invoke(null, parsedArgs);
-    } catch (InvocationTargetException e) {
-      if (e.getTargetException() instanceof SQLException) {
-        throw (SQLException) e.getTargetException();
-      } else {
-        throw new PSQLException(e.getTargetException().getMessage(), PSQLState.SYSTEM_ERROR);
-      }
-    } catch (Exception e) {
-      // by default the function name is kept unchanged
-      StringBuilder buf = new StringBuilder();
-      buf.append(functionName).append('(');
-      for (int iArg = 0; iArg < parsedArgs.size(); iArg++) {
-        buf.append(parsedArgs.get(iArg));
-        if (iArg != (parsedArgs.size() - 1)) {
-          buf.append(',');
-        }
-      }
-      buf.append(')');
-      return buf.toString();
+    Method method = EscapedFunctions2.getFunction(functionName);
+    if (method == null) {
+      newsql.append(functionName);
+      EscapedFunctions2.appendCall(newsql, "(", ",", ")", parsedArgs);
+      return i;
     }
+    try {
+      method.invoke(null, newsql, parsedArgs);
+    } catch (InvocationTargetException e) {
+      Throwable targetException = e.getTargetException();
+      if (targetException instanceof SQLException) {
+        throw (SQLException) targetException;
+      } else {
+        throw new PSQLException(targetException.getMessage(), PSQLState.SYSTEM_ERROR);
+      }
+    } catch (IllegalAccessException e) {
+      throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR);
+    }
+    return i;
   }
 
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
@@ -1308,22 +1315,27 @@ public class Parser {
       this.replacementKeyword = replacementKeyword;
     }
 
-    private int getMatchedPosition(char[] p_sql, int pos) {
-      int newPos = pos;
-
+    private boolean startMatches(char[] p_sql, int pos) {
       // check for the keyword
       for (char c : escapeKeyword) {
-        if (newPos >= p_sql.length) {
-          return 0;
+        if (pos >= p_sql.length) {
+          return false;
         }
-        char curr = p_sql[newPos++];
+        char curr = p_sql[pos++];
         if (curr != c && curr != Character.toUpperCase(c)) {
-          return 0;
+          return false;
         }
       }
-      if (newPos >= p_sql.length) {
+      return pos < p_sql.length;
+    }
+
+    private int getMatchedPosition(char[] p_sql, int pos) {
+      // check for the keyword
+      if (!startMatches(p_sql, pos)) {
         return 0;
       }
+
+      int newPos = pos + escapeKeyword.length;
 
       // check for the beginning of the value
       char curr = p_sql[newPos];

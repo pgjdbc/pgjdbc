@@ -20,7 +20,9 @@ import java.util.Map;
  * This class stores supported escaped function
  *
  * @author Xavier Poinsard
+ * @deprecated see {@link EscapedFunctions2}
  */
+@Deprecated
 public class EscapedFunctions {
   // numeric functions names
   public static final String ABS = "abs";

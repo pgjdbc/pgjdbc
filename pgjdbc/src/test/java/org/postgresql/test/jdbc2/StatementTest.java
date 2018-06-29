@@ -376,7 +376,7 @@ public class StatementTest {
     assertEquals(3, rs.getInt(1));
     // HOUR
     rs = stmt.executeQuery(
-        "select {fn timestampdiff(SQL_TSI_HOUR,{fn now()},{fn timestampadd(SQL_TSI_HOUR,3,{fn now()})})} ");
+        "select {fn timestampdiff(SQL_tsi_HOUR,{fn now()},{fn timestampadd(SQL_TSI_HOUR,3,{fn now()})})} ");
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
     // day
