@@ -1219,12 +1219,11 @@ public class Parser {
 
   private static int escapeFunction(char[] p_sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
     String functionName;
-    int posArgs;
-    posArgs = findOpenBrace(p_sql, i);
-    if (posArgs < p_sql.length) {
-      functionName = new String(p_sql, i, posArgs - i).trim();
+    int argPos = findOpenBrace(p_sql, i);
+    if (argPos < p_sql.length) {
+      functionName = new String(p_sql, i, argPos - i).trim();
       // extract arguments
-      i = posArgs + 1;// we start the scan after the first (
+      i = argPos + 1;// we start the scan after the first (
       i = escapeFunctionArguments(newsql, functionName, p_sql, i, stdStrings);
     }
     // go to the end of the function copying anything found
