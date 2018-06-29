@@ -115,7 +115,7 @@ public class EscapedFunctions {
   /**
    * storage for functions implementations
    */
-  private static ConcurrentMap<String, Method> functionMap = createFunctionMap("sql");
+  private static final ConcurrentMap<String, Method> FUNCTION_MAP = createFunctionMap("sql");
 
   private static ConcurrentMap<String, Method> createFunctionMap(String prefix) {
     Method[] methods = EscapedFunctions.class.getMethods();
@@ -135,7 +135,7 @@ public class EscapedFunctions {
    * @return a Method object or null if not found
    */
   public static Method getFunction(String functionName) {
-    Method method = functionMap.get(functionName);
+    Method method = FUNCTION_MAP.get(functionName);
     if (method != null) {
       return method;
     }
@@ -144,13 +144,13 @@ public class EscapedFunctions {
       // Input name was in lower case, the function is not there
       return null;
     }
-    method = functionMap.get(nameLower);
+    method = FUNCTION_MAP.get(nameLower);
     if (method != null) {
-      if (functionMap.size() < 1000) {
+      if (FUNCTION_MAP.size() < 1000) {
         // Avoid OutOfMemoryError in case input function names are randomized
         // The number of methods is finite, however the number of upper-lower case combinations
         // is quite a few (e.g. substr, Substr, sUbstr, SUbstr, etc).
-        functionMap.put(nameLower, method);
+        FUNCTION_MAP.put(functionName, method);
       }
       return method;
     }
