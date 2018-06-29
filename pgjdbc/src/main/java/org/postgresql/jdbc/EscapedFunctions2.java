@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentMap;
  * This class stores supported escaped function.
  * Note: this is a pgjdbc-internal class, so it is not supposed to be used outside of the driver.
  */
-public class EscapedFunctions2 {
+public final class EscapedFunctions2 {
   // constants for timestampadd and timestampdiff
   private static final String SQL_TSI_ROOT = "SQL_TSI_";
   private static final String SQL_TSI_DAY = "SQL_TSI_DAY";
