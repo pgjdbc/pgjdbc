@@ -5,19 +5,37 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [42.2.2] (2018-03-15)
+### Added
+- Documentation on server-side prepared statements [PR 1135](https://github.com/pgjdbc/pgjdbc/pull/1135)
+
+### Fixed
+- Avoid failure for `insert ... on conflict...update` for `reWriteBatchedInserts=true` case [PR 1130](https://github.com/pgjdbc/pgjdbc/pull/1130)
+- fix: allowEncodingChanges should allow set client_encoding=... [PR 1125](https://github.com/pgjdbc/pgjdbc/pull/1125)
+- Wrong data from Blob/Clob when mark/reset is used [PR 971](https://github.com/pgjdbc/pgjdbc/pull/971)
+- Adjust XAException return codes for better compatibility with XA specification [PR 782](https://github.com/pgjdbc/pgjdbc/pull/782)
+- Wrong results when single statement is used with different bind types[PR 1137](https://github.com/pgjdbc/pgjdbc/pull/1137)
+- Support generated keys for WITH queries that miss RETURNING [PR 1138](https://github.com/pgjdbc/pgjdbc/pull/1138)
+- Support generated keys when INSERT/UPDATE/DELETE keyword is followed by a comment [PR 1138](https://github.com/pgjdbc/pgjdbc/pull/1138)
+
 ## [42.2.1] (2018-01-25)
+### Known issues
+- client_encoding has to be UTF8 even with allowEncodingChanges=true
+
 ### Changed
 - socksProxyHost is ignored in case it contains empty string [PR 1079](https://github.com/pgjdbc/pgjdbc/pull/1079)
 
 ### Fixed
 - Avoid connection failure when `DateStyle` is set to `ISO` (~PgBouncer) [Issue 1080](https://github.com/pgjdbc/pgjdbc/issues/1080)
-- Package scram:client classes, so SCRAM works when using a shaded jar [PR#1091](https://github.com/pgjdbc/pgjdbc/pull/1091) [1a89290e](https://github.com/pgjdbc/pgjdbc/commit/1a89290e110d5863b35e0a2ccf79e4292c1056f8)
+- Package scram:client classes, so SCRAM works when using a shaded jar [PR 1091](https://github.com/pgjdbc/pgjdbc/pull/1091) [1a89290e](https://github.com/pgjdbc/pgjdbc/commit/1a89290e110d5863b35e0a2ccf79e4292c1056f8)
 - reWriteBatchedInserts=true causes syntax error with ON CONFLICT [Issue 1045](https://github.com/pgjdbc/pgjdbc/issues/1045) [PR 1082](https://github.com/pgjdbc/pgjdbc/pull/1082)
 - Avoid failure in getPGArrayType when stringType=unspecified [PR 1036](https://github.com/pgjdbc/pgjdbc/pull/1036)
+- For PostgreSQL 9.0+ return a complete list of keywords in DatabaseMetadata.getSQLKeywords() from pg_catalog.pg_get_keywords(). [PR 940](https://github.com/pgjdbc/pgjdbc/pull/940)
 
 ## [42.2.0] (2018-01-17)
 ### Known issues
 - SCRAM does not work as scram:client library is not packaged
+- client_encoding has to be UTF8 even with allowEncodingChanges=true
 
 ### Added
 - Support SCRAM-SHA-256 for PostgreSQL 10 in the JDBC 4.2 version (Java 8+) using the Ongres SCRAM library. [PR 842](https://github.com/pgjdbc/pgjdbc/pull/842)
@@ -114,4 +132,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.1.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.3...REL42.1.4
 [42.2.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.2.0
 [42.2.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...REL42.2.1
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...HEAD
+[42.2.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...REL42.2.2
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...HEAD

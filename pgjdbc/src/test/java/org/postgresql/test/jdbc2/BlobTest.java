@@ -156,6 +156,31 @@ public class BlobTest {
   }
 
   @Test
+  public void testMarkResetStream() throws Exception {
+    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    assertTrue(rs.next());
+
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+
+    long oid = rs.getLong(1);
+    LargeObject blob = lom.open(oid);
+    InputStream bis = blob.getInputStream();
+
+    assertEquals('<', bis.read());
+    bis.mark(4);
+    assertEquals('?', bis.read());
+    assertEquals('x', bis.read());
+    assertEquals('m', bis.read());
+    assertEquals('l', bis.read());
+    bis.reset();
+    assertEquals('?', bis.read());
+  }
+
+
+  @Test
   public void testGetBytesOffset() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 

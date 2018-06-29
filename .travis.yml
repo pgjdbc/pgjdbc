@@ -28,11 +28,13 @@ before_script:
   -  ./.travis/travis_install_postgres.sh
   - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
   - test "x$REPLICATION" == 'x' || ./.travis/travis_configure_replication.sh
+  - test "x$SSLTEST" == 'x' || ./.travis/travis_configure_ssl.sh
   - ./.travis/travis_start_postgres.sh
   - test "x$PG_VERSION" != 'xHEAD' || psql -U postgres -c "set password_encryption='scram-sha-256'; create user test with password 'test';"
   - test "x$PG_VERSION" = 'xHEAD' || psql -U postgres -c "create user test with password 'test';"
   - test "x$REPLICATION" == 'x' || psql -U postgres -c "alter user test with replication;"
   - psql -c 'create database test owner test;' -U postgres
+  - test "x$SSLTEST" == 'x' || ./.travis/travis_ssl_users.sh
   - test "x$REPLICATION" == 'x' || ./.travis/travis_create_slaves.sh
   - if [[ $TRAVIS_BRANCH == release/* ]]; then echo "MAVEN_OPTS='-Xmx1g'" > ~/.mavenrc; else echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc; fi
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
@@ -45,8 +47,6 @@ env:
 before_install:
   - ./.travis/travis_install_zulu.sh
   - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
-  - ./.travis/travis_install_openj9.sh
-  - test -z "${OPENJ9}" || export JDK${JDK}_HOME=${HOME}/jdk-9+${OPENJ9}
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
@@ -99,12 +99,6 @@ matrix:
       env:
         - PG_VERSION=9.6
         - JDK=9
-    - jdk: oraclejdk9
-      sudo: required
-      env:
-        - PG_VERSION=10
-        - JDK=9
-        - OPENJ9=181
         - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk8
       sudo: required
@@ -141,8 +135,16 @@ matrix:
       env:
         - PG_VERSION=9.4
         - QUERY_MODE=extendedCacheEverything
-        - COVERAGE=N
+        - COVERAGE=Y
         - TZ=Europe/Moscow # +03:00, no DST
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        postgresql: "10"
+      env:
+        - PG_VERSION=10
+        - SSLTEST=Y
+        - COVERAGE=Y
     - jdk: openjdk7
       sudo: required
       addons:

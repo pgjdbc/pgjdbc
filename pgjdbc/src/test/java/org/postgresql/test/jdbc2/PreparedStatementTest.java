@@ -17,6 +17,7 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,10 +35,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 
 @RunWith(Parameterized.class)
@@ -1306,4 +1313,117 @@ public class PreparedStatementTest extends BaseTest4 {
         getNumberOfServerPreparedStatements("SELECT 42"));
   }
 
+  @Test
+  public void testInappropriateStatementSharing() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
+    try {
+      Timestamp ts = new Timestamp(1474997614836L);
+      // Since PreparedStatement isn't cached immediately, we need to some warm up
+      for (int i = 0; i < 3; ++i) {
+        ResultSet rs;
+
+        // Flip statement to use Oid.DATE
+        ps.setNull(1, Types.DATE);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertNull("NULL DATE converted to TIMESTAMP should return NULL value on getObject",
+              rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+
+        // Flop statement to use Oid.UNSPECIFIED
+        ps.setTimestamp(1, ts);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertEquals(
+              "Looks like we got a narrowing of the data (TIMESTAMP -> DATE). It might caused by inappropriate caching of the statement.",
+              ts, rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+      }
+    } finally {
+      ps.close();
+    }
+  }
+
+  @Test
+  public void testAlternatingBindType() throws SQLException {
+    assumeBinaryModeForce();
+    PreparedStatement ps = con.prepareStatement("SELECT /*testAlternatingBindType*/ ?");
+    ResultSet rs;
+    Logger log = Logger.getLogger("org.postgresql.core.v3.SimpleQuery");
+    Level prevLevel = log.getLevel();
+    if (prevLevel == null || prevLevel.intValue() > Level.FINER.intValue()) {
+      log.setLevel(Level.FINER);
+    }
+    final AtomicInteger numOfReParses = new AtomicInteger();
+    Handler handler = new Handler() {
+      @Override
+      public void publish(LogRecord record) {
+        if (record.getMessage().contains("un-prepare it and parse")) {
+          numOfReParses.incrementAndGet();
+        }
+      }
+
+      @Override
+      public void flush() {
+      }
+
+      @Override
+      public void close() throws SecurityException {
+      }
+    };
+    log.addHandler(handler);
+    try {
+      ps.setString(1, "42");
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
+      rs.close();
+
+      // The bind type is flipped from VARCHAR to INTEGER, and it causes the driver to prepare statement again
+      ps.setNull(1, Types.INTEGER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("A re-parse was expected, so the number of parses should be 1",
+          1, numOfReParses.get());
+      rs.close();
+
+      // The bind type is flipped from INTEGER to VARCHAR, and it causes the driver to prepare statement again
+      ps.setString(1, "42");
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
+      Assert.assertEquals("One more re-parse is expected, so the number of parses should be 2",
+          2, numOfReParses.get());
+      rs.close();
+
+      // Types.OTHER null is sent as UNSPECIFIED, and pgjdbc does not re-parse on UNSPECIFIED nulls
+      // Note: do not rely on absence of re-parse on using Types.OTHER. Try using consistent data types
+      ps.setNull(1, Types.OTHER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.OTHER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("setNull(, Types.OTHER) should not cause re-parse",
+          2, numOfReParses.get());
+
+      // Types.INTEGER null is sent as int4 null, and it leads to re-parse
+      ps.setNull(1, Types.INTEGER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("setNull(, Types.INTEGER) causes re-parse",
+          3, numOfReParses.get());
+      rs.close();
+    } finally {
+      TestUtil.closeQuietly(ps);
+      log.removeHandler(handler);
+      log.setLevel(prevLevel);
+    }
+  }
 }

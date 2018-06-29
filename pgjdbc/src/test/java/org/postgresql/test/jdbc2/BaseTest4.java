@@ -33,10 +33,15 @@ public class BaseTest4 {
     YES, NO
   }
 
+  public enum StringType {
+    UNSPECIFIED, VARCHAR;
+  }
+
   protected Connection con;
   private BinaryMode binaryMode;
   private ReWriteBatchedInserts reWriteBatchedInserts;
   protected PreferQueryMode preferQueryMode;
+  private StringType stringType;
 
   protected void updateProperties(Properties props) {
     if (binaryMode == BinaryMode.FORCE) {
@@ -44,6 +49,9 @@ public class BaseTest4 {
     }
     if (reWriteBatchedInserts == ReWriteBatchedInserts.YES) {
       PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
+    }
+    if (stringType != null) {
+      PGProperty.STRING_TYPE.set(props, stringType.name().toLowerCase());
     }
   }
 
@@ -53,6 +61,14 @@ public class BaseTest4 {
 
   public final void setBinaryMode(BinaryMode binaryMode) {
     this.binaryMode = binaryMode;
+  }
+
+  public StringType getStringType() {
+    return stringType;
+  }
+
+  public void setStringType(StringType stringType) {
+    this.stringType = stringType;
   }
 
   public void setReWriteBatchedInserts(
@@ -86,6 +102,11 @@ public class BaseTest4 {
 
   public void assumeBinaryModeRegular() {
     Assume.assumeTrue(binaryMode == BinaryMode.REGULAR);
+  }
+
+  public void assumeBinaryModeForce() {
+    Assume.assumeTrue(binaryMode == BinaryMode.FORCE);
+    Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
   }
 
   /**

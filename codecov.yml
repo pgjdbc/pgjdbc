@@ -1,6 +1,6 @@
 codecov:
   notify:
-    after_n_builds: 8
+    after_n_builds: 10
     require_ci_to_pass: false
 comment:
   layout: header, changes, diff
@@ -8,3 +8,5 @@ coverage:
   status:
     patch: false
   range: "60...100"
+ignore:
+  - "**/translation/message*.java"

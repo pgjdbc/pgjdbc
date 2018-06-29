@@ -71,8 +71,7 @@ BuildRequires:	mvn(org.apache.maven.plugins:maven-clean-plugin)
 
 %if %runselftest
 BuildRequires:	postgresql-contrib
-BuildRequires:	postgresql-devel
-BuildRequires:	postgresql-server
+BuildRequires:	postgresql-test-rpm-macros
 %endif
 
 # gettext is only needed if we try to update translations
@@ -107,8 +106,6 @@ mv pgjdbc-parent-poms-REL%parent_ver pgjdbc-parent-poms
 
 # remove any binary libs
 find -name "*.jar" -or -name "*.class" | xargs rm -f
-
-%pom_disable_module ubenchmark
 
 # Build parent POMs in the same Maven call.
 %pom_xpath_inject pom:modules "<module>%parent_poms_builddir</module>"

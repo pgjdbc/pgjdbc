@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -17,6 +18,8 @@ import org.postgresql.test.TestUtil;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -26,15 +29,49 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Properties;
 
+@RunWith(Parameterized.class)
 public class ResultSetMetaDataTest extends BaseTest4 {
   Connection conn;
+  private final Integer databaseMetadataCacheFields;
+  private final Integer databaseMetadataCacheFieldsMib;
+
+  public ResultSetMetaDataTest(Integer databaseMetadataCacheFields, Integer databaseMetadataCacheFieldsMib) {
+    this.databaseMetadataCacheFields = databaseMetadataCacheFields;
+    this.databaseMetadataCacheFieldsMib = databaseMetadataCacheFieldsMib;
+  }
+
+  @Parameterized.Parameters(name = "databaseMetadataCacheFields = {0}, databaseMetadataCacheFieldsMib = {1}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (Integer fields : new Integer[]{null, 0}) {
+      for (Integer fieldsMib : new Integer[]{null, 0}) {
+        ids.add(new Object[]{fields, fieldsMib});
+      }
+    }
+    return ids;
+  }
+
+  @Override
+  protected void updateProperties(Properties props) {
+    super.updateProperties(props);
+    if (databaseMetadataCacheFields != null) {
+      PGProperty.DATABASE_METADATA_CACHE_FIELDS.set(props, databaseMetadataCacheFields);
+    }
+    if (databaseMetadataCacheFieldsMib != null) {
+      PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.set(props, databaseMetadataCacheFieldsMib);
+    }
+  }
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
     conn = con;
     TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)", true);
+    TestUtil.createTable(conn, "rsmd_cache", "a int primary key");
     TestUtil.createTable(conn, "timetest",
         "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
 
@@ -57,6 +94,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   public void tearDown() throws SQLException {
     TestUtil.dropTable(conn, "compositetest");
     TestUtil.dropTable(conn, "rsmd1");
+    TestUtil.dropTable(conn, "rsmd_cache");
     TestUtil.dropTable(conn, "timetest");
     TestUtil.dropTable(conn, "serialtest");
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v10)) {
@@ -266,6 +304,37 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     ResultSetMetaData rsmd = pstmt.getMetaData();
     Assert.assertTrue(rsmd.isAutoIncrement(1));
+  }
+
+  // Verifies that the field metadatacache will cache when enabled and also functions properly
+  // when disabled.
+  @Test
+  public void testCache() throws Exception {
+    boolean isCacheDisabled = new Integer(0).equals(databaseMetadataCacheFields)
+                           || new Integer(0).equals(databaseMetadataCacheFieldsMib);
+
+    {
+      PreparedStatement pstmt = conn.prepareStatement("SELECT a FROM rsmd_cache");
+      ResultSet rs = pstmt.executeQuery();
+      PGResultSetMetaData pgrsmd = (PGResultSetMetaData) rs.getMetaData();
+      assertEquals("a", pgrsmd.getBaseColumnName(1));
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+    }
+
+    Statement stmt = conn.createStatement();
+    stmt.execute("ALTER TABLE rsmd_cache RENAME COLUMN a TO b");
+    TestUtil.closeQuietly(stmt);
+
+    {
+      PreparedStatement pstmt = conn.prepareStatement("SELECT b FROM rsmd_cache");
+      ResultSet rs = pstmt.executeQuery();
+      PGResultSetMetaData pgrsmd = (PGResultSetMetaData) rs.getMetaData();
+      // Unless the cache is disabled, we expect to see stale results.
+      assertEquals(isCacheDisabled ? "b" : "a", pgrsmd.getBaseColumnName(1));
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+    }
   }
 
   private void assumePreparedStatementMetadataSupported() {

@@ -1901,7 +1901,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       Field field = fields[columnIndex - 1];
       Object obj = internalGetObject(columnIndex, field);
       if (obj == null) {
-        return null;
+        // internalGetObject() knows jdbc-types and some extra like hstore. It does not know of
+        // PGobject based types like geometric types but getObject does
+        obj = getObject(columnIndex);
+        if (obj == null) {
+          return null;
+        }
+        return obj.toString();
       }
       // hack to be compatible with text protocol
       if (obj instanceof java.util.Date) {

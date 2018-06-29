@@ -1,6 +1,7 @@
 .classpath
 .settings
 .project
+.checkstyle
 .DS_Store
 .externalToolBuilders
 build
@@ -13,6 +14,7 @@ nbproject
 *.iws
 *.local.properties
 *-dist.zip
+*.po.~*~
 target/
 pom.xml.tag
 pom.xml.releaseBackup

@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
@@ -28,7 +29,11 @@ public class GT {
 
   private GT() {
     try {
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
       _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
+      //#else
+      _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages", Locale.getDefault(Locale.Category.DISPLAY));
+      //#endif
     } catch (MissingResourceException mre) {
       // translation files have not been installed
       _bundle = null;
