@@ -39,6 +39,7 @@ public interface PGReplicationConnection {
 
   /**
    * @param slotName not null replication slot name exists in database that should be drop
+   * @throws SQLException if the replication slot cannot be dropped.
    */
   void dropReplicationSlot(String slotName) throws SQLException;
 }

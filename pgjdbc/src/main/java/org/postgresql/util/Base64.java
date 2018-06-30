@@ -126,7 +126,7 @@ public class Base64 {
       (byte) '6', (byte) '7', (byte) '8', (byte) '9', (byte) '+', (byte) '/'
   };
 
-  /** Determine which ALPHABET to use. */
+  /* Determine which ALPHABET to use. */
   static {
     byte[] __bytes;
     try {

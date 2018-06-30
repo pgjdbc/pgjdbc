@@ -820,6 +820,8 @@ public class TimestampUtils {
   /**
    * Formats {@link LocalDateTime} to be sent to the backend, thus it adds time zone.
    * Do not use this method in {@link java.sql.ResultSet#getString(int)}
+   * @param localDateTime The local date to format as a String
+   * @return The formatted local date
    */
   public synchronized String toString(LocalDateTime localDateTime) {
     if (localDateTime.isAfter(MAX_LOCAL_DATETIME)) {

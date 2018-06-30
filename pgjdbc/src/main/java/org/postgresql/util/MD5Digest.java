@@ -5,15 +5,14 @@
 
 package org.postgresql.util;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * MD5-based utility function to obfuscate passwords before network transmission.
  *
  * @author Jeremy Wohl
  */
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
 public class MD5Digest {
   private MD5Digest() {
   }

@@ -152,9 +152,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
   }
 
-
-  /**** XAResource interface ****/
-
   /**
    * Preconditions: 1. flags must be one of TMNOFLAGS, TMRESUME or TMJOIN 2. xid != null 3.
    * connection must not be associated with a transaction 4. the TM hasn't seen the xid before

@@ -24,8 +24,8 @@ public class NTDSAPIWrapper {
    * @param referrer See MSDN
    * @return SPN generated
    * @throws LastErrorException If buffer too small or parameter incorrect
-   * @see <a href="http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx">http://msdn.
-   *      microsoft.com/en-us/library/ms676007</a>
+   * @see <a href="https://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx">
+   *     https://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx</a>
    */
   public String DsMakeSpn(String serviceClass, String serviceName, String instanceName,
       short instancePort, String referrer) throws LastErrorException {
