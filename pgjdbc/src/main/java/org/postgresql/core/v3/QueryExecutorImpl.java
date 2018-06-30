@@ -74,7 +74,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
   private static final Pattern COMMAND_COMPLETE_PATTERN = Pattern.compile("^([a-zA-Z][^ ]*+(?: [a-zA-Z][^ ]*+)*+)(?: (\\d++))?+(?: (\\d++))?+$");
-  private static final Matcher COMMAND_COMPLETE_MATCHER = COMMAND_COMPLETE_PATTERN.matcher("");
+  private final Matcher commandCompleteMatcher = COMMAND_COMPLETE_PATTERN.matcher("");
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter)
@@ -2470,7 +2470,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void interpretCommandStatus(String status, ResultHandler handler) {
     long oid = 0;
     long count = 0;
-    Matcher matcher = COMMAND_COMPLETE_MATCHER.reset(status);
+    Matcher matcher = commandCompleteMatcher.reset(status);
     if (matcher.matches()) {
       // String command = matcher.group(1);
       String group2 = matcher.group(2);
