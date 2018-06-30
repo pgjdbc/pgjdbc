@@ -12,6 +12,7 @@ import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.URLCoder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,8 +20,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -1058,14 +1057,6 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.LOGGER_FILE.set(properties, loggerFile);
   }
 
-  private static String urlEncode(String plain) {
-    try {
-      return URLEncoder.encode(plain, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new IllegalStateException("Unable to encode via UTF-8. This should not happen", e);
-    }
-  }
-
   /**
    * Generates a {@link DriverManager} URL from the other properties supplied.
    *
@@ -1078,7 +1069,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (portNumber != 0) {
       url.append(":").append(portNumber);
     }
-    url.append("/").append(urlEncode(databaseName));
+    url.append("/").append(URLCoder.encode(databaseName));
 
     StringBuilder query = new StringBuilder(100);
     for (PGProperty property: PGProperty.values()) {
@@ -1088,7 +1079,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         }
         query.append(property.getName());
         query.append("=");
-        query.append(urlEncode(property.get(properties)));
+        query.append(URLCoder.encode(property.get(properties)));
       }
     }
 

@@ -16,13 +16,13 @@ import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.NullOutputStream;
+import org.postgresql.util.URLCoder;
 import org.postgresql.util.WriterHandler;
 
 import org.junit.Test;
 
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -107,7 +107,9 @@ public class DriverTest {
 
     // Test with the username in the url
     con = DriverManager.getConnection(
-        TestUtil.getURL() + "&user=" + TestUtil.getUser() + "&password=" + URLEncoder.encode(TestUtil.getPassword()));
+        TestUtil.getURL()
+            + "&user=" + URLCoder.encode(TestUtil.getUser())
+            + "&password=" + URLCoder.encode(TestUtil.getPassword()));
     assertNotNull(con);
     con.close();
 

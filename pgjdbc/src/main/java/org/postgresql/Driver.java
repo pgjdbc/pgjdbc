@@ -14,13 +14,12 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
+import org.postgresql.util.URLCoder;
 import org.postgresql.util.WriterHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -532,14 +531,6 @@ public class Driver implements java.sql.Driver {
     return false;
   }
 
-  private static String urlDecode(String encoded) {
-    try {
-      return URLDecoder.decode(encoded, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new IllegalStateException("Unable to decode via UTF-8. This should not happen", e);
-    }
-  }
-
   /**
    * Constructs a new DriverURL, splitting the specified URL into its component parts
    *
@@ -570,7 +561,7 @@ public class Driver implements java.sql.Driver {
       if (slash == -1) {
         return null;
       }
-      urlProps.setProperty("PGDBNAME", urlDecode(l_urlServer.substring(slash + 1));
+      urlProps.setProperty("PGDBNAME", URLCoder.decode(l_urlServer.substring(slash + 1)));
 
       String[] addresses = l_urlServer.substring(0, slash).split(",");
       StringBuilder hosts = new StringBuilder();
@@ -611,7 +602,7 @@ public class Driver implements java.sql.Driver {
         urlProps.setProperty("PGHOST", "localhost");
       }
       if (defaults == null || !defaults.containsKey("PGDBNAME")) {
-        urlProps.setProperty("PGDBNAME", urlDecode(l_urlServer));
+        urlProps.setProperty("PGDBNAME", URLCoder.decode(l_urlServer));
       }
     }
 
@@ -625,7 +616,7 @@ public class Driver implements java.sql.Driver {
       if (l_pos == -1) {
         urlProps.setProperty(token, "");
       } else {
-        urlProps.setProperty(token.substring(0, l_pos), urlDecode(token.substring(l_pos + 1)));
+        urlProps.setProperty(token.substring(0, l_pos), URLCoder.decode(token.substring(l_pos + 1)));
       }
     }
 

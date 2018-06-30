@@ -16,6 +16,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.URLCoder;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,7 +25,6 @@ import org.junit.Test;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.net.URLEncoder;
 import java.sql.DriverPropertyInfo;
 import java.util.ArrayList;
 import java.util.Map;
@@ -205,10 +205,10 @@ public class PGPropertyTest {
     String userName = "&u%ser";
     String password = "p%a&s^s#w!o@r*";
     String url = "jdbc:postgresql://"
-            + "localhost" + ":" + 5432 + "/"
-            + URLEncoder.encode(databaseName)
-            + "?user=" + URLEncoder.encode(userName)
-            + "&password=" + URLEncoder.encode(password);
+        + "localhost" + ":" + 5432 + "/"
+        + URLCoder.encode(databaseName)
+        + "?user=" + URLCoder.encode(userName)
+        + "&password=" + URLCoder.encode(password);
     Properties parsed = Driver.parseURL(url, new Properties());
     assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
     assertEquals("user", userName, PGProperty.USER.get(parsed));
@@ -274,8 +274,8 @@ public class PGPropertyTest {
     Properties parsed = Driver.parseURL(dataSource.getURL(), new Properties());
     assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
     // datasources do not pass username and password as URL parameters
-    assertNull("user", PGProperty.USER.get(parsed));
-    assertNull("password", PGProperty.PASSWORD.get(parsed));
+    assertFalse("user", PGProperty.USER.isPresent(parsed));
+    assertFalse("password", PGProperty.PASSWORD.isPresent(parsed));
     assertEquals("APPLICATION_NAME", applicationName, PGProperty.APPLICATION_NAME.get(parsed));
   }
 }
