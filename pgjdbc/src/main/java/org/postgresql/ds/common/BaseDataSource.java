@@ -12,6 +12,7 @@ import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.URLCoder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -25,7 +26,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
@@ -1069,17 +1069,17 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (portNumber != 0) {
       url.append(":").append(portNumber);
     }
-    url.append("/").append(databaseName);
+    url.append("/").append(URLCoder.encode(databaseName));
 
     StringBuilder query = new StringBuilder(100);
-    for (PGProperty property : PGProperty.values()) {
+    for (PGProperty property: PGProperty.values()) {
       if (property.isPresent(properties)) {
         if (query.length() != 0) {
           query.append("&");
         }
         query.append(property.getName());
         query.append("=");
-        query.append(property.get(properties));
+        query.append(URLCoder.encode(property.get(properties)));
       }
     }
 
@@ -1216,11 +1216,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       portNumber = Integer.parseInt(port);
     }
     serverName = getReferenceProperty(ref, "serverName");
-    user = getReferenceProperty(ref, "user");
-    password = getReferenceProperty(ref, "password");
 
     for (PGProperty property : PGProperty.values()) {
-      property.set(properties, getReferenceProperty(ref, property.getName()));
+      setProperty(property, getReferenceProperty(ref, property.getName()));
     }
   }
 
