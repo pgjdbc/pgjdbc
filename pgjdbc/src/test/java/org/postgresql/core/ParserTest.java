@@ -8,6 +8,8 @@ package org.postgresql.core;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.Parser.ParserBufferHolder;
+
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -114,38 +116,39 @@ public class ParserTest {
 
   @Test
   public void testEscapeProcessing() throws Exception {
-    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{d '1999-01-09'}", true, false));
-    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{D  '1999-01-09'}", true, false));
-    assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{t '20:00:03'}", true, false));
-    assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{T '20:00:03'}", true, false));
-    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{ts '1999-01-09 20:11:11.123455'}", true, false));
-    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{Ts '1999-01-09 20:11:11.123455'}", true, false));
+    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing(new ParserBufferHolder("{d '1999-01-09'}"), true, false));
+    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing(new ParserBufferHolder("{D  '1999-01-09'}"), true, false));
+    assertEquals("TIME '20:00:03'", Parser.replaceProcessing(new ParserBufferHolder("{t '20:00:03'}"), true, false));
+    assertEquals("TIME '20:00:03'", Parser.replaceProcessing(new ParserBufferHolder("{T '20:00:03'}"), true, false));
+    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing(new ParserBufferHolder("{ts '1999-01-09 20:11:11.123455'}"), true, false));
+    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing(new ParserBufferHolder("{Ts '1999-01-09 20:11:11.123455'}"), true, false));
 
-    assertEquals("user", Parser.replaceProcessing("{fn user()}", true, false));
-    assertEquals("cos(1)", Parser.replaceProcessing("{fn cos(1)}", true, false));
-    assertEquals("extract(week from DATE '2005-01-24')", Parser.replaceProcessing("{fn week({d '2005-01-24'})}", true, false));
+    assertEquals("user", Parser.replaceProcessing(new ParserBufferHolder("{fn user()}"), true, false));
+    assertEquals("cos(1)", Parser.replaceProcessing(new ParserBufferHolder("{fn cos(1)}"), true, false));
+    assertEquals("extract(week from DATE '2005-01-24')", Parser.replaceProcessing(new ParserBufferHolder("{fn week({d '2005-01-24'})}"), true, false));
 
     assertEquals("\"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id",
-            Parser.replaceProcessing("{oj \"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id}", true, false));
+            Parser.replaceProcessing(new ParserBufferHolder("{oj \"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id}"), true, false));
 
-    assertEquals("ESCAPE '_'", Parser.replaceProcessing("{escape '_'}", true, false));
+    assertEquals("ESCAPE '_'", Parser.replaceProcessing(new ParserBufferHolder("{escape '_'}"), true, false));
 
     // nothing should be changed in that case, no valid escape code
-    assertEquals("{obj : 1}", Parser.replaceProcessing("{obj : 1}", true, false));
+    assertEquals("{obj : 1}", Parser.replaceProcessing(new ParserBufferHolder("{obj : 1}"), true, false));
   }
 
   @Test
   public void testModifyJdbcCall() throws SQLException {
-    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from pack_getValue(?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall(new ParserBufferHolder("{ ? = call pack_getValue}"), true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?,?)  as result", Parser.modifyJdbcCall(new ParserBufferHolder("{ ? = call pack_getValue(?) }"), true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall(new ParserBufferHolder("{ ? = call pack_getValue()}"), true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall(new ParserBufferHolder("{ ? = call pack_getValue(?,?,?) }"), true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall(new ParserBufferHolder("{ ? = call lower(?)}"), true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall(new ParserBufferHolder("{ ? = CaLl pack_getValue(?,?,?) }"), true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
   }
 
   @Test
   public void testUnterminatedEscape() throws Exception {
-    assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
+    assertEquals("{oj ", Parser.replaceProcessing(new ParserBufferHolder("{oj "), true, false));
   }
 
   @Test
