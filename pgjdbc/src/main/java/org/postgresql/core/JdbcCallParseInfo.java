@@ -11,12 +11,10 @@ package org.postgresql.core;
 public class JdbcCallParseInfo {
   private final String sql;
   private final boolean isFunction;
-  private final boolean outParmBeforeFunc;
 
-  public JdbcCallParseInfo(String sql, boolean isFunction, boolean outParmBeforeFunc) {
+  public JdbcCallParseInfo(String sql, boolean isFunction) {
     this.sql = sql;
     this.isFunction = isFunction;
-    this.outParmBeforeFunc = outParmBeforeFunc;
   }
 
   /**
@@ -37,12 +35,4 @@ public class JdbcCallParseInfo {
     return isFunction;
   }
 
-  /**
-   * Returns if given SQL is a function with one out parameter
-   *
-   * @return true if given SQL is a function with one out parameter
-   */
-  public boolean isOutParmBeforeFunc() {
-    return outParmBeforeFunc;
-  }
 }

@@ -78,11 +78,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    */
   protected boolean adjustIndex = false;
 
-  /*
-   * Used to set adjustIndex above
-   */
-  protected boolean outParmBeforeFunc = false;
-
   private TimeZone defaultTimeZone;
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
