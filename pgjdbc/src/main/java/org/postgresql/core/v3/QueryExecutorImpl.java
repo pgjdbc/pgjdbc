@@ -2485,7 +2485,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @return long value
    */
   private static long toLong(String s, int beginIndex, int endIndex) {
-    // Fallback to default implementation in case the string is long or the first digi
+    // Fallback to default implementation in case the string is long
     if (endIndex - beginIndex > 16) {
       return Long.parseLong(s.substring(beginIndex, beginIndex));
     }
