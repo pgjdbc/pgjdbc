@@ -1731,14 +1731,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         : "Queries that might contain ; must be executed with QueryExecutor.QUERY_EXECUTE_AS_SIMPLE mode. "
         + "Given query is " + query.getNativeSql();
 
-    // As per "46.2. Message Flow" documentation (quote from 9.1):
-    // If successfully created, a named portal object lasts till the end of the current transaction, unless explicitly destroyed
-    //
-    // That is named portals do not require to use named statements.
+    // Per https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
+    // A Bind message can use the unnamed prepared statement to create a named portal.
+    // If the Bind is successful, an Execute message can reference that named portal until either
+    //      the end of the current transaction
+    //   or the named portal is explicitly destroyed
 
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
     boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
+    // extended queries always use a portal
+    // the usePortal flag controls whether or not we use a *named* portal
     boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
         && fetchSize > 0 && !describeOnly;
     boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
