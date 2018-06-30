@@ -862,7 +862,7 @@ public class Parser {
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
     String sql = jdbcSql;
     boolean isFunction = false;
-    boolean outParmBeforeFunc = false;
+    boolean outParamBeforeFunc = false;
 
     int len = jdbcSql.length();
     int state = 1;
@@ -891,7 +891,7 @@ public class Parser {
 
         case 2:  // After {, looking for ? or =, skipping whitespace
           if (ch == '?') {
-            outParmBeforeFunc =
+            outParamBeforeFunc =
                 isFunction = true;   // { ? = call ... }  -- function with one out parameter
             ++i;
             ++state;
@@ -1007,35 +1007,47 @@ public class Parser {
           PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
     }
 
-    if (serverVersion < 80100 /* 8.1 */ || protocolVersion != 3) {
-      sql = "select " + jdbcSql.substring(startIndex, endIndex) + " as result";
-      return new JdbcCallParseInfo(sql, isFunction);
-    }
+    String prefix = "select * from ";
+    String suffix = " as result";
+
     String s = jdbcSql.substring(startIndex, endIndex);
-    StringBuilder sb = new StringBuilder(s);
+    int prefixLength = prefix.length();
+    StringBuilder sb = new StringBuilder(prefixLength + jdbcSql.length() + suffix.length() + 10);
+    sb.append(prefix);
+    sb.append(s);
 
     int opening = s.indexOf('(') + 1;
     if (opening == 0) {
-      sb.append(outParmBeforeFunc ? "(?)" : "()");
-    } else if (outParmBeforeFunc) {
+      // here the function call has no parameters declaration eg : "{ ? = call pack_getValue}"
+      sb.append(outParamBeforeFunc ? "(?)" : "()");
+    } else if (outParamBeforeFunc) {
       // move the single out parameter into the function call
       // so that it can be treated like all other parameters
       boolean needComma = false;
 
-      int closing = s.indexOf(')', opening);
-      for (int j = opening; j < closing; j++) {
-        if (!Character.isWhitespace(sb.charAt(j))) {
+      // the following loop will check if the function call has parameters
+      // eg "{ ? = call pack_getValue(?) }" vs "{ ? = call pack_getValue() }
+      for (int j = opening + prefixLength; j < sb.length(); j++) {
+        char c = sb.charAt(j);
+        if (c == ')') {
+          break;
+        }
+
+        if (!Character.isWhitespace(c)) {
           needComma = true;
           break;
         }
       }
+
+      // insert the return parameter as the first parameter of the function call
       if (needComma) {
-        sb.insert(opening, "?,");
+        sb.insert(opening + prefixLength, "?,");
       } else {
-        sb.insert(opening, "?");
+        sb.insert(opening + prefixLength, "?");
       }
     }
-    sql = "select * from " + sb.toString() + " as result";
+
+    sql = sb.append(suffix).toString();
     return new JdbcCallParseInfo(sql, isFunction);
   }
 
