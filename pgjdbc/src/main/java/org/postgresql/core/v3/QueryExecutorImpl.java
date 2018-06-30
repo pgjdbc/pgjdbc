@@ -2387,7 +2387,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
-    LOGGER.log(Level.FINEST, " <=BE RowDescription({0})", size);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " <=BE RowDescription({0})", size);
+    }
 
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveString();
@@ -2510,7 +2512,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     char tStatus = (char) pgStream.receiveChar();
-    LOGGER.log(Level.FINEST, " <=BE ReadyForQuery({0})", tStatus);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " <=BE ReadyForQuery({0})", tStatus);
+    }
 
     // Update connection state.
     switch (tStatus) {
@@ -2580,7 +2584,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         default:
-          LOGGER.log(Level.FINEST, "  invalid message type={0}", (char) beresp);
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, "  invalid message type={0}", (char) beresp);
+          }
           throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
               PSQLState.PROTOCOL_VIOLATION);
       }

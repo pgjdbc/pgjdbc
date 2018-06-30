@@ -82,7 +82,9 @@ public class ScramAuthenticator {
           PSQLState.CONNECTION_REJECTED
       );
     }
-    LOGGER.log(Level.FINEST, " Using SCRAM mechanism {0}", scramClient.getScramMechanism().getName());
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " Using SCRAM mechanism {0}", scramClient.getScramMechanism().getName());
+    }
 
     scramSession =
         scramClient.scramSession("*");   // Real username is ignored by server, uses startup one
@@ -119,10 +121,12 @@ public class ScramAuthenticator {
           e
       );
     }
-    LOGGER.log(Level.FINEST,
-            " <=BE AuthenticationSASLContinue(salt={0}, iterations={1})",
-        new Object[] { serverFirstProcessor.getSalt(), serverFirstProcessor.getIteration() }
-    );
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST,
+                 " <=BE AuthenticationSASLContinue(salt={0}, iterations={1})",
+                 new Object[] { serverFirstProcessor.getSalt(), serverFirstProcessor.getIteration() }
+                 );
+    }
 
     clientFinalProcessor = serverFirstProcessor.clientFinalProcessor(password);
 

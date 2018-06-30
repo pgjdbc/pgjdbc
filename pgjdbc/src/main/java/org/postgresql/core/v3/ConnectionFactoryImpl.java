@@ -142,8 +142,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // GlobalHostStatusTracker
       HostStatus knownStatus = knownStates.get(hostSpec);
       if (knownStatus != null && !candidateHost.targetServerType.allowConnectingTo(knownStatus)) {
-        LOGGER.log(Level.FINER, "Known status of host {0} is {1}, and required status was {2}. Will try next host",
-            new Object[]{hostSpec, knownStatus, candidateHost.targetServerType});
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.log(Level.FINER, "Known status of host {0} is {1}, and required status was {2}. Will try next host",
+                     new Object[]{hostSpec, knownStatus, candidateHost.targetServerType});
+        }
         continue;
       }
 
@@ -195,8 +197,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           }
         }
 
-        LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
-        LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
+        if (LOGGER.isLoggable(Level.FINE)) {
+          LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
+          LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
+        }
 
         List<String[]> paramList = getParametersForStartup(user, database, info);
         sendStartupPacket(newStream, paramList);
