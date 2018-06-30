@@ -2476,8 +2476,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return c;
   }
 
+  /**
+   * Faster version of {@link Long#parseLong(String)} when parsing a substring is required
+   *
+   * @param s string to parse
+   * @param beginIndex begin index
+   * @param endIndex end index
+   * @return long value
+   */
   private static long toLong(String s, int beginIndex, int endIndex) {
-    if (endIndex > 8 && !isDigitAt(s, beginIndex)) {
+    // Fallback to default implementation in case the string is long or the first digi
+    if (endIndex - beginIndex > 16) {
       return Long.parseLong(s.substring(beginIndex, beginIndex));
     }
     long res = digitAt(s, beginIndex);
@@ -2497,7 +2506,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Scan backwards, while searching for a maximum of two number groups
     // COMMAND OID ROWS
     // COMMAND ROWS
-    // Assumption: command does not contain digits
+    // Assumption: command neither starts nor ends with a digi
     if (isDigitAt(status, status.length() - 1)) {
       try {
         int lastSpace = status.lastIndexOf(' ');
