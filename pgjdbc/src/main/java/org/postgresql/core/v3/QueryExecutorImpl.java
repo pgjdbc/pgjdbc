@@ -2464,37 +2464,53 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return status;
   }
 
+  private static boolean isDigitAt(String status, int i) {
+    return i > 0 && i < status.length() && Character.isDigit(status.charAt(i));
+  }
+
+  private static int digitAt(String s, int pos) {
+    int c = s.charAt(pos) - '0';
+    if (c < 0 || c > 9) {
+      throw new NumberFormatException("Input string: \"" + s + "\"");
+    }
+    return c;
+  }
+
+  private static long toLong(String s, int beginIndex, int endIndex) {
+    if (endIndex > 8 && !isDigitAt(s, beginIndex)) {
+      return Long.parseLong(s.substring(beginIndex, beginIndex));
+    }
+    long res = digitAt(s, beginIndex);
+    for (beginIndex++; beginIndex < endIndex; beginIndex++) {
+      res = res * 10 + digitAt(s, beginIndex);
+    }
+    return res;
+  }
+
   private void interpretCommandStatus(String status, ResultHandler handler) {
     long oid = 0;
     long count = 0;
 
-    int marker1 = -1;
-    int marker2 = -1;
     // This code processes the CommandComplete (B) message.
     // Status is in the format of "COMMAND OID ROWS" where both 'OID' and 'ROWS' are optional
     // and COMMAND can have spaces within it, like CREATE TABLE.
     // Scan backwards, while searching for a maximum of two number groups
-    for (int i = status.length() - 1; i >= 0; i--) {
-      if (Character.isDigit(status.charAt(i))) {
-        // We found a part of a number
-      } else if (status.charAt(i) == ' ') {
-        if (marker1 == -1) {
-          marker1 = i;
-        } else {
-          marker2 = i;
-        }
-      } else {
-        break;
-      }
-    }
-
-    if (marker1 != -1) {
+    // COMMAND OID ROWS
+    // COMMAND ROWS
+    // Assumption: command does not contain digits
+    if (isDigitAt(status, status.length() - 1)) {
       try {
-        if (marker2 != -1) {
-          oid = Long.parseLong(status.substring(marker2 + 1, marker1));
-          count = Long.parseLong(status.substring(marker1 + 1));
-        } else {
-          count = Long.parseLong(status.substring(marker1 + 1));
+        int lastSpace = status.lastIndexOf(' ');
+        // Status ends with a digit => it is ROWS
+        if (isDigitAt(status, lastSpace + 1)) {
+          count = toLong(status, lastSpace + 1, status.length());
+
+          if (isDigitAt(status, lastSpace - 1)) {
+            int penultimateSpace = status.lastIndexOf(' ', lastSpace - 1);
+            if (isDigitAt(status, penultimateSpace + 1)) {
+              oid = toLong(status, penultimateSpace + 1, lastSpace);
+            }
+          }
         }
       } catch (NumberFormatException e) {
         // As we're have performed a isDigit check prior to parsing, this should only
