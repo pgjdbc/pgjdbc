@@ -18,6 +18,7 @@ import org.postgresql.util.WriterHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.security.AccessController;
@@ -531,6 +532,14 @@ public class Driver implements java.sql.Driver {
     return false;
   }
 
+  private static String urlDecode(String encoded) {
+    try {
+      return URLDecoder.decode(encoded, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new IllegalStateException("Unable to decode via UTF-8. This should not happen", e);
+    }
+  }
+
   /**
    * Constructs a new DriverURL, splitting the specified URL into its component parts
    *
@@ -561,7 +570,7 @@ public class Driver implements java.sql.Driver {
       if (slash == -1) {
         return null;
       }
-      urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer.substring(slash + 1)));
+      urlProps.setProperty("PGDBNAME", urlDecode(l_urlServer.substring(slash + 1));
 
       String[] addresses = l_urlServer.substring(0, slash).split(",");
       StringBuilder hosts = new StringBuilder();
@@ -602,7 +611,7 @@ public class Driver implements java.sql.Driver {
         urlProps.setProperty("PGHOST", "localhost");
       }
       if (defaults == null || !defaults.containsKey("PGDBNAME")) {
-        urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer));
+        urlProps.setProperty("PGDBNAME", urlDecode(l_urlServer));
       }
     }
 
@@ -616,7 +625,7 @@ public class Driver implements java.sql.Driver {
       if (l_pos == -1) {
         urlProps.setProperty(token, "");
       } else {
-        urlProps.setProperty(token.substring(0, l_pos), URLDecoder.decode(token.substring(l_pos + 1)));
+        urlProps.setProperty(token.substring(0, l_pos), urlDecode(token.substring(l_pos + 1)));
       }
     }
 

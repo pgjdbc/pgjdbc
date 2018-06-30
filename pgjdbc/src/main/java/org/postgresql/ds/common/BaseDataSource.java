@@ -27,7 +27,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
@@ -1059,42 +1058,46 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.LOGGER_FILE.set(properties, loggerFile);
   }
 
+  private static String urlEncode(String plain) {
+    try {
+      return URLEncoder.encode(plain, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new IllegalStateException("Unable to encode via UTF-8. This should not happen", e);
+    }
+  }
+
   /**
    * Generates a {@link DriverManager} URL from the other properties supplied.
    *
    * @return {@link DriverManager} URL from the other properties supplied
    */
   public String getUrl() {
-    try {
-      StringBuilder url = new StringBuilder(100);
-      url.append("jdbc:postgresql://");
-      url.append(serverName);
-      if (portNumber != 0) {
-        url.append(":").append(portNumber);
-      }
-      url.append("/").append(URLEncoder.encode(databaseName, "UTF-8"));
-
-      StringBuilder query = new StringBuilder(100);
-      for (PGProperty property : PGProperty.values()) {
-        if (property.isPresent(properties)) {
-          if (query.length() != 0) {
-            query.append("&");
-          }
-          query.append(property.getName());
-          query.append("=");
-          query.append(URLEncoder.encode(property.get(properties), "UTF-8"));
-        }
-      }
-
-      if (query.length() > 0) {
-        url.append("?");
-        url.append(query);
-      }
-
-      return url.toString();
-    } catch (UnsupportedEncodingException e) {
-      throw new AssertionError("JVM claims UTF-8 is unsupported, cannot happen");
+    StringBuilder url = new StringBuilder(100);
+    url.append("jdbc:postgresql://");
+    url.append(serverName);
+    if (portNumber != 0) {
+      url.append(":").append(portNumber);
     }
+    url.append("/").append(urlEncode(databaseName));
+
+    StringBuilder query = new StringBuilder(100);
+    for (PGProperty property: PGProperty.values()) {
+      if (property.isPresent(properties)) {
+        if (query.length() != 0) {
+          query.append("&");
+        }
+        query.append(property.getName());
+        query.append("=");
+        query.append(urlEncode(property.get(properties)));
+      }
+    }
+
+    if (query.length() > 0) {
+      url.append("?");
+      url.append(query);
+    }
+
+    return url.toString();
   }
 
   /**

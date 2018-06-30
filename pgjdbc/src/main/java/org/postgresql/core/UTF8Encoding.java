@@ -8,6 +8,9 @@ package org.postgresql.core;
 import org.postgresql.util.GT;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 
 class UTF8Encoding extends Encoding {
   private static final int MIN_2_BYTES = 0x80;
