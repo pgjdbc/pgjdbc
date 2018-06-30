@@ -6,7 +6,6 @@
 package org.postgresql;
 
 import org.postgresql.jdbc.PgConnection;
-
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
@@ -64,6 +63,8 @@ public class Driver implements java.sql.Driver {
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static SharedTimer sharedTimer = new SharedTimer();
+  private static final String DEFAULT_PORT =
+      /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5431";
 
   static {
     try {
@@ -580,7 +581,7 @@ public class Driver implements java.sql.Driver {
           ports.append(portStr);
           hosts.append(address.subSequence(0, portIdx));
         } else {
-          ports.append("/*$mvn.project.property.template.default.pg.port$*/");
+          ports.append(DEFAULT_PORT);
           hosts.append(address);
         }
         ports.append(',');
@@ -596,7 +597,7 @@ public class Driver implements java.sql.Driver {
        then set it to default
       */
       if (defaults == null || !defaults.containsKey("PGPORT")) {
-        urlProps.setProperty("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
+        urlProps.setProperty("PGPORT", DEFAULT_PORT);
       }
       if (defaults == null || !defaults.containsKey("PGHOST")) {
         urlProps.setProperty("PGHOST", "localhost");
