@@ -92,9 +92,7 @@ public class ScramAuthenticator {
 
   public void sendScramClientFirstMessage() throws IOException {
     String clientFirstMessage = scramSession.clientFirstMessage();
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " FE=> SASLInitialResponse( {0} )", clientFirstMessage);
-    }
+    LOGGER.log(Level.FINEST, " FE=> SASLInitialResponse( {0} )", clientFirstMessage);
 
     String scramMechanismName = scramClient.getScramMechanism().getName();
     byte[] scramMechanismNameBytes = scramMechanismName.getBytes(StandardCharsets.UTF_8);
@@ -112,9 +110,7 @@ public class ScramAuthenticator {
 
   public void processServerFirstMessage(int length) throws IOException, PSQLException {
     String serverFirstMessage = pgStream.receiveString(length);
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue( {0} )", serverFirstMessage);
-    }
+    LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue( {0} )", serverFirstMessage);
 
     try {
       serverFirstProcessor = scramSession.receiveServerFirstMessage(serverFirstMessage);
@@ -135,9 +131,7 @@ public class ScramAuthenticator {
     clientFinalProcessor = serverFirstProcessor.clientFinalProcessor(password);
 
     String clientFinalMessage = clientFinalProcessor.clientFinalMessage();
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " FE=> SASLResponse( {0} )", clientFinalMessage);
-    }
+    LOGGER.log(Level.FINEST, " FE=> SASLResponse( {0} )", clientFinalMessage);
 
     byte[] clientFinalMessageBytes = clientFinalMessage.getBytes(StandardCharsets.UTF_8);
     sendAuthenticationMessage(
@@ -148,9 +142,7 @@ public class ScramAuthenticator {
 
   public void verifyServerSignature(int length) throws IOException, PSQLException {
     String serverFinalMessage = pgStream.receiveString(length);
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLFinal( {0} )", serverFinalMessage);
-    }
+    LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLFinal( {0} )", serverFinalMessage);
 
     try {
       clientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);

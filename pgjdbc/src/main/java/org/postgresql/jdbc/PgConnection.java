@@ -168,9 +168,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     queryExecutor.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
-    }
+    LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
   }
 
   //
@@ -182,9 +180,7 @@ public class PgConnection implements BaseConnection {
                       Properties info,
                       String url) throws SQLException {
     // Print out the driver version number
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
-    }
+    LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
 
     this.creatingURL = url;
 
@@ -710,9 +706,7 @@ public class PgConnection implements BaseConnection {
     }
 
     this.readOnly = readOnly;
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setReadOnly = {0}", readOnly);
-    }
+    LOGGER.log(Level.FINE, "  setReadOnly = {0}", readOnly);
   }
 
   public boolean isReadOnly() throws SQLException {
@@ -732,9 +726,7 @@ public class PgConnection implements BaseConnection {
     }
 
     this.autoCommit = autoCommit;
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setAutoCommit = {0}", autoCommit);
-    }
+    LOGGER.log(Level.FINE, "  setAutoCommit = {0}", autoCommit);
   }
 
   public boolean getAutoCommit() throws SQLException {
@@ -850,9 +842,7 @@ public class PgConnection implements BaseConnection {
     String isolationLevelSQL =
         "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
     execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", isolationLevelName);
-    }
+    LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", isolationLevelName);
   }
 
   protected String getIsolationLevelName(int level) {
@@ -1025,9 +1015,7 @@ public class PgConnection implements BaseConnection {
     }
 
     this.defaultFetchSize = fetchSize;
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setDefaultFetchSize = {0}", fetchSize);
-    }
+    LOGGER.log(Level.FINE, "  setDefaultFetchSize = {0}", fetchSize);
   }
 
   public int getDefaultFetchSize() {
@@ -1036,9 +1024,7 @@ public class PgConnection implements BaseConnection {
 
   public void setPrepareThreshold(int newThreshold) {
     this.prepareThreshold = newThreshold;
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
-    }
+    LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
   }
 
   public boolean getForceBinary() {
@@ -1047,9 +1033,7 @@ public class PgConnection implements BaseConnection {
 
   public void setForceBinary(boolean newValue) {
     this.forcebinary = newValue;
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
-    }
+    LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
   }
 
   public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
@@ -1092,9 +1076,7 @@ public class PgConnection implements BaseConnection {
 
   public void setDisableColumnSanitiser(boolean disableColumnSanitiser) {
     this.disableColumnSanitiser = disableColumnSanitiser;
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setDisableColumnSanitiser = {0}", disableColumnSanitiser);
-    }
+    LOGGER.log(Level.FINE, "  setDisableColumnSanitiser = {0}", disableColumnSanitiser);
   }
 
   @Override
@@ -1110,9 +1092,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setAutosave(AutoSave autoSave) {
     queryExecutor.setAutoSave(autoSave);
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setAutosave = {0}", autoSave.value());
-    }
+    LOGGER.log(Level.FINE, "  setAutosave = {0}", autoSave.value());
   }
 
   protected void abort() {
@@ -1252,9 +1232,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     setTypeMapImpl(map);
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
-    }
+    LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 
   protected Array makeArray(int oid, String fieldString) throws SQLException {
@@ -1532,9 +1510,7 @@ public class PgConnection implements BaseConnection {
         Utils.escapeLiteral(sb, schema, getStandardConformingStrings());
         sb.append("'");
         stmt.executeUpdate(sb.toString());
-        if (LOGGER.isLoggable(Level.FINE)) {
-          LOGGER.log(Level.FINE, "  setSchema = {0}", schema);
-        }
+        LOGGER.log(Level.FINE, "  setSchema = {0}", schema);
       }
     } finally {
       stmt.close();
@@ -1609,9 +1585,7 @@ public class PgConnection implements BaseConnection {
         throw new PSQLException(GT.tr("Unknown ResultSet holdability setting: {0}.", holdability),
             PSQLState.INVALID_PARAMETER_VALUE);
     }
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "  setHoldability = {0}", holdability);
-    }
+    LOGGER.log(Level.FINE, "  setHoldability = {0}", holdability);
   }
 
   @Override

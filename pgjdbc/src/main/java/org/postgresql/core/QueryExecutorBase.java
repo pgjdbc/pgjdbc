@@ -131,16 +131,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     }
 
     try {
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.log(Level.FINEST, " FE=> Terminate");
-      }
+      LOGGER.log(Level.FINEST, " FE=> Terminate");
       sendCloseMessage();
       pgStream.flush();
       pgStream.close();
     } catch (IOException ioe) {
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.log(Level.FINEST, "Discarding IOException on close:", ioe);
-      }
+      LOGGER.log(Level.FINEST, "Discarding IOException on close:", ioe);
     }
 
     closed = true;
@@ -179,9 +175,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream.receiveEOF();
     } catch (IOException e) {
       // Safe to ignore.
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.log(Level.FINEST, "Ignoring exception on cancel request:", e);
-      }
+      LOGGER.log(Level.FINEST, "Ignoring exception on cancel request:", e);
     } finally {
       if (cancelStream != null) {
         try {

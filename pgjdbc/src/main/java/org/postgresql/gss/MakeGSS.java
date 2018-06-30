@@ -31,9 +31,7 @@ public class MakeGSS {
   public static void authenticate(PGStream pgStream, String host, String user, String password,
       String jaasApplicationName, String kerberosServerName, boolean useSpnego, boolean jaasLogin)
           throws IOException, SQLException {
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
-    }
+    LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
 
     if (jaasApplicationName == null) {
       jaasApplicationName = "pgjdbc";

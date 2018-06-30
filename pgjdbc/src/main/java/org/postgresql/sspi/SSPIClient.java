@@ -130,9 +130,7 @@ public class SSPIClient implements ISSPIClient {
      */
     final String securityPackage = enableNegotiate ? "negotiate" : "kerberos";
 
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "Beginning SSPI/Kerberos negotiation with SSPI package: {0}", securityPackage);
-    }
+    LOGGER.log(Level.FINEST, "Beginning SSPI/Kerberos negotiation with SSPI package: {0}", securityPackage);
 
     try {
       /*
@@ -154,9 +152,7 @@ public class SSPIClient implements ISSPIClient {
       try {
         targetName = makeSPN();
 
-        if (LOGGER.isLoggable(Level.FINEST)) {
-          LOGGER.log(Level.FINEST, "SSPI target name: {0}", targetName);
-        }
+        LOGGER.log(Level.FINEST, "SSPI target name: {0}", targetName);
 
         sspiContext = new WindowsSecurityContextImpl();
         sspiContext.setPrincipalName(targetName);
@@ -169,9 +165,7 @@ public class SSPIClient implements ISSPIClient {
       }
 
       sendSSPIResponse(sspiContext.getToken());
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.log(Level.FINEST, "Sent first SSPI negotiation message");
-      }
+      LOGGER.log(Level.FINEST, "Sent first SSPI negotiation message");
     } catch (NoClassDefFoundError ex) {
       throw new PSQLException(
           "SSPI cannot be used, Waffle or its dependencies are missing from the classpath",
@@ -193,9 +187,7 @@ public class SSPIClient implements ISSPIClient {
       throw new IllegalStateException("Cannot continue SSPI authentication that we didn't begin");
     }
 
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "Continuing SSPI negotiation");
-    }
+    LOGGER.log(Level.FINEST, "Continuing SSPI negotiation");
 
     /* Read the response token from the server */
     byte[] receivedToken = pgStream.receive(msgLength);
@@ -212,13 +204,9 @@ public class SSPIClient implements ISSPIClient {
     byte[] responseToken = sspiContext.getToken();
     if (responseToken.length > 0) {
       sendSSPIResponse(responseToken);
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.log(Level.FINEST, "Sent SSPI negotiation continuation message");
-      }
+      LOGGER.log(Level.FINEST, "Sent SSPI negotiation continuation message");
     } else {
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.log(Level.FINEST, "SSPI authentication complete, no reply required");
-      }
+      LOGGER.log(Level.FINEST, "SSPI authentication complete, no reply required");
     }
   }
 

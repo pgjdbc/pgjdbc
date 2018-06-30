@@ -276,9 +276,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
       return;
     }
 
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " FE=> StopReplication");
-    }
+    LOGGER.log(Level.FINEST, " FE=> StopReplication");
 
     copyDual.endCopy();
 

@@ -52,9 +52,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
   private PGReplicationStream initializeReplication(String query, CommonOptions options,
       ReplicationType replicationType)
       throws SQLException {
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
-    }
+    LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
 
     configureSocketTimeout(options);
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);

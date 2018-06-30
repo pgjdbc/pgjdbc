@@ -134,9 +134,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     while (hostIter.hasNext()) {
       CandidateHost candidateHost = hostIter.next();
       HostSpec hostSpec = candidateHost.hostSpec;
-      if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}", hostSpec);
-      }
+      LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}", hostSpec);
 
       // Note: per-connect-attempt status map is used here instead of GlobalHostStatusTracker
       // for the case when "no good hosts" match (e.g. all the hosts are known as "connectfail")
@@ -355,9 +353,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, int connectTimeout)
       throws IOException, SQLException {
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, " FE=> SSLRequest");
-    }
+    LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
     // Send SSL request packet
     pgStream.sendInteger4(8);
@@ -369,9 +365,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int beresp = pgStream.receiveChar();
     switch (beresp) {
       case 'E':
-        if (LOGGER.isLoggable(Level.FINEST)) {
-          LOGGER.log(Level.FINEST, " <=BE SSLError");
-        }
+        LOGGER.log(Level.FINEST, " <=BE SSLError");
 
         // Server doesn't even know about the SSL handshake protocol
         if (requireSSL) {
@@ -384,9 +378,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
 
       case 'N':
-        if (LOGGER.isLoggable(Level.FINEST)) {
-          LOGGER.log(Level.FINEST, " <=BE SSLRefused");
-        }
+        LOGGER.log(Level.FINEST, " <=BE SSLRefused");
 
         // Server does not support ssl
         if (requireSSL) {
@@ -397,9 +389,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return pgStream;
 
       case 'S':
-        if (LOGGER.isLoggable(Level.FINEST)) {
-          LOGGER.log(Level.FINEST, " <=BE SSLOk");
-        }
+        LOGGER.log(Level.FINEST, " <=BE SSLOk");
 
         // Server supports ssl
         org.postgresql.ssl.MakeSSL.convert(pgStream, info);
@@ -485,9 +475,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
-            if (LOGGER.isLoggable(Level.FINEST)) {
-              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-            }
+            LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
             throw new PSQLException(errorMsg);
 
           case 'R':
@@ -530,10 +518,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               }
 
               case AUTH_REQ_PASSWORD: {
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, "<=BE AuthenticationReqPassword");
-                  LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
-                }
+                LOGGER.log(Level.FINEST, "<=BE AuthenticationReqPassword");
+                LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
                 if (password == null) {
                   throw new PSQLException(
@@ -583,14 +569,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * name we'll always use JSSE GSSAPI.
                  */
                 if (gsslib.equals("gssapi")) {
-                  if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Using JSSE GSSAPI, param gsslib=gssapi");
-                  }
+                  LOGGER.log(Level.FINE, "Using JSSE GSSAPI, param gsslib=gssapi");
                 } else if (areq == AUTH_REQ_GSS && !gsslib.equals("sspi")) {
-                  if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE,
-                               "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
-                  }
+                  LOGGER.log(Level.FINE,
+                      "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
                 } else {
                   /* Determine if SSPI is supported by the client */
                   sspiClient = createSSPI(pgStream, PGProperty.SSPI_SERVICE_CLASS.get(info),
@@ -598,9 +580,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego));
 
                   useSSPI = sspiClient.isSSPISupported();
-                  if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "SSPI support detected: {0}", useSSPI);
-                  }
+                  LOGGER.log(Level.FINE, "SSPI support detected: {0}", useSSPI);
 
                   if (!useSSPI) {
                     /* No need to dispose() if no SSPI used */
@@ -638,9 +618,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_SASL:
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
-                }
+                LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
                 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
                 scramAuthenticator = new org.postgresql.jre8.sasl.ScramAuthenticator(user, password, pgStream);
@@ -667,15 +645,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               case AUTH_REQ_OK:
                 /* Cleanup after successful authentication */
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
-                }
+                LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
                 break authloop; // We're done.
 
               default:
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " <=BE AuthenticationReq (unsupported type {0})", areq);
-                }
+                LOGGER.log(Level.FINEST, " <=BE AuthenticationReq (unsupported type {0})", areq);
                 throw new PSQLException(GT.tr(
                     "The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.",
                     areq), PSQLState.CONNECTION_REJECTED);

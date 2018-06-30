@@ -94,9 +94,7 @@ class GssAction implements PrivilegedAction<Exception> {
 
 
         if (outToken != null) {
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
-          }
+          LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
           pgStream.sendChar('p');
           pgStream.sendInteger4(4 + outToken.length);
@@ -113,15 +111,11 @@ class GssAction implements PrivilegedAction<Exception> {
               ServerErrorMessage l_errorMsg
                   = new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
 
-              if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", l_errorMsg);
-              }
+              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", l_errorMsg);
 
               return new PSQLException(l_errorMsg);
             case 'R':
-              if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
-              }
+              LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
               int type = pgStream.receiveInteger4();
               // should check type = 8
