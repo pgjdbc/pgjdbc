@@ -1,16 +1,55 @@
-# How to contribute
+# Guidelines for Contributing
 
-Thank you so much for wanting to contribute to PostgreSQL JDBC Driver! Here are a few important
-things you should know about contributing:
+Thank you so much for wanting to contribute to **PostgreSQL JDBC Driver**!
 
-  1. API changes require discussion, use cases, etc. Code comes later.
-  2. Pull requests are great for small fixes for bugs, documentation, etc.
-  3. Pull requests are not merged directly into the master branch.
+The purpose of the *Guidelines for Contributing* is to create a collaboration baseline.
+**Do NOT** blindly obey these guidelines, use them (after understanding) where they make sense.
 
-## Ideas
+You must know that the PgJDBC driver support Java versions **6**, **7** and **8** mostly the
+Oracle and OpenJDK implementations; and PostgreSQL server versions from **8.2** and higher.
 
-If you have ideas or proposed changes, please post on the mailing list or
-open a detailed, specific GitHub issue.
+Some PostgreSQL forks *might* work but are not officially supported, we cheer the vendors of forks
+that want to improve this driver sending us pull requests that are not disruptive to the 
+community ecosystem of PostgreSQL.
+
+## Issues
+
+Issues are a great way to keep track of tasks, enhancements, and bugs for the PgJDBC project.
+
+### How to submit a bug report
+
+If you found a bug in the PgJDBC driver please use an issue to report it, try to be concise
+and detailed in your report, please ensure to specify at least the following:
+
+  * Use a concise subject.
+  * PgJDBC driver version (e.g. 42.0.0.jre7)
+  * JDK/JRE version or the output of `java -version` (e.g. OpenJDK Java 8u144, Oracle Java 7u79)
+  * PostgreSQL server version or the output of `select version()` (e.g. PostgreSQL 9.6.2)
+  * Context information: what you were trying to achieve with PgJDBC.
+  * Simplest possible steps to reproduce
+    * More complex the steps are, lower the priority will be.
+    * A pull request with failing JUnit test case is most preferred, although it's OK to paste
+      the test case into the issue description.
+
+You can consider a bug: some behavior that worked before and now it does not; a violation of the
+JDBC spec in any form, unless it's stated otherwise as an extension.
+
+It's hard, but possible, to introduce some breaking changes to the driver every major version update,
+so, please read carefully the changelog and test thoroughly for any potential problem with your app.
+What is not acceptable is to introduce breaking changes in the minor or patch update of the driver,
+if you found a regression in a minor o patch update, please fill an issue.
+
+Not every bug report needs to be of code, some can be documentation erratum that can be improved as
+well, the website source code along with the documentation is under **docs**, your are welcome to
+report issues and send pull request too.
+
+For enhancements request keep reading the *Ideas, enhancements and new features* seccion.
+
+### Ideas, enhancements and new features
+
+If you have ideas or proposed changes, please post on the
+[mailing list](https://www.postgresql.org/list/pgsql-jdbc/) or open a detailed,
+specific [GitHub issue](https://github.com/pgjdbc/pgjdbc/issues/new).
 
 Think about how the change would affect other users, what side effects it
 might have, how practical it is to implement, what implications it would
@@ -23,31 +62,42 @@ desired feature or improvement happens is to implement it yourself. The PgJDBC
 sources are reasonably clear and they're pure Java, so it's sometimes easier
 than you might expect.
 
-## Build requirements
+## Contributing code
+
+Here are a few important things you should know about contributing code:
+
+  1. API changes require discussion, use cases, etc. Code comes later.
+  2. Pull requests are great for small fixes for bugs, documentation, etc.
+  3. Pull request needs to be approved and merged by maintainers into the master branch.
+  4. Pull requests needs to fully pass CI tests.
+
+### Build requirements
 
 In order to build the source code for PgJDBC you will need the following tools:
 
-- A git client
-- A recent version of Maven (3.x)
-- A JDK for the JDBC version you'd like to build (JDK6 for JDBC 4, JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
-- A running PostgreSQL instance
+  - A git client
+  - A recent version of Maven (3.x)
+  - A JDK for the JDBC version you'd like to build (JDK6 for JDBC 4, JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
+  - A running PostgreSQL instance (optional for unit/integration tests)
 
 Additionally, in order to update translations (not typical), you will need the following additional tools:
 
--  the gettext package, which contains the commands "msgfmt", "msgmerge", and "xgettext"
+  -  the gettext package, which contains the commands "msgfmt", "msgmerge", and "xgettext"
 
-## Checking out the source code
+### Hacking on PgJDBC
 
 The PgJDBC project uses git for version control. You can check out the current code by running:
 
     git clone https://github.com/pgjdbc/pgjdbc.git
-    
+
 This will create a pgjdbc directory containing the checked-out source code.
 In order do build jre7 or jre6 compatible versions, check out those repositories under `pgjdbc`
 
+```bash
     cd pgjdbc # <-- that is pgjdbc/pgjdbc.git clone
     git clone https://github.com/pgjdbc/pgjdbc-jre7.git
     git clone https://github.com/pgjdbc/pgjdbc-jre6.git
+```
 
 Note: all the source code is stored in `pgjdbc.git` repository, so just `pgjdbc.git` is sufficient for development.
 
