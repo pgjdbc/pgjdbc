@@ -97,8 +97,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       }
       return con;
     } catch (SQLException e) {
-      LOGGER.log(Level.SEVERE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[]{getDescription(), user, getUrl(), e});
+      LOGGER.log(Level.WARNING, "Failed to create a {0} for {1} at {2}",
+          new Object[]{getDescription(), user, getUrl()});
       throw e;
     }
   }
