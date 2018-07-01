@@ -17,21 +17,18 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
- * This class provides the basic methods required to run the interface, plus a pair of methods that
- * provide InputStream and OutputStream classes for this object.
+ * <p>This class provides the basic methods required to run the interface, plus a pair of methods that
+ * provide InputStream and OutputStream classes for this object.</p>
  *
- * <p>
- * Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream methods
+ * <p>Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream methods
  * in ResultSet, or setAsciiStream, setBinaryStream, or setUnicodeStream methods in
- * PreparedStatement to access Large Objects.
+ * PreparedStatement to access Large Objects.</p>
  *
- * <p>
- * However, sometimes lower level access to Large Objects are required, that are not supported by
- * the JDBC specification.
+ * <p>However, sometimes lower level access to Large Objects are required, that are not supported by
+ * the JDBC specification.</p>
  *
- * <p>
- * Refer to org.postgresql.largeobject.LargeObjectManager on how to gain access to a Large Object,
- * or how to create one.
+ * <p>Refer to org.postgresql.largeobject.LargeObjectManager on how to gain access to a Large Object,
+ * or how to create one.</p>
  *
  * @see org.postgresql.largeobject.LargeObjectManager
  * @see java.sql.ResultSet#getAsciiStream
@@ -74,10 +71,9 @@ public class LargeObject
   private boolean commitOnClose; // Only initialized when open a LOB with CommitOnClose
 
   /**
-   * This opens a large object.
+   * <p>This opens a large object.</p>
    *
-   * <p>
-   * If the object does not exist, then an SQLException is thrown.
+   * <p>If the object does not exist, then an SQLException is thrown.</p>
    *
    * @param fp FastPath API for the connection to use
    * @param oid of the Large Object to open
@@ -107,10 +103,9 @@ public class LargeObject
   }
 
   /**
-   * This opens a large object.
+   * <p>This opens a large object.</p>
    *
-   * <p>
-   * If the object does not exist, then an SQLException is thrown.
+   * <p>If the object does not exist, then an SQLException is thrown.</p>
    *
    * @param fp FastPath API for the connection to use
    * @param oid of the Large Object to open
@@ -246,11 +241,10 @@ public class LargeObject
   }
 
   /**
-   * Sets the current position within the object.
+   * <p>Sets the current position within the object.</p>
    *
-   * <p>
-   * This is similar to the fseek() call in the standard C library. It allows you to have random
-   * access to the large object.
+   * <p>This is similar to the fseek() call in the standard C library. It allows you to have random
+   * access to the large object.</p>
    *
    * @param pos position within object
    * @param ref Either SEEK_SET, SEEK_CUR or SEEK_END
@@ -280,11 +274,10 @@ public class LargeObject
   }
 
   /**
-   * Sets the current position within the object.
+   * <p>Sets the current position within the object.</p>
    *
-   * <p>
-   * This is similar to the fseek() call in the standard C library. It allows you to have random
-   * access to the large object.
+   * <p>This is similar to the fseek() call in the standard C library. It allows you to have random
+   * access to the large object.</p>
    *
    * @param pos position within object from begining
    * @throws SQLException if a database-access error occurs.
@@ -314,11 +307,10 @@ public class LargeObject
   }
 
   /**
-   * This method is inefficient, as the only way to find out the size of the object is to seek to
-   * the end, record the current position, then return to the original position.
+   * <p>This method is inefficient, as the only way to find out the size of the object is to seek to
+   * the end, record the current position, then return to the original position.</p>
    *
-   * <p>
-   * A better method will be found in the future.
+   * <p>A better method will be found in the future.</p>
    *
    * @return the size of the large object
    * @throws SQLException if a database-access error occurs.
@@ -376,10 +368,9 @@ public class LargeObject
   }
 
   /**
-   * Returns an {@link InputStream} from this object.
+   * <p>Returns an {@link InputStream} from this object.</p>
    *
-   * <p>
-   * This {@link InputStream} can then be used in any method that requires an InputStream.
+   * <p>This {@link InputStream} can then be used in any method that requires an InputStream.</p>
    *
    * @return {@link InputStream} from this object
    * @throws SQLException if a database-access error occurs.
@@ -401,10 +392,9 @@ public class LargeObject
   }
 
   /**
-   * Returns an {@link OutputStream} to this object.
+   * <p>Returns an {@link OutputStream} to this object.</p>
    *
-   * <p>
-   * This OutputStream can then be used in any method that requires an OutputStream.
+   * <p>This OutputStream can then be used in any method that requires an OutputStream.</p>
    *
    * @return {@link OutputStream} from this object
    * @throws SQLException if a database-access error occurs.

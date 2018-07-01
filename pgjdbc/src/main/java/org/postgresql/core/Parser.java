@@ -382,11 +382,11 @@ public class Parser {
   }
 
   /**
-   * Find the end of the single-quoted string starting at the given offset.
+   * <p>Find the end of the single-quoted string starting at the given offset.</p>
    *
-   * Note: for <tt>'single '' quote in string'</tt>, this method currently returns the offset of
+   * <p>Note: for <tt>'single '' quote in string'</tt>, this method currently returns the offset of
    * first <tt>'</tt> character after the initial one. The caller must call the method a second time
-   * for the second part of the quoted string.
+   * for the second part of the quoted string.</p>
    *
    * @param query                     query
    * @param offset                    start offset
@@ -432,11 +432,11 @@ public class Parser {
   }
 
   /**
-   * Find the end of the double-quoted string starting at the given offset.
+   * <p>Find the end of the double-quoted string starting at the given offset.</p>
    *
-   * Note: for <tt>&quot;double &quot;&quot; quote in string&quot;</tt>, this method currently
+   * <p>Note: for <tt>&quot;double &quot;&quot; quote in string&quot;</tt>, this method currently
    * returns the offset of first <tt>&quot;</tt> character after the initial one. The caller must
-   * call the method a second time for the second part of the quoted string.
+   * call the method a second time for the second part of the quoted string.</p>
    *
    * @param query  query
    * @param offset start offset
@@ -1052,13 +1052,13 @@ public class Parser {
   }
 
   /**
-   * Filter the SQL string of Java SQL Escape clauses.
-   * <p>
-   * Currently implemented Escape clauses are those mentioned in 11.3 in the specification.
+   * <p>Filter the SQL string of Java SQL Escape clauses.</p>
+   *
+   * <p>Currently implemented Escape clauses are those mentioned in 11.3 in the specification.
    * Basically we look through the sql string for {d xxx}, {t xxx}, {ts xxx}, {oj xxx} or {fn xxx}
    * in non-string sql code. When we find them, we just strip the escape part leaving only the xxx
    * part. So, something like "select * from x where d={d '2001-10-09'}" would return "select * from
-   * x where d= '2001-10-09'".
+   * x where d= '2001-10-09'".</p>
    *
    * @param p_sql                     the original query text
    * @param replaceProcessingEnabled  whether replace_processing_enabled is on

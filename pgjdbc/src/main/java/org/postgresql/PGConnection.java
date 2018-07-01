@@ -112,25 +112,22 @@ public interface PGConnection {
   void addDataType(String type, String className);
 
   /**
-   * This allows client code to add a handler for one of org.postgresql's more unique data types.
+   * <p>This allows client code to add a handler for one of org.postgresql's more unique data types.</p>
    *
-   * <p>
-   * <b>NOTE:</b> This is not part of JDBC, but an extension.
+   * <p><b>NOTE:</b> This is not part of JDBC, but an extension.</p>
    *
-   * <p>
-   * The best way to use this is as follows:
+   * <p>The best way to use this is as follows:
    *
    * <pre>
    * ...
    * ((org.postgresql.PGConnection)myconn).addDataType("mytype", my.class.name.class);
    * ...
    * </pre>
+   * </p>
    *
-   * <p>
-   * where myconn is an open Connection to org.postgresql.
+   * <p>where myconn is an open Connection to org.postgresql.</p>
    *
-   * <p>
-   * The handling class must extend org.postgresql.util.PGobject
+   * <p>The handling class must extend org.postgresql.util.PGobject</p>
    *
    * @param type the PostgreSQL type to register
    * @param klass the class implementing the Java representation of the type; this class must
@@ -209,11 +206,11 @@ public interface PGConnection {
   String escapeLiteral(String literal) throws SQLException;
 
   /**
-   * Returns the query mode for this connection.
-   * <p>
-   * When running in simple query mode, certain features are not available: callable statements,
-   * partial result set fetch, bytea type, etc.
-   * The list of supported features is subject to change.
+   * <p>Returns the query mode for this connection.</p>
+   *
+   * <p>When running in simple query mode, certain features are not available: callable statements,
+   * partial result set fetch, bytea type, etc.</p>
+   * <p>The list of supported features is subject to change.</p>
    *
    * @return the preferred query mode
    * @see PreferQueryMode

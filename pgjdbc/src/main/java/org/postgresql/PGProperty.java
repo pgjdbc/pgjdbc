@@ -56,27 +56,29 @@ public enum PGProperty {
       false, "3"),
 
   /**
-   * Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.
-   * <p>
-   * This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
+   * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
+   *
+   * <p>This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
    * of levels:
-   * <p>
-   * FINE -&gt; DEBUG<br>
-   * FINEST -&gt; TRACE
-   * <p>
-   * <b>NOTE:</b> The recommended approach to enable java.util.logging is using a
+   * <ul>
+   *     <li>FINE -&gt; DEBUG</li>
+   *     <li>FINEST -&gt; TRACE</li>
+   * </ul>
+   * </p>
+   *
+   * <p><b>NOTE:</b> The recommended approach to enable java.util.logging is using a
    * {@code logging.properties} configuration file with the property
    * {@code -Djava.util.logging.config.file=myfile} or if your are using an application server
-   * you should use the appropriate logging subsystem.
+   * you should use the appropriate logging subsystem.</p>
    */
   LOGGER_LEVEL("loggerLevel", null, "Logger level of the driver", false, "OFF", "DEBUG", "TRACE"),
 
   /**
-   * File name output of the Logger, if set, the Logger will use a
+   * <p>File name output of the Logger, if set, the Logger will use a
    * {@link java.util.logging.FileHandler} to write to a specified file. If the parameter is not set
-   * or the file can't be created the {@link java.util.logging.ConsoleHandler} will be used instead.
-   * <p>
-   * Parameter should be use together with {@link PGProperty#LOGGER_LEVEL}
+   * or the file can't be created the {@link java.util.logging.ConsoleHandler} will be used instead.</p>
+   *
+   * <p>Parameter should be use together with {@link PGProperty#LOGGER_LEVEL}</p>
    */
   LOGGER_FILE("loggerFile", null, "File name output of the Logger"),
 
@@ -248,10 +250,10 @@ public enum PGProperty {
       "Specify how long to wait for establishment of a database connection."),
 
   /**
-   * The timeout value used for socket connect operations. If connecting to the server takes longer
-   * than this value, the connection is broken.
-   * <p>
-   * The timeout is specified in seconds and a value of zero means that it is disabled.
+   * <p>The timeout value used for socket connect operations. If connecting to the server takes longer
+   * than this value, the connection is broken.</p>
+   *
+   * <p>The timeout is specified in seconds and a value of zero means that it is disabled.</p>
    */
   CONNECT_TIMEOUT("connectTimeout", "10", "The timeout value used for socket connect operations."),
 
@@ -370,11 +372,11 @@ public enum PGProperty {
       "Specifies period (seconds) after which the host status is checked again in case it has changed"),
 
   /**
-   * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
+   * <p>Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
-   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
+   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.</p>
    *
-   * This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)
+   * <p>This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)</p>
    */
   PREFER_QUERY_MODE("preferQueryMode", "extended",
       "Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), "
@@ -407,8 +409,9 @@ public enum PGProperty {
    * of replication commands can be issued instead of SQL statements. Only the simple query protocol
    * can be used in walsender mode. Passing "database" as the value instructs walsender to connect
    * to the database specified in the dbname parameter, which will allow the connection to be used
-   * for logical replication from that database. <p>Parameter should be use together with {@link
-   * PGProperty#ASSUME_MIN_SERVER_VERSION} with parameter &gt;= 9.4 (backend &gt;= 9.4)
+   * for logical replication from that database.</p>
+   * <p>Parameter should be use together with {@link PGProperty#ASSUME_MIN_SERVER_VERSION} with
+   * parameter &gt;= 9.4 (backend &gt;= 9.4)</p>
    */
   REPLICATION("replication", null,
       "Connection parameter passed in startup message, one of 'true' or 'database' "

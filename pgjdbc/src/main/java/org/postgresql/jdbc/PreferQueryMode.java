@@ -6,10 +6,10 @@
 package org.postgresql.jdbc;
 
 /**
- * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
- * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only.
+ * <p>Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
+ * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only.</p>
  *
- * Note: this is for debugging purposes only.
+ * <p>Note: this is for debugging purposes only.</p>
  *
  * @see org.postgresql.PGProperty#PREFER_QUERY_MODE
  */

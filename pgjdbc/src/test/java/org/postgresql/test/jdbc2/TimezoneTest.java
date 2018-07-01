@@ -32,25 +32,24 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 /**
- * Tests for time and date types with calendars involved. TimestampTest was melting my brain, so I
- * started afresh. -O
+ * <p>Tests for time and date types with calendars involved. TimestampTest was melting my brain, so I
+ * started afresh. -O</p>
  *
- * Conversions that this code tests:
- * <p>
- * setTimestamp -> timestamp, timestamptz, date, time, timetz
- * <p>
- * setDate -> timestamp, timestamptz, date
- * <p>
- * setTime -> time, timetz
+ * <p>Conversions that this code tests:</p>
  *
- * <p>
- * getTimestamp <- timestamp, timestamptz, date, time, timetz
- * <p>
- * getDate <- timestamp, timestamptz, date
- * <p>
- * getTime <- timestamp, timestamptz, time, timetz
+ * <p>setTimestamp -> timestamp, timestamptz, date, time, timetz</p>
  *
- * (this matches what we must support per JDBC 3.0, tables B-5 and B-6)
+ * <p>setDate -> timestamp, timestamptz, date</p>
+ *
+ * <p>setTime -> time, timetz</p>
+ *
+ * <p>getTimestamp <- timestamp, timestamptz, date, time, timetz</p>
+ *
+ * <p>getDate <- timestamp, timestamptz, date</p>
+ *
+ * <p>getTime <- timestamp, timestamptz, time, timetz</p>
+ *
+ * <p>(this matches what we must support per JDBC 3.0, tables B-5 and B-6)</p>
  */
 public class TimezoneTest {
   private static final int DAY = 24 * 3600 * 1000;

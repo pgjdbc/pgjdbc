@@ -8,7 +8,7 @@ package org.postgresql.replication.fluent;
 import org.postgresql.replication.fluent.logical.ChainedLogicalCreateSlotBuilder;
 import org.postgresql.replication.fluent.physical.ChainedPhysicalCreateSlotBuilder;
 
-/***
+/**
  * Fluent interface for specify common parameters for Logical and Physical replication.
  */
 public interface ChainedCreateReplicationSlotBuilder {
@@ -48,9 +48,9 @@ public interface ChainedCreateReplicationSlotBuilder {
   ChainedLogicalCreateSlotBuilder logical();
 
   /**
-   * Create physical replication stream for process wal logs in binary form.
+   * <p>Create physical replication stream for process wal logs in binary form.</p>
    *
-   * Example usage:
+   * <p>Example usage:
    * <pre>
    *   {@code
    *
@@ -76,6 +76,7 @@ public interface ChainedCreateReplicationSlotBuilder {
    *
    *   }
    * </pre>
+   * </p>
    * @return not null fluent api
    */
   ChainedPhysicalCreateSlotBuilder physical();

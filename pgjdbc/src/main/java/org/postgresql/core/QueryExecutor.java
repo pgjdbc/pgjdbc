@@ -22,9 +22,9 @@ import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * Abstracts the protocol-specific details of executing a query.
- * <p>
- * Every connection has a single QueryExecutor implementation associated with it. This object
+ * <p>Abstracts the protocol-specific details of executing a query.</p>
+ *
+ * <p>Every connection has a single QueryExecutor implementation associated with it. This object
  * provides:
  *
  * <ul>
@@ -35,19 +35,18 @@ import java.util.TimeZone;
  * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
  * <li>a fastpath call interface ({@link #createFastpathParameters} and {@link #fastpathCall}).
  * </ul>
+ * </p>
  *
- * <p>
- * Query objects may represent a query that has parameter placeholders. To provide actual values for
+ * <p>Query objects may represent a query that has parameter placeholders. To provide actual values for
  * these parameters, a {@link ParameterList} object is created via a factory method (
  * {@link Query#createParameterList}). The parameters are filled in by the caller and passed along
  * with the query to the query execution methods. Several ParameterLists for a given query might
  * exist at one time (or over time); this allows the underlying Query to be reused for several
- * executions, or for batch execution of the same Query.
+ * executions, or for batch execution of the same Query.</p>
  *
- * <p>
- * In general, a Query created by a particular QueryExecutor may only be executed by that
+ * <p>In general, a Query created by a particular QueryExecutor may only be executed by that
  * QueryExecutor, and a ParameterList created by a particular Query may only be used as parameters
- * to that Query. Unpredictable things will happen if this isn't done.
+ * to that Query. Unpredictable things will happen if this isn't done.</p>
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
@@ -350,14 +349,14 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   boolean isClosed();
 
   /**
-   * Return the server version from the server_version GUC.
+   * <p>Return the server version from the server_version GUC.</p>
    *
-   * Note that there's no requirement for this to be numeric or of the form x.y.z. PostgreSQL
+   * <p>Note that there's no requirement for this to be numeric or of the form x.y.z. PostgreSQL
    * development releases usually have the format x.ydevel e.g. 9.4devel; betas usually x.ybetan
-   * e.g. 9.4beta1. The --with-extra-version configure option may add an arbitrary string to this.
+   * e.g. 9.4beta1. The --with-extra-version configure option may add an arbitrary string to this.</p>
    *
-   * Don't use this string for logic, only use it when displaying the server version to the user.
-   * Prefer getServerVersionNum() for all logic purposes.
+   * <p>Don't use this string for logic, only use it when displaying the server version to the user.
+   * Prefer getServerVersionNum() for all logic purposes.</p>
    *
    * @return the server version string from the server_version guc
    */
@@ -380,12 +379,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   SQLWarning getWarnings();
 
   /**
-   * Get a machine-readable server version.
+   * <p>Get a machine-readable server version.</p>
    *
-   * This returns the value of the server_version_num GUC. If no such GUC exists, it falls back on
+   * <p>This returns the value of the server_version_num GUC. If no such GUC exists, it falls back on
    * attempting to parse the text server version for the major version. If there's no minor version
    * (e.g. a devel or beta release) then the minor version is set to zero. If the version could not
-   * be parsed, zero is returned.
+   * be parsed, zero is returned.</p>
    *
    * @return the server version in numeric XXYYZZ form, eg 090401, from server_version_num
    */

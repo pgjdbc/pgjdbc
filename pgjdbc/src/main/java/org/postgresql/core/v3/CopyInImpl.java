@@ -13,9 +13,9 @@ import org.postgresql.util.PSQLState;
 import java.sql.SQLException;
 
 /**
- * COPY FROM STDIN operation.
+ * <p>COPY FROM STDIN operation.</p>
  *
- * Anticipated flow:
+ * <p>Anticipated flow:
  *
  * CopyManager.copyIn() -&gt;QueryExecutor.startCopy() - sends given query to server
  * -&gt;processCopyResults(): - receives CopyInResponse from Server - creates new CopyInImpl
@@ -29,7 +29,7 @@ import java.sql.SQLException;
  * -&gt;QueryExecutorImpl.endCopy() - sends CopyDone - processCopyResults() - on CommandComplete
  * -&gt;CopyOperationImpl.handleCommandComplete() - sets updatedRowCount when applicable - on
  * ReadyForQuery unlock() connection for use by other operations &lt;-return:
- * CopyInImpl.getUpdatedRowCount()
+ * CopyInImpl.getUpdatedRowCount()</p>
  */
 public class CopyInImpl extends CopyOperationImpl implements CopyIn {
 

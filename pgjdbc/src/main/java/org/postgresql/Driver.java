@@ -38,21 +38,18 @@ import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
 /**
- * The Java SQL framework allows for multiple database drivers. Each driver should supply a class
- * that implements the Driver interface
+ * <p>The Java SQL framework allows for multiple database drivers. Each driver should supply a class
+ * that implements the Driver interface</p>
  *
- * <p>
- * The DriverManager will try to load as many drivers as it can find and then for any given
- * connection request, it will ask each driver in turn to try to connect to the target URL.
+ * <p>The DriverManager will try to load as many drivers as it can find and then for any given
+ * connection request, it will ask each driver in turn to try to connect to the target URL.</p>
  *
- * <p>
- * It is strongly recommended that each Driver class should be small and standalone so that the
- * Driver class can be loaded and queried without bringing in vast quantities of supporting code.
+ * <p>It is strongly recommended that each Driver class should be small and standalone so that the
+ * Driver class can be loaded and queried without bringing in vast quantities of supporting code.</p>
  *
- * <p>
- * When a Driver class is loaded, it should create an instance of itself and register it with the
+ * <p>When a Driver class is loaded, it should create an instance of itself and register it with the
  * DriverManager. This means that a user can load and register a driver by doing
- * Class.forName("foo.bah.Driver")
+ * Class.forName("foo.bah.Driver")</p>
  *
  * @see org.postgresql.PGConnection
  * @see java.sql.Driver
@@ -157,46 +154,49 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * Try to make a database connection to the given URL. The driver should return "null" if it
+   * <p>Try to make a database connection to the given URL. The driver should return "null" if it
    * realizes it is the wrong kind of driver to connect to the given URL. This will be common, as
    * when the JDBC driverManager is asked to connect to a given URL, it passes the URL to each
-   * loaded driver in turn.
+   * loaded driver in turn.</p>
    *
-   * <p>
-   * The driver should raise an SQLException if it is the right driver to connect to the given URL,
-   * but has trouble connecting to the database.
+   * <p>The driver should raise an SQLException if it is the right driver to connect to the given URL,
+   * but has trouble connecting to the database.</p>
    *
-   * <p>
-   * The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as
-   * connection arguments.
+   * <p>The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as
+   * connection arguments.</p>
    *
-   * user - (required) The user to connect as password - (optional) The password for the user ssl -
-   * (optional) Use SSL when connecting to the server readOnly - (optional) Set connection to
-   * read-only by default charSet - (optional) The character set to be used for converting to/from
+   * <ul>
+   * <li>user - (required) The user to connect as</li>
+   * <li>password - (optional) The password for the user</li>
+   * <li>ssl -(optional) Use SSL when connecting to the server</li>
+   * <li>readOnly - (optional) Set connection to read-only by default</li>
+   * <li>charSet - (optional) The character set to be used for converting to/from
    * the database to unicode. If multibyte is enabled on the server then the character set of the
    * database is used as the default, otherwise the jvm character encoding is used as the default.
-   * This value is only used when connecting to a 7.2 or older server. loglevel - (optional) Enable
-   * logging of messages from the driver. The value is an integer from 0 to 2 where: OFF = 0, INFO =
-   * 1, DEBUG = 2 The output is sent to DriverManager.getPrintWriter() if set, otherwise it is sent
-   * to System.out. compatible - (optional) This is used to toggle between different functionality
+   * This value is only used when connecting to a 7.2 or older server.</li>
+   * <li>loglevel - (optional) Enable logging of messages from the driver. The value is an integer
+   * from 0 to 2 where: OFF = 0, INFO =1, DEBUG = 2 The output is sent to
+   * DriverManager.getPrintWriter() if set, otherwise it is sent to System.out.</li>
+   * <li>compatible - (optional) This is used to toggle between different functionality
    * as it changes across different releases of the jdbc driver code. The values here are versions
    * of the jdbc client and not server versions. For example in 7.1 get/setBytes worked on
    * LargeObject values, in 7.2 these methods were changed to work on bytea values. This change in
    * functionality could be disabled by setting the compatible level to be "7.1", in which case the
-   * driver will revert to the 7.1 functionality.
+   * driver will revert to the 7.1 functionality.</li>
+   * </ul>
    *
-   * <p>
-   * Normally, at least "user" and "password" properties should be included in the properties. For a
+   * <p>Normally, at least "user" and "password" properties should be included in the properties. For a
    * list of supported character encoding , see
    * http://java.sun.com/products/jdk/1.2/docs/guide/internat/encoding.doc.html Note that you will
    * probably want to have set up the Postgres database itself to use the same encoding, with the
-   * {@code -E <encoding>} argument to createdb.
+   * {@code -E <encoding>} argument to createdb.</p>
    *
-   * Our protocol takes the forms:
+   * <p>Our protocol takes the forms:
    *
    * <PRE>
    *  jdbc:postgresql://host:port/database?param1=val1&amp;...
    * </PRE>
+   * </p>
    *
    * @param url the URL of the database to connect to
    * @param info a list of arbitrary tag/value pairs as connection arguments
@@ -285,9 +285,9 @@ public class Driver implements java.sql.Driver {
   private static String loggerHandlerFile;
 
   /**
-   * Setup java.util.logging.Logger using connection properties.
-   * <p>
-   * See {@link PGProperty#LOGGER_FILE} and {@link PGProperty#LOGGER_FILE}
+   * <p>Setup java.util.logging.Logger using connection properties.</p>
+   *
+   * <p>See {@link PGProperty#LOGGER_FILE} and {@link PGProperty#LOGGER_FILE}</p>
    *
    * @param props Connection Properties
    */
@@ -470,12 +470,11 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * The getPropertyInfo method is intended to allow a generic GUI tool to discover what properties
-   * it should prompt a human for in order to get enough information to connect to a database.
+   * <p>The getPropertyInfo method is intended to allow a generic GUI tool to discover what properties
+   * it should prompt a human for in order to get enough information to connect to a database.</p>
    *
-   * <p>
-   * Note that depending on the values the human has supplied so far, additional values may become
-   * necessary, so it may be necessary to iterate through several calls to getPropertyInfo
+   * <p>Note that depending on the values the human has supplied so far, additional values may become
+   * necessary, so it may be necessary to iterate through several calls to getPropertyInfo</p>
    *
    * @param url the Url of the database to connect to
    * @param info a proposed list of tag/value pairs that will be sent on connect open.
@@ -522,12 +521,11 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * Report whether the driver is a genuine JDBC compliant driver. A driver may only report "true"
+   * <p>Report whether the driver is a genuine JDBC compliant driver. A driver may only report "true"
    * here if it passes the JDBC compliance tests, otherwise it is required to return false. JDBC
-   * compliance requires full support for the JDBC API and full support for SQL 92 Entry Level.
+   * compliance requires full support for the JDBC API and full support for SQL 92 Entry Level.</p>
    *
-   * <p>
-   * For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).
+   * <p>For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).</p>
    */
   @Override
   public boolean jdbcCompliant() {

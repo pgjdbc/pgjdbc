@@ -25,11 +25,11 @@ import java.sql.SQLException;
 import javax.net.SocketFactory;
 
 /**
- * Wrapper around the raw connection to the server that implements some basic primitives
- * (reading/writing formatted data, doing string encoding, etc).
- * <p>
- * In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
- * at a time is accessing a particular PGStream instance.
+ * <p>Wrapper around the raw connection to the server that implements some basic primitives
+ * (reading/writing formatted data, doing string encoding, etc).</p>
+ *
+ * <p>In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
+ * at a time is accessing a particular PGStream instance.</p>
  */
 public class PGStream implements Closeable, Flushable {
   private final SocketFactory socketFactory;
@@ -172,12 +172,12 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Get a Writer instance that encodes directly onto the underlying stream.
-   * <p>
-   * The returned Writer should not be closed, as it's a shared object. Writer.flush needs to be
+   * <p>Get a Writer instance that encodes directly onto the underlying stream.</p>
+   *
+   * <p>The returned Writer should not be closed, as it's a shared object. Writer.flush needs to be
    * called when switching between use of the Writer and use of the PGStream write methods, but it
    * won't actually flush output all the way out -- call {@link #flush} to actually ensure all
-   * output has been pushed to the server.
+   * output has been pushed to the server.</p>
    *
    * @return the shared Writer instance
    * @throws IOException if something goes wrong.

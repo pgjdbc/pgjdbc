@@ -24,10 +24,9 @@ public class PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * This method sets the type of this object.
+   * <p>This method sets the type of this object.</p>
    *
-   * <p>
-   * It should not be extended by subclasses, hence its final
+   * <p>It should not be extended by subclasses, hence it is final</p>
    *
    * @param type a string describing the type of the object
    */
@@ -36,7 +35,7 @@ public class PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * This method sets the value of this object. It must be overidden.
+   * This method sets the value of this object. It must be overridden.
    *
    * @param value a string representation of the value of the object
    * @throws SQLException thrown if value is invalid for this type

@@ -35,8 +35,8 @@ import javax.net.ssl.X509TrustManager;
  * <code>sslfactoryarg</code>. The value of this property is the PEM-encoded remote server's SSL
  * certificate.
  * </p>
- * <p>
- * Where the certificate is loaded from is based upon the prefix of the
+ *
+ * <p>Where the certificate is loaded from is based upon the prefix of the
  *
  * <pre>
  * <code>sslfactoryarg</code>
@@ -151,6 +151,7 @@ import javax.net.ssl.X509TrustManager;
  * <td>Loaded from string value of the argument.</td>
  * </tr>
  * </table>
+ * </p>
  */
 
 public class SingleCertValidatingFactory extends WrappedFactory {

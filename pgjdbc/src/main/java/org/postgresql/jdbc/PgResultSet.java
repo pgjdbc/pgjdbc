@@ -1933,18 +1933,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   /**
-   * Retrieves the value of the designated column in the current row of this <code>ResultSet</code>
-   * object as a <code>boolean</code> in the Java programming language.
-   * <p>
-   * If the designated column has a Character datatype and is one of the following values: "1",
+   * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code>
+   * object as a <code>boolean</code> in the Java programming language.</p>
+   *
+   * <p>If the designated column has a Character datatype and is one of the following values: "1",
    * "true", "t", "yes", "y" or "on", a value of <code>true</code> is returned. If the designated
    * column has a Character datatype and is one of the following values: "0", "false", "f", "no",
    * "n" or "off", a value of <code>false</code> is returned. Leading or trailing whitespace is
-   * ignored, and case does not matter.
-   * <p>
-   * If the designated column has a Numeric datatype and is a 1, a value of <code>true</code> is
+   * ignored, and case does not matter.</p>
+   *
+   * <p>If the designated column has a Numeric datatype and is a 1, a value of <code>true</code> is
    * returned. If the designated column has a Numeric datatype and is a 0, a value of
-   * <code>false</code> is returned.
+   * <code>false</code> is returned.</p>
    *
    * @param columnIndex the first column is 1, the second is 2, ...
    * @return the column value; if the value is SQL <code>NULL</code>, the value returned is
@@ -2362,13 +2362,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   /**
    * {@inheritDoc}
    *
-   * <p>
-   * In normal use, the bytes represent the raw values returned by the backend. However, if the
+   * <p>In normal use, the bytes represent the raw values returned by the backend. However, if the
    * column is an OID, then it is assumed to refer to a Large Object, and that object is returned as
-   * a byte array.
+   * a byte array.</p>
    *
-   * <p>
-   * <b>Be warned</b> If the large object is huge, then you may run out of memory.
+   * <p><b>Be warned</b> If the large object is huge, then you may run out of memory.</p>
    */
   public byte[] getBytes(int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBytes columnIndex: {0}", columnIndex);
@@ -2656,9 +2654,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   /**
-   * This is used to fix get*() methods on Money fields. It should only be used by those methods!
+   * <p>This is used to fix get*() methods on Money fields. It should only be used by those methods!</p>
    *
-   * It converts ($##.##) to -##.## and $##.## to ##.##
+   * <p>It converts ($##.##) to -##.## and $##.## to ##.##</p>
    *
    * @param col column position (1-based)
    * @return numeric-parsable representation of money string literal
@@ -3016,13 +3014,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   /**
-   * Converts any numeric binary field to long value.
-   * <p>
-   * This method is used by getByte,getShort,getInt and getLong. It must support a subset of the
+   * <p>Converts any numeric binary field to long value.</p>
+   *
+   * <p>This method is used by getByte,getShort,getInt and getLong. It must support a subset of the
    * following java types that use Binary encoding. (fields that use text encoding use a different
    * code path).
-   * <p>
+   *
    * <code>byte,short,int,long,float,double,BigDecimal,boolean,string</code>.
+   * </p>
    *
    * @param bytes The bytes of the numeric field.
    * @param oid The oid of the field.

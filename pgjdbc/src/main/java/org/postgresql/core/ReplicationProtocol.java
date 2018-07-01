@@ -12,8 +12,9 @@ import org.postgresql.replication.fluent.physical.PhysicalReplicationOptions;
 import java.sql.SQLException;
 
 /**
- * <p>Abstracts the protocol-specific details of physic and logic replication. <p>With each
- * connection open with replication options associate own instance ReplicationProtocol.
+ * <p>Abstracts the protocol-specific details of physic and logic replication.</p>
+ *
+ * <p>With each connection open with replication options associate own instance ReplicationProtocol.</p>
  */
 public interface ReplicationProtocol {
   /**

@@ -244,8 +244,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    *
-   * <p>
-   * From PostgreSQL 9.0+ return the keywords from pg_catalog.pg_get_keywords()
+   * <p>From PostgreSQL 9.0+ return the keywords from pg_catalog.pg_get_keywords()</p>
    *
    * @return a comma separated list of keywords we use
    * @throws SQLException if a database access error occurs
@@ -412,12 +411,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    *
-   * <p>
-   * Postgresql allows any high-bit character to be used in an unquoted identifier, so we can't
-   * possibly list them all.
+   * <p>Postgresql allows any high-bit character to be used in an unquoted identifier, so we can't
+   * possibly list them all.</p>
    *
-   * From the file src/backend/parser/scan.l, an identifier is ident_start [A-Za-z\200-\377_]
-   * ident_cont [A-Za-z\200-\377_0-9\$] identifier {ident_start}{ident_cont}*
+   * <p>From the file src/backend/parser/scan.l, an identifier is ident_start [A-Za-z\200-\377_]
+   * ident_cont [A-Za-z\200-\377_0-9\$] identifier {ident_start}{ident_cont}*</p>
    *
    * @return a string containing the extra characters
    * @throws SQLException if a database access error occurs
@@ -527,14 +525,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    *
-   * This grammar is defined at:
+   * <p>This grammar is defined at:
+   * <a href="http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm">
+   *     http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm</a></p>
    *
-   * <p>
-   * <a href="http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm">http://www.
-   * microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm</a>
-   *
-   * <p>
-   * In Appendix C. From this description, we seem to support the ODBC minimal (Level 0) grammar.
+   * <p>In Appendix C. From this description, we seem to support the ODBC minimal (Level 0) grammar.</p>
    *
    * @return true
    */
@@ -636,8 +631,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
-   * <p>
-   * PostgreSQL doesn't have schemas, but when it does, we'll use the term "schema".
+   * <p>PostgreSQL doesn't have schemas, but when it does, we'll use the term "schema".</p>
    *
    * @return {@code "schema"}
    */
@@ -819,10 +813,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
-   * <p>
-   * Can statements remain open across commits? They may, but this driver cannot guarantee that. In
+   * <p>Can statements remain open across commits? They may, but this driver cannot guarantee that. In
    * further reflection. we are talking a Statement object here, so the answer is yes, since the
-   * Statement is only a vehicle to ExecSQL()
+   * Statement is only a vehicle to ExecSQL()</p>
    *
    * @return true
    */
@@ -832,10 +825,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
-   * <p>
-   * Can statements remain open across rollbacks? They may, but this driver cannot guarantee that.
+   * <p>Can statements remain open across rollbacks? They may, but this driver cannot guarantee that.
    * In further contemplation, we are talking a Statement object here, so the answer is yes, since
-   * the Statement is only a vehicle to ExecSQL() in Connection
+   * the Statement is only a vehicle to ExecSQL() in Connection</p>
    *
    * @return true
    */
@@ -875,10 +867,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * {@inheritDoc} What is the maximum number of columns in a table? From the CREATE TABLE reference
    * page...
    *
-   * <p>
-   * "The new class is created as a heap with no initial data. A class can have no more than 1600
+   * <p>"The new class is created as a heap with no initial data. A class can have no more than 1600
    * attributes (realistically, this is limited by the fact that tuple sizes must be less than 8192
-   * bytes)..."
+   * bytes)..."</p>
    *
    * @return the max columns
    * @throws SQLException if a database access error occurs
@@ -959,9 +950,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
-   * <p>
-   * We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED before 8.0; from 8.0
-   * READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases for READ_COMMITTED.
+   * <p>We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED before 8.0; from 8.0
+   * READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases for READ_COMMITTED.</p>
    */
   public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
     switch (level) {
@@ -984,7 +974,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Does a data definition statement within a transaction force the transaction to commit? It seems
+   * <p>Does a data definition statement within a transaction force the transaction to commit? It seems
    * to mean something like:
    *
    * <pre>
@@ -997,7 +987,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * COMMIT;
    * </pre>
    *
-   * does the CREATE TABLE call cause a commit? The answer is no.
+   * Does the CREATE TABLE call cause a commit? The answer is no.</p>
    *
    * @return true if so
    * @throws SQLException if a database access error occurs

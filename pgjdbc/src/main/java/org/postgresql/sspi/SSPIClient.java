@@ -26,10 +26,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
- * talking to a Windows server.
+ * <p>Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
+ * talking to a Windows server.</p>
  *
- * SSPI is not supported on a non-Windows client.
+ * <p>SSPI is not supported on a non-Windows client.</p>
  *
  * @author craig
  */
@@ -48,12 +48,12 @@ public class SSPIClient implements ISSPIClient {
 
 
   /**
-   * Instantiate an SSPIClient for authentication of a connection.
+   * <p>Instantiate an SSPIClient for authentication of a connection.</p>
    *
-   * SSPIClient is not re-usable across connections.
+   * <p>SSPIClient is not re-usable across connections.</p>
    *
-   * It is safe to instantiate SSPIClient even if Waffle and JNA are missing or on non-Windows
-   * platforms, however you may not call any methods other than isSSPISupported().
+   * <p>It is safe to instantiate SSPIClient even if Waffle and JNA are missing or on non-Windows
+   * platforms, however you may not call any methods other than isSSPISupported().</p>
    *
    * @param pgStream PostgreSQL connection stream
    * @param spnServiceClass SSPI SPN service class, defaults to POSTGRES if null

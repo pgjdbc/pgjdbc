@@ -26,11 +26,10 @@ public class PGtokenizer {
   protected List<String> tokens;
 
   /**
-   * Create a tokeniser.
+   * <p>Create a tokeniser.</p>
    *
-   * <p>
-   * We could have used StringTokenizer to do this, however, we needed to handle nesting of '(' ')'
-   * '[' ']' '&lt;' and '&gt;' as these are used by the geometric data types.
+   * <p>We could have used StringTokenizer to do this, however, we needed to handle nesting of '(' ')'
+   * '[' ']' '&lt;' and '&gt;' as these are used by the geometric data types.</p>
    *
    * @param string containing tokens
    * @param delim single character to split the tokens
@@ -117,9 +116,9 @@ public class PGtokenizer {
   }
 
   /**
-   * This returns a new tokenizer based on one of our tokens.
+   * <p>This returns a new tokenizer based on one of our tokens.</p>
    *
-   * The geometric datatypes use this to process nested tokens (usually PGpoint).
+   * <p>The geometric datatypes use this to process nested tokens (usually PGpoint).</p>
    *
    * @param n Token number ( 0 ... getSize()-1 )
    * @param delim The delimiter to use

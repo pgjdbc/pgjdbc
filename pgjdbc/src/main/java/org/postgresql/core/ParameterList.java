@@ -10,15 +10,15 @@ import java.io.InputStream;
 import java.sql.SQLException;
 
 /**
- * Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
+ * <p>Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
  * of how to efficiently store and stream the parameters is hidden behind implementations of this
- * interface.
- * <p>
- * In general, instances of ParameterList are associated with a particular Query object (the one
- * that created them) and shouldn't be used against another Query.
- * <p>
- * Parameter indexes are 1-based to match JDBC's PreparedStatement, i.e. the first parameter has
- * index 1.
+ * interface.</p>
+ *
+ * <p>In general, instances of ParameterList are associated with a particular Query object (the one
+ * that created them) and shouldn't be used against another Query.</p>
+ *
+ * <p>Parameter indexes are 1-based to match JDBC's PreparedStatement, i.e. the first parameter has
+ * index 1.</p>
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */

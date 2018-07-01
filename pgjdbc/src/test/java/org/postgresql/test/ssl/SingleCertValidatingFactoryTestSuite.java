@@ -33,15 +33,15 @@ public class SingleCertValidatingFactoryTestSuite {
   private static String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
 
   /**
-   * This method returns the paramaters that JUnit will use when constructing this class for
+   * <p>This method returns the paramaters that JUnit will use when constructing this class for
    * testing. It returns a collection of arrays, each containing a single value for the JDBC URL to
-   * test against.
+   * test against.</p>
    *
-   * To point the test at a different set of test databases edit the JDBC URL list accordingly. By
-   * default it points to the test databases setup by the pgjdbc-test-vm virtual machine.
+   * <p>To point the test at a different set of test databases edit the JDBC URL list accordingly. By
+   * default it points to the test databases setup by the pgjdbc-test-vm virtual machine.</p>
    *
-   * Note: The test assumes that the username as password for all the test databases are the same
-   * (pulled from system properties).
+   * <p>Note: The test assumes that the username as password for all the test databases are the same
+   * (pulled from system properties).</p>
    */
   @Parameters
   public static Collection<Object[]> data() throws IOException {
@@ -187,15 +187,15 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   /**
-   * Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
+   * <p>Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
    * certificate. This test uses a pre generated certificate that will *not* match the test
-   * PostgreSQL server (the certificate is for properssl.example.com).
+   * PostgreSQL server (the certificate is for properssl.example.com).</p>
    *
-   * This connection uses a custom SSLSocketFactory using a custom trust manager that validates the
-   * remote server's certificate against the pre shared certificate.
+   * <p>This connection uses a custom SSLSocketFactory using a custom trust manager that validates the
+   * remote server's certificate against the pre shared certificate.</p>
    *
-   * This test should throw an exception as the client should reject the server since the
-   * certificate does not match.
+   * <p>This test should throw an exception as the client should reject the server since the
+   * certificate does not match.</p>
    */
   @Test
   public void connectSSLWithValidationWrongCert() throws SQLException, IOException {
@@ -276,13 +276,13 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   /**
-   * Connect using SSL and attempt to validate the server's certificate against the proper pre
-   * shared certificate. The certificate is specified as an environment variable.
+   * <p>Connect using SSL and attempt to validate the server's certificate against the proper pre
+   * shared certificate. The certificate is specified as an environment variable.</p>
    *
-   * Note: To execute this test succesfully you need to set the value of the environment variable
-   * DATASOURCE_SSL_CERT prior to running the test.
+   * <p>Note: To execute this test succesfully you need to set the value of the environment variable
+   * DATASOURCE_SSL_CERT prior to running the test.</p>
    *
-   * Here's one way to do it: $ DATASOURCE_SSL_CERT=$(cat certdir/goodroot.crt) ant clean test
+   * <p>Here's one way to do it: $ DATASOURCE_SSL_CERT=$(cat certdir/goodroot.crt) ant clean test</p>
    */
   @Test
   public void connectSSLWithValidationProperCertEnvVar() throws SQLException, IOException {

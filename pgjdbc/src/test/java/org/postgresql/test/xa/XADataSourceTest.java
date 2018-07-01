@@ -350,13 +350,13 @@ public class XADataSourceTest {
   }
 
   /**
-   * Get the time the current transaction was started from the server.
+   * <p>Get the time the current transaction was started from the server.</p>
    *
-   * This can be used to check that transaction doesn't get committed/ rolled back inadvertently, by
+   * <p>This can be used to check that transaction doesn't get committed/ rolled back inadvertently, by
    * calling this once before and after the suspected piece of code, and check that they match. It's
    * a bit iffy, conceivably you might get the same timestamp anyway if the suspected piece of code
    * runs fast enough, and/or the server clock is very coarse grained. But it'll do for testing
-   * purposes.
+   * purposes.</p>
    */
   private static java.sql.Timestamp getTransactionTimestamp(Connection conn) throws SQLException {
     ResultSet rs = conn.createStatement().executeQuery("SELECT now()");

@@ -137,16 +137,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * Supplement to synchronization of public methods on current QueryExecutor.
+   * <p>Supplement to synchronization of public methods on current QueryExecutor.</p>
    *
-   * Necessary for keeping the connection intact between calls to public methods sharing a state
+   * <p>Necessary for keeping the connection intact between calls to public methods sharing a state
    * such as COPY subprotocol. waitOnLock() must be called at beginning of each connection access
-   * point.
+   * point.</p>
    *
-   * Public methods sharing that state must then be synchronized among themselves. Normal method
-   * synchronization typically suffices for that.
+   * <p>Public methods sharing that state must then be synchronized among themselves. Normal method
+   * synchronization typically suffices for that.</p>
    *
-   * See notes on related methods as well as currentCopy() below.
+   * <p>See notes on related methods as well as currentCopy() below.</p>
    */
   private Object lockedFor = null;
 
@@ -2731,12 +2731,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
 
   /**
-   * The estimated server response size since we last consumed the input stream from the server, in
-   * bytes.
+   * <p>The estimated server response size since we last consumed the input stream from the server, in
+   * bytes.</p>
    *
-   * Starts at zero, reset by every Sync message. Mainly used for batches.
+   * <p>Starts at zero, reset by every Sync message. Mainly used for batches.</p>
    *
-   * Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.
+   * <p>Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.</p>
    */
   private int estimatedReceiveBufferBytes = 0;
 

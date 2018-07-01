@@ -33,13 +33,12 @@ public enum HostRequirement {
   public abstract boolean allowConnectingTo(HostStatus status);
 
   /**
-   *
-   * The postgreSQL project has decided not to use the term slave to refer to alternate servers.
+   * <p>The postgreSQL project has decided not to use the term slave to refer to alternate servers.
    * secondary or standby is preferred. We have arbitrarily chosen secondary.
    * As of Jan 2018 in order not to break existint code we are going to accept both slave or
-   * secondary for names of alternate servers.
+   * secondary for names of alternate servers.</p>
    *
-   * The current policy is to keep accepting this silently but not document slave, or slave preferSlave
+   * <p>The current policy is to keep accepting this silently but not document slave, or slave preferSlave</p>
    *
    * @param targetServerType the value of {@code targetServerType} connection property
    * @return HostRequirement

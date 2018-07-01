@@ -113,10 +113,9 @@ public class BlobInputStream extends InputStream {
 
 
   /**
-   * Closes this input stream and releases any system resources associated with the stream.
+   * <p>Closes this input stream and releases any system resources associated with the stream.</p>
    *
-   * <p>
-   * The <code>close</code> method of <code>InputStream</code> does nothing.
+   * <p>The <code>close</code> method of <code>InputStream</code> does nothing.</p>
    *
    * @throws IOException if an I/O error occurs.
    */
@@ -132,24 +131,21 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * Marks the current position in this input stream. A subsequent call to the <code>reset</code>
+   * <p>Marks the current position in this input stream. A subsequent call to the <code>reset</code>
    * method repositions this stream at the last marked position so that subsequent reads re-read the
-   * same bytes.
+   * same bytes.</p>
    *
-   * <p>
-   * The <code>readlimit</code> arguments tells this input stream to allow that many bytes to be
-   * read before the mark position gets invalidated.
+   * <p>The <code>readlimit</code> arguments tells this input stream to allow that many bytes to be
+   * read before the mark position gets invalidated.</p>
    *
-   * <p>
-   * The general contract of <code>mark</code> is that, if the method <code>markSupported</code>
+   * <p>The general contract of <code>mark</code> is that, if the method <code>markSupported</code>
    * returns <code>true</code>, the stream somehow remembers all the bytes read after the call to
    * <code>mark</code> and stands ready to supply those same bytes again if and whenever the method
    * <code>reset</code> is called. However, the stream is not required to remember any data at all
    * if more than <code>readlimit</code> bytes are read from the stream before <code>reset</code> is
-   * called.
+   * called.</p>
    *
-   * <p>
-   * Marking a closed stream should not have any effect on the stream.
+   * <p>Marking a closed stream should not have any effect on the stream.</p>
    *
    * @param readlimit the maximum limit of bytes that can be read before the mark position becomes
    *        invalid.

@@ -28,16 +28,14 @@ import java.util.Map;
 import java.util.logging.Level;
 
 /**
- * Array is used collect one column of query result data.
+ * <p>Array is used collect one column of query result data.</p>
  *
- * <p>
- * Read a field of type Array into either a natively-typed Java array object or a ResultSet.
- * Accessor methods provide the ability to capture array slices.
+ * <p>Read a field of type Array into either a natively-typed Java array object or a ResultSet.
+ * Accessor methods provide the ability to capture array slices.</p>
  *
- * <p>
- * Other than the constructor all methods are direct implementations of those specified for
+ * <p>Other than the constructor all methods are direct implementations of those specified for
  * java.sql.Array. Please refer to the javadoc for java.sql.Array for detailed descriptions of the
- * functionality and parameters of the methods of this class.
+ * functionality and parameters of the methods of this class.</p>
  *
  * @see ResultSet#getArray
  */

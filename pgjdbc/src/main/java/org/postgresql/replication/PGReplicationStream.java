@@ -25,12 +25,12 @@ public interface PGReplicationStream
 
   /**
    * <p>Read next wal record from backend. It method can be block until new message will not get
-   * from server.
+   * from server.</p>
    *
    * <p>A single WAL record is never split across two XLogData messages. When a WAL record crosses a
    * WAL page boundary, and is therefore already split using continuation records, it can be split
    * at the page boundary. In other words, the first main WAL record and its continuation records
-   * can be sent in different XLogData messages.
+   * can be sent in different XLogData messages.</p>
    *
    * @return not null byte array received by replication protocol, return ByteBuffer wrap around
    *     received byte array with use offset, so, use {@link ByteBuffer#array()} carefully
@@ -42,12 +42,12 @@ public interface PGReplicationStream
    * <p>Read next wal record from backend. It method can't be block and in contrast to {@link
    * PGReplicationStream#read()}. If message from backend absent return null. It allow periodically
    * check message in stream and if they absent sleep some time, but it time should be less than
-   * {@link CommonOptions#getStatusInterval()} to avoid disconnect from the server.
+   * {@link CommonOptions#getStatusInterval()} to avoid disconnect from the server.</p>
    *
    * <p>A single WAL record is never split across two XLogData messages. When a WAL record crosses a
    * WAL page boundary, and is therefore already split using continuation records, it can be split
    * at the page boundary. In other words, the first main WAL record and its continuation records
-   * can be sent in different XLogData messages.
+   * can be sent in different XLogData messages.</p>
    *
    * @return byte array received by replication protocol or null if pending message from server
    *     absent. Returns ByteBuffer wrap around received byte array with use offset, so, use {@link
@@ -115,14 +115,14 @@ public interface PGReplicationStream
 
   /**
    * <p>Stop replication changes from server and free resources. After that connection can be reuse
-   * to another queries. Also after close current stream they cannot be used anymore.
+   * to another queries. Also after close current stream they cannot be used anymore.</p>
    *
    * <p><b>Note:</b> This method can spend much time for logical replication stream on postgresql
    * version 9.6 and lower, because postgresql have bug - during decode big transaction to logical
    * form and during wait new changes postgresql ignore messages from client. As workaround you can
    * close replication connection instead of close replication stream. For more information about it
    * problem see mailing list thread <a href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>
+   * Stopping logical replication protocol</a></p>
    *
    * @throws SQLException when some internal exception occurs during end streaming
    */
