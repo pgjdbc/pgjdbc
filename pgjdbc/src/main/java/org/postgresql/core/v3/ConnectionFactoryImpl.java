@@ -67,12 +67,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_SASL_CONTINUE = 11;
   private static final int AUTH_REQ_SASL_FINAL = 12;
 
-  /**
-   * Marker exception; thrown when we want to fall back to using V2.
-   */
-  private static class UnsupportedProtocolException extends IOException {
-  }
-
   private ISSPIClient createSSPI(PGStream pgStream,
       String spnServiceClass,
       boolean enableNegotiate) {
@@ -230,18 +224,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // And we're done.
         return queryExecutor;
-      } catch (UnsupportedProtocolException upe) {
-        // Swallow this and return null so ConnectionFactory tries the next protocol.
-        LOGGER.log(Level.SEVERE, "Protocol not supported, abandoning connection.", upe);
-        closeStream(newStream);
-        return null;
       } catch (ConnectException cex) {
         // Added by Peter Mount <peter@retep.org.uk>
         // ConnectException is thrown when the connection cannot be made.
         // we trap this an return a more meaningful message for the end user
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
-        log(Level.WARNING, "ConnectException occurred while connecting to {0}", cex, hostSpec);
+        log(Level.FINE, "ConnectException occurred while connecting to {0}", cex, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
@@ -253,7 +242,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
-        log(Level.WARNING, "IOException occurred while connecting to {0}", ioe, hostSpec);
+        log(Level.FINE, "IOException occurred while connecting to {0}", ioe, hostSpec);
         if (hostIter.hasNext()) {
           // still more addresses to try
           continue;
@@ -262,7 +251,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
       } catch (SQLException se) {
         closeStream(newStream);
-        log(Level.WARNING, "SQLException occurred while connecting to {0}", se, hostSpec);
+        log(Level.FINE, "SQLException occurred while connecting to {0}", se, hostSpec);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
         if (hostIter.hasNext()) {
@@ -467,11 +456,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // "User authentication failed"
             //
             int l_elen = pgStream.receiveInteger4();
-            if (l_elen > 30000) {
-              // if the error length is > than 30000 we assume this is really a v2 protocol
-              // server, so trigger fallback.
-              throw new UnsupportedProtocolException();
-            }
 
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
@@ -668,7 +652,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         try {
           sspiClient.dispose();
         } catch (RuntimeException ex) {
-          LOGGER.log(Level.WARNING, "Unexpected error during SSPI context disposal", ex);
+          LOGGER.log(Level.FINE, "Unexpected error during SSPI context disposal", ex);
         }
 
       }

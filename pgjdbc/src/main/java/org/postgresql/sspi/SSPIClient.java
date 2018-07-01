@@ -88,7 +88,7 @@ public class SSPIClient implements ISSPIClient {
        * won't have JNA and this will throw a NoClassDefFoundError.
        */
       if (!Platform.isWindows()) {
-        LOGGER.log(Level.WARNING, "SSPI not supported: non-Windows host");
+        LOGGER.log(Level.FINE, "SSPI not supported: non-Windows host");
         return false;
       }
       /* Waffle must be on the CLASSPATH */
