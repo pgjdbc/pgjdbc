@@ -48,7 +48,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       int rsHoldability) throws SQLException {
     super(connection, connection.borrowCallableQuery(sql), rsType, rsConcurrency, rsHoldability);
     this.isFunction = preparedQuery.isFunction;
-    this.outParmBeforeFunc = preparedQuery.outParmBeforeFunc;
 
     if (this.isFunction) {
       int inParamCount = this.preparedParameters.getInParameterCount() + 1;

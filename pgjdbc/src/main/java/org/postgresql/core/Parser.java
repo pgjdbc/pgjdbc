@@ -994,7 +994,7 @@ public class Parser {
     if (i == len && !syntaxError) {
       if (state == 1) {
         // Not an escaped syntax.
-        return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
+        return new JdbcCallParseInfo(sql, isFunction);
       }
       if (state != 8) {
         syntaxError = true; // Ran out of query while still parsing
@@ -1009,7 +1009,7 @@ public class Parser {
 
     if (serverVersion < 80100 /* 8.1 */ || protocolVersion != 3) {
       sql = "select " + jdbcSql.substring(startIndex, endIndex) + " as result";
-      return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
+      return new JdbcCallParseInfo(sql, isFunction);
     }
     String s = jdbcSql.substring(startIndex, endIndex);
     StringBuilder sb = new StringBuilder(s);
@@ -1036,7 +1036,7 @@ public class Parser {
       }
     }
     sql = "select * from " + sb.toString() + " as result";
-    return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
+    return new JdbcCallParseInfo(sql, isFunction);
   }
 
   /**
