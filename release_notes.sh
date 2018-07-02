@@ -48,8 +48,12 @@ echo
 git shortlog --format="%s@@@%H@@@%h@@@" --grep="maven-release-plugin|update versions in readme.md" --extended-regexp --invert-grep --no-merges $PREV_VERSION..HEAD | perl release_notes_filter.pl ${VERS}
 
 # Update CHANGELOG.md with the new version
-sed -i -e "s/^## \[Unreleased\]$/## \[${VERS}\] (${DATE_YMD})/" CHANGELOG.md
-sed -i -e "s/^\[Unreleased\]: /\[${VERS}\]: /" CHANGELOG.md
-sed -i -e "s/$PREV_VERSION\.\.\.HEAD/$PREV_VERSION\.\.\.REL${VERS}/" CHANGELOG.md
-sed -i -e "s/^## \[${VERS}\] (${DATE_YMD})$/## \[Unreleased\]\n\n&/g" CHANGELOG.md
-echo "[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL${VERS}...HEAD" >> CHANGELOG.md
+NL=$'\n'
+if grep -q "$VERS" CHANGELOG.md; then
+  : # nothing to do here, CHANGELOG has already been updated
+else
+  sed -i -e "s/^## \[Unreleased\]$/## [Unreleased]\\$NL### Changed\\$NL\\$NL### Added\\$NL\\$NL### Fixed\\$NL\\$NL## [${VERS}] (${DATE_YMD})/" CHANGELOG.md
+  sed -i -e "s/^\[Unreleased\]: /[${VERS}]: /" CHANGELOG.md
+  sed -i -e "s/$PREV_VERSION\.\.\.HEAD/$PREV_VERSION...REL${VERS}/" CHANGELOG.md
+  echo "[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL${VERS}...HEAD" >> CHANGELOG.md
+fi
