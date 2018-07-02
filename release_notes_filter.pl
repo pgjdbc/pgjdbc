@@ -1,85 +1,73 @@
-#!/bin/perl
+#!/usr/bin/env perl
 use strict;
+use utf8;
+use open qw(:std :utf8);
+
+use WWW::Curl::Easy;
+use JSON;
+use JSON::Parse 'json_file_to_perl';
+use Unicode::Collate;
 
 my $version = shift;
 
-my %author_url = (
-  'Alexander Kjäll' => 'https://github.com/alexanderkjall',
-  'AlexElin' => 'https://github.com/AlexElin',
-  'Álvaro Hernández Tortosa' => 'https://github.com/ahachete',
-  'aryabukhin' => 'https://github.com/aryabukhin',
-  'Barnabas Bodnar' => 'https://github.com/bbodnar',
-  'bd-infor' => 'https://github.com/bd-infor',
-  'bpd0018' => 'https://github.com/bpd0018',
-  'Brett Okken' => 'https://github.com/bokken',
-  'Brett Wooldridge' => 'https://github.com/brettwooldridge',
-  'chalda' => 'https://github.com/ochaloup',
-  'Chen Huajun' => 'https://github.com/ChenHuajun',
-  'Christian Ullrich' => 'https://github.com/chrullrich',
-  'Christopher Deckers' => 'https://github.com/Chrriis',
-  'Daniel Gustafsson' => 'https://github.com/danielgustafsson',
-  'Daniel Migowski' =>'https://github.com/dmigowski',
-  'Dave Cramer' => 'davec@postgresintl.com',
-  'djydewang' => 'https://github.com/djydewang',
-  'eperez' => 'https://github.com/eperez',
-  'Eric McCormack' => 'https://github.com/ericmack',
-  'Florin Asăvoaie' => 'https://github.com/FlorinAsavoaie',
-  'George Kankava' => 'https://github.com/georgekankava',
-  'goeland86' => 'https://github.com/goeland86',
-  'Hugh Cole-Baker' => 'https://github.com/sigmaris',
-  'Jacques Fuentes' => 'https://github.com/jpfuentes2',
-  'James' => 'https://github.com/jamesthomp',
-  'Jamie Pullar' => 'https://github.com/JamiePullar',
-  'JCzogalla' => 'https://github.com/JCzogalla',
-  'Jeff Klukas' => 'https://github.com/jklukas',
-  'Jeremy Whiting' => 'https://github.com/whitingjr',
-  'Joe Kutner' => 'https://github.com/jkutner',
-  'Jordan Lewis' => 'https://github.com/jordanlewis',
-  'Jorge Solorzano' => 'https://github.com/jorsol',
-  'Laurenz Albe' => 'https://github.com/laurenz',
-  'Magnus Hagander' => 'https://github.com/mhagander',
-  'Magnus' => 'https://github.com/magJ',
-  'Marc Petzold' => 'https://github.com/dosimeta',
-  'Marios Trivyzas' => 'https://github.com/matriv',
-  'Mathias Fußenegger' => 'https://github.com/mfussenegger',
-  'Michael Glaesemann' => 'https://github.com/grzm',
-  'MichaelZg' => 'https://github.com/michaelzg',
-  'Minglei Tu' => 'https://github.com/tminglei',
-  'mjanczykowski' => 'https://github.com/mjanczykowski',
-  'Pavel Raiskup' => 'https://github.com/praiskup',
-  'Pawel' => 'https://github.com/veselov',
-  'Petro Semeniuk' => 'https://github.com/PetroSemeniuk',
-  'Philippe Marschall' => 'https://github.com/marschall',
-  'Piyush Sharma' => 'https://github.com/ps-sp',
-  'Rikard Pavelic' => 'https://github.com/zapov',
-  'rnveach' => 'https://github.com/rnveach',
-  'Robert Zenz' => 'https://github.com/RobertZenz',
-  'Robert \'Bobby\' Zenz' => 'https://github.com/RobertZenz',
-  'Roman Ivanov' => 'https://github.com/romani',
-  'Sebastian Utz' => 'https://github.com/seut',
-  'Sehrope Sarkuni' => 'https://github.com/sehrope',
-  'Selene Feigl' => 'https://github.com/sfeigl',
-  'Simon Stelling' => 'https://github.com/stellingsimon',
-  'slmsbrhgn' => 'https://github.com/slmsbrhgn',
-  'Steve Ungerer' => 'https://github.com/scubasau',
-  'Tanya Gordeeva' => 'https://github.com/tmgordeeva',
-  'Thach Hoang' => 'https://github.com/thachhoang',
-  'trtrmitya' => 'https://github.com/trtrmitya',
-  'Trygve Laugstøl' => 'https://github.com/trygvis',
-  'Vladimir Gordiychuk' => 'https://github.com/Gordiychuk',
-  'Vladimir Sitnikov' => 'https://github.com/vlsi',
-  'zapov' => 'https://github.com/zapov',
-  'Zemian Deng' => 'https://github.com/zemian',
-);
+my $contributors = json_file_to_perl('contributors.json');
+my $con_count = keys %$contributors;
 
+sub save_contributors {
+  if ($con_count == keys %$contributors) {
+    return;
+  }
+  my $fh;
+  open $fh, ">", "contributors.json";
+  print $fh JSON->new->pretty->canonical->encode($contributors);
+  close $fh;
+}
+
+my %author_url;
+
+my $fetch = sub {
+    my $curl = WWW::Curl::Easy->new();
+    my ( $header, $body );
+    $curl->setopt( CURLOPT_URL,            shift );
+    $curl->setopt( CURLOPT_WRITEHEADER,    \$header );
+    $curl->setopt( CURLOPT_WRITEDATA,      \$body );
+    $curl->setopt( CURLOPT_FOLLOWLOCATION, 1 );
+    $curl->setopt( CURLOPT_TIMEOUT,        10 );
+    $curl->setopt( CURLOPT_SSL_VERIFYPEER, 1 );
+    $curl->setopt( CURLOPT_USERAGENT, "Awesome-Pgjdbc-App");
+    $curl->perform;
+    {
+        header => $header,
+        body   => $body,
+        info   => $curl->getinfo(CURLINFO_HTTP_CODE),
+        error  => $curl->errbuf,
+    };
+};
+
+sub authorUrl {
+  my $sha = (shift);
+  my $res = $fetch->("https://api.github.com/repos/pgjdbc/pgjdbc/commits/$sha");
+  if ($res->{info} != 200) {
+    return
+  }
+  my $json = decode_json($res->{body});
+  my $author = $json->{author};
+  my $url = $author->{html_url};
+  if ($url) {
+    return $url;
+  }
+  return $json->{commit}->{author}->{email};
+}
 
 my %authors;
+my $currentAuthor;
 
 while(<>) {
   if ($_ !~ /@@@/) {
     print $_;
     if ($_ =~ /(.*) \(\d+\):/) {
-      $authors{$1} = 1;
+      $currentAuthor = $1;
+      $authors{$currentAuthor} = 1;
       print "\n";
     }
     next;
@@ -89,9 +77,14 @@ while(<>) {
   my $sha = @c[1];
   my $shortSha = @c[2];
 
+  if (!$contributors->{$currentAuthor}) {
+    $contributors->{$currentAuthor} = authorUrl($sha);
+  }
+
   my $pr = '';
-  if ($subject =~ /\(#(\d+)\)/) {
-    $subject =~ s;\(#(\d+)\);[PR#\1](https://github.com/pgjdbc/pgjdbc/pull/\1);;
+  # PR id can be either "... (#42)" or just "... #42"
+  if ($subject =~ /\(?#(\d+)\)?/) {
+    $subject =~ s;\(?#(\d+)\)?;[PR \1](https://github.com/pgjdbc/pgjdbc/pull/\1);;
   } else {
     my $body = `git log --format='%B' -n 1 $sha`;
 
@@ -100,7 +93,7 @@ while(<>) {
     }
   }
   if ($pr != '') {
-    $pr = ' [PR#'.$pr.'](https://github.com/pgjdbc/pgjdbc/pull/'.$pr.')';
+    $pr = ' [PR '.$pr.'](https://github.com/pgjdbc/pgjdbc/pull/'.$pr.')';
   }
   $subject =~ s/^\s+/* /;
 
@@ -111,11 +104,14 @@ print "<a name=\"contributors_{{ page.version }}\"></a>\n";
 print "### Contributors to this release\n\n";
 
 print "We thank the following people for their contributions to this release.\n\n";
-for my $c (sort keys(%authors)) {
-  if ($author_url{$c}) {
-    print "[$c](".$author_url{$c}.")";
+for my $c (Unicode::Collate->new(level => 2)->sort(keys(%authors))) {
+  my $url = $contributors->{$c};
+  if ($url) {
+    print "[$c]($url)";
   } else {
     print $c;
   }
   print "  \n"
 }
+
+save_contributors();
