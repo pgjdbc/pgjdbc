@@ -76,10 +76,10 @@ public class CommandCompleteParser {
 
   @Override
   public String toString() {
-    return "CommandStatus{" +
-        "oid=" + oid +
-        ", rows=" + rows +
-        '}';
+    return "CommandStatus{"
+        + "oid=" + oid
+        + ", rows=" + rows
+        + '}';
   }
 
   @Override
@@ -97,5 +97,12 @@ public class CommandCompleteParser {
       return false;
     }
     return rows == that.rows;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = (int) (oid ^ (oid >>> 32));
+    result = 31 * result + (int) (rows ^ (rows >>> 32));
+    return result;
   }
 }
