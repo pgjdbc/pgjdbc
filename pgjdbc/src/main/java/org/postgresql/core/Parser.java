@@ -745,14 +745,27 @@ public class Parser {
         && (query[offset + 1] | 32) == 's';
   }
 
-  public static boolean isDigitAt(String status, int i) {
-    return i > 0 && i < status.length() && Character.isDigit(status.charAt(i));
+  /**
+   * Returns true if a given string {@code s} has digit at position {@code pos}.
+   * @param s input string
+   * @param pos position (0-based)
+   * @return true if input string s has digit at position pos
+   */
+  public static boolean isDigitAt(String s, int pos) {
+    return pos > 0 && pos < s.length() && Character.isDigit(s.charAt(pos));
   }
 
+  /**
+   * Converts digit at position {@code pos} in string {@code s} to integer or throws.
+   * @param s input string
+   * @param pos position (0-based)
+   * @return integer value of a digit at position pos
+   * @throws NumberFormatException if character at position pos is not an integer
+   */
   public static int digitAt(String s, int pos) {
     int c = s.charAt(pos) - '0';
     if (c < 0 || c > 9) {
-      throw new NumberFormatException("Input string: \"" + s + "\"");
+      throw new NumberFormatException("Input string: \"" + s + "\", position: " + pos);
     }
     return c;
   }
