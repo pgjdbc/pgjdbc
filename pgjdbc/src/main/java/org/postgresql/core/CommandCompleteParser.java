@@ -33,23 +33,22 @@ public class CommandCompleteParser {
   }
 
   /**
-   * Parses {@code CommandComplete (B)} message
+   * Parses {@code CommandComplete (B)} message.
+   * Status is in the format of "COMMAND OID ROWS" where both 'OID' and 'ROWS' are optional
+   * and COMMAND can have spaces within it, like CREATE TABLE.
    *
    * @param status COMMAND OID ROWS message
    * @throws PSQLException in case the status cannot be parsed
    */
   public void parse(String status) throws PSQLException {
-    // This code processes the CommandComplete (B) message.
-    // Status is in the format of "COMMAND OID ROWS" where both 'OID' and 'ROWS' are optional
-    // and COMMAND can have spaces within it, like CREATE TABLE.
-    // Scan backwards, while searching for a maximum of two number groups
-    // COMMAND OID ROWS
-    // COMMAND ROWS
-    // Assumption: command neither starts nor ends with a digi
+    // Assumption: command neither starts nor ends with a digit
     if (!Parser.isDigitAt(status, status.length() - 1)) {
       set(0, 0);
     }
 
+    // Scan backwards, while searching for a maximum of two number groups
+    //   COMMAND OID ROWS
+    //   COMMAND ROWS
     long oid = 0;
     long count = 0;
     try {
