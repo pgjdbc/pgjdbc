@@ -12,32 +12,33 @@ import org.postgresql.util.PSQLState;
 /**
  * Parses {@code oid} and {@code rows} from a {@code CommandComplete (B)} message (end of Execute).
  */
-public class CommandStatus {
-  public final long oid;
-  public final long rows;
+public class CommandCompleteParser {
+  private long oid;
+  private long rows;
 
-  private static final CommandStatus EMPTY = new CommandStatus(0, 0);
-
-  private CommandStatus(long oid, long rows) {
-    this.oid = oid;
-    this.rows = rows;
+  public CommandCompleteParser() {
   }
 
-  public static CommandStatus of(long oid, long rows) {
-    if (oid == 0 && rows == 0) {
-      return EMPTY;
-    }
-    return new CommandStatus(oid, rows);
+  public long getOid() {
+    return oid;
+  }
+
+  public long getRows() {
+    return rows;
+  }
+
+  public void set(long oid, long rows) {
+    this.oid = oid;
+    this.rows = rows;
   }
 
   /**
    * Parses {@code CommandComplete (B)} message
    *
    * @param status COMMAND OID ROWS message
-   * @return parse result
    * @throws PSQLException in case the status cannot be parsed
    */
-  public static CommandStatus of(String status) throws PSQLException {
+  public void parse(String status) throws PSQLException {
     // This code processes the CommandComplete (B) message.
     // Status is in the format of "COMMAND OID ROWS" where both 'OID' and 'ROWS' are optional
     // and COMMAND can have spaces within it, like CREATE TABLE.
@@ -46,7 +47,7 @@ public class CommandStatus {
     // COMMAND ROWS
     // Assumption: command neither starts nor ends with a digi
     if (!Parser.isDigitAt(status, status.length() - 1)) {
-      return EMPTY;
+      set(0, 0);
     }
 
     long oid = 0;
@@ -71,7 +72,7 @@ public class CommandStatus {
           GT.tr("Unable to parse the count in command completion tag: {0}.", status),
           PSQLState.CONNECTION_FAILURE, e);
     }
-    return of(oid, count);
+    set(oid, count);
   }
 
   @Override
@@ -91,18 +92,11 @@ public class CommandStatus {
       return false;
     }
 
-    CommandStatus that = (CommandStatus) o;
+    CommandCompleteParser that = (CommandCompleteParser) o;
 
     if (oid != that.oid) {
       return false;
     }
     return rows == that.rows;
-  }
-
-  @Override
-  public int hashCode() {
-    int result = (int) (oid ^ (oid >>> 32));
-    result = 31 * result + (int) (rows ^ (rows >>> 32));
-    return result;
   }
 }

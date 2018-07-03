@@ -5,7 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.core.CommandStatusTest;
+import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
@@ -79,7 +79,7 @@ import org.junit.runners.Suite;
         TimezoneCachingTest.class,
         ParserTest.class,
         ReturningParserTest.class,
-        CommandStatusTest.class,
+        CommandCompleteParserTest.class,
 
         OidToStringTest.class,
         OidValueOfTest.class,

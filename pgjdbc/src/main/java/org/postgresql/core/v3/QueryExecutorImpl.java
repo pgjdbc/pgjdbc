@@ -10,7 +10,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
-import org.postgresql.core.CommandStatus;
+import org.postgresql.core.CommandCompleteParser;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
@@ -118,6 +118,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private SQLException transactionFailCause;
 
   private final ReplicationProtocol replicationProtocol;
+
+  /**
+   * {@code CommandComplete(B)} messages are quite common, so we reuse instance to parse those
+   */
+  private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
 
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info) throws SQLException, IOException {
@@ -2466,15 +2471,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void interpretCommandStatus(String status, ResultHandler handler) {
-    CommandStatus parsedStatus;
     try {
-      parsedStatus = CommandStatus.of(status);
+      commandCompleteParser.parse(status);
     } catch (SQLException e) {
       handler.handleError(e);
       return;
     }
-    long oid = parsedStatus.oid;
-    long count = parsedStatus.rows;
+    long oid = commandCompleteParser.getOid();
+    long count = commandCompleteParser.getRows();
 
     int countAsInt = 0;
     if (count > Integer.MAX_VALUE) {

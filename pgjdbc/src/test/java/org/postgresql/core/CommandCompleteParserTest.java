@@ -15,7 +15,7 @@ import org.junit.runners.Parameterized;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
-public class CommandStatusTest {
+public class CommandCompleteParserTest {
 
   @Parameterized.Parameter(0)
   public String input;
@@ -45,6 +45,10 @@ public class CommandStatusTest {
 
   @Test
   public void run() throws PSQLException {
-    Assert.assertEquals(input, CommandStatus.of(oid, rows), CommandStatus.of(input));
+    CommandCompleteParser expected = new CommandCompleteParser();
+    CommandCompleteParser actual = new CommandCompleteParser();
+    expected.set(oid, rows);
+    actual.parse(input);
+    Assert.assertEquals(input, expected, actual);
   }
 }
