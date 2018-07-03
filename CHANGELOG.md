@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-- Avoid the print of highest logger levels when the exception is re-thrown. [PR 1187](https://github.com/pgjdbc/pgjdbc/pull/1187)
+- Reduce the severity of the erorr log messages when an exception is re-thrown. We have already logged the
+ error we do not need to log it again at the same verbosity [PR 1187](https://github.com/pgjdbc/pgjdbc/pull/1187)
 
 ## [42.2.2] (2018-03-15)
 ### Added

@@ -563,7 +563,7 @@ public class Driver implements java.sql.Driver {
       l_urlServer = l_urlServer.substring(2);
       int slash = l_urlServer.indexOf('/');
       if (slash == -1) {
-        LOGGER.log(Level.WARNING, "JDBC URL must contain a slash at the end of the host or port: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
         return null;
       }
       urlProps.setProperty("PGDBNAME", URLCoder.decode(l_urlServer.substring(slash + 1)));
@@ -578,7 +578,7 @@ public class Driver implements java.sql.Driver {
           try {
             int port = Integer.parseInt(portStr);
             if (port < 1 || port > 65535) {
-              LOGGER.log(Level.WARNING, "JDBC URL port in invalid range: {0}", portStr);
+              LOGGER.log(Level.WARNING, "JDBC URL port: {0} not valid (1:65535) ", portStr);
               return null;
             }
           } catch (NumberFormatException ignore) {
