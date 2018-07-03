@@ -50,12 +50,12 @@ public class CommandCompleteParser {
     //   COMMAND OID ROWS
     //   COMMAND ROWS
     long oid = 0;
-    long count = 0;
+    long rows = 0;
     try {
       int lastSpace = status.lastIndexOf(' ');
       // Status ends with a digit => it is ROWS
       if (Parser.isDigitAt(status, lastSpace + 1)) {
-        count = Parser.parseLong(status, lastSpace + 1, status.length());
+        rows = Parser.parseLong(status, lastSpace + 1, status.length());
 
         if (Parser.isDigitAt(status, lastSpace - 1)) {
           int penultimateSpace = status.lastIndexOf(' ', lastSpace - 1);
@@ -65,13 +65,13 @@ public class CommandCompleteParser {
         }
       }
     } catch (NumberFormatException e) {
-      // As we're have performed a isDigit check prior to parsing, this should only
-      // occur if the oid or count are out of range.
+      // As we have performed an isDigit check prior to parsing, this should only
+      // occur if the oid or rows are out of range.
       throw new PSQLException(
-          GT.tr("Unable to parse the count in command completion tag: {0}.", status),
+          GT.tr("Unable to parse the rows in command completion tag: {0}.", status),
           PSQLState.CONNECTION_FAILURE, e);
     }
-    set(oid, count);
+    set(oid, rows);
   }
 
   @Override
