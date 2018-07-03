@@ -692,6 +692,26 @@ public class Parser {
   }
 
   /**
+   * Faster version of {@link Long#parseLong(String)} when parsing a substring is required
+   *
+   * @param s string to parse
+   * @param beginIndex begin index
+   * @param endIndex end index
+   * @return long value
+   */
+  public static long parseLong(String s, int beginIndex, int endIndex) {
+    // Fallback to default implementation in case the string is long
+    if (endIndex - beginIndex > 16) {
+      return Long.parseLong(s.substring(beginIndex, endIndex));
+    }
+    long res = digitAt(s, beginIndex);
+    for (beginIndex++; beginIndex < endIndex; beginIndex++) {
+      res = res * 10 + digitAt(s, beginIndex);
+    }
+    return res;
+  }
+
+  /**
    * Parse string to check presence of WITH keyword regardless of case.
    *
    * @param query char[] of the query statement
@@ -723,6 +743,18 @@ public class Parser {
 
     return (query[offset] | 32) == 'a'
         && (query[offset + 1] | 32) == 's';
+  }
+
+  public static boolean isDigitAt(String status, int i) {
+    return i > 0 && i < status.length() && Character.isDigit(status.charAt(i));
+  }
+
+  public static int digitAt(String s, int pos) {
+    int c = s.charAt(pos) - '0';
+    if (c < 0 || c > 9) {
+      throw new NumberFormatException("Input string: \"" + s + "\"");
+    }
+    return c;
   }
 
   /**

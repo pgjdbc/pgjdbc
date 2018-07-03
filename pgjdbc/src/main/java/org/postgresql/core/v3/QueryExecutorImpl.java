@@ -10,6 +10,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
+import org.postgresql.core.CommandStatus;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
@@ -2464,72 +2465,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return status;
   }
 
-  private static boolean isDigitAt(String status, int i) {
-    return i > 0 && i < status.length() && Character.isDigit(status.charAt(i));
-  }
-
-  private static int digitAt(String s, int pos) {
-    int c = s.charAt(pos) - '0';
-    if (c < 0 || c > 9) {
-      throw new NumberFormatException("Input string: \"" + s + "\"");
-    }
-    return c;
-  }
-
-  /**
-   * Faster version of {@link Long#parseLong(String)} when parsing a substring is required
-   *
-   * @param s string to parse
-   * @param beginIndex begin index
-   * @param endIndex end index
-   * @return long value
-   */
-  private static long toLong(String s, int beginIndex, int endIndex) {
-    // Fallback to default implementation in case the string is long
-    if (endIndex - beginIndex > 16) {
-      return Long.parseLong(s.substring(beginIndex, beginIndex));
-    }
-    long res = digitAt(s, beginIndex);
-    for (beginIndex++; beginIndex < endIndex; beginIndex++) {
-      res = res * 10 + digitAt(s, beginIndex);
-    }
-    return res;
-  }
-
   private void interpretCommandStatus(String status, ResultHandler handler) {
-    long oid = 0;
-    long count = 0;
-
-    // This code processes the CommandComplete (B) message.
-    // Status is in the format of "COMMAND OID ROWS" where both 'OID' and 'ROWS' are optional
-    // and COMMAND can have spaces within it, like CREATE TABLE.
-    // Scan backwards, while searching for a maximum of two number groups
-    // COMMAND OID ROWS
-    // COMMAND ROWS
-    // Assumption: command neither starts nor ends with a digi
-    if (isDigitAt(status, status.length() - 1)) {
-      try {
-        int lastSpace = status.lastIndexOf(' ');
-        // Status ends with a digit => it is ROWS
-        if (isDigitAt(status, lastSpace + 1)) {
-          count = toLong(status, lastSpace + 1, status.length());
-
-          if (isDigitAt(status, lastSpace - 1)) {
-            int penultimateSpace = status.lastIndexOf(' ', lastSpace - 1);
-            if (isDigitAt(status, penultimateSpace + 1)) {
-              oid = toLong(status, penultimateSpace + 1, lastSpace);
-            }
-          }
-        }
-      } catch (NumberFormatException e) {
-        // As we're have performed a isDigit check prior to parsing, this should only
-        // occur if the oid or count are out of range.
-        handler.handleError(new PSQLException(
-            GT.tr("Unable to parse the count in command completion tag: {0}.", status),
-            PSQLState.CONNECTION_FAILURE));
-        return;
-      }
+    CommandStatus parsedStatus;
+    try {
+      parsedStatus = CommandStatus.of(status);
+    } catch (SQLException e) {
+      handler.handleError(e);
+      return;
     }
+    long oid = parsedStatus.oid;
+    long count = parsedStatus.rows;
 
     int countAsInt = 0;
     if (count > Integer.MAX_VALUE) {
