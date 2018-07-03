@@ -21,7 +21,7 @@ public interface ChainedStreamBuilder {
    * </a>.
    * </p>
    *
-   * <p>Example usage:
+   * <p>Example usage:</p>
    * <pre>
    *   {@code
    *
@@ -42,7 +42,7 @@ public interface ChainedStreamBuilder {
    *
    *   }
    * </pre>
-   * </p>
+   *
    * @return not null fluent api
    */
   ChainedLogicalStreamBuilder logical();
@@ -50,7 +50,7 @@ public interface ChainedStreamBuilder {
   /**
    * <p>Create physical replication stream for process wal logs in binary form.</p>
    *
-   * <p>Example usage:
+   * <p>Example usage:</p>
    * <pre>
    *   {@code
    *
@@ -71,7 +71,7 @@ public interface ChainedStreamBuilder {
    *
    *   }
    * </pre>
-   * </p>
+   *
    * @return not null fluent api
    */
   ChainedPhysicalStreamBuilder physical();

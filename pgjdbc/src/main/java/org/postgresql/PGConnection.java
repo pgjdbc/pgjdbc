@@ -116,14 +116,13 @@ public interface PGConnection {
    *
    * <p><b>NOTE:</b> This is not part of JDBC, but an extension.</p>
    *
-   * <p>The best way to use this is as follows:
+   * <p>The best way to use this is as follows:</p>
    *
    * <pre>
    * ...
    * ((org.postgresql.PGConnection)myconn).addDataType("mytype", my.class.name.class);
    * ...
    * </pre>
-   * </p>
    *
    * <p>where myconn is an open Connection to org.postgresql.</p>
    *

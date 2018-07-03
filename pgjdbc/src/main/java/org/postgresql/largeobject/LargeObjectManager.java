@@ -26,7 +26,7 @@ import java.util.logging.Level;
  *
  * <p>This class can only be created by {@link BaseConnection}</p>
  *
- * <p>To get access to this class, use the following segment of code: <br>
+ * <p>To get access to this class, use the following segment of code:</p>
  *
  * <pre>
  * import org.postgresql.largeobject.*;
@@ -38,7 +38,6 @@ import java.util.logging.Level;
  *
  * lobj = ((org.postgresql.PGConnection)myconn).getLargeObjectAPI();
  * </pre>
- * </p>
  *
  * <p>Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream methods
  * in ResultSet, or setAsciiStream, setBinaryStream, or setUnicodeStream methods in

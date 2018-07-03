@@ -191,12 +191,11 @@ public class Driver implements java.sql.Driver {
    * probably want to have set up the Postgres database itself to use the same encoding, with the
    * {@code -E <encoding>} argument to createdb.</p>
    *
-   * <p>Our protocol takes the forms:
+   * <p>Our protocol takes the forms:</p>
    *
-   * <PRE>
+   * <pre>
    *  jdbc:postgresql://host:port/database?param1=val1&amp;...
-   * </PRE>
-   * </p>
+   * </pre>
    *
    * @param url the URL of the database to connect to
    * @param info a list of arbitrary tag/value pairs as connection arguments

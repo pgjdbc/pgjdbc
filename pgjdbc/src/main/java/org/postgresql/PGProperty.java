@@ -59,12 +59,11 @@ public enum PGProperty {
    * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
    *
    * <p>This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
-   * of levels:
+   * of levels:</p>
    * <ul>
    *     <li>FINE -&gt; DEBUG</li>
    *     <li>FINEST -&gt; TRACE</li>
    * </ul>
-   * </p>
    *
    * <p><b>NOTE:</b> The recommended approach to enable java.util.logging is using a
    * {@code logging.properties} configuration file with the property

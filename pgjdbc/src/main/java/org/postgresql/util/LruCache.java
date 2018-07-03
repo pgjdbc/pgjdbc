@@ -146,6 +146,8 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
 
   /**
    * Puts all the values from the given map into the cache.
+   *
+   * @param m The map containing entries to put into the cache
    */
   public synchronized void putAll(Map<Key, Value> m) {
     for (Map.Entry<Key, Value> entry : m.entrySet()) {

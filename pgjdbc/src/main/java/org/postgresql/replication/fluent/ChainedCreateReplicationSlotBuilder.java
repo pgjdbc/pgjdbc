@@ -50,7 +50,7 @@ public interface ChainedCreateReplicationSlotBuilder {
   /**
    * <p>Create physical replication stream for process wal logs in binary form.</p>
    *
-   * <p>Example usage:
+   * <p>Example usage:</p>
    * <pre>
    *   {@code
    *
@@ -76,7 +76,7 @@ public interface ChainedCreateReplicationSlotBuilder {
    *
    *   }
    * </pre>
-   * </p>
+   *
    * @return not null fluent api
    */
   ChainedPhysicalCreateSlotBuilder physical();

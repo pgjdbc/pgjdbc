@@ -25,7 +25,7 @@ import java.util.TimeZone;
  * <p>Abstracts the protocol-specific details of executing a query.</p>
  *
  * <p>Every connection has a single QueryExecutor implementation associated with it. This object
- * provides:
+ * provides:</p>
  *
  * <ul>
  * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
@@ -35,7 +35,6 @@ import java.util.TimeZone;
  * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
  * <li>a fastpath call interface ({@link #createFastpathParameters} and {@link #fastpathCall}).
  * </ul>
- * </p>
  *
  * <p>Query objects may represent a query that has parameter placeholders. To provide actual values for
  * these parameters, a {@link ParameterList} object is created via a factory method (

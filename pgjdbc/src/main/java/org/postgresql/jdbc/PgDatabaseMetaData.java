@@ -975,7 +975,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * <p>Does a data definition statement within a transaction force the transaction to commit? It seems
-   * to mean something like:
+   * to mean something like:</p>
    *
    * <pre>
    * CREATE TABLE T (A INT);
@@ -987,7 +987,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * COMMIT;
    * </pre>
    *
-   * Does the CREATE TABLE call cause a commit? The answer is no.</p>
+   * <p>Does the CREATE TABLE call cause a commit? The answer is no.</p>
    *
    * @return true if so
    * @throws SQLException if a database access error occurs
