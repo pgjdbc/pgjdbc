@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
@@ -80,6 +81,7 @@ import org.junit.runners.Suite;
         ParserTest.class,
         ReturningParserTest.class,
         CommandCompleteParserTest.class,
+        CommandCompleteParserNegativeTest.class,
 
         OidToStringTest.class,
         OidValueOfTest.class,

@@ -28,6 +28,10 @@ public class CommandCompleteParserTest {
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"SELECT 0", 0, 0},
+        {"SELECT -42", 0, 0},
+        {"SELECT", 0, 0},
+        {"", 0, 0},
+        {"A", 0, 0},
         {"SELECT 42", 0, 42},
         {"UPDATE 43 42", 43, 42},
         {"UPDATE 43 " + Long.MAX_VALUE, 43, Long.MAX_VALUE},

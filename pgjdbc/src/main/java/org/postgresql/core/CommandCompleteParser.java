@@ -44,6 +44,7 @@ public final class CommandCompleteParser {
     // Assumption: command neither starts nor ends with a digit
     if (!Parser.isDigitAt(status, status.length() - 1)) {
       set(0, 0);
+      return;
     }
 
     // Scan backwards, while searching for a maximum of two number groups
