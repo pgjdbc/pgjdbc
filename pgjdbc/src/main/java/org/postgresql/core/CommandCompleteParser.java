@@ -12,7 +12,7 @@ import org.postgresql.util.PSQLState;
 /**
  * Parses {@code oid} and {@code rows} from a {@code CommandComplete (B)} message (end of Execute).
  */
-public class CommandCompleteParser {
+public final class CommandCompleteParser {
   private long oid;
   private long rows;
 
@@ -27,7 +27,7 @@ public class CommandCompleteParser {
     return rows;
   }
 
-  public void set(long oid, long rows) {
+  void set(long oid, long rows) {
     this.oid = oid;
     this.rows = rows;
   }
