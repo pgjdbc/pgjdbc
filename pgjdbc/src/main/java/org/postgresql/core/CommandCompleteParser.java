@@ -65,8 +65,7 @@ public class CommandCompleteParser {
         }
       }
     } catch (NumberFormatException e) {
-      // As we have performed an isDigit check prior to parsing, this should only
-      // occur if the oid or rows are out of range.
+      // This should only occur if the oid or rows are out of 0..Long.MAX_VALUE range
       throw new PSQLException(
           GT.tr("Unable to parse the rows in command completion tag: {0}.", status),
           PSQLState.CONNECTION_FAILURE, e);
