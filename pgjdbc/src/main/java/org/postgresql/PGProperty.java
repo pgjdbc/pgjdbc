@@ -185,7 +185,7 @@ public enum PGProperty {
       "disable", "require", "verify-ca", "verify-full"),
 
   /**
-   * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
+   * Classname or actual instance of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
    */
   SSL_FACTORY("sslfactory", null, "Provide a SSLSocketFactory class when using SSL."),
 
@@ -196,7 +196,7 @@ public enum PGProperty {
       "Argument forwarded to constructor of SSLSocketFactory class."),
 
   /**
-   * Classname of the SSL HostnameVerifier to use (instance of {@code
+   * Classname or actual instance of the SSL HostnameVerifier to use (instance of {@code
    * javax.net.ssl.HostnameVerifier}).
    */
   SSL_HOSTNAME_VERIFIER("sslhostnameverifier", null,
@@ -481,6 +481,18 @@ public enum PGProperty {
    */
   public String get(Properties properties) {
     return properties.getProperty(_name, _defaultValue);
+  }
+
+  /**
+   * Returns the value of the connection parameters according to the given {@code Properties} or null.
+   * This is an Object from underlying Hashtable&lt;Object,Object&gt; and can deliver anything,
+   * not just Strings.
+   *
+   * @param properties properties to take actual value from
+   * @return connection parameter Object
+   */
+  public Object getObject(Properties properties) {
+    return properties.get(_name);
   }
 
   /**
