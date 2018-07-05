@@ -110,14 +110,14 @@ public class BaseTest4 {
   }
 
   /**
-   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}
+   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}.
    */
   public void assumeMinimumServerVersion(String message, Version version) throws SQLException {
     Assume.assumeTrue(message, TestUtil.haveMinimumServerVersion(con, version));
   }
 
   /**
-   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}
+   * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}.
    */
   public void assumeMinimumServerVersion(Version version) throws SQLException {
     Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, version));

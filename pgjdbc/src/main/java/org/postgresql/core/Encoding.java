@@ -118,7 +118,7 @@ public class Encoding {
    *
    * @param jvmEncoding the name of the JVM encoding
    * @return an Encoding instance for the specified encoding, or an Encoding instance for the
-   * default JVM encoding if the specified encoding is unavailable.
+   *     default JVM encoding if the specified encoding is unavailable.
    */
   public static Encoding getJVMEncoding(String jvmEncoding) {
     if ("UTF-8".equals(jvmEncoding)) {
@@ -136,7 +136,7 @@ public class Encoding {
    *
    * @param databaseEncoding the name of the database encoding
    * @return an Encoding instance for the specified encoding, or an Encoding instance for the
-   * default JVM encoding if the specified encoding is unavailable.
+   *     default JVM encoding if the specified encoding is unavailable.
    */
   public static Encoding getDatabaseEncoding(String databaseEncoding) {
     if ("UTF8".equals(databaseEncoding)) {

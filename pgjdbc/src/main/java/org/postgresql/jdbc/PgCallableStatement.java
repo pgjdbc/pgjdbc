@@ -156,14 +156,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * Before executing a stored procedure call you must explicitly call registerOutParameter to
-   * register the java.sql.Type of each out parameter.
+   * <p>Before executing a stored procedure call you must explicitly call registerOutParameter to
+   * register the java.sql.Type of each out parameter.</p>
    *
-   * <p>
-   * Note: When reading the value of an out parameter, you must use the getXXX method whose Java
-   * type XXX corresponds to the parameter's registered SQL type.
+   * <p>Note: When reading the value of an out parameter, you must use the getXXX method whose Java
+   * type XXX corresponds to the parameter's registered SQL type.</p>
    *
-   * ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used
+   * <p>ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used</p>
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
    * @param sqlType SQL type code defined by java.sql.Types; for parameters of type Numeric or
@@ -222,11 +221,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * You must also specify the scale for numeric/decimal types:
+   * <p>You must also specify the scale for numeric/decimal types.</p>
    *
-   * <p>
-   * Note: When reading the value of an out parameter, you must use the getXXX method whose Java
-   * type XXX corresponds to the parameter's registered SQL type.
+   * <p>Note: When reading the value of an out parameter, you must use the getXXX method whose Java
+   * type XXX corresponds to the parameter's registered SQL type.</p>
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
    * @param sqlType use either java.sql.Type.NUMERIC or java.sql.Type.DECIMAL
@@ -388,7 +386,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * helperfunction for the getXXX calls to check isFunction and index == 1
+   * Helper function for the getXXX calls to check isFunction and index == 1.
    *
    * @param parameterIndex parameter index (1-based)
    * @param type type
@@ -411,7 +409,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * helperfunction for the getXXX calls to check isFunction and index == 1
+   * Helper function for the getXXX calls to check isFunction and index == 1.
    *
    * @param parameterIndex index of getXXX (index) check to make sure is a function and index == 1
    * @param fetchingData fetching data

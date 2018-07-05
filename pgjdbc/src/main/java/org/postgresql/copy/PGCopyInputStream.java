@@ -15,7 +15,7 @@ import java.io.InputStream;
 import java.sql.SQLException;
 
 /**
- * InputStream for reading from a PostgreSQL COPY TO STDOUT operation
+ * InputStream for reading from a PostgreSQL COPY TO STDOUT operation.
  */
 public class PGCopyInputStream extends InputStream implements CopyOut {
   private CopyOut op;
@@ -24,7 +24,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   private int len;
 
   /**
-   * Uses given connection for specified COPY TO STDOUT operation
+   * Uses given connection for specified COPY TO STDOUT operation.
    *
    * @param connection database connection to use for copying (protocol version 3 required)
    * @param sql COPY TO STDOUT statement
@@ -35,7 +35,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   }
 
   /**
-   * Use given CopyOut operation for reading
+   * Use given CopyOut operation for reading.
    *
    * @param op COPY TO STDOUT operation
    */

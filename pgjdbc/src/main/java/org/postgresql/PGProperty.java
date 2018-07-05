@@ -20,19 +20,19 @@ import java.util.Properties;
 public enum PGProperty {
 
   /**
-   * Database name to connect to (may be specified directly in the JDBC URL)
+   * Database name to connect to (may be specified directly in the JDBC URL).
    */
   PG_DBNAME("PGDBNAME", null,
       "Database name to connect to (may be specified directly in the JDBC URL)", true),
 
   /**
-   * Hostname of the PostgreSQL server (may be specified directly in the JDBC URL)
+   * Hostname of the PostgreSQL server (may be specified directly in the JDBC URL).
    */
   PG_HOST("PGHOST", null,
       "Hostname of the PostgreSQL server (may be specified directly in the JDBC URL)", false),
 
   /**
-   * Port of the PostgreSQL server (may be specified directly in the JDBC URL)
+   * Port of the PostgreSQL server (may be specified directly in the JDBC URL).
    */
   PG_PORT("PGPORT", null,
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
@@ -56,27 +56,28 @@ public enum PGProperty {
       false, "3"),
 
   /**
-   * Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.
-   * <p>
-   * This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
-   * of levels:
-   * <p>
-   * FINE -&gt; DEBUG<br>
-   * FINEST -&gt; TRACE
-   * <p>
-   * <b>NOTE:</b> The recommended approach to enable java.util.logging is using a
+   * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
+   *
+   * <p>This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
+   * of levels:</p>
+   * <ul>
+   *     <li>FINE -&gt; DEBUG</li>
+   *     <li>FINEST -&gt; TRACE</li>
+   * </ul>
+   *
+   * <p><b>NOTE:</b> The recommended approach to enable java.util.logging is using a
    * {@code logging.properties} configuration file with the property
    * {@code -Djava.util.logging.config.file=myfile} or if your are using an application server
-   * you should use the appropriate logging subsystem.
+   * you should use the appropriate logging subsystem.</p>
    */
   LOGGER_LEVEL("loggerLevel", null, "Logger level of the driver", false, "OFF", "DEBUG", "TRACE"),
 
   /**
-   * File name output of the Logger, if set, the Logger will use a
+   * <p>File name output of the Logger, if set, the Logger will use a
    * {@link java.util.logging.FileHandler} to write to a specified file. If the parameter is not set
-   * or the file can't be created the {@link java.util.logging.ConsoleHandler} will be used instead.
-   * <p>
-   * Parameter should be use together with {@link PGProperty#LOGGER_LEVEL}
+   * or the file can't be created the {@link java.util.logging.ConsoleHandler} will be used instead.</p>
+   *
+   * <p>Parameter should be use together with {@link PGProperty#LOGGER_LEVEL}</p>
    */
   LOGGER_FILE("loggerFile", null, "File name output of the Logger"),
 
@@ -190,7 +191,7 @@ public enum PGProperty {
   SSL_FACTORY("sslfactory", null, "Provide a SSLSocketFactory class when using SSL."),
 
   /**
-   * The String argument to give to the constructor of the SSL Factory
+   * The String argument to give to the constructor of the SSL Factory.
    */
   SSL_FACTORY_ARG("sslfactoryarg", null,
       "Argument forwarded to constructor of SSLSocketFactory class."),
@@ -229,7 +230,7 @@ public enum PGProperty {
       "The password for the client's ssl key (ignored if sslpasswordcallback is set)"),
 
   /**
-   * The classname instantiating {@code javax.security.auth.callback.CallbackHandler} to use
+   * The classname instantiating {@code javax.security.auth.callback.CallbackHandler} to use.
    */
   SSL_PASSWORD_CALLBACK("sslpasswordcallback", null,
       "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PassworCallback for the ssl password."),
@@ -248,10 +249,10 @@ public enum PGProperty {
       "Specify how long to wait for establishment of a database connection."),
 
   /**
-   * The timeout value used for socket connect operations. If connecting to the server takes longer
-   * than this value, the connection is broken.
-   * <p>
-   * The timeout is specified in seconds and a value of zero means that it is disabled.
+   * <p>The timeout value used for socket connect operations. If connecting to the server takes longer
+   * than this value, the connection is broken.</p>
+   *
+   * <p>The timeout is specified in seconds and a value of zero means that it is disabled.</p>
    */
   CONNECT_TIMEOUT("connectTimeout", "10", "The timeout value used for socket connect operations."),
 
@@ -277,7 +278,7 @@ public enum PGProperty {
   SOCKET_FACTORY("socketFactory", null, "Specify a socket factory for socket creation"),
 
   /**
-   * The String argument to give to the constructor of the Socket Factory
+   * The String argument to give to the constructor of the Socket Factory.
    */
   SOCKET_FACTORY_ARG("socketFactoryArg", null,
       "Argument forwarded to constructor of SocketFactory class."),
@@ -295,13 +296,13 @@ public enum PGProperty {
   SEND_BUFFER_SIZE("sendBufferSize", "-1", "Socket write buffer size"),
 
   /**
-   * Assume the server is at least that version
+   * Assume the server is at least that version.
    */
   ASSUME_MIN_SERVER_VERSION("assumeMinServerVersion", null,
       "Assume the server is at least that version"),
 
   /**
-   * The application name (require server version &gt;= 9.0)
+   * The application name (require server version &gt;= 9.0).
    */
   APPLICATION_NAME("ApplicationName", DriverInfo.DRIVER_NAME, "Name of the Application (backend >= 9.0)"),
 
@@ -326,7 +327,7 @@ public enum PGProperty {
       "The Kerberos service name to use when authenticating with GSSAPI."),
 
   /**
-   * Use SPNEGO in SSPI authentication requests
+   * Use SPNEGO in SSPI authentication requests.
    */
   USE_SPNEGO("useSpnego", "false", "Use SPNEGO in SSPI authentication requests"),
 
@@ -370,11 +371,11 @@ public enum PGProperty {
       "Specifies period (seconds) after which the host status is checked again in case it has changed"),
 
   /**
-   * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
+   * <p>Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
-   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
+   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.</p>
    *
-   * This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)
+   * <p>This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)</p>
    */
   PREFER_QUERY_MODE("preferQueryMode", "extended",
       "Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), "
@@ -407,8 +408,9 @@ public enum PGProperty {
    * of replication commands can be issued instead of SQL statements. Only the simple query protocol
    * can be used in walsender mode. Passing "database" as the value instructs walsender to connect
    * to the database specified in the dbname parameter, which will allow the connection to be used
-   * for logical replication from that database. <p>Parameter should be use together with {@link
-   * PGProperty#ASSUME_MIN_SERVER_VERSION} with parameter &gt;= 9.4 (backend &gt;= 9.4)
+   * for logical replication from that database.</p>
+   * <p>Parameter should be use together with {@link PGProperty#ASSUME_MIN_SERVER_VERSION} with
+   * parameter &gt;= 9.4 (backend &gt;= 9.4)</p>
    */
   REPLICATION("replication", null,
       "Connection parameter passed in startup message, one of 'true' or 'database' "
@@ -455,7 +457,7 @@ public enum PGProperty {
   }
 
   /**
-   * Returns the default value for this connection parameter
+   * Returns the default value for this connection parameter.
    *
    * @return the default value for this connection parameter or null
    */
@@ -464,7 +466,7 @@ public enum PGProperty {
   }
 
   /**
-   * Returns the available values for this connection parameter
+   * Returns the available values for this connection parameter.
    *
    * @return the available values for this connection parameter or null
    */
@@ -474,7 +476,7 @@ public enum PGProperty {
 
   /**
    * Returns the value of the connection parameters according to the given {@code Properties} or the
-   * default value
+   * default value.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter
@@ -484,7 +486,7 @@ public enum PGProperty {
   }
 
   /**
-   * Set the value for this connection parameter in the given {@code Properties}
+   * Set the value for this connection parameter in the given {@code Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value value for this connection parameter
@@ -498,7 +500,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the boolean value for this connection parameter in the given {@code Properties}
+   * Return the boolean value for this connection parameter in the given {@code Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to boolean
@@ -509,7 +511,7 @@ public enum PGProperty {
 
   /**
    * Return the int value for this connection parameter in the given {@code Properties}. Prefer the
-   * use of {@link #getInt(Properties)} anywhere you can throw an {@link java.sql.SQLException}
+   * use of {@link #getInt(Properties)} anywhere you can throw an {@link java.sql.SQLException}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to int
@@ -521,7 +523,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the int value for this connection parameter in the given {@code Properties}
+   * Return the int value for this connection parameter in the given {@code Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to int
@@ -538,7 +540,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the {@code Integer} value for this connection parameter in the given {@code Properties}
+   * Return the {@code Integer} value for this connection parameter in the given {@code Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to Integer or null
@@ -558,7 +560,7 @@ public enum PGProperty {
   }
 
   /**
-   * Set the boolean value for this connection parameter in the given {@code Properties}
+   * Set the boolean value for this connection parameter in the given {@code Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value boolean value for this connection parameter
@@ -568,7 +570,7 @@ public enum PGProperty {
   }
 
   /**
-   * Set the int value for this connection parameter in the given {@code Properties}
+   * Set the int value for this connection parameter in the given {@code Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value int value for this connection parameter
@@ -578,7 +580,7 @@ public enum PGProperty {
   }
 
   /**
-   * Test whether this property is present in the given {@code Properties}
+   * Test whether this property is present in the given {@code Properties}.
    *
    * @param properties set of properties to check current in
    * @return true if the parameter is specified in the given properties
@@ -589,7 +591,7 @@ public enum PGProperty {
 
   /**
    * Convert this connection parameter and the value read from the given {@code Properties} into a
-   * {@code DriverPropertyInfo}
+   * {@code DriverPropertyInfo}.
    *
    * @param properties properties to take actual value from
    * @return a DriverPropertyInfo representing this connection parameter

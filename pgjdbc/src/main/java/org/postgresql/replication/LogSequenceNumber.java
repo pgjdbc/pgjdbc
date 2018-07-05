@@ -8,7 +8,7 @@ package org.postgresql.replication;
 import java.nio.ByteBuffer;
 
 /**
- * LSN (Log Sequence Number) data which is a pointer to a location in the XLOG
+ * LSN (Log Sequence Number) data which is a pointer to a location in the XLOG.
  */
 public final class LogSequenceNumber {
   /**
@@ -32,7 +32,7 @@ public final class LogSequenceNumber {
   }
 
   /**
-   * Create LSN instance by string represent LSN
+   * Create LSN instance by string represent LSN.
    *
    * @param strValue not null string as two hexadecimal numbers of up to 8 digits each, separated by
    *                 a slash. For example {@code 16/3002D50}, {@code 0/15D68C50}
@@ -69,7 +69,7 @@ public final class LogSequenceNumber {
 
   /**
    * @return String represent position in the write-ahead log stream as two hexadecimal numbers of
-   * up to 8 digits each, separated by a slash. For example {@code 16/3002D50}, {@code 0/15D68C50}
+   *     up to 8 digits each, separated by a slash. For example {@code 16/3002D50}, {@code 0/15D68C50}
    */
   public String asString() {
     ByteBuffer buf = ByteBuffer.allocate(8);

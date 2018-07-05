@@ -27,11 +27,11 @@ public interface PGReplicationConnection {
   ChainedStreamBuilder replicationStream();
 
   /**
-   * <p>Create replication slot, that can be next use in {@link PGReplicationConnection#replicationStream()}
+   * <p>Create replication slot, that can be next use in {@link PGReplicationConnection#replicationStream()}</p>
    *
    * <p>Replication slots provide an automated way to ensure that the master does not remove WAL
    * segments until they have been received by all standbys, and that the master does not remove
-   * rows which could cause a recovery conflict even when the standby is disconnected.
+   * rows which could cause a recovery conflict even when the standby is disconnected.</p>
    *
    * @return not null fluent api for build create replication slot
    */

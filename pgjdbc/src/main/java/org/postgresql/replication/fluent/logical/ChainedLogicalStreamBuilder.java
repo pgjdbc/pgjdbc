@@ -14,7 +14,7 @@ import java.util.Properties;
 public interface ChainedLogicalStreamBuilder
     extends ChainedCommonStreamBuilder<ChainedLogicalStreamBuilder> {
   /**
-   * Open logical replication stream
+   * Open logical replication stream.
    *
    * @return not null PGReplicationStream available for fetch data in logical form
    * @throws SQLException  if there are errors

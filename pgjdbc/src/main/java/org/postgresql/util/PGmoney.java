@@ -10,7 +10,7 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * This implements a class that handles the PostgreSQL money and cash types
+ * This implements a class that handles the PostgreSQL money and cash types.
  */
 public class PGmoney extends PGobject implements Serializable, Cloneable {
   /*

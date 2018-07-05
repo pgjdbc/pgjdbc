@@ -16,7 +16,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 /**
- * This class is an OSGi Bundle Activator and should only be used internally by the OSGi Framework
+ * This class is an OSGi Bundle Activator and should only be used internally by the OSGi Framework.
  */
 public class PGBundleActivator implements BundleActivator {
   private ServiceRegistration<?> _registration;

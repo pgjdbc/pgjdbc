@@ -21,7 +21,7 @@ import javax.net.SocketFactory;
 public class SocketFactoryFactory {
 
   /**
-   * Instantiates {@link SocketFactory} based on the {@link PGProperty#SOCKET_FACTORY}
+   * Instantiates {@link SocketFactory} based on the {@link PGProperty#SOCKET_FACTORY}.
    *
    * @param info connection properties
    * @return socket factory

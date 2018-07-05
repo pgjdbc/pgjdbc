@@ -44,12 +44,12 @@ public class AutoRollbackTestSuite extends BaseTest4 {
      */
     SELECT,
     /**
-     * Executes "alter table rollbacktest", thus it breaks a prepared select over that table
+     * Executes "alter table rollbacktest", thus it breaks a prepared select over that table.
      * Mitigation: "autosave in (always, conservative)"
      */
     ALTER,
     /**
-     * Executes DEALLOCATE ALL
+     * Executes DEALLOCATE ALL.
      * Mitigation:
      *  1) QueryExecutor tracks "DEALLOCATE ALL" responses ({@see org.postgresql.core.QueryExecutor#setFlushCacheOnDeallocate(boolean)}
      *  2) QueryExecutor tracks "prepared statement name is invalid" and unprepares relevant statements ({@link org.postgresql.core.v3.QueryExecutorImpl#processResults(ResultHandler, int)}
@@ -58,7 +58,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
      */
     DEALLOCATE,
     /**
-     * Executes DISCARD ALL
+     * Executes DISCARD ALL.
      * Mitigation: the same as for {@link #DEALLOCATE}
      */
     DISCARD,

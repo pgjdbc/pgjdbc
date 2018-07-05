@@ -214,7 +214,6 @@ public class GetObjectTest {
   }
 
   /**
-   *
    * Test the behavior getObject for timestamp columns.
    */
   @Test
@@ -717,9 +716,9 @@ public class GetObjectTest {
   }
 
   /**
-   * Test the behavior getObject for money columns.
+   * <p>Test the behavior getObject for money columns.</p>
    *
-   * The test is ignored as it is locale-dependent.
+   * <p>The test is ignored as it is locale-dependent.</p>
    */
   @Ignore
   @Test

@@ -128,7 +128,7 @@ public abstract class AbstractBlobClob {
   }
 
   /**
-   * Iterate over the buffer looking for the specified pattern
+   * Iterate over the buffer looking for the specified pattern.
    *
    * @param pattern A pattern of bytes to search the blob for
    * @param start The position to start reading from
@@ -194,7 +194,7 @@ public abstract class AbstractBlobClob {
 
 
   /**
-   * This is simply passing the byte value of the pattern Blob
+   * This is simply passing the byte value of the pattern Blob.
    *
    * @param pattern search pattern
    * @param start start position

@@ -7,20 +7,20 @@ package org.postgresql.jdbc2;
 
 /**
  * Implement this interface and register the its instance to ArrayAssistantRegistry, to let Postgres
- * driver to support more array type
+ * driver to support more array type.
  *
  * @author Minglei Tu
  */
 public interface ArrayAssistant {
   /**
-   * get array base type
+   * get array base type.
    *
    * @return array base type
    */
   Class<?> baseType();
 
   /**
-   * build a array element from its binary bytes
+   * build a array element from its binary bytes.
    *
    * @param bytes input bytes
    * @param pos position in input array
@@ -30,7 +30,7 @@ public interface ArrayAssistant {
   Object buildElement(byte[] bytes, int pos, int len);
 
   /**
-   * build an array element from its literal string
+   * build an array element from its literal string.
    *
    * @param literal string representation of array element
    * @return array element

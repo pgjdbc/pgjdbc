@@ -20,7 +20,7 @@ import java.io.Writer;
 import java.sql.SQLException;
 
 /**
- * API for PostgreSQL COPY bulk data transfer
+ * API for PostgreSQL COPY bulk data transfer.
  */
 public class CopyManager {
   // I don't know what the best buffer size is, so we let people specify it if

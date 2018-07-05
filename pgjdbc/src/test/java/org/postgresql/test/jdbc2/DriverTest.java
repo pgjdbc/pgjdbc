@@ -96,7 +96,7 @@ public class DriverTest {
   }
 
   /**
-   * Tests the connect method by connecting to the test database
+   * Tests the connect method by connecting to the test database.
    */
   @Test
   public void testConnect() throws Exception {

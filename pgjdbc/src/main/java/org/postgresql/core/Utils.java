@@ -75,7 +75,7 @@ public class Utils {
   }
 
   /**
-   * Common part for {@link #escapeLiteral(StringBuilder, String, boolean)}
+   * Common part for {@link #escapeLiteral(StringBuilder, String, boolean)}.
    *
    * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
    *        thrown
@@ -143,7 +143,7 @@ public class Utils {
   }
 
   /**
-   * Common part for appendEscapedIdentifier
+   * Common part for appendEscapedIdentifier.
    *
    * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
    *        thrown.
@@ -173,18 +173,18 @@ public class Utils {
   }
 
   /**
-   * Attempt to parse the server version string into an XXYYZZ form version number.
+   * <p>Attempt to parse the server version string into an XXYYZZ form version number.</p>
    *
-   * Returns 0 if the version could not be parsed.
+   * <p>Returns 0 if the version could not be parsed.</p>
    *
-   * Returns minor version 0 if the minor version could not be determined, e.g. devel or beta
-   * releases.
+   * <p>Returns minor version 0 if the minor version could not be determined, e.g. devel or beta
+   * releases.</p>
    *
-   * If a single major part like 90400 is passed, it's assumed to be a pre-parsed version and
-   * returned verbatim. (Anything equal to or greater than 10000 is presumed to be this form).
+   * <p>If a single major part like 90400 is passed, it's assumed to be a pre-parsed version and
+   * returned verbatim. (Anything equal to or greater than 10000 is presumed to be this form).</p>
    *
-   * The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
-   * version part is out of range.
+   * <p>The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
+   * version part is out of range.</p>
    *
    * @param serverVersion server vertion in a XXYYZZ form
    * @return server version in number form

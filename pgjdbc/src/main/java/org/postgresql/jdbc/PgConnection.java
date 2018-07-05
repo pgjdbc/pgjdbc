@@ -107,7 +107,7 @@ public class PgConnection implements BaseConnection {
   protected int prepareThreshold;
 
   /**
-   * Default fetch size for statement
+   * Default fetch size for statement.
    *
    * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
    */
@@ -356,7 +356,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * The current type mappings
+   * The current type mappings.
    */
   protected Map<String, Class<?>> typemap;
 
@@ -454,11 +454,11 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * In SQL, a result table can be retrieved through a cursor that is named. The current row of a
+   * <p>In SQL, a result table can be retrieved through a cursor that is named. The current row of a
    * result can be updated or deleted using a positioned update/delete statement that references the
-   * cursor name.
-   * <p>
-   * We do not support positioned update/delete, so this is a no-op.
+   * cursor name.</p>
+   *
+   * <p>We do not support positioned update/delete, so this is a no-op.</p>
    *
    * @param cursor the cursor name
    * @throws SQLException if a database access error occurs
@@ -480,10 +480,10 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * We are required to bring back certain information by the DatabaseMetaData class. These
-   * functions do that.
-   * <p>
-   * Method getURL() brings back the URL (good job we saved it)
+   * <p>We are required to bring back certain information by the DatabaseMetaData class. These
+   * functions do that.</p>
+   *
+   * <p>Method getURL() brings back the URL (good job we saved it)</p>
    *
    * @return the url
    * @throws SQLException just in case...
@@ -493,7 +493,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Method getUserName() brings back the User Name (again, we saved it)
+   * Method getUserName() brings back the User Name (again, we saved it).
    *
    * @return the user name
    * @throws SQLException just in case...
@@ -883,11 +883,11 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Overrides finalize(). If called, it closes the connection.
-   * <p>
-   * This was done at the request of <a href="mailto:rachel@enlarion.demon.co.uk">Rachel
+   * <p>Overrides finalize(). If called, it closes the connection.</p>
+   *
+   * <p>This was done at the request of <a href="mailto:rachel@enlarion.demon.co.uk">Rachel
    * Greenham</a> who hit a problem where multiple clients didn't close the connection, and once a
-   * fortnight enough clients were open to kill the postgres server.
+   * fortnight enough clients were open to kill the postgres server.</p>
    */
   protected void finalize() throws Throwable {
     try {
@@ -902,7 +902,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Get server version number
+   * Get server version number.
    *
    * @return server version number
    */
@@ -911,7 +911,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Get server major version
+   * Get server major version.
    *
    * @return server major version
    */
@@ -925,7 +925,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Get server minor version
+   * Get server minor version.
    *
    * @return server minor version
    */
@@ -1004,7 +1004,7 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Handler for transaction queries
+   * Handler for transaction queries.
    */
   private class TransactionCommandHandler extends ResultHandlerBase {
     public void handleCompletion() throws SQLException {

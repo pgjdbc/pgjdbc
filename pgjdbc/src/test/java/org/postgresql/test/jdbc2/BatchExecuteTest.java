@@ -589,12 +589,13 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   /**
-   * This one is reproduced in regular (non-force binary) mode
-   * As of 9.4.1208 the following tests fail:
+   * <p>This one is reproduced in regular (non-force binary) mode.</p>
+   *
+   * <p>As of 9.4.1208 the following tests fail:
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes3
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes4
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes5
-   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes6
+   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes6</p>
    * @throws SQLException in case of failure
    * @param numPreliminaryInserts number of preliminary inserts to make so the statement gets
    *                              prepared

@@ -41,7 +41,7 @@ public class WrapperTest {
   }
 
   /**
-   * This interface is private, and so cannot be supported by any wrapper
+   * This interface is private, and so cannot be supported by any wrapper.
    */
   private interface PrivateInterface {
   }

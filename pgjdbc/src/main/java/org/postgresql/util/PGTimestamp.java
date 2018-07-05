@@ -37,15 +37,15 @@ public class PGTimestamp extends Timestamp {
   }
 
   /**
-   * Constructs a <code>PGTimestamp</code> with the given time zone. The integral seconds are stored
+   * <p>Constructs a <code>PGTimestamp</code> with the given time zone. The integral seconds are stored
    * in the underlying date value; the fractional seconds are stored in the <code>nanos</code> field
-   * of the <code>Timestamp</code> object.
-   * <p>
-   * The calendar object is optional. If absent, the driver will treat the timestamp as
+   * of the <code>Timestamp</code> object.</p>
+   *
+   * <p>The calendar object is optional. If absent, the driver will treat the timestamp as
    * <code>timestamp without time zone</code>. When present, the driver will treat the timestamp as
    * a <code>timestamp with time zone</code> using the <code>TimeZone</code> in the calendar object.
    * Furthermore, this calendar will be used instead of the calendar object passed to
-   * {@link java.sql.PreparedStatement#setTimestamp(int, Timestamp, Calendar)}.
+   * {@link java.sql.PreparedStatement#setTimestamp(int, Timestamp, Calendar)}.</p>
    *
    * @param time milliseconds since January 1, 1970, 00:00:00 GMT. A negative number is the number
    *        of milliseconds before January 1, 1970, 00:00:00 GMT.

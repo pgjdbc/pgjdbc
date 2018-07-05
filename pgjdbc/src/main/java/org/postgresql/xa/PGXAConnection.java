@@ -31,12 +31,12 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
 /**
- * The PostgreSQL implementation of {@link XAResource}.
+ * <p>The PostgreSQL implementation of {@link XAResource}.</p>
  *
- * This implementation doesn't support transaction interleaving (see JTA specification, section
- * 3.4.4) and suspend/resume.
+ * <p>This implementation doesn't support transaction interleaving (see JTA specification, section
+ * 3.4.4) and suspend/resume.</p>
  *
- * Two-phase commit requires PostgreSQL server version 8.1 or higher.
+ * <p>Two-phase commit requires PostgreSQL server version 8.1 or higher.</p>
  *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  */
@@ -76,7 +76,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * XAConnection interface
+   * XAConnection interface.
    */
   @Override
   public Connection getConnection() throws SQLException {
@@ -153,14 +153,26 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Preconditions: 1. flags must be one of TMNOFLAGS, TMRESUME or TMJOIN 2. xid != null 3.
-   * connection must not be associated with a transaction 4. the TM hasn't seen the xid before
+   * <p>Preconditions:</p>
+   * <ol>
+   *     <li>Flags must be one of TMNOFLAGS, TMRESUME or TMJOIN</li>
+   *     <li>xid != null</li>
+   *     <li>Connection must not be associated with a transaction</li>
+   *     <li>The TM hasn't seen the xid before</li>
+   * </ol>
    *
-   * Implementation deficiency preconditions: 1. TMRESUME not supported. 2. if flags is TMJOIN, we
-   * must be in ended state, and xid must be the current transaction 3. unless flags is TMJOIN,
-   * previous transaction using the connection must be committed or prepared or rolled back
+   * <p>Implementation deficiency preconditions:</p>
+   * <ol>
+   *     <li>TMRESUME not supported.</li>
+   *     <li>If flags is TMJOIN, we must be in ended state, and xid must be the current transaction</li>
+   *     <li>Unless flags is TMJOIN, previous transaction using the connection must be committed or prepared or rolled
+   *     back</li>
+   * </ol>
    *
-   * Postconditions: 1. Connection is associated with the transaction
+   * <p>Postconditions:</p>
+   * <ol>
+   *     <li>Connection is associated with the transaction</li>
+   * </ol>
    */
   @Override
   public void start(Xid xid, int flags) throws XAException {
@@ -230,12 +242,22 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Preconditions: 1. Flags is one of TMSUCCESS, TMFAIL, TMSUSPEND 2. xid != null 3. Connection is
-   * associated with transaction xid
+   * <p>Preconditions:</p>
+   * <ol>
+   *     <li>Flags is one of TMSUCCESS, TMFAIL, TMSUSPEND</li>
+   *     <li>xid != null</li>
+   *     <li>Connection is associated with transaction xid</li>
+   * </ol>
    *
-   * Implementation deficiency preconditions: 1. Flags is not TMSUSPEND
+   * <p>Implementation deficiency preconditions:</p>
+   * <ol>
+   *     <li>Flags is not TMSUSPEND</li>
+   * </ol>
    *
-   * Postconditions: 1. connection is disassociated from the transaction.
+   * <p>Postconditions:</p>
+   * <ol>
+   *     <li>Connection is disassociated from the transaction.</li>
+   * </ol>
    */
   @Override
   public void end(Xid xid, int flags) throws XAException {
@@ -272,11 +294,21 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Preconditions: 1. xid != null 2. xid is in ended state
+   * <p>Prepares transaction. Preconditions:</p>
+   * <ol>
+   *     <li>xid != null</li>
+   *     <li>xid is in ended state</li>
+   * </ol>
    *
-   * Implementation deficiency preconditions: 1. xid was associated with this connection
+   * <p>Implementation deficiency preconditions:</p>
+   * <ol>
+   *     <li>xid was associated with this connection</li>
+   * </ol>
    *
-   * Postconditions: 1. Transaction is prepared
+   * <p>Postconditions:</p>
+   * <ol>
+   *     <li>Transaction is prepared</li>
+   * </ol>
    */
   @Override
   public int prepare(Xid xid) throws XAException {
@@ -330,11 +362,16 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Preconditions: 1. flag must be one of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS or TMSTARTTRSCAN |
-   * TMENDRSCAN 2. if flag isn't TMSTARTRSCAN or TMSTARTRSCAN | TMENDRSCAN, a recovery scan must be
-   * in progress
+   * <p>Recovers transaction. Preconditions:</p>
+   * <ol>
+   *     <li>flag must be one of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS or TMSTARTTRSCAN | TMENDRSCAN</li>
+   *     <li>If flag isn't TMSTARTRSCAN or TMSTARTRSCAN | TMENDRSCAN, a recovery scan must be in progress</li>
+   * </ol>
    *
-   * Postconditions: 1. list of prepared xids is returned
+   * <p>Postconditions:</p>
+   * <ol>
+   *     <li>list of prepared xids is returned</li>
+   * </ol>
    */
   @Override
   public Xid[] recover(int flag) throws XAException {
@@ -382,12 +419,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Preconditions: 1. xid is known to the RM or it's in prepared state
+   * <p>Preconditions:</p>
+   * <ol>
+   *     <li>xid is known to the RM or it's in prepared state</li>
+   * </ol>
    *
-   * Implementation deficiency preconditions: 1. xid must be associated with this connection if it's
-   * not in prepared state.
+   * <p>Implementation deficiency preconditions:</p>
+   * <ol>
+   *     <li>xid must be associated with this connection if it's not in prepared state.</li>
+   * </ol>
    *
-   * Postconditions: 1. Transaction is rolled back and disassociated from connection
+   * <p>Postconditions:</p>
+   * <ol>
+   *     <li>Transaction is rolled back and disassociated from connection</li>
+   * </ol>
    */
   @Override
   public void rollback(Xid xid) throws XAException {
@@ -454,12 +499,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Preconditions: 1. xid must in ended state.
+   * <p>Preconditions:</p>
+   * <ol>
+   *     <li>xid must in ended state.</li>
+   * </ol>
    *
-   * Implementation deficiency preconditions: 1. this connection must have been used to run the
-   * transaction
+   * <p>Implementation deficiency preconditions:</p>
+   * <ol>
+   *     <li>this connection must have been used to run the transaction</li>
+   * </ol>
    *
-   * Postconditions: 1. Transaction is committed
+   * <p>Postconditions:</p>
+   * <ol>
+   *     <li>Transaction is committed</li>
+   * </ol>
    */
   private void commitOnePhase(Xid xid) throws XAException {
     try {
@@ -497,11 +550,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Preconditions: 1. xid must be in prepared state in the server
+   * <p>Commits prepared transaction. Preconditions:</p>
+   * <ol>
+   *     <li>xid must be in prepared state in the server</li>
+   * </ol>
    *
-   * Implementation deficiency preconditions: 1. Connection must be in idle state
+   * <p>Implementation deficiency preconditions:</p>
+   * <ol>
+   *     <li>Connection must be in idle state</li>
+   * </ol>
    *
-   * Postconditions: 1. Transaction is committed
+   * <p>Postconditions:</p>
+   * <ol>
+   *     <li>Transaction is committed</li>
+   * </ol>
    */
   private void commitPrepared(Xid xid) throws XAException {
     try {
@@ -557,7 +619,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * Does nothing, since we don't do heuristics,
+   * Does nothing, since we don't do heuristics.
    */
   @Override
   public void forget(Xid xid) throws XAException {

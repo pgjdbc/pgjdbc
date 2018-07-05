@@ -73,7 +73,7 @@ public class LazyKeyManager implements X509KeyManager {
 
   /**
    * getCertificateChain and getPrivateKey cannot throw exeptions, therefore any exception is stored
-   * in {@link #error} and can be raised by this method
+   * in {@link #error} and can be raised by this method.
    *
    * @throws PSQLException if any exception is stored in {@link #error} and can be raised
    */

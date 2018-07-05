@@ -57,7 +57,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * Removes the test table using a standard connection (not from a DataSource)
+   * Removes the test table using a standard connection (not from a DataSource).
    */
   @After
   public void tearDown() throws Exception {
@@ -68,7 +68,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * Gets a connection from the current BaseDataSource
+   * Gets a connection from the current BaseDataSource.
    */
   protected Connection getDataSourceConnection() throws SQLException {
     if (bds == null) {
@@ -96,7 +96,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * Test to make sure you can instantiate and configure the appropriate DataSource
+   * Test to make sure you can instantiate and configure the appropriate DataSource.
    */
   @Test
   public void testCreateDataSource() {
@@ -118,7 +118,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * A simple test to make sure you can execute SQL using the Connection from the DataSource
+   * A simple test to make sure you can execute SQL using the Connection from the DataSource.
    */
   @Test
   public void testUseConnection() {
@@ -218,7 +218,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * Uses the mini-JNDI implementation for testing purposes
+   * Uses the mini-JNDI implementation for testing purposes.
    */
   protected InitialContext getInitialContext() {
     Hashtable<String, Object> env = new Hashtable<String, Object>();

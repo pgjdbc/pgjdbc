@@ -18,18 +18,18 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * It maps to the point datatype in org.postgresql.
+ * <p>It maps to the point datatype in org.postgresql.</p>
  *
- * This implements a version of java.awt.Point, except it uses double to represent the coordinates.
+ * <p>This implements a version of java.awt.Point, except it uses double to represent the coordinates.</p>
  */
 public class PGpoint extends PGobject implements PGBinaryObject, Serializable, Cloneable {
   /**
-   * The X coordinate of the point
+   * The X coordinate of the point.
    */
   public double x;
 
   /**
-   * The Y coordinate of the point
+   * The Y coordinate of the point.
    */
   public double y;
 
@@ -56,7 +56,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   }
 
   /**
-   * Required by the driver
+   * Required by the driver.
    */
   public PGpoint() {
     setType("point");
@@ -116,7 +116,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   }
 
   /**
-   * Populate the byte array with PGpoint in the binary syntax expected by org.postgresql
+   * Populate the byte array with PGpoint in the binary syntax expected by org.postgresql.
    */
   public void toBytes(byte[] b, int offset) {
     ByteConverter.float8(b, offset, x);
@@ -166,7 +166,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   }
 
   /**
-   * Moves the point to the supplied coordinates. refer to java.awt.Point for description of this
+   * Moves the point to the supplied coordinates. refer to java.awt.Point for description of this.
    *
    * @param x integer coordinate
    * @param y integer coordinate
@@ -177,7 +177,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   }
 
   /**
-   * Moves the point to the supplied java.awt.Point refer to java.awt.Point for description of this
+   * Moves the point to the supplied java.awt.Point refer to java.awt.Point for description of this.
    *
    * @param p Point to move to
    * @see java.awt.Point

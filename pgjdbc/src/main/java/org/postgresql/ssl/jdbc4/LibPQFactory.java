@@ -179,7 +179,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
   }
 
   /**
-   * Propagates any exception from {@link LazyKeyManager}
+   * Propagates any exception from {@link LazyKeyManager}.
    *
    * @throws PSQLException if there is an exception to propagate
    */

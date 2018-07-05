@@ -16,11 +16,11 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 
 /**
- * ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
- * converts it to a UTF-8 byte stream (InputStream) as output.
+ * <p>ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
+ * converts it to a UTF-8 byte stream (InputStream) as output.</p>
  *
- * This is the inverse of java.io.InputStreamReader which converts a
- * binary stream to a character stream.
+ * <p>This is the inverse of java.io.InputStreamReader which converts a
+ * binary stream to a character stream.</p>
  */
 public class ReaderInputStream extends InputStream {
   private static final int DEFAULT_CHAR_BUFFER_SIZE = 8 * 1024;
@@ -33,7 +33,7 @@ public class ReaderInputStream extends InputStream {
   private final CharBuffer cbuf;
 
   /**
-   * true when all of the characters have been read from the reader into inbuf
+   * true when all of the characters have been read from the reader into inbuf.
    */
   private boolean endOfInput;
   private final byte[] oneByte = new byte[1];

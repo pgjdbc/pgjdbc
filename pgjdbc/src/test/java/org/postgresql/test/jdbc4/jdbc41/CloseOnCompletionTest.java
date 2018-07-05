@@ -35,7 +35,7 @@ public class CloseOnCompletionTest {
   }
 
   /**
-   * Test that the statement is not automatically closed if we do not ask for it
+   * Test that the statement is not automatically closed if we do not ask for it.
    */
   @Test
   public void testWithoutCloseOnCompletion() throws SQLException {
@@ -47,7 +47,7 @@ public class CloseOnCompletionTest {
   }
 
   /**
-   * Test the behavior of closeOnCompletion with a single result set
+   * Test the behavior of closeOnCompletion with a single result set.
    */
   @Test
   public void testSingleResultSet() throws SQLException {
@@ -60,7 +60,7 @@ public class CloseOnCompletionTest {
   }
 
   /**
-   * Test the behavior of closeOnCompletion with a multiple result sets
+   * Test the behavior of closeOnCompletion with a multiple result sets.
    */
   @Test
   public void testMultipleResultSet() throws SQLException {
@@ -79,7 +79,7 @@ public class CloseOnCompletionTest {
 
   /**
    * Test that when execution does not produce any result sets, closeOnCompletion has no effect
-   * (spec)
+   * (spec).
    */
   @Test
   public void testNoResultSet() throws SQLException {

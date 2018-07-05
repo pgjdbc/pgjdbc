@@ -17,15 +17,15 @@ interface NTDSAPI extends StdCallLibrary {
   NTDSAPI instance = (NTDSAPI) Native.loadLibrary("NTDSAPI", NTDSAPI.class);
 
   /**
-   * Wrap DsMakeSpn
+   * <p>Wrap DsMakeSpn</p>
    *
-   * To get the String result, call
+   * <p>To get the String result, call
    *
    * <pre>
    * new String(buf, 0, spnLength)
    * </pre>
    *
-   * on the byte[] buffer passed to 'spn' after testing to ensure ERROR_SUCCESS.
+   * on the byte[] buffer passed to 'spn' after testing to ensure ERROR_SUCCESS.</p>
    *
    * @param serviceClass SPN service class (in)
    * @param serviceName SPN service name (in)

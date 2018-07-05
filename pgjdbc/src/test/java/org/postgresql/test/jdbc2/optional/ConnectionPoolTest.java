@@ -44,7 +44,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   private ArrayList<PooledConnection> connections = new ArrayList<PooledConnection>();
 
   /**
-   * Creates and configures a ConnectionPool
+   * Creates and configures a ConnectionPool.
    */
   @Override
   protected void initializeDataSource() {

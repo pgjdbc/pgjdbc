@@ -101,7 +101,7 @@ public class PgStatement implements Statement, BaseStatement {
   protected volatile PSQLWarningWrapper warnings = null;
 
   /**
-   * Maximum number of rows to return, 0 = unlimited
+   * Maximum number of rows to return, 0 = unlimited.
    */
   protected int maxrows = 0;
 
@@ -111,7 +111,7 @@ public class PgStatement implements Statement, BaseStatement {
   protected int fetchSize = 0;
 
   /**
-   * Timeout (in milliseconds) for a query
+   * Timeout (in milliseconds) for a query.
    */
   protected long timeout = 0;
 
@@ -342,7 +342,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * Returns true if query is unlikely to be reused
+   * Returns true if query is unlikely to be reused.
    *
    * @param cachedQuery to check (null if current query)
    * @return true if query is unlikely to be reused
@@ -543,7 +543,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * Sets the queryTimeout limit
+   * Sets the queryTimeout limit.
    *
    * @param millis - the new query timeout limit in milliseconds
    * @throws SQLException if a database access error occurs
@@ -559,11 +559,11 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * Either initializes new warning wrapper, or adds warning onto the chain.
+   * <p>Either initializes new warning wrapper, or adds warning onto the chain.</p>
    *
-   * Although warnings are expected to be added sequentially, the warnings chain may be cleared
+   * <p>Although warnings are expected to be added sequentially, the warnings chain may be cleared
    * concurrently at any time via {@link #clearWarnings()}, therefore it is possible that a warning
-   * added via this method is placed onto the end of the previous warning chain
+   * added via this method is placed onto the end of the previous warning chain</p>
    *
    * @param warn warning to add
    */
@@ -599,11 +599,11 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * Clears the warning chain.<p>
-   * Note that while it is safe to clear warnings while the query is executing, warnings that are
+   * <p>Clears the warning chain.</p>
+   * <p>Note that while it is safe to clear warnings while the query is executing, warnings that are
    * added between calls to {@link #getWarnings()} and #clearWarnings() may be missed.
    * Therefore you should hold a reference to the tail of the previous warning chain
-   * and verify if its {@link SQLWarning#getNextWarning()} value is holds any new value.
+   * and verify if its {@link SQLWarning#getNextWarning()} value is holds any new value.</p>
    */
   public void clearWarnings() throws SQLException {
     warnings = null;

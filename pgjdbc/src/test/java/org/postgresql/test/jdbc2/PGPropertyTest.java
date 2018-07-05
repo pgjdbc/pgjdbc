@@ -55,7 +55,7 @@ public class PGPropertyTest {
   }
 
   /**
-   * Test that we can get and set all default values and all choices (if any)
+   * Test that we can get and set all default values and all choices (if any).
    */
   @Test
   public void testGetSetAllProperties() {
@@ -77,7 +77,7 @@ public class PGPropertyTest {
   }
 
   /**
-   * Test that the enum constant is common with the underlying property name
+   * Test that the enum constant is common with the underlying property name.
    */
   @Test
   public void testEnumConstantNaming() {
@@ -108,7 +108,7 @@ public class PGPropertyTest {
   }
 
   /**
-   * Test if the datasource has getter and setter for all properties
+   * Test if the datasource has getter and setter for all properties.
    */
   @Test
   public void testDataSourceProperties() throws Exception {
@@ -151,7 +151,7 @@ public class PGPropertyTest {
   }
 
   /**
-   * Test that {@link PGProperty#isPresent(Properties)} returns a correct result in all cases
+   * Test that {@link PGProperty#isPresent(Properties)} returns a correct result in all cases.
    */
   @Test
   public void testIsPresentWithParseURLResult() throws Exception {

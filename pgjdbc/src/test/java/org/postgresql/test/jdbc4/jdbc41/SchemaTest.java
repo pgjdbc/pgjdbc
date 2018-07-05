@@ -70,7 +70,7 @@ public class SchemaTest {
   }
 
   /**
-   * Test that what you set is what you get
+   * Test that what you set is what you get.
    */
   @Test
   public void testGetSetSchema() throws SQLException {
@@ -138,7 +138,7 @@ public class SchemaTest {
   }
 
   /**
-   * Test that get schema returns the schema with the highest priority in the search path
+   * Test that get schema returns the schema with the highest priority in the search path.
    */
   @Test
   public void testMultipleSearchPath() throws SQLException {

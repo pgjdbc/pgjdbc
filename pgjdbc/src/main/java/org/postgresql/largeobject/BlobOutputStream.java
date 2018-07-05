@@ -10,31 +10,31 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
- * This implements a basic output stream that writes to a LargeObject
+ * This implements a basic output stream that writes to a LargeObject.
  */
 public class BlobOutputStream extends OutputStream {
   /**
-   * The parent LargeObject
+   * The parent LargeObject.
    */
   private LargeObject lo;
 
   /**
-   * Buffer
+   * Buffer.
    */
   private byte[] buf;
 
   /**
-   * Size of the buffer (default 1K)
+   * Size of the buffer (default 1K).
    */
   private int bsize;
 
   /**
-   * Position within the buffer
+   * Position within the buffer.
    */
   private int bpos;
 
   /**
-   * Create an OutputStream to a large object
+   * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
    */
@@ -43,7 +43,7 @@ public class BlobOutputStream extends OutputStream {
   }
 
   /**
-   * Create an OutputStream to a large object
+   * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
    * @param bsize The size of the buffer used to improve performance

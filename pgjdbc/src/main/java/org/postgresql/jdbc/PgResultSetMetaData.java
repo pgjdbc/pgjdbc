@@ -31,6 +31,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   /**
    * Initialise for a result with a tuple set and a field descriptor set
    *
+   * @param connection the connection to retrieve metadata
    * @param fields the array of field descriptors
    */
   public PgResultSetMetaData(BaseConnection connection, Field[] fields) {

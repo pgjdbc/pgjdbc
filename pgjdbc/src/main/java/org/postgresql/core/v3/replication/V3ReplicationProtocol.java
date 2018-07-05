@@ -66,7 +66,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
   }
 
   /**
-   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX
+   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX.
    */
   private String createStartPhysicalQuery(PhysicalReplicationOptions options) {
     StringBuilder builder = new StringBuilder();

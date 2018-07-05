@@ -80,6 +80,7 @@ public final class EscapedFunctions2 {
   /**
    * ceiling to ceil translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -90,6 +91,7 @@ public final class EscapedFunctions2 {
   /**
    * log to ln translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -100,6 +102,7 @@ public final class EscapedFunctions2 {
   /**
    * log10 to log translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -110,6 +113,7 @@ public final class EscapedFunctions2 {
   /**
    * power to pow translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -120,6 +124,7 @@ public final class EscapedFunctions2 {
   /**
    * truncate to trunc translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -132,6 +137,7 @@ public final class EscapedFunctions2 {
   /**
    * char to chr translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -142,6 +148,7 @@ public final class EscapedFunctions2 {
   /**
    * concat translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    */
   public static void sqlconcat(StringBuilder buf, List<? extends CharSequence> parsedArgs) {
@@ -151,6 +158,7 @@ public final class EscapedFunctions2 {
   /**
    * insert to overlay translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -168,6 +176,7 @@ public final class EscapedFunctions2 {
   /**
    * lcase to lower translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -178,6 +187,7 @@ public final class EscapedFunctions2 {
   /**
    * left to substring translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -192,6 +202,7 @@ public final class EscapedFunctions2 {
   /**
    * length translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -206,6 +217,7 @@ public final class EscapedFunctions2 {
   /**
    * locate translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -231,6 +243,7 @@ public final class EscapedFunctions2 {
   /**
    * ltrim translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -241,6 +254,7 @@ public final class EscapedFunctions2 {
   /**
    * right to substring translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -261,6 +275,7 @@ public final class EscapedFunctions2 {
   /**
    * rtrim translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -271,6 +286,7 @@ public final class EscapedFunctions2 {
   /**
    * space translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -281,6 +297,7 @@ public final class EscapedFunctions2 {
   /**
    * substring to substr translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -296,6 +313,7 @@ public final class EscapedFunctions2 {
   /**
    * ucase to upper translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -306,6 +324,7 @@ public final class EscapedFunctions2 {
   /**
    * curdate to current_date translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -316,6 +335,7 @@ public final class EscapedFunctions2 {
   /**
    * curtime to current_time translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -326,6 +346,7 @@ public final class EscapedFunctions2 {
   /**
    * dayname translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -340,6 +361,7 @@ public final class EscapedFunctions2 {
   /**
    * dayofmonth translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -350,6 +372,7 @@ public final class EscapedFunctions2 {
   /**
    * dayofweek translation adding 1 to postgresql function since we expect values from 1 to 7
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -364,6 +387,7 @@ public final class EscapedFunctions2 {
   /**
    * dayofyear translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -374,6 +398,7 @@ public final class EscapedFunctions2 {
   /**
    * hour translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -384,6 +409,7 @@ public final class EscapedFunctions2 {
   /**
    * minute translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -394,6 +420,7 @@ public final class EscapedFunctions2 {
   /**
    * month translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -404,6 +431,7 @@ public final class EscapedFunctions2 {
   /**
    * monthname translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -418,6 +446,7 @@ public final class EscapedFunctions2 {
   /**
    * quarter translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -428,6 +457,7 @@ public final class EscapedFunctions2 {
   /**
    * second translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -438,6 +468,7 @@ public final class EscapedFunctions2 {
   /**
    * week translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -448,6 +479,7 @@ public final class EscapedFunctions2 {
   /**
    * year translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -458,6 +490,7 @@ public final class EscapedFunctions2 {
   /**
    * time stamp add
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -528,6 +561,7 @@ public final class EscapedFunctions2 {
   /**
    * time stamp diff
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -575,6 +609,7 @@ public final class EscapedFunctions2 {
   /**
    * database translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -585,6 +620,7 @@ public final class EscapedFunctions2 {
   /**
    * ifnull translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */
@@ -595,6 +631,7 @@ public final class EscapedFunctions2 {
   /**
    * user translation
    *
+   * @param buf The buffer to append into
    * @param parsedArgs arguments
    * @throws SQLException if something wrong happens
    */

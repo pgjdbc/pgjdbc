@@ -38,7 +38,7 @@ public class SocketFactoryTestSuite {
   }
 
   /**
-   * Test custom socket factory
+   * Test custom socket factory.
    */
   @Test
   public void testDatabaseMetaData() throws Exception {

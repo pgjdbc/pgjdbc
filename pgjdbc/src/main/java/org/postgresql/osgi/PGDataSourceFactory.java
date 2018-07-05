@@ -32,7 +32,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
 
   /**
    * A class that removes properties as they are used (without modifying the supplied initial
-   * Properties)
+   * Properties).
    */
   private static class SingleUseProperties extends Properties {
     private static final long serialVersionUID = 1L;
@@ -109,7 +109,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
   /**
    * Will create and return either a {@link SimpleDataSource} or a {@link PoolingDataSource}
    * depending on the presence in the supplied properties of any pool-related property (eg.: {@code
-   * JDBC_INITIAL_POOL_SIZE} or {@code JDBC_MAX_POOL_SIZE})
+   * JDBC_INITIAL_POOL_SIZE} or {@code JDBC_MAX_POOL_SIZE}).
    */
   public DataSource createDataSource(Properties props) throws SQLException {
     props = new SingleUseProperties(props);
