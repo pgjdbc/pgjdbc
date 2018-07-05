@@ -15,7 +15,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class CachedQuery implements CanEstimateSize {
   /**
-   * Cache key. {@link String} or {@code org.postgresql.util.CanEstimateSize}.
+   * Cache key. {@link String} or {@code org.postgresql.jdbc.CallableQueryKey}. It is assumed that
+   * {@code String.valueOf(key)*2} would give reasonable estimate of the number of retained bytes by
+   * given key (see {@link #getSize}).
    */
   public final Object key;
   public final Query query;

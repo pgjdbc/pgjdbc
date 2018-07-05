@@ -226,7 +226,7 @@ public class Parser {
    * Utility method used by tests to clear the cache.
    */
   static void clearCache() {
-    for(Iterator<ReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
+    for (Iterator<ReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
       final ReferenceWithKey ref = refIter.next();
       //remove from the map
       refIter.remove();

@@ -52,7 +52,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     boolean isParameterized = key instanceof String || queryKey.isParameterized;
     boolean splitStatements = isParameterized || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
 
-    String[] returningColumns;
+    final String[] returningColumns;
     if (key instanceof QueryWithReturningColumnsKey) {
       returningColumns = ((QueryWithReturningColumnsKey) key).columnNames;
     } else {
