@@ -333,7 +333,7 @@ public class LogicalReplicationTest {
    * wait new changes and until waiting messages from client ignores.
    */
   @Test(timeout = 10000)
-  @HaveMinimalServerVersion("11.1")
+  @HaveMinimalServerVersion("12.1")
   public void testDuringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
