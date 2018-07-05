@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+
+### Added
+
+### Fixed
+
+## [42.2.3] (2018-07-11)
+### Changed
 - Reduce the severity of the erorr log messages when an exception is re-thrown. The error will be 
 thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc  [PR 1187](https://github.com/pgjdbc/pgjdbc/pull/1187)
 - Deprecate Fastpath API [PR 903](https://github.com/pgjdbc/pgjdbc/pull/903)
@@ -151,4 +158,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.4...REL42.2.0
 [42.2.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...REL42.2.1
 [42.2.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...REL42.2.2
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...HEAD
+[42.2.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...REL42.2.3
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...HEAD
