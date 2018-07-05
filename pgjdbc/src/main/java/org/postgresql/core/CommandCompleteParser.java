@@ -68,7 +68,7 @@ public final class CommandCompleteParser {
     } catch (NumberFormatException e) {
       // This should only occur if the oid or rows are out of 0..Long.MAX_VALUE range
       throw new PSQLException(
-          GT.tr("Unable to parse the rows in command completion tag: {0}.", status),
+          GT.tr("Unable to parse the count in command completion tag: {0}.", status),
           PSQLState.CONNECTION_FAILURE, e);
     }
     set(oid, rows);
