@@ -22,6 +22,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -38,6 +41,8 @@ public class Parser {
    * Key for parsed queries.
    */
   private static final class QueryKey {
+
+    private static final String[] EMPTY_STRINGS = new String[] {};
 
     private final String query;
     private final boolean standardConformingStrings;
@@ -66,9 +71,7 @@ public class Parser {
       this.withParameters = withParameters;
       this.splitStatements = splitStatements;
       this.isBatchedReWriteConfigured = isBatchedReWriteConfigured;
-
-      //make defensive copy for query key
-      this.returningColumnNames = returningColumnNames.length == 0 ? returningColumnNames : returningColumnNames.clone();
+      this.returningColumnNames = returningColumnNames == null || returningColumnNames.length == 0 ? EMPTY_STRINGS : returningColumnNames;
 
       final int prime = 31;
       int result = 1;
@@ -102,25 +105,13 @@ public class Parser {
         return false;
       }
       final QueryKey other = (QueryKey) obj;
-      if (!this.query.equals(other.query)) {
-        return false;
-      }
-      if (!Arrays.equals(this.returningColumnNames, other.returningColumnNames)) {
-        return false;
-      }
-      if (this.splitStatements != other.splitStatements) {
-        return false;
-      }
-      if (this.standardConformingStrings != other.standardConformingStrings) {
-        return false;
-      }
-      if (this.withParameters != other.withParameters) {
-        return false;
-      }
-      if (this.isBatchedReWriteConfigured != other.isBatchedReWriteConfigured) {
-        return false;
-      }
-      return true;
+
+      return this.query.equals(other.query)
+          && Arrays.equals(this.returningColumnNames, other.returningColumnNames)
+          && this.splitStatements == other.splitStatements
+          && this.standardConformingStrings == other.standardConformingStrings
+          && this.withParameters == other.withParameters
+          && this.isBatchedReWriteConfigured == other.isBatchedReWriteConfigured;
     }
   }
 
@@ -186,13 +177,48 @@ public class Parser {
    * maintains a reference to at least one {@code NativeQuery} instance, the entry will remain in the
    * cache.
    */
-  private static final ConcurrentHashMap<QueryKey, ReferenceWithKey> PARSED_CACHE
+  static final ConcurrentHashMap<QueryKey, ReferenceWithKey> PARSED_CACHE
        = new ConcurrentHashMap<QueryKey, ReferenceWithKey>();
 
   /**
    * {@link ReferenceQueue} for expired {@link ReferenceWithKey} instances to facilitate removal from {@link #PARSED_CACHE}.
    */
-  private static final ReferenceQueue<QueriesAndCounter> REFERENCE_QUEUE = new ReferenceQueue<QueriesAndCounter>();
+  static final ReferenceQueue<QueriesAndCounter> REFERENCE_QUEUE = new ReferenceQueue<QueriesAndCounter>();
+
+  private static final ThreadFactory DAEMON_THREAD_FACTORY = new ThreadFactory() {
+    private final AtomicInteger count = new AtomicInteger();
+    private final String prefix = Parser.class.getName() + "-thread-";
+    @Override
+    public Thread newThread(Runnable r) {
+      final Thread t = new Thread(r, prefix + count.incrementAndGet());
+      t.setDaemon(true);
+      if (t.getPriority() != Thread.NORM_PRIORITY) {
+          t.setPriority(Thread.NORM_PRIORITY);
+      }
+      return t;
+    }
+  };
+
+  static final AtomicBoolean CLEAR_THREAD_SCHEDULED = new AtomicBoolean(false);
+
+  private static final Runnable CLEAR_EMPTY_REFS_FOR_AT_LEAST_60 = new Runnable() {
+    @Override
+    public void run() {
+      try {
+        Reference<? extends QueriesAndCounter> goneRef;
+        do {
+          while ((goneRef = REFERENCE_QUEUE.remove(60000)) != null) {
+            assert goneRef instanceof ReferenceWithKey;
+            PARSED_CACHE.remove(((ReferenceWithKey)goneRef).queryKey, goneRef);
+          }
+        } while (!PARSED_CACHE.isEmpty());
+      } catch (InterruptedException e) {
+        // this is our queue to hit the exits
+      } finally {
+        CLEAR_THREAD_SCHEDULED.set(false);
+      }
+    }
+  };
 
   private static final int[] NO_BINDS = new int[0];
 
@@ -278,7 +304,7 @@ public class Parser {
       PARSED_CACHE.remove(queryKey, ref);
     }
 
-    //before we add another reference, find and clear out any references which have been released
+    // make sure background cleaning is scheduled
     clearEmtpyRefs();
 
     final List<NativeQuery> parsedQueries = _parseJdbcSql(query, standardConformingStrings,
@@ -314,7 +340,6 @@ public class Parser {
     //enqueue the created ref and clear de-referenced items
     if (ref.enqueue()) {
       ref = null;
-      clearEmtpyRefs();
     }
     //if the strong reference was good, then return it
     if (concurrentQueryAndCounter != null) {
@@ -334,10 +359,9 @@ public class Parser {
    * {@link ReferenceQueue#poll() Polls} {@link #REFERENCE_QUEUE} and removes any entries found from {@link #PARSED_CACHE}.
    */
   private static void clearEmtpyRefs() {
-    Reference<? extends QueriesAndCounter> goneRef;
-    while ((goneRef = REFERENCE_QUEUE.poll()) != null) {
-      assert goneRef instanceof ReferenceWithKey;
-      PARSED_CACHE.remove(((ReferenceWithKey)goneRef).queryKey, goneRef);
+    // scheduled daemon thread to poll and clear references
+    if (CLEAR_THREAD_SCHEDULED.compareAndSet(false, true)) {
+      DAEMON_THREAD_FACTORY.newThread(CLEAR_EMPTY_REFS_FOR_AT_LEAST_60).start();
     }
   }
 
