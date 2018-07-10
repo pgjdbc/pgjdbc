@@ -10,6 +10,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
+import org.postgresql.core.CommandCompleteParser;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
@@ -63,9 +64,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 
 /**
  * QueryExecutor implementation for the V3 protocol.
@@ -73,7 +71,6 @@ import java.util.regex.Pattern;
 public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
-  private static final Pattern COMMAND_COMPLETE_PATTERN = Pattern.compile("^([A-Za-z]++)(?: (\\d++))?+(?: (\\d++))?+$");
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -121,6 +118,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private SQLException transactionFailCause;
 
   private final ReplicationProtocol replicationProtocol;
+
+  /**
+   * {@code CommandComplete(B)} messages are quite common, so we reuse instance to parse those
+   */
+  private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
 
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info) throws SQLException, IOException {
@@ -2469,31 +2471,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void interpretCommandStatus(String status, ResultHandler handler) {
-    long oid = 0;
-    long count = 0;
-    Matcher matcher = COMMAND_COMPLETE_PATTERN.matcher(status);
-    if (matcher.matches()) {
-      // String command = matcher.group(1);
-      String group2 = matcher.group(2);
-      String group3 = matcher.group(3);
-      try {
-        if (group3 != null) {
-          // COMMAND OID ROWS
-          oid = Long.parseLong(group2);
-          count = Long.parseLong(group3);
-        } else if (group2 != null) {
-          // COMMAND ROWS
-          count = Long.parseLong(group2);
-        }
-      } catch (NumberFormatException e) {
-        // As we're performing a regex validation prior to parsing, this should only
-        // occurr if the oid or count are out of range.
-        handler.handleError(new PSQLException(
-            GT.tr("Unable to parse the count in command completion tag: {0}.", status),
-            PSQLState.CONNECTION_FAILURE));
-        return;
-      }
+    try {
+      commandCompleteParser.parse(status);
+    } catch (SQLException e) {
+      handler.handleError(e);
+      return;
     }
+    long oid = commandCompleteParser.getOid();
+    long count = commandCompleteParser.getRows();
+
     int countAsInt = 0;
     if (count > Integer.MAX_VALUE) {
       // If command status indicates that we've modified more than Integer.MAX_VALUE rows
