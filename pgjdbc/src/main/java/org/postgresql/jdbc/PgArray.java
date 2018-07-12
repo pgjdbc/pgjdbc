@@ -562,7 +562,7 @@ public class PgArray implements java.sql.Array {
     final int type =
         connection.getTypeInfo().getSQLType(connection.getTypeInfo().getPGArrayElement(oid));
 
-    if (type == Types.BIT) {
+    if (type == Types.BOOLEAN) {
       boolean[] pa = null; // primitive array
       Object[] oa = null; // objects array
 

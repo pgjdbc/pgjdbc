@@ -173,6 +173,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       throws SQLException {
     checkClosed();
     switch (sqlType) {
+      case Types.BIT:
+        // BIT is equivalent to BOOLEAN
+        sqlType = Types.BOOLEAN;
+        break;
       case Types.TINYINT:
         // we don't have a TINYINT type use SMALLINT
         sqlType = Types.SMALLINT;
@@ -256,7 +260,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   public boolean getBoolean(int parameterIndex) throws SQLException {
     checkClosed();
-    checkIndex(parameterIndex, Types.BIT, "Boolean");
+    checkIndex(parameterIndex, Types.BOOLEAN, "Boolean");
     if (callResult[parameterIndex - 1] == null) {
       return false;
     }
@@ -918,15 +922,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
-    // if this isn't 8.1 or we are using protocol version 2 then we don't
-    // register the parameter
-    switch (sqlType) {
-      case Types.BOOLEAN:
-        sqlType = Types.BIT;
-        break;
-      default:
-
-    }
     registerOutParameter(parameterIndex, sqlType, !adjustIndex);
   }
 

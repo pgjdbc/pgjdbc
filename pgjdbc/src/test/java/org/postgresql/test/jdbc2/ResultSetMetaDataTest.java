@@ -342,4 +342,22 @@ public class ResultSetMetaDataTest extends BaseTest4 {
         preferQueryMode.compareTo(PreferQueryMode.EXTENDED_FOR_PREPARED) >= 0);
   }
 
+  @Test
+  public void testBooleanTypeInfo() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select TRUE, FALSE");
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    assertEquals(2, rsmd.getColumnCount());
+    assertEquals("java.lang.Boolean", rsmd.getColumnClassName(1));
+    assertEquals("java.lang.Boolean", rsmd.getColumnClassName(2));
+    assertEquals("bool", rsmd.getColumnTypeName(1));
+    assertEquals("bool", rsmd.getColumnTypeName(2));
+    assertEquals(java.sql.Types.BOOLEAN, rsmd.getColumnType(1));
+    assertEquals(java.sql.Types.BOOLEAN, rsmd.getColumnType(2));
+
+    rs.close();
+    stmt.close();
+  }
+
 }
