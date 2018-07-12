@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-core-parent</artifactId>
-    <version>1.1.4</version>
+    <version>1.1.5</version>
     <relativePath />
   </parent>
 
@@ -313,6 +313,13 @@
             <failsOnError>true</failsOnError>
             <consoleOutput>true</consoleOutput>
             <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <configuration>
+            <failOnWarnings>true</failOnWarnings>
           </configuration>
         </plugin>
       </plugins>
