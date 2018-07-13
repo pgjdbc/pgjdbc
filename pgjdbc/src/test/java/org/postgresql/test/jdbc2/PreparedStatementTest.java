@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -293,9 +294,9 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setNull(3, Types.OTHER, "uuid");
     ResultSet rs = pstmt.executeQuery();
 
-    while (rs.next()) {
-      assertEquals("ok",rs.getObject(1));
-    }
+    assertTrue(rs.next());
+    assertEquals("ok",rs.getObject(1));
+
     rs.close();
     pstmt.close();
 
