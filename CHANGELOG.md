@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-
+- PreparedStatement.setNull(int parameterIndex, int t, String typeName) no longer ignores the typeName
+argument if it is not null [PR 1160]. 
 ### Added
 
 ### Fixed
