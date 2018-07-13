@@ -13,7 +13,6 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
