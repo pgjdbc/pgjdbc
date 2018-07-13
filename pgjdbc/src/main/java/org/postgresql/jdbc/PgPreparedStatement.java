@@ -1234,7 +1234,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setNull(int parameterIndex, int t, String typeName) throws SQLException {
 
-    if ( typeName == null ) {
+    if (typeName == null) {
       setNull(parameterIndex, t);
       return;
     }
