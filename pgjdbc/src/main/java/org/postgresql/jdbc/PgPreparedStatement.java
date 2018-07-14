@@ -1232,9 +1232,25 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setLong(i, oid);
   }
 
-  public void setNull(int i, int t, String s) throws SQLException {
+  public void setNull(int parameterIndex, int t, String typeName) throws SQLException {
+
+    if (typeName == null) {
+      setNull(parameterIndex, t);
+      return;
+    }
+
     checkClosed();
-    setNull(i, t);
+
+    TypeInfo typeInfo = connection.getTypeInfo();
+
+    int oid = typeInfo.getPGType(typeName);
+
+    if (adjustIndex) {
+      parameterIndex--;
+    }
+
+    preparedParameters.setNull(parameterIndex, oid);
+
   }
 
   public void setRef(int i, Ref x) throws SQLException {
