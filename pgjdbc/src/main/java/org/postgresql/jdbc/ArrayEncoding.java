@@ -357,7 +357,9 @@ final class ArrayEncoding {
     /**
      * {@inheritDoc}
      *
+     * <p>
      * Always returns {@code 0}.
+     * </p>
      */
     @Override
     final int countNulls(A array) {
