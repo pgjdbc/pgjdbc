@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+
+### Added
+
+### Fixed
+
+## [42.2.4] (2018-07-14)
+### Changed
 - PreparedStatement.setNull(int parameterIndex, int t, String typeName) no longer ignores the typeName
 argument if it is not null [PR 1160](https://github.com/pgjdbc/pgjdbc/pull/1160)
 
@@ -163,4 +170,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...REL42.2.1
 [42.2.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...REL42.2.2
 [42.2.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...REL42.2.3
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...HEAD
+[42.2.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...REL42.2.4
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.4...HEAD
