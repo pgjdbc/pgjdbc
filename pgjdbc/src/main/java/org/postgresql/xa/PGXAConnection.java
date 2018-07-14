@@ -586,7 +586,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
   private int mapSQLStateToXAErrorCode(SQLException sqlException) {
     if (isPostgreSQLIntegrityConstraintViolation(sqlException)) {
-      return XAException.XA_RBROLLBACK;
+      return XAException.XA_RBINTEGRITY;
     }
 
     return XAException.XAER_RMFAIL;
@@ -595,7 +595,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
     return sqlException instanceof PSQLException
         && sqlException.getSQLState().length() == 5
-        && sqlException.getSQLState().substring(0, 2).equals("23");
+        && sqlException.getSQLState().startsWith("23"); // Class 23 - Integrity Constraint Violation
   }
 
   private enum State {
