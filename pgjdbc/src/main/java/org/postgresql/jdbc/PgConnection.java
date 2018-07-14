@@ -761,7 +761,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public boolean isTransactionReadOnly() {
+  public boolean hintReadOnly() {
     return readOnly && readOnlyBehavior != ReadOnlyBehavior.IGNORE;
   }
 

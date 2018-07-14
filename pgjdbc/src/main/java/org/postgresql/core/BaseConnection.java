@@ -205,10 +205,11 @@ public interface BaseConnection extends PGConnection, Connection {
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
 
   /**
-   * Indicates if transactions for this connection will be read only.
+   * Indicates if statements to backend should be hinted as read only.
    *
-   * @return Indication if new transaction should be read only.
+   * @return Indication if hints to backend (such as when transaction begins)
+   *         should be read only.
    * @see PGProperty#READ_ONLY_MODE
    */
-  boolean isTransactionReadOnly();
+  boolean hintReadOnly();
 }

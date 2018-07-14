@@ -404,7 +404,8 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    } else if (connection.isTransactionReadOnly()) {
+    }
+    if (connection.hintReadOnly()) {
       flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
     }
 
@@ -807,7 +808,8 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    } else if (connection.isTransactionReadOnly()) {
+    }
+    if (connection.hintReadOnly()) {
       flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
     }
 
