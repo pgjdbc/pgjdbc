@@ -81,7 +81,7 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
-  private static enum ReadOnlyBehavior {
+  private enum ReadOnlyBehavior {
     IGNORE,
     TRANSACTION,
     ALWAYS;
