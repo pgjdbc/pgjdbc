@@ -71,13 +71,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
-  /**
-   * Used to differentiate between new function call logic and old function call logic. Will be set
-   * to true if the server is &lt; 8.1 or if we are using v2 protocol. There is an exception to this
-   * where we are using v3, and the call does not have an out parameter before the call.
-   */
-  protected boolean adjustIndex = false;
-
   private TimeZone defaultTimeZone;
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
@@ -243,9 +236,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         // Bad Types value.
         throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
     }
-    if (adjustIndex) {
-      parameterIndex--;
-    }
     preparedParameters.setNull(parameterIndex, oid);
   }
 
@@ -331,9 +321,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // if the passed string is null, then set this column to null
     checkClosed();
     if (x == null) {
-      if (adjustIndex) {
-        parameterIndex--;
-      }
       preparedParameters.setNull(parameterIndex, oid);
     } else {
       bindString(parameterIndex, x, oid);
@@ -989,16 +976,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * @throws SQLException if something goes wrong
    */
   protected void bindLiteral(int paramIndex, String s, int oid) throws SQLException {
-    if (adjustIndex) {
-      paramIndex--;
-    }
     preparedParameters.setLiteralParameter(paramIndex, s, oid);
   }
 
   protected void bindBytes(int paramIndex, byte[] b, int oid) throws SQLException {
-    if (adjustIndex) {
-      paramIndex--;
-    }
     preparedParameters.setBinaryParameter(paramIndex, b, oid);
   }
 
@@ -1012,9 +993,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * @throws SQLException if something goes wrong
    */
   private void bindString(int paramIndex, String s, int oid) throws SQLException {
-    if (adjustIndex) {
-      paramIndex--;
-    }
     preparedParameters.setStringParameter(paramIndex, s, oid);
   }
 
@@ -1233,7 +1211,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setNull(int parameterIndex, int t, String typeName) throws SQLException {
-
     if (typeName == null) {
       setNull(parameterIndex, t);
       return;
@@ -1242,15 +1219,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
 
     TypeInfo typeInfo = connection.getTypeInfo();
-
     int oid = typeInfo.getPGType(typeName);
 
-    if (adjustIndex) {
-      parameterIndex--;
-    }
-
     preparedParameters.setNull(parameterIndex, oid);
-
   }
 
   public void setRef(int i, Ref x) throws SQLException {
