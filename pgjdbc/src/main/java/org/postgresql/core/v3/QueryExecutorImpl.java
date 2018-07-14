@@ -516,7 +516,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     beginFlags = updateQueryMode(beginFlags);
 
-    sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+    final SimpleQuery beginQuery = ((flags & QueryExecutor.QUERY_BEGIN_READ_ONLY) == 0) ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+
+    sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
     // Insert a handler that intercepts the BEGIN.
     return new ResultHandlerDelegate(delegateHandler) {
@@ -2729,6 +2731,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final SimpleQuery beginTransactionQuery =
       new SimpleQuery(
           new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  private final SimpleQuery beginReadOnlyTransactionQuery =
+      new SimpleQuery(
+          new NativeQuery("BEGIN READ ONLY", new int[0], false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery EMPTY_QUERY =

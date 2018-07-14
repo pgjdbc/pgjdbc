@@ -99,6 +99,10 @@ public class PgConnection implements BaseConnection {
   /* Query that runs ROLLBACK */
   private final Query rollbackQuery;
 
+  private final CachedQuery setSessionReadOnly;
+
+  private final CachedQuery setSessionNotReadOnly;
+
   private final TypeInfo _typeCache;
 
   private boolean disableColumnSanitiser = false;
@@ -198,6 +202,9 @@ public class PgConnection implements BaseConnection {
     if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v8_2)) {
       LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
     }
+
+    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, true);
+    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, true);
 
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
@@ -438,6 +445,24 @@ public class PgConnection implements BaseConnection {
   public void execSQLUpdate(String s) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
     if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      throw new PSQLException(GT.tr("A result was returned when none was expected."),
+          PSQLState.TOO_MANY_RESULTS);
+    }
+
+    // Transfer warnings to the connection, since the user never
+    // has a chance to see the statement itself.
+    SQLWarning warnings = stmt.getWarnings();
+    if (warnings != null) {
+      addWarning(warnings);
+    }
+
+    stmt.close();
+  }
+
+  void execSQLUpdate(CachedQuery query) throws SQLException {
+    BaseStatement stmt = (BaseStatement) createStatement();
+    if (stmt.executeWithFlags(query, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
         | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("A result was returned when none was expected."),
           PSQLState.TOO_MANY_RESULTS);
@@ -696,7 +721,6 @@ public class PgConnection implements BaseConnection {
     firstWarning = null;
   }
 
-
   @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
@@ -707,9 +731,11 @@ public class PgConnection implements BaseConnection {
     }
 
     if (readOnly != this.readOnly) {
-      String readOnlySql
-             = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
-      execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
+      //if autocommit is true, then we change things at the session level
+      //if autocommit is false, read only is managed with the transaction
+      if (autoCommit) {
+        execSQLUpdate(readOnly ? setSessionReadOnly : setSessionNotReadOnly);
+      }
     }
 
     this.readOnly = readOnly;
@@ -732,6 +758,21 @@ public class PgConnection implements BaseConnection {
 
     if (!this.autoCommit) {
       commit();
+    }
+
+    // if the connection is read only, we need to make sure session settings are
+    // correct when autocommit status changed
+    if (this.readOnly) {
+      // if we are turning on autocommit, we need to set session
+      // to read only
+      if (autoCommit) {
+        this.autoCommit = true;
+        execSQLUpdate(setSessionReadOnly);
+      } else {
+        // if we are turning auto commit off, we need to
+        // disable session
+        execSQLUpdate(setSessionNotReadOnly);
+      }
     }
 
     this.autoCommit = autoCommit;

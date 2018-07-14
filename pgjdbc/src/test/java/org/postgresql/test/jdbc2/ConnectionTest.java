@@ -5,7 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -14,6 +14,7 @@ import static org.junit.Assert.fail;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -147,6 +148,100 @@ public class ConnectionTest {
     // Now try to change it but rollback
     st.executeUpdate("update test_a set image=1111 where id=5678");
     con.rollback();
+    rs = st.executeQuery("select image from test_a where id=5678");
+    assertTrue(rs.next());
+    assertEquals(9876, rs.getInt(1)); // Should not change!
+    rs.close();
+
+    TestUtil.closeDB(con);
+  }
+
+  /**
+   * Tests for session and transaction read only behavior.
+   * @throws Exception
+   */
+  @Test
+  public void testReadOnly() throws Exception {
+    con = TestUtil.openDB();
+    Statement st;
+    ResultSet rs;
+
+    con.setAutoCommit(true);
+    con.setReadOnly(true);
+    assertTrue(con.getAutoCommit());
+    assertTrue(con.isReadOnly());
+
+    // Now test insert with auto commit true and read only
+    st = con.createStatement();
+    try {
+      st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
+      fail("insert should have failed when read only");
+    } catch (SQLException e) {
+      assertThat(e.getMessage(), Matchers.containsString("read-only"));
+    }
+
+    con.setAutoCommit(false);
+
+    // auto commit false and read only
+    try {
+      st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
+      fail("insert should have failed when read only");
+    } catch (SQLException e) {
+      assertThat(e.getMessage(), Matchers.containsString("read-only"));
+    }
+
+    try {
+      con.setReadOnly(false);
+      fail("cannot set read only during transaction");
+    } catch (SQLException e) {
+      assertThat(e.getMessage(), Matchers.startsWith("Cannot change transaction read-only"));
+    }
+
+    // end the transaction
+    con.rollback();
+
+    // disable read only
+    con.setReadOnly(false);
+
+    assertEquals(1, st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)"));
+
+    // Now update image to 9876 and commit
+    st.executeUpdate("update test_a set image=9876 where id=5678");
+    con.commit();
+
+    // back to read only for successful query
+    con.setReadOnly(true);
+    rs = st.executeQuery("select image from test_a where id=5678");
+    assertTrue(rs.next());
+    assertEquals(9876, rs.getInt(1));
+    rs.close();
+
+    // Now try to change with auto commit false
+    try {
+      st.executeUpdate("update test_a set image=1111 where id=5678");
+      fail("update should fail when read only");
+    } catch (SQLException e) {
+      assertThat(e.getMessage(), Matchers.containsString("read-only"));
+      con.rollback();
+    }
+
+    // test that value did not change
+    rs = st.executeQuery("select image from test_a where id=5678");
+    assertTrue(rs.next());
+    assertEquals(9876, rs.getInt(1)); // Should not change!
+    rs.close();
+
+    // repeat attempt to chagne with auto commit true
+    con.setAutoCommit(true);
+
+    try {
+      st.executeUpdate("update test_a set image=1111 where id=5678");
+      fail("update should fail when read only");
+    } catch (SQLException e) {
+      assertThat(e.getMessage(), Matchers.containsString("read-only"));
+    }
+
+    // test that value did not change
     rs = st.executeQuery("select image from test_a where id=5678");
     assertTrue(rs.next());
     assertEquals(9876, rs.getInt(1)); // Should not change!
