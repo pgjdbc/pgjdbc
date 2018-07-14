@@ -837,7 +837,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#READ_ONLY_MODE
    */
   public String getReadOnlyMode() {
-    return PGProperty.READ_ONLY_MODE.getSetString(properties);
+    return PGProperty.READ_ONLY_MODE.get(properties);
   }
 
   /**
