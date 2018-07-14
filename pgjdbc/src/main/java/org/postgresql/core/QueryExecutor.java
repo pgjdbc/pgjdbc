@@ -121,7 +121,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   /**
    * Flag indicating that when beginning a transaction, it should be read only.
    */
-  int QUERY_BEGIN_READ_ONLY = 2048;
+  int QUERY_READ_ONLY_HINT = 2048;
 
   /**
    * Execute a Query, passing results to a provided ResultHandler.

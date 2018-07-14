@@ -81,6 +81,12 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
+  private static enum ReadOnlyBehavior {
+    IGNORE,
+    TRANSACTION,
+    ALWAYS;
+  }
+
   //
   // Data initialized on construction:
   //
@@ -88,6 +94,8 @@ public class PgConnection implements BaseConnection {
 
   /* URL we were created via */
   private final String creatingURL;
+
+  private final ReadOnlyBehavior readOnlyBehavior;
 
   private Throwable openStackTrace;
 
@@ -187,6 +195,14 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
 
     this.creatingURL = url;
+
+    ReadOnlyBehavior rob;
+    try {
+      rob = ReadOnlyBehavior.valueOf(PGProperty.READ_ONLY_MODE.get(info).toUpperCase(Locale.US));
+    } catch (IllegalArgumentException e) {
+      rob = ReadOnlyBehavior.TRANSACTION;
+    }
+    this.readOnlyBehavior = rob;
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
@@ -730,12 +746,8 @@ public class PgConnection implements BaseConnection {
           PSQLState.ACTIVE_SQL_TRANSACTION);
     }
 
-    if (readOnly != this.readOnly) {
-      //if autocommit is true, then we change things at the session level
-      //if autocommit is false, read only is managed with the transaction
-      if (autoCommit) {
-        execSQLUpdate(readOnly ? setSessionReadOnly : setSessionNotReadOnly);
-      }
+    if (readOnly != this.readOnly && autoCommit && this.readOnlyBehavior == ReadOnlyBehavior.ALWAYS) {
+      execSQLUpdate(readOnly ? setSessionReadOnly : setSessionNotReadOnly);
     }
 
     this.readOnly = readOnly;
@@ -746,6 +758,11 @@ public class PgConnection implements BaseConnection {
   public boolean isReadOnly() throws SQLException {
     checkClosed();
     return readOnly;
+  }
+
+  @Override
+  public boolean isTransactionReadOnly() {
+    return readOnly && readOnlyBehavior != ReadOnlyBehavior.IGNORE;
   }
 
   @Override
@@ -762,7 +779,7 @@ public class PgConnection implements BaseConnection {
 
     // if the connection is read only, we need to make sure session settings are
     // correct when autocommit status changed
-    if (this.readOnly) {
+    if (this.readOnly && readOnlyBehavior == ReadOnlyBehavior.ALWAYS) {
       // if we are turning on autocommit, we need to set session
       // to read only
       if (autoCommit) {

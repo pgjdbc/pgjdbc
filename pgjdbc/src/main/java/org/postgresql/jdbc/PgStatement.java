@@ -404,8 +404,8 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    } else if (connection.isReadOnly()) {
-      flags |= QueryExecutor.QUERY_BEGIN_READ_ONLY;
+    } else if (connection.isTransactionReadOnly()) {
+      flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
     }
 
     // updateable result sets do not yet support binary updates
@@ -807,8 +807,8 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    } else if (connection.isReadOnly()) {
-      flags |= QueryExecutor.QUERY_BEGIN_READ_ONLY;
+    } else if (connection.isTransactionReadOnly()) {
+      flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
     }
 
     BatchResultHandler handler;

@@ -516,7 +516,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     beginFlags = updateQueryMode(beginFlags);
 
-    final SimpleQuery beginQuery = ((flags & QueryExecutor.QUERY_BEGIN_READ_ONLY) == 0) ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+    final SimpleQuery beginQuery = ((flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0) ? beginTransactionQuery : beginReadOnlyTransactionQuery;
 
     sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
