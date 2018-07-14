@@ -82,6 +82,7 @@ import org.junit.runners.Suite;
         ReturningParserTest.class,
         CommandCompleteParserTest.class,
         CommandCompleteParserNegativeTest.class,
+        ReplaceProcessingTest.class,
 
         OidToStringTest.class,
         OidValueOfTest.class,

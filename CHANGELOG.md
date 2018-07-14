@@ -8,11 +8,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - PreparedStatement.setNull(int parameterIndex, int t, String typeName) no longer ignores the typeName
 argument if it is not null [PR 1160](https://github.com/pgjdbc/pgjdbc/pull/1160)
 
-### Added
-
 ### Fixed
+- Fix treatment of SQL_TSI_YEAR, SQL_TSI_WEEK, SQL_TSI_MINUTE [PR 1250](https://github.com/pgjdbc/pgjdbc/pull/1250)
 
 ## [42.2.3] (2018-07-12)
+### Known issues
+- SQL_TSI_YEAR is treated as hour, SQL_TSI_WEEK is treated as hour, SQL_TSI_MINUTE is treated as minute
+
 ### Changed
 - Reduce the severity of the error log messages when an exception is re-thrown. The error will be 
 thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc  [PR 1187](https://github.com/pgjdbc/pgjdbc/pull/1187)
