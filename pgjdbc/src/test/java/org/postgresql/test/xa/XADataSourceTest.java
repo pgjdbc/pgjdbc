@@ -799,8 +799,8 @@ public class XADataSourceTest {
 
       fail("Prepare is expected to fail as an integrity violation occurred");
     } catch (XAException xae) {
-      assertEquals("Prepare call with deferred constraints violations expects XA_RBROLLBACK",
-          XAException.XA_RBROLLBACK, xae.errorCode);
+      assertEquals("Prepare call with deferred constraints violations expects XA_RBINTEGRITY",
+          XAException.XA_RBINTEGRITY, xae.errorCode);
     }
   }
 
