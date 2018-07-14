@@ -1268,6 +1268,7 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Override
   public Array createArrayOf(String typeName, Object elements) throws SQLException {
     checkClosed();
