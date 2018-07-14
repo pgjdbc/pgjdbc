@@ -5,9 +5,10 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -156,9 +157,8 @@ public class ConnectionTest {
     TestUtil.closeDB(con);
   }
 
-  /**
+  /*
    * Tests for session and transaction read only behavior.
-   * @throws Exception
    */
   @Test
   public void testReadOnly() throws Exception {
