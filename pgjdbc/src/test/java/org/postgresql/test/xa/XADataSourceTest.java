@@ -23,13 +23,11 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import java.util.Arrays;
 import java.util.Random;
 
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
-
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
@@ -66,6 +64,8 @@ public class XADataSourceTest {
     st.close();
 
     TestUtil.createTable(_conn, "testxa1", "foo int");
+    TestUtil.createTable(_conn, "testxa2", "foo int primary key");
+    TestUtil.createTable(_conn, "testxa3", "foo int references testxa2(foo) deferrable");
 
     clearAllPrepared();
 
@@ -92,6 +92,8 @@ public class XADataSourceTest {
     }
 
     clearAllPrepared();
+    TestUtil.dropTable(_conn, "testxa3");
+    TestUtil.dropTable(_conn, "testxa2");
     TestUtil.dropTable(_conn, "testxa1");
     TestUtil.closeDB(_conn);
 
@@ -777,6 +779,28 @@ public class XADataSourceTest {
     } catch (XAException xae) {
       assertEquals("Rollback call on closed connection expects XAER_RMFAIL",
           XAException.XAER_RMFAIL, xae.errorCode);
+    }
+  }
+
+  /**
+   * When using deferred constraints a contraint violation can occur on prepare. This has to be
+   * mapped to the correct XA Error Code
+   */
+  @Test
+  public void testMappingOfConstraintViolations() throws Exception {
+    Xid xid = new CustomXid(1);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    assertEquals(0, conn.createStatement().executeUpdate("SET CONSTRAINTS ALL DEFERRED"));
+    assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa3 VALUES (4)"));
+    xaRes.end(xid, XAResource.TMSUCCESS);
+
+    try {
+      xaRes.prepare(xid);
+
+      fail("Prepare is expected to fail as an integrity violation occurred");
+    } catch (XAException xae) {
+      assertEquals("Prepare call with deferred constraints violations expects XA_RBINTEGRITY",
+          XAException.XA_RBINTEGRITY, xae.errorCode);
     }
   }
 
