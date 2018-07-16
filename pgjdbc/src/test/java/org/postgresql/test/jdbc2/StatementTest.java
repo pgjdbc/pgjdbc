@@ -710,35 +710,50 @@ public class StatementTest {
    * Test executes two queries one after another. The first one has timeout of 1ms, and the second
    * one does not. The timeout of the first query should not impact the second one.
    */
-  @Test
+  @Test(timeout = 5000)
   public void testShortQueryTimeout() throws SQLException {
-    long deadLine = System.currentTimeMillis() + 10000;
     Statement stmt = con.createStatement();
-    ((PgStatement) stmt).setQueryTimeoutMs(1);
+    stmt.unwrap(PgStatement.class).setQueryTimeoutMs(1);
     Statement stmt2 = con.createStatement();
-    while (System.currentTimeMillis() < deadLine) {
+    for (int i = 0; i <= 10; i++) {
       try {
-        stmt.execute("select 1");
+        // Artificially make it longer than 1ms
+        stmt.execute("SELECT pg_sleep(20)");
+        fail("statement should have been canceled by query timeout");
       } catch (SQLException e) {
-        // ignore "statement cancelled"
+        assertEquals("canceling statement due to user request",
+            PSQLState.QUERY_CANCELED.getState(), e.getSQLState());
       }
-      stmt2.executeQuery("select 1");
+      // Artificially make it longer than 1ms
+      ResultSet rs = stmt2.executeQuery("select * from generate_series(1,100000)");
+      assertNotNull(rs);
+      assertTrue(rs.next());
+      rs.close();
     }
+    stmt2.close();
+    stmt.close();
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSetQueryTimeoutWithSleep() throws SQLException, InterruptedException {
     // check that the timeout starts ticking at execute, not at the
     // setQueryTimeout call.
     Statement stmt = con.createStatement();
     try {
       stmt.setQueryTimeout(1);
-      Thread.sleep(3000);
-      stmt.execute("select pg_sleep(5)");
+      Thread.sleep(1100);
+      // Fast enough to run under 1sec
+      ResultSet rs = stmt.executeQuery("select 1");
+      // Success
+      assertNotNull(rs);
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      // Long enough to run above 1sec
+      stmt.execute("select pg_sleep(20)");
       fail("statement should have been canceled by query timeout");
     } catch (SQLException sqle) {
       // state for cancel
-      if (sqle.getSQLState().compareTo("57014") != 0) {
+      if (!PSQLState.QUERY_CANCELED.getState().equals(sqle.getSQLState())) {
         throw sqle;
       }
     }
