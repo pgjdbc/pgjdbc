@@ -21,7 +21,7 @@ argument if it is not null [PR 1160](https://github.com/pgjdbc/pgjdbc/pull/1160)
 
 ## [42.2.3] (2018-07-12)
 ### Known issues
-- SQL_TSI_YEAR is treated as hour, SQL_TSI_WEEK is treated as hour, SQL_TSI_MINUTE is treated as minute
+- SQL_TSI_YEAR is treated as hour, SQL_TSI_WEEK is treated as hour, SQL_TSI_MINUTE is treated as second
 
 ### Changed
 - Reduce the severity of the error log messages when an exception is re-thrown. The error will be 
