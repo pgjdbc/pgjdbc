@@ -230,7 +230,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
 
         // Specialized support for ref cursors is neater.
-        if (type.equals("refcursor")) {
+        if ("refcursor".equals(type)) {
           return getRefCursor(columnIndex);
         }
         if ("hstore".equals(type)) {
@@ -246,7 +246,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   private Object getRefCursor(int columnIndex) throws SQLException {
-    // Fetch all results.
     String cursorName = getString(columnIndex);
 
     StringBuilder sb = new StringBuilder("FETCH ");
@@ -1873,7 +1872,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         sb.append(" IN ");
         Utils.escapeIdentifier(sb, refCursorName);
         final Query cursorForward = connection.getQueryExecutor().createSimpleQuery(sb.toString());
-        connection.getQueryExecutor().execute(cursorForward, null, new CursorResultHandler(), maxRows, fetchSize, QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN
+        // pass maxRows=0 since fetchSize has already been corrected to account for maxRows
+        connection.getQueryExecutor().execute(cursorForward, null, new CursorResultHandler(), 0, fetchSize, QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN
                 | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE );
       }
 
@@ -1894,7 +1894,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   private boolean checkEndOfResult() {
-    return cursor == null && refCursorName == null || (refCursorName != null && fetchSize == 0) || (maxRows > 0 && row_offset + rows.size() >= maxRows);
+    return cursor == null && refCursorName == null
+        || (refCursorName != null && fetchSize == 0) // all data fetched
+        || (maxRows > 0 && row_offset + rows.size() >= maxRows);
   }
 
   public void close() throws SQLException {
