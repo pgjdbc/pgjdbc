@@ -468,47 +468,7 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)"),
-
-  /**
-   * Specify the driver behavior for not defined manually fetch size, it can be some default fetch size
-   * or fetch size that calculates base on rows size in bytes. Available values: default, adaptive.
-   *
-   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
-   * @see PGProperty#ADAPTIVE_FETCH_SIZE_MODE_ROW_FETCH_IN_BYTES
-   */
-  FETCH_SIZE_MODE(
-      "fetchSizeMode",
-      "default",
-      "Specify the driver behavior for not defined manually fetch size, it can be some default fetch size"
-          + " or fetch size that calculates base on rows size in bytes",
-      false,
-      "default",
-      "adaptive"
-  ),
-
-  /**
-   * Specifies default fetch size in bytes if fetch size not define manually. Property
-   * {@link PGProperty#FETCH_SIZE_MODE} should be also set to "adaptive" to enable the driver estimate
-   * fetch size base on rows size.
-   */
-  ADAPTIVE_FETCH_SIZE_MODE_ROW_FETCH_IN_BYTES(
-      "fetchSizeMode.adaptive.fetchSizeInBytes",
-      "0",
-      "Specifies default fetch size in bytes if fetch size not define manually."
-  ),
-
-  /**
-   * Double value define smooth factor for average function that calculate fetch size base on
-   * previous fetch. This property work only together with {@link PGProperty#FETCH_SIZE_MODE},
-   * {@link PGProperty#ADAPTIVE_FETCH_SIZE_MODE_ROW_FETCH_IN_BYTES}
-   * <p>Value should satisfy next rule: 0 &gt; smoothingFactor &lt; 1
-   */
-  ADAPTIVE_FETCH_SIZE_MODE_AVERAGE_SMOOTHING_FACTOR(
-      "fetchSizeMode.adaptive.average.smoothingFactor",
-      "0.5",
-      "Double value defint smooth factor for average function that calculate fetch size base on previous fetch"
-  );
+          + "(backend >= 9.4)");
 
   private String _name;
   private String _defaultValue;
