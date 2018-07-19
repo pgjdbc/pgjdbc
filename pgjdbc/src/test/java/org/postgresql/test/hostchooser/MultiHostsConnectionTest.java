@@ -21,6 +21,7 @@ import static org.postgresql.hostchooser.HostStatus.Primary;
 import static org.postgresql.hostchooser.HostStatus.Secondary;
 import static org.postgresql.test.TestUtil.closeDB;
 
+import org.postgresql.PGProperty;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.test.TestUtil;
@@ -101,8 +102,8 @@ public class MultiHostsConnectionTest {
   private static Properties userAndPassword() {
     Properties props = new Properties();
 
-    props.setProperty("user", TestUtil.getUser());
-    props.setProperty("password", TestUtil.getPassword());
+    PGProperty.USER.set(props,TestUtil.getUser());
+    PGProperty.PASSWORD.set(props,TestUtil.getPassword());
     return props;
   }
 
@@ -153,12 +154,12 @@ public class MultiHostsConnectionTest {
     }
 
     Properties props = new Properties();
-    props.setProperty("user", user);
-    props.setProperty("password", password);
-    props.setProperty("targetServerType", hostType.name());
-    props.setProperty("hostRecheckSeconds", "2");
+    PGProperty.USER.set(props,user);
+    PGProperty.PASSWORD.set(props,password);
+    PGProperty.TARGET_SERVER_TYPE.set(props,hostType.name());
+    PGProperty.HOST_RECHECK_SECONDS.set(props, 2);
     if (lb) {
-      props.setProperty("loadBalanceHosts", "true");
+      PGProperty.LOAD_BALANCE_HOSTS.set(props,"true");
     }
 
     StringBuilder sb = new StringBuilder();
