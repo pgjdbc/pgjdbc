@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-
+HostRequirement.master has been deprecated in favour of HostRequirement.primary. HostRequirement.master
+will still be accepted but not documented.
 ### Added
 
 ### Fixed
