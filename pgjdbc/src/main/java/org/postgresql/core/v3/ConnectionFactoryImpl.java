@@ -208,10 +208,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, user, database,
             cancelSignalTimeout, info);
 
-        // Check Master or Secondary
+        // Check Primary or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;
         if (candidateHost.targetServerType != HostRequirement.any) {
-          hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Secondary;
+          hostStatus = isPrimary(queryExecutor) ? HostStatus.Primary : HostStatus.Secondary;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         knownStates.put(hostSpec, hostStatus);
@@ -685,7 +685,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   }
 
-  private boolean isMaster(QueryExecutor queryExecutor) throws SQLException, IOException {
+  private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
     byte[][] results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
     String value = queryExecutor.getEncoding().decode(results[0]);
     return value.equalsIgnoreCase("off");

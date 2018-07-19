@@ -14,9 +14,19 @@ public enum HostRequirement {
       return status != HostStatus.ConnectFail;
     }
   },
+  /**
+   * @deprecated we no longer use the terms master or slave in the driver, or the PostgreSQL
+   *        project.
+   */
+  @Deprecated
   master {
     public boolean allowConnectingTo(HostStatus status) {
-      return status == HostStatus.Master || status == HostStatus.ConnectOK;
+      return status == HostStatus.Primary || status == HostStatus.ConnectOK;
+    }
+  },
+  primary {
+    public boolean allowConnectingTo(HostStatus status) {
+      return status == HostStatus.Primary || status == HostStatus.ConnectOK;
     }
   },
   secondary {
