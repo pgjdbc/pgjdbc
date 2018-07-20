@@ -8,16 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: head-ja\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2010-04-11 22:58+0900\n"
-"Last-Translator: Hiroshi Saito <z-saito@guitar.ocn.ne.jp>\n"
+"PO-Revision-Date: 2018-07-20 12:39+0900\n"
+"Last-Translator: Kyotaro Horiguchi <horiguchi.kyotaro@lab.ntt.co.jp>\n"
 "Language-Team: PostgreSQL <z-saito@guitar.ocn.ne.jp>\n"
-"Language: \n"
+"Language: ja_JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.2\n"
-"X-Poedit-Language: Japanese\n"
-"X-Poedit-Country: Japan\n"
+"X-Generator: Poedit 1.5.4\n"
 
 #: org/postgresql/Driver.java:217
 msgid "Error loading default settings from driverconfig.properties"
@@ -774,9 +772,9 @@ msgid ""
 msgstr "実行される前に、CallableStatement から結果を得ることはできません。"
 
 #: org/postgresql/jdbc/PgCallableStatement.java:686
-#, fuzzy, java-format
+#, java-format
 msgid "Unsupported type conversion to {1}."
-msgstr "サポートされないバイナリエンコーディングです: {0}."
+msgstr "{1} への型変換はサポートされていません。"
 
 #: org/postgresql/jdbc/PgConnection.java:241
 #, java-format
@@ -1231,9 +1229,9 @@ msgstr "無効なUUIDデータです。"
 #: org/postgresql/jdbc/PgResultSet.java:3400
 #: org/postgresql/jdbc/PgResultSet.java:3420
 #: org/postgresql/jdbc/PgResultSet.java:3433
-#, fuzzy, java-format
+#, java-format
 msgid "conversion to {0} from {1} not supported"
-msgstr "トランザクション隔離レベル{0} はサポートされていません。"
+msgstr "{1} から {0} への変換はサポートされていません。"
 
 #: org/postgresql/jdbc/PgSQLXML.java:147
 msgid "Unable to decode xml data."
