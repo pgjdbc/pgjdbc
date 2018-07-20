@@ -41,7 +41,7 @@ If you find a regression in a minor patch update, please report an issue.
 
 Bug reports are not isolated only to code, errors in documentation as well as the website source 
 code located in the **docs** directory also qualify. You are welcome to report issues and send a 
-pull request on these as well.
+pull request on these as well. [skip ci] can be added to the commit message to prevent Travis-CI from building for docs only changes
 
 For enhancements request keep reading the *Ideas, enhancements and new features* seccion.
 
@@ -123,7 +123,7 @@ After running the build , and build a .jar file (Java ARchive)
 depending on the version of java and which release you have the jar will be named
 postgresql-<major>.<minor>.<patch>.[jre<N>].jar. We use Semantic versioning; as such
 major, minor, patch refer to the level of change introduced. For Java 6, and Java 7
-jre<N> will be appended after the patch level.N corresponds to the version of Java, 
+jre<N> will be appended after the patch level. N corresponds to the version of Java, 
 roughly correlated to the JDBC version number.
 
 The target directory will contain the driver jar.
