@@ -532,7 +532,9 @@ public class PgArray implements java.sql.Array {
   /**
    * Is whitespace which postgresql will force quotes.
    *
+   * <p>
    * https://github.com/postgres/postgres/blob/f2c587067a8eb9cf1c8f009262381a6576ba3dd0/src/backend/utils/adt/arrayfuncs.c#L421-L438
+   * </p>
    *
    * @param c
    *          Character to examine.
