@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Oid;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -390,6 +391,16 @@ public class ArrayTest extends BaseTest4 {
   public void testNullFieldString() throws SQLException {
     Array arr = new PgArray((BaseConnection) conn, 1, (String) null);
     Assert.assertNull(arr.toString());
+  }
+
+  @Test
+  public void testDirectFieldString() throws SQLException {
+    Array arr = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, "{\" lead\t\", un quot , \" new \n\"}");
+    final String[] array = (String[]) arr.getArray();
+    assertEquals(3, array.length);
+    assertEquals(" lead\t", array[0]);
+    assertEquals("unquot", array[1]);
+    assertEquals(" new \n", array[2]);
   }
 
   @Test
