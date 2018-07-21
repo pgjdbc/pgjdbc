@@ -10,6 +10,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Parser;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
@@ -486,7 +487,7 @@ public class PgArray implements java.sql.Array {
           insideString = !insideString;
           wasInsideString = true;
           continue;
-        } else if (!insideString && isArrayWhiteSpace(chars[i])) {
+        } else if (!insideString && Parser.isArrayWhiteSpace(chars[i])) {
           // white space
           continue;
         } else if ((!insideString && (chars[i] == delim || chars[i] == '}'))
@@ -527,33 +528,6 @@ public class PgArray implements java.sql.Array {
         }
       }
     }
-  }
-
-  /**
-
-   * Is whitespace which postgresql will force quotes.
-   *
-   * <p>
-   * https://github.com/postgres/postgres/blob/f2c587067a8eb9cf1c8f009262381a6576ba3dd0/src/backend/utils/adt/arrayfuncs.c#L421-L438
-   * </p>
-   *
-   * @param c
-   *          Character to examine.
-   * @return Indication if the character is a whitespace which back end will
-   *         escape.
-   */
-  private static boolean isArrayWhiteSpace(char c) {
-    switch (c) {
-      case '\t':
-      case '\n':
-        // vertical tab
-      case 0x0B:
-      case '\f':
-      case '\r':
-      case ' ':
-        return true;
-    }
-    return false;
   }
 
   /**
