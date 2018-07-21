@@ -93,7 +93,7 @@ public class ArrayTest extends BaseTest4 {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
     pstmt.setObject(1, new int[] { 1, 2, 3 }, Types.ARRAY);
     pstmt.setObject(2, new double[] { 3.1d, 1.4d }, Types.ARRAY);
-    pstmt.setObject(3, new String[] { stringWithNonAsciiWhiteSpace, "f'a", "fa\"b" }, Types.ARRAY);
+    pstmt.setObject(3, new String[] { stringWithNonAsciiWhiteSpace, "f'a", " \tfa\"b  " }, Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -121,7 +121,7 @@ public class ArrayTest extends BaseTest4 {
     String[] strarr = (String[]) arr.getArray(2, 2);
     assertEquals(2, strarr.length);
     assertEquals("f'a", strarr[0]);
-    assertEquals("fa\"b", strarr[1]);
+    assertEquals(" \tfa\"b  ", strarr[1]);
 
     strarr = (String[]) arr.getArray();
     assertEquals(stringWithNonAsciiWhiteSpace, strarr[0]);
@@ -408,12 +408,17 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testDirectFieldString() throws SQLException {
-    Array arr = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, "{\" lead\t\", un quot , \" new \n\"}");
+    Array arr = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY,
+        "{\" lead\t\",  un  quot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
     final String[] array = (String[]) arr.getArray();
-    assertEquals(3, array.length);
+    assertEquals(4, array.length);
     assertEquals(" lead\t", array[0]);
-    assertEquals("unquot", array[1]);
-    assertEquals(" new \n", array[2]);
+    assertEquals(" \fnew \n ", array[2]);
+    assertEquals(" ", array[3]);
+
+    // this is likely undesired behavior of dropping white spaces mid-value (not
+    // leading/trailing)
+    assertEquals("unquot\u2001", array[1]);
   }
 
   @Test
