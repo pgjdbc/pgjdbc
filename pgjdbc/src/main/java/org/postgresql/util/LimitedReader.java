@@ -31,6 +31,9 @@ public class LimitedReader extends BufferedReader {
 
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
+    if (position == maxLength) {
+      return -1;
+    }
     if (position + len > maxLength) {
       len = (int) (maxLength - position);
     }
