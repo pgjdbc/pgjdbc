@@ -5,7 +5,7 @@ public class messages_fr extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[794];
     t[0] = "";
-    t[1] = "Project-Id-Version: head-fr\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2007-07-27 12:27+0200\nLast-Translator: \nLanguage-Team:  <en@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.11.4\nPlural-Forms:  nplurals=2; plural=(n > 1);\n";
+    t[1] = "Project-Id-Version: head-fr\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2007-07-27 12:27+0200\nLast-Translator: \nLanguage-Team:  <en@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.11.4\nPlural-Forms:  nplurals=2; plural=(n > 1);\n";
     t[4] = "DataSource has been closed.";
     t[5] = "DataSource a \u00e9t\u00e9 ferm\u00e9e.";
     t[18] = "Where: {0}";

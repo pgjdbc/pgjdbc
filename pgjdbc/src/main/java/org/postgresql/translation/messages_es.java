@@ -5,7 +5,7 @@ public class messages_es extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[74];
     t[0] = "";
-    t[1] = "Project-Id-Version: JDBC PostgreSQL Driver\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2004-10-22 16:51-0300\nLast-Translator: Diego Gil <diego@adminsa.com>\nLanguage-Team: \nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Spanish\n";
+    t[1] = "Project-Id-Version: JDBC PostgreSQL Driver\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2004-10-22 16:51-0300\nLast-Translator: Diego Gil <diego@adminsa.com>\nLanguage-Team: \nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Spanish\n";
     t[4] = "The column index is out of range: {0}, number of columns: {1}.";
     t[5] = "El \u00edndice de la columna est\u00e1 fuera de rango: {0}, n\u00famero de columnas: {1}.";
     t[12] = "Unknown Response Type {0}.";

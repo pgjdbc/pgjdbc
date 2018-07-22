@@ -5,7 +5,7 @@ public class messages_tr extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[794];
     t[0] = "";
-    t[1] = "Project-Id-Version: jdbc-tr\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2009-05-31 21:47+0200\nLast-Translator: Devrim G\u00dcND\u00dcZ <devrim@gunduz.org>\nLanguage-Team: Turkish <pgsql-tr-genel@PostgreSQL.org>\nLanguage: tr\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.3.1\nX-Poedit-Language: Turkish\nX-Poedit-Country: TURKEY\n";
+    t[1] = "Project-Id-Version: jdbc-tr\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2009-05-31 21:47+0200\nLast-Translator: Devrim G\u00dcND\u00dcZ <devrim@gunduz.org>\nLanguage-Team: Turkish <pgsql-tr-genel@PostgreSQL.org>\nLanguage: tr\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.3.1\nX-Poedit-Language: Turkish\nX-Poedit-Country: TURKEY\n";
     t[4] = "DataSource has been closed.";
     t[5] = "DataSource kapat\u0131ld\u0131.";
     t[8] = "Invalid flags {0}";

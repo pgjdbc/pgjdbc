@@ -5,7 +5,7 @@ public class messages_ja extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[1178];
     t[0] = "";
-    t[1] = "Project-Id-Version: head-ja\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2010-04-11 22:58+0900\nLast-Translator: Hiroshi Saito <z-saito@guitar.ocn.ne.jp>\nLanguage-Team: PostgreSQL <z-saito@guitar.ocn.ne.jp>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.0.2\nX-Poedit-Language: Japanese\nX-Poedit-Country: Japan\n";
+    t[1] = "Project-Id-Version: head-ja\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2010-04-11 22:58+0900\nLast-Translator: Hiroshi Saito <z-saito@guitar.ocn.ne.jp>\nLanguage-Team: PostgreSQL <z-saito@guitar.ocn.ne.jp>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.0.2\nX-Poedit-Language: Japanese\nX-Poedit-Country: Japan\n";
     t[6] = "PostgreSQL LOBs can only index to: {0}";
     t[7] = "PostgreSQL LOB \u306f\u3001\u30a4\u30f3\u30c7\u30c3\u30af\u30b9 {0} \u307e\u3067\u306e\u307f\u53ef\u80fd\u3067\u3059\u3002 ";
     t[14] = "The server does not support SSL.";

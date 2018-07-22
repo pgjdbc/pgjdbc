@@ -5,7 +5,7 @@ public class messages_cs extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[314];
     t[0] = "";
-    t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.0\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2005-08-21 20:00+0200\nLast-Translator: Petr Dittrich <bodyn@medoro.org>\nLanguage-Team: \nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
+    t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.0\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2005-08-21 20:00+0200\nLast-Translator: Petr Dittrich <bodyn@medoro.org>\nLanguage-Team: \nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
     t[2] = "A connection could not be made using the requested protocol {0}.";
     t[3] = "Spojen\u00ed nelze vytvo\u0159it s pou\u017eit\u00edm \u017e\u00e1dan\u00e9ho protokolu {0}.";
     t[4] = "Malformed function or procedure escape syntax at offset {0}.";

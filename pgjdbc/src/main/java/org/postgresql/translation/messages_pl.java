@@ -5,7 +5,7 @@ public class messages_pl extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[346];
     t[0] = "";
-    t[1] = "Project-Id-Version: head-pl\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2005-05-22 03:01+0200\nLast-Translator: Jaros\u0142aw Jan Pyszny <jarek@pyszny.net>\nLanguage-Team:  <pl@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.10\nPlural-Forms:  nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n";
+    t[1] = "Project-Id-Version: head-pl\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2005-05-22 03:01+0200\nLast-Translator: Jaros\u0142aw Jan Pyszny <jarek@pyszny.net>\nLanguage-Team:  <pl@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.10\nPlural-Forms:  nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n";
     t[2] = "The driver currently does not support COPY operations.";
     t[3] = "Sterownik nie obs\u0142uguje aktualnie operacji COPY.";
     t[4] = "Internal Query: {0}";

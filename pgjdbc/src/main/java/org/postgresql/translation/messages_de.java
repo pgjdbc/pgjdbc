@@ -5,7 +5,7 @@ public class messages_de extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[794];
     t[0] = "";
-    t[1] = "Project-Id-Version: head-de\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2008-09-12 14:22+0200\nLast-Translator: Andre Bialojahn <ab.spamnews@freenet.de>\nLanguage-Team: Deutsch\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.0.2\nX-Poedit-Language: German\nX-Poedit-Country: GERMANY\n";
+    t[1] = "Project-Id-Version: head-de\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2008-09-12 14:22+0200\nLast-Translator: Andre Bialojahn <ab.spamnews@freenet.de>\nLanguage-Team: Deutsch\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.0.2\nX-Poedit-Language: German\nX-Poedit-Country: GERMANY\n";
     t[4] = "DataSource has been closed.";
     t[5] = "Die Datenquelle wurde geschlossen.";
     t[18] = "Where: {0}";
