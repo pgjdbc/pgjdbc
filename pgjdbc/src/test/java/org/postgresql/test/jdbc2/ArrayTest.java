@@ -416,8 +416,7 @@ public class ArrayTest extends BaseTest4 {
     assertEquals(" \fnew \n ", array[2]);
     assertEquals(" ", array[3]);
 
-    // this is likely undesired behavior of dropping white spaces mid-value (not
-    // leading/trailing)
+    // PostgreSQL drops leading and trailing whitespace, so does the driver
     assertEquals("unquot\u2001", array[1]);
   }
 
