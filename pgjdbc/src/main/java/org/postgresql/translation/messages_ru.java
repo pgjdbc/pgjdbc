@@ -5,7 +5,7 @@ public class messages_ru extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[554];
     t[0] = "";
-    t[1] = "Project-Id-Version: JDBC Driver for PostgreSQL 8.x.x\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2016-01-07 15:09+0300\nLast-Translator: Vladimir Sitnikov <sitnikov.vladimir@gmail.com>\nLanguage-Team: pgsql-rus <pgsql-rus@yahoogroups.com>\nLanguage: ru_RU\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: Poedit 1.5.7\n";
+    t[1] = "Project-Id-Version: JDBC Driver for PostgreSQL 8.x.x\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2016-01-07 15:09+0300\nLast-Translator: Vladimir Sitnikov <sitnikov.vladimir@gmail.com>\nLanguage-Team: pgsql-rus <pgsql-rus@yahoogroups.com>\nLanguage: ru_RU\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: Poedit 1.5.7\n";
     t[4] = "The HostnameVerifier class provided {0} could not be instantiated.";
     t[5] = "\u041d\u0435\u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u0441\u043e\u0437\u0434\u0430\u0442\u044c HostnameVerifier \u0441 \u043f\u043e\u043c\u043e\u0449\u044c\u044e \u0443\u043a\u0430\u0437\u0430\u043d\u043d\u043e\u0433\u043e \u043a\u043b\u0430\u0441\u0441\u0430 {0}";
     t[8] = "Unknown Types value.";

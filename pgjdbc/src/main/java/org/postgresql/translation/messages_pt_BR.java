@@ -5,7 +5,7 @@ public class messages_pt_BR extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[794];
     t[0] = "";
-    t[1] = "Project-Id-Version: PostgreSQL 8.4\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2004-10-31 20:48-0300\nLast-Translator: Euler Taveira de Oliveira <euler@timbira.com>\nLanguage-Team: Brazilian Portuguese <pgbr-dev@listas.postgresql.org.br>\nLanguage: pt_BR\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
+    t[1] = "Project-Id-Version: PostgreSQL 8.4\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2004-10-31 20:48-0300\nLast-Translator: Euler Taveira de Oliveira <euler@timbira.com>\nLanguage-Team: Brazilian Portuguese <pgbr-dev@listas.postgresql.org.br>\nLanguage: pt_BR\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
     t[4] = "DataSource has been closed.";
     t[5] = "DataSource foi fechado.";
     t[8] = "Invalid flags {0}";

@@ -5,7 +5,7 @@ public class messages_zh_CN extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[578];
     t[0] = "";
-    t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.3\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2008-01-31 14:34+0800\nLast-Translator: \u90ed\u671d\u76ca(ChaoYi, Kuo) <Kuo.ChaoYi@gmail.com>\nLanguage-Team: The PostgreSQL Development Team <Kuo.ChaoYi@gmail.com>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Chinese\nX-Poedit-Country: CHINA\nX-Poedit-SourceCharset: utf-8\n";
+    t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.3\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2008-01-31 14:34+0800\nLast-Translator: \u90ed\u671d\u76ca(ChaoYi, Kuo) <Kuo.ChaoYi@gmail.com>\nLanguage-Team: The PostgreSQL Development Team <Kuo.ChaoYi@gmail.com>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Chinese\nX-Poedit-Country: CHINA\nX-Poedit-SourceCharset: utf-8\n";
     t[6] = "Cannot call cancelRowUpdates() when on the insert row.";
     t[7] = "\u4e0d\u80fd\u5728\u65b0\u589e\u7684\u6570\u636e\u5217\u4e0a\u547c\u53eb cancelRowUpdates()\u3002";
     t[8] = "The server requested password-based authentication, but no password was provided.";

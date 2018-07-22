@@ -5,7 +5,7 @@ public class messages_bg extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[890];
     t[0] = "";
-    t[1] = "Project-Id-Version: JDBC Driver for PostgreSQL 8.x\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2009-12-28 00:01+0100\nLast-Translator: <usun0v@mail.bg>\nLanguage-Team: <bg@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Bulgarian\nX-Poedit-Country: BULGARIA\n";
+    t[1] = "Project-Id-Version: JDBC Driver for PostgreSQL 8.x\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2009-12-28 00:01+0100\nLast-Translator: <usun0v@mail.bg>\nLanguage-Team: <bg@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Bulgarian\nX-Poedit-Country: BULGARIA\n";
     t[2] = "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.";
     t[3] = "CallableStatement \u0444\u0443\u043d\u043a\u0446\u0438\u044f \u0431\u0435 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0435\u043d\u0430 \u0438 \u0438\u0437\u0445\u043e\u0434\u043d\u0438\u044f \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u044a\u0440 {0} \u0431\u0435 \u043e\u0442 \u0442\u0438\u043f {1}, \u043e\u0431\u0430\u0447\u0435 \u0442\u0438\u043f {2} \u0431\u0435 \u0438\u0437\u043f\u043e\u043b\u0437\u0432\u0430\u043d.";
     t[6] = "Too many update results were returned.";
