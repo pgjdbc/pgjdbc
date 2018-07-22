@@ -88,12 +88,11 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSetPrimitiveObjects() throws SQLException {
-
     final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
-    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY);
+    pstmt.setObject(1, new int[]{1, 2, 3}, Types.ARRAY);
     pstmt.setObject(2, new double[]{3.1d, 1.4d}, Types.ARRAY);
-    pstmt.setObject(3, new String[] { stringWithNonAsciiWhiteSpace, "f'a", " \tfa\"b  " }, Types.ARRAY);
+    pstmt.setObject(3, new String[]{stringWithNonAsciiWhiteSpace, "f'a", " \tfa\"b  "}, Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
