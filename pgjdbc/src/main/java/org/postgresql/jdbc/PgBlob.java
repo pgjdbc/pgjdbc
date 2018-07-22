@@ -9,9 +9,13 @@ import org.postgresql.largeobject.LargeObject;
 
 import java.sql.SQLException;
 
-public class PgBlob extends AbstractBlobClob implements java.sql.Blob {
+class PgBlob extends AbstractBlobClob implements java.sql.Blob {
 
-  public PgBlob(org.postgresql.core.BaseConnection conn, long oid) throws SQLException {
+  PgBlob(org.postgresql.core.BaseConnection conn) throws SQLException {
+    super(conn);
+  }
+
+  PgBlob(org.postgresql.core.BaseConnection conn, long oid) throws SQLException {
     super(conn, oid);
   }
 
