@@ -1605,11 +1605,11 @@ msgstr "自動コミットの無効化処理中のエラー"
 #: org/postgresql/xa/PGXAConnection.java:280
 #, java-format
 msgid ""
-"tried to call end without corresponding start call. state={0}, start xid="
-"{1}, currentXid={2}, preparedXid={3}"
+"tried to call end without corresponding start call. state={0}, start "
+"xid={1}, currentXid={2}, preparedXid={3}"
 msgstr ""
-"対応する start の呼び出しなしで、end を呼び出しました。state={0}, start xid="
-"{1}, currentXid={2}, preparedXid={3}"
+"対応する start の呼び出しなしで、end を呼び出しました。state={0}, start "
+"xid={1}, currentXid={2}, preparedXid={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:326
 #, java-format
