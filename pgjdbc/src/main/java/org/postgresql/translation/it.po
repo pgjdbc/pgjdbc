@@ -921,7 +921,7 @@ msgid "ClientInfo property not supported."
 msgstr "La restituzione di chiavi autogenerate non è supportata."
 
 #: org/postgresql/jdbc/PgConnection.java:1458
-msgid "One ore more ClientInfo failed."
+msgid "One or more ClientInfo failed."
 msgstr ""
 
 #: org/postgresql/jdbc/PgConnection.java:1559

@@ -899,7 +899,7 @@ msgid "ClientInfo property not supported."
 msgstr "ClientInfo property nije podržan."
 
 #: org/postgresql/jdbc/PgConnection.java:1458
-msgid "One ore more ClientInfo failed."
+msgid "One or more ClientInfo failed."
 msgstr ""
 
 #: org/postgresql/jdbc/PgConnection.java:1559

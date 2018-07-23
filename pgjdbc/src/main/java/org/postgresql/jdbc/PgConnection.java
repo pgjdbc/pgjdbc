@@ -1455,7 +1455,7 @@ public class PgConnection implements BaseConnection {
     }
 
     if (!failures.isEmpty()) {
-      throw new SQLClientInfoException(GT.tr("One ore more ClientInfo failed."),
+      throw new SQLClientInfoException(GT.tr("One or more ClientInfo failed."),
           PSQLState.NOT_IMPLEMENTED.getState(), failures);
     }
   }
