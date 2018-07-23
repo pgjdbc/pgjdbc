@@ -14,6 +14,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     Jdbc3CallableStatementTest.class,
+    CallCommandTest.class,
     GeneratedKeysTest.class,
     CompositeQueryParseTest.class,
     SqlCommandParseTest.class,
