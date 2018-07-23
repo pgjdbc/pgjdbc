@@ -1,14 +1,17 @@
----
-name: Issue report
-about: Please describe in detail the environment and how to reproduce the Issue
+**I'm submitting a ...**
 
----
+  <!--- What kind of an issue is this? Put an `x` in all the boxes that apply: -->
+    - [ ] bug report
+    - [ ] feature request
+    
 
 **Describe the issue**
 A clear and concise description of what the issue is.
 
 **Java Version**
+
 **OS Version**
+
 **PostgreSQL Version**
 
 **To Reproduce**
