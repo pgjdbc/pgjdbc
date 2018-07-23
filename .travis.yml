@@ -117,6 +117,7 @@ matrix:
           - llvm-toolchain-trusty-5.0
           packages:
           - clang-5.0
+          - llvm-config-5.0
     - jdk: oraclejdk8
       sudo: required
       addons:
