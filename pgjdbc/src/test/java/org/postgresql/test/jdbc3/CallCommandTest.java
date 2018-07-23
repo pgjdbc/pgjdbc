@@ -6,12 +6,14 @@
 package org.postgresql.test.jdbc3;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.test.util.rules.ServerVersionRule;
+import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,10 +27,14 @@ import java.util.Collection;
 import java.util.Properties;
 
 @RunWith(Parameterized.class)
+@HaveMinimalServerVersion("11.1")
 public class CallCommandTest extends BaseTest4 {
+  @Rule
+  public ServerVersionRule versionRule = new ServerVersionRule();
 
-  @Parameterized.Parameter(0)
-  public PreferQueryMode preferQueryMode;
+  public CallCommandTest(PreferQueryMode preferQueryMode) {
+    setPreferQueryMode(preferQueryMode);
+  }
 
   @Parameterized.Parameters(name = "preferQueryMode={0}")
   public static Iterable<Object[]> data() {
@@ -48,7 +54,6 @@ public class CallCommandTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeMinimumServerVersion(ServerVersion.from("11.0"));
     Statement st = con.createStatement();
     st.executeUpdate("CREATE OR REPLACE PROCEDURE my_proc(INOUT results text)\n"
         + "LANGUAGE 'plpgsql'\n"

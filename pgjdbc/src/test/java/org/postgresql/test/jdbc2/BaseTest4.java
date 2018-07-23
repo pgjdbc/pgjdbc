@@ -76,6 +76,14 @@ public class BaseTest4 {
     this.reWriteBatchedInserts = reWriteBatchedInserts;
   }
 
+  public PreferQueryMode getPreferQueryMode() {
+    return preferQueryMode;
+  }
+
+  public void setPreferQueryMode(PreferQueryMode preferQueryMode) {
+    this.preferQueryMode = preferQueryMode;
+  }
+
   @Before
   public void setUp() throws Exception {
     Properties props = new Properties();
@@ -120,7 +128,7 @@ public class BaseTest4 {
    * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}.
    */
   public void assumeMinimumServerVersion(Version version) throws SQLException {
-    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, version));
+    assumeMinimumServerVersion(version.toString() + " or higher required", version);
   }
 
 }
