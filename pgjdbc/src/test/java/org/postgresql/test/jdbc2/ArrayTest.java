@@ -212,7 +212,7 @@ public class ArrayTest extends BaseTest4 {
 
     // you need a lot of backslashes to get a double quote in.
     stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '"
-        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
+        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def, un  quot\u000B \u2001 \r}") + "')");
 
     ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
     Assert.assertTrue(rs.next());
@@ -238,6 +238,10 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(2, strarr.length);
     Assert.assertEquals("f'a", strarr[0]);
     Assert.assertEquals("fa\"b", strarr[1]);
+
+    strarr = (String[]) arr.getArray();
+    assertEquals(5, strarr.length);
+    assertEquals("un  quot\u000B \u2001", strarr[4]);
 
     rs.close();
     stmt.close();
