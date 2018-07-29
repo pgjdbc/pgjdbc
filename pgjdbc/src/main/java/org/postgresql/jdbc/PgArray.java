@@ -979,4 +979,31 @@ public class PgArray implements java.sql.Array {
     fieldBytes = null;
     arrayList = null;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    PgArray that = (PgArray) o;
+
+    if (oid != that.oid) {
+      return false;
+    }
+
+    return toString().equals(that.toString());
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = 5;
+    hash = 61 * hash + this.oid;
+    hash = 61 * hash + toString() != null ? toString().hashCode() : 0;
+    return hash;
+  }
+
 }

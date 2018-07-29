@@ -574,5 +574,31 @@ public class ArrayTest extends BaseTest4 {
     }
   }
 
+  @Test
+  public void testEqualsHashCode() throws SQLException {
+    PreparedStatement pstmt1 = conn.prepareStatement("SELECT ARRAY[['Nj8fc @czP2t','b7AK2Ap8Aq'],"
+        + "['M5mq65W&$tYdvEmYk2Jn9VH#','mtRRCq$Rq4QC6R6$HKNR8FK5^']] as a1,"
+        + " ARRAY[[5.7,6.4],[7.99,8.33],[9.99,0.1]] as b1");
+    PreparedStatement pstmt2 = conn.prepareStatement("SELECT ARRAY[['Nj8fc @czP2t','b7AK2Ap8Aq'],"
+        + "['M5mq65W&$tYdvEmYk2Jn9VH#','mtRRCq$Rq4QC6R6$HKNR8FK5^']] as a1,"
+        + " ARRAY[[5.7,6.4],[7.99,8.33],[9.99,0.1]] as b1");
+    ResultSet rs1 = pstmt1.executeQuery();
+    ResultSet rs2 = pstmt2.executeQuery();
+
+    while (rs1.next() && rs2.next()) {
+      Array text_arr1 = rs1.getArray(1);
+      Array text_arr2 = rs2.getArray(1);
+      assertEquals("Arrays Objects should be equals", text_arr1, text_arr2);
+      Assert.assertTrue("Arrays Objects should be equals", text_arr1.equals(text_arr2));
+      assertEquals("hashCode should be equals", text_arr1.hashCode(), text_arr2.hashCode());
+
+      Array numeric_arr1 = rs1.getArray(2);
+      Array numeric_arr2 = rs2.getArray(2);
+      assertEquals("Arrays Objects should be equals", numeric_arr1, numeric_arr2);
+      Assert.assertTrue("Arrays Objects should be equals", numeric_arr1.equals(numeric_arr2));
+      assertEquals("hashCode should be equals", numeric_arr1.hashCode(), numeric_arr2.hashCode());
+    }
+  }
+
 }
 
