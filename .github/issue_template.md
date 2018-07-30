@@ -1,8 +1,8 @@
 **I'm submitting a ...**
 
   <!--- What kind of an issue is this? Put an `x` in all the boxes that apply: -->
-    - [ ] bug report
-    - [ ] feature request
+- [ ] bug report
+- [ ] feature request
     
 
 **Describe the issue**
