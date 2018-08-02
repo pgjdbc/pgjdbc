@@ -95,7 +95,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try { // read until excausted or operation cancelled SQLException
+      try { // read until exhausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
@@ -130,7 +130,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try { // read until excausted or operation cancelled SQLException
+      try { // read until exhausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
