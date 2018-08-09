@@ -117,7 +117,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslhostnameverifier** = String
 
-	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.jdbc4.LibPQFactory.verify()`
+	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.jdbc4.LibPQVerifier.verify()`
 
 * **sslpasswordcallback** = String
 
