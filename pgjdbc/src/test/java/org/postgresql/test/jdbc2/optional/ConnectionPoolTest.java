@@ -157,7 +157,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   /**
    * Makes sure that if you get two connection wrappers from the same PooledConnection, they are
    * different, even though the represent the same physical connection. See JDBC 2.0 Optional
-   * Pacakge spec section 6.2.2
+   * Package spec section 6.2.2
    */
   @Test
   public void testPoolNewWrapper() {

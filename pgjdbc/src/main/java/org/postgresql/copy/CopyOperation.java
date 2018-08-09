@@ -42,7 +42,7 @@ public interface CopyOperation {
   void cancelCopy() throws SQLException;
 
   /**
-   * After succesful end of copy, returns the number of database records handled in that operation.
+   * After successful end of copy, returns the number of database records handled in that operation.
    * Only implemented in PostgreSQL server version 8.2 and up. Otherwise, returns -1.
    *
    * @return number of handled rows or -1

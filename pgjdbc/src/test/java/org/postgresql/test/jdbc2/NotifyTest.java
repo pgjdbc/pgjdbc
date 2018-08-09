@@ -111,7 +111,7 @@ public class NotifyTest {
     PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications(500);
     long endMillis = System.currentTimeMillis();
     long runtime = endMillis - startMillis;
-    assertNull("There have been notifications, althought none have been expected.",notifications);
+    assertNull("There have been notifications, although none have been expected.",notifications);
     Assert.assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
 
     stmt.close();
@@ -229,7 +229,7 @@ public class NotifyTest {
       ((org.postgresql.PGConnection) conn).getNotifications(40000);
       Assert.fail("The getNotifications(...) call didn't return when the socket closed.");
     } catch (SQLException e) {
-      // We expected thta
+      // We expected that
     }
 
     stmt.close();

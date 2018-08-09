@@ -1557,7 +1557,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     primaryKeys = new ArrayList<PrimaryKey>();
 
-    // this is not stricty jdbc spec, but it will make things much faster if used
+    // this is not strictly jdbc spec, but it will make things much faster if used
     // the user has to select oid, * from table and then we will just use oid
 
 
