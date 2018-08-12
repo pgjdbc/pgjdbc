@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.ssl.jdbc4;
+package org.postgresql.ssl;
 
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -222,6 +222,7 @@ public class LazyKeyManager implements X509KeyManager {
           }
           try {
             PBEKeySpec pbeKeySpec = new PBEKeySpec(pwdcb.getPassword());
+            pwdcb.clearPassword();
             // Now create the Key from the PBEKeySpec
             SecretKeyFactory skFac = SecretKeyFactory.getInstance(ePKInfo.getAlgName());
             Key pbeKey = skFac.generateSecret(pbeKeySpec);

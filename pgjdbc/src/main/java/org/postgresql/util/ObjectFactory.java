@@ -21,7 +21,7 @@ public class ObjectFactory {
    * single String argument is searched if it fails, or tryString is true a no argument constructor
    * is tried.
    *
-   * @param classname Nam of the class to instantiate
+   * @param classname name of the class to instantiate
    * @param info parameter to pass as Properties
    * @param tryString weather to look for a single String argument constructor
    * @param stringarg parameter to pass as String

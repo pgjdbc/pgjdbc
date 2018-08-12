@@ -692,7 +692,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     try {
-      while (pgStream.hasMessagePending() || timeoutMillis >= 0 ) {
+      while (timeoutMillis >= 0 || pgStream.hasMessagePending()) {
         if (useTimeout && timeoutMillis >= 0) {
           setSocketTimeout(timeoutMillis);
         }

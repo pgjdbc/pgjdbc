@@ -88,7 +88,7 @@ Connection conn = DriverManager.getConnection(url);
 	establishing a SSL connection. For more information see the section
 	called [“Custom SSLSocketFactory”](ssl-factory.html). 
 
-* **sslfactoryarg** = String
+* **sslfactoryarg** (deprecated) = String
 
 	This value is an optional argument to the constructor of the sslfactory
 	class provided above. For more information see the section called [“Custom SSLSocketFactory”](ssl-factory.html). 
@@ -408,7 +408,7 @@ Connection conn = DriverManager.getConnection(url);
 	This class must have a zero argument constructor or a single argument constructor taking a String argument. 
 	This argument may optionally be supplied by `socketFactoryArg`.
 
-* **socketFactoryArg** = String
+* **socketFactoryArg** (deprecated) = String
 
 	This value is an optional argument to the constructor of the socket factory
 	class provided above. 

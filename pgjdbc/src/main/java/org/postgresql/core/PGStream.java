@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import javax.net.SocketFactory;
 
@@ -109,7 +110,19 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public boolean hasMessagePending() throws IOException {
-    return pg_input.available() > 0 || connection.getInputStream().available() > 0;
+    if (pg_input.available() > 0) {
+      return true;
+    }
+    // In certain cases, available returns 0, yet there are bytes
+    int soTimeout = getNetworkTimeout();
+    setNetworkTimeout(1);
+    try {
+      return pg_input.peek() != -1;
+    } catch (SocketTimeoutException e) {
+      return false;
+    } finally {
+      setNetworkTimeout(soTimeout);
+    }
   }
 
   /**

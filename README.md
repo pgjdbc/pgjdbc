@@ -111,7 +111,7 @@ In addition to the standard connection parameters the driver supports a number o
 | password                      | String  | null    | The database user's password. |
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
-| sslfactoryarg                 | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
+| sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
 | sslmode                       | String  | null    | Parameter governing the use of SSL. |
 | sslcert                       | String  | null    | The location of the client's SSL certificate |
 | sslkey                        | String  | null    | The location of the client's PKCS#8 SSL key |
@@ -144,7 +144,7 @@ In addition to the standard connection parameters the driver supports a number o
 | hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after which the host status is checked again in case it has changed |
 | loadBalanceHosts              | Boolean | false   | If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates |
 | socketFactory                 | String  | null    | Specify a socket factory for socket creation |
-| socketFactoryArg              | String  | null    | Argument forwarded to constructor of SocketFactory class. |
+| socketFactoryArg (deprecated) | String  | null    | Argument forwarded to constructor of SocketFactory class. |
 | autosave                      | String  | never   | Specifies what the driver should do if a query fails, possible values: always, never, conservative |
 | preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, possible values: extended, extendedForPrepared, extendedCacheEverything, simple |
 | reWriteBatchedInserts         | Boolean | false  | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
