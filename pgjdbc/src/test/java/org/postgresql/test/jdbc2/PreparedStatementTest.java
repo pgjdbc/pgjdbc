@@ -1228,7 +1228,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
   /**
    * When we have parameters of unknown type and it's not using the unnamed statement, we issue a
-   * protocol level statment describe message for the V3 protocol. This test just makes sure that
+   * protocol level statement describe message for the V3 protocol. This test just makes sure that
    * works.
    */
   @Test

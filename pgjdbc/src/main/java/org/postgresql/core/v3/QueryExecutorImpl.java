@@ -311,7 +311,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // There are three causes of this error, an
         // invalid total Bind message length, a
         // BinaryStream that cannot provide the amount
-        // of data claimed by the length arugment, and
+        // of data claimed by the length argument, and
         // a BinaryStream that throws an Exception
         // when reading.
         //
@@ -414,7 +414,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // the server is sending.
   //
   // Our message size estimation is coarse, and disregards asynchronous
-  // notifications, warnings/info/debug messages, etc, so the repsonse size may be
+  // notifications, warnings/info/debug messages, etc, so the response size may be
   // quite different from the 250 bytes assumed here even for queries that don't
   // return data.
   //

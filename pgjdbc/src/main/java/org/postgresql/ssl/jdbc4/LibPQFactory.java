@@ -66,7 +66,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
       sslmode = PGProperty.SSL_MODE.get(info);
       SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
 
-      // Determinig the default file location
+      // Determining the default file location
       String pathsep = System.getProperty("file.separator");
       String defaultdir;
       boolean defaultfile = false;

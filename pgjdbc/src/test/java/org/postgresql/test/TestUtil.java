@@ -255,10 +255,10 @@ public class TestUtil {
   }
 
   /**
-   * Get a connection using a priviliged user mostly for tests that the ability to load C functions
+   * Get a connection using a privileged user mostly for tests that the ability to load C functions
    * now as of 4/14.
    *
-   * @return connection using a priviliged user mostly for tests that the ability to load C
+   * @return connection using a privileged user mostly for tests that the ability to load C
    *         functions now as of 4/14
    */
   public static Connection openPrivilegedDB() throws Exception {
@@ -782,7 +782,7 @@ public class TestUtil {
 
   public static void recreateLogicalReplicationSlot(Connection connection, String slotName, String outputPlugin)
       throws SQLException, InterruptedException, TimeoutException {
-    //drop previos slot
+    //drop previous slot
     dropReplicationSlot(connection, slotName);
 
     PreparedStatement stm = null;
@@ -798,7 +798,7 @@ public class TestUtil {
 
   public static void recreatePhysicalReplicationSlot(Connection connection, String slotName)
       throws SQLException, InterruptedException, TimeoutException {
-    //drop previos slot
+    //drop previous slot
     dropReplicationSlot(connection, slotName);
 
     PreparedStatement stm = null;
