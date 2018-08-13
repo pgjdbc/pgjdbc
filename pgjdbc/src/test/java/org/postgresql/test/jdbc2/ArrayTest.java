@@ -412,7 +412,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testDirectFieldString() throws SQLException {
     Array arr = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY,
-        "{\" lead\t\",  un  quot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
+        "{\" lead\t\",  unquot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
     final String[] array = (String[]) arr.getArray();
     assertEquals(4, array.length);
     assertEquals(" lead\t", array[0]);
@@ -421,6 +421,49 @@ public class ArrayTest extends BaseTest4 {
 
     // PostgreSQL drops leading and trailing whitespace, so does the driver
     assertEquals("unquot\u2001", array[1]);
+  }
+
+  @Test
+  public void testStringEscaping() throws SQLException {
+
+    final String stringArray = "{f'a,\"fa\\\"b\",def, un  quot\u000B \u2001 \r, someString }";
+
+    final Statement stmt = conn.createStatement();
+    try {
+
+      stmt.executeUpdate("INSERT INTO arrtest VALUES (NULL, NULL, '" + TestUtil.escapeString(conn, stringArray) + "')");
+
+      final ResultSet rs = stmt.executeQuery("SELECT strarr FROM arrtest");
+      Assert.assertTrue(rs.next());
+
+      Array arr = rs.getArray(1);
+      Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+      String[] strarr = (String[]) arr.getArray();
+      assertEquals(5, strarr.length);
+      assertEquals("f'a", strarr[0]);
+      assertEquals("fa\"b", strarr[1]);
+      assertEquals("def", strarr[2]);
+      assertEquals("un  quot\u000B \u2001", strarr[3]);
+      assertEquals("someString", strarr[4]);
+
+      rs.close();
+    } finally {
+      stmt.close();
+    }
+
+    final Array directArray = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, stringArray);
+    final String[] actual = (String[]) directArray.getArray();
+    assertEquals(5, actual.length);
+    assertEquals("f'a", actual[0]);
+    assertEquals("fa\"b", actual[1]);
+    assertEquals("def", actual[2]);
+    assertEquals("someString", actual[4]);
+
+    // the driver strips out ascii white spaces from an unescaped string, even in
+    // the middle of the value. while this does not exactly match the behavior of
+    // the backend, it will always quote values where ascii white spaces are
+    // present, making this difference not worth the complexity involved addressing.
+    assertEquals("unquot\u2001", actual[3]);
   }
 
   @Test
