@@ -176,6 +176,8 @@ public class Parser {
                 bindPositions.clear();
               }
               nativeSql.setLength(0);
+              isValuesFound = false;
+              isCurrentReWriteCompatible = false;
               valuesBraceOpenPosition = -1;
               valuesBraceClosePosition = -1;
               valuesBraceCloseFound = false;

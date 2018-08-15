@@ -257,6 +257,25 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testBinds() throws SQLException {
+    // braces around (42) are required to puzzle the parser
+    String query = "INSERT INTO inttable(a) VALUES (?);SELECT (42)";
+    PreparedStatement ps = con.prepareStatement(query);
+    ps.setInt(1, 100500);
+    ps.execute();
+    ResultSet rs = ps.getResultSet();
+    Assert.assertNull("insert produces no results ==> getResultSet should be null", rs);
+    Assert.assertTrue("There are two statements => getMoreResults should be true", ps.getMoreResults());
+    rs = ps.getResultSet();
+    Assert.assertNotNull("select produces results ==> getResultSet should be not null", rs);
+    Assert.assertTrue("select produces 1 row ==> rs.next should be true", rs.next());
+    Assert.assertEquals("second result of query " + query, 42, rs.getInt(1));
+
+    TestUtil.closeQuietly(rs);
+    TestUtil.closeQuietly(ps);
+  }
+
+  @Test
   public void testSetNull() throws SQLException {
     // valid: fully qualified type to setNull()
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
