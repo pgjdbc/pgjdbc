@@ -122,6 +122,8 @@ public class PgConnection implements BaseConnection {
   private boolean autoCommit = true;
   // Connection's readonly state.
   private boolean readOnly = false;
+  // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
+  private boolean  hideUnprivilegedObjects ;
 
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
@@ -203,6 +205,7 @@ public class PgConnection implements BaseConnection {
     if (PGProperty.READ_ONLY.getBoolean(info)) {
       setReadOnly(true);
     }
+    this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
 
     Set<Integer> binaryOids = getBinaryOids(info);
 
@@ -880,6 +883,10 @@ public class PgConnection implements BaseConnection {
   public String getCatalog() throws SQLException {
     checkClosed();
     return queryExecutor.getDatabase();
+  }
+
+  public boolean getHideUnprivilegedObjects() {
+    return hideUnprivilegedObjects;
   }
 
   /**

@@ -25,7 +25,8 @@ import org.junit.runners.Suite;
         CharacterStreamTest.class,
         UUIDTest.class,
         LibPQFactoryHostNameTest.class,
-        XmlTest.class
+        XmlTest.class,
+        DatabaseMetaDataHideUnprivilegedObjectsTest.class
 })
 public class Jdbc4TestSuite {
 }

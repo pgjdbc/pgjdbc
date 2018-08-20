@@ -1313,4 +1313,20 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return Logger.getLogger("org.postgresql");
   }
   //#endif
+
+  /**
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   * @return boolean indicating property is enabled or not.
+   */
+  public boolean getHideUnprivilegedObjects() {
+    return PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(properties);
+  }
+
+  /**
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   * @param hideUnprivileged boolean value to set the property in the properties collection
+   */
+  public void setHideUnprivilegedObjects(boolean hideUnprivileged) {
+    PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
+  }
 }
