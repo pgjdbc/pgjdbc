@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+
+### Added
+
+### Fixed
+
+## [42.2.5] (2018-08-27)
+### Changed
 - `ssl=true` implies `sslmode=verify-full`, that is it requires valid server certificate [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
 
 ### Added
@@ -178,4 +185,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...REL42.2.2
 [42.2.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...REL42.2.3
 [42.2.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...REL42.2.4
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.4...HEAD
+[42.2.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.4...REL42.2.5
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...HEAD
