@@ -14,7 +14,7 @@ div.tblBasic table {
 
 div.tblBasic table th {
         padding-top: 20px;
-        border-bottom: 1px solid #EFEFEF;
+        border-bottom: 1px solid #F0F8FF;
         vertical-align: bottom;
 }
 
@@ -98,4 +98,10 @@ div.tblBasic table td.colFirstRT,
 div.tblBasic table td.colLastRT {
         text-align: right;
         vertical-align: top;
+}
+div.tblBasic table.tblBasicWhite th {
+        background-color: aliceblue;
+}
+div.tblBasic table.tblBasicWhite td {
+        background-color: white;
 }
