@@ -13,7 +13,7 @@ In order to configure PostgreSQL for SSL tests, the following changes should be 
 * Set ssl_ca_file=root.crt in postgresql.conf
 * Add databases for SSL tests. Note: sslinfo extension is used in tests to tell if connection is using SSL or not
 
-      for db in hostssldb hostnossldb certdb hostsslcertdb; do
+      for db in hostdb hostssldb hostnossldb certdb hostsslcertdb; do
         createdb $db
         psql $db -c "create extension sslinfo"
       done
