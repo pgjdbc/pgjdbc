@@ -12,7 +12,8 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
     LibPQFactoryHostNameTest.class,
     CommonNameVerifierTest.class,
-    SslTest.class
+    SslTest.class,
+    ClientRevocationListTest.class
 })
 public class SslTestSuite {
 }
