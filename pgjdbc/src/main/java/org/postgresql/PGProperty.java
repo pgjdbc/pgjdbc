@@ -243,7 +243,7 @@ public enum PGProperty {
    * Relative paths are relative to the data directory. Default is empty which means no certificates
    * revoked
    */
-  SSL_CRL_FILE("sslcrlfile",null, "The location of the file containing revoked certificats"),
+  SSL_CRL_FILE("sslcrlfile",null, "The location of the file containing revoked certificates"),
 
   /**
    * Enable or disable TCP keep-alive. The default is {@code false}.

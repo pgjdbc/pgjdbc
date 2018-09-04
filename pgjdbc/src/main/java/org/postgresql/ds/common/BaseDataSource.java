@@ -633,7 +633,6 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   *
    * @return SSL CRL file name
    * @see PGProperty#SSL_CRL_FILE
    */
@@ -642,8 +641,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   *
-   * @param sslCrlFile
+   * @param sslCrlFile name of CRL file relative to certdir or
+   *                   absolute if starts with /
    * @see PGProperty#SSL_CRL_FILE
    */
   public void setSslCrlFile( String sslCrlFile ) {
