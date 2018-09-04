@@ -239,6 +239,13 @@ public enum PGProperty {
       "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PassworCallback for the ssl password."),
 
   /**
+   * Specifies the name of the file containing the SSL server certificate revocation list (CRL).
+   * Relative paths are relative to the data directory. Default is empty which means no certificates
+   * revoked
+   */
+  SSL_CRL_FILE("sslcrlfile",null, "The location of the file containing revoked certificats"),
+
+  /**
    * Enable or disable TCP keep-alive. The default is {@code false}.
    */
   TCP_KEEP_ALIVE("tcpKeepAlive", "false",

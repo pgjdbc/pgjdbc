@@ -22,9 +22,15 @@ import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CRLException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509CRL;
+import java.security.cert.X509CRLEntry;
+import java.security.cert.X509Certificate;
+import java.util.Calendar;
 import java.util.Properties;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -122,14 +128,31 @@ public class LibPQFactory extends WrappedFactory {
         }
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          // Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{}); //Does
-          // not work in java 1.4
+
           Object[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{});
           ks.load(null, null);
           for (int i = 0; i < certs.length; i++) {
             ks.setCertificateEntry("cert" + i, (Certificate) certs[i]);
           }
+
           tmf.init(ks);
+
+          X509CRL crl = loadRevokedCertificates(cf, defaultdir, info);
+
+          if ( crl != null  ) {
+
+            for (X509Certificate cert:km.getCertificateChain(null) ) {
+              X509CRLEntry e = crl.getRevokedCertificate(cert.getSerialNumber());
+
+              if ( e != null && (e.getRevocationDate().compareTo( Calendar.getInstance().getTime()) < 0) ) {
+                throw new PSQLException( GT.tr("SSL certificate {0} revoked.",
+                    sslcertfile),
+                    PSQLState.CONNECTION_FAILURE, null);
+              }
+            }
+
+          }
+
         } catch (IOException ioex) {
           throw new PSQLException(
               GT.tr("Could not read SSL root certificate file {0}.", sslrootcertfile),
@@ -216,5 +239,31 @@ public class LibPQFactory extends WrappedFactory {
         pwdCallback.setPassword(cons.readPassword("%s", pwdCallback.getPrompt()));
       }
     }
+  }
+
+  private  X509CRL loadRevokedCertificates(CertificateFactory cf, String defaultdir, Properties info)
+      throws IOException, CRLException {
+
+    String crlFile = PGProperty.SSL_CRL_FILE.get(info);
+
+    if ( crlFile == null ) {
+      return null;
+    }
+
+    if (!crlFile.startsWith("/")) {
+      crlFile = defaultdir + crlFile;
+    }
+
+    // load the CRL
+    X509CRL crl = null;
+    if (crlFile != null) {
+
+      FileInputStream fis =
+          new FileInputStream(crlFile);
+      crl = (X509CRL)cf.generateCRL(fis);
+      fis.close();
+
+    }
+    return crl;
   }
 }
