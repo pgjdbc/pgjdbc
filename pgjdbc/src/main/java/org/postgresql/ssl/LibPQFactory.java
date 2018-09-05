@@ -138,7 +138,7 @@ public class LibPQFactory extends WrappedFactory {
           tmf.init(ks);
 
           String sslcrlfile =  PGProperty.SSL_CRL_FILE.get(info);
-          if (sslcertfile == null ) {
+          if (sslcrlfile == null ) {
             sslcrlfile = defaultdir + "root.crl";
           }
 
@@ -252,10 +252,12 @@ public class LibPQFactory extends WrappedFactory {
     // load the CRL
     X509CRL crl = null;
 
-    FileInputStream fis = new FileInputStream(crlFile);
-    crl = (X509CRL)cf.generateCRL(fis);
-    fis.close();
-
+    try {
+      FileInputStream fis = new FileInputStream(crlFile);
+      crl = (X509CRL) cf.generateCRL(fis);
+      fis.close();
+    } catch (FileNotFoundException ex) {
+    }
     return crl;
   }
 }
