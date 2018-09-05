@@ -252,10 +252,9 @@ public class LibPQFactory extends WrappedFactory {
     // load the CRL
     X509CRL crl = null;
 
-      FileInputStream fis =
-          new FileInputStream(crlFile);
-      crl = (X509CRL)cf.generateCRL(fis);
-      fis.close();
+    FileInputStream fis = new FileInputStream(crlFile);
+    crl = (X509CRL)cf.generateCRL(fis);
+    fis.close();
 
     return crl;
   }
