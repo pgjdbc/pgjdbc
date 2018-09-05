@@ -137,7 +137,12 @@ public class LibPQFactory extends WrappedFactory {
 
           tmf.init(ks);
 
-          X509CRL crl = loadRevokedCertificates(cf, defaultdir, info);
+          String sslcrlfile =  PGProperty.SSL_CRL_FILE.get(info);
+          if (sslcertfile == null ) {
+            sslcrlfile = defaultdir + "root.crl";
+          }
+
+          X509CRL crl = loadRevokedCertificates(cf, sslcrlfile);
 
           if ( crl != null  ) {
 
@@ -241,29 +246,17 @@ public class LibPQFactory extends WrappedFactory {
     }
   }
 
-  private  X509CRL loadRevokedCertificates(CertificateFactory cf, String defaultdir, Properties info)
+  private  X509CRL loadRevokedCertificates(CertificateFactory cf, String crlFile)
       throws IOException, CRLException {
-
-    String crlFile = PGProperty.SSL_CRL_FILE.get(info);
-
-    if ( crlFile == null ) {
-      return null;
-    }
-
-    if (!crlFile.startsWith("/")) {
-      crlFile = defaultdir + crlFile;
-    }
 
     // load the CRL
     X509CRL crl = null;
-    if (crlFile != null) {
 
       FileInputStream fis =
           new FileInputStream(crlFile);
       crl = (X509CRL)cf.generateCRL(fis);
       fis.close();
 
-    }
     return crl;
   }
 }

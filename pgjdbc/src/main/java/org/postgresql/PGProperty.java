@@ -240,8 +240,8 @@ public enum PGProperty {
 
   /**
    * Specifies the name of the file containing the SSL server certificate revocation list (CRL).
-   * Relative paths are relative to the data directory. Default is empty which means no certificates
-   * revoked
+   * Default will be the file {@code root.crl} in {@code
+   *    * $HOME/.postgresql} (*nix) or {@code %APPDATA%\postgresql} (windows).
    */
   SSL_CRL_FILE("sslcrlfile",null, "The location of the file containing revoked certificates"),
 
