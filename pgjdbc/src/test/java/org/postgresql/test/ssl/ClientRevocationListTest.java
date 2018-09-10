@@ -46,22 +46,4 @@ public class ClientRevocationListTest {
     }
     TestUtil.closeQuietly(con);
   }
-
-  /**
-   * Helper method to create a connection using the additional properties specified in the "info"
-   * parameter.
-   *
-   * @param info The additional properties to use when creating a connection
-   */
-  protected Connection getConnection(Properties info) throws Exception {
-    return TestUtil.openDB(info);
-  }
-
-  protected String getUsername() {
-    return System.getProperty("username");
-  }
-
-  protected String getPassword() {
-    return System.getProperty("password");
-  }
 }
