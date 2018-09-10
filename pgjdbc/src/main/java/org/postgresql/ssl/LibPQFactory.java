@@ -49,7 +49,13 @@ public class LibPQFactory extends WrappedFactory {
 
   /**
    * @param info the connection parameters The following parameters are used:
-   *        sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
+   *        sslmode
+   *        sslcert
+   *        sslkey
+   *        sslrootcert
+   *        sslhostnameverifier
+   *        sslpasswordcallback
+   *        sslpassword
    * @throws PSQLException if security error appears when initializing factory
    */
   public LibPQFactory(Properties info) throws PSQLException {
