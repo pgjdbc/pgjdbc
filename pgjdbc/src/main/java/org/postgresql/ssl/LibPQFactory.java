@@ -131,6 +131,7 @@ public class LibPQFactory extends WrappedFactory {
               GT.tr("Could not open SSL root certificate file {0}.", sslrootcertfile),
               PSQLState.CONNECTION_FAILURE, ex);
         }
+        X509CRL crl = null;
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
@@ -142,7 +143,6 @@ public class LibPQFactory extends WrappedFactory {
 
           tmf.init(ks);
 
-          X509CRL crl;
           String sslcrlfile = PGProperty.SSL_CRL_FILE.get(info);
           if (sslcrlfile == null) {
             // No explicit CRL file specified so try the default. If it does not exist crl will be null.
@@ -182,6 +182,13 @@ public class LibPQFactory extends WrappedFactory {
           }
         }
         tm = tmf.getTrustManagers();
+        if (crl != null) {
+          // We have a non-empty CRL so add it a TrustManager to verify the server certificate against it
+          TrustManager[] tmp = new TrustManager[tm.length + 1];
+          System.arraycopy(tm, 0, tmp, 0, tm.length);
+          tmp[tm.length] = new CrlVerifyingTrustManager(crl);
+          tm = tmp;
+        }
       }
 
       // finally we can initialize the context
