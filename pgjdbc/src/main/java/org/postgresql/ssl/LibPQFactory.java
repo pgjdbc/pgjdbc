@@ -137,11 +137,21 @@ public class LibPQFactory extends WrappedFactory {
 
           tmf.init(ks);
 
+          X509CRL crl;
           String sslcrlfile =  PGProperty.SSL_CRL_FILE.get(info);
           if (sslcrlfile == null) {
+            // No explicit CRL file specified so try the default. If it does not exist crl will be null.
             sslcrlfile = defaultdir + "root.crl";
+            crl = loadRevokedCertificates(cf, sslcrlfile);
+          } else {
+            // Explicit CRL file specified so try to use it
+            crl = loadRevokedCertificates(cf, sslcrlfile);
+            if (crl == null) {
+              // Explicit CRL file specified was not found so throw an error to alert the user
+              throw new PSQLException(GT.tr("SSL certificate revocation list file {0} could not be read.", sslcrlfile),
+                    PSQLState.CONNECTION_FAILURE, null);
+            }
           }
-          X509CRL crl = loadRevokedCertificates(cf, sslcrlfile);
           if (crl != null) {
             for (X509Certificate cert : km.getCertificateChain(null) ) {
               X509CRLEntry e = crl.getRevokedCertificate(cert.getSerialNumber());
