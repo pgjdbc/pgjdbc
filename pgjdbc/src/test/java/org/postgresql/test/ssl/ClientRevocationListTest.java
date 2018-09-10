@@ -30,12 +30,9 @@ public class ClientRevocationListTest {
     props.put(TestUtil.DATABASE_PROP, "hostssldb");
 
     PGProperty.SSL_MODE.set(props, SslMode.VERIFY_CA.value);
-    PGProperty.SSL_CERT.set(props,
-        certdir + "/" + "revoked.crt");
-    PGProperty.SSL_KEY.set(props,
-        certdir + "/" + "revoked.pk8");
-    PGProperty.SSL_ROOT_CERT.set(props,
-        certdir + "/" + "goodroot.crt");
+    PGProperty.SSL_CERT.set(props, certdir + "/" + "revoked.crt");
+    PGProperty.SSL_KEY.set(props, certdir + "/" + "revoked.pk8");
+    PGProperty.SSL_ROOT_CERT.set(props, certdir + "/" + "goodroot.crt");
     PGProperty.SSL_CRL_FILE.set(props, certdir + "/" + "root.crl");
 
     try {
