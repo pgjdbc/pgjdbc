@@ -5,14 +5,6 @@
 
 package org.postgresql.ssl;
 
-import org.postgresql.PGProperty;
-import org.postgresql.jdbc.SslMode;
-import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
-import org.postgresql.util.GT;
-import org.postgresql.util.ObjectFactory;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
 import java.io.Console;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -39,6 +31,14 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
+
+import org.postgresql.PGProperty;
+import org.postgresql.jdbc.SslMode;
+import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
+import org.postgresql.util.GT;
+import org.postgresql.util.ObjectFactory;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 /**
  * Provide an SSLSocketFactory that is compatible with the libpq behaviour.
@@ -160,9 +160,10 @@ public class LibPQFactory extends WrappedFactory {
             }
           }
           if (crl != null) {
+            java.util.Date now = Calendar.getInstance().getTime();
             for (X509Certificate cert : km.getCertificateChain(null) ) {
               X509CRLEntry e = crl.getRevokedCertificate(cert.getSerialNumber());
-              if (e != null && (e.getRevocationDate().compareTo(Calendar.getInstance().getTime()) < 0)) {
+              if (e != null && (e.getRevocationDate().compareTo(now) < 0)) {
                 throw new PSQLException( GT.tr("SSL certificate {0} revoked.",
                     sslcertfile),
                     PSQLState.CONNECTION_FAILURE, null);
