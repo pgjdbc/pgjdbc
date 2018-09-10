@@ -164,8 +164,7 @@ public class LibPQFactory extends WrappedFactory {
             for (X509Certificate cert : km.getCertificateChain(null) ) {
               X509CRLEntry crlEntry = crl.getRevokedCertificate(cert.getSerialNumber());
               if (crlEntry != null && crlEntry.getRevocationDate().before(now)) {
-                throw new PSQLException( GT.tr("SSL certificate {0} revoked.",
-                    sslcertfile),
+                throw new PSQLException(GT.tr("SSL certificate with serial number {0} revoked.", crlEntry.getSerialNumber()),
                     PSQLState.CONNECTION_FAILURE, null);
               }
             }
