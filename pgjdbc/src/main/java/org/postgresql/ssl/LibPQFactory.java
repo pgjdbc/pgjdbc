@@ -138,7 +138,7 @@ public class LibPQFactory extends WrappedFactory {
           tmf.init(ks);
 
           X509CRL crl;
-          String sslcrlfile =  PGProperty.SSL_CRL_FILE.get(info);
+          String sslcrlfile = PGProperty.SSL_CRL_FILE.get(info);
           if (sslcrlfile == null) {
             // No explicit CRL file specified so try the default. If it does not exist crl will be null.
             sslcrlfile = defaultdir + "root.crl";
@@ -250,7 +250,7 @@ public class LibPQFactory extends WrappedFactory {
     }
   }
 
-  private  X509CRL loadRevokedCertificates(CertificateFactory cf, String crlFile)
+  private X509CRL loadRevokedCertificates(CertificateFactory cf, String crlFile)
       throws PSQLException {
     try (FileInputStream fis = new FileInputStream(crlFile)) {
       return (X509CRL) cf.generateCRL(fis);
