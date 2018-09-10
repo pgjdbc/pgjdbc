@@ -18,7 +18,7 @@ import java.sql.Connection;
 
 import java.util.Properties;
 
-public class ClientRevocationListTest {
+public class CertificateRevocationListTest {
   @Test
   public void testRevokedClientCert() throws Exception {
     File certDirFile = TestUtil.getFile("certdir");

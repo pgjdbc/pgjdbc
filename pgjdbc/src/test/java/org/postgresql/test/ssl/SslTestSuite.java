@@ -13,7 +13,7 @@ import org.junit.runners.Suite;
     LibPQFactoryHostNameTest.class,
     CommonNameVerifierTest.class,
     SslTest.class,
-    ClientRevocationListTest.class
+    CertificateRevocationListTest.class
 })
 public class SslTestSuite {
 }
