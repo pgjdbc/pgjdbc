@@ -53,6 +53,7 @@ public class LibPQFactory extends WrappedFactory {
    *        sslcert
    *        sslkey
    *        sslrootcert
+   *        sslcrlfile
    *        sslhostnameverifier
    *        sslpasswordcallback
    *        sslpassword
