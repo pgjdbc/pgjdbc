@@ -18,16 +18,15 @@ import org.postgresql.util.PSQLException;
 
 public class CertificateRevocationListTest {
   private static Properties getCrlProps(String crlFileName) {
-    File certDirFile = TestUtil.getFile("certdir");
-    String certdir = certDirFile.getAbsolutePath();
+    File certDir = TestUtil.getFile("certdir");
     Properties props = new Properties();
     props.put(TestUtil.SERVER_HOST_PORT_PROP, "localhost" + ":" + TestUtil.getPort());
     props.put(TestUtil.DATABASE_PROP, "hostssldb");
     PGProperty.SSL_MODE.set(props, SslMode.VERIFY_CA.value);
-    PGProperty.SSL_CERT.set(props, certdir + "/" + "revoked.crt");
-    PGProperty.SSL_KEY.set(props, certdir + "/" + "revoked.pk8");
-    PGProperty.SSL_ROOT_CERT.set(props, certdir + "/" + "goodroot.crt");
-    PGProperty.SSL_CRL_FILE.set(props, certdir + "/" + crlFileName);
+    PGProperty.SSL_CERT.set(props, new File(certDir, "revoked.crt").getAbsolutePath());
+    PGProperty.SSL_KEY.set(props, new File(certDir, "revoked.pk8").getAbsolutePath());
+    PGProperty.SSL_ROOT_CERT.set(props, new File(certDir, "goodroot.crt").getAbsolutePath());
+    PGProperty.SSL_CRL_FILE.set(props, new File(certDir, crlFileName).getAbsolutePath());
     return props;
   }
 
