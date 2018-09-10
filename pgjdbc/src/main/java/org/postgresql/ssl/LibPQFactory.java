@@ -248,16 +248,10 @@ public class LibPQFactory extends WrappedFactory {
 
   private  X509CRL loadRevokedCertificates(CertificateFactory cf, String crlFile)
       throws IOException, CRLException {
-
-    // load the CRL
-    X509CRL crl = null;
-
-    try {
-      FileInputStream fis = new FileInputStream(crlFile);
-      crl = (X509CRL) cf.generateCRL(fis);
-      fis.close();
+    try (FileInputStream fis = new FileInputStream(crlFile)) {
+      return (X509CRL) cf.generateCRL(fis);
     } catch (FileNotFoundException ex) {
+      return null;
     }
-    return crl;
   }
 }
