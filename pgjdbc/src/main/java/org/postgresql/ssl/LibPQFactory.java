@@ -138,26 +138,20 @@ public class LibPQFactory extends WrappedFactory {
           tmf.init(ks);
 
           String sslcrlfile =  PGProperty.SSL_CRL_FILE.get(info);
-          if (sslcrlfile == null ) {
+          if (sslcrlfile == null) {
             sslcrlfile = defaultdir + "root.crl";
           }
-
           X509CRL crl = loadRevokedCertificates(cf, sslcrlfile);
-
-          if ( crl != null  ) {
-
-            for (X509Certificate cert:km.getCertificateChain(null) ) {
+          if (crl != null) {
+            for (X509Certificate cert : km.getCertificateChain(null) ) {
               X509CRLEntry e = crl.getRevokedCertificate(cert.getSerialNumber());
-
-              if ( e != null && (e.getRevocationDate().compareTo( Calendar.getInstance().getTime()) < 0) ) {
+              if (e != null && (e.getRevocationDate().compareTo(Calendar.getInstance().getTime()) < 0)) {
                 throw new PSQLException( GT.tr("SSL certificate {0} revoked.",
                     sslcertfile),
                     PSQLState.CONNECTION_FAILURE, null);
               }
             }
-
           }
-
         } catch (IOException ioex) {
           throw new PSQLException(
               GT.tr("Could not read SSL root certificate file {0}.", sslrootcertfile),
