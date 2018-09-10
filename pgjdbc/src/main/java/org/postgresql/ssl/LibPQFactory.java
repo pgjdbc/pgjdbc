@@ -163,7 +163,7 @@ public class LibPQFactory extends WrappedFactory {
             java.util.Date now = Calendar.getInstance().getTime();
             for (X509Certificate cert : km.getCertificateChain(null) ) {
               X509CRLEntry e = crl.getRevokedCertificate(cert.getSerialNumber());
-              if (e != null && (e.getRevocationDate().compareTo(now) < 0)) {
+              if (e != null && e.getRevocationDate().before(now)) {
                 throw new PSQLException( GT.tr("SSL certificate {0} revoked.",
                     sslcertfile),
                     PSQLState.CONNECTION_FAILURE, null);
