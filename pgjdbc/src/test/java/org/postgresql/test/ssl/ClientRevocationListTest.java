@@ -38,7 +38,7 @@ public class ClientRevocationListTest {
     try {
       con = TestUtil.openDB(props);
       Assert.fail("Should throw an exception");
-    } catch (PSQLException ex ) {
+    } catch (PSQLException ex) {
       String message = ex.getMessage();
       if (message == null || !message.matches("^SSL certificate with serial number .* revoked.")) {
         Assert.fail("Expected SSL certificate revocation exception; actual message: " + message);
