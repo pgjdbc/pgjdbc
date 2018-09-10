@@ -251,11 +251,15 @@ public class LibPQFactory extends WrappedFactory {
   }
 
   private  X509CRL loadRevokedCertificates(CertificateFactory cf, String crlFile)
-      throws IOException, CRLException {
+      throws PSQLException {
     try (FileInputStream fis = new FileInputStream(crlFile)) {
       return (X509CRL) cf.generateCRL(fis);
     } catch (FileNotFoundException ex) {
       return null;
+    } catch (CRLException | IOException ex) {
+      throw new PSQLException(
+          GT.tr("Could not read SSL certificate revocation list file {0}.", crlFile),
+          PSQLState.CONNECTION_FAILURE, ex);
     }
   }
 }
