@@ -230,6 +230,7 @@ public class PGPropertyTest {
     excluded.add("SSL_CERT"); // ssl[c]ert
     excluded.add("SSL_KEY"); // ssl[k]ey
     excluded.add("SSL_ROOT_CERT"); // ssl[r]oot[c]ert
+    excluded.add("SSL_CRL_FILE"); // ssl[c]rl[f]ile
     excluded.add("SSL_PASSWORD"); // ssl[p]assword
     excluded.add("SSL_PASSWORD_CALLBACK"); // ssl[p]assword[c]allback
     excluded.add("APPLICATION_NAME"); // [A]pplicationName
