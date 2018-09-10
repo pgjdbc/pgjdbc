@@ -28,7 +28,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
 import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.Properties;
 
 import javax.net.ssl.KeyManager;
@@ -145,11 +145,11 @@ public class LibPQFactory extends WrappedFactory {
           X509CRL crl = loadRevokedCertificates(cf, sslcrlfile);
 
           if ( crl != null  ) {
-
+            Date now = new Date();
             for (X509Certificate cert:km.getCertificateChain(null) ) {
               X509CRLEntry e = crl.getRevokedCertificate(cert.getSerialNumber());
 
-              if ( e != null && (e.getRevocationDate().compareTo( Calendar.getInstance().getTime()) < 0) ) {
+              if ( e != null && (e.getRevocationDate().before(now))) {
                 throw new PSQLException( GT.tr("SSL certificate {0} revoked.",
                     sslcertfile),
                     PSQLState.CONNECTION_FAILURE, null);
@@ -251,13 +251,18 @@ public class LibPQFactory extends WrappedFactory {
 
     // load the CRL
     X509CRL crl = null;
-
+    FileInputStream fis = null;
     try {
-      FileInputStream fis = new FileInputStream(crlFile);
+      new FileInputStream(crlFile);
       crl = (X509CRL) cf.generateCRL(fis);
       fis.close();
     } catch (FileNotFoundException ex) {
+    } finally {
+      if ( fis != null ) {
+        fis.close();
+      }
     }
+
     return crl;
   }
 }
