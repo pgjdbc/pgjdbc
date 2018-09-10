@@ -49,7 +49,7 @@ public class ClientRevocationListTest {
 
   /**
    * Helper method to create a connection using the additional properties specified in the "info"
-   * paramater.
+   * parameter.
    *
    * @param info The additional properties to use when creating a connection
    */
