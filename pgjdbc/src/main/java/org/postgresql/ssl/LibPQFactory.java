@@ -18,9 +18,7 @@ import java.security.cert.CRLException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
-import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
-import java.util.Calendar;
 import java.util.Properties;
 
 import javax.net.ssl.KeyManager;
@@ -160,11 +158,9 @@ public class LibPQFactory extends WrappedFactory {
             }
           }
           if (crl != null) {
-            java.util.Date now = Calendar.getInstance().getTime();
             for (X509Certificate cert : km.getCertificateChain(null) ) {
-              X509CRLEntry crlEntry = crl.getRevokedCertificate(cert.getSerialNumber());
-              if (crlEntry != null && crlEntry.getRevocationDate().before(now)) {
-                throw new PSQLException(GT.tr("SSL certificate with serial number {0} revoked.", crlEntry.getSerialNumber()),
+              if (crl.isRevoked(cert)) {
+                throw new PSQLException(GT.tr("SSL certificate with serial number {0} revoked.", cert.getSerialNumber()),
                     PSQLState.CONNECTION_FAILURE, null);
               }
             }
