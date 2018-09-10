@@ -19,11 +19,8 @@ import java.sql.Connection;
 import java.util.Properties;
 
 public class ClientRevocationListTest {
-
-
   @Test
   public void testRevokedClientCert() throws Exception {
-
     File certDirFile = TestUtil.getFile("certdir");
     String certdir = certDirFile.getAbsolutePath();
 
@@ -57,7 +54,6 @@ public class ClientRevocationListTest {
    * @param info The additional properties to use when creating a connection
    */
   protected Connection getConnection(Properties info) throws Exception {
-
     return TestUtil.openDB(info);
   }
 
@@ -68,7 +64,4 @@ public class ClientRevocationListTest {
   protected String getPassword() {
     return System.getProperty("password");
   }
-
-
-
 }
