@@ -5,16 +5,17 @@
 
 package org.postgresql.test.ssl;
 
-import java.io.File;
-import java.sql.Connection;
-import java.util.Properties;
-
-import org.junit.Assert;
-import org.junit.Test;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.io.File;
+import java.sql.Connection;
+import java.util.Properties;
 
 public class CertificateRevocationListTest {
   private static Properties getCrlProps(String crlFileName) {
