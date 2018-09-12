@@ -1,9 +1,12 @@
 /*
- * Copyright (c) 2018, PostgreSQL Global Development Group See the LICENSE file in the project root
- * for more information.
+ * Copyright (c) 2018, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
  */
 
+
 package org.postgresql.ssl;
+
+import org.postgresql.util.GT;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509CRL;
@@ -11,12 +14,10 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ssl.X509TrustManager;
 
-import org.postgresql.util.GT;
 
 /**
  * A TrustManager that validated each certificate in the server chain against a certificate revocation list (CRL).
- *
- * Only certificates in the server's chain are validated against the CRL. Client certificates are not validated. 
+ * Only certificates in the server's chain are validated against the CRL. Client certificates are not validated.
  */
 public class CrlVerifyingTrustManager implements X509TrustManager {
   private final X509CRL crl;
