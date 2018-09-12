@@ -18,21 +18,21 @@ import org.postgresql.util.PSQLException;
 
 public class CertificateRevocationListTest {
   private static Properties getCrlProps(String crlFileName) {
-    File certDir = TestUtil.getFile("certdir");
+    File certDir = TestUtil.getFile("certdir/ssl");
     Properties props = new Properties();
     props.put(TestUtil.SERVER_HOST_PORT_PROP, "localhost" + ":" + TestUtil.getPort());
     props.put(TestUtil.DATABASE_PROP, "hostssldb");
     PGProperty.SSL_MODE.set(props, SslMode.VERIFY_CA.value);
-    PGProperty.SSL_CERT.set(props, new File(certDir, "revoked.crt").getAbsolutePath());
-    PGProperty.SSL_KEY.set(props, new File(certDir, "revoked.pk8").getAbsolutePath());
-    PGProperty.SSL_ROOT_CERT.set(props, new File(certDir, "goodroot.crt").getAbsolutePath());
+    PGProperty.SSL_CERT.set(props, new File(certDir, "client-revoked.crt").getAbsolutePath());
+    PGProperty.SSL_KEY.set(props, new File(certDir, "client_ca.pk8").getAbsolutePath());
+    PGProperty.SSL_ROOT_CERT.set(props, new File(certDir, "client_ca.crt").getAbsolutePath());
     PGProperty.SSL_CRL_FILE.set(props, new File(certDir, crlFileName).getAbsolutePath());
     return props;
   }
 
   @Test
   public void revokedClientCert() throws Exception {
-    Properties props = getCrlProps("root.crl");
+    Properties props = getCrlProps("client.crl");
     try (Connection con = TestUtil.openDB(props)) {
       Assert.fail("Should throw an exception");
     } catch (PSQLException ex) {
