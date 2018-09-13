@@ -38,7 +38,7 @@ public class CertificateRevocationListTest {
       Assert.fail("Should throw an exception");
     } catch (PSQLException ex) {
       String message = ex.getMessage();
-      if (message == null || !message.matches("^SSL certificate with serial number .* revoked")) {
+      if (message == null || !message.matches("^SSL certificate with serial number .* revoked\\.")) {
         Assert.fail("Expected SSL certificate revocation exception; actual message: " + message);
       }
     }
@@ -52,7 +52,7 @@ public class CertificateRevocationListTest {
       Assert.fail("Should throw an exception");
     } catch (PSQLException ex) {
       String message = ex.getMessage();
-      if (message == null || !message.matches("^SSL certificate revocation list file .* could not be read")) {
+      if (message == null || !message.matches("^SSL certificate revocation list file .* could not be read\\.")) {
         Assert.fail("Expected SSL CRL file missing exception; actual message: " + message);
       }
     }
