@@ -94,7 +94,7 @@ matrix:
       services:
         - docker
       if: type != pull_request
-    - jdk: openjdk12
+    - jdk: oraclejdk12
       sudo: required
       addons:
         postgresql: "10"
