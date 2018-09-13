@@ -22,7 +22,6 @@ import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CRLException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
@@ -263,14 +262,24 @@ public class LibPQFactory extends WrappedFactory {
 
   private X509CRL loadRevokedCertificates(CertificateFactory cf, String crlFile)
       throws PSQLException {
-    try (FileInputStream fis = new FileInputStream(crlFile)) {
+    FileInputStream fis = null;
+    try {
+      fis = new FileInputStream(crlFile);
       return (X509CRL) cf.generateCRL(fis);
     } catch (FileNotFoundException ex) {
       return null;
-    } catch (CRLException | IOException ex) {
+    } catch (Exception ex) {
       throw new PSQLException(
           GT.tr("Could not read SSL certificate revocation list file {0}.", crlFile),
           PSQLState.CONNECTION_FAILURE, ex);
+    } finally {
+      if (fis != null) {
+        try {
+          fis.close();
+        } catch (IOException ignore) {
+          // NOTE: We do not handle a close error as we will have rethrown the original cause instead
+        }
+      }
     }
   }
 }
