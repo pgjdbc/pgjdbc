@@ -147,10 +147,10 @@ public class LibPQFactory extends WrappedFactory {
           if (sslcrlfile == null) {
             // No explicit CRL file specified so try the default. If it does not exist crl will be null.
             sslcrlfile = defaultdir + "root.crl";
-            crl = loadRevokedCertificates(cf, sslcrlfile);
+            crl = loadCertificateRevocationList(cf, sslcrlfile);
           } else {
             // Explicit CRL file specified so try to use it
-            crl = loadRevokedCertificates(cf, sslcrlfile);
+            crl = loadCertificateRevocationList(cf, sslcrlfile);
             if (crl == null) {
               // Explicit CRL file specified was not found so throw an error to alert the user
               throw new PSQLException(GT.tr("SSL certificate revocation list file {0} could not be read.", sslcrlfile),
@@ -260,7 +260,7 @@ public class LibPQFactory extends WrappedFactory {
     }
   }
 
-  private X509CRL loadRevokedCertificates(CertificateFactory cf, String crlFile)
+  private X509CRL loadCertificateRevocationList(CertificateFactory cf, String crlFile)
       throws PSQLException {
     FileInputStream fis = null;
     try {
