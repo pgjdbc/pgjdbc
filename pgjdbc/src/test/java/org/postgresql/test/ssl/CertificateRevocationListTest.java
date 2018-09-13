@@ -11,6 +11,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -18,6 +20,12 @@ import java.sql.Connection;
 import java.util.Properties;
 
 public class CertificateRevocationListTest {
+  @Before
+  public void checkTestEnabled() {
+    Properties props = TestUtil.loadPropertyFiles("ssltest.properties");
+    Assume.assumeTrue(Boolean.valueOf(props.getProperty("enable_ssl_tests", "false")));
+  }
+
   private static Properties getCrlProps(String crlFileName) {
     File certDir = TestUtil.getFile("certdir/ssl");
     Properties props = new Properties();
