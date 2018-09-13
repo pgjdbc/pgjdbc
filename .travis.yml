@@ -94,6 +94,14 @@ matrix:
       services:
         - docker
       if: type != pull_request
+    - jdk: openjdk12
+      sudo: required
+      addons:
+        postgresql: "10"
+      env:
+      - PG_VERSION=10
+      - JDK=12
+      - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk11
       sudo: required
       addons:
