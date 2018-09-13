@@ -98,7 +98,7 @@ matrix:
       addons:
         postgresql: "10"
       env:
-      - PG_VERSION=10
+      - PG_VERSION=10.0
       - JDK=10
       - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk9
