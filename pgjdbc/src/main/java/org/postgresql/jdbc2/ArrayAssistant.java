@@ -36,4 +36,11 @@ public interface ArrayAssistant {
    * @return array element
    */
   Object buildElement(String literal);
+
+  /**
+   * Allocate an array of the custom type and requested dimensions
+   * @param dimensions the array dimensions
+   * @return a new array
+   */
+  Object makeTypedArray(int... dimensions);
 }

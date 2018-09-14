@@ -25,4 +25,9 @@ public class UUIDArrayAssistant implements ArrayAssistant {
   public Object buildElement(String literal) {
     return UUID.fromString(literal);
   }
+
+  @Override
+  public Object makeTypedArray(final int... dimensions) {
+    return java.lang.reflect.Array.newInstance(UUID.class, dimensions);
+  }
 }
