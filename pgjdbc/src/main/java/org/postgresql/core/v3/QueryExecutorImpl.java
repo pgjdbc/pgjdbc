@@ -71,6 +71,7 @@ import java.util.logging.Logger;
 public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
+  private static final String COPY_ERROR_MESSAGE = "COPY commands are only supported using the CopyManager API.";
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -2352,8 +2353,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // We'll send a CopyFail message for COPY FROM STDIN so that
           // server does not wait for the data.
 
-          byte[] buf =
-              Utils.encodeUTF8("The JDBC driver currently does not support COPY operations.");
+          byte[] buf = Utils.encodeUTF8(COPY_ERROR_MESSAGE);
           pgStream.sendChar('f');
           pgStream.sendInteger4(buf.length + 4 + 1);
           pgStream.send(buf);
@@ -2370,7 +2370,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // In case of CopyOutResponse, we cannot abort data transfer,
           // so just throw an error and ignore CopyData messages
           handler.handleError(
-              new PSQLException(GT.tr("The driver currently does not support COPY operations."),
+              new PSQLException(GT.tr(COPY_ERROR_MESSAGE),
                   PSQLState.NOT_IMPLEMENTED));
           break;
 
