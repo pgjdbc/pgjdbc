@@ -188,10 +188,16 @@ class SimpleParameterList implements V3ParameterList {
 
         case Oid.FLOAT4:
           float f = ByteConverter.float4((byte[]) paramValues[index], 0);
+          if (Float.isNaN(f)) {
+            return "'NaN'::real";
+          }
           return Float.toString(f);
 
         case Oid.FLOAT8:
           double d = ByteConverter.float8((byte[]) paramValues[index], 0);
+          if (Double.isNaN(d)) {
+            return "'NaN'::double precision";
+          }
           return Double.toString(d);
 
         case Oid.UUID:

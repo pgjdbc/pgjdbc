@@ -569,6 +569,62 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testNaNLiteralsSimpleStatement() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select 'NaN'::numeric, 'NaN'::real, 'NaN'::double precision");
+    checkNaNLiterals(stmt, rs);
+  }
+
+  @Test
+  public void testNaNLiteralsPreparedStatement() throws SQLException {
+    PreparedStatement stmt = con.prepareStatement("select 'NaN'::numeric, 'NaN'::real, 'NaN'::double precision");
+    checkNaNLiterals(stmt, stmt.executeQuery());
+  }
+
+  private void checkNaNLiterals(Statement stmt, ResultSet rs) throws SQLException {
+    rs.next();
+    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(3)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(3)));
+    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(2)));
+    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(2)));
+    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(1)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(1)));
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testNaNSetDoubleFloat() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?");
+    ps.setFloat(1, Float.NaN);
+    ps.setDouble(2, Double.NaN);
+
+    checkNaNParams(ps);
+  }
+
+  @Test
+  public void testNaNSetObject() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?");
+    ps.setObject(1, Float.NaN);
+    ps.setObject(2, Double.NaN);
+
+    checkNaNParams(ps);
+  }
+
+  private void checkNaNParams(PreparedStatement ps) throws SQLException {
+    ResultSet rs = ps.executeQuery();
+    rs.next();
+
+    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(1)));
+    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(1)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
+
+    TestUtil.closeQuietly(rs);
+    TestUtil.closeQuietly(ps);
+  }
+
+  @Test
   public void testBoolean() throws SQLException {
     testBoolean(0);
     testBoolean(1);
