@@ -15,10 +15,9 @@ public class LogicalCreateSlotBuilder
     extends AbstractCreateSlotBuilder<ChainedLogicalCreateSlotBuilder>
     implements ChainedLogicalCreateSlotBuilder {
   private String outputPlugin;
-  private BaseConnection connection;
 
   public LogicalCreateSlotBuilder(BaseConnection connection) {
-    this.connection = connection;
+    super(connection);
   }
 
   @Override
@@ -45,7 +44,12 @@ public class LogicalCreateSlotBuilder
 
     Statement statement = connection.createStatement();
     try {
-      statement.execute(String.format("CREATE_REPLICATION_SLOT %s LOGICAL %s", slotName, outputPlugin));
+      statement.execute(String.format(
+              "CREATE_REPLICATION_SLOT %s %s LOGICAL %s",
+              slotName,
+              temporaryOption ? "TEMPORARY" : "",
+              outputPlugin
+      ));
     } finally {
       statement.close();
     }
