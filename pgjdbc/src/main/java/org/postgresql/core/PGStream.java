@@ -5,27 +5,14 @@
 
 package org.postgresql.core;
 
-import org.postgresql.util.ByteStreamWriter;
-import org.postgresql.util.GT;
-import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
+import org.postgresql.util.*;
 
-import java.io.BufferedOutputStream;
-import java.io.Closeable;
-import java.io.EOFException;
-import java.io.FilterOutputStream;
-import java.io.Flushable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Writer;
+import javax.net.SocketFactory;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
-
-import javax.net.SocketFactory;
 
 /**
  * <p>Wrapper around the raw connection to the server that implements some basic primitives
@@ -320,9 +307,14 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs
    */
   public void send(ByteStreamWriter writer) throws IOException {
-    FixedLengthOutputStream fixedLengthStream = new FixedLengthOutputStream(writer.getLength(), pg_output);
+    final FixedLengthOutputStream fixedLengthStream = new FixedLengthOutputStream(writer.getLength(), pg_output);
     try {
-      writer.writeTo(fixedLengthStream);
+      writer.writeTo(new ByteStreamWriter.ByteStreamTarget() {
+        @Override
+        public OutputStream getOutputStream() {
+          return fixedLengthStream;
+        }
+      });
     } catch (IOException ioe) {
       throw ioe;
     } catch (Exception re) {
