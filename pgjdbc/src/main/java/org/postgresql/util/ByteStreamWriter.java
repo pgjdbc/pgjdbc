@@ -34,7 +34,7 @@ public interface ByteStreamWriter {
   /**
    * Returns the length of the stream.
    *
-   * <p> This must be known ahead of calling {@link #writeTo(OutputStream)}. </p>
+   * <p> This must be known ahead of calling {@link #writeTo(ByteStreamTarget)}. </p>
    *
    * @return the number of bytes in the stream.
    */
@@ -46,8 +46,19 @@ public interface ByteStreamWriter {
    * <p> Should not write more than {@link #getLength()} bytes. If attempted, the provided stream
    * will throw an {@link java.io.IOException}. </p>
    *
-   * @param stream the stream to write the data to
+   * @param target the stream to write the data to
    * @throws IOException if the underlying stream throws or there is some other error.
    */
-  void writeTo(OutputStream stream) throws IOException;
+  void writeTo(ByteStreamTarget target) throws IOException;
+
+  /**
+   * Provides a target to write bytes to.
+   */
+  interface ByteStreamTarget {
+
+    /**
+     * Provides an output stream to write bytes to.
+     */
+    OutputStream getOutputStream();
+  }
 }

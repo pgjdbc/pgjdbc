@@ -6,7 +6,6 @@
 package org.postgresql.util;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -36,10 +35,10 @@ public class ByteBufferByteStreamWriter implements ByteStreamWriter {
   }
 
   @Override
-  public void writeTo(OutputStream stream) throws IOException {
+  public void writeTo(ByteStreamTarget target) throws IOException {
     // this _does_ involve some copying to a temporary buffer, but that's unavoidable
     // as OutputStream itself only accepts single bytes or heap allocated byte arrays
-    WritableByteChannel c = Channels.newChannel(stream);
+    WritableByteChannel c = Channels.newChannel(target.getOutputStream());
     try {
       c.write(buf);
     } finally {

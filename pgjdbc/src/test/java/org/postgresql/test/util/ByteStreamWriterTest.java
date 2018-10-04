@@ -5,25 +5,20 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
+import org.junit.Test;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.ByteStreamWriter;
 
-import org.junit.Test;
-
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
+
+import static org.junit.Assert.*;
 
 public class ByteStreamWriterTest extends BaseTest4 {
 
@@ -203,7 +198,7 @@ public class ByteStreamWriterTest extends BaseTest4 {
     }
 
     @Override
-    public void writeTo(OutputStream stream) throws IOException {
+    public void writeTo(ByteStreamTarget target) throws IOException {
       if (cause instanceof RuntimeException) {
         throw (RuntimeException) cause;
       } else if (cause instanceof IOException) {
