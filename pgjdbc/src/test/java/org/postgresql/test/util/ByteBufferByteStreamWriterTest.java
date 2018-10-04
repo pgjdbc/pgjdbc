@@ -5,19 +5,17 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import org.postgresql.util.ByteBufferByteStreamWriter;
-
 import org.junit.Before;
 import org.junit.Test;
+import org.postgresql.util.ByteBufferByteStreamWriter;
+import org.postgresql.util.ByteStreamWriter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+
+import static org.junit.Assert.*;
 
 public class ByteBufferByteStreamWriterTest {
 
@@ -41,7 +39,7 @@ public class ByteBufferByteStreamWriterTest {
 
   @Test
   public void testCopiesDataCorrectly() throws IOException {
-    writer.writeTo(targetStream);
+    writer.writeTo(target(targetStream));
     byte[] written = targetStream.toByteArray();
     assertArrayEquals("Incorrect data written to target stream", data, written);
   }
@@ -56,11 +54,19 @@ public class ByteBufferByteStreamWriterTest {
       }
     };
     try {
-      writer.writeTo(errorStream);
+      writer.writeTo(target(errorStream));
       fail("No exception thrown");
     } catch (IOException caught) {
       assertEquals("Exception was thrown that wasn't the expected one", caught, e);
     }
   }
 
+  private static ByteStreamWriter.ByteStreamTarget target(OutputStream stream) {
+    return new ByteStreamWriter.ByteStreamTarget() {
+      @Override
+      public OutputStream getOutputStream() {
+        return stream;
+      }
+    };
+  }
 }
