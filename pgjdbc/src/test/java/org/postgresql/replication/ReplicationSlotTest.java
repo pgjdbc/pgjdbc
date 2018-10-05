@@ -7,6 +7,8 @@ package org.postgresql.replication;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
@@ -91,20 +93,14 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreateTemporaryPhysicalSlot() throws Exception {
+  public void testCreateTemporaryPhysicalSlotPg10AndHigher()
+      throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
+
     BaseConnection baseConnection = (BaseConnection) replConnection;
 
-    slotName = "pgjdbc_test_create_temporary_physical_replication_slot";
+    String slotName = "pgjdbc_test_create_temporary_physical_replication_slot_pg_10_or_higher";
 
-    if (TestUtil.haveMinimumServerVersion(baseConnection, ServerVersion.v10)) {
-      createTemporaryPhysicalSlotPg10AndHigher(baseConnection, slotName);
-    } else {
-      createTemporaryPhysicalSlotPgLowerThan10(baseConnection, slotName);
-    }
-  }
-
-  private void createTemporaryPhysicalSlotPg10AndHigher(BaseConnection baseConnection, String slotName)
-      throws SQLException {
     try {
 
       baseConnection
@@ -123,11 +119,18 @@ public class ReplicationSlotTest {
 
     boolean result = isSlotTemporary(slotName);
 
-    assertThat(result, CoreMatchers.equalTo(true));
+    assertThat("Slot is not temporary", result, CoreMatchers.equalTo(true));
   }
 
-  private void createTemporaryPhysicalSlotPgLowerThan10(BaseConnection baseConnection, String slotName)
+  @Test
+  public void testCreateTemporaryPhysicalSlotPgLowerThan10()
       throws SQLException {
+    assumeFalse(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
+
+    BaseConnection baseConnection = (BaseConnection) replConnection;
+
+    String slotName = "pgjdbc_test_create_temporary_physical_replication_slot_pg_lower_than_10";
+
     try {
 
       baseConnection
@@ -221,20 +224,14 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreateTemporaryLogicalSlot() throws Exception {
+  public void testCreateTemporaryLogicalSlotPg10AndHigher()
+      throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
+
     BaseConnection baseConnection = (BaseConnection) replConnection;
 
-    slotName = "pgjdbc_test_create_temporary_logical_replication_slot";
+    String slotName = "pgjdbc_test_create_temporary_logical_replication_slot_pg_10_or_higher";
 
-    if (TestUtil.haveMinimumServerVersion(baseConnection, ServerVersion.v10)) {
-      createTemporaryLogicalSlotPg10AndHigher(baseConnection, slotName);
-    } else {
-      createTemporaryLogicalSlotPgLowerThan10(baseConnection, slotName);
-    }
-  }
-
-  private void createTemporaryLogicalSlotPg10AndHigher(BaseConnection baseConnection, String slotName)
-      throws SQLException {
     try {
 
       baseConnection
@@ -254,11 +251,18 @@ public class ReplicationSlotTest {
 
     boolean result = isSlotTemporary(slotName);
 
-    assertThat(result, CoreMatchers.equalTo(true));
+    assertThat("Slot is not temporary", result, CoreMatchers.equalTo(true));
   }
 
-  private void createTemporaryLogicalSlotPgLowerThan10(BaseConnection baseConnection, String slotName)
+  @Test
+  public void testCreateTemporaryLogicalSlotPgLowerThan10()
       throws SQLException {
+    assumeFalse(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
+
+    BaseConnection baseConnection = (BaseConnection) replConnection;
+
+    String slotName = "pgjdbc_test_create_temporary_logical_replication_slot_pg_lower_than_10";
+
     try {
 
       baseConnection
