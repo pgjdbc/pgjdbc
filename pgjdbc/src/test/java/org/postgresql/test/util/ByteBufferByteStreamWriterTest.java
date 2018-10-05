@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
+
 public class ByteBufferByteStreamWriterTest {
 
   private ByteArrayOutputStream targetStream;

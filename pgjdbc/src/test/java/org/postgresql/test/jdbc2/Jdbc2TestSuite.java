@@ -5,28 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.core.CommandCompleteParserNegativeTest;
-import org.postgresql.core.CommandCompleteParserTest;
-import org.postgresql.core.OidToStringTest;
-import org.postgresql.core.OidValueOfTest;
-import org.postgresql.core.ParserTest;
-import org.postgresql.core.ReturningParserTest;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.postgresql.core.*;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
-import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.FixedLengthOutputStreamTest;
+import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
-import org.postgresql.test.util.ByteBufferByteStreamWriterTest;
-import org.postgresql.test.util.ByteStreamWriterTest;
-import org.postgresql.test.util.ExpressionPropertiesTest;
-import org.postgresql.test.util.LruCacheTest;
-import org.postgresql.test.util.ServerVersionParseTest;
-import org.postgresql.test.util.ServerVersionTest;
+import org.postgresql.test.util.*;
 import org.postgresql.util.ReaderInputStreamTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for JDBC2 and includes some utility methods.
