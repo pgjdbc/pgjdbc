@@ -157,11 +157,23 @@ public class PGPropertyTest {
    * more should be put in but this scratches the current itch
    */
   @Test
-  public void testOverWriteDSProperties() throws Exception {
+  public void testDoesNotOverWriteDSProperties() throws Exception {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     dataSource.setAutosave(AutoSave.CONSERVATIVE);
     dataSource.setURL("jdbc:postgresql://localhost:5432/postgres");
     assertSame(dataSource.getAutosave(),AutoSave.CONSERVATIVE);
+  }
+
+  /**
+   * Test to make sure that setURL doesn't overwrite autosave
+   * more should be put in but this scratches the current itch
+   */
+  @Test
+  public void testDoesOverWriteDSProperties() throws Exception {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setAutosave(AutoSave.CONSERVATIVE);
+    dataSource.setURL("jdbc:postgresql://localhost:5432/postgres?autosave=never");
+    assertSame(dataSource.getAutosave(),AutoSave.NEVER);
   }
 
   /**
