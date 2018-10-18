@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
@@ -78,21 +79,17 @@ public class NotifyTest {
     // Notify on a separate connection to get an async notify on the first.
     connectAndNotify("mynotification");
 
-    // Wait a bit to let the notify come through... Changed this so the test takes ~2 seconds
-    // less to run and is still as effective.
-    PGNotification[] notifications = null;
-    try {
-      int retries = 20;
-      while (retries-- > 0
-        && (notifications = conn.unwrap(PGConnection.class).getNotifications()) == null ) {
-        Thread.sleep(100);
-      }
-    } catch (InterruptedException ie) {
-    }
+    // Async notify might get stuck in the queue, so client has to perform a DB roundtrip or use
+    // timed getNotifications.
+    stmt.execute("SELECT 1");
+
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications();
 
     assertNotNull("Notification is expected to be delivered when subscription was created"
             + " before sending notification", notifications);
-    assertEquals(1, notifications.length);
+    if (notifications.length == 0 || notifications.length > 1000) {
+      fail("1..100 notifications should be received. Actual number of notifications is " + notifications.length);
+    }
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
 
@@ -229,7 +226,7 @@ public class NotifyTest {
 
     try {
       conn.unwrap(PGConnection.class).getNotifications(40000);
-      Assert.fail("The getNotifications(...) call didn't return when the socket closed.");
+      fail("The getNotifications(...) call didn't return when the socket closed.");
     } catch (SQLException e) {
       // We expected that
     }
