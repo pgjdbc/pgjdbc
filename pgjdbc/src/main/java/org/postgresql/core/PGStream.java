@@ -109,10 +109,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public boolean hasMessagePending() throws IOException {
-    if (pg_input.available() > 0) {
-      return true;
-    }
-    return false;
+    return pg_input.available() > 0 || connection.getInputStream().available() > 0;
   }
 
   /**
