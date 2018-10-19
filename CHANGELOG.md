@@ -9,8 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
+- Fixed async copy performance regression [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
 
 ## [42.2.5] (2018-08-27)
+### Known issues
+- 1ms per async copy call [issue 1312](https://github.com/pgjdbc/pgjdbc/issues/1312)
+
 ### Changed
 - `ssl=true` implies `sslmode=verify-full`, that is it requires valid server certificate [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
 
