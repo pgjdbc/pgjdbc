@@ -110,19 +110,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public boolean hasMessagePending() throws IOException {
-    if (pg_input.available() > 0) {
-      return true;
-    }
-    // In certain cases, available returns 0, yet there are bytes
-    int soTimeout = getNetworkTimeout();
-    setNetworkTimeout(1);
-    try {
-      return pg_input.peek() != -1;
-    } catch (SocketTimeoutException e) {
-      return false;
-    } finally {
-      setNetworkTimeout(soTimeout);
-    }
+    return pg_input.available() > 0 || connection.getInputStream().available() > 0;
   }
 
   /**
