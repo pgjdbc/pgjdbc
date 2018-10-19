@@ -466,7 +466,7 @@ public class Driver implements java.sql.Driver {
    */
   @Override
   public boolean acceptsURL(String url) {
-	Objects.requireNonNull(url, "Non-Null URL required");
+    Objects.requireNonNull(url, "Non-null URL is required");
     return parseURL(url, null) != null;
   }
 
