@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Formatter;
@@ -465,6 +466,7 @@ public class Driver implements java.sql.Driver {
    */
   @Override
   public boolean acceptsURL(String url) {
+	Objects.requireNonNull(url, "Non-Null URL required");
     return parseURL(url, null) != null;
   }
 
