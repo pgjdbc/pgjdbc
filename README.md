@@ -157,3 +157,8 @@ For information on how to contribute to the project see the [Contributing Guidel
 
 * [PostgreSQL International](http://www.postgresintl.com)
 * [YourKit](https://www.yourkit.com/)
+
+
+# License
+Pgjdbc is open-source type software released under the BSD-2 license. See LICENSE.txt included with the distribution for details.
+(https://opensource.org/licenses/BSD-2-Clause)
