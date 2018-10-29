@@ -173,17 +173,18 @@ public enum PGProperty {
       "Enable optimization that disables column name sanitiser"),
 
   /**
-   * Control use of SSL (any non-null value causes SSL to be required).
+   * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
    */
   SSL("ssl", null, "Control use of SSL (any non-null value causes SSL to be required)"),
 
   /**
-   * Parameter governing the use of SSL. The allowed values are {@code require}, {@code verify-ca},
-   * {@code verify-full}, or {@code disable} ({@code allow} and {@code prefer} are not implemented)
-   * If not set, the {@code ssl} property may be checked to enable SSL mode.
+   * Parameter governing the use of SSL. The allowed values are {@code disable}, {@code allow},
+   * {@code prefer}, {@code require}, {@code verify-ca}, {@code verify-full}.
+   * If {@code ssl} property is empty or set to {@code true} it implies {@code verify-full}.
+   * Default mode is "require"
    */
-  SSL_MODE("sslmode", null, "Parameter governing the use of SSL",false,
-      "disable", "require", "verify-ca", "verify-full"),
+  SSL_MODE("sslmode", null, "Parameter governing the use of SSL", false,
+      "disable", "allow", "prefer", "require", "verify-ca", "verify-full"),
 
   /**
    * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
@@ -192,7 +193,9 @@ public enum PGProperty {
 
   /**
    * The String argument to give to the constructor of the SSL Factory.
+   * @deprecated use {@code ..Factory(Properties)} constructor.
    */
+  @Deprecated
   SSL_FACTORY_ARG("sslfactoryarg", null,
       "Argument forwarded to constructor of SSLSocketFactory class."),
 
@@ -279,7 +282,9 @@ public enum PGProperty {
 
   /**
    * The String argument to give to the constructor of the Socket Factory.
+   * @deprecated use {@code ..Factory(Properties)} constructor.
    */
+  @Deprecated
   SOCKET_FACTORY_ARG("socketFactoryArg", null,
       "Argument forwarded to constructor of SocketFactory class."),
 

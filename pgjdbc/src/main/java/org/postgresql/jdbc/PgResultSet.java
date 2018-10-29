@@ -185,8 +185,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return getLong(columnIndex);
       case Types.NUMERIC:
       case Types.DECIMAL:
-        return getBigDecimal(columnIndex,
-            (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff));
+        return getNumeric(columnIndex,
+            (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff), true);
       case Types.REAL:
         return getFloat(columnIndex);
       case Types.FLOAT:
@@ -1557,7 +1557,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     primaryKeys = new ArrayList<PrimaryKey>();
 
-    // this is not stricty jdbc spec, but it will make things much faster if used
+    // this is not strictly jdbc spec, but it will make things much faster if used
     // the user has to select oid, * from table and then we will just use oid
 
 
@@ -2325,6 +2325,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBigDecimal columnIndex: {0}", columnIndex);
+    return (BigDecimal) getNumeric(columnIndex, scale, false);
+  }
+
+  private Number getNumeric(int columnIndex, int scale, boolean allowNaN) throws SQLException {
     checkResultSet(columnIndex);
     if (wasNullFlag) {
       return null;
@@ -2352,11 +2356,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         BigDecimal res = getFastBigDecimal(columnIndex);
         res = scaleBigDecimal(res, scale);
         return res;
-      } catch (NumberFormatException ex) {
+      } catch (NumberFormatException ignore) {
       }
     }
 
-    return toBigDecimal(getFixedString(columnIndex), scale);
+    String stringValue = getFixedString(columnIndex);
+    if (allowNaN && "NaN".equalsIgnoreCase(stringValue)) {
+      return Double.NaN;
+    }
+    return toBigDecimal(stringValue, scale);
   }
 
   /**

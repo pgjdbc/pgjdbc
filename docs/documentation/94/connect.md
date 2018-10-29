@@ -235,7 +235,7 @@ connection.
 	Enable optimization to rewrite and collapse compatible INSERT statements that are batched.
 	If enabled, pgjdbc rewrites batch of `insert into ... values(?, ?)` into `insert into ... values(?, ?), (?, ?), ...`
 	That reduces per-statement overhead. The drawback is if one of the statements fail, the whole batch fails.
-	The default value is `false`. The option is avaliable since 9.4.1208
+	The default value is `false`. The option is available since 9.4.1208
 
 * `loginTimeout = int`
 

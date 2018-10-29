@@ -33,13 +33,27 @@ import java.util.concurrent.TimeoutException;
  */
 public class TestUtil {
   /*
+   * The case is as follows:
+   * 1. Typically the database and hostname are taken from System.properties or build.properties or build.local.properties
+   *    That enables to override test DB via system property
+   * 2. There are tests where different DBs should be used (e.g. SSL tests), so we can't just use DB name from system property
+   *    That is why _test_ properties exist: they overpower System.properties and build.properties
+   */
+  public static final String SERVER_HOST_PORT_PROP = "_test_hostport";
+  public static final String DATABASE_PROP = "_test_database";
+
+  /*
    * Returns the Test database JDBC URL
    */
   public static String getURL() {
-    return getURL(getServer(), getPort());
+    return getURL(getServer(), + getPort());
   }
 
   public static String getURL(String server, int port) {
+    return getURL(server + ":" + port, getDatabase());
+  }
+
+  public static String getURL(String hostport, String database) {
     String logLevel = "";
     if (getLogLevel() != null && !getLogLevel().equals("")) {
       logLevel = "&loggerLevel=" + getLogLevel();
@@ -76,9 +90,8 @@ public class TestUtil {
     }
 
     return "jdbc:postgresql://"
-        + server + ":"
-        + port + "/"
-        + getDatabase()
+        + hostport + "/"
+        + database
         + "?ApplicationName=Driver Tests"
         + logLevel
         + logFile
@@ -133,6 +146,13 @@ public class TestUtil {
    */
   public static String getPassword() {
     return System.getProperty("password");
+  }
+
+  /*
+   * Returns password for default callbackhandler
+   */
+  public static String getSslPassword() {
+    return System.getProperty(PGProperty.SSL_PASSWORD.getName());
   }
 
   /*
@@ -255,10 +275,10 @@ public class TestUtil {
   }
 
   /**
-   * Get a connection using a priviliged user mostly for tests that the ability to load C functions
+   * Get a connection using a privileged user mostly for tests that the ability to load C functions
    * now as of 4/14.
    *
-   * @return connection using a priviliged user mostly for tests that the ability to load C
+   * @return connection using a privileged user mostly for tests that the ability to load C
    *         functions now as of 4/14
    */
   public static Connection openPrivilegedDB() throws Exception {
@@ -301,6 +321,11 @@ public class TestUtil {
       password = "";
     }
     props.setProperty("password", password);
+    String sslPassword = getSslPassword();
+    if (sslPassword != null) {
+      PGProperty.SSL_PASSWORD.set(props, sslPassword);
+    }
+
     if (!props.containsKey(PGProperty.PREPARE_THRESHOLD.getName())) {
       PGProperty.PREPARE_THRESHOLD.set(props, getPrepareThreshold());
     }
@@ -310,8 +335,11 @@ public class TestUtil {
         props.put(PGProperty.PREFER_QUERY_MODE.getName(), value);
       }
     }
+    // Enable Base4 tests to override host,port,database
+    String hostport = props.getProperty(SERVER_HOST_PORT_PROP, getServer() + ":" + getPort());
+    String database = props.getProperty(DATABASE_PROP, getDatabase());
 
-    return DriverManager.getConnection(getURL(), props);
+    return DriverManager.getConnection(getURL(hostport, database), props);
   }
 
   /*
@@ -782,7 +810,7 @@ public class TestUtil {
 
   public static void recreateLogicalReplicationSlot(Connection connection, String slotName, String outputPlugin)
       throws SQLException, InterruptedException, TimeoutException {
-    //drop previos slot
+    //drop previous slot
     dropReplicationSlot(connection, slotName);
 
     PreparedStatement stm = null;
@@ -798,7 +826,7 @@ public class TestUtil {
 
   public static void recreatePhysicalReplicationSlot(Connection connection, String slotName)
       throws SQLException, InterruptedException, TimeoutException {
-    //drop previos slot
+    //drop previous slot
     dropReplicationSlot(connection, slotName);
 
     PreparedStatement stm = null;

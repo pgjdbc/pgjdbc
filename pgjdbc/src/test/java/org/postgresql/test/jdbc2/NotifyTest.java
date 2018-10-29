@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -41,7 +42,7 @@ public class NotifyTest {
     stmt.executeUpdate("LISTEN mynotification");
     stmt.executeUpdate("NOTIFY mynotification");
 
-    PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications();
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications();
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
@@ -60,7 +61,7 @@ public class NotifyTest {
     stmt.executeUpdate("LISTEN mynotification");
     stmt.executeUpdate("NOTIFY mynotification, 'message'");
 
-    PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications();
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications();
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
@@ -83,13 +84,14 @@ public class NotifyTest {
     try {
       int retries = 20;
       while (retries-- > 0
-        && (notifications = ((org.postgresql.PGConnection) conn).getNotifications()) == null ) {
+        && (notifications = conn.unwrap(PGConnection.class).getNotifications()) == null ) {
         Thread.sleep(100);
       }
     } catch (InterruptedException ie) {
     }
 
-    assertNotNull(notifications);
+    assertNotNull("Notification is expected to be delivered when subscription was created"
+            + " before sending notification", notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
@@ -108,10 +110,10 @@ public class NotifyTest {
 
     // Here we let the getNotifications() timeout.
     long startMillis = System.currentTimeMillis();
-    PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications(500);
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications(500);
     long endMillis = System.currentTimeMillis();
     long runtime = endMillis - startMillis;
-    assertNull("There have been notifications, althought none have been expected.",notifications);
+    assertNull("There have been notifications, although none have been expected.",notifications);
     Assert.assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
 
     stmt.close();
@@ -126,7 +128,7 @@ public class NotifyTest {
     // listen for notifications
     connectAndNotify("mynotification");
 
-    PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications(10000);
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications(10000);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
@@ -143,7 +145,7 @@ public class NotifyTest {
     // Now we check the case where notifications are already available while we are waiting forever
     connectAndNotify("mynotification");
 
-    PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications(0);
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications(0);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
@@ -169,7 +171,7 @@ public class NotifyTest {
       }
     }).start();
 
-    PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications(10000);
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications(10000);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
@@ -195,7 +197,7 @@ public class NotifyTest {
       }
     }).start();
 
-    PGNotification[] notifications = ((org.postgresql.PGConnection) conn).getNotifications(0);
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications(0);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
@@ -226,10 +228,10 @@ public class NotifyTest {
     }).start();
 
     try {
-      ((org.postgresql.PGConnection) conn).getNotifications(40000);
+      conn.unwrap(PGConnection.class).getNotifications(40000);
       Assert.fail("The getNotifications(...) call didn't return when the socket closed.");
     } catch (SQLException e) {
-      // We expected thta
+      // We expected that
     }
 
     stmt.close();

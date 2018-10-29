@@ -1071,7 +1071,7 @@ Author:Craig Ringer <craig@2ndquadrant.com>
 Author: cchantep <chantepie@altern.org>
 Date:   Thu Dec 12 15:54:55 2013 +0100
 
-    Base table more usefull than "" as basic table name
+    Base table more useful than "" as basic table name
 
 
     fixed driver fails to find foreign tables fix from plalg@hotmail.com
@@ -1597,7 +1597,7 @@ Date:   Fri Sep 30 10:08:17 2011 +0000
 Author: Dave Cramer <davec@fastcrypt.com>
 Date:   Tue Sep 27 11:15:23 2011 +0000
 
-    more jdk 1.4 compatability issues fixed from Mike Fowler
+    more jdk 1.4 compatibility issues fixed from Mike Fowler
 
 Author: Dave Cramer <davec@fastcrypt.com>
 Date:   Mon Sep 26 15:16:05 2011 +0000
@@ -2020,20 +2020,20 @@ Date:   Mon Jan 28 16:52:56 2013 -0500
 Author: Fiona Tay
 Date:   Sun Jan 20 23:46:31 2013 -0800
 
-    Fix spelling of occured in error message
+    Fix spelling of occurred in error message
     - An error occurred while setting up the SSL connection
 
 Author: Fiona Tay
 Date:   Sun Jan 20 23:45:26 2013 -0800
 
-    Fix spelling of occured in error message
+    Fix spelling of occurred in error message
     - Something unusual has occurred to cause the driver to fail
 
 Author: Fiona Tay
 Date:   Sun Jan 20 23:44:02 2013 -0800
 
-    Fix spelling of occured in error message
-     - An I/O error occured while sending to the backend.
+    Fix spelling of occurred in error message
+     - An I/O error occurred while sending to the backend.
 
 Author: Dave Cramer
 Date:   Fri Jan 11 11:38:17 2013 -0800
@@ -2127,7 +2127,7 @@ Date:   Fri Jan 11 05:43:24 2013 -0800
 
     Merge pull request #25 from rkrzewski/backend_pid
     
-    Expose PID of the backend process serving a paricular JDBC connection
+    Expose PID of the backend process serving a particular JDBC connection
 
 Author: Dave Cramer
 Date:   Fri Jan 11 05:41:51 2013 -0800

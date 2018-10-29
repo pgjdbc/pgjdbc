@@ -217,7 +217,7 @@ public class Base64 {
    * Encodes up to three bytes of the array <var>source</var> and writes the resulting four Base64
    * bytes to <var>destination</var>. The source and destination arrays can be manipulated anywhere
    * along their length by specifying <var>srcOffset</var> and <var>destOffset</var>. This method
-   * does not check to make sure your arrays are large enough to accomodate <var>srcOffset</var> + 3
+   * does not check to make sure your arrays are large enough to accommodate <var>srcOffset</var> + 3
    * for the <var>source</var> array or <var>destOffset</var> + 4 for the <var>destination</var>
    * array. The actual number of significant bytes in your array is given by <var>numSigBytes</var>.
    *
@@ -403,7 +403,7 @@ public class Base64 {
    * Decodes four bytes from array <var>source</var> and writes the resulting bytes (up to three of
    * them) to <var>destination</var>. The source and destination arrays can be manipulated anywhere
    * along their length by specifying <var>srcOffset</var> and <var>destOffset</var>. This method
-   * does not check to make sure your arrays are large enough to accomodate <var>srcOffset</var> + 4
+   * does not check to make sure your arrays are large enough to accommodate <var>srcOffset</var> + 4
    * for the <var>source</var> array or <var>destOffset</var> + 3 for the <var>destination</var>
    * array. This method returns the actual number of bytes that were converted from the Base64
    * encoding.

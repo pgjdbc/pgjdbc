@@ -14,10 +14,9 @@ import java.sql.Statement;
 public class PhysicalCreateSlotBuilder
     extends AbstractCreateSlotBuilder<ChainedPhysicalCreateSlotBuilder>
     implements ChainedPhysicalCreateSlotBuilder {
-  private BaseConnection connection;
 
   public PhysicalCreateSlotBuilder(BaseConnection connection) {
-    this.connection = connection;
+    super(connection);
   }
 
   @Override
@@ -33,7 +32,11 @@ public class PhysicalCreateSlotBuilder
 
     Statement statement = connection.createStatement();
     try {
-      statement.execute(String.format("CREATE_REPLICATION_SLOT %s PHYSICAL", slotName));
+      statement.execute(String.format(
+              "CREATE_REPLICATION_SLOT %s %s PHYSICAL",
+              slotName,
+              temporaryOption ? "TEMPORARY" : ""
+      ));
     } finally {
       statement.close();
     }

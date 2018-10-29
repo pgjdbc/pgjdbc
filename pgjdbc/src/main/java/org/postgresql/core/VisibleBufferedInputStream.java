@@ -162,7 +162,7 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Moves bytes from the buffer to the begining of the destination buffer. Also sets the index and
+   * Moves bytes from the buffer to the beginning of the destination buffer. Also sets the index and
    * endIndex variables.
    *
    * @param dest The destination buffer.

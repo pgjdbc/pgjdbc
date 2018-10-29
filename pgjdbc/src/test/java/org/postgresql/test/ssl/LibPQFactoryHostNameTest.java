@@ -3,8 +3,9 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.test.jdbc4;
+package org.postgresql.test.ssl;
 
+import org.postgresql.ssl.PGjdbcHostnameVerifier;
 import org.postgresql.ssl.jdbc4.LibPQFactory;
 
 import org.junit.Assert;
@@ -47,11 +48,16 @@ public class LibPQFactoryHostNameTest {
         {"sub.host.com", "*.hoSt.com", true},
         {"*.host.com", "host.com", false},
         {"sub.sub.host.com", "*.host.com", false}, // Wildcard should cover just one level
+        {"com", "*", false}, // Wildcard should have al least one dot
     });
   }
 
   @Test
   public void checkPattern() throws Exception {
-    Assert.assertEquals(expected, LibPQFactory.verifyHostName(hostname, pattern));
+    Assert.assertEquals(hostname + ", pattern: " + pattern,
+        expected, LibPQFactory.verifyHostName(hostname, pattern));
+
+    Assert.assertEquals(hostname + ", pattern: " + pattern,
+        expected, PGjdbcHostnameVerifier.INSTANCE.verifyHostName(hostname, pattern));
   }
 }
