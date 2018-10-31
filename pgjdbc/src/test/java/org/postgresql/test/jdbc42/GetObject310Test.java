@@ -224,6 +224,10 @@ public class GetObject310Test extends BaseTest4 {
         assertEquals(message, localDateTime.toLocalDate(), rs.getObject("timestamp_without_time_zone_column", LocalDate.class));
         assertEquals(message, localDateTime.toLocalDate(), rs.getObject(1, LocalDate.class));
 
+        //Also test that we get the correct values when retrieving the data as LocalTime objects
+        assertEquals(message, localDateTime.toLocalTime(), rs.getObject("timestamp_without_time_zone_column", LocalTime.class));
+        assertEquals(message, localDateTime.toLocalTime(), rs.getObject(1, LocalTime.class));
+
         //since zoned date time and offset date time are time zone aware our expected value
         //must also reflect the current time zone
         final ZonedDateTime expectedZDT = ZonedDateTime.of(LocalDateTime.parse(timestamp), zoneId);
@@ -372,6 +376,10 @@ public class GetObject310Test extends BaseTest4 {
         //Also test that we get the correct values when retrieving the data as LocalDate objects
         assertEquals(message, expectedLDT.toLocalDate(), rs.getObject("timestamp_with_time_zone_column", LocalDate.class));
         assertEquals(message, expectedLDT.toLocalDate(), rs.getObject(1, LocalDate.class));
+
+        //Also test that we get the correct values when retrieving the data as LocalTime objects
+        assertEquals(message, expectedLDT.toLocalTime(), rs.getObject("timestamp_with_time_zone_column", LocalTime.class));
+        assertEquals(message, expectedLDT.toLocalTime(), rs.getObject(1, LocalTime.class));
       } finally {
         rs.close();
       }
