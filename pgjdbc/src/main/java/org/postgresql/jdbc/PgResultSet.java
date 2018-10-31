@@ -85,7 +85,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private static final Set<Class<?>> DATE_CLASSES;
 
   static {
-    final Map<Class<?>, Boolean> dateClasses = new IdentityHashMap<>(11);
+    final Map<Class<?>, Boolean> dateClasses = new IdentityHashMap<Class<?>, Boolean>(11);
     dateClasses.put(Calendar.class, Boolean.TRUE);
     dateClasses.put(Timestamp.class, Boolean.TRUE);
     dateClasses.put(java.util.Date.class, Boolean.TRUE);
