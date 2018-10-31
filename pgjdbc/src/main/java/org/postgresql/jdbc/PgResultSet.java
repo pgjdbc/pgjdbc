@@ -3277,7 +3277,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (sqlType == Types.TIMESTAMP
           //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-        //#endif
+      //#endif
       ) {
         final Timestamp timestampValue = getTimestamp(columnIndex);
         if (timestampValue == null) {
