@@ -3277,8 +3277,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (sqlType == Types.TIMESTAMP
           //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-          //#endif
-        ) {
+        //#endif
+      ) {
         final Timestamp timestampValue = getTimestamp(columnIndex);
         if (timestampValue == null) {
           return null;
@@ -3394,7 +3394,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         //#endif
       } else if (sqlType == Types.TIME) {
         if (type == Time.class) {
-          type.cast(getTime(columnIndex));
+          return type.cast(getTime(columnIndex));
         }
 
         //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
