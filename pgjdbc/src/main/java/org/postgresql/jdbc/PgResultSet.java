@@ -125,6 +125,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private ResultSetMetaData rsMetaData;
   
+  private InnotasCallback innotasCallback = null;
+  
+  public void setInnotasCallback(InnotasCallback finder) {
+      this.innotasCallback = finder;
+  }
+  
+  public InnotasCallback getInnotasCallback() {
+      return innotasCallback;
+  }
+  
   protected ResultSetMetaData createMetaData() throws SQLException {
     return new PgResultSetMetaData(connection, fields);
   }
@@ -933,7 +943,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           deleteSQL.append(" and ");
         }
       }
-
+      
       //System.out.println("*** deleteSQL = " + deleteSQL);
 
       deleteStatement = connection.prepareStatement(deleteSQL.toString());
@@ -945,6 +955,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       deleteStatement.setObject(i + 1, primaryKeys.get(i).getValue());
     }
 
+    if (innotasCallback != null) {
+        innotasCallback.logDeleteStatement(deleteStatement.toString());
+    }
 
     int count = deleteStatement.executeUpdate();
     //System.out.println("*** executeUpdate -> " + count);
@@ -997,6 +1010,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       //System.out.println("*** insertSQL : " + insertSQL);
       
       insertStatement = connection.prepareStatement(insertSQL.toString());
+      
+      if (innotasCallback != null) {
+          innotasCallback.logInsertStatement(insertStatement.toString());
+      }
 
       Iterator<Object> values = updateValues.values().iterator();
 
@@ -1432,6 +1449,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       updateStatement.setObject(i + 1, o);
       //System.out.println("*** setObject(" + (i+1) + ", " + o + ") -- " + (o == null ? "null" : o.getClass()));
     }
+    
+    if (innotasCallback != null) {
+        innotasCallback.logUpdateStatement(updateStatement.toString());
+    }
 
     if (usingCTID) {
         //System.out.println("*** updateStatement: " + updateStatement);
@@ -1690,20 +1711,39 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       String[] s = quotelessTableName(tableName);
       String quotelessTableName = s[0];
       String quotelessSchemaName = s[1];
-      java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
-          quotelessSchemaName, quotelessTableName);
-      while (rs.next()) {
-        numPKcolumns++;
-        String columnName = rs.getString(4); // get the columnName
-        int index = findColumnIndex(columnName);
-
-        if (index > 0) {
-          i++;
-          primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
-        }
+      
+      /*
+       * Abvoid connection.getMetaData().getPrimaryKeys() as it's slow
+       */
+      String[] columns = innotasCallback == null ? null : innotasCallback.getPrimaryKey(quotelessSchemaName, quotelessTableName);
+      if (columns != null) {
+          for (int ci=0; ci<columns.length; ci++) {
+              numPKcolumns++;
+              String columnName = columns[ci];
+              int index = findColumnIndex(columnName);
+              
+              if (index > 0) {
+                  i++;
+                  primaryKeys.add(new PrimaryKey(index, columnName));
+              }
+          }
       }
-
-      rs.close();
+      else {
+          java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
+              quotelessSchemaName, quotelessTableName);
+          while (rs.next()) {
+            numPKcolumns++;
+            String columnName = rs.getString(4); // get the columnName
+            int index = findColumnIndex(columnName);
+    
+            if (index > 0) {
+              i++;
+              primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
+            }
+          }
+    
+          rs.close();
+      }
     }
 
     if (numPKcolumns == 0) {
@@ -3874,6 +3914,36 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       defaultTimeZone = sharedCalendar.getTimeZone();
     }
     return sharedCalendar;
+  }
+  
+  /**
+   * Allow Innotas/PPM Pro to tell PGResultSet what primary keys to use for updatable result sets.
+   * Two reasons for this:
+   * 
+   * <ol>
+   * 
+   * <li> We don't have primary keys defined on some tables, especially those that contain same history (current_entry).
+   * 
+   * <li> Postgres runs a query to find the primary key for a given table. This is not a very fast query and causes
+   * performance problems. Example: Inserting 1000 tasks causes 1000 queries for t_task, 1000 queries for t_task_rollup,
+   * and 1000 qeuries for t_budget, for a total 3000 queries, each taking about 5 ms. 
+   * 
+   * </ol>
+   * 
+   * With this interface, we can tell PGResultSet what primary keys to use without it having to run any queries.
+   * 
+   */
+  public interface InnotasCallback {
+      /**
+       * 
+       * @return return names of columns to be used for the primary key, or null, to let PGResultSet use the default
+       * mechanism to find primary keys from the information schema using a query.
+       */
+      public String[] getPrimaryKey(String schemaName, String tableName);
+      
+      public void logInsertStatement(String sql);
+      public void logUpdateStatement(String sql);
+      public void logDeleteStatement(String sql);
   }
   
 }
