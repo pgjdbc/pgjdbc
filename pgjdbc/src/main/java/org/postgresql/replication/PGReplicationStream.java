@@ -58,11 +58,11 @@ public interface PGReplicationStream
   ByteBuffer readPending() throws SQLException;
 
   /**
-   * Parameter updates by execute {@link PGReplicationStream#read()} method.</p>
+   * <p>Parameter updates by execute {@link PGReplicationStream#read()} method.</p>
    *
-   * It is safe to call this method in a thread different than the main thread. However, usually this
+   * <p>It is safe to call this method in a thread different than the main thread. However, usually this
    * method is called in the main thread after a successful {@link PGReplicationStream#read()} or
-   * {@link PGReplicationStream#readPending()}, to get the LSN corresponding to the received record.
+   * {@link PGReplicationStream#readPending()}, to get the LSN corresponding to the received record.</p>
    *
    * @return not null LSN position that was receive last time via {@link PGReplicationStream#read()}
    *     method
@@ -70,31 +70,31 @@ public interface PGReplicationStream
   LogSequenceNumber getLastReceiveLSN();
 
   /**
-   * Last flushed lsn send in update message to backend. Parameter updates only via {@link
+   * <p>Last flushed lsn send in update message to backend. Parameter updates only via {@link
    * PGReplicationStream#setFlushedLSN(LogSequenceNumber)}</p>
    *
-   * It is safe to call this method in a thread different than the main thread.
+   * <p>It is safe to call this method in a thread different than the main thread.</p>
    *
    * @return not null location of the last WAL flushed to disk in the standby.
    */
   LogSequenceNumber getLastFlushedLSN();
 
   /**
-   * Last applied lsn send in update message to backed. Parameter updates only via {@link
+   * <p>Last applied lsn send in update message to backed. Parameter updates only via {@link
    * PGReplicationStream#setAppliedLSN(LogSequenceNumber)}</p>
    *
-   * It is safe to call this method in a thread different than the main thread.
+   * <p>It is safe to call this method in a thread different than the main thread.</p>
    *
    * @return not null location of the last WAL applied in the standby.
    */
   LogSequenceNumber getLastAppliedLSN();
 
   /**
-   * Set flushed LSN. It parameter will be send to backend on next update status iteration. Flushed
+   * <p>Set flushed LSN. It parameter will be send to backend on next update status iteration. Flushed
    * LSN position help backend define which wal can be recycle.</p>
    *
-   * It is safe to call this method in a thread different than the main thread. The updated value
-   * will be sent to the backend in the next status update run.
+   * <p>It is safe to call this method in a thread different than the main thread. The updated value
+   * will be sent to the backend in the next status update run.</p>
    *
    * @param flushed not null location of the last WAL flushed to disk in the standby.
    * @see PGReplicationStream#forceUpdateStatus()
@@ -102,11 +102,11 @@ public interface PGReplicationStream
   void setFlushedLSN(LogSequenceNumber flushed);
 
   /**
-   * Parameter used only physical replication and define which lsn already was apply on standby.
+   * <p>Parameter used only physical replication and define which lsn already was apply on standby.
    * Feedback will send to backend on next update status iteration.</p>
    *
-   * It is safe to call this method in a thread different than the main thread. The updated value
-   * will be sent to the backend in the next status update run.
+   * <p>It is safe to call this method in a thread different than the main thread. The updated value
+   * will be sent to the backend in the next status update run.</p>
    *
    * @param applied not null location of the last WAL applied in the standby.
    * @see PGReplicationStream#forceUpdateStatus()
