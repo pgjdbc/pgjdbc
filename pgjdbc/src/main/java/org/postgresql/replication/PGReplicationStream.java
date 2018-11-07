@@ -58,7 +58,7 @@ public interface PGReplicationStream
   ByteBuffer readPending() throws SQLException;
 
   /**
-   * Parameter updates by execute {@link PGReplicationStream#read()} method.
+   * Parameter updates by execute {@link PGReplicationStream#read()} method.</p>
    *
    * It is safe to call this method in a thread different than the main thread. However, usually this
    * method is called in the main thread after a successful {@link PGReplicationStream#read()} or
@@ -71,7 +71,7 @@ public interface PGReplicationStream
 
   /**
    * Last flushed lsn send in update message to backend. Parameter updates only via {@link
-   * PGReplicationStream#setFlushedLSN(LogSequenceNumber)}
+   * PGReplicationStream#setFlushedLSN(LogSequenceNumber)}</p>
    *
    * It is safe to call this method in a thread different than the main thread.
    *
@@ -81,7 +81,7 @@ public interface PGReplicationStream
 
   /**
    * Last applied lsn send in update message to backed. Parameter updates only via {@link
-   * PGReplicationStream#setAppliedLSN(LogSequenceNumber)}
+   * PGReplicationStream#setAppliedLSN(LogSequenceNumber)}</p>
    *
    * It is safe to call this method in a thread different than the main thread.
    *
@@ -91,7 +91,7 @@ public interface PGReplicationStream
 
   /**
    * Set flushed LSN. It parameter will be send to backend on next update status iteration. Flushed
-   * LSN position help backend define which wal can be recycle.
+   * LSN position help backend define which wal can be recycle.</p>
    *
    * It is safe to call this method in a thread different than the main thread. The updated value
    * will be sent to the backend in the next status update run.
@@ -103,7 +103,7 @@ public interface PGReplicationStream
 
   /**
    * Parameter used only physical replication and define which lsn already was apply on standby.
-   * Feedback will send to backend on next update status iteration.
+   * Feedback will send to backend on next update status iteration.</p>
    *
    * It is safe to call this method in a thread different than the main thread. The updated value
    * will be sent to the backend in the next status update run.
