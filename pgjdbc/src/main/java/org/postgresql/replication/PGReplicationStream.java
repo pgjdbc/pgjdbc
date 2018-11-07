@@ -12,10 +12,11 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 
 /**
- * Not tread safe replication stream. After complete streaming should be close, for free resource on
- * backend. Periodical status update work only when use {@link PGReplicationStream#read()} method.
- * It means that process wal record should be fast as possible, because during process wal record
- * lead to disconnect by timeout from server.
+ * Not tread safe replication stream (though certain methods can be safely called by different
+ * threads). After complete streaming should be close, for free resource on backend. Periodical
+ * status update work only when use {@link PGReplicationStream#read()} method. It means that
+ * process wal record should be fast as possible, because during process wal record lead to
+ * disconnect by timeout from server.
  */
 public interface PGReplicationStream
     //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
@@ -59,6 +60,10 @@ public interface PGReplicationStream
   /**
    * Parameter updates by execute {@link PGReplicationStream#read()} method.
    *
+   * It is safe to call this method in a thread different than the main thread. However, usually this
+   * method is called in the main thread after a successful {@link PGReplicationStream#read()} or
+   * {@link PGReplicationStream#readPending()}, to get the LSN corresponding to the received record.
+   *
    * @return not null LSN position that was receive last time via {@link PGReplicationStream#read()}
    *     method
    */
@@ -68,6 +73,8 @@ public interface PGReplicationStream
    * Last flushed lsn send in update message to backend. Parameter updates only via {@link
    * PGReplicationStream#setFlushedLSN(LogSequenceNumber)}
    *
+   * It is safe to call this method in a thread different than the main thread.
+   *
    * @return not null location of the last WAL flushed to disk in the standby.
    */
   LogSequenceNumber getLastFlushedLSN();
@@ -75,6 +82,8 @@ public interface PGReplicationStream
   /**
    * Last applied lsn send in update message to backed. Parameter updates only via {@link
    * PGReplicationStream#setAppliedLSN(LogSequenceNumber)}
+   *
+   * It is safe to call this method in a thread different than the main thread.
    *
    * @return not null location of the last WAL applied in the standby.
    */
@@ -84,6 +93,9 @@ public interface PGReplicationStream
    * Set flushed LSN. It parameter will be send to backend on next update status iteration. Flushed
    * LSN position help backend define which wal can be recycle.
    *
+   * It is safe to call this method in a thread different than the main thread. The updated value
+   * will be sent to the backend in the next status update run.
+   *
    * @param flushed not null location of the last WAL flushed to disk in the standby.
    * @see PGReplicationStream#forceUpdateStatus()
    */
@@ -92,6 +104,9 @@ public interface PGReplicationStream
   /**
    * Parameter used only physical replication and define which lsn already was apply on standby.
    * Feedback will send to backend on next update status iteration.
+   *
+   * It is safe to call this method in a thread different than the main thread. The updated value
+   * will be sent to the backend in the next status update run.
    *
    * @param applied not null location of the last WAL applied in the standby.
    * @see PGReplicationStream#forceUpdateStatus()
