@@ -284,19 +284,16 @@ class SimpleQuery implements Query {
     return getNativeSql().isEmpty();
   }
 
-  void setCleanupRef(PhantomReference<?> cleanupRef) {
-    if (this.cleanupRef != null) {
-      this.cleanupRef.clear();
-      this.cleanupRef.enqueue();
-    }
-    this.cleanupRef = cleanupRef;
+  void setReferenceCleanup(PhantomReference<SimpleQuery> cleanupReference, ServerResourcesCleaner<SimpleQuery> serverResourcesCleaner) {
+    this.cleanupReference = cleanupReference;
+    this.simpleQueryResourcesCleaner = serverResourcesCleaner;
   }
 
   void unprepare() {
-    if (cleanupRef != null) {
-      cleanupRef.clear();
-      cleanupRef.enqueue();
-      cleanupRef = null;
+    if (simpleQueryResourcesCleaner != null && cleanupReference != null) {
+      simpleQueryResourcesCleaner.registerClosedObject(cleanupReference);
+      cleanupReference = null;
+      simpleQueryResourcesCleaner = null;
     }
     if (this.unspecifiedParams != null) {
       this.unspecifiedParams.clear();
@@ -359,7 +356,8 @@ class SimpleQuery implements Query {
   private boolean portalDescribed;
   private boolean statementDescribed;
   private final boolean sanitiserDisabled;
-  private PhantomReference<?> cleanupRef;
+  private ServerResourcesCleaner<SimpleQuery> simpleQueryResourcesCleaner;
+  private PhantomReference<SimpleQuery> cleanupReference;
   private int[] preparedTypes;
   private BitSet unspecifiedParams;
   private short deallocateEpoch;
