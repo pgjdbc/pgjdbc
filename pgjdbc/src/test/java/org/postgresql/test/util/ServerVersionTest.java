@@ -22,6 +22,7 @@ public class ServerVersionTest {
       prev = serverVersion;
     }
   }
+
   @Test
   public void testVersions() {
     Assert.assertEquals(ServerVersion.v12.getVersionNum(), ServerVersion.from("12.0").getVersionNum());
