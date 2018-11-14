@@ -56,6 +56,12 @@ public enum PGProperty {
       false, "3"),
 
   /**
+   * Specify command-line options to send to the server at connection start.
+   * The value of this parameter may contain spaces and other special characters or their URL representation
+   */
+  OPTIONS("options", null, "Command-line options to send to the server at connection start."),
+
+  /**
    * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
    *
    * <p>This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
