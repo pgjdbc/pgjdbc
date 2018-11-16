@@ -1109,6 +1109,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
     Properties p = org.postgresql.Driver.parseURL(url, null);
 
+    if (p == null ) throw new IllegalArgumentException("URL invalid " + url);
     for (PGProperty property : PGProperty.values()) {
       if (!this.properties.containsKey(property.getName())) {
         setProperty(property, property.get(p));
