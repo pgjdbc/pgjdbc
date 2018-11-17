@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2.optional;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -28,10 +27,11 @@ public class SimpleDataSourceTest extends BaseDataSourceTest {
       setupDataSource(bds);
     }
   }
+
   @Test(expected = IllegalArgumentException.class)
   public void testTypoPostgresUrl() {
-      PGSimpleDataSource ds = new PGSimpleDataSource();
-      // this should fail because the protocol is wrong.
-      ds.setUrl("jdbc:postgres://localhost:5432/test");
+    PGSimpleDataSource ds = new PGSimpleDataSource();
+    // this should fail because the protocol is wrong.
+    ds.setUrl("jdbc:postgres://localhost:5432/test");
   }
 }
