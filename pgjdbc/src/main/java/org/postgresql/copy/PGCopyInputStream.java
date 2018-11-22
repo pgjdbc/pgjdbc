@@ -76,7 +76,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public int read() throws IOException {
     checkClosed();
-    return gotBuf() ? buf[at++] : -1;
+    return gotBuf() ? (buf[at++] & 0xFF)  : -1;
   }
 
   public int read(byte[] buf) throws IOException {
