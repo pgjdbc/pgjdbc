@@ -70,7 +70,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
     conn = con;
-    TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)", true);
+    TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)");
     TestUtil.createTable(conn, "rsmd_cache", "a int primary key");
     TestUtil.createTable(conn, "timetest",
         "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
@@ -110,7 +110,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   @Test
   public void testStandardResultSet() throws SQLException {
     Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");
+    ResultSet rs = stmt.executeQuery("SELECT a,b,c,a+c as total, b as d FROM rsmd1");
     runStandardTests(rs.getMetaData());
     rs.close();
     stmt.close();
@@ -121,7 +121,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     assumePreparedStatementMetadataSupported();
 
     PreparedStatement pstmt =
-        conn.prepareStatement("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1 WHERE b = ?");
+        conn.prepareStatement("SELECT a,b,c,a+c as total, b as d FROM rsmd1 WHERE b = ?");
     runStandardTests(pstmt.getMetaData());
     pstmt.close();
   }
@@ -129,15 +129,14 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   private void runStandardTests(ResultSetMetaData rsmd) throws SQLException {
     PGResultSetMetaData pgrsmd = (PGResultSetMetaData) rsmd;
 
-    assertEquals(6, rsmd.getColumnCount());
+    assertEquals(5, rsmd.getColumnCount());
 
     assertEquals("a", rsmd.getColumnLabel(1));
     assertEquals("total", rsmd.getColumnLabel(4));
 
     assertEquals("a", rsmd.getColumnName(1));
-    assertEquals("oid", rsmd.getColumnName(5));
     assertEquals("", pgrsmd.getBaseColumnName(4));
-    assertEquals("b", pgrsmd.getBaseColumnName(6));
+    assertEquals("b", pgrsmd.getBaseColumnName(5));
 
     assertEquals(Types.INTEGER, rsmd.getColumnType(1));
     assertEquals(Types.VARCHAR, rsmd.getColumnType(2));
