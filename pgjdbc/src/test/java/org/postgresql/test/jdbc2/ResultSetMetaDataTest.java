@@ -70,7 +70,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
     conn = con;
-    TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)", false);
+    TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)");
     TestUtil.createTable(conn, "rsmd_cache", "a int primary key");
     TestUtil.createTable(conn, "timetest",
         "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
@@ -129,7 +129,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   private void runStandardTests(ResultSetMetaData rsmd) throws SQLException {
     PGResultSetMetaData pgrsmd = (PGResultSetMetaData) rsmd;
 
-    assertEquals(6, rsmd.getColumnCount());
+    assertEquals(5, rsmd.getColumnCount());
 
     assertEquals("a", rsmd.getColumnLabel(1));
     assertEquals("total", rsmd.getColumnLabel(4));
