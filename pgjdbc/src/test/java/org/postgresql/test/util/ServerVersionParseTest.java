@@ -47,6 +47,7 @@ public class ServerVersionParseTest {
         {"9.6", 90600, null},
         {"10", 100000, null},
         {"11", 110000, null},
+        {"12", 120000, null},
         /* Multidigit */
         {"9.4.10", 90410, null},
         {"9.20.10", 92010, null},
