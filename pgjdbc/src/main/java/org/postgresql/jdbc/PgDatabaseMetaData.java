@@ -2667,6 +2667,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("COLUMN_TYPE", Oid.INT2);
     f[5] = new Field("DATA_TYPE", Oid.INT2);
     f[6] = new Field("TYPE_NAME", Oid.VARCHAR);
+    f[7] = new Field("PRECISION", Oid.INT2);
     f[8] = new Field("LENGTH", Oid.INT4);
     f[9] = new Field("SCALE", Oid.INT2);
     f[10] = new Field("RADIX", Oid.INT2);
