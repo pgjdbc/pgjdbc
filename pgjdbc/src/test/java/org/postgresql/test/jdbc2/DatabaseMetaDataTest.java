@@ -1345,59 +1345,61 @@ public class DatabaseMetaDataTest {
     }
 
     DatabaseMetaData dbmd = con.getMetaData();
-    try (ResultSet rs = dbmd.getFunctionColumns(null, null, "f1", null);) {
-      ResultSetMetaData rsmd = rs.getMetaData();
-      assertEquals(17, rsmd.getColumnCount());
-      assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
-      assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
-      assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
-      assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
-      assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
-      assertEquals("DATA_TYPE", rsmd.getColumnName(6));
-      assertEquals("TYPE_NAME", rsmd.getColumnName(7));
-      assertEquals("PRECISION", rsmd.getColumnName(8));
-      assertEquals("LENGTH", rsmd.getColumnName(9));
-      assertEquals("SCALE", rsmd.getColumnName(10));
-      assertEquals("RADIX", rsmd.getColumnName(11));
-      assertEquals("NULLABLE", rsmd.getColumnName(12));
-      assertEquals("REMARKS", rsmd.getColumnName(13));
-      assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
-      assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
-      assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
-      assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
+    ResultSet rs = dbmd.getFunctionColumns(null, null, "f1", null);
 
-      assertTrue(rs.next());
-      assertEquals(null, rs.getString(1));
-      assertEquals("public", rs.getString(2));
-      assertEquals("f1", rs.getString(3));
-      assertEquals("returnValue", rs.getString(4));
-      assertEquals(DatabaseMetaData.functionReturn, rs.getInt(5));
-      assertEquals(Types.INTEGER, rs.getInt(6));
-      assertEquals("int4", rs.getString(7));
-      assertEquals(0, rs.getInt(15));
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertEquals(17, rsmd.getColumnCount());
+    assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
+    assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
+    assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
+    assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+    assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
+    assertEquals("DATA_TYPE", rsmd.getColumnName(6));
+    assertEquals("TYPE_NAME", rsmd.getColumnName(7));
+    assertEquals("PRECISION", rsmd.getColumnName(8));
+    assertEquals("LENGTH", rsmd.getColumnName(9));
+    assertEquals("SCALE", rsmd.getColumnName(10));
+    assertEquals("RADIX", rsmd.getColumnName(11));
+    assertEquals("NULLABLE", rsmd.getColumnName(12));
+    assertEquals("REMARKS", rsmd.getColumnName(13));
+    assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
+    assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
+    assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
+    assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
 
-      assertTrue(rs.next());
-      assertEquals(null, rs.getString(1));
-      assertEquals("public", rs.getString(2));
-      assertEquals("f1", rs.getString(3));
-      assertEquals("$1", rs.getString(4));
-      assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
-      assertEquals(Types.INTEGER, rs.getInt(6));
-      assertEquals("int4", rs.getString(7));
-      assertEquals(1, rs.getInt(15));
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("returnValue", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionReturn, rs.getInt(5));
+    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals("int4", rs.getString(7));
+    assertEquals(0, rs.getInt(15));
 
-      assertTrue(rs.next());
-      assertEquals(null, rs.getString(1));
-      assertEquals("public", rs.getString(2));
-      assertEquals("f1", rs.getString(3));
-      assertEquals("$2", rs.getString(4));
-      assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
-      assertEquals(Types.VARCHAR, rs.getInt(6));
-      assertEquals("varchar", rs.getString(7));
-      assertEquals(2, rs.getInt(15));
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("$1", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
+    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals("int4", rs.getString(7));
+    assertEquals(1, rs.getInt(15));
 
-      assertTrue(!rs.next());
-    }
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("$2", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
+    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals("varchar", rs.getString(7));
+    assertEquals(2, rs.getInt(15));
+
+    assertTrue(!rs.next());
+
+    rs.close();
   }
 
 }
