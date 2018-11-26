@@ -2655,7 +2655,200 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getFunctionColumns(String catalog, String schemaPattern,
       String functionNamePattern, String columnNamePattern)
       throws SQLException {
-    return getProcedureColumns(catalog, schemaPattern, functionNamePattern, columnNamePattern);
+    int columns = 17;
+
+    Field[] f = new Field[columns];
+    List<byte[][]> v = new ArrayList<byte[][]>();
+
+    f[0] = new Field("FUNCTION_CAT", Oid.VARCHAR);
+    f[1] = new Field("FUNCTION_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("FUNCTION_NAME", Oid.VARCHAR);
+    f[3] = new Field("COLUMN_NAME", Oid.VARCHAR);
+    f[4] = new Field("COLUMN_TYPE", Oid.INT2);
+    f[5] = new Field("DATA_TYPE", Oid.INT2);
+    f[6] = new Field("TYPE_NAME", Oid.VARCHAR);
+    f[7] = new Field("PRECISION", Oid.INT2);
+    f[8] = new Field("LENGTH", Oid.INT4);
+    f[9] = new Field("SCALE", Oid.INT2);
+    f[10] = new Field("RADIX", Oid.INT2);
+    f[11] = new Field("NULLABLE", Oid.INT2);
+    f[12] = new Field("REMARKS", Oid.VARCHAR);
+    f[13] = new Field("CHAR_OCTET_LENGTH", Oid.INT4);
+    f[14] = new Field("ORDINAL_POSITION", Oid.INT4);
+    f[15] = new Field("IS_NULLABLE", Oid.VARCHAR);
+    f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
+
+    String sql;
+    sql = "SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+        + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
+        + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
+        + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
+    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    }
+    if (functionNamePattern != null && !functionNamePattern.isEmpty()) {
+      sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+    }
+    sql += " ORDER BY n.nspname, p.proname, p.oid::text ";
+
+    byte[] isnullableUnknown = new byte[0];
+
+    Statement stmt = connection.createStatement();
+    ResultSet rs = stmt.executeQuery(sql);
+    while (rs.next()) {
+      byte[] schema = rs.getBytes("nspname");
+      byte[] functionName = rs.getBytes("proname");
+      byte[] specificName =
+          connection.encodeString(rs.getString("proname") + "_" + rs.getString("oid"));
+      int returnType = (int) rs.getLong("prorettype");
+      String returnTypeType = rs.getString("typtype");
+      int returnTypeRelid = (int) rs.getLong("typrelid");
+
+      String strArgTypes = rs.getString("proargtypes");
+      StringTokenizer st = new StringTokenizer(strArgTypes);
+      List<Long> argTypes = new ArrayList<Long>();
+      while (st.hasMoreTokens()) {
+        argTypes.add(Long.valueOf(st.nextToken()));
+      }
+
+      String[] argNames = null;
+      Array argNamesArray = rs.getArray("proargnames");
+      if (argNamesArray != null) {
+        argNames = (String[]) argNamesArray.getArray();
+      }
+
+      String[] argModes = null;
+      Array argModesArray = rs.getArray("proargmodes");
+      if (argModesArray != null) {
+        argModes = (String[]) argModesArray.getArray();
+      }
+
+      int numArgs = argTypes.size();
+
+      Long[] allArgTypes = null;
+      Array allArgTypesArray = rs.getArray("proallargtypes");
+      if (allArgTypesArray != null) {
+        allArgTypes = (Long[]) allArgTypesArray.getArray();
+        numArgs = allArgTypes.length;
+      }
+
+      // decide if we are returning a single column result.
+      if (returnTypeType.equals("b") || returnTypeType.equals("d") || returnTypeType.equals("e")
+          || (returnTypeType.equals("p") && argModesArray == null)) {
+        byte[][] tuple = new byte[columns][];
+        tuple[0] = null;
+        tuple[1] = schema;
+        tuple[2] = functionName;
+        tuple[3] = connection.encodeString("returnValue");
+        tuple[4] = connection
+            .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionReturn));
+        tuple[5] = connection
+            .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
+        tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(returnType));
+        tuple[7] = null;
+        tuple[8] = null;
+        tuple[9] = null;
+        tuple[10] = null;
+        tuple[11] = connection
+            .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionNullableUnknown));
+        tuple[12] = null;
+        tuple[14] = connection.encodeString(Integer.toString(0));
+        tuple[15] = isnullableUnknown;
+        tuple[16] = specificName;
+
+        v.add(tuple);
+      }
+
+      // Add a row for each argument.
+      for (int i = 0; i < numArgs; i++) {
+        byte[][] tuple = new byte[columns][];
+        tuple[0] = null;
+        tuple[1] = schema;
+        tuple[2] = functionName;
+
+        if (argNames != null) {
+          tuple[3] = connection.encodeString(argNames[i]);
+        } else {
+          tuple[3] = connection.encodeString("$" + (i + 1));
+        }
+
+        int columnMode = DatabaseMetaData.functionColumnIn;
+        if (argModes != null && argModes[i] != null) {
+          if (argModes[i].equals("o")) {
+            columnMode = DatabaseMetaData.functionColumnOut;
+          } else if (argModes[i].equals("b")) {
+            columnMode = DatabaseMetaData.functionColumnInOut;
+          } else if (argModes[i].equals("t")) {
+            columnMode = DatabaseMetaData.functionReturn;
+          }
+        }
+
+        tuple[4] = connection.encodeString(Integer.toString(columnMode));
+
+        int argOid;
+        if (allArgTypes != null) {
+          argOid = allArgTypes[i].intValue();
+        } else {
+          argOid = argTypes.get(i).intValue();
+        }
+
+        tuple[5] =
+            connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(argOid)));
+        tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(argOid));
+        tuple[7] = null;
+        tuple[8] = null;
+        tuple[9] = null;
+        tuple[10] = null;
+        tuple[11] =
+            connection.encodeString(Integer.toString(DatabaseMetaData.functionNullableUnknown));
+        tuple[12] = null;
+        tuple[14] = connection.encodeString(Integer.toString(i + 1));
+        tuple[15] = isnullableUnknown;
+        tuple[16] = specificName;
+
+        v.add(tuple);
+      }
+
+      // if we are returning a multi-column result.
+      if (returnTypeType.equals("c") || (returnTypeType.equals("p") && argModesArray != null)) {
+        String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
+            + " WHERE a.attrelid = " + returnTypeRelid
+            + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
+        Statement columnstmt = connection.createStatement();
+        ResultSet columnrs = columnstmt.executeQuery(columnsql);
+        while (columnrs.next()) {
+          int columnTypeOid = (int) columnrs.getLong("atttypid");
+          byte[][] tuple = new byte[columns][];
+          tuple[0] = null;
+          tuple[1] = schema;
+          tuple[2] = functionName;
+          tuple[3] = columnrs.getBytes("attname");
+          tuple[4] = connection
+              .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionColumnResult));
+          tuple[5] = connection
+              .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
+          tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(columnTypeOid));
+          tuple[7] = null;
+          tuple[8] = null;
+          tuple[9] = null;
+          tuple[10] = null;
+          tuple[11] = connection
+              .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionNullableUnknown));
+          tuple[12] = null;
+          tuple[14] = connection.encodeString(Integer.toString(0));
+          tuple[15] = isnullableUnknown;
+          tuple[16] = specificName;
+
+          v.add(tuple);
+        }
+        columnrs.close();
+        columnstmt.close();
+      }
+    }
+    rs.close();
+    stmt.close();
+
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
