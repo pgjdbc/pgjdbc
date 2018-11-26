@@ -29,6 +29,11 @@ then
     sudo su postgres -c "echo 'host all all ::1/128 trust' >> ${PG_SLAVE1_DATADIR}/pg_hba.conf"
 
     sudo su postgres -c "touch ${PG_SLAVE1_DATADIR}/pg_ident.conf"
+
+    sudo su postgres -c "cp -f ${PG_DATADIR}/postgresql.conf ${PG_SLAVE1_DATADIR}/postgresql.conf"
+    sudo sed -i -e "/^[ \t]*data_directory.*/d" ${PG_SLAVE1_DATADIR}/postgresql.conf
+    sudo sed -i -e "/^[ \t]*hba_file.*/d" ${PG_SLAVE1_DATADIR}/postgresql.conf
+    sudo sed -i -e "/^[ \t]*ident_file.*/d" ${PG_SLAVE1_DATADIR}/postgresql.conf
     sudo sed -i -e "s/^#\?hot_standby.*/hot_standby = on/g" ${PG_SLAVE1_DATADIR}/postgresql.conf
 
 fi
@@ -54,6 +59,10 @@ then
     sudo su postgres -c "echo 'host all all ::1/128 trust' >> ${PG_SLAVE2_DATADIR}/pg_hba.conf"
 
     sudo su postgres -c "touch ${PG_SLAVE2_DATADIR}/pg_ident.conf"
+        sudo su postgres -c "cp -f ${PG_DATADIR}/postgresql.conf ${PG_SLAVE2_DATADIR}/postgresql.conf"
+    sudo sed -i -e "/^[ \t]*data_directory.*/d" ${PG_SLAVE2_DATADIR}/postgresql.conf
+    sudo sed -i -e "/^[ \t]*hba_file.*/d" ${PG_SLAVE2_DATADIR}/postgresql.conf
+    sudo sed -i -e "/^[ \t]*ident_file.*/d" ${PG_SLAVE2_DATADIR}/postgresql.conf
     sudo sed -i -e "s/^#\?hot_standby.*/hot_standby = on/g" ${PG_SLAVE2_DATADIR}/postgresql.conf
 
 
