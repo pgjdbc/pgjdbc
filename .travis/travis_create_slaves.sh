@@ -52,10 +52,9 @@ else
     sudo sed -i -e "/^[ \t]*ident_file.*/d" ${PG_SLAVE1_DATADIR}/postgresql.conf
     sudo sed -i -e "s/^#\?hot_standby.*/hot_standby = on/g" ${PG_SLAVE1_DATADIR}/postgresql.conf
 
-    sudo su postgres -c "echo standby_mode = \'on\' >${PG_SLAVE1_DATADIR}/postgresql.conf"
     sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE1_DATADIR}/postgresql.conf"
     sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE1_DATADIR}/postgresql.conf"
-    sudo su postgres -c "touch ${PG_SLAVE1_DATADIR}/recovery.signal"
+    sudo su postgres -c "touch ${PG_SLAVE1_DATADIR}/standby.signal"
 
 fi
 
@@ -106,10 +105,9 @@ else
     sudo sed -i -e "/^[ \t]*ident_file.*/d" ${PG_SLAVE2_DATADIR}/postgresql.conf
     sudo sed -i -e "s/^#\?hot_standby.*/hot_standby = on/g" ${PG_SLAVE2_DATADIR}/postgresql.conf
 
-    sudo su postgres -c "echo standby_mode = \'on\' >${PG_SLAVE2_DATADIR}/postgresql.conf"
     sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE2_DATADIR}/postgresql.conf"
     sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE2_DATADIR}/postgresql.conf"
-    sudo su postgres -c "touch ${PG_SLAVE2_DATADIR}/recovery.signal"
+    sudo su postgres -c "touch ${PG_SLAVE2_DATADIR}/standby.signal"
 
 fi
 
