@@ -3,7 +3,7 @@ set -x -e
 
 if [ -z "$PG_VERSION" ]
 then
-    echo "env PG_VERSION not define";
+    echo "env PG_VERSION not defined";
 elif [ "x${PG_VERSION}" = "xHEAD" ]
 then
     PG_CTL="/usr/local/pgsql/bin/pg_ctl"
@@ -19,14 +19,14 @@ sudo mkdir -p ${PG_SLAVE1_DATADIR}
 sudo chmod 700 ${PG_SLAVE1_DATADIR}
 sudo chown -R postgres:postgres ${PG_SLAVE1_DATADIR}
 
-sudo su postgres -c "$PG_BASEBACKUP -Upostgres -D ${PG_SLAVE1_DATADIR} -X stream"
+sudo su postgres -c "$PG_BASEBACKUP -Upostgres -D ${PG_SLAVE1_DATADIR} -X stream -R"
 
 
 if [[ "x${PG_VERSION}" != "xHEAD" ]]
 then
-    sudo su postgres -c "echo standby_mode = \'on\' >${PG_SLAVE1_DATADIR}/recovery.conf"
-    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE1_DATADIR}/recovery.conf"
-    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE1_DATADIR}/recovery.conf"
+#    sudo su postgres -c "echo standby_mode = \'on\' >${PG_SLAVE1_DATADIR}/recovery.conf"
+#    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE1_DATADIR}/recovery.conf"
+#    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE1_DATADIR}/recovery.conf"
 
     sudo su postgres -c "echo 'local all all trust' > ${PG_SLAVE1_DATADIR}/pg_hba.conf"
     sudo su postgres -c "echo 'host all all 127.0.0.1/32 trust' >> ${PG_SLAVE1_DATADIR}/pg_hba.conf"
@@ -52,9 +52,9 @@ else
     sudo sed -i -e "/^[ \t]*ident_file.*/d" ${PG_SLAVE1_DATADIR}/postgresql.conf
     sudo sed -i -e "s/^#\?hot_standby.*/hot_standby = on/g" ${PG_SLAVE1_DATADIR}/postgresql.conf
 
-    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE1_DATADIR}/postgresql.conf"
-    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE1_DATADIR}/postgresql.conf"
-    sudo su postgres -c "touch ${PG_SLAVE1_DATADIR}/standby.signal"
+#    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE1_DATADIR}/postgresql.conf"
+#    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE1_DATADIR}/postgresql.conf"
+#    sudo su postgres -c "touch ${PG_SLAVE1_DATADIR}/standby.signal"
 
 fi
 
@@ -68,14 +68,14 @@ sudo mkdir -p ${PG_SLAVE2_DATADIR}
 sudo chmod 700 ${PG_SLAVE2_DATADIR}
 sudo chown -R postgres:postgres ${PG_SLAVE2_DATADIR}
 
-sudo su postgres -c "$PG_BASEBACKUP -Upostgres -D ${PG_SLAVE2_DATADIR} -X stream"
+sudo su postgres -c "$PG_BASEBACKUP -Upostgres -D ${PG_SLAVE2_DATADIR} -X stream -R"
 
 
 if [[ "x${PG_VERSION}" != "xHEAD" ]]
 then
-    sudo su postgres -c "echo standby_mode = \'on\' >${PG_SLAVE2_DATADIR}/recovery.conf"
-    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE2_DATADIR}/recovery.conf"
-    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE2_DATADIR}/recovery.conf"
+#    sudo su postgres -c "echo standby_mode = \'on\' >${PG_SLAVE2_DATADIR}/recovery.conf"
+#    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE2_DATADIR}/recovery.conf"
+#    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE2_DATADIR}/recovery.conf"
 
     sudo su postgres -c "echo 'local all all trust' > ${PG_SLAVE2_DATADIR}/pg_hba.conf"
     sudo su postgres -c "echo 'host all all 127.0.0.1/32 trust' >> ${PG_SLAVE2_DATADIR}/pg_hba.conf"
@@ -89,9 +89,6 @@ then
     sudo sed -i -e "/^[ \t]*ident_file.*/d" ${PG_SLAVE2_DATADIR}/postgresql.conf
     sudo sed -i -e "s/^#\?hot_standby.*/hot_standby = on/g" ${PG_SLAVE2_DATADIR}/postgresql.conf
 else
-    sudo su postgres -c "echo standby_mode = \'on\' >${PG_SLAVE2_DATADIR}/recovery.conf"
-    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE2_DATADIR}/recovery.conf"
-    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE2_DATADIR}/recovery.conf"
 
     sudo su postgres -c "echo 'local all all trust' > ${PG_SLAVE2_DATADIR}/pg_hba.conf"
     sudo su postgres -c "echo 'host all all 127.0.0.1/32 trust' >> ${PG_SLAVE2_DATADIR}/pg_hba.conf"
@@ -105,9 +102,9 @@ else
     sudo sed -i -e "/^[ \t]*ident_file.*/d" ${PG_SLAVE2_DATADIR}/postgresql.conf
     sudo sed -i -e "s/^#\?hot_standby.*/hot_standby = on/g" ${PG_SLAVE2_DATADIR}/postgresql.conf
 
-    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE2_DATADIR}/postgresql.conf"
-    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE2_DATADIR}/postgresql.conf"
-    sudo su postgres -c "touch ${PG_SLAVE2_DATADIR}/standby.signal"
+#    sudo su postgres -c "echo primary_conninfo = \'host=localhost port=5432 user=test password=test\' >>${PG_SLAVE2_DATADIR}/postgresql.conf"
+#    sudo su postgres -c "echo recovery_target_timeline = \'latest\' >>${PG_SLAVE2_DATADIR}/postgresql.conf"
+#    sudo su postgres -c "touch ${PG_SLAVE2_DATADIR}/standby.signal"
 
 fi
 
