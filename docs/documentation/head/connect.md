@@ -54,6 +54,9 @@ URL or an additional `Properties` object parameter to `DriverManager.getConnecti
 The following examples illustrate the use of both methods to establish a SSL
 connection.
 
+If a property is specified both in URL and in `Properties` object, the value from
+`Properties` object is ignored.
+
 ```java
 String url = "jdbc:postgresql://localhost/test";
 Properties props = new Properties();
@@ -68,11 +71,20 @@ Connection conn = DriverManager.getConnection(url);
 
 * **user** = String
 
-	The database user on whose behalf the connection is being made. 
+	The database user on whose behalf the connection is being made.
 
 * **password** = String
 
-	The database user's password. 
+	The database user's password.
+
+* **options** = String
+
+	Command-line options to send to the server at connection start.
+
+	The value of this property may contain spaces or other special characters,
+	and it should be properly encoded if provided in the connection URL. Spaces
+	are considered to separate command-line arguments, unless escaped with
+	a backslash (`\`); `\\` represents a literal backslash.
 
 * **ssl** = boolean
 
