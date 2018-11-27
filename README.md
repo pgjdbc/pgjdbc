@@ -109,7 +109,7 @@ In addition to the standard connection parameters the driver supports a number o
 | ----------------------------- | ------- | :-----: | ------------- |
 | user                          | String  | null    | The database user on whose behalf the connection is being made. |
 | password                      | String  | null    | The database user's password. |
-| options                       | String  | null    | Command-line options to send to the server at connection start. |
+| options                       | String  | null    | Specify 'options' connection initialization parameter. |
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
 | sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |

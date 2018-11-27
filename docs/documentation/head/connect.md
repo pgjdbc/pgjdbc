@@ -79,7 +79,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **options** = String
 
-	Command-line options to send to the server at connection start.
+	Specify 'options' connection initialization parameter.
 
 	The value of this property may contain spaces or other special characters,
 	and it should be properly encoded if provided in the connection URL. Spaces

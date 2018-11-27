@@ -56,10 +56,10 @@ public enum PGProperty {
       false, "3"),
 
   /**
-   * Specify command-line options to send to the server at connection start.
-   * The value of this parameter may contain spaces and other special characters or their URL representation
+   * Specify 'options' connection initialization parameter.
+   * The value of this parameter may contain spaces and other special characters or their URL representation.
    */
-  OPTIONS("options", null, "Command-line options to send to the server at connection start."),
+  OPTIONS("options", null, "Specify 'options' connection initialization parameter."),
 
   /**
    * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
