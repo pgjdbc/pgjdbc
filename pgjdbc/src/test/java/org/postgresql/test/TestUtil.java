@@ -457,16 +457,26 @@ public class TestUtil {
    * @param name String
    * @param values String
    */
+  public static void createCompositeType(Connection con, String name, String values) throws SQLException {
+    createCompositeType(con, name, values, true);
+  }
 
-  public static void createCompositeType(Connection con, String name, String values)
+  /**
+   * Helper creates an composite type.
+   *
+   * @param con Connection
+   * @param name String
+   * @param values String
+   */
+  public static void createCompositeType(Connection con, String name, String values, boolean shouldDrop)
       throws SQLException {
     Statement st = con.createStatement();
     try {
-      dropType(con, name);
-
-
-      // Now create the table
-      st.executeUpdate("create type " + name + " as (" + values + ")");
+      if (shouldDrop) {
+        dropType(con, name);
+      }
+      // Now create the type
+      st.executeUpdate("CREATE TYPE " + name + " AS (" + values + ")");
     } finally {
       closeQuietly(st);
     }
