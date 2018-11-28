@@ -521,10 +521,10 @@ public class TestUtil {
     try {
       if (con.getAutoCommit()) {
         // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP SEQUENCE IF EXISTS " + sequence);
+        stmt.executeUpdate("DROP SEQUENCE IF EXISTS " + sequence + " CASCADE");
       } else {
         // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP SEQUENCE " + sequence);
+        stmt.executeUpdate("DROP SEQUENCE " + sequence + " CASCADE");
       }
     } finally {
       closeQuietly(stmt);
