@@ -375,17 +375,15 @@ public class TestUtil {
   public static void dropSchema(Connection con, String schema) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP SCHEMA " + schema + " CASCADE ";
-
-      stmt.executeUpdate(sql);
-    } catch (SQLException ex) {
-      // Since every create schema issues a drop schema
-      // it's easy to get a schema doesn't exist error.
-      // we want to ignore these, but if we're in a
-      // transaction then we've got trouble
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP SCHEMA " + schema + " CASCADE");
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
 
@@ -482,15 +480,17 @@ public class TestUtil {
    */
   public static void dropDomain(Connection con, String name)
       throws SQLException {
-    Statement st = con.createStatement();
+    Statement stmt = con.createStatement();
     try {
-      st.executeUpdate("drop domain " + name + " cascade");
-    } catch (SQLException ex) {
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP DOMAIN IF EXISTS " + name + " CASCADE");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP DOMAIN " + name + " CASCADE");
       }
     } finally {
-      closeQuietly(st);
+      closeQuietly(stmt);
     }
   }
 
@@ -519,12 +519,15 @@ public class TestUtil {
   public static void dropSequence(Connection con, String sequence) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP SEQUENCE " + sequence;
-      stmt.executeUpdate(sql);
-    } catch (SQLException sqle) {
-      if (!con.getAutoCommit()) {
-        throw sqle;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP SEQUENCE IF EXISTS " + sequence);
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP SEQUENCE " + sequence);
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
 
@@ -534,16 +537,15 @@ public class TestUtil {
   public static void dropTable(Connection con, String table) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TABLE " + table + " CASCADE ";
-      stmt.executeUpdate(sql);
-    } catch (SQLException ex) {
-      // Since every create table issues a drop table
-      // it's easy to get a table doesn't exist error.
-      // we want to ignore these, but if we're in a
-      // transaction then we've got trouble
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP TABLE IF EXISTS " + table + " CASCADE ");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP TABLE " + table + " CASCADE ");
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
 
@@ -553,12 +555,15 @@ public class TestUtil {
   public static void dropType(Connection con, String type) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TYPE " + type + " CASCADE";
-      stmt.executeUpdate(sql);
-    } catch (SQLException ex) {
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP TYPE IF EXISTS " + type + " CASCADE");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP TYPE " + type + " CASCADE");
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
 
