@@ -14,7 +14,7 @@ next: load.html
 
 * [Importing JDBC](use.html#import)
 * [Loading the Driver](load.html)
-* [Connecting to the Databas](connect.html)
+* [Connecting to the Database](connect.html)
    * [Connection Parameters](connect.html#connection-parameters)
 
 This section describes how to load and initialize the JDBC driver in your programs.

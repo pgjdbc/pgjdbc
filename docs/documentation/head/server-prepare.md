@@ -129,7 +129,7 @@ Server side prepared statements are linked to database object IDs, so it could f
 
 The recommendation is:
 1. Avoid changing `search_path` often, as it invalidates server side prepared statements
-1. Use simple `set search_path...` commands, avoid nesting the comands into pl/pgsql or alike, otherwise
+1. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise
 pgjdbc won't be able to identify `search_path` change
 
 #### Re-execution of failed statements
@@ -154,7 +154,7 @@ uses simple queries in the case where `replication` connection property is activ
 
 #### Use of server-prepared statements for con.createStatement()
 
-By default, pgjdbc uses server-prepard statements for `PreparedStatement` only, however you might want
+By default, pgjdbc uses server-prepared statements for `PreparedStatement` only, however you might want
 to activate server side prepared statements for regular `Statement` as well. For instance, if you
 execute the same statement through `con.createStatement().executeQuery(...)`, then you might improve
 performance by caching the statement. Of course it is better to use `PreparedStatements` explicitly,

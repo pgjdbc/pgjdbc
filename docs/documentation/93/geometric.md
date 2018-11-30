@@ -12,7 +12,7 @@ next: largeobjects.html
 PostgreSQL™ has a set of data types that can store geometric features into a
 table. These include single points, lines, and polygons.  We support these types
 in Java with the org.postgresql.geometric package. Please consult the Javadoc
-for the details of available classes and features metioned in [Chapter 12, *Further Reading*](reading.html).
+for the details of available classes and features mentioned in [Chapter 12, *Further Reading*](reading.html).
 
 <a name="geometric-circle-example"></a>
 **Example 9.1. Using the CIRCLE datatype JDBC**
