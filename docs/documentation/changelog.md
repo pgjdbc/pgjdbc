@@ -1504,7 +1504,7 @@ Date:   Fri Feb 10 00:34:59 2012 -0800
     
     The concrete JDBC implementation classes should do as little work
     as possible.  They exist solely to connect the right set of concrete
-    implemention classes, leaving all the real work to the Abstract
+    implementation classes, leaving all the real work to the Abstract
     versions.  Some logic had started to creep out into these concrete
     classes which is bad because it duplicates code in paths that aren't
     likely to be tested by a developer who is working primarily with a
