@@ -242,7 +242,7 @@ public class TestUtil {
     return p;
   }
 
-  public static void initDriver() throws Exception {
+  public static void initDriver() {
     synchronized (TestUtil.class) {
       if (initialized) {
         return;
@@ -281,7 +281,7 @@ public class TestUtil {
    * @return connection using a privileged user mostly for tests that the ability to load C
    *         functions now as of 4/14
    */
-  public static Connection openPrivilegedDB() throws Exception {
+  public static Connection openPrivilegedDB() throws SQLException {
     initDriver();
     Properties properties = new Properties();
     properties.setProperty("user", getPrivilegedUser());
@@ -295,7 +295,7 @@ public class TestUtil {
    *
    * @return connection
    */
-  public static Connection openDB() throws Exception {
+  public static Connection openDB() throws SQLException {
     return openDB(new Properties());
   }
 
@@ -303,7 +303,7 @@ public class TestUtil {
    * Helper - opens a connection with the allowance for passing additional parameters, like
    * "compatible".
    */
-  public static Connection openDB(Properties props) throws Exception {
+  public static Connection openDB(Properties props) throws SQLException {
     initDriver();
 
     // Allow properties to override the user name.
