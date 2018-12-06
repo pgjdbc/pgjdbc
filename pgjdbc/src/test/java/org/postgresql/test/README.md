@@ -12,19 +12,12 @@ guidelines and an example for developers to add new test cases.
 --------------
 Of course, you need to have a [Java 2 JDK or JRE installed](https://www.oracle.com/technetwork/java/javase/downloads/index.html). Also install [Apache Maven](https://maven.apache.org/).
 
-You also need to install the JUnit4 testing framework. You can
-download it from http://www.junit.org/. Add junit4.jar to your
-CLASSPATH before you perform the following steps. Ant will
-dynamically detect that JUnit is present and then build the JDBC
-test suite.
-
 You need to install and build the PostgreSQL JDBC driver source
-tree. You can download it from http://jdbc.postgresql.org/.  See
-README in the top of the tree for more information.
+tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See
+[README](https://github.com/pgjdbc/pgjdbc) in that project for more information.
 
 In this Howto we'll use `$JDBC_SRC` to refer to the top-level directory
-of the JDBC driver source tree.  The test suite is located in the
-subdirectory `$JDBC_SRC/org/postgresql/test`.
+of the JDBC driver source tree.  The test suite is the directory where you cloned the https://github.com/pgjdbc/pgjdbc project from GitHub.
 
 3 Test PostgreSQL Database
 ---------------
@@ -33,12 +26,11 @@ and a user to login as. The tests will create and drop many objects in
 this database, so it should not contain production tables to avoid
 loss of data. We recommend you assign the following names:
 
-  database: test
-  username: test
-  password: test
+- database: test
+- username: test
+- password: test
 
-These names correspond with the default names set for the test suite
-in `$JDBC_SRC/build.xml`. If you have chosen other names you need to
+If you have chosen other names you need to
 create a file named `$JDBC_SRC/build.local.properties` and add your
 customized values of the properties `database`, `username` and
 `password`.
@@ -49,8 +41,8 @@ An easy way to set up the test PostgreSQL database is to use [jackdb/pgjdbc-test
 ------------------------
 
 ```sh
-%cd $JDBC_SRC
-%ant test
+% cd $JDBC_SRC
+% mvn test
 ```
 
 This will run the command line version of JUnit. If you'd like
@@ -89,8 +81,7 @@ If you decide to add a new test case, you should do two things:
 1. Add a test class. It should
    contain `setUp()` and `tearDown()` methods that create and destroy
    the fixture respectively. 
-2. Edit `$JDBC_SRC/org/postgresql/test/jdbc2/Jdbc2TestSuite.java` or
-   `$JDBC_SRC/org/postgresql/test/jdbc3/Jdbc3TestSuite.java` and add your class. This will make the test case
+2. Add your test class in `$JDBC_SRC/src/test/java/org/postgresql/test`. This will make the test case
    part of the test suite.
 
 6 Guidelines for developing new tests
@@ -128,12 +119,12 @@ For example, in the comments you can explain where a certain test
 condition originates from. Is it a JDBC requirement, PostgreSQL
 behaviour or the intended implementation of a feature?
 
-7 ssltests
+7 SSL tests
 ----------------
-- requires ssl to be turned on in the database `postgresql.conf ssl=true`
-- pg_hba.conf requires entries for hostssl, and hostnossl
+- requires SSL to be turned on in the database `postgresql.conf ssl=true`
+- `pg_hba.conf` requires entries for `hostssl`, and `hostnossl`
 - contrib module sslinfo needs to be installed in the databases
-- databases certdb, hostdb, hostnossldb, hostssldb, and hostsslcertdb need to be created
+- databases `certdb`, `hostdb`, `hostnossldb`, `hostssldb`, and `hostsslcertdb` need to be created
 
 
 8 Running the JDBC 2 test suite against PostgreSQL
