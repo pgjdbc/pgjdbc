@@ -69,6 +69,11 @@ public class TestUtil {
       protocolVersion = "&protocolVersion=" + getProtocolVersion();
     }
 
+    String options = "";
+    if (getOptions() != null) {
+      options = "&options=" + getOptions();
+    }
+
     String binaryTransfer = "";
     if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
       binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
@@ -96,6 +101,7 @@ public class TestUtil {
         + logLevel
         + logFile
         + protocolVersion
+        + options
         + binaryTransfer
         + receiveBufferSize
         + sendBufferSize
@@ -125,6 +131,10 @@ public class TestUtil {
 
   public static int getProtocolVersion() {
     return Integer.parseInt(System.getProperty("protocolVersion", "0"));
+  }
+
+  public static String getOptions() {
+    return System.getProperty("options");
   }
 
   /*
