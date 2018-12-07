@@ -16,6 +16,7 @@ import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
+import org.postgresql.test.core.OptionsPropertyTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
@@ -61,6 +62,7 @@ import org.junit.runners.Suite;
         ReaderInputStreamTest.class,
         ServerVersionParseTest.class,
         ServerVersionTest.class,
+        OptionsPropertyTest.class,
 
         TypeCacheDLLStressTest.class,
 

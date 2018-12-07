@@ -52,8 +52,10 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
-    TestUtil.createCompositeType(con, "custom", "i int");
-    TestUtil.createCompositeType(con, "_custom", "f float");
+    TestUtil.dropType(con, "custom");
+    TestUtil.dropType(con, "_custom");
+    TestUtil.createCompositeType(con, "custom", "i int", false);
+    TestUtil.createCompositeType(con, "_custom", "f float", false);
 
 
     // 8.2 does not support arrays of composite types
@@ -107,7 +109,7 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     stmt.execute("DROP FUNCTION f2(int, varchar)");
     stmt.execute("DROP FUNCTION f3(int, varchar)");
-    TestUtil.dropType(con, "domaintable");
+    TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
 
     TestUtil.closeDB(con);

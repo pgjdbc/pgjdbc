@@ -56,6 +56,12 @@ public enum PGProperty {
       false, "3"),
 
   /**
+   * Specify 'options' connection initialization parameter.
+   * The value of this parameter may contain spaces and other special characters or their URL representation.
+   */
+  OPTIONS("options", null, "Specify 'options' connection initialization parameter."),
+
+  /**
    * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
    *
    * <p>This enable the {@link java.util.logging.Logger} of the driver based on the following mapping

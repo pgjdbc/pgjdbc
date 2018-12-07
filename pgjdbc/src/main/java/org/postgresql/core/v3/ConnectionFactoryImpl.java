@@ -339,6 +339,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (currentSchema != null) {
       paramList.add(new String[]{"search_path", currentSchema});
     }
+
+    String options = PGProperty.OPTIONS.get(info);
+    if (options != null) {
+      paramList.add(new String[]{"options", options});
+    }
+
     return paramList;
   }
 
