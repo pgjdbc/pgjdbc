@@ -1,16 +1,16 @@
-PostgreSQL/JDBC Test Suite Howto
-================================
+# PostgreSQL/JDBC Test Suite Howto
 
-1 Introduction
---------------
+
+## 1 - Introduction
+
 The PostgreSQL source tree contains an automated test suite for
 the JDBC driver. This document explains how to install,
 configure and run this test suite. Furthermore, it offers
 guidelines and an example for developers to add new test cases.
 
-2 Installation
---------------
-Of course, you need to have a [Java 2 JDK or JRE installed](https://www.oracle.com/technetwork/java/javase/downloads/index.html). Also install [Apache Maven](https://maven.apache.org/).
+## 2 - Installation
+
+Of course, you need to have a [Java 8 JDK](https://www.oracle.com/technetwork/java/javase/downloads/index.html). Also install [Apache Maven](https://maven.apache.org/).
 
 You need to install and build the PostgreSQL JDBC driver source
 tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See
@@ -19,8 +19,8 @@ tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See
 In this Howto we'll use `$JDBC_SRC` to refer to the top-level directory
 of the JDBC driver source tree.  The test suite is the directory where you cloned the https://github.com/pgjdbc/pgjdbc project from GitHub.
 
-3 Test PostgreSQL Database
----------------
+## 3 Test PostgreSQL Database
+
 The test suite requires a PostgreSQL database to run the tests against
 and a user to login as. The tests will create and drop many objects in
 this database, so it should not contain production tables to avoid
@@ -37,8 +37,7 @@ customized values of the properties `database`, `username` and
 
 An easy way to set up the test PostgreSQL database is to use [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm). Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
 
-4 Running the test suite
-------------------------
+## 4 - Running the test suite
 
 ```sh
 % cd $JDBC_SRC
@@ -54,8 +53,8 @@ If the test suite reports errors or failures that you cannot
 explain, please post the relevant parts of the output to the
 mailing list pgsql-jdbc@postgresql.org.
 
-5 Extending the test suite with new tests
------------------------------------------
+## 5 - Extending the test suite with new tests
+
 If you're not familiar with JUnit, we recommend that you
 first read the introductory article [JUnit Test Infected:
 Programmers Love Writing Tests](http://junit.sourceforge.net/doc/testinfected/testing.htm).
@@ -84,8 +83,8 @@ If you decide to add a new test case, you should do two things:
 2. Add your test class in `$JDBC_SRC/src/test/java/org/postgresql/test`. This will make the test case
    part of the test suite.
 
-6 Guidelines for developing new tests
--------------------------------------
+## 6 - Guidelines for developing new tests
+
 Every test should create and drop its own tables. We suggest to
 consider database objects (e.g. tables) part of the fixture for
 the tests in the test case. The test should also succeed when a
@@ -119,16 +118,20 @@ For example, in the comments you can explain where a certain test
 condition originates from. Is it a JDBC requirement, PostgreSQL
 behaviour or the intended implementation of a feature?
 
-7 SSL tests
-----------------
+## 7 - Example
+
+See [BlobTest.java](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test/java/org/postgresql/test/jdbc2/BlobTest.java) for an example of a unit test that creates  test table, runs a test, and then drops the table. There are other tests in [pgjdbc/src/test/java/org/postgresql](https://github.com/pgjdbc/pgjdbc/tree/master/pgjdbc/src/test/java/org/postgresql) which you can use an examples. Please add your own tests in this location.
+
+## 8 - SSL tests
+
 - requires SSL to be turned on in the database `postgresql.conf ssl=true`
 - `pg_hba.conf` requires entries for `hostssl`, and `hostnossl`
 - contrib module sslinfo needs to be installed in the databases
 - databases `certdb`, `hostdb`, `hostnossldb`, `hostssldb`, and `hostsslcertdb` need to be created
 
 
-8 Running the JDBC 2 test suite against PostgreSQL
-------------------------------------------------------------
+## 9 - Running the JDBC 2 test suite against PostgreSQL
+
 Download the [JDBC test suite](http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html). 
 This is the JDBC 2 test suite that includes J2EE requirements.
 
@@ -199,14 +202,12 @@ This is the JDBC 2 test suite that includes J2EE requirements.
 At the time of writing of this document, a great number of tests
 in this test suite fail.
 
-10 Credits and Feedback
--------------------
+## 10 - Credits and Feedback
+
 The parts of this document describing the PostgreSQL test suite
 were originally written by Rene Pijlman. Liam Stewart contributed
 the section on the Sun JDBC 2 test suite.
 
 Please send your questions about the JDBC test suites or suggestions
 for improvement to the pgsql-jdbc@postgresql.org mailing list.
-
-
 
