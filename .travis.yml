@@ -172,7 +172,7 @@ matrix:
         - MCENTRAL=Y
         - COVERAGE=Y
         - TZ=UTC
-    - jdk: openjdk6
+    - jdk: openjdk7
       sudo: required
       addons:
         postgresql: "9.1"
@@ -240,7 +240,7 @@ matrix:
         - PG_VERSION=9.2
         - ZULU_JDK=7
     - stage: release_prev
-      jdk: openjdk6
+      jdk: openjdk7
       sudo: required
       addons:
         postgresql: "9.1"
