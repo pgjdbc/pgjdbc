@@ -191,6 +191,8 @@ public class XADataSourceTest {
   @Test
   public void testWrapperEquals() throws Exception {
     assertTrue("Wrappers should be equal", conn.equals(conn));
+    assertFalse("Wrapper should be unequal to null", conn.equals(null));
+    assertFalse("Wrapper should be unequal to unrelated object", conn.equals("dummy string object"));
   }
 
   @Test
