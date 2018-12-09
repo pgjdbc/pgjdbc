@@ -128,7 +128,11 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslrootcert** = String
 
-	File name of the SSL root certificate. Defaults to defaultdir/root.crt
+	File name of the SSL root certificate. Defaults to /defaultdir/root.crt
+
+* **sslcrlfile** = String
+
+    File name of the CRL file. Defaults to /defaultdir/root.crl
 
 * **sslhostnameverifier** = String
 

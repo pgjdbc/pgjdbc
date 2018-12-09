@@ -648,6 +648,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return SSL CRL file name
+   * @see PGProperty#SSL_CRL_FILE
+   */
+  public String getSslCrlFile() {
+    return PGProperty.SSL_CRL_FILE.get(properties);
+  }
+
+  /**
+   * @param sslCrlFile name of CRL file
+   * @see PGProperty#SSL_CRL_FILE
+   */
+  public void setSslCrlFile( String sslCrlFile ) {
+    PGProperty.SSL_CRL_FILE.set(properties, sslCrlFile);
+  }
+
+  /**
    * @param applicationName application name
    * @see PGProperty#APPLICATION_NAME
    */

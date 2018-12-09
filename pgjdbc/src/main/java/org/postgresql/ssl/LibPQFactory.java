@@ -24,7 +24,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509CRL;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -33,6 +36,7 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
+
 
 /**
  * Provide an SSLSocketFactory that is compatible with the libpq behaviour.
@@ -43,7 +47,14 @@ public class LibPQFactory extends WrappedFactory {
 
   /**
    * @param info the connection parameters The following parameters are used:
-   *        sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
+   *        sslmode
+   *        sslcert
+   *        sslkey
+   *        sslrootcert
+   *        sslcrlfile
+   *        sslhostnameverifier
+   *        sslpasswordcallback
+   *        sslpassword
    * @throws PSQLException if security error appears when initializing factory
    */
   public LibPQFactory(Properties info) throws PSQLException {
@@ -120,16 +131,40 @@ public class LibPQFactory extends WrappedFactory {
               GT.tr("Could not open SSL root certificate file {0}.", sslrootcertfile),
               PSQLState.CONNECTION_FAILURE, ex);
         }
+        X509CRL crl = null;
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          // Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{}); //Does
-          // not work in java 1.4
+
           Object[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{});
           ks.load(null, null);
           for (int i = 0; i < certs.length; i++) {
             ks.setCertificateEntry("cert" + i, (Certificate) certs[i]);
           }
+
           tmf.init(ks);
+
+          String sslcrlfile = PGProperty.SSL_CRL_FILE.get(info);
+          if (sslcrlfile == null) {
+            // No explicit CRL file specified so try the default. If it does not exist crl will be null.
+            sslcrlfile = defaultdir + "root.crl";
+            crl = loadCertificateRevocationList(cf, sslcrlfile);
+          } else {
+            // Explicit CRL file specified so try to use it
+            crl = loadCertificateRevocationList(cf, sslcrlfile);
+            if (crl == null) {
+              // Explicit CRL file specified was not found so throw an error to alert the user
+              throw new PSQLException(GT.tr("SSL certificate revocation list file {0} could not be read.", sslcrlfile),
+                    PSQLState.CONNECTION_FAILURE, null);
+            }
+          }
+          if (crl != null) {
+            for (X509Certificate cert : km.getCertificateChain(null) ) {
+              if (crl.isRevoked(cert)) {
+                throw new PSQLException(GT.tr("SSL certificate with serial number {0} revoked.", cert.getSerialNumber()),
+                    PSQLState.CONNECTION_FAILURE, null);
+              }
+            }
+          }
         } catch (IOException ioex) {
           throw new PSQLException(
               GT.tr("Could not read SSL root certificate file {0}.", sslrootcertfile),
@@ -147,6 +182,13 @@ public class LibPQFactory extends WrappedFactory {
           }
         }
         tm = tmf.getTrustManagers();
+        if (crl != null) {
+          // We have a non-empty CRL so add it a TrustManager to verify the server certificate against it
+          TrustManager[] tmp = new TrustManager[tm.length + 1];
+          System.arraycopy(tm, 0, tmp, 0, tm.length);
+          tmp[tm.length] = new CrlVerifyingTrustManager(crl);
+          tm = tmp;
+        }
       }
 
       // finally we can initialize the context
@@ -214,6 +256,29 @@ public class LibPQFactory extends WrappedFactory {
         // It is used instead of cons.readPassword(prompt), because the prompt may contain '%'
         // characters
         pwdCallback.setPassword(cons.readPassword("%s", pwdCallback.getPrompt()));
+      }
+    }
+  }
+
+  private X509CRL loadCertificateRevocationList(CertificateFactory cf, String crlFile)
+      throws PSQLException {
+    FileInputStream fis = null;
+    try {
+      fis = new FileInputStream(crlFile);
+      return (X509CRL) cf.generateCRL(fis);
+    } catch (FileNotFoundException ex) {
+      return null;
+    } catch (Exception ex) {
+      throw new PSQLException(
+          GT.tr("Could not read SSL certificate revocation list file {0}.", crlFile),
+          PSQLState.CONNECTION_FAILURE, ex);
+    } finally {
+      if (fis != null) {
+        try {
+          fis.close();
+        } catch (IOException ignore) {
+          // NOTE: We do not handle a close error as we will have rethrown the original cause instead
+        }
       }
     }
   }
