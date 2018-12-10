@@ -365,7 +365,7 @@ Then, to test against old JDK, run `mvn test` in `pgjdbc-jre6` or `pgjdbc-jre7` 
 An easy way to set up the test PostgreSQL database is to use [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm). Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
 
 For more information about the unit tests and how to run them, see
-  [org/postgresql/test/README](pgjdbc/src/test/java/org/postgresql/test/README.md)
+  [TESTING.md](TESTING.md)
 
 ## Support for IDEs
 
