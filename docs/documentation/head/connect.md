@@ -124,7 +124,11 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslkey** = String
 
-	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8
+	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
+	
+	*Note:* The key file **must** be in [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	
+	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der`
 
 * **sslrootcert** = String
 
