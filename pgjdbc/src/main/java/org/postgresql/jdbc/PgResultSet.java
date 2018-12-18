@@ -47,10 +47,12 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -68,8 +70,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -662,16 +666,36 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
-  /*
+  /**
    * This checks against map for the type of column i, and if found returns an object based on that
-   * mapping. The class must implement the SQLData interface.
+   * mapping. The class must implement the {@link SQLData} or {@link Struct} interface.
    */
-  public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException {
-    checkClosed();
-    if (map == null || map.isEmpty()) {
-      return getObject(i);
+  public Object getObjectImpl(int columnIndex, Map<String, Class<?>> map) throws SQLException {
+    connection.getLogger().log(Level.FINEST, "  getObjectImpl columnIndex: {0}", columnIndex);
+    Field field;
+
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
     }
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
+
+    field = fields[columnIndex - 1];
+
+    // some fields can be null, mainly from those returned by MetaData methods
+    if (field == null) {
+      wasNullFlag = true;
+      return null;
+    }
+
+    Object result = internalGetObject(columnIndex, field);
+    if (result != null) {
+      return result;
+    }
+
+    if (isBinary(columnIndex)) {
+      return connection.getObject(map, getPGType(columnIndex), null, this_row[columnIndex - 1]);
+    }
+    return connection.getObject(map, getPGType(columnIndex), getString(columnIndex), null);
   }
 
 
@@ -2561,31 +2585,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public Object getObject(int columnIndex) throws SQLException {
-    connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
-    Field field;
-
-    checkResultSet(columnIndex);
-    if (wasNullFlag) {
-      return null;
-    }
-
-    field = fields[columnIndex - 1];
-
-    // some fields can be null, mainly from those returned by MetaData methods
-    if (field == null) {
-      wasNullFlag = true;
-      return null;
-    }
-
-    Object result = internalGetObject(columnIndex, field);
-    if (result != null) {
-      return result;
-    }
-
-    if (isBinary(columnIndex)) {
-      return connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
-    }
-    return connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
+    return getObjectImpl(columnIndex, connection.getTypeMapNoCopy());
   }
 
   public Object getObject(String columnName) throws SQLException {
@@ -3437,6 +3437,74 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
       }
       return type.cast(object);
+    } else {
+      Map<String, Class<?>> typemap = connection.getTypeMapNoCopy();
+      if (!typemap.isEmpty()) {
+        String pgType = getPGType(columnIndex);
+        Class<?> customType = typemap.get(pgType);
+        if (customType != null) {
+          // Direct match, as expected - no fancy workarounds required
+          Object object;
+          if (isBinary(columnIndex)) {
+            object = connection.getObjectCustomType(typemap, pgType, customType, null, this_row[columnIndex - 1]);
+          } else {
+            object = connection.getObjectCustomType(typemap, pgType, customType, getString(columnIndex), null);
+          }
+          return type.cast(object);
+        }
+        // It is an issue that a DOMAIN type is sent from the backend with its oid of non-domain type, which makes this pgType not match
+        // what is expected.  For example, our "com.aoindustries.net"."Email" DOMAIN is currently oid 4015336, but it is comine back as
+        // 25 "text".  This is tested on PostgreSQL 9.4.
+        //
+        // Digging deeper, this seems to be central to the PostgreSQL protocol, including mentions in other client implementations:
+        // http://php.net/manual/en/function.pg-field-type-oid.php
+        //
+        // To work around this issue, we're doing a bit of a switch-a-roo by finding all mappings to the requested type, then any
+        // of its base classes and interfaces.
+        //
+        // See https://github.com/pgjdbc/pgjdbc/issues/641 for more details
+
+        String inferredType = null;
+        Class<? extends T> inferredClass = null;
+        // First check for direct inference (exact match to type map)
+        Set<String> directTypes = connection.getInferenceMap(true).get(type);
+        if (directTypes != null) {
+          if (directTypes.size() > 1) {
+            // Sort types for easier reading
+            Set<String> sortedTypes = new TreeSet<>(directTypes);
+            throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", type, sortedTypes.toString()),
+                    PSQLState.CANNOT_COERCE);
+          }
+          inferredType = directTypes.iterator().next();
+          inferredClass = type;
+        }
+        if (inferredType == null) {
+          Set<String> inheritedTypes = connection.getInferenceMap(false).get(type);
+          if (inheritedTypes != null) {
+            if (inheritedTypes.size() > 1) {
+              // Sort types for easier reading
+              Set<String> sortedTypes = new TreeSet<>(inheritedTypes);
+              throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", type, sortedTypes.toString()),
+                      PSQLState.CANNOT_COERCE);
+            }
+            inferredType = inheritedTypes.iterator().next();
+            inferredClass = connection.getTypeMapNoCopy().get(inferredType).asSubclass(type);
+            // There is a slight race conditio: inferred type might have been just removed
+            if (inferredClass == null) {
+              inferredType = null;
+            }
+          }
+        }
+        if (inferredType != null) {
+          T object;
+          if (isBinary(columnIndex)) {
+            object = connection.getObjectCustomType(typemap, inferredType, inferredClass, null, this_row[columnIndex - 1]);
+          } else {
+            object = connection.getObjectCustomType(typemap, inferredType, inferredClass, getString(columnIndex), null);
+          }
+          return type.cast(object);
+        }
+      }
     }
     throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
             PSQLState.INVALID_PARAMETER_VALUE);

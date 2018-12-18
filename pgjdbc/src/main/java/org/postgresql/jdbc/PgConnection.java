@@ -50,6 +50,7 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLPermission;
 import java.sql.SQLWarning;
@@ -58,6 +59,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,6 +75,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.sql.rowset.serial.SQLInputImpl;
 
 public class PgConnection implements BaseConnection {
 
@@ -356,9 +359,27 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * The current type mappings.
+   * Used to ensure consistent updates of {@link #typemap},
+   * {@link #inferenceMapDirect} and {@link #inferenceMapInherited}.
+   * These fields may be accessed without synchronization, however, due to
+   * being volatile.
    */
-  protected Map<String, Class<?>> typemap;
+  private final Object typemapLock = new Object();
+
+  /**
+   * The unmodifiable current type mappings.
+   */
+  protected volatile Map<String, Class<?>> typemap = Collections.emptyMap();
+
+  /**
+   * The set of types directly mapped to each class - used for type inference.
+   */
+  protected volatile Map<Class<?>,Set<String>> inferenceMapDirect = Collections.emptyMap();
+
+  /**
+   * The set of all known types mapped to each class - used for type inference.
+   */
+  protected volatile Map<Class<?>,Set<String>> inferenceMapInherited = Collections.emptyMap();
 
   @Override
   public Statement createStatement() throws SQLException {
@@ -379,7 +400,17 @@ public class PgConnection implements BaseConnection {
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     checkClosed();
+    return new HashMap<>(getTypeMapNoCopy());
+  }
+
+  @Override
+  public Map<String, Class<?>> getTypeMapNoCopy() {
     return typemap;
+  }
+
+  @Override
+  public Map<Class<?>, Set<String>> getInferenceMap(boolean direct) {
+    return direct ? inferenceMapDirect : inferenceMapInherited;
   }
 
   public QueryExecutor getQueryExecutor() {
@@ -524,6 +555,57 @@ public class PgConnection implements BaseConnection {
   // This holds a reference to the LargeObject API if already open
   private LargeObjectManager largeobject = null;
 
+  /**
+   * Implementation of {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} for custom types
+   * once the {@link SQLData} type is known.
+   *
+   * @see #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.lang.String, byte[])
+   */
+  SQLData getObjectSQLData(Map<String, Class<?>> map, String type, Class<? extends SQLData> sqlDataType, String value, byte[] byteValue) throws SQLException {
+    // An extremely simple implementation for scalar values only (not composite types)
+    // This is useful for DOMAIN (and possibly ENUM?) values mapping onto SQLData
+    try {
+      SQLData sqlData = sqlDataType.newInstance();
+      // TODO: Must these exactly match?  If not, remove this check
+      String sqlTypeName = sqlData.getSQLTypeName();
+      if (!sqlTypeName.equals(type)) {
+        throw new PSQLException(GT.tr("Custom type mismatch.  expected={0}, got={1}", type, sqlTypeName),
+            PSQLState.DATA_TYPE_MISMATCH);
+      }
+      sqlData.readSQL(
+          new SQLInputImpl(
+              new Object[] {value != null ? value : byteValue},
+              map
+          ),
+          type
+      );
+      return sqlData;
+    } catch (InstantiationException e) {
+      // Copying SYSTEM_ERROR used for IllegalAccessException in Parser.java
+      throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR, e);
+    } catch (IllegalAccessException e) {
+      // Copying SYSTEM_ERROR used for IllegalAccessException in Parser.java
+      throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR, e);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @see  #getObjectSQLData(java.util.Map, java.lang.String, java.lang.Class, java.lang.String, byte[])
+   */
+  @Override
+  public <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, String value, byte[] byteValue) throws SQLException {
+    if (SQLData.class.isAssignableFrom(customType)) {
+      Class<? extends SQLData> sqlDataType = customType.asSubclass(SQLData.class);
+      return customType.cast(getObjectSQLData(map, type, sqlDataType, value, byteValue));
+    }
+    // TODO: Support Struct, too
+    // Unexected custom type
+    throw new PSQLException(GT.tr("Custom type does not implement SQLData: {0}", customType.getName()),
+        PSQLState.NOT_IMPLEMENTED);
+  }
+
   /*
    * This method is used internally to return an object based around org.postgresql's more unique
    * data types.
@@ -539,13 +621,11 @@ public class PgConnection implements BaseConnection {
    * @exception SQLException if value is not correct for this type
    */
   @Override
-  public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
-    if (typemap != null) {
-      Class<?> c = typemap.get(type);
+  public Object getObject(Map<String,Class<?>> map, String type, String value, byte[] byteValue) throws SQLException {
+    if (map != null) {
+      Class<?> c = map.get(type);
       if (c != null) {
-        // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
-        throw new PSQLException(GT.tr("Custom type maps are not supported."),
-            PSQLState.NOT_IMPLEMENTED);
+        return getObjectCustomType(map, type, c, value, byteValue);
       }
     }
 
@@ -589,6 +669,11 @@ public class PgConnection implements BaseConnection {
       throw new PSQLException(GT.tr("Failed to create object for: {0}.", type),
           PSQLState.CONNECTION_FAILURE, ex);
     }
+  }
+
+  @Override
+  public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
+    return getObject(typemap, type, value, byteValue);
   }
 
   protected TypeInfo createTypeInfo(BaseConnection conn, int unknownLength) {
@@ -1048,10 +1133,6 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
   }
 
-  public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
-    typemap = map;
-  }
-
   public Logger getLogger() {
     return LOGGER;
   }
@@ -1241,9 +1322,71 @@ public class PgConnection implements BaseConnection {
     return metadata;
   }
 
+  /**
+   * @see  #setTypeMap(java.util.Map)
+   */
+  private static Set<Class<?>> getAllClasses(Class<?> clazz) {
+    Set<Class<?>> classes = new HashSet<Class<?>>();
+    Class<?> current = clazz;
+    do {
+      classes.add(current);
+      for (Class<?> iface : clazz.getInterfaces()) {
+        classes.add(iface);
+      }
+    } while ((current = current.getSuperclass()) != null);
+    return classes;
+  }
+
+  /**
+   * @see  #setTypeMap(java.util.Map)
+   */
+  private static void addInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> clazz, String type) {
+    Set<String> types = inferenceMap.get(clazz);
+    if (types == null) {
+      types = new HashSet<>();
+      inferenceMap.put(clazz, types);
+    }
+    types.add(type);
+  }
+
+  /**
+   * @see  #setTypeMap(java.util.Map)
+   */
+  private static void makeValuesUnmodifiable(Map<Class<?>, Set<String>> inferenceMap) {
+    for (Map.Entry<Class<?>, Set<String>> entry : inferenceMap.entrySet()) {
+      Set<String> types = entry.getValue();
+      if (types.size() == 1) {
+        entry.setValue(Collections.singleton(types.iterator().next()));
+      } else {
+        entry.setValue(Collections.unmodifiableSet(types));
+      }
+    }
+  }
+
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-    setTypeMapImpl(map);
+    // Defensive copy
+    Map<String, Class<?>> newMap = new HashMap<>(map);
+    // Build the new direct inference map
+    Map<Class<?>, Set<String>> newDirectMap = new HashMap<>();
+    // Build the new type inference map, including all base classes and implemented interfaces
+    Map<Class<?>, Set<String>> newInheritedMap = new HashMap<>();
+    for (Map.Entry<String, Class<?>> entry : newMap.entrySet()) {
+      String type = entry.getKey();
+      Class<?> directClass = entry.getValue();
+      addInference(newDirectMap, directClass, type);
+      for (Class<?> clazz : getAllClasses(directClass)) {
+        addInference(newInheritedMap, clazz, type);
+      }
+    }
+    // Make each type set unmodifiable
+    makeValuesUnmodifiable(newDirectMap);
+    makeValuesUnmodifiable(newInheritedMap);
+    synchronized (typemapLock) {
+      typemap = Collections.unmodifiableMap(newMap);
+      inferenceMapDirect = Collections.unmodifiableMap(newDirectMap);
+      inferenceMapInherited = Collections.unmodifiableMap(newInheritedMap);
+    }
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 

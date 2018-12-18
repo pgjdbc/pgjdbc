@@ -7,12 +7,15 @@ package org.postgresql.core;
 
 import org.postgresql.PGConnection;
 import org.postgresql.jdbc.FieldMetadata;
+import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.Set;
 import java.util.TimerTask;
 
 /**
@@ -64,18 +67,83 @@ public interface BaseConnection extends PGConnection, Connection {
   ReplicationProtocol getReplicationProtocol();
 
   /**
-   * <p>Construct and return an appropriate object for the given type and value. This only considers
-   * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)} and
-   * {@link org.postgresql.PGConnection#addDataType(String, String)}.</p>
+   * {@inheritDoc}
+   *
+   * @implSpec  Performs a defensive copy, per specification that returned map should be
+   *            modifiable.  Use {@link #getTypeMapNoCopy()} to avoid this defensive copy.
+   *
+   * @see  #getTypeMapNoCopy()
+   */
+  @Override
+  Map<String, Class<?>> getTypeMap() throws SQLException;
+
+  /**
+   * Gets the unmodifiable type map for this connection.
+   * This will likely perform better than {@link #getTypeMap()}
+   * because no defensive copy is made.
+   */
+  Map<String, Class<?>> getTypeMapNoCopy();
+
+  /**
+   * Gets the unmodifiable map used for type inference of custom types.
+   * This is required because the server returns base types for domains.
+   *
+   * <p>
+   * The indirect (inherited) inference is used to decouple type from implementation.
+   * This allows the API user to select an interface, while the implementation has registered
+   * the direct type implementation.
+   * </p>
+   *
+   * @param  directOnly  Should only exact matches be returned (exactly match types in {@link #getTypeMap()},
+   *                     versus including those inherited from all classes and interfaces?
+   *                     It is expected to generally check for direct inference first, then fall-back to inherited.
+   */
+  Map<Class<?>, Set<String>> getInferenceMap(boolean directOnly);
+
+  /**
+   * Implementation of {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} for custom types
+   * once the custom type is known.
+   *
+   * <p>
+   * This is present for type inference implemented by {@code PgResultSet.getObject(..., Class<T> type)}, which is
+   * a consequence of the server sending base types for domains.
+   * </p>
+   *
+   * @see  #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])
+   * @see  PgResultSet#getObject(java.lang.String, java.lang.Class)
+   * @see  PgResultSet#getObject(int, java.lang.Class)
+   */
+  <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, String value, byte[] byteValue) throws SQLException;
+
+  /**
+   * <p>Construct and return an appropriate object for the given type and value. This considers
+   * the given type map, then the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)}
+   * and {@link org.postgresql.PGConnection#addDataType(String, String)}.
+   * </p>
    *
    * <p>If no class is registered as handling the given type, then a generic
    * {@link org.postgresql.util.PGobject} instance is returned.</p>
    *
+   * @param map The type map in effect, which would come from one of:
+   *            <ul>
+   *            <li>{@link #getTypeMapNoCopy()}</li>
+   *            <li>{@link ResultSet#getObject(java.lang.String, java.util.Map)}</li>
+   *            <li>{@link ResultSet#getObject(int, java.util.Map)}</li>
+   *            </ul>
    * @param type the backend typename
    * @param value the type-specific string representation of the value
    * @param byteValue the type-specific binary representation of the value
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
+   */
+  Object getObject(Map<String,Class<?>> map, String type, String value, byte[] byteValue) throws SQLException;
+
+  /**
+   * Calls {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} with the connection's
+   * current {@link #getTypeMapNoCopy() type map}.
+   *
+   * @see  #getTypeMapNoCopy()
+   * @see  #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])
    */
   Object getObject(String type, String value, byte[] byteValue) throws SQLException;
 
