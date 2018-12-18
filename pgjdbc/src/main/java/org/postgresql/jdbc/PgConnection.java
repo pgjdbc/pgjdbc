@@ -400,7 +400,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     checkClosed();
-    return new HashMap<>(getTypeMapNoCopy());
+    return new HashMap<String, Class<?>>(getTypeMapNoCopy());
   }
 
   @Override
@@ -1343,7 +1343,7 @@ public class PgConnection implements BaseConnection {
   private static void addInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> clazz, String type) {
     Set<String> types = inferenceMap.get(clazz);
     if (types == null) {
-      types = new HashSet<>();
+      types = new HashSet<String>();
       inferenceMap.put(clazz, types);
     }
     types.add(type);
@@ -1366,11 +1366,11 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     // Defensive copy
-    Map<String, Class<?>> newMap = new HashMap<>(map);
+    Map<String, Class<?>> newMap = new HashMap<String, Class<?>>(map);
     // Build the new direct inference map
-    Map<Class<?>, Set<String>> newDirectMap = new HashMap<>();
+    Map<Class<?>, Set<String>> newDirectMap = new HashMap<Class<?>, Set<String>>();
     // Build the new type inference map, including all base classes and implemented interfaces
-    Map<Class<?>, Set<String>> newInheritedMap = new HashMap<>();
+    Map<Class<?>, Set<String>> newInheritedMap = new HashMap<Class<?>, Set<String>>();
     for (Map.Entry<String, Class<?>> entry : newMap.entrySet()) {
       String type = entry.getKey();
       Class<?> directClass = entry.getValue();

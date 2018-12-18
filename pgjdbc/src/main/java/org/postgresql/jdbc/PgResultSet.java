@@ -3471,7 +3471,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (directTypes != null) {
           if (directTypes.size() > 1) {
             // Sort types for easier reading
-            Set<String> sortedTypes = new TreeSet<>(directTypes);
+            Set<String> sortedTypes = new TreeSet<String>(directTypes);
             throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", type, sortedTypes.toString()),
                     PSQLState.CANNOT_COERCE);
           }
@@ -3483,7 +3483,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           if (inheritedTypes != null) {
             if (inheritedTypes.size() > 1) {
               // Sort types for easier reading
-              Set<String> sortedTypes = new TreeSet<>(inheritedTypes);
+              Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
               throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", type, sortedTypes.toString()),
                       PSQLState.CANNOT_COERCE);
             }
