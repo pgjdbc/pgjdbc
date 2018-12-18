@@ -691,7 +691,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * At this time, only single attribute SQLData is supported.
    */
   private Object getSQLDataAttribute(SQLData in) throws SQLException {
-    Vector<Object> attributes = new Vector<>();
+    Vector<Object> attributes = new Vector<Object>();
     in.writeSQL(new SQLOutputImpl(attributes, connection.getTypeMap())); // TODO: connection.getTypeMapNoCopy() once pull request #1378 is merged
     int size = attributes.size();
     if (size == 1) {
