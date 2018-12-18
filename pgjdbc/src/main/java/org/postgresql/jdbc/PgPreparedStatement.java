@@ -50,6 +50,7 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
@@ -66,6 +67,8 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.Vector;
+import javax.sql.rowset.serial.SQLOutputImpl;
 
 class PgPreparedStatement extends PgStatement implements PreparedStatement {
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
@@ -486,6 +489,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
+    if (in instanceof SQLData) {
+      setObject(parameterIndex, getSQLDataAttribute((SQLData) in), targetSqlType, scale);
+      return;
+    }
+
+    // TODO: Struct
+
     if (targetSqlType == Types.OTHER && in instanceof UUID
         && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
       setUuid(parameterIndex, (UUID) in);
@@ -664,6 +674,31 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
             PSQLState.INVALID_PARAMETER_TYPE);
     }
+  }
+
+  /**
+   * Gets the singe-value attribute from {@link SQLData}.
+   * At this time, only single attribute SQLData is supported.
+   */
+  private Object getSQLDataAttribute(SQLData in) throws SQLException {
+    Vector<Object> attributes = new Vector<>();
+    in.writeSQL(new SQLOutputImpl(attributes, connection.getTypeMapNoCopy()));
+    int size = attributes.size();
+    if(size == 1) {
+      return attributes.get(0);
+    } else if(size == 0) {
+      throw new PSQLException(GT.tr(
+          "No attributes written by SQLData instance of {0}",
+          in.getClass().getName()), PSQLState.DATA_ERROR);
+    } else {
+      throw new PSQLException(GT.tr(
+          "More than one attribute written by SQLData instance of {0}",
+          in.getClass().getName()), PSQLState.DATA_ERROR);
+    }
+  }
+
+  private void setSQLData(int parameterIndex, SQLData in) throws SQLException {
+    setObject(parameterIndex, getSQLDataAttribute(in));
   }
 
   private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
@@ -942,6 +977,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
+    } else if (x instanceof SQLData) {
+      setSQLData(parameterIndex, (SQLData) x);
     } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
       setPrimitiveArray(parameterIndex, x);
     } else {
@@ -950,6 +987,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.",
           x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
     }
+    // TODO: Struct
   }
 
   /**
