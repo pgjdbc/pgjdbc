@@ -684,9 +684,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     Vector<Object> attributes = new Vector<>();
     in.writeSQL(new SQLOutputImpl(attributes, connection.getTypeMapNoCopy()));
     int size = attributes.size();
-    if(size == 1) {
+    if (size == 1) {
       return attributes.get(0);
-    } else if(size == 0) {
+    } else if (size == 0) {
       throw new PSQLException(GT.tr(
           "No attributes written by SQLData instance of {0}",
           in.getClass().getName()), PSQLState.DATA_ERROR);
