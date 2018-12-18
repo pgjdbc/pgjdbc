@@ -50,7 +50,9 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
 import java.sql.SQLData;
+//#endif
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
@@ -67,8 +69,10 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
 import java.util.Vector;
 import javax.sql.rowset.serial.SQLOutputImpl;
+//#endif
 
 class PgPreparedStatement extends PgStatement implements PreparedStatement {
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
@@ -489,13 +493,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     if (in instanceof SQLData) {
+      // TODO: Could restrict to those types registered in the type map.  When combined with pull request #1378, this
+      //       would use the getInferenceMap(true) method for constant-time checks if the type is registered.
+      //       Or getInferenceMap(false) if registering as a base class or interface would still count here.
       setObject(parameterIndex, getSQLDataAttribute((SQLData) in), targetSqlType, scale);
       return;
     }
 
     // TODO: Struct
 
+    //#endif
     if (targetSqlType == Types.OTHER && in instanceof UUID
         && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
       setUuid(parameterIndex, (UUID) in);
@@ -676,13 +685,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   /**
    * Gets the singe-value attribute from {@link SQLData}.
    * At this time, only single attribute SQLData is supported.
    */
   private Object getSQLDataAttribute(SQLData in) throws SQLException {
     Vector<Object> attributes = new Vector<>();
-    in.writeSQL(new SQLOutputImpl(attributes, connection.getTypeMapNoCopy()));
+    in.writeSQL(new SQLOutputImpl(attributes, connection.getTypeMap())); // TODO: connection.getTypeMapNoCopy() once pull request #1378 is merged
     int size = attributes.size();
     if (size == 1) {
       return attributes.get(0);
@@ -701,6 +711,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setObject(parameterIndex, getSQLDataAttribute(in));
   }
 
+  //#endif
   private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
     final PrimitiveArraySupport<A> arrayToString = PrimitiveArraySupport.getArraySupport(in);
 
@@ -977,8 +988,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     } else if (x instanceof SQLData) {
       setSQLData(parameterIndex, (SQLData) x);
+    //#endif
     } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
       setPrimitiveArray(parameterIndex, x);
     } else {
@@ -987,7 +1000,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.",
           x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
     }
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     // TODO: Struct
+    //#endif
   }
 
   /**
