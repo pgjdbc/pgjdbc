@@ -75,7 +75,9 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
 import javax.sql.rowset.serial.SQLInputImpl;
+//#endif
 
 public class PgConnection implements BaseConnection {
 
@@ -572,6 +574,7 @@ public class PgConnection implements BaseConnection {
         throw new PSQLException(GT.tr("Custom type mismatch.  expected={0}, got={1}", type, sqlTypeName),
             PSQLState.DATA_TYPE_MISMATCH);
       }
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
       sqlData.readSQL(
           new SQLInputImpl(
               new Object[] {value != null ? value : byteValue},
@@ -579,6 +582,13 @@ public class PgConnection implements BaseConnection {
           ),
           type
       );
+      //#else
+      throw new PSQLException(GT.tr(
+              "{0} not supported by this driver. You need JDK >= {1} and pgjdbc >= {2} or >= {3} (not \"{4}\" version)",
+              "SQLData.readSQL", "7", "42.2.6", "42.2.6.jre7", ".jre6"),
+          PSQLState.NOT_IMPLEMENTED);
+
+      //#endif
       return sqlData;
     } catch (InstantiationException e) {
       // Copying SYSTEM_ERROR used for IllegalAccessException in Parser.java
