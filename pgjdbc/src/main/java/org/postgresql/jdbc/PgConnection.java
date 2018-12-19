@@ -1335,21 +1335,6 @@ public class PgConnection implements BaseConnection {
   /**
    * @see  #setTypeMap(java.util.Map)
    */
-  private static Set<Class<?>> getAllClasses(Class<?> clazz) {
-    Set<Class<?>> classes = new HashSet<Class<?>>();
-    Class<?> current = clazz;
-    do {
-      classes.add(current);
-      for (Class<?> iface : clazz.getInterfaces()) {
-        classes.add(iface);
-      }
-    } while ((current = current.getSuperclass()) != null);
-    return classes;
-  }
-
-  /**
-   * @see  #setTypeMap(java.util.Map)
-   */
   private static void addInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> clazz, String type) {
     Set<String> types = inferenceMap.get(clazz);
     if (types == null) {
@@ -1357,6 +1342,22 @@ public class PgConnection implements BaseConnection {
       inferenceMap.put(clazz, types);
     }
     types.add(type);
+  }
+
+  /**
+   * Recursively adds the class, all super classes, all interfaces,
+   * and all extended interfaces.
+   *
+   * @see  #addInference(java.util.Map, java.lang.Class, java.lang.String)
+   * @see  #setTypeMap(java.util.Map)
+   */
+  private static void addAllInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> current, String type) {
+    do {
+      addInference(inferenceMap, current, type);
+      for (Class<?> iface : current.getInterfaces()) {
+        addAllInference(inferenceMap, iface, type);
+      }
+    } while ((current = current.getSuperclass()) != null);
   }
 
   /**
@@ -1385,9 +1386,7 @@ public class PgConnection implements BaseConnection {
       String type = entry.getKey();
       Class<?> directClass = entry.getValue();
       addInference(newDirectMap, directClass, type);
-      for (Class<?> clazz : getAllClasses(directClass)) {
-        addInference(newInheritedMap, clazz, type);
-      }
+      addAllInference(newInheritedMap, directClass, type);
     }
     // Make each type set unmodifiable
     makeValuesUnmodifiable(newDirectMap);
