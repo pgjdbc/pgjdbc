@@ -143,6 +143,7 @@ public class PgArray implements java.sql.Array {
     return getArrayImpl(index, count, map);
   }
 
+  // TODO: type map here
   public Object getArrayImpl(long index, int count, Map<String, Class<?>> map) throws SQLException {
 
     // for now maps aren't supported.

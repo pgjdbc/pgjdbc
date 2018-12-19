@@ -450,6 +450,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getClob(int)");
   }
 
+  // TODO: Type map here, too.  With
   public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException {
     if (map == null || map.isEmpty()) {
       return getObject(i);
@@ -679,6 +680,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getCharacterStream(String)");
   }
 
+  // TODO: Type inference here, too like in result set?
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
     if (type == ResultSet.class) {
       return type.cast(getObject(parameterIndex));
