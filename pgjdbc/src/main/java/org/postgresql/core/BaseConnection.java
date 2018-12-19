@@ -68,8 +68,10 @@ public interface BaseConnection extends PGConnection, Connection {
   /**
    * {@inheritDoc}
    *
-   * @implSpec  Performs a defensive copy, per specification that returned map should be
-   *            modifiable.  Use {@link #getTypeMapNoCopy()} to avoid this defensive copy.
+   * <p>
+   * Performs a defensive copy, per specification that returned map should be
+   * modifiable.  Use {@link #getTypeMapNoCopy()} to avoid this defensive copy.
+   * </p>
    *
    * @see  #getTypeMapNoCopy()
    */
