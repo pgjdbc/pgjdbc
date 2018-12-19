@@ -438,7 +438,7 @@ public class PgConnection implements BaseConnection {
     Set<String> types;
     synchronized (typemapInvertedDirect) {
       Map<String, Class<?>> source = typemap;
-      if (typemap != typemapInvertedDirectSource) {
+      if (source != typemapInvertedDirectSource) {
         // Recreate the inverted map when the typemap has been changed
         typemapInvertedDirect.clear();
         for (Map.Entry<String, Class<?>> entry : source.entrySet()) {
@@ -497,7 +497,7 @@ public class PgConnection implements BaseConnection {
     Set<String> types;
     synchronized (typemapInvertedInherited) {
       Map<String, Class<?>> source = typemap;
-      if (typemap != typemapInvertedInheritedSource) {
+      if (source != typemapInvertedInheritedSource) {
         // Recreate the inverted map when the typemap has been changed
         typemapInvertedInherited.clear();
         for (Map.Entry<String, Class<?>> entry : source.entrySet()) {
