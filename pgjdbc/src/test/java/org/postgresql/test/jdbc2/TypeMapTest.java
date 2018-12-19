@@ -3,13 +3,12 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.jdbc;
+package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.postgresql.core.BaseConnection;
-import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.util.InsaneClass;
 import org.postgresql.test.util.InsaneInterfaceHierachy;
 
