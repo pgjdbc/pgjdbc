@@ -85,11 +85,13 @@ public class TypeMapTest extends BaseTest4 {
     assertEquals(2, baseConnection.getTypeMapInvertedDirect(Integer.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Number.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Serializable.class).size());
+    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Comparable.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
 
     assertEquals(2, baseConnection.getTypeMapInvertedInherited(Integer.class).size());
     assertEquals(2, baseConnection.getTypeMapInvertedInherited(Number.class).size());
     assertEquals(2, baseConnection.getTypeMapInvertedInherited(Serializable.class).size());
+    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Comparable.class).size());
     assertEquals(2, baseConnection.getTypeMapInvertedInherited(Object.class).size());
   }
 
@@ -106,12 +108,14 @@ public class TypeMapTest extends BaseTest4 {
     assertEquals(1, baseConnection.getTypeMapInvertedDirect(Float.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Number.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Serializable.class).size());
+    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Comparable.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
 
     assertEquals(1, baseConnection.getTypeMapInvertedInherited(Integer.class).size());
     assertEquals(1, baseConnection.getTypeMapInvertedInherited(Float.class).size());
     assertEquals(2, baseConnection.getTypeMapInvertedInherited(Number.class).size());
     assertEquals(2, baseConnection.getTypeMapInvertedInherited(Serializable.class).size());
+    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Comparable.class).size());
     assertEquals(2, baseConnection.getTypeMapInvertedInherited(Object.class).size());
   }
 
@@ -129,15 +133,23 @@ public class TypeMapTest extends BaseTest4 {
     assertEquals(1, baseConnection.getTypeMapInvertedDirect(Float.class).size());
     assertEquals(1, baseConnection.getTypeMapInvertedDirect(Number.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Serializable.class).size());
+    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Comparable.class).size());
     assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
 
     assertEquals(1, baseConnection.getTypeMapInvertedInherited(Integer.class).size());
     assertEquals(1, baseConnection.getTypeMapInvertedInherited(Float.class).size());
     assertEquals(3, baseConnection.getTypeMapInvertedInherited(Number.class).size());
     assertEquals(3, baseConnection.getTypeMapInvertedInherited(Serializable.class).size());
+    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Comparable.class).size());
     assertEquals(3, baseConnection.getTypeMapInvertedInherited(Object.class).size());
   }
 
   // TODO: Test complex interface hierarchy, to make sure interfaces extended by
   //       interfaces implemented by base classes are all matched.
+
+  // TODO: Add tests to make sure classes and interfaces are distinguished correctly
+  //       in the direct inverted map.
+
+  // TODO: Add tests that getTypeMapInvertedDirect and getTypeMapInvertedInherited
+  //       are recreated correctly
 }
