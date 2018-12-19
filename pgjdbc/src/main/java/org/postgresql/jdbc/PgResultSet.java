@@ -3503,7 +3503,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           } else {
             object = connection.getObjectCustomType(typemap, inferredType, inferredClass, getString(columnIndex), null);
           }
-          return type.cast(object);
+          return object;
         }
       }
     }
