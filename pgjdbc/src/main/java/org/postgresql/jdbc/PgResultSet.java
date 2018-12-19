@@ -3449,10 +3449,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                       PSQLState.CANNOT_COERCE);
             }
             inferredType = inheritedTypes.iterator().next();
-            inferredClass = connection.getTypeMapNoCopy().get(inferredType).asSubclass(type);
-            // There is a slight race condition: inferred type might have been just removed
-            if (inferredClass == null) {
+            // We've worked backward to a mapped pgType, now lookup which specific
+            // class this pgType is mapped to:
+            Class<?> inferredClassUnbounded = typemap.get(inferredType);
+            // There is a slight race condition: inferred type might have been just
+            // added and was not known when this method retrieved the typemap.
+            if (inferredClassUnbounded == null) {
               inferredType = null;
+            } else {
+              inferredClass = inferredClassUnbounded.asSubclass(type);
             }
           }
         }
