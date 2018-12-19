@@ -582,6 +582,7 @@ public class PgConnection implements BaseConnection {
           ),
           type
       );
+      return sqlData;
       //#else
       throw new PSQLException(GT.tr(
               "{0} not supported by this driver. You need JDK >= {1} and pgjdbc >= {2} or >= {3} (not \"{4}\" version)",
@@ -589,7 +590,6 @@ public class PgConnection implements BaseConnection {
           PSQLState.NOT_IMPLEMENTED);
 
       //#endif
-      return sqlData;
     } catch (InstantiationException e) {
       // Copying SYSTEM_ERROR used for IllegalAccessException in Parser.java
       throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR, e);
