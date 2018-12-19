@@ -3425,7 +3425,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         //
         // See https://github.com/pgjdbc/pgjdbc/issues/641 for more details
 
-        String inferredType = null;
+        String inferredPgType = null;
         Class<? extends T> inferredClass = null;
         // First check for direct inference (exact match to type map)
         Set<String> directTypes = connection.getTypeMapInvertedDirect(type);
@@ -3436,10 +3436,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", type, sortedTypes.toString()),
                     PSQLState.CANNOT_COERCE);
           }
-          inferredType = directTypes.iterator().next();
+          inferredPgType = directTypes.iterator().next();
           inferredClass = type;
         }
-        if (inferredType == null) {
+        if (inferredPgType == null) {
           Set<String> inheritedTypes = connection.getTypeMapInvertedInherited(type);
           if (!inheritedTypes.isEmpty()) {
             if (inheritedTypes.size() > 1) {
@@ -3448,25 +3448,25 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
               throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", type, sortedTypes.toString()),
                       PSQLState.CANNOT_COERCE);
             }
-            inferredType = inheritedTypes.iterator().next();
+            inferredPgType = inheritedTypes.iterator().next();
             // We've worked backward to a mapped pgType, now lookup which specific
             // class this pgType is mapped to:
-            Class<?> inferredClassUnbounded = typemap.get(inferredType);
+            Class<?> inferredClassUnbounded = typemap.get(inferredPgType);
             // There is a slight race condition: inferred type might have been just
             // added and was not known when this method retrieved the typemap.
             if (inferredClassUnbounded == null) {
-              inferredType = null;
+              inferredPgType = null;
             } else {
               inferredClass = inferredClassUnbounded.asSubclass(type);
             }
           }
         }
-        if (inferredType != null) {
+        if (inferredPgType != null) {
           T object;
           if (isBinary(columnIndex)) {
-            object = connection.getObjectCustomType(typemap, inferredType, inferredClass, null, this_row[columnIndex - 1]);
+            object = connection.getObjectCustomType(typemap, inferredPgType, inferredClass, null, this_row[columnIndex - 1]);
           } else {
-            object = connection.getObjectCustomType(typemap, inferredType, inferredClass, getString(columnIndex), null);
+            object = connection.getObjectCustomType(typemap, inferredPgType, inferredClass, getString(columnIndex), null);
           }
           return object;
         }
