@@ -661,44 +661,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
-  public Object getObjectImpl(String columnName, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(findColumn(columnName), map);
-  }
-
-
-  /**
-   * This checks against map for the type of column i, and if found returns an object based on that
-   * mapping. The class must implement the {@link SQLData} or {@link Struct} interface.
-   */
-  public Object getObjectImpl(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-    connection.getLogger().log(Level.FINEST, "  getObjectImpl columnIndex: {0}", columnIndex);
-    Field field;
-
-    checkResultSet(columnIndex);
-    if (wasNullFlag) {
-      return null;
-    }
-
-    field = fields[columnIndex - 1];
-
-    // some fields can be null, mainly from those returned by MetaData methods
-    if (field == null) {
-      wasNullFlag = true;
-      return null;
-    }
-
-    Object result = internalGetObject(columnIndex, field);
-    if (result != null) {
-      return result;
-    }
-
-    if (isBinary(columnIndex)) {
-      return connection.getObject(map, getPGType(columnIndex), null, this_row[columnIndex - 1]);
-    }
-    return connection.getObject(map, getPGType(columnIndex), getString(columnIndex), null);
-  }
-
-
   public Ref getRef(String columnName) throws SQLException {
     return getRef(findColumn(columnName));
   }
@@ -2585,7 +2547,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public Object getObject(int columnIndex) throws SQLException {
-    return getObjectImpl(columnIndex, connection.getTypeMapNoCopy());
+    return getObject(columnIndex, connection.getTypeMapNoCopy());
   }
 
   public Object getObject(String columnName) throws SQLException {
@@ -3515,12 +3477,40 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getObject(findColumn(columnLabel), type);
   }
 
-  public Object getObject(String s, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(s, map);
+  public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
+    return getObject(findColumn(columnLabel), map);
   }
 
-  public Object getObject(int i, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(i, map);
+  /**
+   * This checks against map for the type of column i, and if found returns an object based on that
+   * mapping. The class must implement the {@link SQLData} or {@link Struct} interface.
+   */
+  public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
+    connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
+    Field field;
+
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
+    }
+
+    field = fields[columnIndex - 1];
+
+    // some fields can be null, mainly from those returned by MetaData methods
+    if (field == null) {
+      wasNullFlag = true;
+      return null;
+    }
+
+    Object result = internalGetObject(columnIndex, field);
+    if (result != null) {
+      return result;
+    }
+
+    if (isBinary(columnIndex)) {
+      return connection.getObject(map, getPGType(columnIndex), null, this_row[columnIndex - 1]);
+    }
+    return connection.getObject(map, getPGType(columnIndex), getString(columnIndex), null);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
