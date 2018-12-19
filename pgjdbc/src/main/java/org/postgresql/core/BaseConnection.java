@@ -88,22 +88,27 @@ public interface BaseConnection extends PGConnection, Connection {
   Map<String, Class<?>> getTypeMapNoCopy();
 
   /**
-   * Gets the unmodifiable map used for type inference of custom types.
-   * This is required because the server returns base types for domains.
+   * Gets the set of types that directly map to the given class.
+   * This performs the inverse operation of {@link #getTypeMap()}.
    *
-   * <p>
-   * The indirect (inherited) inference is used to decouple type from implementation.
-   * This allows the API user to select an interface, while the implementation has registered
-   * the direct type implementation.
-   * </p>
+   * @param clazz the class that a mapped type must be
    *
-   * @param  directOnly  Should only exact matches be returned (exactly match types in {@link #getTypeMap()},
-   *                     versus including those inherited from all classes and interfaces?
-   *                     It is expected to generally check for direct inference first, then fall-back to inherited.
-   *
-   * @return the mapping from class back to the set of types that map to it
+   * @return the unmodifiable set of all types that map to the given class or
+   *         an empty set when the given class is not in the typemap.
    */
-  Map<Class<?>, Set<String>> getInferenceMap(boolean directOnly);
+  Set<String> getTypeMapInvertedDirect(Class<?> clazz);
+
+  /**
+   * Gets the set of all known types types that map to the given class.
+   * This performs the inverse operation of {@link #getTypeMap()}, but matching
+   * all classes and interfaces for each mapped type.
+   *
+   * @param clazz the class that a mapped type may be, extend, or implement
+   *
+   * @return the unmodifiable set of all types that map to the given class or
+   *         an empty set when the given class is not in the typemap.
+   */
+  Set<String> getTypeMapInvertedInherited(Class<?> clazz);
 
   /**
    * Implementation of {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} for custom types

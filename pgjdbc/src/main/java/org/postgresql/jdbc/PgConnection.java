@@ -63,6 +63,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -361,27 +362,9 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Used to ensure consistent updates of {@link #typemap},
-   * {@link #inferenceMapDirect} and {@link #inferenceMapInherited}.
-   * These fields may be accessed without synchronization, however, due to
-   * being volatile.
-   */
-  private final Object typemapLock = new Object();
-
-  /**
    * The unmodifiable current type mappings.
    */
   protected volatile Map<String, Class<?>> typemap = Collections.emptyMap();
-
-  /**
-   * The set of types directly mapped to each class - used for type inference.
-   */
-  protected volatile Map<Class<?>,Set<String>> inferenceMapDirect = Collections.emptyMap();
-
-  /**
-   * The set of all known types mapped to each class - used for type inference.
-   */
-  protected volatile Map<Class<?>,Set<String>> inferenceMapInherited = Collections.emptyMap();
 
   @Override
   public Statement createStatement() throws SQLException {
@@ -410,9 +393,129 @@ public class PgConnection implements BaseConnection {
     return typemap;
   }
 
+  /**
+   * @see #getTypeMapInvertedDirect(java.lang.Class)
+   * @see #getTypeMapInvertedInherited(java.lang.Class)
+   */
+  private static void makeValuesUnmodifiable(Map<Class<?>, Set<String>> invertedMap) {
+    for (Map.Entry<Class<?>, Set<String>> entry : invertedMap.entrySet()) {
+      Set<String> types = entry.getValue();
+      if (types.size() == 1) {
+        entry.setValue(Collections.singleton(types.iterator().next()));
+      } else {
+        entry.setValue(Collections.unmodifiableSet(types));
+      }
+    }
+  }
+
+  /**
+   * The set of types directly mapped to each class - used for type inference.
+   */
+  private final Map<Class<?>, Set<String>> typemapInvertedDirect = new HashMap<Class<?>, Set<String>>();
+
+  /**
+   * The {@link #typemap} present at the time {@link #typemapInvertedDirect} was last
+   * rebuilt.
+   *
+   * @see  #getTypeMapInvertedDirect(java.lang.Class)
+   */
+  private Map<String, Class<?>> typemapInvertedDirectSource = typemap;
+
+  /**
+   * @see  #getTypeMapInvertedDirect(java.lang.Class)
+   */
+  private static boolean addInverted(Map<Class<?>, Set<String>> invertedMap, Class<?> clazz, String type) {
+    Set<String> types = invertedMap.get(clazz);
+    if (types == null) {
+      types = new HashSet<String>();
+      invertedMap.put(clazz, types);
+    }
+    return types.add(type);
+  }
+
   @Override
-  public Map<Class<?>, Set<String>> getInferenceMap(boolean direct) {
-    return direct ? inferenceMapDirect : inferenceMapInherited;
+  public Set<String> getTypeMapInvertedDirect(Class<?> clazz) {
+    Set<String> types;
+    synchronized (typemapInvertedDirect) {
+      Map<String, Class<?>> source = typemap;
+      if (typemap != typemapInvertedDirectSource) {
+        // Recreate the inverted map when the typemap has been changed
+        typemapInvertedDirect.clear();
+        for (Map.Entry<String, Class<?>> entry : source.entrySet()) {
+          addInverted(typemapInvertedDirect, entry.getValue(), entry.getKey());
+        }
+        // Make each type set unmodifiable
+        makeValuesUnmodifiable(typemapInvertedDirect);
+        // Update source to know when to rebuild
+        typemapInvertedDirectSource = source;
+        LOGGER.log(Level.FINE, "  typemapInvertedDirect = {0}", typemapInvertedDirect);
+      }
+      types = typemapInvertedDirect.get(clazz);
+    }
+    if (types == null) {
+      return Collections.emptySet();
+    } else {
+      return types;
+    }
+  }
+
+  /**
+   * The set of all known types mapped to each class - used for type inference.
+   */
+  private final Map<Class<?>, Set<String>> typemapInvertedInherited = new HashMap<Class<?>, Set<String>>();
+
+  /**
+   * The {@link #typemap} present at the time {@link #typemapInvertedInherited} was last
+   * rebuilt.
+   *
+   * @see  #getTypeMapInvertedInherited(java.lang.Class)
+   */
+  private Map<String, Class<?>> typemapInvertedInheritedSource = typemap;
+
+  /**
+   * Recursively adds the class, all super classes, all interfaces,
+   * and all extended interfaces.
+   *
+   * @see  #addInverted(java.util.Map, java.lang.Class, java.lang.String)
+   * @see  #getTypeMapInvertedInherited(java.lang.Class)
+   */
+  private static void addAllInverted(Map<Class<?>, Set<String>> invertedMap, Class<?> current, String type) {
+    do {
+      if (addInverted(invertedMap, current, type)) {
+        for (Class<?> iface : current.getInterfaces()) {
+          addAllInverted(invertedMap, iface, type);
+        }
+      } else {
+        // This class has already been mapped
+        break;
+      }
+    } while ((current = current.getSuperclass()) != null);
+  }
+
+  @Override
+  public Set<String> getTypeMapInvertedInherited(Class<?> clazz) {
+    Set<String> types;
+    synchronized (typemapInvertedInherited) {
+      Map<String, Class<?>> source = typemap;
+      if (typemap != typemapInvertedInheritedSource) {
+        // Recreate the inverted map when the typemap has been changed
+        typemapInvertedInherited.clear();
+        for (Map.Entry<String, Class<?>> entry : source.entrySet()) {
+          addAllInverted(typemapInvertedInherited, entry.getValue(), entry.getKey());
+        }
+        // Make each type set unmodifiable
+        makeValuesUnmodifiable(typemapInvertedInherited);
+        // Update source to know when to rebuild
+        typemapInvertedInheritedSource = source;
+        LOGGER.log(Level.FINE, "  typemapInvertedInherited = {0}", typemapInvertedInherited);
+      }
+      types = typemapInvertedInherited.get(clazz);
+    }
+    if (types == null) {
+      return Collections.emptySet();
+    } else {
+      return types;
+    }
   }
 
   public QueryExecutor getQueryExecutor() {
@@ -1333,74 +1436,12 @@ public class PgConnection implements BaseConnection {
     return metadata;
   }
 
-  /**
-   * @see  #setTypeMap(java.util.Map)
-   */
-  private static boolean addInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> clazz, String type) {
-    Set<String> types = inferenceMap.get(clazz);
-    if (types == null) {
-      types = new HashSet<String>();
-      inferenceMap.put(clazz, types);
-    }
-    return types.add(type);
-  }
-
-  /**
-   * Recursively adds the class, all super classes, all interfaces,
-   * and all extended interfaces.
-   *
-   * @see  #addInference(java.util.Map, java.lang.Class, java.lang.String)
-   * @see  #setTypeMap(java.util.Map)
-   */
-  private static void addAllInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> current, String type) {
-    do {
-      if (addInference(inferenceMap, current, type)) {
-        for (Class<?> iface : current.getInterfaces()) {
-          addAllInference(inferenceMap, iface, type);
-        }
-      } else {
-        // This class has already been mapped
-        break;
-      }
-    } while ((current = current.getSuperclass()) != null);
-  }
-
-  /**
-   * @see  #setTypeMap(java.util.Map)
-   */
-  private static void makeValuesUnmodifiable(Map<Class<?>, Set<String>> inferenceMap) {
-    for (Map.Entry<Class<?>, Set<String>> entry : inferenceMap.entrySet()) {
-      Set<String> types = entry.getValue();
-      if (types.size() == 1) {
-        entry.setValue(Collections.singleton(types.iterator().next()));
-      } else {
-        entry.setValue(Collections.unmodifiableSet(types));
-      }
-    }
-  }
-
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     // Defensive copy
-    Map<String, Class<?>> newMap = new HashMap<String, Class<?>>(map);
-    // Build the new direct inference map
-    Map<Class<?>, Set<String>> newDirectMap = new HashMap<Class<?>, Set<String>>();
-    // Build the new type inference map, including all base classes and implemented interfaces
-    Map<Class<?>, Set<String>> newInheritedMap = new HashMap<Class<?>, Set<String>>();
-    for (Map.Entry<String, Class<?>> entry : newMap.entrySet()) {
-      String type = entry.getKey();
-      Class<?> directClass = entry.getValue();
-      addInference(newDirectMap, directClass, type);
-      addAllInference(newInheritedMap, directClass, type);
-    }
-    // Make each type set unmodifiable
-    makeValuesUnmodifiable(newDirectMap);
-    makeValuesUnmodifiable(newInheritedMap);
-    synchronized (typemapLock) {
-      typemap = Collections.unmodifiableMap(newMap);
-      inferenceMapDirect = Collections.unmodifiableMap(newDirectMap);
-      inferenceMapInherited = Collections.unmodifiableMap(newInheritedMap);
-    }
+    // LinkedHashMap to maintain order of map provided by caller, and aids in
+    // iteration peformance while creating the inverted maps.
+    typemap = Collections.unmodifiableMap(new LinkedHashMap<String, Class<?>>(map));
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 
