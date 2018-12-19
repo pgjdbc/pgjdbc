@@ -3429,7 +3429,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         Class<? extends T> inferredClass = null;
         // First check for direct inference (exact match to type map)
         Set<String> directTypes = connection.getTypeMapInvertedDirect(type);
-        if (directTypes != null) {
+        if (!directTypes.isEmpty()) {
           if (directTypes.size() > 1) {
             // Sort types for easier reading
             Set<String> sortedTypes = new TreeSet<String>(directTypes);
@@ -3441,7 +3441,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         if (inferredType == null) {
           Set<String> inheritedTypes = connection.getTypeMapInvertedInherited(type);
-          if (inheritedTypes != null) {
+          if (!inheritedTypes.isEmpty()) {
             if (inheritedTypes.size() > 1) {
               // Sort types for easier reading
               Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
