@@ -2566,7 +2566,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public static Map<String, Integer> createColumnNameIndexMap(Field[] fields,
       boolean isSanitiserDisabled) {
-    Map<String, Integer> columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
+    Map<String, Integer> columnNameIndexMap = new HashMap<String, Integer>((int) (fields.length / 0.75) + 1, 0.75f);
     // The JDBC spec says when you have duplicate columns names,
     // the first one should be returned. So load the map in
     // reverse order so the first ones will overwrite later ones.
@@ -2700,7 +2700,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (updateValues == null) {
       // allow every column to be updated without a rehash.
-      updateValues = new HashMap<String, Object>((int) (fields.length / 0.75), 0.75f);
+      updateValues = new HashMap<String, Object>((int) (fields.length / 0.75) + 1, 0.75f);
     }
   }
 
