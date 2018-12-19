@@ -7,7 +7,6 @@ package org.postgresql.core;
 
 import org.postgresql.PGConnection;
 import org.postgresql.jdbc.FieldMetadata;
-import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
 
@@ -105,13 +104,13 @@ public interface BaseConnection extends PGConnection, Connection {
    * once the custom type is known.
    *
    * <p>
-   * This is present for type inference implemented by {@code PgResultSet.getObject(..., Class<T> type)}, which is
+   * This is present for type inference implemented by {@code org.postgresql.jdbc.PgResultSet.getObject(..., Class<T> type)}, which is
    * a consequence of the server sending base types for domains.
    * </p>
    *
    * @see  #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])
-   * @see  PgResultSet#getObject(java.lang.String, java.lang.Class)
-   * @see  PgResultSet#getObject(int, java.lang.Class)
+   * @see  org.postgresql.jdbc.PgResultSet#getObject(java.lang.String, java.lang.Class)
+   * @see  org.postgresql.jdbc.PgResultSet#getObject(int, java.lang.Class)
    */
   <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, String value, byte[] byteValue) throws SQLException;
 
