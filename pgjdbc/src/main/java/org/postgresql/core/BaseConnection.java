@@ -82,6 +82,8 @@ public interface BaseConnection extends PGConnection, Connection {
    * Gets the unmodifiable type map for this connection.
    * This will likely perform better than {@link #getTypeMap()}
    * because no defensive copy is made.
+   *
+   * @return  The unmodifiable type map for this connection.
    */
   Map<String, Class<?>> getTypeMapNoCopy();
 
@@ -98,6 +100,8 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param  directOnly  Should only exact matches be returned (exactly match types in {@link #getTypeMap()},
    *                     versus including those inherited from all classes and interfaces?
    *                     It is expected to generally check for direct inference first, then fall-back to inherited.
+   *
+   * @return the mapping from class back to the set of types that map to it
    */
   Map<Class<?>, Set<String>> getInferenceMap(boolean directOnly);
 
@@ -109,6 +113,15 @@ public interface BaseConnection extends PGConnection, Connection {
    * This is present for type inference implemented by {@code org.postgresql.jdbc.PgResultSet.getObject(..., Class<T> type)}, which is
    * a consequence of the server sending base types for domains.
    * </p>
+   *
+   * @param <T> the custom type to be returned
+   * @param map the type map in effect
+   * @param type the backend typename
+   * @param customType the class of the custom type to be returned
+   * @param value the type-specific string representation of the value
+   * @param byteValue the type-specific binary representation of the value
+   * @return an appropriate object; never null.
+   * @throws SQLException if something goes wrong
    *
    * @see  #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])
    * @see  org.postgresql.jdbc.PgResultSet#getObject(java.lang.String, java.lang.Class)
@@ -125,12 +138,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * <p>If no class is registered as handling the given type, then a generic
    * {@link org.postgresql.util.PGobject} instance is returned.</p>
    *
-   * @param map The type map in effect, which would come from one of:
-   *            <ul>
-   *            <li>{@link #getTypeMapNoCopy()}</li>
-   *            <li>{@link ResultSet#getObject(java.lang.String, java.util.Map)}</li>
-   *            <li>{@link ResultSet#getObject(int, java.util.Map)}</li>
-   *            </ul>
+   * @param map the type map in effect
    * @param type the backend typename
    * @param value the type-specific string representation of the value
    * @param byteValue the type-specific binary representation of the value
@@ -142,6 +150,12 @@ public interface BaseConnection extends PGConnection, Connection {
   /**
    * Calls {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} with the connection's
    * current {@link #getTypeMapNoCopy() type map}.
+   *
+   * @param type the backend typename
+   * @param value the type-specific string representation of the value
+   * @param byteValue the type-specific binary representation of the value
+   * @return an appropriate object; never null.
+   * @throws SQLException if something goes wrong
    *
    * @see  #getTypeMapNoCopy()
    * @see  #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])

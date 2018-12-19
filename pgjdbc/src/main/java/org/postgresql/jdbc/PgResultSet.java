@@ -47,12 +47,10 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
-import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
-import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -3481,10 +3479,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getObject(findColumn(columnLabel), map);
   }
 
-  /**
-   * This checks against map for the type of column i, and if found returns an object based on that
-   * mapping. The class must implement the {@link SQLData} or {@link Struct} interface.
-   */
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
     Field field;
