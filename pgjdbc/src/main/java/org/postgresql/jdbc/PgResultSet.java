@@ -3450,7 +3450,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             }
             inferredType = inheritedTypes.iterator().next();
             inferredClass = connection.getTypeMapNoCopy().get(inferredType).asSubclass(type);
-            // There is a slight race conditio: inferred type might have been just removed
+            // There is a slight race condition: inferred type might have been just removed
             if (inferredClass == null) {
               inferredType = null;
             }
