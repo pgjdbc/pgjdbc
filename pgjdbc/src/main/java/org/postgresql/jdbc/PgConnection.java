@@ -1354,7 +1354,7 @@ public class PgConnection implements BaseConnection {
    */
   private static void addAllInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> current, String type) {
     do {
-      if(addInference(inferenceMap, current, type)) {
+      if (addInference(inferenceMap, current, type)) {
         for (Class<?> iface : current.getInterfaces()) {
           addAllInference(inferenceMap, iface, type);
         }
