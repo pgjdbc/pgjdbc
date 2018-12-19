@@ -385,7 +385,8 @@ public class PgConnection implements BaseConnection {
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     checkClosed();
-    return new HashMap<String, Class<?>>(getTypeMapNoCopy());
+    // LinkedHashMap to maintain order of map provided by caller.
+    return new LinkedHashMap<String, Class<?>>(getTypeMapNoCopy());
   }
 
   @Override
