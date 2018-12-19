@@ -3425,29 +3425,24 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         //
         // See https://github.com/pgjdbc/pgjdbc/issues/641 for more details
 
-        String inferredPgType = null;
-        Class<? extends T> inferredClass = null;
+        String inferredPgType;
+        Class<? extends T> inferredClass;
         // First check for direct inference (exact match to type map)
         Set<String> directTypes = connection.getTypeMapInvertedDirect(type);
-        if (!directTypes.isEmpty()) {
-          if (directTypes.size() > 1) {
-            // Sort types for easier reading
-            Set<String> sortedTypes = new TreeSet<String>(directTypes);
-            throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", type, sortedTypes.toString()),
-                    PSQLState.CANNOT_COERCE);
-          }
+        int size = directTypes.size();
+        if (size == 1) {
           inferredPgType = directTypes.iterator().next();
           inferredClass = type;
-        }
-        if (inferredPgType == null) {
+        } else if (size > 1) {
+          // Sort types for easier reading
+          Set<String> sortedTypes = new TreeSet<String>(directTypes);
+          throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", type, sortedTypes.toString()),
+                  PSQLState.CANNOT_COERCE);
+        } else {
+          // Now check for inherited inference (matches the type or any subclass/implementation of it)
           Set<String> inheritedTypes = connection.getTypeMapInvertedInherited(type);
-          if (!inheritedTypes.isEmpty()) {
-            if (inheritedTypes.size() > 1) {
-              // Sort types for easier reading
-              Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
-              throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", type, sortedTypes.toString()),
-                      PSQLState.CANNOT_COERCE);
-            }
+          size = inheritedTypes.size();
+          if (size == 1) {
             inferredPgType = inheritedTypes.iterator().next();
             // We've worked backward to a mapped pgType, now lookup which specific
             // class this pgType is mapped to:
@@ -3456,9 +3451,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             // added and was not known when this method retrieved the typemap.
             if (inferredClassUnbounded == null) {
               inferredPgType = null;
+              inferredClass = null;
             } else {
               inferredClass = inferredClassUnbounded.asSubclass(type);
             }
+          } else if (size > 1) {
+            // Sort types for easier reading
+            Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
+            throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", type, sortedTypes.toString()),
+                    PSQLState.CANNOT_COERCE);
+          } else {
+            inferredPgType = null;
+            inferredClass = null;
           }
         }
         if (inferredPgType != null) {
