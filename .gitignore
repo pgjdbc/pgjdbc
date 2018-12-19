@@ -8,6 +8,7 @@ build
 jars
 .*.swp
 nbproject
+nb-configuration.xml
 .idea
 *.iml
 *.ipr
