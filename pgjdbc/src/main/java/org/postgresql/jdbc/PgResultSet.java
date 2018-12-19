@@ -3453,14 +3453,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return type.cast(object);
         }
         // It is an issue that a DOMAIN type is sent from the backend with its oid of non-domain type, which makes this pgType not match
-        // what is expected.  For example, our "com.aoindustries.net"."Email" DOMAIN is currently oid 4015336, but it is comine back as
-        // 25 "text".  This is tested on PostgreSQL 9.4.
+        // what is expected.  For example, our "Email" DOMAIN is currently oid 4015336, but it is coming back as 25 "text".
+        // This is tested on PostgreSQL 9.4.
         //
         // Digging deeper, this seems to be central to the PostgreSQL protocol, including mentions in other client implementations:
         // http://php.net/manual/en/function.pg-field-type-oid.php
         //
-        // To work around this issue, we're doing a bit of a switch-a-roo by finding all mappings to the requested type, then any
-        // of its base classes and interfaces.
+        // To work around this issue, we are performing some rudimentary type inference by first finding
+        // all type mappings to the requested class, then any type mappings to any subclass or,
+        // in the case of an interface, implementations.
         //
         // See https://github.com/pgjdbc/pgjdbc/issues/641 for more details
 
