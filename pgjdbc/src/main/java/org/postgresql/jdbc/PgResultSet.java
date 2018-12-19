@@ -2545,7 +2545,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public Object getObject(int columnIndex) throws SQLException {
-    return getObject(columnIndex, connection.getTypeMapNoCopy());
+    return getObject(columnIndex, (Map)null);
   }
 
   public Object getObject(String columnName) throws SQLException {
@@ -3392,9 +3392,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     } else if (PGobject.class.isAssignableFrom(type)) {
       Object object;
       if (isBinary(columnIndex)) {
-        object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
+        object = connection.getObject(null, getPGType(columnIndex), null, this_row[columnIndex - 1]);
       } else {
-        object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
+        object = connection.getObject(null, getPGType(columnIndex), getString(columnIndex), null);
       }
       return type.cast(object);
     } else {
@@ -3484,10 +3484,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getObject(findColumn(columnLabel), type);
   }
 
-  public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-    return getObject(findColumn(columnLabel), map);
-  }
-
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
     Field field;
@@ -3505,6 +3501,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
+    // TODO: Does this call to internalGetObject block custom type map?
     Object result = internalGetObject(columnIndex, field);
     if (result != null) {
       return result;
@@ -3514,6 +3511,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return connection.getObject(map, getPGType(columnIndex), null, this_row[columnIndex - 1]);
     }
     return connection.getObject(map, getPGType(columnIndex), getString(columnIndex), null);
+  }
+
+  public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
+    return getObject(findColumn(columnLabel), map);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"

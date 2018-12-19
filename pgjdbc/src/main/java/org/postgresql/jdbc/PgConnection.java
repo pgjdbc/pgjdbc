@@ -737,11 +737,15 @@ public class PgConnection implements BaseConnection {
    */
   @Override
   public Object getObject(Map<String,Class<?>> map, String type, String value, byte[] byteValue) throws SQLException {
-    if (map != null) {
-      Class<?> c = map.get(type);
-      if (c != null) {
-        return getObjectCustomType(map, type, c, value, byteValue);
-      }
+    // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html#using_your_own_type_map
+    //     "If you do not pass a type map to a method that can accept one, the driver will by
+    //      default use the type map associated with the connection."
+    if (map == null) {
+      map = typemap;
+    }
+    Class<?> c = map.get(type);
+    if (c != null) {
+      return getObjectCustomType(map, type, c, value, byteValue);
     }
 
     PGobject obj = null;
@@ -784,11 +788,6 @@ public class PgConnection implements BaseConnection {
       throw new PSQLException(GT.tr("Failed to create object for: {0}.", type),
           PSQLState.CONNECTION_FAILURE, ex);
     }
-  }
-
-  @Override
-  public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
-    return getObject(typemap, type, value, byteValue);
   }
 
   protected TypeInfo createTypeInfo(BaseConnection conn, int unknownLength) {

@@ -120,7 +120,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * </p>
    *
    * @param <T> the custom type to be returned
-   * @param map the type map in effect
+   * @param map the type map in effect (required)
    * @param type the backend typename
    * @param customType the class of the custom type to be returned
    * @param value the type-specific string representation of the value
@@ -143,7 +143,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * <p>If no class is registered as handling the given type, then a generic
    * {@link org.postgresql.util.PGobject} instance is returned.</p>
    *
-   * @param map the type map in effect
+   * @param map the type map in effect or {@code null} to use the typemap of the connection
    * @param type the backend typename
    * @param value the type-specific string representation of the value
    * @param byteValue the type-specific binary representation of the value
@@ -151,21 +151,6 @@ public interface BaseConnection extends PGConnection, Connection {
    * @throws SQLException if something goes wrong
    */
   Object getObject(Map<String,Class<?>> map, String type, String value, byte[] byteValue) throws SQLException;
-
-  /**
-   * Calls {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} with the connection's
-   * current {@link #getTypeMapNoCopy() type map}.
-   *
-   * @param type the backend typename
-   * @param value the type-specific string representation of the value
-   * @param byteValue the type-specific binary representation of the value
-   * @return an appropriate object; never null.
-   * @throws SQLException if something goes wrong
-   *
-   * @see  #getTypeMapNoCopy()
-   * @see  #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])
-   */
-  Object getObject(String type, String value, byte[] byteValue) throws SQLException;
 
   Encoding getEncoding() throws SQLException;
 
