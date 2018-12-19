@@ -1336,13 +1336,13 @@ public class PgConnection implements BaseConnection {
   /**
    * @see  #setTypeMap(java.util.Map)
    */
-  private static void addInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> clazz, String type) {
+  private static boolean addInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> clazz, String type) {
     Set<String> types = inferenceMap.get(clazz);
     if (types == null) {
       types = new HashSet<String>();
       inferenceMap.put(clazz, types);
     }
-    types.add(type);
+    return types.add(type);
   }
 
   /**
@@ -1354,9 +1354,13 @@ public class PgConnection implements BaseConnection {
    */
   private static void addAllInference(Map<Class<?>, Set<String>> inferenceMap, Class<?> current, String type) {
     do {
-      addInference(inferenceMap, current, type);
-      for (Class<?> iface : current.getInterfaces()) {
-        addAllInference(inferenceMap, iface, type);
+      if(addInference(inferenceMap, current, type)) {
+        for (Class<?> iface : current.getInterfaces()) {
+          addAllInference(inferenceMap, iface, type);
+        }
+      } else {
+        // This class has already been mapped
+        break;
       }
     } while ((current = current.getSuperclass()) != null);
   }
