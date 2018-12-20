@@ -5,9 +5,6 @@
 
 package org.postgresql.jdbc;
 
-//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-import org.postgresql.Driver;
-//#endif
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
@@ -28,6 +25,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.ResultSetSQLInput;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
@@ -3395,12 +3393,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     } else if (PGobject.class.isAssignableFrom(type)) {
       Object object;
       if (isBinary(columnIndex)) {
-        object = connection.getObject(null, getPGType(columnIndex), null, this_row[columnIndex - 1]);
+        object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
       } else {
-        object = connection.getObject(null, getPGType(columnIndex), getString(columnIndex), null);
+        object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
       }
       return type.cast(object);
     } else {
+      // In the wacky case an object both extends PGobject and implements SQLData, the PGobject implementation
+      // takes precedence for backwards compatibility.
       Map<String, Class<?>> typemap = connection.getTypeMapNoCopy();
       connection.getLogger().log(Level.FINEST, "  typemap: {0}", typemap);
       if (!typemap.isEmpty()) {
@@ -3409,13 +3409,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (customType != null) {
           connection.getLogger().log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
           // Direct match, as expected - no fancy workarounds required
-          Object object;
-          if (isBinary(columnIndex)) {
-            object = connection.getObjectCustomType(typemap, pgType, customType, null, this_row[columnIndex - 1]);
-          } else {
-            object = connection.getObjectCustomType(typemap, pgType, customType, getString(columnIndex), null);
-          }
-          return type.cast(object);
+          return type.cast(connection.getObjectCustomType(typemap, pgType, customType, new ResultSetSQLInput(this, columnIndex)));
         }
         // It is an issue that a DOMAIN type is sent from the backend with its oid of non-domain type, which makes this pgType not match
         // what is expected.  For example, our "Email" DOMAIN is currently oid 4015336, but it is coming back as 25 "text".
@@ -3476,13 +3470,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           }
         }
         if (inferredPgType != null) {
-          T object;
-          if (isBinary(columnIndex)) {
-            object = connection.getObjectCustomType(typemap, inferredPgType, inferredClass, null, this_row[columnIndex - 1]);
-          } else {
-            object = connection.getObjectCustomType(typemap, inferredPgType, inferredClass, getString(columnIndex), null);
-          }
-          return object;
+          return connection.getObjectCustomType(typemap, inferredPgType, inferredClass, new ResultSetSQLInput(this, columnIndex));
         }
       }
     }
@@ -3496,11 +3484,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
-    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-    if (map != null && !map.isEmpty()) {
-      throw Driver.udtNotSupported(ResultSet.class, "getObject(int, Map<String, Class<?>>)");
-    }
-    //#endif
     Field field;
 
     checkResultSet(columnIndex);
@@ -3516,24 +3499,40 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    // TODO: Does this call to internalGetObject block custom type map?
+    // Only look up once, and defer lookup until needed
+    // TODO: This has to be done before internalGetObject because the server returns
+    //       DOMAIN types by their base type.  However, this also makes this have to
+    //       be before PGobject implementation, which is inconsistent with getObject(..., Class<?>)
+    String pgType = null;
+
+    if (map == null) {
+      map = connection.getTypeMapNoCopy();
+    }
+    connection.getLogger().log(Level.FINEST, "  map: {0}", map);
+    if (!map.isEmpty()) {
+      pgType = getPGType(columnIndex);
+      Class<?> customType = map.get(pgType);
+      if (customType != null) {
+        connection.getLogger().log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
+        return connection.getObjectCustomType(map, pgType, customType, new ResultSetSQLInput(this, columnIndex));
+      }
+    }
+
     Object result = internalGetObject(columnIndex, field);
     if (result != null) {
       return result;
     }
 
-    if (isBinary(columnIndex)) {
-      return connection.getObject(map, getPGType(columnIndex), null, this_row[columnIndex - 1]);
+    if (pgType == null) {
+      pgType = getPGType(columnIndex);
     }
-    return connection.getObject(map, getPGType(columnIndex), getString(columnIndex), null);
+    if (isBinary(columnIndex)) {
+      return connection.getObject(pgType, null, this_row[columnIndex - 1]);
+    }
+    return connection.getObject(pgType, getString(columnIndex), null);
   }
 
   public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-    if (map != null && !map.isEmpty()) {
-      throw Driver.udtNotSupported(ResultSet.class, "getObject(String, Map<String, Class<?>>)");
-    }
-    //#endif
     return getObject(findColumn(columnLabel), map);
   }
 

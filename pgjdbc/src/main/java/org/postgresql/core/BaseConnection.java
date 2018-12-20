@@ -9,11 +9,13 @@ import org.postgresql.PGConnection;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
+import org.postgresql.util.PGobject;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLInput;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
@@ -117,7 +119,7 @@ public interface BaseConnection extends PGConnection, Connection {
   Set<String> getTypeMapInvertedInherited(Class<?> clazz);
 
   /**
-   * Implementation of {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} for custom types
+   * Implementation of {@link #getObject(java.lang.String, java.lang.String, byte[])} for custom types
    * once the custom type is known.
    *
    * <p>
@@ -129,34 +131,40 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param map the type map in effect (required)
    * @param type the backend typename
    * @param customType the class of the custom type to be returned
-   * @param value the type-specific string representation of the value
-   * @param byteValue the type-specific binary representation of the value
+   * @param sqlInput the field source for the custom type
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
    *
-   * @see  #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])
+   * @see  #getObject(java.lang.String, java.lang.String, byte[])
    * @see  org.postgresql.jdbc.PgResultSet#getObject(java.lang.String, java.lang.Class)
    * @see  org.postgresql.jdbc.PgResultSet#getObject(int, java.lang.Class)
    */
-  <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, String value, byte[] byteValue) throws SQLException;
+  <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, SQLInput sqlInput) throws SQLException;
 
   /**
    * <p>Construct and return an appropriate object for the given type and value. This considers
-   * the given type map, then the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)}
+   * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)}
    * and {@link org.postgresql.PGConnection#addDataType(String, String)}.
+   * </p>
+   * <p>
+   * This does not handle user-defined data types.  The {@link #getTypeMapNoCopy() type map} should
+   * have already been checked, with the object being retrieved from {@link #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)}
+   * when there is a type mapped.
    * </p>
    *
    * <p>If no class is registered as handling the given type, then a generic
    * {@link org.postgresql.util.PGobject} instance is returned.</p>
    *
-   * @param map the type map in effect or {@code null} to use the typemap of the connection
    * @param type the backend typename
    * @param value the type-specific string representation of the value
    * @param byteValue the type-specific binary representation of the value
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
+   *
+   * @see  #getTypeMapNoCopy()
+   * @see  #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)
    */
-  Object getObject(Map<String,Class<?>> map, String type, String value, byte[] byteValue) throws SQLException;
+  PGobject getObject(String type, String value, byte[] byteValue) throws SQLException;
 
   Encoding getEncoding() throws SQLException;
 

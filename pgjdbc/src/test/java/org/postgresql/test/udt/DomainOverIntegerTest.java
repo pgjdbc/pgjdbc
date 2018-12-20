@@ -16,15 +16,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-import java.sql.SQLFeatureNotSupportedException;
-//#endif
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashSet;
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
 import java.util.Map;
-//#endif
 import java.util.Set;
 
 /**
@@ -42,11 +37,9 @@ public class DomainOverIntegerTest {
     TestUtil.createDomain(con, PortImpl.SQL_TYPE, "integer", "value >= 1 and value <= 65535");
     TestUtil.createTable(con, "testport", "port " + PortImpl.SQL_TYPE + " primary key");
 
-    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put(PortImpl.SQL_TYPE, PortImpl.class);
     con.setTypeMap(typeMap);
-    //#endif
 
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
     try {
@@ -60,8 +53,6 @@ public class DomainOverIntegerTest {
     } finally {
       pstmt.close();
     }
-
-    // Leave connection open for typemap: TestUtil.closeDB(con);
   }
 
   // Tear down the fixture for this test case.
@@ -176,9 +167,6 @@ public class DomainOverIntegerTest {
    */
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testGetObjectUDTDirect() throws Exception {
     Set<Port> ports = new HashSet<Port>();
     Statement stmt = con.createStatement();
@@ -202,9 +190,6 @@ public class DomainOverIntegerTest {
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testGetObjectUDTInherited() throws Exception {
     Set<Port> ports = new HashSet<Port>();
     Statement stmt = con.createStatement();

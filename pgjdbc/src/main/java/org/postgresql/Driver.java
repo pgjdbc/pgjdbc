@@ -688,28 +688,6 @@ public class Driver implements java.sql.Driver {
         PSQLState.NOT_IMPLEMENTED.getState());
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-  /**
-   * This method was added in v42.2.6, and simply returns a {@link SQLFeatureNotSupportedException} for
-   * unsupported user-defined data types (UDT) in JDBC &lt; 4.1.
-   * It requires the call Class and the method name to help
-   * when the driver is used with closed software that don't report the stack trace
-   *
-   * @param callClass the call Class
-   * @param methodName the name of the unimplemented method with the type of its arguments
-   * @return {@link SQLFeatureNotSupportedException} with a localized message giving the complete description of the
-   *         unimplemented function
-   */
-  public static SQLFeatureNotSupportedException udtNotSupported(Class<?> callClass,
-      String methodName) {
-    return new SQLFeatureNotSupportedException(
-        GT.tr(
-            "{0}.{1} not supported by this driver. You need JDK >= {2} and pgjdbc >= {3} or >= {4} (not \"{5}\" version)",
-            callClass.getName(), methodName, "7", "42.2.6", "42.2.6.jre7", ".jre6"),
-        PSQLState.NOT_IMPLEMENTED.getState());
-  }
-  //#endif
-
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
   public java.util.logging.Logger getParentLogger() {

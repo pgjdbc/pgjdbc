@@ -535,6 +535,7 @@ public class PgArray implements java.sql.Array {
    *
    * @param input list to be converted into array
    */
+  // TODO: Support custom types
   private Object buildArray(PgArrayList input, int index, int count) throws SQLException {
 
     if (count < 0) {
@@ -779,9 +780,9 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object v = input.get(index++);
         if (v instanceof String) {
-          oa[length++] = connection.getObject(null, typeName, (String) v, null);
+          oa[length++] = connection.getObject(typeName, (String) v, null);
         } else if (v instanceof byte[]) {
-          oa[length++] = connection.getObject(null, typeName, null, (byte[]) v);
+          oa[length++] = connection.getObject(typeName, null, (byte[]) v);
         } else if (v == null) {
           oa[length++] = null;
         } else {

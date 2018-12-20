@@ -52,6 +52,7 @@ import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.SQLInput;
 import java.sql.SQLPermission;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
@@ -76,9 +77,6 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-import javax.sql.rowset.serial.SQLInputImpl;
-//#endif
 
 public class PgConnection implements BaseConnection {
 
@@ -384,11 +382,6 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
-    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-    if (true) {
-      throw Driver.udtNotSupported(Connection.class, "getTypeMap()");
-    }
-    //#endif
     checkClosed();
     // LinkedHashMap to maintain order of map provided by caller.
     return new LinkedHashMap<String, Class<?>>(getTypeMapNoCopy());
@@ -691,12 +684,12 @@ public class PgConnection implements BaseConnection {
   private LargeObjectManager largeobject = null;
 
   /**
-   * Implementation of {@link #getObject(java.util.Map, java.lang.String, java.lang.String, byte[])} for custom types
+   * Implementation of {@link #getObject(java.util.Map, java.lang.String, java.sql.SQLInput)} for custom types
    * once the {@link SQLData} type is known.
    *
-   * @see #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.lang.String, byte[])
+   * @see #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)
    */
-  SQLData getObjectSQLData(Map<String, Class<?>> map, String type, Class<? extends SQLData> sqlDataType, String value, byte[] byteValue) throws SQLException {
+  SQLData getObjectSQLData(Map<String, Class<?>> map, String type, Class<? extends SQLData> sqlDataType, SQLInput sqlInput) throws SQLException {
     // An extremely simple implementation for scalar values only (not composite types)
     // This is useful for DOMAIN (and possibly ENUM?) values mapping onto SQLData
     try {
@@ -707,19 +700,7 @@ public class PgConnection implements BaseConnection {
         throw new PSQLException(GT.tr("Custom type mismatch.  expected={0}, got={1}", type, sqlTypeName),
             PSQLState.DATA_TYPE_MISMATCH);
       }
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-      sqlData.readSQL(
-          new SQLInputImpl(
-              new Object[] {value != null ? value : byteValue},
-              map
-          ),
-          type
-      );
-      //#else
-      if (true) {
-        throw Driver.udtNotSupported(SQLData.class, "readSQL(SQLInput,String)");
-      }
-      //#endif
+      sqlData.readSQL(sqlInput, type);
       return sqlData;
     } catch (InstantiationException e) {
       // Copying SYSTEM_ERROR used for IllegalAccessException in Parser.java
@@ -733,13 +714,13 @@ public class PgConnection implements BaseConnection {
   /**
    * {@inheritDoc}
    *
-   * @see  #getObjectSQLData(java.util.Map, java.lang.String, java.lang.Class, java.lang.String, byte[])
+   * @see  #getObjectSQLData(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)
    */
   @Override
-  public <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, String value, byte[] byteValue) throws SQLException {
+  public <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, SQLInput sqlInput) throws SQLException {
     if (SQLData.class.isAssignableFrom(customType)) {
       Class<? extends SQLData> sqlDataType = customType.asSubclass(SQLData.class);
-      return customType.cast(getObjectSQLData(map, type, sqlDataType, value, byteValue));
+      return customType.cast(getObjectSQLData(map, type, sqlDataType, sqlInput));
     }
     // TODO: Support Struct, too
     // Unexected custom type
@@ -762,18 +743,7 @@ public class PgConnection implements BaseConnection {
    * @exception SQLException if value is not correct for this type
    */
   @Override
-  public Object getObject(Map<String,Class<?>> map, String type, String value, byte[] byteValue) throws SQLException {
-    // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html#using_your_own_type_map
-    //     "If you do not pass a type map to a method that can accept one, the driver will by
-    //      default use the type map associated with the connection."
-    if (map == null) {
-      map = typemap;
-    }
-    Class<?> c = map.get(type);
-    if (c != null) {
-      return getObjectCustomType(map, type, c, value, byteValue);
-    }
-
+  public PGobject getObject(String type, String value, byte[] byteValue) throws SQLException {
     PGobject obj = null;
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -1464,11 +1434,7 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-    if (true) {
-      throw Driver.udtNotSupported(Connection.class, "setTypeMap(Map<String, Class<?>>)");
-    }
-    //#else
+    checkClosed();
     if (map == null) {
       // null map is accepted as empty map
       typemap = Collections.emptyMap();
@@ -1479,7 +1445,6 @@ public class PgConnection implements BaseConnection {
       typemap = Collections.unmodifiableMap(new LinkedHashMap<String, Class<?>>(map));
     }
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
-    //#endif
   }
 
   protected Array makeArray(int oid, String fieldString) throws SQLException {

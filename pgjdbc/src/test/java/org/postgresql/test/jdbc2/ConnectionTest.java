@@ -22,9 +22,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-import java.sql.SQLFeatureNotSupportedException;
-//#endif
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Collections;
@@ -273,9 +270,6 @@ public class ConnectionTest {
    * JDBC2 Type mappings
    */
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testTypeMaps() throws Exception {
     con = TestUtil.openDB();
 
@@ -295,9 +289,6 @@ public class ConnectionTest {
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testTypeMapNotNull() throws Exception {
     con = TestUtil.openDB();
 
@@ -309,9 +300,6 @@ public class ConnectionTest {
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testTypeMapEmpty() throws Exception {
     con = TestUtil.openDB();
 
@@ -324,9 +312,6 @@ public class ConnectionTest {
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testTypeMapDefensiveCopy() throws Exception {
     con = TestUtil.openDB();
 
@@ -352,9 +337,6 @@ public class ConnectionTest {
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testSetTypeMapTreatsNullAsEmpty() throws Exception {
     con = TestUtil.openDB();
 

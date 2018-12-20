@@ -13,13 +13,12 @@ import org.postgresql.test.util.InsaneClass;
 import org.postgresql.test.util.InsaneInterface;
 import org.postgresql.test.util.InsaneInterfaceHierachy;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
 import java.sql.Connection;
-//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-import java.sql.SQLFeatureNotSupportedException;
-//#endif
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,6 +30,18 @@ import java.util.Map;
 public class InvertedMapTest {
   private Connection con;
 
+  // Set up the fixture for this testcase: the tables for this test.
+  @Before
+  public void setUp() throws Exception {
+    con = TestUtil.openDB();
+  }
+
+  // Tear down the fixture for this test case.
+  @After
+  public void tearDown() throws Exception {
+    TestUtil.closeDB(con);
+  }
+
   /**
    * This test will operate slowly, or not complete at all when
    * {@link InsaneInterfaceHierachy#DEPTH} is turned-up.  At the current
@@ -40,12 +51,7 @@ public class InvertedMapTest {
    * {@link PgConnection#getTypeMapInvertedInherited(java.lang.Class)}.
    */
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testInsaneInferenceMap() throws Exception {
-    con = TestUtil.openDB();
-
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("insane_class", InsaneClass.class);
     typeMap.put("insane_interface", InsaneInterface.class);
@@ -84,17 +90,10 @@ public class InvertedMapTest {
     assertEquals(
         new HashSet<String>(Arrays.asList("insane_class", "insane_interface")),
         baseConnection.getTypeMapInvertedInherited(Object.class));
-
-    TestUtil.closeDB(con);
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testInvertedMapMultipleDirect() throws Exception {
-    con = TestUtil.openDB();
-
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Integer 1", Integer.class);
     typeMap.put("Integer 2", Integer.class);
@@ -133,17 +132,10 @@ public class InvertedMapTest {
     assertEquals(
         new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
         baseConnection.getTypeMapInvertedInherited(Object.class));
-
-    TestUtil.closeDB(con);
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testInvertedMapMultipleInherited() throws Exception {
-    con = TestUtil.openDB();
-
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Integer", Integer.class);
     typeMap.put("Float", Float.class);
@@ -188,17 +180,10 @@ public class InvertedMapTest {
     assertEquals(
         new HashSet<String>(Arrays.asList("Integer", "Float")),
         baseConnection.getTypeMapInvertedInherited(Object.class));
-
-    TestUtil.closeDB(con);
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testInvertedMapMultipleDirectAndInherited() throws Exception {
-    con = TestUtil.openDB();
-
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Integer", Integer.class);
     typeMap.put("Float", Float.class);
@@ -244,17 +229,10 @@ public class InvertedMapTest {
     assertEquals(
         new HashSet<String>(Arrays.asList("Integer", "Float", "Number")),
         baseConnection.getTypeMapInvertedInherited(Object.class));
-
-    TestUtil.closeDB(con);
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testInvertedMapDistinguishesClassAndInterface() throws Exception {
-    con = TestUtil.openDB();
-
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Comparable", Comparable.class);
     // Integer implements Comparable - make sure it is registered as Integer only and not its interface
@@ -269,17 +247,10 @@ public class InvertedMapTest {
     assertEquals(
         Collections.singleton("Integer"),
         baseConnection.getTypeMapInvertedDirect(Integer.class));
-
-    TestUtil.closeDB(con);
   }
 
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testInvertedMapsRebuilt() throws Exception {
-    con = TestUtil.openDB();
-
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Integer", Integer.class);
     con.setTypeMap(typeMap);
@@ -328,8 +299,6 @@ public class InvertedMapTest {
     assertEquals(
         Collections.singleton("Float"),
         baseConnection.getTypeMapInvertedInherited(Float.class));
-
-    TestUtil.closeDB(con);
   }
 
   public interface IndirectlyExtendedFromBase {}
@@ -345,12 +314,7 @@ public class InvertedMapTest {
    * are included.
    */
   @Test
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      (expected = SQLFeatureNotSupportedException.class)
-  //#endif
   public void testIndirectExtendedInterfaces() throws Exception {
-    con = TestUtil.openDB();
-
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("TestIndirectClass", TestIndirectClass.class);
     con.setTypeMap(typeMap);
@@ -388,7 +352,5 @@ public class InvertedMapTest {
     assertEquals(
         Collections.singleton("TestIndirectClass"),
         baseConnection.getTypeMapInvertedInherited(Object.class));
-
-    TestUtil.closeDB(con);
   }
 }
