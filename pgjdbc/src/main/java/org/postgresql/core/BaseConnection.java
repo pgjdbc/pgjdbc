@@ -136,10 +136,9 @@ public interface BaseConnection extends PGConnection, Connection {
   <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, SQLInput sqlInput) throws SQLException;
 
   /**
-   * <p>Construct and return an appropriate object for the given type and value. This considers
-   * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)}
-   * and {@link org.postgresql.PGConnection#addDataType(String, String)}.
-   * </p>
+   * <p>Construct and return an appropriate object for the given type and value. This only considers
+   * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)} and
+   * {@link org.postgresql.PGConnection#addDataType(String, String)}.</p>
    * <p>
    * This does not handle user-defined data types.  The {@link #getTypeMapNoCopy() type map} should
    * have already been checked, with the object being retrieved from {@link #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)}
