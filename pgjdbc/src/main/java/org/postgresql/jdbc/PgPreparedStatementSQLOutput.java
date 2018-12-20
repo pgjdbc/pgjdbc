@@ -24,7 +24,9 @@ import java.sql.RowId;
 import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLOutput;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
 import java.sql.SQLType;
+//#endif
 import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
@@ -229,9 +231,9 @@ class PgPreparedStatementSQLOutput implements SQLOutput {
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
-  //#endif
   public void writeObject(Object x, SQLType targetSqlType) throws SQLException {
     markWrite();
     pstmt.setObject(parameterIndex, x, targetSqlType);
   }
+  //#endif
 }
