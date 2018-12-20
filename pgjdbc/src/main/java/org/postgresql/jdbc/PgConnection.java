@@ -497,6 +497,10 @@ public class PgConnection implements BaseConnection {
    * Recursively adds the class, all super classes, all interfaces,
    * and all extended interfaces.
    *
+   * @param invertedMap the map to add to
+   * @param current the class to add
+   * @param type the type that maps to this class
+   *
    * @see  #addInverted(java.util.Map, java.lang.Class, java.lang.String)
    * @see  #getTypeMapInvertedInherited(java.lang.Class)
    */
