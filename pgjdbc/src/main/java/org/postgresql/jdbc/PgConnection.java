@@ -1469,10 +1469,15 @@ public class PgConnection implements BaseConnection {
       throw Driver.udtNotSupported(Connection.class, "setTypeMap(Map<String, Class<?>>)");
     }
     //#else
-    // Defensive copy
-    // LinkedHashMap to maintain order of map provided by caller, and aids in
-    // iteration peformance while creating the inverted maps.
-    typemap = Collections.unmodifiableMap(new LinkedHashMap<String, Class<?>>(map));
+    if(map == null) {
+      // null map is accepted as empty map
+      typemap = Collections.emptyMap();
+    } else {
+      // Defensive copy
+      // LinkedHashMap to maintain order of map provided by caller, and aids in
+      // iteration peformance while creating the inverted maps.
+      typemap = Collections.unmodifiableMap(new LinkedHashMap<String, Class<?>>(map));
+    }
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
     //#endif
   }
