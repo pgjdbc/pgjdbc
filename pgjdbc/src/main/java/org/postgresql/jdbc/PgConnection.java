@@ -465,11 +465,7 @@ public class PgConnection implements BaseConnection {
       }
       types = typemapInvertedDirect.get(clazz);
     }
-    if (types == null) {
-      return Collections.emptySet();
-    } else {
-      return types;
-    }
+    return types != null ? types : Collections.<String>emptySet();
   }
 
   /**
@@ -534,11 +530,7 @@ public class PgConnection implements BaseConnection {
       }
       types = typemapInvertedInherited.get(clazz);
     }
-    if (types == null) {
-      return Collections.emptySet();
-    } else {
-      return types;
-    }
+    return types != null ? types : Collections.<String>emptySet();
   }
 
   public QueryExecutor getQueryExecutor() {
