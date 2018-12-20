@@ -92,6 +92,9 @@ public interface BaseConnection extends PGConnection, Connection {
   /**
    * Gets the set of types that directly map to the given class.
    * This performs the inverse operation of {@link #getTypeMap()}.
+   * <p>
+   * Supports types that are mapped directly to {@link Object}.
+   * </p>
    *
    * @param clazz the class that a mapped type must be
    *
@@ -104,6 +107,11 @@ public interface BaseConnection extends PGConnection, Connection {
    * Gets the set of all known types types that map to the given class.
    * This performs the inverse operation of {@link #getTypeMap()}, but matching
    * all classes and interfaces for each mapped type.
+   * <p>
+   * Does not include {@link Object} in the inverted map.  As type inference
+   * to simply {@link Object} is of limited use, there is no benefit to mapping
+   * all registered custom types in a big set under {@link Object}.
+   * </p>
    *
    * @param clazz the class that a mapped type may be, extend, or implement
    *

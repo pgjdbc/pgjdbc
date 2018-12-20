@@ -483,7 +483,7 @@ public class PgConnection implements BaseConnection {
 
   /**
    * Recursively adds the class, all super classes, all interfaces,
-   * and all extended interfaces.
+   * and all extended interfaces - does not add {@link Object}.
    *
    * @param invertedMap the map to add to
    * @param current the class to add
@@ -493,22 +493,18 @@ public class PgConnection implements BaseConnection {
    * @see  #getTypeMapInvertedInherited(java.lang.Class)
    */
   private static void addAllInverted(Map<Class<?>, Set<String>> invertedMap, Class<?> current, String type) {
-    do {
+    while (current != Object.class && current != null) {
       if (addInverted(invertedMap, current, type)) {
         for (Class<?> iface : current.getInterfaces()) {
           addAllInverted(invertedMap, iface, type);
         }
-        // Class.getSuperclass() returns null for interfaces, but interfaces can be cast to Object
-        // For sake of completeness, add Object for interfaces, too
-        if (current.isInterface()) {
-          addAllInverted(invertedMap, Object.class, type);
-        }
+        current = current.getSuperclass();
       } else {
         // This class has already been mapped
         LOGGER.log(Level.FINER, "Already mapped, break: {0} -> {1}", new Object[] {current.getName(), type});
         break;
       }
-    } while ((current = current.getSuperclass()) != null);
+    }
   }
 
   @Override

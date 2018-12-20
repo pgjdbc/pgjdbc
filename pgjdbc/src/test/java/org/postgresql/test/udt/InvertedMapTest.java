@@ -88,7 +88,7 @@ public class InvertedMapTest {
         new HashSet<String>(Arrays.asList("insane_class", "insane_interface")),
         baseConnection.getTypeMapInvertedInherited(InsaneInterfaceHierachy.TestHierarchy_1_2.class));
     assertEquals(
-        new HashSet<String>(Arrays.asList("insane_class", "insane_interface")),
+        Collections.emptySet(),
         baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 
@@ -130,7 +130,7 @@ public class InvertedMapTest {
         new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
         baseConnection.getTypeMapInvertedInherited(Comparable.class));
     assertEquals(
-        new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
+        Collections.emptySet(),
         baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 
@@ -178,7 +178,7 @@ public class InvertedMapTest {
         new HashSet<String>(Arrays.asList("Integer", "Float")),
         baseConnection.getTypeMapInvertedInherited(Comparable.class));
     assertEquals(
-        new HashSet<String>(Arrays.asList("Integer", "Float")),
+        Collections.emptySet(),
         baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 
@@ -227,7 +227,7 @@ public class InvertedMapTest {
         new HashSet<String>(Arrays.asList("Integer", "Float")),
         baseConnection.getTypeMapInvertedInherited(Comparable.class));
     assertEquals(
-        new HashSet<String>(Arrays.asList("Integer", "Float", "Number")),
+        Collections.emptySet(),
         baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 
@@ -350,7 +350,29 @@ public class InvertedMapTest {
         Collections.singleton("TestIndirectClass"),
         baseConnection.getTypeMapInvertedInherited(IndirectlyExtendedFromBase.class));
     assertEquals(
-        Collections.singleton("TestIndirectClass"),
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedInherited(Object.class));
+  }
+
+  @Test
+  public void testCustomTypeToObject() throws Exception {
+    Map<String, Class<?>> typeMap = con.getTypeMap();
+    typeMap.put("Object", Object.class);
+    typeMap.put("Number", Number.class);
+    typeMap.put("Serializable", Serializable.class);
+    typeMap.put("Integer", Integer.class);
+    con.setTypeMap(typeMap);
+
+    BaseConnection baseConnection = con.unwrap(BaseConnection.class);
+
+    assertEquals(
+        "Direct mappings are allowed to Object",
+        Collections.singleton("Object"),
+        baseConnection.getTypeMapInvertedDirect(Object.class));
+
+    assertEquals(
+        "Inverted maps are not set for Object",
+        Collections.emptySet(),
         baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 }
