@@ -671,22 +671,44 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * This method was added in v6.5, and simply throws an SQLException for an unimplemented method. I
+   * This method was added in v6.5, and simply returns a {@link SQLFeatureNotSupportedException} for an unimplemented method. I
    * decided to do it this way while implementing the JDBC2 extensions to JDBC, as it should help
-   * keep the overall driver size down. It now requires the call Class and the function name to help
-   * when the driver is used with closed software that don't report the stack strace
+   * keep the overall driver size down. It now requires the call Class and the method name to help
+   * when the driver is used with closed software that don't report the stack trace
    *
    * @param callClass the call Class
-   * @param functionName the name of the unimplemented function with the type of its arguments
-   * @return PSQLException with a localized message giving the complete description of the
-   *         unimplemeted function
+   * @param methodName the name of the unimplemented method with the type of its arguments
+   * @return {@link SQLFeatureNotSupportedException} with a localized message giving the complete description of the
+   *         unimplemented function
    */
   public static SQLFeatureNotSupportedException notImplemented(Class<?> callClass,
-      String functionName) {
+      String methodName) {
     return new SQLFeatureNotSupportedException(
-        GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
+        GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + methodName),
         PSQLState.NOT_IMPLEMENTED.getState());
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+  /**
+   * This method was added in v42.2.6, and simply returns a {@link SQLFeatureNotSupportedException} for
+   * unsupported user-defined data types (UDT) in JDBC &lt; 4.1.
+   * It requires the call Class and the method name to help
+   * when the driver is used with closed software that don't report the stack trace
+   *
+   * @param callClass the call Class
+   * @param methodName the name of the unimplemented method with the type of its arguments
+   * @return {@link SQLFeatureNotSupportedException} with a localized message giving the complete description of the
+   *         unimplemented function
+   */
+  public static SQLFeatureNotSupportedException udtNotSupported(Class<?> callClass,
+      String methodName) {
+    return new SQLFeatureNotSupportedException(
+        GT.tr(
+            "{0}.{1} not supported by this driver. You need JDK >= {2} and pgjdbc >= {3} or >= {4} (not \"{5}\" version)",
+            callClass.getName(), methodName, "7", "42.2.6", "42.2.6.jre7", ".jre6"),
+        PSQLState.NOT_IMPLEMENTED.getState());
+  }
+  //#endif
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override

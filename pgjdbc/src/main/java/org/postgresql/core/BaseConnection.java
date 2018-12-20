@@ -82,6 +82,11 @@ public interface BaseConnection extends PGConnection, Connection {
    * Gets the unmodifiable type map for this connection.
    * This will likely perform better than {@link #getTypeMap()}
    * because no defensive copy is made.
+   * <p>
+   * This will also not throw {@link SQLFeatureNotSupportedException} on JDBC &lt; 4.1,
+   * but with no way to {@link #setTypeMap(java.util.Map) set the type map},
+   * it will always return the empty map.
+   * </p>
    *
    * @return  The unmodifiable type map for this connection.
    */

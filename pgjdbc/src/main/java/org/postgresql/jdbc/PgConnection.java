@@ -384,9 +384,15 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
+    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+    if (true) {
+      throw Driver.udtNotSupported(Connection.class, "getTypeMap()");
+    }
+    //#else
     checkClosed();
     // LinkedHashMap to maintain order of map provided by caller.
     return new LinkedHashMap<String, Class<?>>(getTypeMapNoCopy());
+    //#endif
   }
 
   @Override
@@ -688,10 +694,7 @@ public class PgConnection implements BaseConnection {
       );
       //#else
       if (true) {
-        throw new PSQLException(GT.tr(
-                "{0} not supported by this driver. You need JDK >= {1} and pgjdbc >= {2} or >= {3} (not \"{4}\" version)",
-                "SQLData.readSQL", "7", "42.2.6", "42.2.6.jre7", ".jre6"),
-            PSQLState.NOT_IMPLEMENTED);
+        throw Driver.udtNotSupported(SQLData.class, "readSQL(SQLInput,String)");
       }
       //#endif
       return sqlData;
@@ -1438,11 +1441,17 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+    if (true) {
+      throw Driver.udtNotSupported(Connection.class, "setTypeMap(Map<String, Class<?>>)");
+    }
+    //#else
     // Defensive copy
     // LinkedHashMap to maintain order of map provided by caller, and aids in
     // iteration peformance while creating the inverted maps.
     typemap = Collections.unmodifiableMap(new LinkedHashMap<String, Class<?>>(map));
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
+    //#endif
   }
 
   protected Array makeArray(int oid, String fieldString) throws SQLException {

@@ -15,15 +15,21 @@ import org.postgresql.test.util.InsaneInterfaceHierachy;
 import org.junit.Test;
 
 import java.io.Serializable;
+//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+import java.sql.SQLFeatureNotSupportedException;
+//#endif
 import java.util.Map;
 
 /**
- * This object tests the inference map implementation in
- * {@link PgConnection}.
+ * This object tests the type map implementation in {@link PgConnection}, along
+ * with the inverted forms of the map used for type inference.
  */
 public class TypeMapTest extends BaseTest4 {
 
   @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
   public void testTypeMapNotNull() throws Exception {
     assertNotNull(
         "Per the specification, the type map will be empty when not types set - not null",
@@ -31,6 +37,9 @@ public class TypeMapTest extends BaseTest4 {
   }
 
   @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
   public void testTypeMapEmpty() throws Exception {
     assertEquals(
         "We expect any empty type map on a new connection",
@@ -39,6 +48,9 @@ public class TypeMapTest extends BaseTest4 {
   }
 
   @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
   public void testTypeMapDefensiveCopy() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("test1", Integer.class);
@@ -66,6 +78,9 @@ public class TypeMapTest extends BaseTest4 {
    * {@link PgConnection#setTypeMap(java.util.Map)}.
    */
   @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
   public void testInsaneInferenceMap() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("insane_class", InsaneClass.class);
@@ -73,6 +88,9 @@ public class TypeMapTest extends BaseTest4 {
   }
 
   @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
   public void testInvertedMapMultipleDirect() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Integer 1", Integer.class);
@@ -95,6 +113,9 @@ public class TypeMapTest extends BaseTest4 {
   }
 
   @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
   public void testInvertedMapMultipleInherited() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Integer", Integer.class);
@@ -119,6 +140,9 @@ public class TypeMapTest extends BaseTest4 {
   }
 
   @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
   public void testInvertedMapMultipleDirectAndInherited() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("Integer", Integer.class);

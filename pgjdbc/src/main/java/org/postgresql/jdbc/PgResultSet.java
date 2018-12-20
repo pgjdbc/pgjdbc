@@ -5,6 +5,9 @@
 
 package org.postgresql.jdbc;
 
+//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+import org.postgresql.Driver;
+//#endif
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
@@ -3486,6 +3489,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
+    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+    if (map != null && !map.isEmpty()) {
+      throw Driver.udtNotSupported(ResultSet.class, "getObject(int, Map<String, Class<?>>)");
+    }
+    //#endif
     Field field;
 
     checkResultSet(columnIndex);
@@ -3514,6 +3522,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
+    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+    if (map != null && !map.isEmpty()) {
+      throw Driver.udtNotSupported(ResultSet.class, "getObject(String, Map<String, Class<?>>)");
+    }
+    //#endif
     return getObject(findColumn(columnLabel), map);
   }
 
