@@ -520,6 +520,8 @@ public class TestUtil {
    * @param con Connection
    * @param name String
    * @param values String
+   *
+   * @see #createDomain(java.sql.Connection, java.lang.String, java.lang.String, java.lang.String)
    */
   public static void createDomain(Connection con, String name, String values)
       throws SQLException {
@@ -528,6 +530,28 @@ public class TestUtil {
       dropDomain(con, name);
       // Now create the table
       st.executeUpdate("create domain " + name + " as " + values);
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
+  /**
+   * Helper creates a domain with a check constraint.
+   *
+   * @param con Connection
+   * @param name String
+   * @param values String
+   * @param check the CHECK constraint
+   *
+   * @see #createDomain(java.sql.Connection, java.lang.String, java.lang.String)
+   */
+  public static void createDomain(Connection con, String name, String values, String check)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      dropDomain(con, name);
+      // Now create the table
+      st.executeUpdate("create domain " + name + " as " + values + " check (" + check + ")");
     } finally {
       closeQuietly(st);
     }
