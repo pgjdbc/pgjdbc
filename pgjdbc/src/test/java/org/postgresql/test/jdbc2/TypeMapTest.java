@@ -352,10 +352,59 @@ public class TypeMapTest extends BaseTest4 {
         baseConnection.getTypeMapInvertedInherited(Float.class));
   }
 
-  /*
-   * A complicated interface hierarchy
-   */
+  public interface IndirectlyExtendedFromBase {}
 
-  // TODO: Test complex interface hierarchy, to make sure interfaces extended by
-  //       interfaces implemented by base classes are all matched.
+  public interface IndirectFromBase extends IndirectlyExtendedFromBase {}
+
+  public abstract class TestIndirectBase implements IndirectFromBase {}
+
+  public class TestIndirectClass extends TestIndirectBase {}
+
+  /**
+   * Tests that interfaces extended by interfaces implemented by base classes
+   * are included.
+   */
+  @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
+  public void testIndirectExtendedInterfaces() throws Exception {
+    Map<String, Class<?>> typeMap = con.getTypeMap();
+    typeMap.put("TestIndirectClass", TestIndirectClass.class);
+    con.setTypeMap(typeMap);
+
+    BaseConnection baseConnection = con.unwrap(BaseConnection.class);
+
+    assertEquals(
+        Collections.singleton("TestIndirectClass"),
+        baseConnection.getTypeMapInvertedDirect(TestIndirectClass.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(TestIndirectBase.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(IndirectFromBase.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(IndirectlyExtendedFromBase.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Object.class));
+
+    assertEquals(
+        Collections.singleton("TestIndirectClass"),
+        baseConnection.getTypeMapInvertedInherited(TestIndirectClass.class));
+    assertEquals(
+        Collections.singleton("TestIndirectClass"),
+        baseConnection.getTypeMapInvertedInherited(TestIndirectBase.class));
+    assertEquals(
+        Collections.singleton("TestIndirectClass"),
+        baseConnection.getTypeMapInvertedInherited(IndirectFromBase.class));
+    assertEquals(
+        Collections.singleton("TestIndirectClass"),
+        baseConnection.getTypeMapInvertedInherited(IndirectlyExtendedFromBase.class));
+    assertEquals(
+        Collections.singleton("TestIndirectClass"),
+        baseConnection.getTypeMapInvertedInherited(Object.class));
+  }
 }
