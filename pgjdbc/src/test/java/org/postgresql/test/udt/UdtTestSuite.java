@@ -14,7 +14,8 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         InvertedMapTest.class,
-        DomainOverIntegerTest.class
+        DomainOverIntegerTest.class,
+        DomainOverTextTest.class
 })
 public class UdtTestSuite {
 }

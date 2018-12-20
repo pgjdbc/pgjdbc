@@ -12,7 +12,7 @@ import java.sql.SQLOutput;
 
 /**
  * A user-defined data type implemented as a domain over integer on the
- * server-side.
+ * server-side, demonstrating separation of interface from implementation.
  */
 public class PortImpl implements Port, SQLData {
 
@@ -101,5 +101,8 @@ public class PortImpl implements Port, SQLData {
       throw new IllegalStateException();
     }
     port = stream.readInt();
+    if (stream.wasNull()) {
+      throw new SQLException("Null value unexpected");
+    }
   }
 }

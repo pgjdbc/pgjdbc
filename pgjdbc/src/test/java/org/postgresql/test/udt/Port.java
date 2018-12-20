@@ -7,7 +7,7 @@ package org.postgresql.test.udt;
 
 /**
  * A user-defined data type implemented as a domain over integer on the
- * server-side.
+ * server-side, demonstrating separation of interface from implementation.
  */
 public interface Port extends Comparable<Port> {
 
