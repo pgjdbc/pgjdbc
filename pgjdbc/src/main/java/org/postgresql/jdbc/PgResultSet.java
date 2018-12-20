@@ -3408,7 +3408,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (customType != null) {
           connection.getLogger().log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
           // Direct match, as expected - no fancy workarounds required
-          return type.cast(connection.getObjectCustomType(typemap, pgType, customType, new PgResultSetSQLInput(this, columnIndex)));
+          if (type.isAssignableFrom(customType)) {
+            return type.cast(connection.getObjectCustomType(typemap, pgType, customType, new PgResultSetSQLInput(this, columnIndex)));
+          } else {
+            throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", pgType, customType.getName(), type.getName()),
+                    PSQLState.CANNOT_COERCE);
+          }
         }
         // It is an issue that a DOMAIN type is sent from the backend with its oid of non-domain type, which makes this pgType not match
         // what is expected.  For example, our "Email" DOMAIN is currently oid 4015336, but it is coming back as 25 "text".
