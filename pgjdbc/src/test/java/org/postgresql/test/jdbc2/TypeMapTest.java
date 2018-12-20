@@ -19,6 +19,9 @@ import java.io.Serializable;
 //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
 import java.sql.SQLFeatureNotSupportedException;
 //#endif
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 
 /**
@@ -92,17 +95,37 @@ public class TypeMapTest extends BaseTest4 {
 
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
 
-    assertEquals(1, baseConnection.getTypeMapInvertedDirect(InsaneClass.class).size());
-    assertEquals(1, baseConnection.getTypeMapInvertedDirect(InsaneInterface.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(InsaneInterfaceHierachy.TestHierarchy_1_1.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(InsaneInterfaceHierachy.TestHierarchy_1_2.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
+    assertEquals(
+        Collections.singleton("insane_class"),
+        baseConnection.getTypeMapInvertedDirect(InsaneClass.class));
+    assertEquals(
+        Collections.singleton("insane_interface"),
+        baseConnection.getTypeMapInvertedDirect(InsaneInterface.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(InsaneInterfaceHierachy.TestHierarchy_1_1.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(InsaneInterfaceHierachy.TestHierarchy_1_2.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Object.class));
 
-    assertEquals(1, baseConnection.getTypeMapInvertedInherited(InsaneClass.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(InsaneInterface.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(InsaneInterfaceHierachy.TestHierarchy_1_1.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(InsaneInterfaceHierachy.TestHierarchy_1_2.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Object.class).size());
+    assertEquals(
+        Collections.singleton("insane_class"),
+        baseConnection.getTypeMapInvertedInherited(InsaneClass.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("insane_class", "insane_interface")),
+        baseConnection.getTypeMapInvertedInherited(InsaneInterface.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("insane_class", "insane_interface")),
+        baseConnection.getTypeMapInvertedInherited(InsaneInterfaceHierachy.TestHierarchy_1_1.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("insane_class", "insane_interface")),
+        baseConnection.getTypeMapInvertedInherited(InsaneInterfaceHierachy.TestHierarchy_1_2.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("insane_class", "insane_interface")),
+        baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 
   @Test
@@ -117,17 +140,37 @@ public class TypeMapTest extends BaseTest4 {
 
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
 
-    assertEquals(2, baseConnection.getTypeMapInvertedDirect(Integer.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Number.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Serializable.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Comparable.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
+        baseConnection.getTypeMapInvertedDirect(Integer.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Number.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Serializable.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Comparable.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Object.class));
 
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Integer.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Number.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Serializable.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Comparable.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Object.class).size());
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
+        baseConnection.getTypeMapInvertedInherited(Integer.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
+        baseConnection.getTypeMapInvertedInherited(Number.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
+        baseConnection.getTypeMapInvertedInherited(Serializable.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
+        baseConnection.getTypeMapInvertedInherited(Comparable.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
+        baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 
   @Test
@@ -142,19 +185,43 @@ public class TypeMapTest extends BaseTest4 {
 
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
 
-    assertEquals(1, baseConnection.getTypeMapInvertedDirect(Integer.class).size());
-    assertEquals(1, baseConnection.getTypeMapInvertedDirect(Float.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Number.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Serializable.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Comparable.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedDirect(Integer.class));
+    assertEquals(
+        Collections.singleton("Float"),
+        baseConnection.getTypeMapInvertedDirect(Float.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Number.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Serializable.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Comparable.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Object.class));
 
-    assertEquals(1, baseConnection.getTypeMapInvertedInherited(Integer.class).size());
-    assertEquals(1, baseConnection.getTypeMapInvertedInherited(Float.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Number.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Serializable.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Comparable.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Object.class).size());
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedInherited(Integer.class));
+    assertEquals(
+        Collections.singleton("Float"),
+        baseConnection.getTypeMapInvertedInherited(Float.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float")),
+        baseConnection.getTypeMapInvertedInherited(Number.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float")),
+        baseConnection.getTypeMapInvertedInherited(Serializable.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float")),
+        baseConnection.getTypeMapInvertedInherited(Comparable.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float")),
+        baseConnection.getTypeMapInvertedInherited(Object.class));
   }
 
   @Test
@@ -170,27 +237,125 @@ public class TypeMapTest extends BaseTest4 {
 
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
 
-    assertEquals(1, baseConnection.getTypeMapInvertedDirect(Integer.class).size());
-    assertEquals(1, baseConnection.getTypeMapInvertedDirect(Float.class).size());
-    assertEquals(1, baseConnection.getTypeMapInvertedDirect(Number.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Serializable.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Comparable.class).size());
-    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedDirect(Integer.class));
+    assertEquals(
+        Collections.singleton("Float"),
+        baseConnection.getTypeMapInvertedDirect(Float.class));
+    assertEquals(
+        Collections.singleton("Number"),
+        baseConnection.getTypeMapInvertedDirect(Number.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Serializable.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Comparable.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Object.class));
 
-    assertEquals(1, baseConnection.getTypeMapInvertedInherited(Integer.class).size());
-    assertEquals(1, baseConnection.getTypeMapInvertedInherited(Float.class).size());
-    assertEquals(3, baseConnection.getTypeMapInvertedInherited(Number.class).size());
-    assertEquals(3, baseConnection.getTypeMapInvertedInherited(Serializable.class).size());
-    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Comparable.class).size());
-    assertEquals(3, baseConnection.getTypeMapInvertedInherited(Object.class).size());
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedInherited(Integer.class));
+    assertEquals(
+        Collections.singleton("Float"),
+        baseConnection.getTypeMapInvertedInherited(Float.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float", "Number")),
+        baseConnection.getTypeMapInvertedInherited(Number.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float", "Number")),
+        baseConnection.getTypeMapInvertedInherited(Serializable.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float")),
+        baseConnection.getTypeMapInvertedInherited(Comparable.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float", "Number")),
+        baseConnection.getTypeMapInvertedInherited(Object.class));
   }
+
+  @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
+  public void testInvertedMapDistinguishesClassAndInterface() throws Exception {
+    Map<String, Class<?>> typeMap = con.getTypeMap();
+    typeMap.put("Comparable", Comparable.class);
+    // Integer implements Comparable - make sure it is registered as Integer only and not its interface
+    typeMap.put("Integer", Integer.class);
+    con.setTypeMap(typeMap);
+
+    BaseConnection baseConnection = con.unwrap(BaseConnection.class);
+
+    assertEquals(
+        Collections.singleton("Comparable"),
+        baseConnection.getTypeMapInvertedDirect(Comparable.class));
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedDirect(Integer.class));
+  }
+
+  @Test
+      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
+      (expected = SQLFeatureNotSupportedException.class)
+  //#endif
+  public void testInvertedMapsRebuilt() throws Exception {
+    Map<String, Class<?>> typeMap = con.getTypeMap();
+    typeMap.put("Integer", Integer.class);
+    con.setTypeMap(typeMap);
+
+    BaseConnection baseConnection = con.unwrap(BaseConnection.class);
+
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedDirect(Integer.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Number.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Float.class));
+
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedInherited(Integer.class));
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedInherited(Number.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedInherited(Float.class));
+
+    typeMap.put("Float", Float.class);
+    con.setTypeMap(typeMap);
+
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedDirect(Integer.class));
+    assertEquals(
+        Collections.emptySet(),
+        baseConnection.getTypeMapInvertedDirect(Number.class));
+    assertEquals(
+        Collections.singleton("Float"),
+        baseConnection.getTypeMapInvertedDirect(Float.class));
+
+    assertEquals(
+        Collections.singleton("Integer"),
+        baseConnection.getTypeMapInvertedInherited(Integer.class));
+    assertEquals(
+        new HashSet<String>(Arrays.asList("Integer", "Float")),
+        baseConnection.getTypeMapInvertedInherited(Number.class));
+    assertEquals(
+        Collections.singleton("Float"),
+        baseConnection.getTypeMapInvertedInherited(Float.class));
+  }
+
+  /*
+   * A complicated interface hierarchy
+   */
 
   // TODO: Test complex interface hierarchy, to make sure interfaces extended by
   //       interfaces implemented by base classes are all matched.
-
-  // TODO: Add tests to make sure classes and interfaces are distinguished correctly
-  //       in the direct inverted map.
-
-  // TODO: Add tests that getTypeMapInvertedDirect and getTypeMapInvertedInherited
-  //       are recreated correctly
 }
