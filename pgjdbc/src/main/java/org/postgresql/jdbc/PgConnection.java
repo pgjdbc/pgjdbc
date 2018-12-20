@@ -688,12 +688,6 @@ public class PgConnection implements BaseConnection {
     // This is useful for DOMAIN (and possibly ENUM?) values mapping onto SQLData
     try {
       SQLData sqlData = sqlDataType.newInstance();
-      // TODO: Must these exactly match?  If not, remove this check
-      String sqlTypeName = sqlData.getSQLTypeName();
-      if (!sqlTypeName.equals(type)) {
-        throw new PSQLException(GT.tr("Custom type mismatch.  expected={0}, got={1}", type, sqlTypeName),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
       sqlData.readSQL(sqlInput, type);
       return sqlData;
     } catch (InstantiationException e) {
