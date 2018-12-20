@@ -437,7 +437,13 @@ public class PgConnection implements BaseConnection {
       types = new HashSet<String>();
       invertedMap.put(clazz, types);
     }
-    return types.add(type);
+    boolean added = types.add(type);
+    if (added) {
+      LOGGER.log(Level.FINER, "Added: {0} -> {1}", new Object[] {clazz.getName(), type});
+    } else {
+      LOGGER.log(Level.FINEST, "Not added: {0} -> {1}", new Object[] {clazz.getName(), type});
+    }
+    return added;
   }
 
   @Override
@@ -492,8 +498,14 @@ public class PgConnection implements BaseConnection {
         for (Class<?> iface : current.getInterfaces()) {
           addAllInverted(invertedMap, iface, type);
         }
+        // Class.getSuperclass() returns null for interfaces, but interfaces can be cast to Object
+        // For sake of completeness, add Object for interfaces, too
+        if (current.isInterface()) {
+          addAllInverted(invertedMap, Object.class, type);
+        }
       } else {
         // This class has already been mapped
+        LOGGER.log(Level.FINER, "Already mapped, break: {0} -> {1}", new Object[] {current.getName(), type});
         break;
       }
     } while ((current = current.getSuperclass()) != null);

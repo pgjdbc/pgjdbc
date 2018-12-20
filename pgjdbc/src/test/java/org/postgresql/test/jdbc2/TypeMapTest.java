@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.util.InsaneClass;
+import org.postgresql.test.util.InsaneInterface;
 import org.postgresql.test.util.InsaneInterfaceHierachy;
 
 import org.junit.Test;
@@ -73,9 +74,11 @@ public class TypeMapTest extends BaseTest4 {
 
   /**
    * This test will operate slowly, or not complete at all when
-   * {@link InsaneInterfaceHierachy#DEPTH} is turned-up.  Testing
+   * {@link InsaneInterfaceHierachy#DEPTH} is turned-up.  At the current
+   * hierarchy depth, it makes a conspicuously long log file when the
+   * implementation is broken and not pruning visited nodes correctly.  Testing
    * the number of operations would require cluttering up
-   * {@link PgConnection#setTypeMap(java.util.Map)}.
+   * {@link PgConnection#getTypeMapInvertedInherited(java.lang.Class)}.
    */
   @Test
       //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
@@ -84,7 +87,22 @@ public class TypeMapTest extends BaseTest4 {
   public void testInsaneInferenceMap() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put("insane_class", InsaneClass.class);
+    typeMap.put("insane_interface", InsaneInterface.class);
     con.setTypeMap(typeMap);
+
+    BaseConnection baseConnection = con.unwrap(BaseConnection.class);
+
+    assertEquals(1, baseConnection.getTypeMapInvertedDirect(InsaneClass.class).size());
+    assertEquals(1, baseConnection.getTypeMapInvertedDirect(InsaneInterface.class).size());
+    assertEquals(0, baseConnection.getTypeMapInvertedDirect(InsaneInterfaceHierachy.TestHierarchy_1_1.class).size());
+    assertEquals(0, baseConnection.getTypeMapInvertedDirect(InsaneInterfaceHierachy.TestHierarchy_1_2.class).size());
+    assertEquals(0, baseConnection.getTypeMapInvertedDirect(Object.class).size());
+
+    assertEquals(1, baseConnection.getTypeMapInvertedInherited(InsaneClass.class).size());
+    assertEquals(2, baseConnection.getTypeMapInvertedInherited(InsaneInterface.class).size());
+    assertEquals(2, baseConnection.getTypeMapInvertedInherited(InsaneInterfaceHierachy.TestHierarchy_1_1.class).size());
+    assertEquals(2, baseConnection.getTypeMapInvertedInherited(InsaneInterfaceHierachy.TestHierarchy_1_2.class).size());
+    assertEquals(2, baseConnection.getTypeMapInvertedInherited(Object.class).size());
   }
 
   @Test
