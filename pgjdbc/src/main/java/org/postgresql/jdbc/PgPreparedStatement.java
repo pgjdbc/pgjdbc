@@ -26,7 +26,9 @@ import org.postgresql.util.PGTimestamp;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.PreparedStatementSQLOutput;
 import org.postgresql.util.ReaderInputStream;
+import org.postgresql.util.SQLOutputHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +52,7 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
@@ -492,6 +495,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
+    // TODO: Struct
+
     switch (targetSqlType) {
       case Types.SQLXML:
         if (in instanceof SQLXML) {
@@ -654,6 +659,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.OTHER:
         if (in instanceof PGobject) {
           setPGobject(parameterIndex, (PGobject) in);
+        } else if (in instanceof SQLData) {
+          // TODO: Should this be restricted to those types registered in the type map?
+          // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
+          SQLOutputHelper.writeSQLData((SQLData)in, new PreparedStatementSQLOutput(this, parameterIndex));
+          return;
         } else if (in instanceof Map) {
           setMap(parameterIndex, (Map<?, ?>) in);
         } else {
@@ -885,6 +895,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * This stores an Object into a parameter.
    */
   public void setObject(int parameterIndex, Object x) throws SQLException {
+    // TODO: Struct
     checkClosed();
     if (x == null) {
       setNull(parameterIndex, Types.OTHER);
@@ -926,6 +937,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setArray(parameterIndex, (Array) x);
     } else if (x instanceof PGobject) {
       setPGobject(parameterIndex, (PGobject) x);
+    } else if (x instanceof SQLData) {
+      // TODO: Should this be restricted to those types registered in the type map?
+      // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
+      SQLOutputHelper.writeSQLData((SQLData)x, new PreparedStatementSQLOutput(this, parameterIndex));
     } else if (x instanceof Character) {
       setString(parameterIndex, ((Character) x).toString());
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"

@@ -43,12 +43,13 @@ public class DomainOverIntegerTest {
 
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
     try {
-      // TODO: Can insert as Port objects once pull request #1377 merged
+      // Can add as the base type
       pstmt.setInt(1, 1024);
       pstmt.executeUpdate();
-      pstmt.setInt(1, 16384);
+      // Can also insert as Port object
+      pstmt.setObject(1, new PortImpl(16384));
       pstmt.executeUpdate();
-      pstmt.setInt(1, 1337);
+      pstmt.setObject(1, new PortImpl(1337));
       pstmt.executeUpdate();
     } finally {
       pstmt.close();
@@ -79,10 +80,8 @@ public class DomainOverIntegerTest {
     }
   }
 
-  /* TODO: Once pull request #1377 merged:
   @Test(expected = SQLException.class)
   public void testInsertPortTooLowUDT() throws Exception {
-    // TODO: No cast required once pull request #1377 is merged
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
     try {
       pstmt.setObject(1, new PortImpl(0));
@@ -91,7 +90,6 @@ public class DomainOverIntegerTest {
       pstmt.close();
     }
   }
-   */
 
   @Test
   public void testInsertMinimumPortInteger() throws Exception {
@@ -104,7 +102,6 @@ public class DomainOverIntegerTest {
     }
   }
 
-  /* TODO: Once pull request #1377 merged:
   @Test
   public void testInsertMinimumPortUDT() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
@@ -115,7 +112,6 @@ public class DomainOverIntegerTest {
       pstmt.close();
     }
   }
-   */
 
   @Test
   public void testInsertMaximumPortInteger() throws Exception {
@@ -128,7 +124,6 @@ public class DomainOverIntegerTest {
     }
   }
 
-  /* TODO: Once pull request #1377 merged:
   @Test
   public void testInsertMaximumPortUDT() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
@@ -139,7 +134,6 @@ public class DomainOverIntegerTest {
       pstmt.close();
     }
   }
-   */
 
   @Test(expected = SQLException.class)
   public void testInsertPortTooHighInteger() throws Exception {
@@ -152,10 +146,8 @@ public class DomainOverIntegerTest {
     }
   }
 
-  /* TODO: Once pull request #1377 merged:
   @Test(expected = SQLException.class)
   public void testInsertPortTooHighUDT() throws Exception {
-    // TODO: No cast required once pull request #1377 is merged
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
     try {
       pstmt.setObject(1, new PortImpl(65536));
@@ -164,7 +156,6 @@ public class DomainOverIntegerTest {
       pstmt.close();
     }
   }
-   */
 
   @Test
   public void testGetObjectUDTDirect() throws Exception {
