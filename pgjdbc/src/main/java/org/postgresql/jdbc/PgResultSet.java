@@ -3402,10 +3402,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return type.cast(object);
     } else {
       Map<String, Class<?>> typemap = connection.getTypeMapNoCopy();
+      connection.getLogger().log(Level.FINEST, "  typemap: {0}", typemap);
       if (!typemap.isEmpty()) {
         String pgType = getPGType(columnIndex);
         Class<?> customType = typemap.get(pgType);
         if (customType != null) {
+          connection.getLogger().log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
           // Direct match, as expected - no fancy workarounds required
           Object object;
           if (isBinary(columnIndex)) {
@@ -3436,9 +3438,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (size == 1) {
           inferredPgType = directTypes.iterator().next();
           inferredClass = type;
+          connection.getLogger().log(Level.FINER, "  Found single match in direct inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
         } else if (size > 1) {
           // Sort types for easier reading
           Set<String> sortedTypes = new TreeSet<String>(directTypes);
+          connection.getLogger().log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
           throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", type, sortedTypes.toString()),
                   PSQLState.CANNOT_COERCE);
         } else {
@@ -3453,14 +3457,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             // There is a slight race condition: inferred type might have been just
             // added and was not known when this method retrieved the typemap.
             if (inferredClassUnbounded == null) {
+              connection.getLogger().log(Level.FINE, "  Found single match in inherited inverted map, but missing in typemap (type just added by concurrent thread?), ignoring: {0}", inferredPgType);
               inferredPgType = null;
               inferredClass = null;
             } else {
               inferredClass = inferredClassUnbounded.asSubclass(type);
+              connection.getLogger().log(Level.FINER, "  Found single match in inherited inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
             }
           } else if (size > 1) {
             // Sort types for easier reading
             Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
+            connection.getLogger().log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
             throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", type, sortedTypes.toString()),
                     PSQLState.CANNOT_COERCE);
           } else {
