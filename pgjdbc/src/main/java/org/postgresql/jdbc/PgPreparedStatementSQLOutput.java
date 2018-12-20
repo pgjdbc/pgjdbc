@@ -3,7 +3,11 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.util;
+package org.postgresql.jdbc;
+
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -20,9 +24,7 @@ import java.sql.RowId;
 import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLOutput;
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
 import java.sql.SQLType;
-//#endif
 import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
@@ -33,16 +35,16 @@ import java.sql.Timestamp;
  * Implementation of {@link SQLOutput} supporting a single write that sets the
  * parameter of a {@link PreparedStatement} at the given index.
  */
-public class PreparedStatementSQLOutput implements SQLOutput {
+class PgPreparedStatementSQLOutput implements SQLOutput {
 
-  private final PreparedStatement pstmt;
+  private final PgPreparedStatement pstmt;
 
   private final int parameterIndex;
 
   // Only one write is supported
   private boolean writeDone;
 
-  public PreparedStatementSQLOutput(PreparedStatement pstmt, int parameterIndex) {
+  PgPreparedStatementSQLOutput(PgPreparedStatement pstmt, int parameterIndex) {
     this.pstmt = pstmt;
     this.parameterIndex = parameterIndex;
   }
@@ -59,7 +61,7 @@ public class PreparedStatementSQLOutput implements SQLOutput {
     writeDone = true;
   }
 
-  public boolean getWriteDone() {
+  boolean getWriteDone() {
     return writeDone;
   }
 
@@ -227,9 +229,9 @@ public class PreparedStatementSQLOutput implements SQLOutput {
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
+  //#endif
   public void writeObject(Object x, SQLType targetSqlType) throws SQLException {
     markWrite();
     pstmt.setObject(parameterIndex, x, targetSqlType);
   }
-  //#endif
 }

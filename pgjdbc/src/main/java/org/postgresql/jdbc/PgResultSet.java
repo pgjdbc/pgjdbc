@@ -25,7 +25,6 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.ResultSetSQLInput;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
@@ -3409,7 +3408,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (customType != null) {
           connection.getLogger().log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
           // Direct match, as expected - no fancy workarounds required
-          return type.cast(connection.getObjectCustomType(typemap, pgType, customType, new ResultSetSQLInput(this, columnIndex)));
+          return type.cast(connection.getObjectCustomType(typemap, pgType, customType, new PgResultSetSQLInput(this, columnIndex)));
         }
         // It is an issue that a DOMAIN type is sent from the backend with its oid of non-domain type, which makes this pgType not match
         // what is expected.  For example, our "Email" DOMAIN is currently oid 4015336, but it is coming back as 25 "text".
@@ -3470,7 +3469,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           }
         }
         if (inferredPgType != null) {
-          return connection.getObjectCustomType(typemap, inferredPgType, inferredClass, new ResultSetSQLInput(this, columnIndex));
+          return connection.getObjectCustomType(typemap, inferredPgType, inferredClass, new PgResultSetSQLInput(this, columnIndex));
         }
       }
     }
@@ -3514,7 +3513,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       Class<?> customType = map.get(pgType);
       if (customType != null) {
         connection.getLogger().log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
-        return connection.getObjectCustomType(map, pgType, customType, new ResultSetSQLInput(this, columnIndex));
+        return connection.getObjectCustomType(map, pgType, customType, new PgResultSetSQLInput(this, columnIndex));
       }
     }
 

@@ -3,9 +3,11 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.util;
+package org.postgresql.jdbc;
 
-import org.postgresql.jdbc.PgResultSet;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -17,7 +19,6 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.sql.NClob;
 import java.sql.Ref;
-import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLInput;
@@ -28,18 +29,18 @@ import java.sql.Timestamp;
 
 /**
  * Implementation of {@link SQLInput} supporting a single read that retrieves the
- * attribute from the given column of a {@link ResultSet}.
+ * attribute from the given column of a {@link PgResultSet}.
  */
-public class ResultSetSQLInput implements SQLInput {
+class PgResultSetSQLInput implements SQLInput {
 
-  private final ResultSet result;
+  private final PgResultSet result;
 
   private final int columnIndex;
 
   // Only one read is supported
   private boolean readDone;
 
-  public ResultSetSQLInput(ResultSet result, int columnIndex) {
+  PgResultSetSQLInput(PgResultSet result, int columnIndex) {
     this.result = result;
     this.columnIndex = columnIndex;
   }
@@ -54,6 +55,11 @@ public class ResultSetSQLInput implements SQLInput {
           PSQLState.NOT_IMPLEMENTED);
     }
     readDone = true;
+  }
+
+  // TODO: Find where used, and error if nothing read
+  boolean getReadDone() {
+    return readDone;
   }
 
   @Override
@@ -233,7 +239,6 @@ public class ResultSetSQLInput implements SQLInput {
     return result.getRowId(columnIndex);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   /**
    * {@inheritDoc}
    * <p>
@@ -241,10 +246,11 @@ public class ResultSetSQLInput implements SQLInput {
    * unbounded recursion inherent in the {@link #readObject()} implementation.
    * </p>
    */
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
+  //#endif
   public <T> T readObject(Class<T> type) throws SQLException {
     markRead();
     return result.getObject(columnIndex, type);
   }
-  //#endif
 }
