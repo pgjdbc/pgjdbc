@@ -146,6 +146,37 @@ public class PgConnection implements BaseConnection {
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
+  /**
+   * The unmodifiable current type mappings.
+   */
+  protected volatile Map<String, Class<?>> typemap = Collections.emptyMap();
+
+  /**
+   * The set of types directly mapped to each class - used for type inference.
+   */
+  private final Map<Class<?>, Set<String>> typemapInvertedDirect = new HashMap<Class<?>, Set<String>>();
+
+  /**
+   * The {@link #typemap} present at the time {@link #typemapInvertedDirect} was last
+   * rebuilt.
+   *
+   * @see  #getTypeMapInvertedDirect(java.lang.Class)
+   */
+  private Map<String, Class<?>> typemapInvertedDirectSource = typemap;
+
+  /**
+   * The set of all known types mapped to each class - used for type inference.
+   */
+  private final Map<Class<?>, Set<String>> typemapInvertedInherited = new HashMap<Class<?>, Set<String>>();
+
+  /**
+   * The {@link #typemap} present at the time {@link #typemapInvertedInherited} was last
+   * rebuilt.
+   *
+   * @see  #getTypeMapInvertedInherited(java.lang.Class)
+   */
+  private Map<String, Class<?>> typemapInvertedInheritedSource = typemap;
+
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
   }
@@ -359,11 +390,6 @@ public class PgConnection implements BaseConnection {
     return timestampUtils;
   }
 
-  /**
-   * The unmodifiable current type mappings.
-   */
-  protected volatile Map<String, Class<?>> typemap = Collections.emptyMap();
-
   @Override
   public Statement createStatement() throws SQLException {
     // We now follow the spec and default to TYPE_FORWARD_ONLY.
@@ -406,19 +432,6 @@ public class PgConnection implements BaseConnection {
       }
     }
   }
-
-  /**
-   * The set of types directly mapped to each class - used for type inference.
-   */
-  private final Map<Class<?>, Set<String>> typemapInvertedDirect = new HashMap<Class<?>, Set<String>>();
-
-  /**
-   * The {@link #typemap} present at the time {@link #typemapInvertedDirect} was last
-   * rebuilt.
-   *
-   * @see  #getTypeMapInvertedDirect(java.lang.Class)
-   */
-  private Map<String, Class<?>> typemapInvertedDirectSource = typemap;
 
   /**
    * Adds a new element to an inverted map.
@@ -467,19 +480,6 @@ public class PgConnection implements BaseConnection {
     }
     return types != null ? types : Collections.<String>emptySet();
   }
-
-  /**
-   * The set of all known types mapped to each class - used for type inference.
-   */
-  private final Map<Class<?>, Set<String>> typemapInvertedInherited = new HashMap<Class<?>, Set<String>>();
-
-  /**
-   * The {@link #typemap} present at the time {@link #typemapInvertedInherited} was last
-   * rebuilt.
-   *
-   * @see  #getTypeMapInvertedInherited(java.lang.Class)
-   */
-  private Map<String, Class<?>> typemapInvertedInheritedSource = typemap;
 
   /**
    * Recursively adds the class, all super classes, all interfaces,
