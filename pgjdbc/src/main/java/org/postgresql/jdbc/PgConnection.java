@@ -388,11 +388,10 @@ public class PgConnection implements BaseConnection {
     if (true) {
       throw Driver.udtNotSupported(Connection.class, "getTypeMap()");
     }
-    //#else
+    //#endif
     checkClosed();
     // LinkedHashMap to maintain order of map provided by caller.
     return new LinkedHashMap<String, Class<?>>(getTypeMapNoCopy());
-    //#endif
   }
 
   @Override
