@@ -13,6 +13,7 @@ import org.postgresql.util.LruCache;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
