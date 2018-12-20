@@ -429,6 +429,14 @@ public class PgConnection implements BaseConnection {
   private Map<String, Class<?>> typemapInvertedDirectSource = typemap;
 
   /**
+   * Adds a new element to an inverted map.
+   *
+   * @param invertedMap the map to add to
+   * @param clazz the class to add
+   * @param type the type that maps to this class
+   *
+   * @return  {@code true} when the class is added to the map, {@code false} when already existed.
+   *
    * @see  #getTypeMapInvertedDirect(java.lang.Class)
    */
   private static boolean addInverted(Map<Class<?>, Set<String>> invertedMap, Class<?> clazz, String type) {
