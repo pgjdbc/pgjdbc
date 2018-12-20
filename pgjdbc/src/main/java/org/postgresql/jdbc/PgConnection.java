@@ -452,9 +452,13 @@ public class PgConnection implements BaseConnection {
     }
     boolean added = types.add(type);
     if (added) {
-      LOGGER.log(Level.FINER, "Added: {0} -> {1}", new Object[] {clazz.getName(), type});
+      if (LOGGER.isLoggable(Level.FINER)) {
+        LOGGER.log(Level.FINER, "Added: {0} -> {1}", new Object[] {clazz.getName(), type});
+      }
     } else {
-      LOGGER.log(Level.FINEST, "Not added: {0} -> {1}", new Object[] {clazz.getName(), type});
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, "Not added: {0} -> {1}", new Object[] {clazz.getName(), type});
+      }
     }
     return added;
   }
@@ -501,7 +505,9 @@ public class PgConnection implements BaseConnection {
         current = current.getSuperclass();
       } else {
         // This class has already been mapped
-        LOGGER.log(Level.FINER, "Already mapped, break: {0} -> {1}", new Object[] {current.getName(), type});
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.log(Level.FINER, "Already mapped, break: {0} -> {1}", new Object[] {current.getName(), type});
+        }
         break;
       }
     }
