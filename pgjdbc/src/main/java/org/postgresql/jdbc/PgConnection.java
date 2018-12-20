@@ -1469,7 +1469,7 @@ public class PgConnection implements BaseConnection {
       throw Driver.udtNotSupported(Connection.class, "setTypeMap(Map<String, Class<?>>)");
     }
     //#else
-    if(map == null) {
+    if (map == null) {
       // null map is accepted as empty map
       typemap = Collections.emptyMap();
     } else {
