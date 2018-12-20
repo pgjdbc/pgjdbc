@@ -3391,6 +3391,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
       //#endif
     } else if (PGobject.class.isAssignableFrom(type)) {
+      checkResultSet(columnIndex);
+      if (wasNullFlag) {
+        return null;
+      }
       Object object;
       if (isBinary(columnIndex)) {
         object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
@@ -3412,6 +3416,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             logger.log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
           }
           // Direct match, as expected - no fancy workarounds required
+          checkResultSet(columnIndex);
+          if (wasNullFlag) {
+            return null;
+          }
           if (type.isAssignableFrom(customType)) {
             return type.cast(connection.getObjectCustomType(typemap, pgType, customType, new PgResultSetSQLInput(this, columnIndex)));
           } else {
@@ -3482,6 +3490,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           }
         }
         if (inferredPgType != null) {
+          checkResultSet(columnIndex);
+          if (wasNullFlag) {
+            return null;
+          }
           return connection.getObjectCustomType(typemap, inferredPgType, inferredClass, new PgResultSetSQLInput(this, columnIndex));
         }
       }
