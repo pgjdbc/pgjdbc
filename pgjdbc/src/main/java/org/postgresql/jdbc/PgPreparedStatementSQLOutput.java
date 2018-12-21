@@ -27,6 +27,7 @@ import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 
 
 /**
@@ -142,8 +143,14 @@ class PgPreparedStatementSQLOutput extends PgSQLOutput {
 
   @Override
   public void writeObject(SQLData x) throws SQLException {
-    markWrite();
-    pstmt.setObject(parameterIndex, x);
+    if (x == null) {
+      markWrite();
+      pstmt.setNull(parameterIndex, Types.OTHER);
+    } else {
+      x.writeSQL(this);
+      //PgSQLOutputHelper.writeSQLData(x, new PgPreparedStatementSQLOutput(pstmt, parameterIndex));
+    }
+    //pstmt.setObject(parameterIndex, x);
   }
 
   @Override

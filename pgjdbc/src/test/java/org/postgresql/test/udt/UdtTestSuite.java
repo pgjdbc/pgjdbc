@@ -11,6 +11,8 @@ import org.junit.runners.Suite;
 /*
  * Executes all known tests for user-defined data types (custom types).
  */
+// TODO: Add tests for ENUM
+// TODO: See what happens with a single-column compound type
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         InvertedMapTest.class,
@@ -18,7 +20,8 @@ import org.junit.runners.Suite;
         DomainOverTextTest.class,
         SingleAttributeRequiredTest.class,
         MultipleAttributesNotAllowedTest.class,
-        SQLInputWasNullBeforeReadTest.class
+        SQLInputWasNullBeforeReadTest.class,
+        NestedObjectTest.class
 })
 public class UdtTestSuite {
 }

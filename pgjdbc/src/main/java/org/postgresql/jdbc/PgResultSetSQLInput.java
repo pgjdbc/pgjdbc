@@ -147,7 +147,7 @@ class PgResultSetSQLInput extends PgSQLInput {
     markRead();
     // Avoid unbounded recursion
     throw new PSQLException(GT.tr(
-        "SQLInput.readObject() does not support component objects."),
+        "To avoid stack overflow, SQLInput.readObject() does not support getting objects."),
         PSQLState.NOT_IMPLEMENTED);
     //return result.getObject(columnIndex, typemap);
   }
