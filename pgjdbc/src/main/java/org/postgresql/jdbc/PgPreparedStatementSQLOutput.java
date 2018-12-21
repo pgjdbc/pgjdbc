@@ -5,10 +5,6 @@
 
 package org.postgresql.jdbc;
 
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -37,34 +33,15 @@ import java.sql.Timestamp;
  * Implementation of {@link SQLOutput} supporting a single write that sets the
  * parameter of a {@link PreparedStatement} at the given index.
  */
-class PgPreparedStatementSQLOutput implements SQLOutput {
+class PgPreparedStatementSQLOutput extends PgSQLOutput {
 
   private final PgPreparedStatement pstmt;
 
   private final int parameterIndex;
 
-  // Only one write is supported
-  private boolean writeDone;
-
   PgPreparedStatementSQLOutput(PgPreparedStatement pstmt, int parameterIndex) {
     this.pstmt = pstmt;
     this.parameterIndex = parameterIndex;
-  }
-
-  /**
-   * Marks the write as done.  If already marked, throws an exception.
-   */
-  private void markWrite() throws SQLException {
-    if (writeDone) {
-      throw new PSQLException(GT.tr(
-          "More than one write performed by SQLData.  Only single-attribute SQLData supported."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
-    writeDone = true;
-  }
-
-  boolean getWriteDone() {
-    return writeDone;
   }
 
   @Override

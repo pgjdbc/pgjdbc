@@ -50,9 +50,7 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
-import java.sql.SQLData;
 import java.sql.SQLException;
-import java.sql.SQLInput;
 import java.sql.SQLPermission;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
@@ -677,45 +675,6 @@ public class PgConnection implements BaseConnection {
   // This holds a reference to the LargeObject API if already open
   private LargeObjectManager largeobject = null;
 
-  /**
-   * Implementation of {@link #getObject(java.util.Map, java.lang.String, java.sql.SQLInput)} for custom types
-   * once the {@link SQLData} type is known.
-   *
-   * @see #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)
-   */
-  SQLData getObjectSQLData(Map<String, Class<?>> map, String type, Class<? extends SQLData> sqlDataType, SQLInput sqlInput) throws SQLException {
-    // An extremely simple implementation for scalar values only (not composite types)
-    // This is useful for DOMAIN (and possibly ENUM?) values mapping onto SQLData
-    try {
-      SQLData sqlData = sqlDataType.newInstance();
-      sqlData.readSQL(sqlInput, type);
-      return sqlData;
-    } catch (InstantiationException e) {
-      // Copying SYSTEM_ERROR used for IllegalAccessException in Parser.java
-      throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR, e);
-    } catch (IllegalAccessException e) {
-      // Copying SYSTEM_ERROR used for IllegalAccessException in Parser.java
-      throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR, e);
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   *
-   * @see  #getObjectSQLData(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)
-   */
-  @Override
-  public <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, SQLInput sqlInput) throws SQLException {
-    if (SQLData.class.isAssignableFrom(customType)) {
-      Class<? extends SQLData> sqlDataType = customType.asSubclass(SQLData.class);
-      return customType.cast(getObjectSQLData(map, type, sqlDataType, sqlInput));
-    }
-    // TODO: Support Struct, too
-    // Unexected custom type
-    throw new PSQLException(GT.tr("Custom type does not implement SQLData: {0}", customType.getName()),
-        PSQLState.NOT_IMPLEMENTED);
-  }
-
   /*
    * This method is used internally to return an object based around org.postgresql's more unique
    * data types.
@@ -725,6 +684,13 @@ public class PgConnection implements BaseConnection {
    *
    * You can use the getValue() or setValue() methods to handle the returned object. Custom objects
    * can have their own methods.
+   *
+   * <p>
+   * This does not handle user-defined data types.  The {@link #getTypeMapNoCopy() type map} should
+   * have already been checked, with the object being retrieved from
+   * {@link PgSQLInputHelper#getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, org.postgresql.jdbc.PgSQLInput)}
+   * when there is a type mapped.
+   * </p>
    *
    * @return PGobject for this type, and set to value
    *

@@ -12,19 +12,18 @@ import org.postgresql.util.PSQLState;
 import java.sql.PreparedStatement;
 import java.sql.SQLData;
 import java.sql.SQLException;
-import java.sql.SQLOutput;
 
 
 /**
- * Helper for implementing {@link SQLOutput}.
+ * Helper for implementing {@link PgSQLOutput}.
  */
-class SQLOutputHelper {
+class PgSQLOutputHelper {
 
-  private SQLOutputHelper() {}
+  private PgSQLOutputHelper() {}
 
   /**
-   * Writes {@link SQLData} to the given {@link PgPreparedStatementSQLOutput}.
-   * At this time, only single attribute SQLData is supported.
+   * Writes {@link SQLData} to the given {@link PgSQLOutput}.
+   * At this time, only single attribute {@link SQLData} is supported.
    *
    * @param data the data to write
    * @param out where to write the output

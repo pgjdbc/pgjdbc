@@ -660,7 +660,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else if (in instanceof SQLData) {
           // TODO: Should this be restricted to those types registered in the type map?
           // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-          SQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
+          PgSQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
           return;
         } else if (in instanceof Map) {
           setMap(parameterIndex, (Map<?, ?>) in);
@@ -938,7 +938,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     } else if (x instanceof SQLData) {
       // TODO: Should this be restricted to those types registered in the type map?
       // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-      SQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));
+      PgSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));
     } else if (x instanceof Character) {
       setString(parameterIndex, ((Character) x).toString());
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"

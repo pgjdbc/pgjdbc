@@ -3141,6 +3141,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+    return getObjectImpl(columnIndex, type, connection.getTypeMapNoCopy());
+  }
+
+  /**
+   * The implementation of {@link #getObject(int, java.lang.Class)}, but accepting
+   * the currently active type map.  This additional method is required because the
+   * provided map is used for type inference.
+   *
+   * @see #getObject(int, java.lang.Class)
+   * @see PgResultSetSQLInput#readObject(java.lang.Class)
+   */
+  <T> T getObjectImpl(int columnIndex, Class<T> type, Map<String, Class<?>> typemap) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");
     }
@@ -3405,9 +3417,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     } else {
       // In the wacky case an object both extends PGobject and implements SQLData, the PGobject implementation
       // takes precedence for backwards compatibility.
-      Map<String, Class<?>> typemap = connection.getTypeMapNoCopy();
       Logger logger = connection.getLogger();
-      logger.log(Level.FINEST, "  typemap: {0}", typemap);
+      logger.log(Level.FINEST, "  map: {0}", typemap);
       if (!typemap.isEmpty()) {
         String pgType = getPGType(columnIndex);
         Class<?> customType = typemap.get(pgType);
@@ -3421,7 +3432,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             return null;
           }
           if (type.isAssignableFrom(customType)) {
-            return type.cast(connection.getObjectCustomType(typemap, pgType, customType, new PgResultSetSQLInput(this, columnIndex)));
+            return type.cast(PgSQLInputHelper.getObjectCustomType(typemap, pgType, customType, new PgResultSetSQLInput(this, columnIndex, typemap)));
           } else {
             throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", pgType, customType.getName(), type.getName()),
                     PSQLState.CANNOT_COERCE);
@@ -3494,7 +3505,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           if (wasNullFlag) {
             return null;
           }
-          return connection.getObjectCustomType(typemap, inferredPgType, inferredClass, new PgResultSetSQLInput(this, columnIndex));
+          return PgSQLInputHelper.getObjectCustomType(typemap, inferredPgType, inferredClass, new PgResultSetSQLInput(this, columnIndex, typemap));
         }
       }
     }
@@ -3541,7 +3552,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (logger.isLoggable(Level.FINER)) {
           logger.log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
         }
-        return connection.getObjectCustomType(map, pgType, customType, new PgResultSetSQLInput(this, columnIndex));
+        return PgSQLInputHelper.getObjectCustomType(map, pgType, customType, new PgResultSetSQLInput(this, columnIndex, map));
       }
     }
 

@@ -25,41 +25,25 @@ import java.sql.SQLInput;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Map;
 
 
 /**
  * Implementation of {@link SQLInput} supporting a single read that retrieves the
  * attribute from the given column of a {@link PgResultSet}.
  */
-class PgResultSetSQLInput implements SQLInput {
+class PgResultSetSQLInput extends PgSQLInput {
 
   private final PgResultSet result;
 
   private final int columnIndex;
 
-  // Only one read is supported
-  private boolean readDone;
+  private final Map<String, Class<?>> typemap;
 
-  PgResultSetSQLInput(PgResultSet result, int columnIndex) {
+  PgResultSetSQLInput(PgResultSet result, int columnIndex, Map<String, Class<?>> typemap) {
     this.result = result;
     this.columnIndex = columnIndex;
-  }
-
-  /**
-   * Marks the read as done.  If already marked, throws an exception.
-   */
-  private void markRead() throws SQLException {
-    if (readDone) {
-      throw new PSQLException(GT.tr(
-          "More than one read performed by SQLData.  Only single-attribute SQLData supported."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
-    readDone = true;
-  }
-
-  // TODO: Find where used, and error if nothing read
-  boolean getReadDone() {
-    return readDone;
+    this.typemap = typemap;
   }
 
   @Override
@@ -165,7 +149,7 @@ class PgResultSetSQLInput implements SQLInput {
     throw new PSQLException(GT.tr(
         "SQLInput.readObject() does not support component objects."),
         PSQLState.NOT_IMPLEMENTED);
-    //return result.getObject(columnIndex);
+    //return result.getObject(columnIndex, typemap);
   }
 
   @Override
@@ -201,7 +185,7 @@ class PgResultSetSQLInput implements SQLInput {
    */
   @Override
   public boolean wasNull() throws SQLException {
-    if (!readDone) {
+    if (!getReadDone()) {
       throw new PSQLException(GT.tr(
           "SQLInput.wasNull() called before any read."),
           PSQLState.NO_DATA);
@@ -251,6 +235,6 @@ class PgResultSetSQLInput implements SQLInput {
   //#endif
   public <T> T readObject(Class<T> type) throws SQLException {
     markRead();
-    return result.getObject(columnIndex, type);
+    return result.getObjectImpl(columnIndex, type, typemap);
   }
 }
