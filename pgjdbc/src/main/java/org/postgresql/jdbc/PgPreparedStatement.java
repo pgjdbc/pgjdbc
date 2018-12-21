@@ -886,6 +886,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
+    // TODO: -1 matches Types.LONGVARCHAR - is this expected?
+    // TODO: If so, please use Types.LONGVARCHAR here, otherwise from some other value for "unknown" like Integer.MIN_VALUE.
     setObject(parameterIndex, x, targetSqlType, -1);
   }
 
