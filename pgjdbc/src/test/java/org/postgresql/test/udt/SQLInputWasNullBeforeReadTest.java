@@ -84,7 +84,7 @@ public class SQLInputWasNullBeforeReadTest {
   public void testWasNullBeforeReadWithGetObjectMap() throws Exception {
     ResultSet result = con.createStatement().executeQuery("SELECT 1234::int8 AS test");
     result.next();
-    result.getObject("test", Collections.singletonMap("int8", WasNullBeforeReadSQLData.class));
+    result.getObject("test", Collections.<String, Class<?>>singletonMap("int8", WasNullBeforeReadSQLData.class));
   }
 
   @Test

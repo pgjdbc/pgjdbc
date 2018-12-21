@@ -171,14 +171,16 @@ public class NestedObjectTest {
   public void testContainerSQLDataWithGetObjectMap() throws Exception {
     ResultSet result = con.createStatement().executeQuery("SELECT 1234::int4 AS test");
     result.next();
-    result.getObject("test", Collections.singletonMap("int4", ContainerSQLData.class));
+    result.getObject("test", Collections.<String, Class<?>>singletonMap("int4", ContainerSQLData.class));
   }
 
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithTypeWithGetObjectMap() throws Exception {
     ResultSet result = con.createStatement().executeQuery("SELECT 1234::int4 AS test");
     result.next();
-    ContainerSQLDataWithType data = (ContainerSQLDataWithType)result.getObject("test", Collections.singletonMap("int4", ContainerSQLDataWithType.class));
+    ContainerSQLDataWithType data = (ContainerSQLDataWithType)result.getObject(
+        "test",
+        Collections.<String, Class<?>>singletonMap("int4", ContainerSQLDataWithType.class));
     Assert.assertEquals(1234, data.object.value);
   }
 

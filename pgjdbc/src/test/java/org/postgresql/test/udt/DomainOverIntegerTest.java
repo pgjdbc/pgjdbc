@@ -251,7 +251,7 @@ public class DomainOverIntegerTest {
       ResultSet result = stmt.executeQuery("SELECT * FROM testport");
       try {
         while (result.next()) {
-          ports.add((Integer)result.getObject("port", Collections.emptyMap()));
+          ports.add((Integer)result.getObject("port", Collections.<String, Class<?>>emptyMap()));
         }
       } finally {
         result.close();

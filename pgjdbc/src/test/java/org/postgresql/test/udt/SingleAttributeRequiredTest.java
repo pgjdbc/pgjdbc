@@ -87,7 +87,7 @@ public class SingleAttributeRequiredTest {
   public void testNoReadWithGetObjectMap() throws Exception {
     ResultSet result = con.createStatement().executeQuery("SELECT 'test'::text AS test");
     result.next();
-    result.getObject("test", Collections.singletonMap("text", NoAttributeSQLData.class));
+    result.getObject("test", Collections.<String, Class<?>>singletonMap("text", NoAttributeSQLData.class));
   }
 
   @Test(expected = SQLException.class)

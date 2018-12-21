@@ -180,7 +180,7 @@ public class DomainOverTextTest {
       ResultSet result = stmt.executeQuery("SELECT * FROM testemail");
       try {
         while (result.next()) {
-          emails.add((String)result.getObject(1, Collections.emptyMap()));
+          emails.add((String)result.getObject(1, Collections.<String, Class<?>>emptyMap()));
         }
       } finally {
         result.close();
