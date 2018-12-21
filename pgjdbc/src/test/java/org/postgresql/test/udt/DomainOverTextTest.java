@@ -29,6 +29,10 @@ import java.util.Set;
  * over a text type.  This tests the type inference because the server sends back the oid of the base type for domains.
  */
 public class DomainOverTextTest {
+
+  private static final String EMAIL_SQL_TYPE = "public.email";
+  private static final String PORT_SQL_TYPE = "\"Port\"";
+
   private Connection con;
 
   // Set up the fixture for this testcase: the tables for this test.
@@ -36,12 +40,12 @@ public class DomainOverTextTest {
   public void setUp() throws Exception {
     con = TestUtil.openDB();
 
-    TestUtil.createDomain(con, Email.SQL_TYPE, "text", "value like '%_@_%'"); // Not a true email validation - just for testing
-    TestUtil.createTable(con, "testemail", "email " + Email.SQL_TYPE);
+    TestUtil.createDomain(con, EMAIL_SQL_TYPE, "text", "value like '%_@_%'"); // Not a true email validation - just for testing
+    TestUtil.createTable(con, "testemail", "email " + EMAIL_SQL_TYPE);
 
     Map<String, Class<?>> typeMap = con.getTypeMap();
-    typeMap.put(Email.SQL_TYPE, Email.class);
-    typeMap.put(PortImpl.SQL_TYPE, Port.class);
+    typeMap.put(EMAIL_SQL_TYPE, Email.class);
+    typeMap.put(PORT_SQL_TYPE, Port.class);
     con.setTypeMap(typeMap);
 
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testemail VALUES (?)");
@@ -67,7 +71,7 @@ public class DomainOverTextTest {
     con = TestUtil.openDB();
 
     TestUtil.dropTable(con, "testemail");
-    TestUtil.dropDomain(con, Email.SQL_TYPE);
+    TestUtil.dropDomain(con, EMAIL_SQL_TYPE);
 
     TestUtil.closeDB(con);
   }

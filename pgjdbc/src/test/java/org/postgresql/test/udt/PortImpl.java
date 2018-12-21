@@ -79,7 +79,7 @@ public class PortImpl implements Port, SQLData {
   }
 
   // <editor-fold defaultstate="collapsed" desc="SQLData">
-  public static final String SQL_TYPE = "\"Port\"";
+  private String sqlTypeName;
 
   public PortImpl() {
     this.port = UNDEFINED;
@@ -87,7 +87,7 @@ public class PortImpl implements Port, SQLData {
 
   @Override
   public String getSQLTypeName() {
-    return SQL_TYPE;
+    return sqlTypeName;
   }
 
   @Override
@@ -97,6 +97,10 @@ public class PortImpl implements Port, SQLData {
 
   @Override
   public void readSQL(SQLInput stream, String typeName) throws SQLException {
+    if (typeName == null) {
+      throw new IllegalArgumentException();
+    }
+    sqlTypeName = typeName;
     if (port != UNDEFINED) {
       throw new IllegalStateException();
     }

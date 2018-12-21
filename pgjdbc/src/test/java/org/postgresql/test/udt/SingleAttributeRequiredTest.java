@@ -43,13 +43,19 @@ public class SingleAttributeRequiredTest {
 
   public static class NoAttributeSQLData implements SQLData {
 
+    private String sqlTypeName;
+
     @Override
     public String getSQLTypeName() throws SQLException {
-      return NoAttributeSQLData.class.getSimpleName();
+      return sqlTypeName;
     }
 
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      if (typeName == null) {
+        throw new IllegalArgumentException();
+      }
+      sqlTypeName = typeName;
       // Does not read anything
     }
 

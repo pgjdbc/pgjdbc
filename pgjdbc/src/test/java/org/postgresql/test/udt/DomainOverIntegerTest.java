@@ -29,6 +29,10 @@ import java.util.Set;
  * over an integer type.  This tests the type inference because the server sends back the oid of the base type for domains.
  */
 public class DomainOverIntegerTest {
+
+  private static final String EMAIL_SQL_TYPE = "public.\"Email\"";
+  private static final String PORT_SQL_TYPE = "\"port\"";
+
   private Connection con;
 
   // Set up the fixture for this testcase: the tables for this test.
@@ -36,12 +40,12 @@ public class DomainOverIntegerTest {
   public void setUp() throws Exception {
     con = TestUtil.openDB();
 
-    TestUtil.createDomain(con, PortImpl.SQL_TYPE, "integer", "value >= 1 and value <= 65535");
-    TestUtil.createTable(con, "testport", "port " + PortImpl.SQL_TYPE + " primary key");
+    TestUtil.createDomain(con, PORT_SQL_TYPE, "integer", "value >= 1 and value <= 65535");
+    TestUtil.createTable(con, "testport", "port " + PORT_SQL_TYPE + " primary key");
 
     Map<String, Class<?>> typeMap = con.getTypeMap();
-    typeMap.put(PortImpl.SQL_TYPE, PortImpl.class);
-    typeMap.put(Email.SQL_TYPE, Email.class);
+    typeMap.put(PORT_SQL_TYPE, PortImpl.class);
+    typeMap.put(EMAIL_SQL_TYPE, Email.class);
     con.setTypeMap(typeMap);
 
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
@@ -67,7 +71,7 @@ public class DomainOverIntegerTest {
     con = TestUtil.openDB();
 
     TestUtil.dropTable(con, "testport");
-    TestUtil.dropDomain(con, PortImpl.SQL_TYPE);
+    TestUtil.dropDomain(con, PORT_SQL_TYPE);
 
     TestUtil.closeDB(con);
   }

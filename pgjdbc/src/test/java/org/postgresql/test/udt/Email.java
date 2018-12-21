@@ -50,14 +50,14 @@ public class Email implements SQLData {
   }
 
   // <editor-fold defaultstate="collapsed" desc="SQLData">
-  public static final String SQL_TYPE = "public.email";
+  private String sqlTypeName;
 
   public Email() {
   }
 
   @Override
   public String getSQLTypeName() {
-    return SQL_TYPE;
+    return sqlTypeName;
   }
 
   @Override
@@ -67,6 +67,10 @@ public class Email implements SQLData {
 
   @Override
   public void readSQL(SQLInput stream, String typeName) throws SQLException {
+    if (typeName == null) {
+      throw new IllegalArgumentException();
+    }
+    sqlTypeName = typeName;
     if (email != null) {
       throw new IllegalStateException();
     }

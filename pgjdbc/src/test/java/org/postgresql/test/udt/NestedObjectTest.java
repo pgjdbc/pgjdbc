@@ -40,6 +40,8 @@ public class NestedObjectTest {
 
   public static class NestedObjectSQLData implements SQLData {
 
+    private String sqlTypeName;
+
     private int value;
 
     public NestedObjectSQLData() {}
@@ -50,11 +52,15 @@ public class NestedObjectTest {
 
     @Override
     public String getSQLTypeName() throws SQLException {
-      return NestedObjectSQLData.class.getSimpleName();
+      return sqlTypeName;
     }
 
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      if (typeName == null) {
+        throw new IllegalArgumentException();
+      }
+      sqlTypeName = typeName;
       value = stream.readInt();
     }
 
@@ -66,6 +72,8 @@ public class NestedObjectTest {
 
   public static class ContainerSQLData implements SQLData {
 
+    private String sqlTypeName;
+
     private NestedObjectSQLData object;
 
     public ContainerSQLData() {}
@@ -76,11 +84,15 @@ public class NestedObjectTest {
 
     @Override
     public String getSQLTypeName() throws SQLException {
-      return ContainerSQLData.class.getSimpleName();
+      return sqlTypeName;
     }
 
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      if (typeName == null) {
+        throw new IllegalArgumentException();
+      }
+      sqlTypeName = typeName;
       object = (NestedObjectSQLData)stream.readObject();
     }
 
@@ -92,6 +104,8 @@ public class NestedObjectTest {
 
   public static class ContainerSQLDataWithType implements SQLData {
 
+    private String sqlTypeName;
+
     private NestedObjectSQLData object;
 
     public ContainerSQLDataWithType() {}
@@ -102,11 +116,15 @@ public class NestedObjectTest {
 
     @Override
     public String getSQLTypeName() throws SQLException {
-      return ContainerSQLData.class.getSimpleName();
+      return sqlTypeName;
     }
 
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      if (typeName == null) {
+        throw new IllegalArgumentException();
+      }
+      sqlTypeName = typeName;
       object = stream.readObject(NestedObjectSQLData.class);
     }
 

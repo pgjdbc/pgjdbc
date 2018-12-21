@@ -39,13 +39,19 @@ public class SQLInputWasNullBeforeReadTest {
 
   public static class WasNullBeforeReadSQLData implements SQLData {
 
+    private String sqlTypeName;
+
     @Override
     public String getSQLTypeName() throws SQLException {
-      return WasNullBeforeReadSQLData.class.getSimpleName();
+      return sqlTypeName;
     }
 
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      if (typeName == null) {
+        throw new IllegalArgumentException();
+      }
+      sqlTypeName = typeName;
       stream.wasNull();
       stream.readLong();
     }
