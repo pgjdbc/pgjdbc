@@ -17,7 +17,8 @@ import org.junit.runners.Suite;
         DomainOverIntegerTest.class,
         DomainOverTextTest.class,
         SingleAttributeRequiredTest.class,
-        MultipleAttributesNotAllowedTest.class
+        MultipleAttributesNotAllowedTest.class,
+        SQLInputWasNullBeforeReadTest.class
 })
 public class UdtTestSuite {
 }
