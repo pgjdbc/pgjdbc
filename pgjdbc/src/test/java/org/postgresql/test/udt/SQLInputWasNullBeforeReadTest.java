@@ -67,6 +67,7 @@ public class SQLInputWasNullBeforeReadTest {
     result.getObject("test");
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testWasNullBeforeReadWithConnectionMapInferred() throws Exception {
     Map<String, Class<?>> typemap = con.getTypeMap();
@@ -77,6 +78,7 @@ public class SQLInputWasNullBeforeReadTest {
     result.next();
     result.getObject("test", WasNullBeforeReadSQLData.class);
   }
+  //#endif
 
   @Test(expected = SQLException.class)
   public void testWasNullBeforeReadWithGetObjectMap() throws Exception {

@@ -70,6 +70,7 @@ public class SingleAttributeRequiredTest {
     result.getObject("test");
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testNoReadWithConnectionMapInferred() throws Exception {
     Map<String, Class<?>> typemap = con.getTypeMap();
@@ -80,6 +81,7 @@ public class SingleAttributeRequiredTest {
     result.next();
     result.getObject("test", NoAttributeSQLData.class);
   }
+  //#endif
 
   @Test(expected = SQLException.class)
   public void testNoReadWithGetObjectMap() throws Exception {

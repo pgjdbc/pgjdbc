@@ -139,6 +139,7 @@ public class NestedObjectTest {
     Assert.assertEquals(1234, data.object.value);
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithConnectionMapInferred() throws Exception {
     Map<String, Class<?>> typemap = con.getTypeMap();
@@ -149,7 +150,9 @@ public class NestedObjectTest {
     result.next();
     result.getObject("test", ContainerSQLData.class);
   }
+  //#endif
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithTypeWithConnectionMapInferred() throws Exception {
     Map<String, Class<?>> typemap = con.getTypeMap();
@@ -162,6 +165,7 @@ public class NestedObjectTest {
     ContainerSQLDataWithType data = (ContainerSQLDataWithType)result.getObject("test", ContainerSQLDataWithType.class);
     Assert.assertEquals(1234, data.object.value);
   }
+  //#endif
 
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithGetObjectMap() throws Exception {

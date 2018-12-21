@@ -72,6 +72,7 @@ public class MultipleAttributesNotAllowedTest {
     result.getObject("test");
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testTwoReadWithConnectionMapInferred() throws Exception {
     Map<String, Class<?>> typemap = con.getTypeMap();
@@ -82,6 +83,7 @@ public class MultipleAttributesNotAllowedTest {
     result.next();
     result.getObject("test", TwoAttributeSQLData.class);
   }
+  //#endif
 
   @Test(expected = SQLException.class)
   public void testTwoReadWithGetObjectMap() throws Exception {
