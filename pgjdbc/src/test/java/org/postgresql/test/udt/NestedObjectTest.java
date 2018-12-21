@@ -125,7 +125,7 @@ public class NestedObjectTest {
         throw new IllegalArgumentException();
       }
       sqlTypeName = typeName;
-      object = stream.readObject(NestedObjectSQLData.class);
+      object = stream.<NestedObjectSQLData>readObject(NestedObjectSQLData.class);
     }
 
     @Override
