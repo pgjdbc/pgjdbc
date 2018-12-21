@@ -17,6 +17,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -50,7 +51,7 @@ public class DomainOverTextTest {
       // Can also insert as Email object
       pstmt.setObject(1, new Email("test2@example.com"));
       pstmt.executeUpdate();
-      pstmt.setObject(1, new Email("foo@bar.baz"));
+      pstmt.setObject(1, new Email("foo@bar.baz"), Types.OTHER);
       pstmt.executeUpdate();
     } finally {
       pstmt.close();

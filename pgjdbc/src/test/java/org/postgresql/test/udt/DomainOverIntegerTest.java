@@ -17,6 +17,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -50,7 +51,7 @@ public class DomainOverIntegerTest {
       // Can also insert as Port object
       pstmt.setObject(1, new PortImpl(16384));
       pstmt.executeUpdate();
-      pstmt.setObject(1, new PortImpl(1337));
+      pstmt.setObject(1, new PortImpl(1337), Types.OTHER);
       pstmt.executeUpdate();
     } finally {
       pstmt.close();
