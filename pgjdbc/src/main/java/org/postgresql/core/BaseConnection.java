@@ -87,6 +87,7 @@ public interface BaseConnection extends PGConnection, Connection {
    *
    * @return  The unmodifiable type map for this connection.
    */
+  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
   Map<String, Class<?>> getTypeMapNoCopy();
 
   /**
@@ -101,6 +102,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return the unmodifiable set of all types that map to the given class or
    *         an empty set when the given class is not in the typemap.
    */
+  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
   Set<String> getTypeMapInvertedDirect(Class<?> clazz);
 
   /**
@@ -118,6 +120,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return the unmodifiable set of all types that map to the given class or
    *         an empty set when the given class is not in the typemap.
    */
+  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
   Set<String> getTypeMapInvertedInherited(Class<?> clazz);
 
   /**
@@ -141,6 +144,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @see  org.postgresql.jdbc.PgResultSet#getObject(java.lang.String, java.lang.Class)
    * @see  org.postgresql.jdbc.PgResultSet#getObject(int, java.lang.Class)
    */
+  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
   <T> T getObjectCustomType(Map<String, Class<?>> map, String type, Class<? extends T> customType, SQLInput sqlInput) throws SQLException;
 
   /**
@@ -165,6 +169,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @see  #getTypeMapNoCopy()
    * @see  #getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, java.sql.SQLInput)
    */
+  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
   PGobject getObject(String type, String value, byte[] byteValue) throws SQLException;
 
   Encoding getEncoding() throws SQLException;
