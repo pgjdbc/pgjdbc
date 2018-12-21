@@ -182,6 +182,7 @@ public class PgArray implements java.sql.Array {
     return buildArray(arrayList, (int) index, count);
   }
 
+  // TODO: type map here?
   private Object readBinaryArray(int index, int count) throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
