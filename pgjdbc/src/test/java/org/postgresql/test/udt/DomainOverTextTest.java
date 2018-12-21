@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -162,6 +163,34 @@ public class DomainOverTextTest {
 
     Assert.assertEquals(
         new HashSet<Email>(Arrays.asList(new Email("test@example.com"), new Email("foo@bar.baz"), new Email("test2@example.com"))),
+        emails
+    );
+  }
+
+  @Test
+  public void testParamMapOverridesConnectionMap() throws Exception {
+    // Add base type from "text" to go to Email
+    Map<String, Class<?>> typemap = con.getTypeMap();
+    typemap.put("text", Email.class);
+    con.setTypeMap(typemap);
+
+    Set<String> emails = new HashSet<String>();
+    Statement stmt = con.createStatement();
+    try {
+      ResultSet result = stmt.executeQuery("SELECT * FROM testemail");
+      try {
+        while (result.next()) {
+          emails.add((String)result.getObject(1, Collections.emptyMap()));
+        }
+      } finally {
+        result.close();
+      }
+    } finally {
+      stmt.close();
+    }
+
+    Assert.assertEquals(
+        new HashSet<String>(Arrays.asList("test@example.com", "foo@bar.baz", "test2@example.com")),
         emails
     );
   }

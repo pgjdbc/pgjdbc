@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -233,6 +234,34 @@ public class DomainOverIntegerTest {
 
     Assert.assertEquals(
         new HashSet<Port>(Arrays.asList(new PortImpl(1024), new PortImpl(1337), new PortImpl(16384))),
+        ports
+    );
+  }
+
+  @Test
+  public void testParamMapOverridesConnectionMap() throws Exception {
+    // Add base type from "int4" to go to PortImpl
+    Map<String, Class<?>> typemap = con.getTypeMap();
+    typemap.put("int4", PortImpl.class);
+    con.setTypeMap(typemap);
+
+    Set<Integer> ports = new HashSet<Integer>();
+    Statement stmt = con.createStatement();
+    try {
+      ResultSet result = stmt.executeQuery("SELECT * FROM testport");
+      try {
+        while (result.next()) {
+          ports.add((Integer)result.getObject("port", Collections.emptyMap()));
+        }
+      } finally {
+        result.close();
+      }
+    } finally {
+      stmt.close();
+    }
+
+    Assert.assertEquals(
+        new HashSet<Integer>(Arrays.asList(1024, 1337, 16384)),
         ports
     );
   }
