@@ -158,6 +158,7 @@ public class DomainOverIntegerTest {
     }
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test
   public void testGetObjectUDTDirect() throws Exception {
     Set<Port> ports = new HashSet<Port>();
@@ -180,7 +181,9 @@ public class DomainOverIntegerTest {
         ports
     );
   }
+  //#endif
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test
   public void testGetObjectUDTInherited() throws Exception {
     Set<Port> ports = new HashSet<Port>();
@@ -203,6 +206,7 @@ public class DomainOverIntegerTest {
         ports
     );
   }
+  //#endif
 
   @Test
   public void testOverrideBaseType() throws Exception {
@@ -232,6 +236,7 @@ public class DomainOverIntegerTest {
     );
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testTypeUnassignable() throws Exception {
     // Add base type from "int4" to go to PortImpl
@@ -254,4 +259,5 @@ public class DomainOverIntegerTest {
       stmt.close();
     }
   }
+  //#endif
 }

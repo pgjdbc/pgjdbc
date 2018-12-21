@@ -92,6 +92,7 @@ public class DomainOverTextTest {
     }
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test
   public void testGetObjectUDT() throws Exception {
     Set<Email> emails = new HashSet<Email>();
@@ -114,7 +115,9 @@ public class DomainOverTextTest {
         emails
     );
   }
+  //#endif
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test
   public void testNullRow() throws Exception {
     Statement stmt = con.createStatement();
@@ -132,6 +135,7 @@ public class DomainOverTextTest {
       stmt.close();
     }
   }
+  //#endif
 
   @Test
   public void testOverrideBaseType() throws Exception {
@@ -161,6 +165,7 @@ public class DomainOverTextTest {
     );
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testTypeUnassignable() throws Exception {
     // Add base type from "text" to go to Email
@@ -183,4 +188,5 @@ public class DomainOverTextTest {
       stmt.close();
     }
   }
+  //#endif
 }
