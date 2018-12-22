@@ -58,12 +58,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   private Integer[] functionReturnScale;
 
   /**
-   * The index within {@link #callResultSet} for each out parameter index.
+   * The column index within {@link #callResultSet} for each out parameter index.
    */
   private int[] callResultColumnIndex;
 
   /**
-   * The result set for the most recent call that had any out parameters registered.
+   * The result set for the most recent call, if it had any out parameters registered.
    */
   protected PgResultSet callResultSet;
 
