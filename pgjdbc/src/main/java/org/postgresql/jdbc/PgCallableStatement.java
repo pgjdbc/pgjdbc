@@ -837,6 +837,9 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * @see #getObject(int, java.lang.Class)
    * @see PgCallableStatementSQLInput#readObject(java.lang.Class)
    */
+  // TODO: If we can continue to delegate to PgResultSet, and PgCallableStatementSQLInput is
+  //       no longer needed, remove this method and move its implementation to
+  //       getObject(int,Class) above.
   <T> T getObjectImpl(int parameterIndex, Class<T> type, Map<String, Class<?>> typemap) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex);
