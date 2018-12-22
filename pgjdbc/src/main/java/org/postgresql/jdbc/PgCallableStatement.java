@@ -343,7 +343,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           map = connection.getTypeMapNoCopy();
         }
         Class<?> customType = map.get(returnType);
-        if (customType == null) {
+        if (customType != null) {
           return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex - 1], customType, map);
         }
       }
@@ -849,7 +849,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       String returnType = functionReturnTypeName[parameterIndex - 1];
       if (returnType != null) {
         Class<?> customType = typemap.get(returnType);
-        if (customType == null) {
+        if (customType != null) {
           // Make sure customType is assignable to type
           if (type.isAssignableFrom(customType)) {
             return type.cast(callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex - 1], customType, typemap));
