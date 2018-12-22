@@ -102,6 +102,7 @@ public class NestedObjectTest {
     }
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public static class ContainerSQLDataWithType implements SQLData {
 
     private String sqlTypeName;
@@ -125,7 +126,7 @@ public class NestedObjectTest {
         throw new IllegalArgumentException();
       }
       sqlTypeName = typeName;
-      object = stream.<NestedObjectSQLData>readObject(NestedObjectSQLData.class);
+      object = stream.readObject(NestedObjectSQLData.class);
     }
 
     @Override
@@ -133,6 +134,7 @@ public class NestedObjectTest {
       stream.writeObject(object);
     }
   }
+  //#endif
 
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithConnectionMapDirect() throws Exception {
@@ -145,6 +147,7 @@ public class NestedObjectTest {
     result.getObject("test");
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithTypeWithConnectionMapDirect() throws Exception {
     Map<String, Class<?>> typemap = con.getTypeMap();
@@ -156,6 +159,7 @@ public class NestedObjectTest {
     ContainerSQLDataWithType data = (ContainerSQLDataWithType)result.getObject("test");
     Assert.assertEquals(1234, data.object.value);
   }
+  //#endif
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
@@ -170,7 +174,7 @@ public class NestedObjectTest {
   }
   //#endif
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithTypeWithConnectionMapInferred() throws Exception {
     Map<String, Class<?>> typemap = con.getTypeMap();
@@ -192,6 +196,7 @@ public class NestedObjectTest {
     result.getObject("test", Collections.<String, Class<?>>singletonMap("int4", ContainerSQLData.class));
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Test(expected = SQLException.class)
   public void testContainerSQLDataWithTypeWithGetObjectMap() throws Exception {
     ResultSet result = con.createStatement().executeQuery("SELECT 1234::int4 AS test");
@@ -201,6 +206,7 @@ public class NestedObjectTest {
         Collections.<String, Class<?>>singletonMap("int4", ContainerSQLDataWithType.class));
     Assert.assertEquals(1234, data.object.value);
   }
+  //#endif
 
   @Test
   public void testWriteContainerSQLData() throws Exception {
