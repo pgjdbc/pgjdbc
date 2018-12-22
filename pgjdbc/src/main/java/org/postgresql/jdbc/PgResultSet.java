@@ -38,7 +38,9 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
 import java.nio.charset.StandardCharsets;
+//#endif
 import java.nio.charset.UnsupportedCharsetException;
 import java.sql.Array;
 import java.sql.Blob;
