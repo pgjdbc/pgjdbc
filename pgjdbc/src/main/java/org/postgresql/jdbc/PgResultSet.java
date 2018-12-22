@@ -37,6 +37,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -1869,6 +1872,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
+  // TODO: This does not correctly throw SQLException when accessed before any get* method.
   public boolean wasNull() throws SQLException {
     checkClosed();
     return wasNullFlag;
@@ -2308,6 +2312,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return toDouble(getFixedString(columnIndex));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @deprecated Use {@code getBigDecimal(int columnIndex)}
+   *             or {@code getBigDecimal(String columnLabel)}
+   */
+  @Deprecated
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBigDecimal columnIndex: {0}", columnIndex);
     return (BigDecimal) getNumeric(columnIndex, scale, false);
@@ -2407,14 +2418,27 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
+    Charset charset;
+    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
     try {
-      return new ByteArrayInputStream(getString(columnIndex).getBytes("ASCII"));
-    } catch (UnsupportedEncodingException l_uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
+      charset = Charset.forName("US-ASCII");
+    } catch (UnsupportedCharsetException e) {
+      throw new PSQLException(GT.tr("The JVM claims not to support the character set: {0}", "US-ASCII"),
+          PSQLState.UNEXPECTED_ERROR, e);
     }
+    //#else
+    charset = StandardCharsets.US_ASCII;
+    //#endif
+    return new ByteArrayInputStream(getString(columnIndex).getBytes(charset));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @deprecated use <code>getCharacterStream</code> in place of
+   *              <code>getUnicodeStream</code>
+   */
+  @Deprecated
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getUnicodeStream columnIndex: {0}", columnIndex);
     checkResultSet(columnIndex);
@@ -2490,6 +2514,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getDouble(findColumn(columnName));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @deprecated Use {@code getBigDecimal(int columnIndex)}
+   *             or {@code getBigDecimal(String columnLabel)}
+   */
+  @Deprecated
   public BigDecimal getBigDecimal(String columnName, int scale) throws SQLException {
     return getBigDecimal(findColumn(columnName), scale);
   }
@@ -2514,6 +2545,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getAsciiStream(findColumn(columnName));
   }
 
+  /**
+   * {@inheritDoc}
+   * @deprecated use <code>getCharacterStream</code> instead
+   */
+  @Deprecated
   public InputStream getUnicodeStream(String columnName) throws SQLException {
     return getUnicodeStream(findColumn(columnName));
   }

@@ -147,7 +147,7 @@ public class PgStatement implements Statement, BaseStatement {
     this.rsHoldability = rsHoldability;
   }
 
-  public ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
+  public PgResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
       ResultCursor cursor) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
@@ -201,7 +201,7 @@ public class PgStatement implements Statement, BaseStatement {
     public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
         ResultCursor cursor) {
       try {
-        ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
+        PgResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
         append(new ResultWrapper(rs));
       } catch (SQLException e) {
         handleError(e);

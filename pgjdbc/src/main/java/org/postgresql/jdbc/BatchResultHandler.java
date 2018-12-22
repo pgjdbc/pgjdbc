@@ -16,7 +16,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.sql.BatchUpdateException;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
@@ -176,7 +175,7 @@ public class BatchResultHandler extends ResultHandlerBase {
     }
   }
 
-  public ResultSet getGeneratedKeys() {
+  public PgResultSet getGeneratedKeys() {
     return generatedKeys;
   }
 
