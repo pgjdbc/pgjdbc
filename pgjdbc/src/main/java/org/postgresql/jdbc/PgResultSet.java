@@ -3586,6 +3586,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     String pgType = null;
 
     if (map == null) {
+      // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html:
+      //   "If you do not pass a type map to a method that can accept one, the driver will by default use the type map associated with the connection."
       map = connection.getTypeMapNoCopy();
     }
     logger.log(Level.FINEST, "  map: {0}", map);
