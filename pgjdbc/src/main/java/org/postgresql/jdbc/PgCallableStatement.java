@@ -143,7 +143,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           j++;
         }
 
-        callResultColumnIndex[j] = i + 1;
+        callResultColumnIndex[j + 1] = i + 1;
         int columnType = rsMetaData.getColumnType(i + 1);
 
         int registered = functionReturnType[j];
@@ -265,14 +265,14 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public String getString(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.VARCHAR, "String");
-    return callResultSet.getString(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getString(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public boolean getBoolean(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.BIT, "Boolean");
-    return callResultSet.getBoolean(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getBoolean(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
@@ -280,42 +280,42 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     checkClosed();
     // fake tiny int with smallint
     checkIndex(parameterIndex, Types.SMALLINT, "Byte");
-    return callResultSet.getByte(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getByte(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public short getShort(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.SMALLINT, "Short");
-    return callResultSet.getShort(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getShort(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public int getInt(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.INTEGER, "Int");
-    return callResultSet.getInt(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getInt(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public long getLong(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.BIGINT, "Long");
-    return callResultSet.getLong(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getLong(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public float getFloat(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.REAL, "Float");
-    return callResultSet.getFloat(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getFloat(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public double getDouble(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.DOUBLE, "Double");
-    return callResultSet.getDouble(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getDouble(callResultColumnIndex[parameterIndex]);
   }
 
   /**
@@ -329,7 +329,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
-    return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex - 1], scale);
+    return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex], scale);
   }
 
   @Override
@@ -344,39 +344,39 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         }
         Class<?> customType = map.get(returnType);
         if (customType != null) {
-          return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex - 1], customType, map);
+          return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, map);
         }
       }
     }
-    return callResultSet.getObject(callResultColumnIndex[parameterIndex - 1], map);
+    return callResultSet.getObject(callResultColumnIndex[parameterIndex], map);
   }
 
   @Override
   public byte[] getBytes(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.VARBINARY, Types.BINARY, "Bytes");
-    return callResultSet.getBytes(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getBytes(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public java.sql.Date getDate(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.DATE, "Date");
-    return callResultSet.getDate(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getDate(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public java.sql.Time getTime(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.TIME, "Time");
-    return callResultSet.getTime(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getTime(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public java.sql.Timestamp getTimestamp(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return callResultSet.getTimestamp(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getTimestamp(callResultColumnIndex[parameterIndex]);
   }
 
   /**
@@ -400,7 +400,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   InputStream getAsciiStream(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex);
-    return callResultSet.getAsciiStream(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getAsciiStream(callResultColumnIndex[parameterIndex]);
   }
 
   /**
@@ -424,7 +424,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   InputStream getBinaryStream(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex);
-    return callResultSet.getBinaryStream(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getBinaryStream(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
@@ -549,7 +549,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public java.sql.Array getArray(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.ARRAY, "Array");
-    return callResultSet.getArray(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getArray(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
@@ -560,52 +560,52 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (functionReturnScale != null) {
       Integer scale = functionReturnScale[parameterIndex - 1];
       if (scale != null) {
-        return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex - 1], scale);
+        return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex], scale);
       }
     }
-    return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public Blob getBlob(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.BLOB, "Blob");
-    return callResultSet.getBlob(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getBlob(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public Clob getClob(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.CLOB, "Clob");
-    return callResultSet.getClob(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getClob(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public Ref getRef(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.REF, "Ref");
-    return callResultSet.getRef(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getRef(callResultColumnIndex[parameterIndex]);
   }
 
   @Override
   public java.sql.Date getDate(int parameterIndex, java.util.Calendar cal) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.DATE, "Date");
-    return callResultSet.getDate(callResultColumnIndex[parameterIndex - 1], cal);
+    return callResultSet.getDate(callResultColumnIndex[parameterIndex], cal);
   }
 
   @Override
   public Time getTime(int parameterIndex, java.util.Calendar cal) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.TIME, "Time");
-    return callResultSet.getTime(callResultColumnIndex[parameterIndex - 1], cal);
+    return callResultSet.getTime(callResultColumnIndex[parameterIndex], cal);
   }
 
   @Override
   public Timestamp getTimestamp(int parameterIndex, java.util.Calendar cal) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return callResultSet.getTimestamp(callResultColumnIndex[parameterIndex - 1], cal);
+    return callResultSet.getTimestamp(callResultColumnIndex[parameterIndex], cal);
   }
 
   @Override
@@ -664,7 +664,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public RowId getRowId(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.ROWID, "RowId");
-    return callResultSet.getRowId(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getRowId(callResultColumnIndex[parameterIndex]);
   }
 
   // TODO: All these get*(String parameterName) methods could trivially be mapped onto callResultSet,
@@ -760,7 +760,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public NClob getNClob(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.NCLOB, "NClob");
-    return callResultSet.getNClob(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getNClob(callResultColumnIndex[parameterIndex]);
   }
 
   public NClob getNClob(String parameterName) throws SQLException {
@@ -775,7 +775,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.SQLXML, "SQLXML");
-    return callResultSet.getSQLXML(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getSQLXML(callResultColumnIndex[parameterIndex]);
   }
 
   public SQLXML getSQLXML(String parameterIndex) throws SQLException {
@@ -786,7 +786,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public String getNString(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR, "NString");
-    return callResultSet.getNString(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getNString(callResultColumnIndex[parameterIndex]);
   }
 
   public String getNString(String parameterName) throws SQLException {
@@ -797,7 +797,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public Reader getNCharacterStream(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR, "NCharacterStream");
-    return callResultSet.getNCharacterStream(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getNCharacterStream(callResultColumnIndex[parameterIndex]);
   }
 
   public Reader getNCharacterStream(String parameterName) throws SQLException {
@@ -808,7 +808,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public Reader getCharacterStream(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.VARCHAR, "CharacterStream");
-    return callResultSet.getCharacterStream(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getCharacterStream(callResultColumnIndex[parameterIndex]);
   }
 
   public Reader getCharacterStream(String parameterName) throws SQLException {
@@ -855,7 +855,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         if (customType != null) {
           // Make sure customType is assignable to type
           if (type.isAssignableFrom(customType)) {
-            return type.cast(callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex - 1], customType, typemap));
+            return type.cast(callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, typemap));
           } else {
             throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", returnType, customType.getName(), type.getName()),
                     PSQLState.CANNOT_COERCE);
@@ -863,7 +863,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         }
       }
     }
-    return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex - 1], type, typemap);
+    return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], type, typemap);
   }
 
   public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
@@ -884,7 +884,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public java.net.URL getURL(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.DATALINK, "URL");
-    return callResultSet.getURL(callResultColumnIndex[parameterIndex - 1]);
+    return callResultSet.getURL(callResultColumnIndex[parameterIndex]);
   }
 
   public void setURL(String parameterName, java.net.URL val) throws SQLException {
