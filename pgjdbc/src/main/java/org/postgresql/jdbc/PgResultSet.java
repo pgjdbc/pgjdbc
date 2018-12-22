@@ -3196,6 +3196,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (type == null) {
       throw new SQLException("type is null");
     }
+    // TODO: Should we check for custom types first, in case they override a base type?
+    //       This could then check is assignable to the requested type, throwing can't coerce otherwise
+    //       Then can use this implementation to get the actual objects.  Create a failing test case
+    //       first should we make this change.
     int sqlType = getSQLType(columnIndex);
     if (type == BigDecimal.class) {
       if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
