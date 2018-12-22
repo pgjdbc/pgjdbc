@@ -41,7 +41,9 @@ import java.nio.charset.Charset;
 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
 import java.nio.charset.StandardCharsets;
 //#endif
+//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
 import java.nio.charset.UnsupportedCharsetException;
+//#endif
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
