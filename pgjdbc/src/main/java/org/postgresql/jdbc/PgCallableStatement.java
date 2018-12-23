@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.Driver;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -339,14 +340,17 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (functionReturnTypeName != null) {
       String returnType = functionReturnTypeName[parameterIndex - 1];
       if (returnType != null) {
+        UdtMap udtMap;
         if (map == null) {
           // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html:
           //   "If you do not pass a type map to a method that can accept one, the driver will by default use the type map associated with the connection."
-          map = connection.getTypeMapNoCopy();
+          udtMap = connection.getUdtMap();
+        } else {
+          udtMap = new UdtMap(map);
         }
-        Class<?> customType = map.get(returnType);
+        Class<?> customType = udtMap.getTypeMap().get(returnType);
         if (customType != null) {
-          return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, map);
+          return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, udtMap);
         }
       }
     }
@@ -547,6 +551,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return new CallableBatchResultHandler(this, queries, parameterLists);
   }
 
+  /*
+   * TODO: Should functionReturnTypeName affect this?  If the out parameter is
+   * set to a user-defined data type, does it define the type of the individual elements within the
+   * array?
+   */
   @Override
   public java.sql.Array getArray(int parameterIndex) throws SQLException {
     checkClosed();
@@ -821,7 +830,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   //#endif
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
-    return getObjectImpl(parameterIndex, type, connection.getTypeMapNoCopy());
+    return getObjectImpl(parameterIndex, type, connection.getUdtMap());
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
@@ -842,7 +851,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   // TODO: If we can continue to delegate to PgResultSet, and PgCallableStatementSQLInput is
   //       no longer needed, remove this method and move its implementation to
   //       getObject(int,Class) above.
-  <T> T getObjectImpl(int parameterIndex, Class<T> type, Map<String, Class<?>> typemap) throws SQLException {
+  <T> T getObjectImpl(int parameterIndex, Class<T> type, UdtMap udtMap) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex);
     // TODO: Is ResultSet going to be OK by delegating to PgResultSet.getObjectImpl?
@@ -853,11 +862,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (functionReturnTypeName != null) {
       String returnType = functionReturnTypeName[parameterIndex - 1];
       if (returnType != null) {
-        Class<?> customType = typemap.get(returnType);
+        Class<?> customType = udtMap.getTypeMap().get(returnType);
         if (customType != null) {
           // Make sure customType is assignable to type
           if (type.isAssignableFrom(customType)) {
-            return type.cast(callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, typemap));
+            return type.cast(callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, udtMap));
           } else {
             throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", returnType, customType.getName(), type.getName()),
                     PSQLState.CANNOT_COERCE);
@@ -865,7 +874,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         }
       }
     }
-    return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], type, typemap);
+    return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], type, udtMap);
   }
 
   public void registerOutParameter(String parameterName, int sqlType) throws SQLException {

@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.udt.SingleAttributeSQLOutput;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -34,7 +36,7 @@ import java.sql.Types;
  * Implementation of {@link SQLOutput} supporting a single write that sets the
  * parameter of a {@link PreparedStatement} at the given index.
  */
-class PgPreparedStatementSQLOutput extends PgSQLOutput {
+class PgPreparedStatementSQLOutput extends SingleAttributeSQLOutput {
 
   private final PgPreparedStatement pstmt;
 

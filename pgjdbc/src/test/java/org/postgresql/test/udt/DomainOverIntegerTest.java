@@ -294,4 +294,6 @@ public class DomainOverIntegerTest {
     }
   }
   //#endif
+
+  // TODO: Test arrays
 }

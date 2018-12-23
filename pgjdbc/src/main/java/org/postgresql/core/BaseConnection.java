@@ -8,6 +8,7 @@ package org.postgresql.core;
 import org.postgresql.PGConnection;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
 
@@ -15,7 +16,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimerTask;
 
 /**
@@ -71,56 +71,22 @@ public interface BaseConnection extends PGConnection, Connection {
    *
    * <p>
    * Performs a defensive copy, per specification that returned map should be
-   * modifiable.  Use {@link #getTypeMapNoCopy()} to avoid this defensive copy.
+   * modifiable.  Use {@link #getUdtMap()} to avoid this defensive copy.
    * </p>
    *
-   * @see  #getTypeMapNoCopy()
+   * @see  #getUdtMap()
    */
   @Override
   Map<String, Class<?>> getTypeMap() throws SQLException;
 
   /**
-   * Gets the unmodifiable type map for this connection.
+   * Gets the current user-defined data type mapping for this connection.
    * This will likely perform better than {@link #getTypeMap()}
    * because no defensive copy is made.
    *
-   * @return  The unmodifiable type map for this connection.
+   * @return  The UDT map for this connection.
    */
-  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
-  Map<String, Class<?>> getTypeMapNoCopy();
-
-  /**
-   * Gets the set of types that directly map to the given class.
-   * This performs the inverse operation of {@link #getTypeMap()}.
-   * <p>
-   * Supports types that are mapped directly to {@link Object}.
-   * </p>
-   *
-   * @param clazz the class that a mapped type must be
-   *
-   * @return the unmodifiable set of all types that map to the given class or
-   *         an empty set when the given class is not in the typemap.
-   */
-  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
-  Set<String> getTypeMapInvertedDirect(Class<?> clazz);
-
-  /**
-   * Gets the set of all known types types that map to the given class.
-   * This performs the inverse operation of {@link #getTypeMap()}, but matching
-   * all classes and interfaces for each mapped type.
-   * <p>
-   * Does not include {@link Object} in the inverted map.  As type inference
-   * to simply {@link Object} is of limited use, there is no benefit to mapping
-   * all registered custom types in a big set under {@link Object}.
-   * </p>
-   *
-   * @param clazz the class that a mapped type may be, extend, or implement
-   *
-   * @return the unmodifiable set of all types that map to the given class or
-   *         an empty set when the given class is not in the typemap.
-   */
-  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
-  Set<String> getTypeMapInvertedInherited(Class<?> clazz);
+  UdtMap getUdtMap();
 
   /**
    * <p>Construct and return an appropriate object for the given type and value. This only considers
@@ -136,7 +102,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
    */
-  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection
+  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection or PgResultSet/ValueAccessHelper
   PGobject getObject(String type, String value, byte[] byteValue) throws SQLException;
 
   Encoding getEncoding() throws SQLException;

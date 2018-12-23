@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.udt.SingleAttributeSQLInput;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -26,7 +28,6 @@ import java.sql.SQLInput;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.Map;
 
 
 /**
@@ -34,18 +35,18 @@ import java.util.Map;
  * attribute from the given column of a {@link PgCallableStatement}.
  */
 // TODO: This class might be completely unnecessary since we're able to delegate to the underlying PgResultSet
-class PgCallableStatementSQLInput extends PgSQLInput {
+class PgCallableStatementSQLInput extends SingleAttributeSQLInput {
 
   private final PgCallableStatement cstmt;
 
   private final int parameterIndex;
 
-  private final Map<String, Class<?>> typemap;
+  private final UdtMap udtMap;
 
-  PgCallableStatementSQLInput(PgCallableStatement result, int parameterIndex, Map<String, Class<?>> typemap) {
+  PgCallableStatementSQLInput(PgCallableStatement result, int parameterIndex, UdtMap udtMap) {
     this.cstmt = result;
     this.parameterIndex = parameterIndex;
-    this.typemap = typemap;
+    this.udtMap = udtMap;
   }
 
   @Override
@@ -263,6 +264,6 @@ class PgCallableStatementSQLInput extends PgSQLInput {
   //#endif
   public <T> T readObject(Class<T> type) throws SQLException {
     markRead();
-    return cstmt.getObjectImpl(parameterIndex, type, typemap);
+    return cstmt.getObjectImpl(parameterIndex, type, udtMap);
   }
 }

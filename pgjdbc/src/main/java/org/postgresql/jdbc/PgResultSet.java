@@ -6,7 +6,6 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGResultSetMetaData;
-import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
@@ -17,6 +16,9 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.udt.SingleAttributeSQLInputHelper;
+import org.postgresql.udt.UdtMap;
+import org.postgresql.util.AsciiStream;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -35,15 +37,6 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.charset.Charset;
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-import java.nio.charset.StandardCharsets;
-//#endif
-//#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-import java.nio.charset.UnsupportedCharsetException;
-//#endif
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -62,11 +55,8 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 //#endif
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -75,10 +65,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -102,6 +90,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private PreparedStatement selectStatement = null;
   private final int resultsettype;
   private final int resultsetconcurrency;
+
+  /**
+   * The user-defined data type map for this result set or {@link UdtMap#EMPTY}
+   * for no custom types.
+   */
+  private final UdtMap udtMap;
+
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
   private TimeZone defaultTimeZone;
   protected final BaseConnection connection; // the connection we belong to
@@ -146,9 +141,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return rsMetaData;
   }
 
+  /**
+   * @param udtMap the current user-defined data types or {@code null} to use
+   *               {@link BaseConnection#getUdtMap() the connection's user-defined data type map}.
+   */
   PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List<byte[][]> tuples,
       ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
-      int rsHoldability) throws SQLException {
+      int rsHoldability, UdtMap udtMap) throws SQLException {
+    // TODO: rsHoldability is unused
     // Fail-fast on invalid null inputs
     if (tuples == null) {
       throw new NullPointerException("tuples must be non-null");
@@ -158,7 +158,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     this.originalQuery = originalQuery;
-    this.connection = (BaseConnection) statement.getConnection();
+    this.connection = statement.getConnection();
     this.statement = statement;
     this.fields = fields;
     this.rows = tuples;
@@ -167,6 +167,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.maxFieldSize = maxFieldSize;
     this.resultsettype = rsType;
     this.resultsetconcurrency = rsConcurrency;
+    this.udtMap = (udtMap != null) ? udtMap : connection.getUdtMap();
   }
 
   public java.net.URL getURL(int columnIndex) throws SQLException {
@@ -398,6 +399,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (isBinary(i)) {
       return makeArray(oid, this_row[i - 1]);
     }
+    // TOOD: Do we always have this_row available in binary form?
+    //       Is this binary form a byte[] representation of this String?
+    //       If it is, should it be parsed in preference to creating a String then
+    //       parsing it?  In particular, we're trying to find a way to implement
+    //       StringValueAccess.getBytes().
+    // TODO: Is getFixedString correct here?  Why?
     return makeArray(oid, getFixedString(i));
   }
 
@@ -550,7 +557,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-  private LocalTime getLocalTime(int i) throws SQLException {
+  // TODO: This checks the OID for only byte[], while getLocalDateTime checks
+  //       OID for both byte[] and string versions.  We are assuming the OID checks
+  //       only need to be done on the byte[] versions in BaseValueAccess
+  LocalTime getLocalTime(int i) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
       return null;
@@ -621,7 +631,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-  private LocalDateTime getLocalDateTime(int i) throws SQLException {
+  // TODO: This checks the OID for both byte[] and String versions, while getLocalTime
+  //       only checks OID for byte[] version.  We are assuming the OID checks
+  //       only need to be done on the byte[] versions in BaseValueAccess
+  LocalDateTime getLocalDateTime(int i) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
       return null;
@@ -1962,10 +1975,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     if (isBinary(columnIndex)) {
-      return BooleanTypeUtil.castToBoolean(readDoubleValue(this_row[col], fields[col].getOID(), "boolean"));
+      return BooleanTypeUtil.fromNumber(readDoubleValue(this_row[col], fields[col].getOID(), "boolean"));
     }
 
-    return BooleanTypeUtil.castToBoolean(getString(columnIndex));
+    return BooleanTypeUtil.fromString(getString(columnIndex));
   }
 
   private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
@@ -2422,18 +2435,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
-    Charset charset;
-    //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-    try {
-      charset = Charset.forName("US-ASCII");
-    } catch (UnsupportedCharsetException e) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the character set: {0}", "US-ASCII"),
-          PSQLState.UNEXPECTED_ERROR, e);
-    }
-    //#else
-    charset = StandardCharsets.US_ASCII;
-    //#endif
-    return new ByteArrayInputStream(getString(columnIndex).getBytes(charset));
+    return AsciiStream.getAsciiStream(getString(columnIndex));
   }
 
   /**
@@ -2671,6 +2673,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @return numeric-parsable representation of money string literal
    * @throws SQLException if something wrong happens
    */
+  // TODO: The javadoc says this should only be used on money fields, but this is more broadly used now
+  //       Is this expected behavior?  Write tests to demonstrate this, and discuss.
   public String getFixedString(int col) throws SQLException {
     return trimMoney(getString(col));
   }
@@ -3063,8 +3067,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         break;
       default:
         throw new PSQLException(
+            // TODO: This error message is used a lot - put in Driver like the notImplemented error?
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                 Oid.toString(oid), targetType),
+            // TODO: CANNOT_COERCE better here?  Look elsewhere, too
             PSQLState.DATA_TYPE_MISMATCH);
     }
     if (val < minVal || val > maxVal) {
@@ -3180,8 +3186,23 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     updateArray(findColumn(columnName), x);
   }
 
+  <T extends PGobject> T getPGobject(int columnIndex, Class<T> type) throws SQLException {
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
+    }
+    PGobject object;
+    if (isBinary(columnIndex)) {
+      object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
+    } else {
+      object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
+    }
+    // TODO: Check if assignable first and make a more appropriate SQLException?
+    return type.cast(object);
+  }
+
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-    return getObjectImpl(columnIndex, type, connection.getTypeMapNoCopy());
+    return getObjectImpl(columnIndex, type, udtMap);
   }
 
   /**
@@ -3192,369 +3213,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @see #getObject(int, java.lang.Class)
    * @see PgResultSetSQLInput#readObject(java.lang.Class)
    */
-  <T> T getObjectImpl(int columnIndex, Class<T> type, Map<String, Class<?>> typemap) throws SQLException {
+  <T> T getObjectImpl(int columnIndex, Class<T> type, UdtMap udtMap) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");
     }
-    // TODO: Should we check for custom types first, in case they override a base type?
-    //       This could then check is assignable to the requested type, throwing can't coerce otherwise
-    //       Then can use this implementation to get the actual objects.  Create a failing test case
-    //       first should we make this change.
-    int sqlType = getSQLType(columnIndex);
-    if (type == BigDecimal.class) {
-      if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
-        return type.cast(getBigDecimal(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == String.class) {
-      if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
-        return type.cast(getString(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Boolean.class) {
-      if (sqlType == Types.BOOLEAN || sqlType == Types.BIT) {
-        boolean booleanValue = getBoolean(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(booleanValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Short.class) {
-      if (sqlType == Types.SMALLINT) {
-        short shortValue = getShort(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(shortValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Integer.class) {
-      if (sqlType == Types.INTEGER || sqlType == Types.SMALLINT) {
-        int intValue = getInt(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(intValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Long.class) {
-      if (sqlType == Types.BIGINT) {
-        long longValue = getLong(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(longValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == BigInteger.class) {
-      if (sqlType == Types.BIGINT) {
-        long longValue = getLong(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(BigInteger.valueOf(longValue));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Float.class) {
-      if (sqlType == Types.REAL) {
-        float floatValue = getFloat(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(floatValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Double.class) {
-      if (sqlType == Types.FLOAT || sqlType == Types.DOUBLE) {
-        double doubleValue = getDouble(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(doubleValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Date.class) {
-      if (sqlType == Types.DATE) {
-        return type.cast(getDate(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Time.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Timestamp.class) {
-      if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      //#endif
-      ) {
-        return type.cast(getTimestamp(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Calendar.class) {
-      if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      //#endif
-      ) {
-        Timestamp timestampValue = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
-        calendar.setTimeInMillis(timestampValue.getTime());
-        return type.cast(calendar);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Blob.class) {
-      if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.BIGINT) {
-        return type.cast(getBlob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Clob.class) {
-      if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
-        return type.cast(getClob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == java.util.Date.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        Timestamp timestamp = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(new java.util.Date(timestamp.getTime()));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Array.class) {
-      if (sqlType == Types.ARRAY) {
-        return type.cast(getArray(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == SQLXML.class) {
-      if (sqlType == Types.SQLXML) {
-        return type.cast(getSQLXML(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == UUID.class) {
-      return type.cast(getObject(columnIndex));
-    } else if (type == InetAddress.class) {
-      Object addressString = getObject(columnIndex);
-      if (addressString == null) {
-        return null;
-      }
-      try {
-        return type.cast(InetAddress.getByName(((PGobject) addressString).getValue()));
-      } catch (UnknownHostException e) {
-        throw new SQLException("could not create inet address from string '" + addressString + "'");
-      }
-      // JSR-310 support
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-    } else if (type == LocalDate.class) {
-      if (sqlType == Types.DATE) {
-        Date dateValue = getDate(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        long time = dateValue.getTime();
-        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(LocalDate.MAX);
-        }
-        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(LocalDate.MIN);
-        }
-        return type.cast(dateValue.toLocalDate());
-      } else if (sqlType == Types.TIMESTAMP) {
-        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(localDateTimeValue.toLocalDate());
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == LocalTime.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getLocalTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == LocalDateTime.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        return type.cast(getLocalDateTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == OffsetDateTime.class) {
-      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
-        Timestamp timestampValue = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        long time = timestampValue.getTime();
-        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(OffsetDateTime.MAX);
-        }
-        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(OffsetDateTime.MIN);
-        }
-        // Postgres stores everything in UTC and does not keep original time zone
-        OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
-        return type.cast(offsetDateTime);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-      //#endif
-    } else if (PGobject.class.isAssignableFrom(type)) {
-      checkResultSet(columnIndex);
-      if (wasNullFlag) {
-        return null;
-      }
-      Object object;
-      if (isBinary(columnIndex)) {
-        object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
-      } else {
-        object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
-      }
-      return type.cast(object);
-    } else {
-      // In the wacky case an object both extends PGobject and implements SQLData, the PGobject implementation
-      // takes precedence for backwards compatibility.
-      Logger logger = connection.getLogger();
-      logger.log(Level.FINEST, "  map: {0}", typemap);
-      if (!typemap.isEmpty()) {
-        String pgType = getPGType(columnIndex);
-        Class<?> customType = typemap.get(pgType);
-        if (customType != null) {
-          if (logger.isLoggable(Level.FINER)) {
-            logger.log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
-          }
-          // Direct match, as expected - no fancy workarounds required
-          checkResultSet(columnIndex);
-          if (wasNullFlag) {
-            return null;
-          }
-          if (type.isAssignableFrom(customType)) {
-            return type.cast(PgSQLInputHelper.getObjectCustomType(typemap, pgType, customType, new PgResultSetSQLInput(this, columnIndex, typemap)));
-          } else {
-            throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", pgType, customType.getName(), type.getName()),
-                    PSQLState.CANNOT_COERCE);
-          }
-        }
-        // It is an issue that a DOMAIN type is sent from the backend with its oid of non-domain type, which makes this pgType not match
-        // what is expected.  For example, our "Email" DOMAIN is currently oid 4015336, but it is coming back as 25 "text".
-        // This is tested on PostgreSQL 9.4.
-        //
-        // Digging deeper, this seems to be central to the PostgreSQL protocol, including mentions in other client implementations:
-        // http://php.net/manual/en/function.pg-field-type-oid.php
-        //
-        // To work around this issue, we are performing some rudimentary type inference by first finding
-        // all type mappings to the requested class, then any type mappings to any subclass or,
-        // in the case of an interface, implementations.
-        //
-        // See https://github.com/pgjdbc/pgjdbc/issues/641 for more details
-
-        String inferredPgType;
-        Class<? extends T> inferredClass;
-        // First check for direct inference (exact match to type map)
-        Set<String> directTypes = connection.getTypeMapInvertedDirect(type);
-        int size = directTypes.size();
-        if (size == 1) {
-          inferredPgType = directTypes.iterator().next();
-          inferredClass = type;
-          if (logger.isLoggable(Level.FINER)) {
-            logger.log(Level.FINER, "  Found single match in direct inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
-          }
-        } else if (size > 1) {
-          // Sort types for easier reading
-          Set<String> sortedTypes = new TreeSet<String>(directTypes);
-          logger.log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
-          throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", type, sortedTypes.toString()),
-                  PSQLState.CANNOT_COERCE);
-        } else {
-          // Now check for inherited inference (matches the type or any subclass/implementation of it)
-          Set<String> inheritedTypes = connection.getTypeMapInvertedInherited(type);
-          size = inheritedTypes.size();
-          if (size == 1) {
-            inferredPgType = inheritedTypes.iterator().next();
-            // We've worked backward to a mapped pgType, now lookup which specific
-            // class this pgType is mapped to:
-            Class<?> inferredClassUnbounded = typemap.get(inferredPgType);
-            // There is a slight race condition: inferred type might have been just
-            // added and was not known when this method retrieved the typemap.
-            if (inferredClassUnbounded == null) {
-              logger.log(Level.FINE, "  Found single match in inherited inverted map, but missing in typemap (type just added by concurrent thread?), ignoring: {0}", inferredPgType);
-              inferredPgType = null;
-              inferredClass = null;
-            } else {
-              inferredClass = inferredClassUnbounded.asSubclass(type);
-              if (logger.isLoggable(Level.FINER)) {
-                logger.log(Level.FINER, "  Found single match in inherited inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
-              }
-            }
-          } else if (size > 1) {
-            // Sort types for easier reading
-            Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
-            logger.log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
-            throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", type, sortedTypes.toString()),
-                    PSQLState.CANNOT_COERCE);
-          } else {
-            inferredPgType = null;
-            inferredClass = null;
-          }
-        }
-        if (inferredPgType != null) {
-          checkResultSet(columnIndex);
-          if (wasNullFlag) {
-            return null;
-          }
-          return PgSQLInputHelper.getObjectCustomType(typemap, inferredPgType, inferredClass, new PgResultSetSQLInput(this, columnIndex, typemap));
-        }
-      }
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
     }
-    throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-            PSQLState.INVALID_PARAMETER_VALUE);
+    return new PgResultSetValueAccess(this, columnIndex, udtMap).getObject(type);
   }
 
   public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
@@ -3585,10 +3252,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     //       be before PGobject implementation, which is inconsistent with getObject(..., Class<?>)
     String pgType = null;
 
+    UdtMap udtMap;
     if (map == null) {
       // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html:
       //   "If you do not pass a type map to a method that can accept one, the driver will by default use the type map associated with the connection."
-      map = connection.getTypeMapNoCopy();
+      udtMap = this.udtMap;
+      map = udtMap.getTypeMap();
+    } else {
+      udtMap = new UdtMap(map);
     }
     logger.log(Level.FINEST, "  map: {0}", map);
     if (!map.isEmpty()) {
@@ -3598,7 +3269,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (logger.isLoggable(Level.FINER)) {
           logger.log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
         }
-        return PgSQLInputHelper.getObjectCustomType(map, pgType, customType, new PgResultSetSQLInput(this, columnIndex, map));
+        return SingleAttributeSQLInputHelper.getObjectCustomType(udtMap, pgType, customType, new PgResultSetSQLInput(this, columnIndex, udtMap));
       }
     }
 
@@ -3881,7 +3552,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
-  private Calendar getDefaultCalendar() {
+  // TODO: Move to AbstractValueAccess.getDefaultCalendar()?
+  //       At least once the various get* methods are derived from ValueAccess implementations.
+  //       This is redundant right now.  Could also be moved to BaseConnection which is accessible to both
+  //       this and AbstractValueAccess
+  Calendar getDefaultCalendar() {
     TimestampUtils timestampUtils = connection.getTimestampUtils();
     if (timestampUtils.hasFastDefaultTimeZone()) {
       return timestampUtils.getSharedCalendar(null);

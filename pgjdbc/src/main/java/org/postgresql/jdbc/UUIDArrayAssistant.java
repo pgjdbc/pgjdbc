@@ -5,7 +5,11 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc2.ArrayAssistant;
+import org.postgresql.udt.UUIDValueAccess;
+import org.postgresql.udt.UdtMap;
+import org.postgresql.udt.ValueAccess;
 import org.postgresql.util.ByteConverter;
 
 import java.util.UUID;
@@ -24,5 +28,10 @@ public class UUIDArrayAssistant implements ArrayAssistant {
   @Override
   public Object buildElement(String literal) {
     return UUID.fromString(literal);
+  }
+
+  @Override
+  public ValueAccess getValueAccess(BaseConnection connection, int oid, Object value, UdtMap udtMap) {
+    return new UUIDValueAccess(connection, oid, (UUID)value, udtMap);
   }
 }

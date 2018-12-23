@@ -30,6 +30,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -58,7 +59,6 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -145,35 +145,9 @@ public class PgConnection implements BaseConnection {
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
   /**
-   * The unmodifiable current type mappings.
+   * The current type mappings.
    */
-  protected volatile Map<String, Class<?>> typemap = Collections.emptyMap();
-
-  /**
-   * The set of types directly mapped to each class - used for type inference.
-   */
-  private final Map<Class<?>, Set<String>> typemapInvertedDirect = new HashMap<Class<?>, Set<String>>();
-
-  /**
-   * The {@link #typemap} present at the time {@link #typemapInvertedDirect} was last
-   * rebuilt.
-   *
-   * @see  #getTypeMapInvertedDirect(java.lang.Class)
-   */
-  private Map<String, Class<?>> typemapInvertedDirectSource = typemap;
-
-  /**
-   * The set of all known types mapped to each class - used for type inference.
-   */
-  private final Map<Class<?>, Set<String>> typemapInvertedInherited = new HashMap<Class<?>, Set<String>>();
-
-  /**
-   * The {@link #typemap} present at the time {@link #typemapInvertedInherited} was last
-   * rebuilt.
-   *
-   * @see  #getTypeMapInvertedInherited(java.lang.Class)
-   */
-  private Map<String, Class<?>> typemapInvertedInheritedSource = typemap;
+  protected volatile UdtMap udtMap = UdtMap.EMPTY;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -408,129 +382,12 @@ public class PgConnection implements BaseConnection {
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     checkClosed();
     // LinkedHashMap to maintain order of map provided by caller.
-    return new LinkedHashMap<String, Class<?>>(getTypeMapNoCopy());
+    return new LinkedHashMap<String, Class<?>>(udtMap.getTypeMap());
   }
 
   @Override
-  public Map<String, Class<?>> getTypeMapNoCopy() {
-    return typemap;
-  }
-
-  /**
-   * @see #getTypeMapInvertedDirect(java.lang.Class)
-   * @see #getTypeMapInvertedInherited(java.lang.Class)
-   */
-  private static void makeValuesUnmodifiable(Map<Class<?>, Set<String>> invertedMap) {
-    for (Map.Entry<Class<?>, Set<String>> entry : invertedMap.entrySet()) {
-      Set<String> types = entry.getValue();
-      if (types.size() == 1) {
-        entry.setValue(Collections.singleton(types.iterator().next()));
-      } else {
-        entry.setValue(Collections.unmodifiableSet(types));
-      }
-    }
-  }
-
-  /**
-   * Adds a new element to an inverted map.
-   *
-   * @param invertedMap the map to add to
-   * @param clazz the class to add
-   * @param type the type that maps to this class
-   *
-   * @return  {@code true} when the class is added to the map, {@code false} when already existed.
-   *
-   * @see  #getTypeMapInvertedDirect(java.lang.Class)
-   */
-  private static boolean addInverted(Map<Class<?>, Set<String>> invertedMap, Class<?> clazz, String type) {
-    Set<String> types = invertedMap.get(clazz);
-    if (types == null) {
-      types = new HashSet<String>();
-      invertedMap.put(clazz, types);
-    }
-    boolean added = types.add(type);
-    if (added) {
-      if (LOGGER.isLoggable(Level.FINER)) {
-        LOGGER.log(Level.FINER, "Added: {0} -> {1}", new Object[] {clazz.getName(), type});
-      }
-    } else {
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.log(Level.FINEST, "Not added: {0} -> {1}", new Object[] {clazz.getName(), type});
-      }
-    }
-    return added;
-  }
-
-  @Override
-  public Set<String> getTypeMapInvertedDirect(Class<?> clazz) {
-    Set<String> types;
-    synchronized (typemapInvertedDirect) {
-      Map<String, Class<?>> source = typemap;
-      if (source != typemapInvertedDirectSource) {
-        // Recreate the inverted map when the typemap has been changed
-        typemapInvertedDirect.clear();
-        for (Map.Entry<String, Class<?>> entry : source.entrySet()) {
-          addInverted(typemapInvertedDirect, entry.getValue(), entry.getKey());
-        }
-        // Make each type set unmodifiable
-        makeValuesUnmodifiable(typemapInvertedDirect);
-        // Update source to know when to rebuild
-        typemapInvertedDirectSource = source;
-        LOGGER.log(Level.FINE, "  typemapInvertedDirect = {0}", typemapInvertedDirect);
-      }
-      types = typemapInvertedDirect.get(clazz);
-    }
-    return types != null ? types : Collections.<String>emptySet();
-  }
-
-  /**
-   * Recursively adds the class, all super classes, all interfaces,
-   * and all extended interfaces - does not add {@link Object}.
-   *
-   * @param invertedMap the map to add to
-   * @param current the class to add
-   * @param type the type that maps to this class
-   *
-   * @see  #addInverted(java.util.Map, java.lang.Class, java.lang.String)
-   * @see  #getTypeMapInvertedInherited(java.lang.Class)
-   */
-  private static void addAllInverted(Map<Class<?>, Set<String>> invertedMap, Class<?> current, String type) {
-    while (current != Object.class && current != null) {
-      if (addInverted(invertedMap, current, type)) {
-        for (Class<?> iface : current.getInterfaces()) {
-          addAllInverted(invertedMap, iface, type);
-        }
-        current = current.getSuperclass();
-      } else {
-        // This class has already been mapped
-        if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.log(Level.FINER, "Already mapped, break: {0} -> {1}", new Object[] {current.getName(), type});
-        }
-        break;
-      }
-    }
-  }
-
-  @Override
-  public Set<String> getTypeMapInvertedInherited(Class<?> clazz) {
-    Set<String> types;
-    synchronized (typemapInvertedInherited) {
-      Map<String, Class<?>> source = typemap;
-      if (source != typemapInvertedInheritedSource) {
-        // Recreate the inverted map when the typemap has been changed
-        typemapInvertedInherited.clear();
-        for (Map.Entry<String, Class<?>> entry : source.entrySet()) {
-          addAllInverted(typemapInvertedInherited, entry.getValue(), entry.getKey());
-        }
-        // Make each type set unmodifiable
-        makeValuesUnmodifiable(typemapInvertedInherited);
-        // Update source to know when to rebuild
-        typemapInvertedInheritedSource = source;
-        LOGGER.log(Level.FINE, "  typemapInvertedInherited = {0}", typemapInvertedInherited);
-      }
-      types = typemapInvertedInherited.get(clazz);
-    }
-    return types != null ? types : Collections.<String>emptySet();
+  public UdtMap getUdtMap() {
+    return udtMap;
   }
 
   public QueryExecutor getQueryExecutor() {
@@ -1391,12 +1248,12 @@ public class PgConnection implements BaseConnection {
     checkClosed();
     if (map == null) {
       // null map is accepted as empty map
-      typemap = Collections.emptyMap();
+      udtMap = UdtMap.EMPTY;
     } else {
       // Defensive copy
       // LinkedHashMap to maintain order of map provided by caller, and aids in
       // iteration peformance while creating the inverted maps.
-      typemap = Collections.unmodifiableMap(new LinkedHashMap<String, Class<?>>(map));
+      udtMap = new UdtMap(new LinkedHashMap<String, Class<?>>(map));
     }
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }

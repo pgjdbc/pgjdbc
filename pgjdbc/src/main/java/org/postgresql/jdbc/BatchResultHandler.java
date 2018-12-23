@@ -64,7 +64,7 @@ public class BatchResultHandler extends ResultHandlerBase {
         // Thus it is up to handleCommandStatus to decide if resultSet is good enough
         latestGeneratedKeysRs =
             (PgResultSet) pgStatement.createResultSet(fromQuery, fields,
-                new ArrayList<byte[][]>(), cursor);
+                new ArrayList<byte[][]>(), cursor, null);
       } catch (SQLException e) {
         handleError(e);
       }

@@ -1239,7 +1239,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1430,7 +1430,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tuple[0] = connection.encodeString(connection.getCatalog());
     v.add(tuple);
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1447,7 +1447,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       v.add(tuple);
     }
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
@@ -1630,7 +1630,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1715,7 +1715,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1785,7 +1785,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   /**
@@ -2017,7 +2017,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getVersionColumns(String catalog, String schema, String table)
@@ -2059,7 +2059,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     /*
      * Perhaps we should check that the given catalog.schema.table actually exists. -KJ
      */
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getPrimaryKeys(String catalog, String schema, String table)
@@ -2301,7 +2301,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getIndexInfo(String catalog, String schema, String tableName,
@@ -2599,7 +2599,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       v.add(tuple);
     }
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
@@ -2848,7 +2848,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,

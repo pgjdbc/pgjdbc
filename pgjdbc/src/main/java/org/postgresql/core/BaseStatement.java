@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGStatement;
+import org.postgresql.udt.UdtMap;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,10 +22,12 @@ public interface BaseStatement extends PGStatement, Statement {
    *
    * @param fields the column metadata for the resultset
    * @param tuples the resultset data
+   * @param udtMap the current user-defined data types or {@code null} to use
+   *               {@link BaseConnection#getUdtMap() the connection's user-defined data type map}.
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
-  ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples) throws SQLException;
+  ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples, UdtMap udtMap) throws SQLException;
 
   /**
    * Create a resultset from data retrieved from the server.
@@ -35,11 +38,13 @@ public interface BaseStatement extends PGStatement, Statement {
    * @param tuples the resultset data
    * @param cursor the cursor to use to retrieve more data from the server; if null, no additional
    *        data is present.
+   * @param udtMap the current user-defined data types or {@code null} to use
+   *               {@link BaseConnection#getUdtMap() the connection's user-defined data type map}.
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
   ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor) throws SQLException;
+      ResultCursor cursor, UdtMap udtMap) throws SQLException;
 
   /**
    * Execute a query, passing additional query flags.
@@ -72,4 +77,8 @@ public interface BaseStatement extends PGStatement, Statement {
    * @throws SQLException if something goes wrong.
    */
   boolean executeWithFlags(int flags) throws SQLException;
+
+  // Using covariant return to avoid casts to BaseConnection
+  @Override
+  BaseConnection getConnection() throws SQLException;
 }

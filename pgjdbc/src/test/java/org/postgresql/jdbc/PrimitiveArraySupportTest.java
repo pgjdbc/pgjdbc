@@ -12,13 +12,31 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.test.TestUtil;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLFeatureNotSupportedException;
 
 public class PrimitiveArraySupportTest {
+
+  private BaseConnection con;
+
+  // Set up the fixture for this testcase: the tables for this test.
+  @Before
+  public void setUp() throws Exception {
+    con = TestUtil.openDB().unwrap(BaseConnection.class);
+  }
+
+  // Tear down the fixture for this test case.
+  @After
+  public void tearDown() throws Exception {
+    TestUtil.closeDB(con);
+  }
 
   public PrimitiveArraySupport<long[]> longArrays = PrimitiveArraySupport.getArraySupport(new long[] {});
   public PrimitiveArraySupport<int[]> intArrays = PrimitiveArraySupport.getArraySupport(new int[] {});
@@ -34,7 +52,7 @@ public class PrimitiveArraySupportTest {
       longs[i] = i - 3;
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.INT8_ARRAY, longArrays.toBinaryRepresentation(null, longs));
+    final PgArray pgArray = new PgArray(con, Oid.INT8_ARRAY, longArrays.toBinaryRepresentation(null, longs));
 
     Object arrayObj = pgArray.getArray();
 
@@ -69,7 +87,7 @@ public class PrimitiveArraySupportTest {
       ints[i] = i - 3;
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, intArrays.toBinaryRepresentation(null, ints));
+    final PgArray pgArray = new PgArray(con, Oid.INT4_ARRAY, intArrays.toBinaryRepresentation(null, ints));
 
     Object arrayObj = pgArray.getArray();
 
@@ -105,7 +123,7 @@ public class PrimitiveArraySupportTest {
       shorts[i] = (short) (i - 3);
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.INT4_ARRAY, shortArrays.toBinaryRepresentation(null, shorts));
+    final PgArray pgArray = new PgArray(con, Oid.INT4_ARRAY, shortArrays.toBinaryRepresentation(null, shorts));
 
     Object arrayObj = pgArray.getArray();
 
@@ -141,7 +159,7 @@ public class PrimitiveArraySupportTest {
       doubles[i] = i - 3.1;
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.FLOAT8_ARRAY, doubleArrays.toBinaryRepresentation(null, doubles));
+    final PgArray pgArray = new PgArray(con, Oid.FLOAT8_ARRAY, doubleArrays.toBinaryRepresentation(null, doubles));
 
     Object arrayObj = pgArray.getArray();
 
@@ -177,7 +195,7 @@ public class PrimitiveArraySupportTest {
       floats[i] = (float) (i - 3.1);
     }
 
-    final PgArray pgArray = new PgArray(null, Oid.FLOAT4_ARRAY, floatArrays.toBinaryRepresentation(null, floats));
+    final PgArray pgArray = new PgArray(con, Oid.FLOAT4_ARRAY, floatArrays.toBinaryRepresentation(null, floats));
 
     Object arrayObj = pgArray.getArray();
 
@@ -210,7 +228,7 @@ public class PrimitiveArraySupportTest {
   public void testBooleanBinary() throws Exception {
     final boolean[] bools = new boolean[] { true, true, false };
 
-    final PgArray pgArray = new PgArray(null, Oid.BIT, booleanArrays.toBinaryRepresentation(null, bools));
+    final PgArray pgArray = new PgArray(con, Oid.BIT, booleanArrays.toBinaryRepresentation(null, bools));
 
     Object arrayObj = pgArray.getArray();
 

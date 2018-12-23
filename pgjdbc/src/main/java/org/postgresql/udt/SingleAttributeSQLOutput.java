@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.jdbc;
+package org.postgresql.udt;
 
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -16,18 +16,17 @@ import java.sql.SQLOutput;
 /**
  * Partial implementation of {@link SQLOutput} supporting a single write.
  */
-abstract class PgSQLOutput implements SQLOutput {
+public abstract class SingleAttributeSQLOutput implements SQLOutput {
 
   // Only one write is supported
   private boolean writeDone;
 
-  PgSQLOutput() {
-  }
-
   /**
    * Marks the write as done.  If already marked, throws an exception.
+   *
+   * @throws SQLException if a write has already been performed
    */
-  final void markWrite() throws SQLException {
+  protected final void markWrite() throws SQLException {
     if (writeDone) {
       throw new PSQLException(GT.tr(
           "More than one write performed by SQLData.  Only single-attribute SQLData supported."),
@@ -36,7 +35,7 @@ abstract class PgSQLOutput implements SQLOutput {
     writeDone = true;
   }
 
-  final boolean getWriteDone() {
+  public final boolean getWriteDone() {
     return writeDone;
   }
 }

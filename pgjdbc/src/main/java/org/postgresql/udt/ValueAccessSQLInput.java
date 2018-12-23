@@ -3,10 +3,9 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.jdbc;
+package org.postgresql.udt;
 
-import org.postgresql.udt.SingleAttributeSQLInput;
-import org.postgresql.udt.UdtMap;
+import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -31,150 +30,151 @@ import java.sql.Timestamp;
 
 /**
  * Implementation of {@link SQLInput} supporting a single read that retrieves the
- * attribute from the given column of a {@link PgResultSet}.
+ * attribute from a {@link ValueAccess}.
  */
-class PgResultSetSQLInput extends SingleAttributeSQLInput {
+public class ValueAccessSQLInput extends SingleAttributeSQLInput {
 
-  private final PgResultSet result;
-
-  private final int columnIndex;
-
+  private final ValueAccess access;
   private final UdtMap udtMap;
 
-  PgResultSetSQLInput(PgResultSet result, int columnIndex, UdtMap udtMap) {
-    this.result = result;
-    this.columnIndex = columnIndex;
+  /**
+   * Do not call this directly, but instead use {@link ValueAccess#getSQLInput(org.postgresql.udt.UdtMap)},
+   * as the implementation of {@link SingleAttributeSQLInput} to used depends
+   * on the {@link ValueAccess}.
+   *
+   * @param access the {@link ValueAccess} to use as a source of attributes
+   * @param udtMap the current user-defined data type mapping
+   */
+  public ValueAccessSQLInput(ValueAccess access, UdtMap udtMap) {
+    this.access = access;
     this.udtMap = udtMap;
   }
 
   @Override
   public String readString() throws SQLException {
     markRead();
-    return result.getString(columnIndex);
+    return access.getString();
   }
 
   @Override
   public boolean readBoolean() throws SQLException {
     markRead();
-    return result.getBoolean(columnIndex);
+    return access.getBoolean();
   }
 
   @Override
   public byte readByte() throws SQLException {
     markRead();
-    return result.getByte(columnIndex);
+    return access.getByte();
   }
 
   @Override
   public short readShort() throws SQLException {
     markRead();
-    return result.getShort(columnIndex);
+    return access.getShort();
   }
 
   @Override
   public int readInt() throws SQLException {
     markRead();
-    return result.getInt(columnIndex);
+    return access.getInt();
   }
 
   @Override
   public long readLong() throws SQLException {
     markRead();
-    return result.getLong(columnIndex);
+    return access.getLong();
   }
 
   @Override
   public float readFloat() throws SQLException {
     markRead();
-    return result.getFloat(columnIndex);
+    return access.getFloat();
   }
 
   @Override
   public double readDouble() throws SQLException {
     markRead();
-    return result.getDouble(columnIndex);
+    return access.getDouble();
   }
 
   @Override
   public BigDecimal readBigDecimal() throws SQLException {
     markRead();
-    return result.getBigDecimal(columnIndex);
+    return access.getBigDecimal();
   }
 
   @Override
   public byte[] readBytes() throws SQLException {
     markRead();
-    return result.getBytes(columnIndex);
+    return access.getBytes();
   }
 
   @Override
   public Date readDate() throws SQLException {
     markRead();
-    return result.getDate(columnIndex);
+    return access.getDate();
   }
 
   @Override
   public Time readTime() throws SQLException {
     markRead();
-    return result.getTime(columnIndex);
+    return access.getTime();
   }
 
   @Override
   public Timestamp readTimestamp() throws SQLException {
     markRead();
-    return result.getTimestamp(columnIndex);
+    return access.getTimestamp();
   }
 
   @Override
   public Reader readCharacterStream() throws SQLException {
     markRead();
-    return result.getCharacterStream(columnIndex);
+    return access.getCharacterStream();
   }
 
   @Override
   public InputStream readAsciiStream() throws SQLException {
     markRead();
-    return result.getAsciiStream(columnIndex);
+    return access.getAsciiStream();
   }
 
   @Override
   public InputStream readBinaryStream() throws SQLException {
     markRead();
-    return result.getBinaryStream(columnIndex);
+    return access.getBinaryStream();
   }
 
   @Override
   public Object readObject() throws SQLException {
     markRead();
-    // Avoid unbounded recursion
-    throw new PSQLException(GT.tr(
-        "To avoid stack overflow, SQLInput.readObject() does not support getting objects."),
-        PSQLState.NOT_IMPLEMENTED);
-    //return result.getObject(columnIndex, typemap);
+    // TODO: What to do with udtMap?
+    return access.getObject();
   }
 
   @Override
   public Ref readRef() throws SQLException {
     markRead();
-    return result.getRef(columnIndex);
+    return access.getRef();
   }
 
   @Override
   public Blob readBlob() throws SQLException {
     markRead();
-    return result.getBlob(columnIndex);
+    return access.getBlob();
   }
 
   @Override
   public Clob readClob() throws SQLException {
     markRead();
-    return result.getClob(columnIndex);
+    return access.getClob();
   }
 
   @Override
   public Array readArray() throws SQLException {
     markRead();
-    return result.getArray(columnIndex);
+    return access.getArray();
   }
 
   /**
@@ -191,51 +191,45 @@ class PgResultSetSQLInput extends SingleAttributeSQLInput {
           "SQLInput.wasNull() called before any read."),
           PSQLState.NO_DATA);
     }
-    return result.wasNull();
+    return access.wasNull();
   }
 
   @Override
   public URL readURL() throws SQLException {
     markRead();
-    return result.getURL(columnIndex);
+    return access.getURL();
   }
 
   @Override
   public NClob readNClob() throws SQLException {
     markRead();
-    return result.getNClob(columnIndex);
+    return access.getNClob();
   }
 
   @Override
   public String readNString() throws SQLException {
     markRead();
-    return result.getNString(columnIndex);
+    return access.getNString();
   }
 
   @Override
   public SQLXML readSQLXML() throws SQLException {
     markRead();
-    return result.getSQLXML(columnIndex);
+    return access.getSQLXML();
   }
 
   @Override
   public RowId readRowId() throws SQLException {
     markRead();
-    return result.getRowId(columnIndex);
+    return access.getRowId();
   }
 
-  /**
-   * {@inheritDoc}
-   * <p>
-   * This avoids the ambiguity of types, and thus is not necessarily subject to the
-   * unbounded recursion inherent in the {@link #readObject()} implementation.
-   * </p>
-   */
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
   //#endif
   public <T> T readObject(Class<T> type) throws SQLException {
     markRead();
-    return result.getObjectImpl(columnIndex, type, udtMap);
+    // TODO: What to do with udtMap?
+    return access.getObject(type);
   }
 }

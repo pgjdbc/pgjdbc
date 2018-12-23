@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.jdbc;
+package org.postgresql.udt;
 
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -15,14 +15,14 @@ import java.sql.SQLException;
 
 
 /**
- * Helper for implementing {@link PgSQLOutput}.
+ * Helper for implementing {@link SingleAttributeSQLOutput}.
  */
-class PgSQLOutputHelper {
+public class SingleAttributeSQLOutputHelper {
 
-  private PgSQLOutputHelper() {}
+  private SingleAttributeSQLOutputHelper() {}
 
   /**
-   * Writes {@link SQLData} to the given {@link PgSQLOutput}.
+   * Writes {@link SQLData} to the given {@link SingleAttributeSQLOutput}.
    * At this time, only single attribute {@link SQLData} is supported.
    *
    * @param data the data to write
@@ -32,7 +32,7 @@ class PgSQLOutputHelper {
    *                      on value, or an exception occurs in the underlying
    *                      {@link PreparedStatement}.
    */
-  static void writeSQLData(SQLData data, PgPreparedStatementSQLOutput out) throws SQLException {
+  public static void writeSQLData(SQLData data, SingleAttributeSQLOutput out) throws SQLException {
     data.writeSQL(out);
     if (!out.getWriteDone()) {
       throw new PSQLException(GT.tr(

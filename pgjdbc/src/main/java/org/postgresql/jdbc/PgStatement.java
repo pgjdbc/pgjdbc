@@ -16,11 +16,11 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -147,11 +147,12 @@ public class PgStatement implements Statement, BaseStatement {
     this.rsHoldability = rsHoldability;
   }
 
+  @Override
   public PgResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor) throws SQLException {
+      ResultCursor cursor, UdtMap udtMap) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
-        getResultSetHoldability());
+        getResultSetHoldability(), udtMap);
     newResult.setFetchSize(getFetchSize());
     newResult.setFetchDirection(getFetchDirection());
     return newResult;
@@ -201,7 +202,7 @@ public class PgStatement implements Statement, BaseStatement {
     public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
         ResultCursor cursor) {
       try {
-        PgResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
+        PgResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor, null);
         append(new ResultWrapper(rs));
       } catch (SQLException e) {
         handleError(e);
@@ -873,7 +874,8 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  public Connection getConnection() throws SQLException {
+  @Override
+  public BaseConnection getConnection() throws SQLException {
     return connection;
   }
 
@@ -1127,7 +1129,7 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       checkClosed();
       if (generatedKeys == null || generatedKeys.getResultSet() == null) {
-        return createDriverResultSet(new Field[0], new ArrayList<byte[][]>());
+        return createDriverResultSet(new Field[0], new ArrayList<byte[][]>(), null);
       }
 
       return generatedKeys.getResultSet();
@@ -1192,9 +1194,10 @@ public class PgStatement implements Statement, BaseStatement {
     return rsHoldability;
   }
 
-  public ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples)
+  @Override
+  public ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples, UdtMap udtMap)
       throws SQLException {
-    return createResultSet(null, fields, tuples, null);
+    return createResultSet(null, fields, tuples, null, udtMap);
   }
 
   protected void transformQueriesAndParameters() throws SQLException {

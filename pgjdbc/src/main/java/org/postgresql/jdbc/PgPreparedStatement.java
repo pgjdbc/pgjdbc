@@ -17,6 +17,7 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.udt.SingleAttributeSQLOutputHelper;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -660,7 +661,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else if (in instanceof SQLData) {
           // TODO: Should this be restricted to those types registered in the type map?
           // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-          PgSQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
+          SingleAttributeSQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
           return;
         } else if (in instanceof Map) {
           setMap(parameterIndex, (Map<?, ?>) in);
@@ -894,6 +895,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   /*
    * This stores an Object into a parameter.
    */
+  // TODO: The specification states, but this is not enforced here - or other setObject methods within this project:
+  //       <b>Note:</b> This method throws an exception if there is an ambiguity, for example, if the
+  //       object is of a class implementing more than one of the interfaces named above.
+  @Override
   public void setObject(int parameterIndex, Object x) throws SQLException {
     // TODO: Struct
     checkClosed();
@@ -940,7 +945,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     } else if (x instanceof SQLData) {
       // TODO: Should this be restricted to those types registered in the type map?
       // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-      PgSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));
+      SingleAttributeSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));
     } else if (x instanceof Character) {
       setString(parameterIndex, ((Character) x).toString());
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
