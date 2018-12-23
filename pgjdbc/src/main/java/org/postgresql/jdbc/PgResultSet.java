@@ -2336,6 +2336,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    *             or {@code getBigDecimal(String columnLabel)}
    */
   @Deprecated
+  @Override
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBigDecimal columnIndex: {0}", columnIndex);
     return (BigDecimal) getNumeric(columnIndex, scale, false);
@@ -2445,6 +2446,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    *              <code>getUnicodeStream</code>
    */
   @Deprecated
+  @Override
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getUnicodeStream columnIndex: {0}", columnIndex);
     checkResultSet(columnIndex);
@@ -2527,6 +2529,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    *             or {@code getBigDecimal(String columnLabel)}
    */
   @Deprecated
+  @Override
   public BigDecimal getBigDecimal(String columnName, int scale) throws SQLException {
     return getBigDecimal(findColumn(columnName), scale);
   }
@@ -2556,6 +2559,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @deprecated use <code>getCharacterStream</code> instead
    */
   @Deprecated
+  @Override
   public InputStream getUnicodeStream(String columnName) throws SQLException {
     return getUnicodeStream(findColumn(columnName));
   }
