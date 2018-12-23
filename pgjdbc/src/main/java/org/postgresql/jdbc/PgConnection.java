@@ -1246,7 +1246,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     checkClosed();
-    if (map == null) {
+    if (map == null || map.isEmpty()) {
       // null map is accepted as empty map
       udtMap = UdtMap.EMPTY;
     } else {
