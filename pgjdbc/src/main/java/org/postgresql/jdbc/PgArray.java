@@ -665,33 +665,43 @@ public class PgArray implements java.sql.Array {
       } else {
         Object[] oa;
         ret = oa = (Object[]) java.lang.reflect.Array.newInstance(customType, count);
-        for (; count > 0; count--) {
-          // TODO: Beware 32-bit index:
-          Object v = input.get(index++);
-          if (v != null) {
-            // TODO: ArrayAssistantRegistry is accessed haphazardly by the array OID or the element OID.
-            // TODO: In the case of UUID, both are in the registry, but this inconsistency is unexpected.
-            ValueAccess access;
-            ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
-            if (arrAssistant != null) {
-              // Use array assistant
-              access = arrAssistant.getValueAccess(connection, oid, // TODO: elementOID here?
+        // TODO: ArrayAssistantRegistry is accessed haphazardly by the array OID or the element OID.
+        // TODO: In the case of UUID, both are in the registry, but this inconsistency is unexpected.
+        ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
+        if (arrAssistant != null) {
+          // Use array assistant
+          for (; count > 0; count--) {
+            // TODO: Beware 32-bit index:
+            Object v = input.get(index++);
+            if (v != null) {
+              ValueAccess access = arrAssistant.getValueAccess(connection, oid, // TODO: elementOID here?
                   arrAssistant.buildElement((String) v), udtMap);
+              oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
+                  udtMap, pgType, customType, access.getSQLInput(udtMap));
             } else {
-              // Since we have a string value at this point, all custom objects are processed
-              // via StringValueAccess, which performs conversions compatible with PgResultSet
-
-              // TODO: Ultimately we'd like to eliminate this redundancy betwen PgResultSet and StringValueAccess,
-              //       and instead of PgResultSet hold a set of ValueAccess objects, which would do the conversions
-              //       from byte[] and String.  But we fear if we change too much core behavior this pull request
-              //       would less likely be merged.
-              access = new TextValueAccess(connection, elementOID, (String) v, udtMap);
+              // oa[length] is already null
+              length++;
             }
-            oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
-                udtMap, pgType, customType, access.getSQLInput(udtMap));
-          } else {
-            // oa[length] is already null
-            length++;
+          }
+        } else {
+          // Since we have a string value at this point, all custom objects are processed
+          // via StringValueAccess, which performs conversions compatible with PgResultSet
+
+          // TODO: Ultimately we'd like to eliminate this redundancy betwen PgResultSet and TextValueAccess,
+          //       and instead have PgResultSet hold a set of ValueAccess objects, which would do the conversions
+          //       from byte[] and String.  But we fear if we change too much core behavior this pull request
+          //       would less likely be merged.
+          for (; count > 0; count--) {
+            // TODO: Beware 32-bit index:
+            Object v = input.get(index++);
+            if (v != null) {
+              ValueAccess access = new TextValueAccess(connection, elementOID, (String) v, udtMap);
+              oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
+                  udtMap, pgType, customType, access.getSQLInput(udtMap));
+            } else {
+              // oa[length] is already null
+              length++;
+            }
           }
         }
       }
