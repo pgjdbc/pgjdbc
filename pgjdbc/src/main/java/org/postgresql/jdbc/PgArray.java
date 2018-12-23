@@ -689,7 +689,7 @@ public class PgArray implements java.sql.Array {
 
           // TODO: Ultimately we'd like to eliminate this redundancy betwen PgResultSet and TextValueAccess,
           //       and instead have PgResultSet hold a set of ValueAccess objects, which would do the conversions
-          //       from byte[] and String.  But we fear if we change too much core behavior this pull request
+          //       from byte[] and String.  But we fear if we change too much core implementation this pull request
           //       would less likely be merged.
           for (; count > 0; count--) {
             // TODO: Beware 32-bit index:
