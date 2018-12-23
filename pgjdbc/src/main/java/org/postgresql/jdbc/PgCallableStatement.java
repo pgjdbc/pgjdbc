@@ -345,11 +345,16 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html:
           //   "If you do not pass a type map to a method that can accept one, the driver will by default use the type map associated with the connection."
           udtMap = connection.getUdtMap();
+          map = udtMap.getTypeMap();
         } else {
-          udtMap = new UdtMap(map);
+          // Only created when there is a type mapping
+          udtMap = null;
         }
-        Class<?> customType = udtMap.getTypeMap().get(returnType);
+        Class<?> customType = map.get(returnType);
         if (customType != null) {
+          if (udtMap == null) {
+            udtMap = new UdtMap(map);
+          }
           return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, udtMap);
         }
       }
