@@ -29,6 +29,7 @@ import java.util.Set;
  * Tests a user-defined data type mapping to a <a href="https://www.postgresql.org/docs/current/sql-createdomain.html">DOMAIN</a>
  * over a text type.  This tests the type inference because the server sends back the oid of the base type for domains.
  */
+// TODO: Use fail() on the exact statement after the one where SQLException is expecte3d, here and other tests
 public class DomainOverTextTest {
 
   private static final String EMAIL_SQL_TYPE = "public.email";
@@ -238,7 +239,7 @@ public class DomainOverTextTest {
         String[] strings = (String[])array.getArray();
         Assert.assertArrayEquals(new String[] {"foo@bar.baz", "test2@example.com", "test@example.com"}, strings);
         // Get the array as domain type
-        Email[] emails = (Email[])array.getArray(Collections.singletonMap("text", Email.class));
+        Email[] emails = (Email[])array.getArray(Collections.<String, Class<?>>singletonMap("text", Email.class));
         Assert.assertArrayEquals(new Email[] {new Email("foo@bar.baz"), new Email("test2@example.com"), new Email("test@example.com")}, emails);
         // TODO: ResultSet variations
         // Must have only been one row
@@ -267,7 +268,7 @@ public class DomainOverTextTest {
         Assert.assertArrayEquals(new String[] {"foo@bar.baz", "test2@example.com", "test@example.com"}, strings[1]);
         Assert.assertArrayEquals(new String[] {"foo@bar.baz", "test2@example.com", "test@example.com"}, strings[2]);
         // Get the array as domain type
-        Email[][] emails = (Email[][])array.getArray(Collections.singletonMap("text", Email.class));
+        Email[][] emails = (Email[][])array.getArray(Collections.<String, Class<?>>singletonMap("text", Email.class));
         Assert.assertEquals(3, emails.length);
         Assert.assertArrayEquals(new Email[] {new Email("foo@bar.baz"), new Email("test2@example.com"), new Email("test@example.com")}, emails[0]);
         Assert.assertArrayEquals(new Email[] {new Email("foo@bar.baz"), new Email("test2@example.com"), new Email("test@example.com")}, emails[1]);

@@ -314,7 +314,7 @@ public class DomainOverIntegerTest {
         Integer[] ints = (Integer[])array.getArray();
         Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints);
         // Get the array as domain type
-        PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+        PortImpl[] ports = (PortImpl[])array.getArray(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
         Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports);
         // TODO: ResultSet variations
         // Must have only been one row
@@ -343,7 +343,7 @@ public class DomainOverIntegerTest {
         Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[1]);
         Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[2]);
         // Get the array as domain type
-        PortImpl[][] ports = (PortImpl[][])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+        PortImpl[][] ports = (PortImpl[][])array.getArray(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
         Assert.assertEquals(3, ports.length);
         Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[0]);
         Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[1]);
@@ -398,11 +398,11 @@ public class DomainOverIntegerTest {
 
           // Get the array as domain type
           startNanos = System.nanoTime();
-          PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+          PortImpl[] ports = (PortImpl[])array.getArray(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
           endNanos = System.nanoTime();
           LOGGER.log(Level.INFO, "array.getArray() #1 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           startNanos = System.nanoTime();
-          ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+          ports = (PortImpl[])array.getArray(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
           endNanos = System.nanoTime();
           LOGGER.log(Level.INFO, "array.getArray() #2 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           startNanos = System.nanoTime();
@@ -436,12 +436,12 @@ public class DomainOverIntegerTest {
 
           // Get the result set as domain type
           startNanos = System.nanoTime();
-          arrayResult = array.getResultSet(Collections.singletonMap("int4", PortImpl.class));
+          arrayResult = array.getResultSet(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
           endNanos = System.nanoTime();
           LOGGER.log(Level.INFO, "array.getResultSet() #1 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           arrayResult.close();
           startNanos = System.nanoTime();
-          arrayResult = array.getResultSet(Collections.singletonMap("int4", PortImpl.class));
+          arrayResult = array.getResultSet(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
           endNanos = System.nanoTime();
           LOGGER.log(Level.INFO, "array.getResultSet() #2 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           startNanos = System.nanoTime();
