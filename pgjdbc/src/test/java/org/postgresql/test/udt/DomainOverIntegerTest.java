@@ -322,5 +322,38 @@ public class DomainOverIntegerTest {
     }
   }
 
+  @Test
+  public void testGetArray2D() throws Exception {
+    Statement stmt = con.createStatement();
+    try {
+      // PostgreSQL doesn't support arrays of domains, use base type
+      ResultSet result = stmt.executeQuery("SELECT ARRAY[(SELECT ARRAY(SELECT port::int4 FROM testport ORDER BY port)), (SELECT ARRAY(SELECT port::int4 FROM testport ORDER BY port)), (SELECT ARRAY(SELECT port::int4 FROM testport ORDER BY port))] AS ports");
+      try {
+        Assert.assertTrue(result.next());
+        Array array = result.getArray(1);
+        // Get the array as base type
+        Integer[][] ints = (Integer[][])array.getArray();
+        Assert.assertEquals(3, ints.length);
+        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[0]);
+        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[1]);
+        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[2]);
+        // Get the array as domain type
+        PortImpl[][] ports = (PortImpl[][])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+        Assert.assertEquals(3, ports.length);
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[0]);
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[1]);
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[2]);
+        // TODO: ResultSet variations
+        // TODO: Test with inference, too via resultset
+        // Must have only been one row
+        Assert.assertFalse(result.next());
+      } finally {
+        result.close();
+      }
+    } finally {
+      stmt.close();
+    }
+  }
+
   // TODO: Benchmark large arrays: select array(select * from generate_series(1, 1000));
 }

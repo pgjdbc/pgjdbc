@@ -251,5 +251,38 @@ public class DomainOverTextTest {
     }
   }
 
+  @Test
+  public void testGetArray2D() throws Exception {
+    Statement stmt = con.createStatement();
+    try {
+      // PostgreSQL doesn't support arrays of domains, use base type
+      ResultSet result = stmt.executeQuery("SELECT ARRAY[(SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email)), (SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email)), (SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email))] AS emails");
+      try {
+        Assert.assertTrue(result.next());
+        Array array = result.getArray(1);
+        // Get the array as base type
+        String[][] strings = (String[][])array.getArray();
+        Assert.assertEquals(3, strings.length);
+        Assert.assertArrayEquals(new String[] {"foo@bar.baz", "test2@example.com", "test@example.com"}, strings[0]);
+        Assert.assertArrayEquals(new String[] {"foo@bar.baz", "test2@example.com", "test@example.com"}, strings[1]);
+        Assert.assertArrayEquals(new String[] {"foo@bar.baz", "test2@example.com", "test@example.com"}, strings[2]);
+        // Get the array as domain type
+        Email[][] emails = (Email[][])array.getArray(Collections.singletonMap("text", Email.class));
+        Assert.assertEquals(3, emails.length);
+        Assert.assertArrayEquals(new Email[] {new Email("foo@bar.baz"), new Email("test2@example.com"), new Email("test@example.com")}, emails[0]);
+        Assert.assertArrayEquals(new Email[] {new Email("foo@bar.baz"), new Email("test2@example.com"), new Email("test@example.com")}, emails[1]);
+        Assert.assertArrayEquals(new Email[] {new Email("foo@bar.baz"), new Email("test2@example.com"), new Email("test@example.com")}, emails[2]);
+        // TODO: ResultSet variations
+        // TODO: Test with inference, too via resultset
+        // Must have only been one row
+        Assert.assertFalse(result.next());
+      } finally {
+        result.close();
+      }
+    } finally {
+      stmt.close();
+    }
+  }
+
   // TODO: Benchmark large arrays: select array(select * from generate_series(1, 1000));
 }
