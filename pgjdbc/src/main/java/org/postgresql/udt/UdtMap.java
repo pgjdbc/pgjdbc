@@ -60,24 +60,11 @@ public class UdtMap {
   }
 
   /**
-   * @see #getInvertedDirect(java.lang.Class)
-   * @see #getInvertedInherited(java.lang.Class)
-   */
-  // TODO: Maybe we need a way to call this only for Connection maps, since other inverted maps might be even shorter lived
-  //       Or just do not make the sub-sets unmodifiable at all, perhaps making the first set as singleton, then switch to HashSet on second element
-  private static void makeValuesUnmodifiable(Map<Class<?>, Set<String>> invertedMap) {
-    for (Map.Entry<Class<?>, Set<String>> entry : invertedMap.entrySet()) {
-      Set<String> types = entry.getValue();
-      if (types.size() == 1) {
-        entry.setValue(Collections.singleton(types.iterator().next()));
-      } else {
-        entry.setValue(Collections.unmodifiableSet(types));
-      }
-    }
-  }
-
-  /**
    * Adds a new element to an inverted map.
+   * <p>
+   * The first element is added as {@link Collections#singleton(java.lang.Object)},
+   * then is switched to {@link HashSet} when a second element is added.
+   * </p>
    *
    * @param invertedMap the map to add to
    * @param clazz the class to add
@@ -88,12 +75,30 @@ public class UdtMap {
    * @see  #getInvertedDirect(java.lang.Class)
    */
   private static boolean addInverted(Map<Class<?>, Set<String>> invertedMap, Class<?> clazz, String type) {
+    boolean added;
     Set<String> types = invertedMap.get(clazz);
     if (types == null) {
-      types = new HashSet<String>();
-      invertedMap.put(clazz, types);
+      // Add first as singleton
+      invertedMap.put(clazz, Collections.<String>singleton(type));
+      added = true;
+    } else if (types.size() == 1) {
+      // Get the existing value
+      String existing = types.iterator().next();
+      if (existing.equals(type)) {
+        // Nothing new - do not convert to HashSet
+        added = false;
+      } else {
+        // Convert to HashSet
+        types = new HashSet<String>();
+        types.add(existing);
+        added = types.add(type);
+        assert added;
+        invertedMap.put(clazz, types);
+      }
+    } else {
+      assert types instanceof HashSet : "Already a HashSet when size > 1";
+      added = types.add(type);
     }
-    boolean added = types.add(type);
     if (added) {
       if (LOGGER.isLoggable(Level.FINER)) {
         LOGGER.log(Level.FINER, "Added: {0} -> {1}", new Object[] {clazz.getName(), type});
@@ -115,8 +120,9 @@ public class UdtMap {
    *
    * @param clazz the class that a mapped type must be
    *
-   * @return the unmodifiable set of all types that map to the given class or
+   * @return the set of all types that map to the given class or
    *         an empty set when the given class is not in the typemap.
+   *         No defensive copying - do not alter the return value.
    */
   public Set<String> getInvertedDirect(Class<?> clazz) {
     if (typemap.isEmpty()) {
@@ -128,8 +134,6 @@ public class UdtMap {
         for (Map.Entry<String, Class<?>> entry : typemap.entrySet()) {
           addInverted(invertedDirect, entry.getValue(), entry.getKey());
         }
-        // Make each type set unmodifiable
-        makeValuesUnmodifiable(invertedDirect);
         LOGGER.log(Level.FINE, "  invertedDirect = {0}", invertedDirect);
       }
       types = invertedDirect.get(clazz);
@@ -177,8 +181,9 @@ public class UdtMap {
    *
    * @param clazz the class that a mapped type may be, extend, or implement
    *
-   * @return the unmodifiable set of all types that map to the given class or
+   * @return the set of all types that map to the given class or
    *         an empty set when the given class is not in the typemap.
+   *         No defensive copying - do not alter the return value.
    */
   public Set<String> getInvertedInherited(Class<?> clazz) {
     if (typemap.isEmpty()) {
@@ -190,8 +195,6 @@ public class UdtMap {
         for (Map.Entry<String, Class<?>> entry : typemap.entrySet()) {
           addAllInverted(invertedInherited, entry.getValue(), entry.getKey());
         }
-        // Make each type set unmodifiable
-        makeValuesUnmodifiable(invertedInherited);
         LOGGER.log(Level.FINE, "  invertedInherited = {0}", invertedInherited);
       }
       types = invertedInherited.get(clazz);
