@@ -113,6 +113,8 @@ public class Oid {
     if (oid.length() > 0 && !Character.isDigit(oid.charAt(0))) {
       Integer id = NAME_TO_OID.get(oid);
       if (id == null) {
+        // TODO: Locale-sensitive toUpperCase() here.  Should be toUpperCase(Locale.ROOT).
+        //       There should be a quick review of the entire codebase for toUpperCase() and toLowerCase() without Locale.
         id = NAME_TO_OID.get(oid.toUpperCase());
       }
       if (id != null) {
