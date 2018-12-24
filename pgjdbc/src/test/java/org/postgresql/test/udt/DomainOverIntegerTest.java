@@ -12,6 +12,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -295,5 +296,31 @@ public class DomainOverIntegerTest {
   }
   //#endif
 
-  // TODO: Test arrays
+  @Test
+  public void testGetArray() throws Exception {
+    Statement stmt = con.createStatement();
+    try {
+      // PostgreSQL doesn't support arrays of domains, use base type
+      ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT port::int4 FROM testport ORDER BY port) AS ports");
+      try {
+        Assert.assertTrue(result.next());
+        Array array = result.getArray("ports");
+        // Get the array as base type
+        Integer[] ints = (Integer[])array.getArray();
+        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints);
+        // Get the array as domain type
+        PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports);
+        // TODO: ResultSet variations
+        // Must have only been one row
+        Assert.assertFalse(result.next());
+      } finally {
+        result.close();
+      }
+    } finally {
+      stmt.close();
+    }
+  }
+
+  // TODO: Benchmark large arrays: select array(select * from generate_series(1, 1000));
 }

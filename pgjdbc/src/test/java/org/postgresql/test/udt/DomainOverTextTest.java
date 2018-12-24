@@ -12,6 +12,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -224,5 +225,31 @@ public class DomainOverTextTest {
   }
   //#endif
 
-  // TODO: Test arrays
+  @Test
+  public void testGetArray() throws Exception {
+    Statement stmt = con.createStatement();
+    try {
+      // PostgreSQL doesn't support arrays of domains, use base type
+      ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email) AS emails");
+      try {
+        Assert.assertTrue(result.next());
+        Array array = result.getArray(1);
+        // Get the array as base type
+        String[] strings = (String[])array.getArray();
+        Assert.assertArrayEquals(new String[] {"foo@bar.baz", "test2@example.com", "test@example.com"}, strings);
+        // Get the array as domain type
+        Email[] emails = (Email[])array.getArray(Collections.singletonMap("text", Email.class));
+        Assert.assertArrayEquals(new Email[] {new Email("foo@bar.baz"), new Email("test2@example.com"), new Email("test@example.com")}, emails);
+        // TODO: ResultSet variations
+        // Must have only been one row
+        Assert.assertFalse(result.next());
+      } finally {
+        result.close();
+      }
+    } finally {
+      stmt.close();
+    }
+  }
+
+  // TODO: Benchmark large arrays: select array(select * from generate_series(1, 1000));
 }

@@ -651,7 +651,7 @@ public class PgArray implements java.sql.Array {
     TypeInfo typeInfo = connection.getTypeInfo();
     int elementOID = typeInfo.getPGArrayElement(oid);
     final int sqlType = typeInfo.getSQLType(elementOID);
-    String pgType = typeInfo.getPGType(sqlType);
+    String pgType = typeInfo.getPGType(elementOID);
     Class<?> customType = udtMap.getTypeMap().get(pgType);
 
     if (customType != null) {
