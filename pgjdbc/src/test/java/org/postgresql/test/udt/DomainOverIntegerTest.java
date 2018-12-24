@@ -380,7 +380,11 @@ public class DomainOverIntegerTest {
           startNanos = System.nanoTime();
           Integer[] ints = (Integer[])array.getArray();
           endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getArray() of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          LOGGER.log(Level.INFO, "array.getArray() #1 of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          startNanos = System.nanoTime();
+          ints = (Integer[])array.getArray();
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getArray() #2 of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           startNanos = System.nanoTime();
           Assert.assertEquals(65535, ints.length);
           for (int i = 1; i <= 65535; i++) {
@@ -393,7 +397,11 @@ public class DomainOverIntegerTest {
           startNanos = System.nanoTime();
           PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
           endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getArray() of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          LOGGER.log(Level.INFO, "array.getArray() #1 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          startNanos = System.nanoTime();
+          ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getArray() #2 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           startNanos = System.nanoTime();
           Assert.assertEquals(65535, ports.length);
           for (int i = 1; i <= 65535; i++) {
@@ -406,7 +414,12 @@ public class DomainOverIntegerTest {
           startNanos = System.nanoTime();
           ResultSet arrayResult = array.getResultSet();
           endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getResultSet() of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          LOGGER.log(Level.INFO, "array.getResultSet() #1 of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          arrayResult.close();
+          startNanos = System.nanoTime();
+          arrayResult = array.getResultSet();
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getResultSet() #2 of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           startNanos = System.nanoTime();
           for (int i = 1; i <= 65535; i++) {
             Assert.assertTrue(arrayResult.next());
@@ -414,6 +427,7 @@ public class DomainOverIntegerTest {
             Assert.assertFalse(arrayResult.wasNull());
           }
           Assert.assertFalse(arrayResult.next());
+          arrayResult.close();
           endNanos = System.nanoTime();
           LOGGER.log(Level.INFO, "Tested ResultSet(int[65535]) in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
 
@@ -421,7 +435,12 @@ public class DomainOverIntegerTest {
           startNanos = System.nanoTime();
           arrayResult = array.getResultSet(Collections.singletonMap("int4", PortImpl.class));
           endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getResultSet() of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          LOGGER.log(Level.INFO, "array.getResultSet() #1 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          arrayResult.close();
+          startNanos = System.nanoTime();
+          arrayResult = array.getResultSet(Collections.singletonMap("int4", PortImpl.class));
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getResultSet() #2 of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
           startNanos = System.nanoTime();
           for (int i = 1; i <= 65535; i++) {
             Assert.assertTrue(arrayResult.next());
@@ -429,6 +448,7 @@ public class DomainOverIntegerTest {
             Assert.assertFalse(arrayResult.wasNull());
           }
           Assert.assertFalse(arrayResult.next());
+          arrayResult.close();
           endNanos = System.nanoTime();
           LOGGER.log(Level.INFO, "Tested ResultSet(PortImpl[65535]) in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
 
