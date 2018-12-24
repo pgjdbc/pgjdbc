@@ -5,6 +5,7 @@
 
 package org.postgresql.test.udt;
 
+import java.math.BigDecimal;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -24,12 +25,16 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Tests a user-defined data type mapping to a <a href="https://www.postgresql.org/docs/current/sql-createdomain.html">DOMAIN</a>
  * over an integer type.  This tests the type inference because the server sends back the oid of the base type for domains.
  */
 public class DomainOverIntegerTest {
+
+  private static final Logger LOGGER = Logger.getLogger(DomainOverIntegerTest.class.getName());
 
   private static final String EMAIL_SQL_TYPE = "public.\"Email\"";
   private static final String PORT_SQL_TYPE = "\"port\"";
@@ -366,13 +371,19 @@ public class DomainOverIntegerTest {
         Assert.assertTrue(result.next());
         Array array = result.getArray(1);
         // Get the array as base type
+        long startNanos = System.nanoTime();
         Integer[] ints = (Integer[])array.getArray();
+        long endNanos = System.nanoTime();
+        LOGGER.log(Level.INFO, "array.getArray() of int[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
         Assert.assertEquals(65535, ints.length);
         for (int i = 1; i <= 65535; i++) {
           Assert.assertEquals((Integer)i, ints[i - 1]);
         }
         // Get the array as domain type
+        startNanos = System.nanoTime();
         PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+        endNanos = System.nanoTime();
+        LOGGER.log(Level.INFO, "array.getArray() of PortImpl[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
         Assert.assertEquals(65535, ports.length);
         for (int i = 1; i <= 65535; i++) {
           Assert.assertEquals(new PortImpl(i), ports[i - 1]);
