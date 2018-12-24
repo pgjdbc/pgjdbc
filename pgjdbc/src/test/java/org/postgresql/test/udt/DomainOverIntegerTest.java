@@ -371,43 +371,63 @@ public class DomainOverIntegerTest {
         try {
           Assert.assertTrue(result.next());
           Array array = result.getArray(1);
+
           // Get the array as base type
           long startNanos = System.nanoTime();
           Integer[] ints = (Integer[])array.getArray();
           long endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getArray() of int[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
+          LOGGER.log(Level.INFO, "array.getArray() of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          startNanos = System.nanoTime();
           Assert.assertEquals(65535, ints.length);
           for (int i = 1; i <= 65535; i++) {
             Assert.assertEquals((Integer)i, ints[i - 1]);
           }
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "Tested Array(int[65535]) in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+
           // Get the array as domain type
           startNanos = System.nanoTime();
           PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
           endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getArray() of PortImpl[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
+          LOGGER.log(Level.INFO, "array.getArray() of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          startNanos = System.nanoTime();
           Assert.assertEquals(65535, ports.length);
           for (int i = 1; i <= 65535; i++) {
             Assert.assertEquals(new PortImpl(i), ports[i - 1]);
           }
-          // TODO: ResultSet variations
-          startNanos = System.nanoTime();
-          ResultSet results = array.getResultSet();
           endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getResultSet() of int[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
-          for (int i = 1; i <= 65535; i++) {
-            Assert.assertTrue(results.next());
-            Assert.assertEquals(i, results.getInt(2));
-            Assert.assertTrue(!results.wasNull());
-          }
+          LOGGER.log(Level.INFO, "Tested Array(PortImpl[65535]) in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+
+          // Get the result set as base type
           startNanos = System.nanoTime();
-          results = array.getResultSet(Collections.singletonMap("int4", PortImpl.class));
+          ResultSet arrayResult = array.getResultSet();
           endNanos = System.nanoTime();
-          LOGGER.log(Level.INFO, "array.getResultSet() of PortImpl[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
+          LOGGER.log(Level.INFO, "array.getResultSet() of int[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          startNanos = System.nanoTime();
           for (int i = 1; i <= 65535; i++) {
-            Assert.assertTrue(results.next());
-            Assert.assertEquals(new PortImpl(i), results.getObject(2));
-            Assert.assertTrue(!results.wasNull());
+            Assert.assertTrue(arrayResult.next());
+            Assert.assertEquals(i, arrayResult.getInt(2));
+            Assert.assertFalse(arrayResult.wasNull());
           }
+          Assert.assertFalse(arrayResult.next());
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "Tested ResultSet(int[65535]) in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+
+          // Get the result set as domain type
+          startNanos = System.nanoTime();
+          arrayResult = array.getResultSet(Collections.singletonMap("int4", PortImpl.class));
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getResultSet() of PortImpl[65535] in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+          startNanos = System.nanoTime();
+          for (int i = 1; i <= 65535; i++) {
+            Assert.assertTrue(arrayResult.next());
+            Assert.assertEquals(new PortImpl(i), arrayResult.getObject(2));
+            Assert.assertFalse(arrayResult.wasNull());
+          }
+          Assert.assertFalse(arrayResult.next());
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "Tested ResultSet(PortImpl[65535]) in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+
           // TODO: Time iteration of results, too
           // TODO: Test with inference, too via resultset
           // Must have only been one row
