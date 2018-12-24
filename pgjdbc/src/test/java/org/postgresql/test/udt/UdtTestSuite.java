@@ -13,6 +13,8 @@ import org.junit.runners.Suite;
  */
 // TODO: Add tests for ENUM
 // TODO: See what happens with a single-column compound type
+// TODO: Add tests for Array, including perform of ValueAccess versus delegating to PgResultSet
+// TODO: Add tests of CallableStatement
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         InvertedMapTest.class,
