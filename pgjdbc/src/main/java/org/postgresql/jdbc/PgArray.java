@@ -725,9 +725,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-            : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : BooleanTypeUtil.castToBoolean((String) o));
+            : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : BooleanTypeUtil.fromString((String) o));
         } else {
-          pa[length++] = o == null ? false : BooleanTypeUtil.castToBoolean((String) o);
+          pa[length++] = o == null ? false : BooleanTypeUtil.fromString((String) o);
         }
       }
     } else if (sqlType == Types.SMALLINT) {

@@ -52,7 +52,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public boolean getBoolean() throws SQLException {
-    return BooleanTypeUtil.fromString(value);
+    return (value == null) ? false : BooleanTypeUtil.fromString(value);
   }
 
   /**
