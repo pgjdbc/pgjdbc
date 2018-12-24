@@ -223,9 +223,6 @@ public class PgArray implements java.sql.Array {
       dims[0] = Math.min(count, dims[0]);
     }
     final int sqlType = typeInfo.getSQLType(elementOid);
-    // TODO: Where is the array created for the last dimension?
-    //       I can't find it to make sure we're using custom types on it.
-    //       Is there a new test case for something broken here?
     Object arr = java.lang.reflect.Array.newInstance(customType != null ? customType : elementOidToClass(elementOid), dims);
     try {
       storeValues((Object[]) arr, elementOid, pgType, sqlType, dims, pos, 0, index, udtMap, customType);
