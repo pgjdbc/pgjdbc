@@ -44,6 +44,7 @@ import java.util.Calendar;
  *
  * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
  */
+// TODO: Consider renaming "BaseValue"
 public interface ValueAccess {
 
   /**
@@ -234,6 +235,7 @@ public interface ValueAccess {
    * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
    *            this method
    *
+   * @see  #getDate(java.util.Calendar)
    * @see  CallableStatement#getDate(java.lang.String)
    * @see  CallableStatement#getDate(int)
    * @see  ResultSet#getDate(java.lang.String)
@@ -241,6 +243,27 @@ public interface ValueAccess {
    * @see  SQLInput#readDate()
    */
   Date getDate() throws SQLException, SQLFeatureNotSupportedException;
+
+  /**
+   * Gets the {@link Date} representation of this value in the given {@link Calendar}.
+   *
+   * @param cal the <code>Calendar</code> object the driver will use
+   *            to construct the date
+   *
+   * @return {@code null} if this value is null or {@link Date} of the value.
+   *
+   * @throws SQLException if a database access error occurs
+   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
+   *            this method
+   *
+   * @see  #getDate()
+   * @see  CallableStatement#getDate(java.lang.String, java.util.Calendar)
+   * @see  CallableStatement#getDate(int, java.util.Calendar)
+   * @see  ResultSet#getDate(java.lang.String, java.util.Calendar)
+   * @see  ResultSet#getDate(int, java.util.Calendar)
+   * @see  SQLInput#readDate()
+   */
+  Date getDate(Calendar cal) throws SQLException, SQLFeatureNotSupportedException;
 
   /**
    * Gets the {@link Time} representation of this value.
@@ -251,6 +274,7 @@ public interface ValueAccess {
    * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
    *            this method
    *
+   * @see  #getTime(java.util.Calendar)
    * @see  CallableStatement#getTime(java.lang.String)
    * @see  CallableStatement#getTime(int)
    * @see  ResultSet#getTime(java.lang.String)
@@ -258,6 +282,27 @@ public interface ValueAccess {
    * @see  SQLInput#readTime()
    */
   Time getTime() throws SQLException, SQLFeatureNotSupportedException;
+
+  /**
+   * Gets the {@link Time} representation of this value in the given {@link Calendar}.
+   *
+   * @param cal the <code>Calendar</code> object the driver will use
+   *            to construct the date
+   *
+   * @return {@code null} if this value is null or {@link Time} of the value.
+   *
+   * @throws SQLException if a database access error occurs
+   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
+   *            this method
+   *
+   * @see  #getTime()
+   * @see  CallableStatement#getTime(java.lang.String, java.util.Calendar)
+   * @see  CallableStatement#getTime(int, java.util.Calendar)
+   * @see  ResultSet#getTime(java.lang.String, java.util.Calendar)
+   * @see  ResultSet#getTime(int, java.util.Calendar)
+   * @see  SQLInput#readTime()
+   */
+  Time getTime(Calendar cal) throws SQLException, SQLFeatureNotSupportedException;
 
   /**
    * Gets the {@link Timestamp} representation of this value.
@@ -268,6 +313,7 @@ public interface ValueAccess {
    * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
    *            this method
    *
+   * @see  #getTimestamp(java.util.Calendar)
    * @see  CallableStatement#getTimestamp(java.lang.String)
    * @see  CallableStatement#getTimestamp(int)
    * @see  ResultSet#getTimestamp(java.lang.String)
@@ -275,6 +321,27 @@ public interface ValueAccess {
    * @see  SQLInput#readTimestamp()
    */
   Timestamp getTimestamp() throws SQLException, SQLFeatureNotSupportedException;
+
+  /**
+   * Gets the {@link Timestamp} representation of this value in the given {@link Calendar}.
+   *
+   * @param cal the <code>Calendar</code> object the driver will use
+   *            to construct the date
+   *
+   * @return {@code null} if this value is null or {@link Timestamp} of the value.
+   *
+   * @throws SQLException if a database access error occurs
+   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
+   *            this method
+   *
+   * @see  #getTimestamp()
+   * @see  CallableStatement#getTimestamp(java.lang.String, java.util.Calendar)
+   * @see  CallableStatement#getTimestamp(int, java.util.Calendar)
+   * @see  ResultSet#getTimestamp(java.lang.String, java.util.Calendar)
+   * @see  ResultSet#getTimestamp(int, java.util.Calendar)
+   * @see  SQLInput#readTimestamp()
+   */
+  Timestamp getTimestamp(Calendar cal) throws SQLException, SQLFeatureNotSupportedException;
 
   /**
    * Gets the characters of this value as a {@link Reader}.

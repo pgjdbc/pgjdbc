@@ -108,13 +108,28 @@ class PgResultSetValueAccess implements ValueAccess {
   }
 
   @Override
+  public Date getDate(Calendar cal) throws SQLException {
+    return result.getDate(columnIndex, cal);
+  }
+
+  @Override
   public Time getTime() throws SQLException {
     return result.getTime(columnIndex);
   }
 
   @Override
+  public Time getTime(Calendar cal) throws SQLException {
+    return result.getTime(columnIndex, cal);
+  }
+
+  @Override
   public Timestamp getTimestamp() throws SQLException {
     return result.getTimestamp(columnIndex);
+  }
+
+  @Override
+  public Timestamp getTimestamp(Calendar cal) throws SQLException {
+    return result.getTimestamp(columnIndex, cal);
   }
 
   @Override

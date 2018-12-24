@@ -22,9 +22,11 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Calendar;
 
 
 // TODO: Consider how to share this implementation with PgResultSet
+// TODO: Consider renaming "PgText"
 public class TextValueAccess extends BaseValueAccess {
 
   private final int oid;
@@ -144,31 +146,49 @@ public class TextValueAccess extends BaseValueAccess {
   /**
    * {@inheritDoc}
    *
-   * @see  PgResultSet#getDate(int)
+   * @see  PgResultSet#getDate(int, java.util.Calendar)
    */
   @Override
-  public Date getDate() throws SQLException {
-    return connection.getTimestampUtils().toDate(getDefaultCalendar(), value);
+  public Date getDate(Calendar cal) throws SQLException {
+    if (value == null) {
+      return null;
+    }
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
+    return connection.getTimestampUtils().toDate(cal, value);
   }
 
   /**
    * {@inheritDoc}
    *
-   * @see  PgResultSet#getTime(int)
+   * @see  PgResultSet#getTime(int, java.util.Calendar)
    */
   @Override
-  public Time getTime() throws SQLException {
-    return connection.getTimestampUtils().toTime(getDefaultCalendar(), value);
+  public Time getTime(Calendar cal) throws SQLException {
+    if (value == null) {
+      return null;
+    }
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
+    return connection.getTimestampUtils().toTime(cal, value);
   }
 
   /**
    * {@inheritDoc}
    *
-   * @see  PgResultSet#getTimestamp(int)
+   * @see  PgResultSet#getTimestamp(int, java.util.Calendar)
    */
   @Override
-  public Timestamp getTimestamp() throws SQLException {
-    return connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), value);
+  public Timestamp getTimestamp(Calendar cal) throws SQLException {
+    if (value == null) {
+      return null;
+    }
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
+    return connection.getTimestampUtils().toTimestamp(cal, value);
   }
 
   /**

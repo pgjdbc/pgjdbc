@@ -49,6 +49,7 @@ import java.util.TimeZone;
 /**
  * Base implementation of {@link ValueAccess}.
  */
+// TODO: Consider renaming "PgValue"
 public abstract class BaseValueAccess implements ValueAccess {
 
   protected final BaseConnection connection;
@@ -169,6 +170,11 @@ public abstract class BaseValueAccess implements ValueAccess {
 
   @Override
   public Date getDate() throws SQLException {
+    return getDate(null);
+  }
+
+  @Override
+  public Date getDate(Calendar cal) throws SQLException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             Date.class.getName(), getPGType()),
@@ -177,6 +183,11 @@ public abstract class BaseValueAccess implements ValueAccess {
 
   @Override
   public Time getTime() throws SQLException {
+    return getTime(null);
+  }
+
+  @Override
+  public Time getTime(Calendar cal) throws SQLException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             Time.class.getName(), getPGType()),
@@ -185,6 +196,11 @@ public abstract class BaseValueAccess implements ValueAccess {
 
   @Override
   public Timestamp getTimestamp() throws SQLException {
+    return getTimestamp(null);
+  }
+
+  @Override
+  public Timestamp getTimestamp(Calendar cal) throws SQLException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             Timestamp.class.getName(), getPGType()),
