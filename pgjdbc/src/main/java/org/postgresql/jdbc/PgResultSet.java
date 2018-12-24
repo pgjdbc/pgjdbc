@@ -1981,9 +1981,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return BooleanTypeUtil.fromString(getString(columnIndex));
   }
 
-  private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
-  private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
-
   @Override
   public byte getByte(int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getByte columnIndex: {0}", columnIndex);
@@ -2000,37 +1997,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           Byte.MAX_VALUE, "byte");
     }
 
-    String s = getString(columnIndex);
-
-    if (s != null) {
-      s = s.trim();
-      if (s.isEmpty()) {
-        return 0;
-      }
-      try {
-        // try the optimal parse
-        return Byte.parseByte(s);
-      } catch (NumberFormatException e) {
-        // didn't work, assume the column is not a byte
-        try {
-          BigDecimal n = new BigDecimal(s);
-          BigInteger i = n.toBigInteger();
-
-          int gt = i.compareTo(BYTEMAX);
-          int lt = i.compareTo(BYTEMIN);
-
-          if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-          }
-          return i.byteValue();
-        } catch (NumberFormatException ex) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-      }
-    }
-    return 0; // SQL NULL
+    return toByte(getString(columnIndex)); // TODO: getFixedString here like in getShort?
   }
 
   @Override
@@ -2073,7 +2040,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (encoding.hasAsciiNumbers()) {
       try {
         return getFastInt(columnIndex);
-      } catch (NumberFormatException ex) {
+      } catch (NumberFormatException ignore) {
+        assert ignore == FAST_NUMBER_FAILED;
       }
     }
     return toInt(getFixedString(columnIndex));
@@ -2099,7 +2067,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (encoding.hasAsciiNumbers()) {
       try {
         return getFastLong(columnIndex);
-      } catch (NumberFormatException ex) {
+      } catch (NumberFormatException ignore) {
+        assert ignore == FAST_NUMBER_FAILED;
       }
     }
     return toLong(getFixedString(columnIndex));
@@ -2133,6 +2102,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toLong(String)}.
    */
+  // TODO: SQLException never thrown since column is not fetched from here
   private long getFastLong(int columnIndex) throws SQLException, NumberFormatException {
 
     byte[] bytes = this_row[columnIndex - 1];
@@ -2185,6 +2155,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toInt(String)}.
    */
+  // TODO: SQLException never thrown since column is not fetched from here
   private int getFastInt(int columnIndex) throws SQLException, NumberFormatException {
 
     byte[] bytes = this_row[columnIndex - 1];
@@ -2237,6 +2208,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toBigDecimal(String, int)}.
    */
+  // TODO: SQLException never thrown since column is not fetched from here
   private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException, NumberFormatException {
 
     byte[] bytes = this_row[columnIndex - 1];
@@ -2342,6 +2314,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return (BigDecimal) getNumeric(columnIndex, scale, false);
   }
 
+  /**
+   * Avoid auto-boxing of Double.NaN.  Escape analysis would probably do this, but
+   * no harm in being clear here.
+   */
+  private static final Double DOUBLE_NAN = Double.NaN;
+
+  /**
+   * @return either {@code null}, a {@link BigDecimal}, or {@link #DOUBLE_NAN}.
+   */
   private Number getNumeric(int columnIndex, int scale, boolean allowNaN) throws SQLException {
     checkResultSet(columnIndex);
     if (wasNullFlag) {
@@ -2368,15 +2349,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (encoding.hasAsciiNumbers()) {
       try {
         BigDecimal res = getFastBigDecimal(columnIndex);
+        // TODO: Pass scale to getFastBigDecimal instead of doing in two steps?
         res = scaleBigDecimal(res, scale);
         return res;
       } catch (NumberFormatException ignore) {
+        assert ignore == FAST_NUMBER_FAILED;
       }
     }
 
     String stringValue = getFixedString(columnIndex);
     if (allowNaN && "NaN".equalsIgnoreCase(stringValue)) {
-      return Double.NaN;
+      return DOUBLE_NAN;
     }
     return toBigDecimal(stringValue, scale);
   }
@@ -2683,7 +2666,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return trimMoney(getString(col));
   }
 
-  private String trimMoney(String s) {
+  /**
+   * @param s the string value to trim
+   * @return numeric-parsable representation of money string value
+   *
+   * @see #getFixedString(int)
+   */
+  // TODO: Move to somewhere for shared access, like into util package?
+  public static String trimMoney(String s) {
     if (s == null) {
       return null;
     }
@@ -2804,6 +2794,45 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   // ----------------- Formatting Methods -------------------
+
+  private static final BigInteger BYTEMAX = BigInteger.valueOf(Byte.MAX_VALUE);
+  private static final BigInteger BYTEMIN = BigInteger.valueOf(Byte.MIN_VALUE);
+
+  public static byte toByte(String s) throws SQLException {
+    if (s != null) {
+      try {
+        s = s.trim();
+        // TODO: Why does getByte("") return 0?  Is this documented?  Is this tested?  Is this done other places?
+        if (s.isEmpty()) {
+          return 0;
+        }
+        // try the optimal parse
+        return Byte.parseByte(s);
+      } catch (NumberFormatException e) {
+        // didn't work, assume the column is not a byte
+        try {
+          BigDecimal n = new BigDecimal(s);
+          BigInteger i = n.toBigInteger();
+          int gt = i.compareTo(BYTEMAX);
+          int lt = i.compareTo(BYTEMIN);
+
+          if (gt > 0 || lt < 0) {
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
+                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+          }
+          return i.byteValue();
+
+        } catch (NumberFormatException ne) {
+          // TODO: Are these secondary NumberFormatExceptions actually "Out of Range"? or better yet
+          //       something completely unparseable/unconvertible?  This would be here and the many
+          //       other parsers.
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
+      }
+    }
+    return 0; // SQL NULL
+  }
 
   private static final BigInteger SHORTMAX = new BigInteger(Short.toString(Short.MAX_VALUE));
   private static final BigInteger SHORTMIN = new BigInteger(Short.toString(Short.MIN_VALUE));

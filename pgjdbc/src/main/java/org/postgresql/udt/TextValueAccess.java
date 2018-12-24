@@ -7,6 +7,7 @@ package org.postgresql.udt;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.BooleanTypeUtil;
+import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.GT;
@@ -15,14 +16,14 @@ import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 
 
-// TODO: Review for conversion compatibility with PgResultSet
-//       Or best - shared implementation
+// TODO: Consider how to share this implementation with PgResultSet
 public class TextValueAccess extends BaseValueAccess {
 
   private final int oid;
@@ -57,46 +58,71 @@ public class TextValueAccess extends BaseValueAccess {
   /**
    * {@inheritDoc}
    *
-   * @see  PgResultSet#getBoolean(int)
+   * @see  PgResultSet#getByte(int)
    */
   @Override
   public byte getByte() throws SQLException {
-    try {
-      return Byte.parseByte(value.trim());
-    } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
+    return PgResultSet.toByte(PgResultSet.trimMoney(value));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getShort(int)
+   */
   @Override
   public short getShort() throws SQLException {
     return PgResultSet.toShort(value);
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getInt(int)
+   */
   @Override
   public int getInt() throws SQLException {
-    return PgResultSet.toInt(value);
+    return PgResultSet.toInt(PgResultSet.trimMoney(value));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getLong(int)
+   */
   @Override
   public long getLong() throws SQLException {
-    return PgResultSet.toLong(value);
+    return PgResultSet.toLong(PgResultSet.trimMoney(value));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getFloat(int)
+   */
   @Override
   public float getFloat() throws SQLException {
-    return PgResultSet.toFloat(value);
+    return PgResultSet.toFloat(PgResultSet.trimMoney(value));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getDouble(int)
+   */
   @Override
   public double getDouble() throws SQLException {
-    return PgResultSet.toDouble(value);
+    return PgResultSet.toDouble(PgResultSet.trimMoney(value));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getBigDecimal(int)
+   */
   @Override
   public BigDecimal getBigDecimal() throws SQLException {
-    return PgResultSet.toBigDecimal(value);
+    return PgResultSet.toBigDecimal(PgResultSet.trimMoney(value));
   }
 
   /**
@@ -114,19 +140,34 @@ public class TextValueAccess extends BaseValueAccess {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getDate(int)
+   */
   @Override
   public Date getDate() throws SQLException {
-    return connection.getTimestampUtils().toDate(null, value);
+    return connection.getTimestampUtils().toDate(getDefaultCalendar(), value);
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getTime(int)
+   */
   @Override
   public Time getTime() throws SQLException {
-    return connection.getTimestampUtils().toTime(null, value);
+    return connection.getTimestampUtils().toTime(getDefaultCalendar(), value);
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getTimestamp(int)
+   */
   @Override
   public Timestamp getTimestamp() throws SQLException {
-    return connection.getTimestampUtils().toTimestamp(null, value);
+    return connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), value);
   }
 
   @Override
@@ -137,14 +178,18 @@ public class TextValueAccess extends BaseValueAccess {
     return value;
   }
 
-  // TODO: getArray()
+  /**
+   * {@inheritDoc}
+   *
+   * @see  PgResultSet#getArray(int)
+   */
+  @Override
+  public Array getArray() throws SQLException {
+    return (value == null) ? null : new PgArray(connection, oid, value);
+  }
 
   @Override
   public boolean wasNull() throws SQLException {
     return value == null;
   }
-
-  // TODO: getPGobject(Class)? with ArrayAssistantRegistry?
-
-  // TODO: getObjectCustomType(...)? with ArrayAssistantRegistry?
 }
