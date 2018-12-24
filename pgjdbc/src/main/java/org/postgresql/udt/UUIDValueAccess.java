@@ -35,10 +35,4 @@ public class UUIDValueAccess extends BaseValueAccess {
   public String getString() throws SQLException {
     return value.toString();
   }
-
-  @Override
-  public Object getObject(UdtMap udtMap) throws SQLException {
-    // TODO: typemap?
-    return value;
-  }
 }

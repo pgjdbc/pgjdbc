@@ -11,6 +11,7 @@ import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.GT;
+import org.postgresql.util.NumberConverter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -62,7 +63,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public byte getByte() throws SQLException {
-    return PgResultSet.toByte(PgResultSet.trimMoney(value));
+    return NumberConverter.toByte(NumberConverter.trimMoney(value));
   }
 
   /**
@@ -72,7 +73,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public short getShort() throws SQLException {
-    return PgResultSet.toShort(value);
+    return NumberConverter.toShort(value);
   }
 
   /**
@@ -82,7 +83,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public int getInt() throws SQLException {
-    return PgResultSet.toInt(PgResultSet.trimMoney(value));
+    return NumberConverter.toInt(NumberConverter.trimMoney(value));
   }
 
   /**
@@ -92,7 +93,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public long getLong() throws SQLException {
-    return PgResultSet.toLong(PgResultSet.trimMoney(value));
+    return NumberConverter.toLong(NumberConverter.trimMoney(value));
   }
 
   /**
@@ -102,7 +103,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public float getFloat() throws SQLException {
-    return PgResultSet.toFloat(PgResultSet.trimMoney(value));
+    return NumberConverter.toFloat(NumberConverter.trimMoney(value));
   }
 
   /**
@@ -112,7 +113,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public double getDouble() throws SQLException {
-    return PgResultSet.toDouble(PgResultSet.trimMoney(value));
+    return NumberConverter.toDouble(NumberConverter.trimMoney(value));
   }
 
   /**
@@ -122,7 +123,7 @@ public class TextValueAccess extends BaseValueAccess {
    */
   @Override
   public BigDecimal getBigDecimal() throws SQLException {
-    return PgResultSet.toBigDecimal(PgResultSet.trimMoney(value));
+    return NumberConverter.toBigDecimal(NumberConverter.trimMoney(value));
   }
 
   /**
@@ -168,14 +169,6 @@ public class TextValueAccess extends BaseValueAccess {
   @Override
   public Timestamp getTimestamp() throws SQLException {
     return connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), value);
-  }
-
-  @Override
-  public Object getObject(UdtMap udtMap) throws SQLException {
-    // TODO: typemap?  Could probably do a lot more in AbstractValueAccess for getObject()
-    //       regarding intercepting custom type maps and doing conversions from the various get* methods.
-    //       Then this would become a protected getObjectImpl() used when no custom maps applied.
-    return value;
   }
 
   /**

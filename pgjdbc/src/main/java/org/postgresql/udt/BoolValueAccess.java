@@ -36,8 +36,7 @@ public class BoolValueAccess extends BaseValueAccess {
 
   @Override
   public String getString() throws SQLException {
-    // TODO: What is the correct value?  t/f or true/false?
-    return Boolean.toString(value);
+    return value ? "t" : "f";
   }
 
   @Override
@@ -155,11 +154,5 @@ public class BoolValueAccess extends BaseValueAccess {
   @Override
   public BigDecimal getBigDecimal() throws SQLException {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
-  }
-
-  @Override
-  public Object getObject(UdtMap udtMap) throws SQLException {
-    // TODO: typemap?
-    return value;
   }
 }

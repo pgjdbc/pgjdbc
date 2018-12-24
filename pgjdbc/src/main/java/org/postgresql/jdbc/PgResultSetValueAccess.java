@@ -48,6 +48,11 @@ class PgResultSetValueAccess implements ValueAccess {
   }
 
   @Override
+  public boolean isBinary() {
+    return result.isBinary(columnIndex);
+  }
+
+  @Override
   public String getString() throws SQLException {
     return result.getString(columnIndex);
   }
@@ -129,8 +134,7 @@ class PgResultSetValueAccess implements ValueAccess {
 
   @Override
   public Object getObject(UdtMap udtMap) throws SQLException {
-    // TODO: How does udtMap pass-through to the result?
-    return result.getObject(columnIndex);
+    return result.getObjectImpl(columnIndex, udtMap);
   }
 
   @Override
@@ -181,6 +185,11 @@ class PgResultSetValueAccess implements ValueAccess {
   @Override
   public RowId getRowId() throws SQLException {
     return result.getRowId(columnIndex);
+  }
+
+  @Override
+  public PGobject getPGobject(String pgType) throws SQLException {
+    return result.getPGobject(columnIndex, pgType);
   }
 
   @Override

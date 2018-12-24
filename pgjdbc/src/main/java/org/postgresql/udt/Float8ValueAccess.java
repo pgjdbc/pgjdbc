@@ -84,10 +84,4 @@ public class Float8ValueAccess extends BaseValueAccess {
   public BigDecimal getBigDecimal() throws SQLException {
     return BigDecimal.valueOf(value);
   }
-
-  @Override
-  public Object getObject(UdtMap udtMap) throws SQLException {
-    // TODO: typemap?
-    return value;
-  }
 }

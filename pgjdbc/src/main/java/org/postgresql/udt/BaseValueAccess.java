@@ -31,6 +31,7 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.sql.NClob;
 import java.sql.Ref;
+import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -79,19 +80,15 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   /**
-   * Determines whether the {@link #getBytes()} or {@link #getString()} method should
-   * be preferred when either is an option.
+   * {@inheritDoc}
    * <p>
    * Defaults to false, favoring the string representation because all types are
    * required to be convertible to {@link String}, whereas not all types are convertible
    * to {@code byte[]}.
    * </p>
-   *
-   * @return {@code true} when binary representation is preferred over textual representation
    */
-  // TODO: Should the be promoted to be part of the ValueAccess interface?
-  // TODO: Is this even needed?  We have no binary types so far.
-  protected boolean isBinary() {
+  @Override
+  public boolean isBinary() {
     return false;
   }
 
@@ -247,10 +244,18 @@ public abstract class BaseValueAccess implements ValueAccess {
     return null;
   }
 
-  // TODO: This is required for all value access types
-  // TODO: Do udtMap lookup here based on pgType, then make an abstract getObjectImpl?
+  /**
+   * {@inheritDoc}
+   * <p>
+   * Implemented via {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}
+   * </p>
+   *
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   */
   @Override
-  public abstract Object getObject(UdtMap udtMap) throws SQLException;
+  public Object getObject(UdtMap udtMap) throws SQLException {
+    return ValueAccessHelper.getObject(connection, ResultSet.TYPE_FORWARD_ONLY, this, getSQLType(), getPGType(), udtMap, conversionNotSupported);
+  }
 
   /**
    * {@inheritDoc}
@@ -353,6 +358,16 @@ public abstract class BaseValueAccess implements ValueAccess {
   @Override
   public RowId getRowId() throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getRowId()");
+  }
+
+  @Override
+  public PGobject getPGobject(String pgType) throws SQLException, SQLFeatureNotSupportedException {
+    if (isBinary()) {
+      byte[] byteValue = getBytes();
+      return (byteValue == null) ? null : connection.getObject(pgType, null, byteValue);
+    }
+    String value = getString();
+    return (value == null) ? null : connection.getObject(pgType, value, null);
   }
 
   /**

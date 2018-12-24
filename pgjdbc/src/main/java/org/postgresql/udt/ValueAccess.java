@@ -47,6 +47,14 @@ import java.util.Calendar;
 public interface ValueAccess {
 
   /**
+   * Determines whether the {@link #getBytes()} or {@link #getString()} method should
+   * be preferred when either is an option.
+   *
+   * @return {@code true} when binary representation is preferred over textual representation
+   */
+  boolean isBinary();
+
+  /**
    * Gets the {@link String} representation of this value.
    * <p>
    * Required by all implementations.
@@ -333,7 +341,7 @@ public interface ValueAccess {
    * @see  ResultSet#getObject(int)
    * @see  SQLInput#readObject()
    */
-  // TODO: Does getObject belong on the ValueAcces interface, or is it part of the SQLInput implementations?
+  // TODO: Does getObject belong on the ValueAccess interface, or is it part of the SQLInput implementations?
   Object getObject(UdtMap udtMap) throws SQLException;
 
   /**
@@ -515,6 +523,14 @@ public interface ValueAccess {
   // TODO: This would get the PGobject always, even when there are user-defined data types for it, just like getInt does.
   //       PGobject should behave like base types - below the level of user-defined data types.
   // TODO: Javadocs if will stay here
+  PGobject getPGobject(String pgType) throws SQLException, SQLFeatureNotSupportedException;
+
+  // TODO: Does getPGobject belong on the ValueAcces interface, or is it part of the SQLInput implementations?
+  //       Or should there be a PGobectValueAccess implementation, as PGobject acts like base types?
+  //       Or both?
+  // TODO: This would get the PGobject always, even when there are user-defined data types for it, just like getInt does.
+  //       PGobject should behave like base types - below the level of user-defined data types.
+  // TODO: Javadocs if will stay here
   <T extends PGobject> T getPGobject(Class<T> type) throws SQLException, SQLFeatureNotSupportedException;
 
   /* *
@@ -609,6 +625,5 @@ public interface ValueAccess {
    *
    * @return the {@link SQLInput} for reading single-attribute user-defined data types
    */
-  // TODO: Is udtMap relevant here?
   SingleAttributeSQLInput getSQLInput(UdtMap udtMap);
 }

@@ -6,7 +6,14 @@
 package org.postgresql.udt;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Utils;
+import org.postgresql.jdbc.PgResultSet;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.HStoreConverter;
+import org.postgresql.util.NumberConverter;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -19,8 +26,10 @@ import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLXML;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -49,6 +58,208 @@ public class ValueAccessHelper {
 
   private static final Logger LOGGER = Logger.getLogger(ValueAccessHelper.class.getName());
 
+  /**
+   * Avoid auto-boxing of Double.NaN.  Escape analysis would probably do this, but
+   * no harm in being clear here.
+   */
+  private static final Double DOUBLE_NAN = Double.NaN;
+
+  /**
+   * @param connection the current connection
+   * @param rsType the current {@link Statement#getResultSetType() result set type}
+   * @param access the value access
+   * @param sqlType the current {@link Types SQL type}
+   * @param pgType the base type
+   * @param scale the scale or {@code -1} for default
+   * @param allowNaN enables parsing of "NaN" to {@link #DOUBLE_NAN}
+   * @return either {@code null}, a {@link BigDecimal}, or {@link #DOUBLE_NAN}.
+   * @throws SQLException if something wrong happens
+   */
+  public static Number getNumeric(BaseConnection connection, int rsType, ValueAccess access, int sqlType, String pgType, int scale, boolean allowNaN) throws SQLException {
+    if (access.isBinary()) {
+      if (sqlType != Types.NUMERIC && sqlType != Types.DECIMAL) {
+        Object obj = internalGetObject(connection, rsType, access, sqlType, pgType, -1);
+        if (obj == null) {
+          return null;
+        }
+        if (obj instanceof Long || obj instanceof Integer || obj instanceof Byte) { // TODO: Why not Short, or all Number other than BigDecimal/BigInteger?
+          BigDecimal res = BigDecimal.valueOf(((Number) obj).longValue());
+          res = NumberConverter.scaleBigDecimal(res, scale);
+          return res;
+        }
+        return NumberConverter.toBigDecimal(NumberConverter.trimMoney(String.valueOf(obj)), scale);
+      }
+    }
+
+    Encoding encoding = connection.getEncoding();
+    if (encoding.hasAsciiNumbers()) {
+      try {
+        // TODO: access doesn't necessary have getBytes implementation
+        byte[] bytes = access.getBytes();
+        if (bytes == null) {
+          return null;
+        }
+        BigDecimal res = NumberConverter.getFastBigDecimal(bytes);
+        // TODO: Pass scale to getFastBigDecimal instead of doing in two steps?
+        res = NumberConverter.scaleBigDecimal(res, scale);
+        return res;
+      } catch (NumberFormatException ignore) {
+        assert ignore == NumberConverter.FAST_NUMBER_FAILED;
+      }
+    }
+
+    String stringValue = NumberConverter.trimMoney(access.getString());
+    if (allowNaN && "NaN".equalsIgnoreCase(stringValue)) {
+      return DOUBLE_NAN;
+    }
+    return NumberConverter.toBigDecimal(stringValue, scale);
+  }
+
+  // TODO: Move to a new util class UUIDConverter?
+  // TODO: A getUUID method on ValueAccess?
+  public static Object getUUID(String data) throws SQLException {
+    UUID uuid;
+    try {
+      uuid = UUID.fromString(data);
+    } catch (IllegalArgumentException iae) {
+      throw new PSQLException(GT.tr("Invalid UUID data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
+    }
+
+    return uuid;
+  }
+
+  // TODO: Move to a new util class UUIDConverter?
+  // TODO: A getUUID method on ValueAccess?
+  public static Object getUUID(byte[] data) throws SQLException {
+    return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
+  }
+
+  public static Object internalGetObject(BaseConnection connection, int rsType, ValueAccess access, int sqlType, String pgType, int scale) throws SQLException {
+    switch (sqlType) {
+      case Types.BOOLEAN:
+      case Types.BIT:
+        return access.getBoolean();
+      case Types.SQLXML:
+        return access.getSQLXML();
+      case Types.TINYINT:
+      case Types.SMALLINT:
+      case Types.INTEGER:
+        return access.getInt();
+      case Types.BIGINT:
+        return access.getLong();
+      case Types.NUMERIC:
+      case Types.DECIMAL:
+        return getNumeric(connection, rsType, access, sqlType, pgType,
+            scale, true);
+      case Types.REAL:
+        return access.getFloat();
+      case Types.FLOAT:
+      case Types.DOUBLE:
+        return access.getDouble();
+      case Types.CHAR:
+      case Types.VARCHAR:
+      case Types.LONGVARCHAR:
+        return access.getString();
+      case Types.DATE:
+        return access.getDate();
+      case Types.TIME:
+        return access.getTime();
+      case Types.TIMESTAMP:
+        return access.getTimestamp();
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        return access.getBytes();
+      case Types.ARRAY:
+        return access.getArray();
+      case Types.CLOB:
+        return access.getClob();
+      case Types.BLOB:
+        return access.getBlob();
+
+      default:
+
+        // if the backend doesn't know the type then coerce to String
+        if (pgType.equals("unknown")) {
+          return access.getString();
+        }
+
+        if (pgType.equals("uuid")) {
+          if (access.isBinary()) {
+            return getUUID(access.getBytes());
+          }
+          return getUUID(access.getString());
+        }
+
+        // Specialized support for ref cursors is neater.
+        if (pgType.equals("refcursor")) {
+          // Fetch all results.
+          String cursorName = access.getString();
+
+          StringBuilder sb = new StringBuilder("FETCH ALL IN ");
+          Utils.escapeIdentifier(sb, cursorName);
+
+          // nb: no BEGIN triggered here. This is fine. If someone
+          // committed, and the cursor was not holdable (closing the
+          // cursor), we avoid starting a new xact and promptly causing
+          // it to fail. If the cursor *was* holdable, we don't want a
+          // new xact anyway since holdable cursor state isn't affected
+          // by xact boundaries. If our caller didn't commit at all, or
+          // autocommit was on, then we wouldn't issue a BEGIN anyway.
+          //
+          // We take the scrollability from the statement, but until
+          // we have updatable cursors it must be readonly.
+          ResultSet rs =
+              connection.execSQLQuery(sb.toString(), rsType, ResultSet.CONCUR_READ_ONLY);
+          //
+          // In long running transactions these backend cursors take up memory space
+          // we could close in rs.close(), but if the transaction is closed before the result set,
+          // then
+          // the cursor no longer exists
+
+          sb.setLength(0);
+          sb.append("CLOSE ");
+          Utils.escapeIdentifier(sb, cursorName);
+          connection.execSQLUpdate(sb.toString());
+          ((PgResultSet) rs).setRefCursor(cursorName);
+          return rs;
+        }
+        if ("hstore".equals(pgType)) {
+          if (access.isBinary()) {
+            return HStoreConverter.fromBytes(access.getBytes(), connection.getEncoding());
+          }
+          return HStoreConverter.fromString(access.getString());
+        }
+
+        // Caller determines what to do (JDBC3 overrides in this case)
+        return null;
+    }
+  }
+
+  // TODO: Should this accept a scale when ultimately coming from a CallableStatement?
+  public static Object getObject(BaseConnection connection, int rsType, ValueAccess access, int sqlType, String pgType, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
+    Map<String, Class<?>> map = udtMap.getTypeMap();
+    LOGGER.log(Level.FINEST, "  map: {0}", map);
+    if (!map.isEmpty()) {
+      Class<?> customType = map.get(pgType);
+      if (customType != null) {
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
+        }
+        return SingleAttributeSQLInputHelper.getObjectCustomType(
+            udtMap, pgType, customType, access.getSQLInput(udtMap));
+      }
+    }
+
+    Object result = internalGetObject(connection, rsType, access, sqlType, pgType, -1);
+    if (result != null) {
+      return result;
+    }
+
+    return access.getPGobject(pgType);
+  }
+
+  // TODO: Support enums value Enum.valueOf?
   public static <T> T getObject(ValueAccess access, int sqlType, String pgType, Class<T> type, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");

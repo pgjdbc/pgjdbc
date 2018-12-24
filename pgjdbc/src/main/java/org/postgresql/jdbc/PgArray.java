@@ -25,6 +25,7 @@ import org.postgresql.udt.UdtMap;
 import org.postgresql.udt.ValueAccess;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.NumberConverter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -750,9 +751,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : PgResultSet.toShort((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toShort((String) o));
         } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
+          pa[length++] = o == null ? 0 : NumberConverter.toShort((String) o);
         }
       }
     } else if (sqlType == Types.INTEGER) {
@@ -775,9 +776,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : PgResultSet.toInt((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toInt((String) o));
         } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toInt((String) o);
+          pa[length++] = o == null ? 0 : NumberConverter.toInt((String) o);
         }
       }
     } else if (sqlType == Types.BIGINT) {
@@ -800,9 +801,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : PgResultSet.toLong((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toLong((String) o));
         } else {
-          pa[length++] = o == null ? 0L : PgResultSet.toLong((String) o);
+          pa[length++] = o == null ? 0L : NumberConverter.toLong((String) o);
         }
       }
     } else if (sqlType == Types.NUMERIC) {
@@ -815,7 +816,7 @@ public class PgArray implements java.sql.Array {
         // TODO: Beware 32-bit index:
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
-            : (v == null ? null : PgResultSet.toBigDecimal((String) v));
+            : (v == null ? null : NumberConverter.toBigDecimal((String) v));
       }
     } else if (sqlType == Types.REAL) {
       float[] pa = null;
@@ -837,9 +838,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : PgResultSet.toFloat((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toFloat((String) o));
         } else {
-          pa[length++] = o == null ? 0f : PgResultSet.toFloat((String) o);
+          pa[length++] = o == null ? 0f : NumberConverter.toFloat((String) o);
         }
       }
     } else if (sqlType == Types.DOUBLE) {
@@ -861,9 +862,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : PgResultSet.toDouble((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toDouble((String) o));
         } else {
-          pa[length++] = o == null ? 0d : PgResultSet.toDouble((String) o);
+          pa[length++] = o == null ? 0d : NumberConverter.toDouble((String) o);
         }
       }
     } else if (sqlType == Types.CHAR || sqlType == Types.VARCHAR || oid == Oid.JSONB_ARRAY) {
