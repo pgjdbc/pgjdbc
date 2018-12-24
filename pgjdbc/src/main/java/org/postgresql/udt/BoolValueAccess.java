@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 
 // TODO: Review for conversion compatibility with PgResultSet
 //       Or best - shared implementation
+// TODO: Consider renaming "PgBool"
 public class BoolValueAccess extends BaseValueAccess {
 
   private final boolean value;

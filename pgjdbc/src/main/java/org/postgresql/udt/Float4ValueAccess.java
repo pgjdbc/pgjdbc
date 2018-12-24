@@ -16,6 +16,7 @@ import java.sql.SQLException;
 
 // TODO: Review for conversion compatibility with PgResultSet
 //       Or best - shared implementation
+// TODO: Consider renaming "PgFloat4"
 public class Float4ValueAccess extends BaseValueAccess {
 
   private final float value;

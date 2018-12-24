@@ -16,6 +16,7 @@ import java.sql.SQLException;
 
 // TODO: Review for conversion compatibility with PgResultSet
 //       Or best - shared implementation
+// TODO: Consider renaming "PgInt4"
 public class Int4ValueAccess extends BaseValueAccess {
 
   private final int value;

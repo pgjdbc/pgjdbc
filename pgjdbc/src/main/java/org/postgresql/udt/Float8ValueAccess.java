@@ -16,6 +16,7 @@ import java.sql.SQLException;
 
 // TODO: Review for conversion compatibility with PgResultSet
 //       Or best - shared implementation
+// TODO: Consider renaming "PgFloat8"
 public class Float8ValueAccess extends BaseValueAccess {
 
   private final double value;

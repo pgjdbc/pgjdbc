@@ -12,6 +12,7 @@ import java.util.UUID;
 
 // TODO: Review for conversion compatibility with PgResultSet
 //       Or best - shared implementation
+// TODO: Consider renaming "PgUUID"
 public class UUIDValueAccess extends BaseValueAccess {
 
   private final int oid;
