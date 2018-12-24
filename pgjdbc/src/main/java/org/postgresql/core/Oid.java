@@ -16,6 +16,7 @@ import java.util.Map;
 /**
  * Provides constants for well-known backend OIDs for the types we commonly use.
  */
+// TODO: This looks like a very good candidate for an Enum.
 public class Oid {
   public static final int UNSPECIFIED = 0;
   public static final int INT2 = 21;
