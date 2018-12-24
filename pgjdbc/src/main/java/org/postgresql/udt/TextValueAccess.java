@@ -182,7 +182,7 @@ public class TextValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public boolean wasNull() throws SQLException {
+  public boolean wasNull() {
     return value == null;
   }
 }

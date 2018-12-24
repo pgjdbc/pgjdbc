@@ -35,4 +35,9 @@ public class UUIDValueAccess extends BaseValueAccess {
   public String getString() throws SQLException {
     return value.toString();
   }
+
+  @Override
+  public boolean wasNull() {
+    return value == null;
+  }
 }

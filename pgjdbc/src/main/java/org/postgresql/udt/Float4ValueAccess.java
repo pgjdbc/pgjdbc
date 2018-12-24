@@ -84,4 +84,9 @@ public class Float4ValueAccess extends BaseValueAccess {
   public BigDecimal getBigDecimal() throws SQLException {
     return BigDecimal.valueOf(value);
   }
+
+  @Override
+  public boolean wasNull() {
+    return false;
+  }
 }

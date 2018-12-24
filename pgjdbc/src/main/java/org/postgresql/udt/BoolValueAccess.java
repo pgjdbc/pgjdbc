@@ -155,4 +155,9 @@ public class BoolValueAccess extends BaseValueAccess {
   public BigDecimal getBigDecimal() throws SQLException {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
   }
+
+  @Override
+  public boolean wasNull() {
+    return false;
+  }
 }

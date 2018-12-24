@@ -298,16 +298,8 @@ public abstract class BaseValueAccess implements ValueAccess {
       conversionNotSupported.getState());
   }
 
-  /**
-   * {@inheritDoc}
-   *
-   * @return  This default implementation is for non-nullable types and returns {@code false}
-   */
-  // TODO: Should we make this abstract to force definition in each implementation?
   @Override
-  public boolean wasNull() throws SQLException {
-    return false;
-  }
+  public abstract boolean wasNull() throws SQLException;
 
   /**
    * {@inheritDoc}
