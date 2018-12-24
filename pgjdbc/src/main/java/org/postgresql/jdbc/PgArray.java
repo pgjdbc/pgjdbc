@@ -509,7 +509,7 @@ public class PgArray implements java.sql.Array {
     if (fieldString != null) {
 
       char[] chars = fieldString.toCharArray();
-      StringBuilder buffer = null;
+      StringBuilder buffer = null; // TODO: Reuse object with boolean hasBuffer flag?  Would it make any difference due to escape analysis?
       boolean insideString = false;
       boolean wasInsideString = false; // needed for checking if NULL
       // value occurred
@@ -610,6 +610,7 @@ public class PgArray implements java.sql.Array {
         }
 
         if (buffer != null) {
+          // TODO: Can also just keep track of indices instead of building the buffer
           buffer.append(chars[i]);
         }
       }
