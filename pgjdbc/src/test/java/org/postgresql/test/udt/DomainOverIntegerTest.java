@@ -363,40 +363,61 @@ public class DomainOverIntegerTest {
 
   @Test
   public void testLargeArray() throws Exception {
-    Statement stmt = con.createStatement();
-    try {
-      // PostgreSQL doesn't support arrays of domains, use base type
-      ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT * FROM generate_series(1, 65535)) AS ports");
+    for (int iter = 0; iter < 10; iter++) {
+      Statement stmt = con.createStatement();
       try {
-        Assert.assertTrue(result.next());
-        Array array = result.getArray(1);
-        // Get the array as base type
-        long startNanos = System.nanoTime();
-        Integer[] ints = (Integer[])array.getArray();
-        long endNanos = System.nanoTime();
-        LOGGER.log(Level.INFO, "array.getArray() of int[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
-        Assert.assertEquals(65535, ints.length);
-        for (int i = 1; i <= 65535; i++) {
-          Assert.assertEquals((Integer)i, ints[i - 1]);
+        // PostgreSQL doesn't support arrays of domains, use base type
+        ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT * FROM generate_series(1, 65535)) AS ports");
+        try {
+          Assert.assertTrue(result.next());
+          Array array = result.getArray(1);
+          // Get the array as base type
+          long startNanos = System.nanoTime();
+          Integer[] ints = (Integer[])array.getArray();
+          long endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getArray() of int[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
+          Assert.assertEquals(65535, ints.length);
+          for (int i = 1; i <= 65535; i++) {
+            Assert.assertEquals((Integer)i, ints[i - 1]);
+          }
+          // Get the array as domain type
+          startNanos = System.nanoTime();
+          PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getArray() of PortImpl[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
+          Assert.assertEquals(65535, ports.length);
+          for (int i = 1; i <= 65535; i++) {
+            Assert.assertEquals(new PortImpl(i), ports[i - 1]);
+          }
+          // TODO: ResultSet variations
+          startNanos = System.nanoTime();
+          ResultSet results = array.getResultSet();
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getResultSet() of int[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
+          for (int i = 1; i <= 65535; i++) {
+            Assert.assertTrue(results.next());
+            Assert.assertEquals(i, results.getInt(2));
+            Assert.assertTrue(!results.wasNull());
+          }
+          startNanos = System.nanoTime();
+          results = array.getResultSet(Collections.singletonMap("int4", PortImpl.class));
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "array.getResultSet() of PortImpl[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
+          for (int i = 1; i <= 65535; i++) {
+            Assert.assertTrue(results.next());
+            Assert.assertEquals(new PortImpl(i), results.getObject(2));
+            Assert.assertTrue(!results.wasNull());
+          }
+          // TODO: Time iteration of results, too
+          // TODO: Test with inference, too via resultset
+          // Must have only been one row
+          Assert.assertFalse(result.next());
+        } finally {
+          result.close();
         }
-        // Get the array as domain type
-        startNanos = System.nanoTime();
-        PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
-        endNanos = System.nanoTime();
-        LOGGER.log(Level.INFO, "array.getArray() of PortImpl[65535] in {0} μs", BigDecimal.valueOf(endNanos - startNanos, 3));
-        Assert.assertEquals(65535, ports.length);
-        for (int i = 1; i <= 65535; i++) {
-          Assert.assertEquals(new PortImpl(i), ports[i - 1]);
-        }
-        // TODO: ResultSet variations
-        // TODO: Test with inference, too via resultset
-        // Must have only been one row
-        Assert.assertFalse(result.next());
       } finally {
-        result.close();
+        stmt.close();
       }
-    } finally {
-      stmt.close();
     }
   }
 }
