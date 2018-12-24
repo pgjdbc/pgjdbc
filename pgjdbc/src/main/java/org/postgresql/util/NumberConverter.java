@@ -229,7 +229,7 @@ public class NumberConverter {
     return s;
   }
 
-  public static BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
+  public static BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws SQLException {
     if (scale == -1) {
       return val;
     }
