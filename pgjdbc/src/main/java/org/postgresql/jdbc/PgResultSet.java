@@ -2740,7 +2740,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     return ValueAccessHelper.getObject(connection, resultsettype, new PgResultSetValueAccess(this, columnIndex),
-        getSQLType(columnIndex), getPGType(columnIndex), udtMap, PSQLState.NOT_IMPLEMENTED);
+        // PSQLState.INVALID_PARAMETER_VALUE is consistent with previous implementation of PgResultSet.getObject(Class)
+        getSQLType(columnIndex), getPGType(columnIndex), udtMap, PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
