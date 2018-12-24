@@ -1561,6 +1561,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  // TODO: This looks redundant with PgResultSet / new BaseValueAccess
   private Calendar getDefaultCalendar() {
     TimestampUtils timestampUtils = connection.getTimestampUtils();
     if (timestampUtils.hasFastDefaultTimeZone()) {
