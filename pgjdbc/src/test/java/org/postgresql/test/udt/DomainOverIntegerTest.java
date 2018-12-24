@@ -355,5 +355,37 @@ public class DomainOverIntegerTest {
     }
   }
 
-  // TODO: Benchmark large arrays: select array(select * from generate_series(1, 1000));
+
+  @Test
+  public void testLargeArray() throws Exception {
+    Statement stmt = con.createStatement();
+    try {
+      // PostgreSQL doesn't support arrays of domains, use base type
+      ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT * FROM generate_series(1, 65535)) AS ports");
+      try {
+        Assert.assertTrue(result.next());
+        Array array = result.getArray(1);
+        // Get the array as base type
+        Integer[] ints = (Integer[])array.getArray();
+        Assert.assertEquals(65535, ints.length);
+        for (int i = 1; i <= 65535; i++) {
+          Assert.assertEquals((Integer)i, ints[i - 1]);
+        }
+        // Get the array as domain type
+        PortImpl[] ports = (PortImpl[])array.getArray(Collections.singletonMap("int4", PortImpl.class));
+        Assert.assertEquals(65535, ports.length);
+        for (int i = 1; i <= 65535; i++) {
+          Assert.assertEquals(new PortImpl(i), ports[i - 1]);
+        }
+        // TODO: ResultSet variations
+        // TODO: Test with inference, too via resultset
+        // Must have only been one row
+        Assert.assertFalse(result.next());
+      } finally {
+        result.close();
+      }
+    } finally {
+      stmt.close();
+    }
+  }
 }
