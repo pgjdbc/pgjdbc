@@ -295,33 +295,33 @@ public class PgArray implements java.sql.Array {
           switch (elementOid) {
             case Oid.INT2:
               access = new Int2ValueAccess(connection,
-                  ByteConverter.int2(fieldBytes, pos), udtMap);
+                  ByteConverter.int2(fieldBytes, pos));
               break;
             case Oid.INT4:
               access = new Int4ValueAccess(connection,
-                  ByteConverter.int4(fieldBytes, pos), udtMap);
+                  ByteConverter.int4(fieldBytes, pos));
               break;
             case Oid.INT8:
               access = new Int8ValueAccess(connection,
-                  ByteConverter.int8(fieldBytes, pos), udtMap);
+                  ByteConverter.int8(fieldBytes, pos));
               break;
             case Oid.FLOAT4:
               access = new Float4ValueAccess(connection,
-                  ByteConverter.float4(fieldBytes, pos), udtMap);
+                  ByteConverter.float4(fieldBytes, pos));
               break;
             case Oid.FLOAT8:
               access = new Float8ValueAccess(connection,
-                  ByteConverter.float8(fieldBytes, pos), udtMap);
+                  ByteConverter.float8(fieldBytes, pos));
               break;
             case Oid.TEXT:
             case Oid.VARCHAR:
               Encoding encoding = connection.getEncoding();
               access = new TextValueAccess(connection, elementOid,
-                  encoding.decode(fieldBytes, pos, len), udtMap);
+                  encoding.decode(fieldBytes, pos, len));
               break;
             case Oid.BOOL:
               access = new BoolValueAccess(connection,
-                  ByteConverter.bool(fieldBytes, pos), udtMap);
+                  ByteConverter.bool(fieldBytes, pos));
               break;
             // TODO: More types here?
             // TODO: PGobject here?
@@ -329,7 +329,7 @@ public class PgArray implements java.sql.Array {
               ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
               if (arrAssistant != null) {
                 access = arrAssistant.getValueAccess(connection, elementOid,
-                    arrAssistant.buildElement(fieldBytes, pos, len), udtMap);
+                    arrAssistant.buildElement(fieldBytes, pos, len));
               } else {
                 // TODO: Why is arr[i] left as null when no assistant?
                 // TODO: Would this be a place for an exception or an AssertionError?
@@ -675,7 +675,7 @@ public class PgArray implements java.sql.Array {
             Object v = input.get(index++);
             if (v != null) {
               ValueAccess access = arrAssistant.getValueAccess(connection, oid, // TODO: elementOID here?
-                  arrAssistant.buildElement((String) v), udtMap);
+                  arrAssistant.buildElement((String) v));
               oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
                   udtMap, pgType, customType, access.getSQLInput(udtMap));
             } else {
@@ -695,7 +695,7 @@ public class PgArray implements java.sql.Array {
             // TODO: Beware 32-bit index:
             Object v = input.get(index++);
             if (v != null) {
-              ValueAccess access = new TextValueAccess(connection, elementOID, (String) v, udtMap);
+              ValueAccess access = new TextValueAccess(connection, elementOID, (String) v);
               oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
                   udtMap, pgType, customType, access.getSQLInput(udtMap));
             } else {

@@ -149,8 +149,7 @@ public class ValueAccessSQLInput extends SingleAttributeSQLInput {
   @Override
   public Object readObject() throws SQLException {
     markRead();
-    // TODO: What to do with udtMap?
-    return access.getObject();
+    return access.getObject(udtMap);
   }
 
   @Override
@@ -229,7 +228,6 @@ public class ValueAccessSQLInput extends SingleAttributeSQLInput {
   //#endif
   public <T> T readObject(Class<T> type) throws SQLException {
     markRead();
-    // TODO: What to do with udtMap?
-    return access.getObject(type);
+    return access.getObject(type, udtMap);
   }
 }

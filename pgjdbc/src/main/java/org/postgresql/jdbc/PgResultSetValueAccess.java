@@ -41,12 +41,10 @@ class PgResultSetValueAccess implements ValueAccess {
 
   private final PgResultSet result;
   private final int columnIndex;
-  private final UdtMap udtMap;
 
-  PgResultSetValueAccess(PgResultSet result, int columnIndex, UdtMap udtMap) {
+  PgResultSetValueAccess(PgResultSet result, int columnIndex) {
     this.result = result;
     this.columnIndex = columnIndex;
-    this.udtMap = udtMap;
   }
 
   @Override
@@ -130,7 +128,7 @@ class PgResultSetValueAccess implements ValueAccess {
   }
 
   @Override
-  public Object getObject() throws SQLException {
+  public Object getObject(UdtMap udtMap) throws SQLException {
     // TODO: How does udtMap pass-through to the result?
     return result.getObject(columnIndex);
   }
@@ -215,7 +213,7 @@ class PgResultSetValueAccess implements ValueAccess {
   }
 
   @Override
-  public <T> T getObject(Class<T> type) throws SQLException {
+  public <T> T getObject(Class<T> type, UdtMap udtMap) throws SQLException {
     return ValueAccessHelper.getObject(this, result.getSQLType(columnIndex),
         result.getPGType(columnIndex), type, udtMap,
         // PSQLState.INVALID_PARAMETER_VALUE is consistent with previous implementation of PgResultSet.getObject(Class)

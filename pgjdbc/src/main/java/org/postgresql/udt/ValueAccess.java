@@ -322,6 +322,7 @@ public interface ValueAccess {
    * Required by all implementations.
    * </p>
    *
+   * @param udtMap the current user-defined data types
    * @return {@code null} if this value is null or {@link Object} of the value.
    *
    * @throws SQLException if a database access error occurs
@@ -333,7 +334,7 @@ public interface ValueAccess {
    * @see  SQLInput#readObject()
    */
   // TODO: Does getObject belong on the ValueAcces interface, or is it part of the SQLInput implementations?
-  Object getObject() throws SQLException;
+  Object getObject(UdtMap udtMap) throws SQLException;
 
   /**
    * Gets the {@link Ref} representation of this value.
@@ -582,6 +583,7 @@ public interface ValueAccess {
    *
    * @param <T> the type of the class modeled by this Class object
    * @param type Class representing the Java data type to convert the attribute to.
+   * @param udtMap the current user-defined data types
    *
    * @return {@code null} if this value is null or {@link Object} of the value in the requested type.
    *
@@ -595,7 +597,7 @@ public interface ValueAccess {
    * @see  SQLInput#readObject(java.lang.Class)
    */
   // TODO: Does getObject belong on the ValueAcces interface, or is it part of the SQLInput implementations?
-  <T> T getObject(Class<T> type) throws SQLException;
+  <T> T getObject(Class<T> type, UdtMap udtMap) throws SQLException;
 
   // Note: getObject(Map) not here because it is not required by SQLInput
 

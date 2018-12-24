@@ -20,8 +20,8 @@ public class Float4ValueAccess extends BaseValueAccess {
 
   private final float value;
 
-  public Float4ValueAccess(BaseConnection connection, float value, UdtMap udtMap) {
-    super(connection, udtMap);
+  public Float4ValueAccess(BaseConnection connection, float value) {
+    super(connection);
     this.value = value;
   }
 
@@ -86,7 +86,7 @@ public class Float4ValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public Object getObject() throws SQLException {
+  public Object getObject(UdtMap udtMap) throws SQLException {
     // TODO: typemap?
     return value;
   }

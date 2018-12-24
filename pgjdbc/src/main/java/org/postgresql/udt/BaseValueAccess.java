@@ -51,7 +51,6 @@ import java.util.TimeZone;
 public abstract class BaseValueAccess implements ValueAccess {
 
   protected final BaseConnection connection;
-  protected final UdtMap udtMap;
   // TODO: If we can get PgResultSet to use CANNOT_COERCE, this field will not be necessary.
   //       Likewise, if we choose to follow its lead of using PSQLState.DATA_TYPE_MISMATCH
   protected final PSQLState conversionNotSupported;
@@ -59,15 +58,14 @@ public abstract class BaseValueAccess implements ValueAccess {
   // TODO: Redundant with PgResultSet
   private TimeZone defaultTimeZone;
 
-  public BaseValueAccess(BaseConnection connection, UdtMap udtMap, PSQLState conversionNotSupported) {
+  public BaseValueAccess(BaseConnection connection, PSQLState conversionNotSupported) {
     this.connection = connection;
-    this.udtMap = udtMap;
     this.conversionNotSupported = conversionNotSupported;
   }
 
-  public BaseValueAccess(BaseConnection connection, UdtMap udtMap) {
+  public BaseValueAccess(BaseConnection connection) {
     // TODO: Should this be PSQLState.DATA_TYPE_MISMATCH like PgResultSet?
-    this(connection, udtMap, PSQLState.CANNOT_COERCE);
+    this(connection, PSQLState.CANNOT_COERCE);
   }
 
   protected abstract int getOid();
@@ -92,6 +90,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @return {@code true} when binary representation is preferred over textual representation
    */
   // TODO: Should the be promoted to be part of the ValueAccess interface?
+  // TODO: Is this even needed?  We have no binary types so far.
   protected boolean isBinary() {
     return false;
   }
@@ -251,7 +250,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   // TODO: This is required for all value access types
   // TODO: Do udtMap lookup here based on pgType, then make an abstract getObjectImpl?
   @Override
-  public abstract Object getObject() throws SQLException;
+  public abstract Object getObject(UdtMap udtMap) throws SQLException;
 
   /**
    * {@inheritDoc}
@@ -481,7 +480,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
   @Override
-  public <T> T getObject(Class<T> type) throws SQLException {
+  public <T> T getObject(Class<T> type, UdtMap udtMap) throws SQLException {
     return ValueAccessHelper.getObject(this, getSQLType(), getPGType(), type, udtMap, conversionNotSupported);
   }
 

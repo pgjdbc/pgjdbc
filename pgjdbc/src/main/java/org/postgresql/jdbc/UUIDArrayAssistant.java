@@ -8,7 +8,6 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.udt.UUIDValueAccess;
-import org.postgresql.udt.UdtMap;
 import org.postgresql.udt.ValueAccess;
 import org.postgresql.util.ByteConverter;
 
@@ -31,7 +30,7 @@ public class UUIDArrayAssistant implements ArrayAssistant {
   }
 
   @Override
-  public ValueAccess getValueAccess(BaseConnection connection, int oid, Object value, UdtMap udtMap) {
-    return new UUIDValueAccess(connection, oid, (UUID)value, udtMap);
+  public ValueAccess getValueAccess(BaseConnection connection, int oid, Object value) {
+    return new UUIDValueAccess(connection, oid, (UUID)value);
   }
 }

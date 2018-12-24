@@ -29,8 +29,8 @@ public class TextValueAccess extends BaseValueAccess {
   private final int oid;
   private final String value;
 
-  public TextValueAccess(BaseConnection connection, int oid, String value, UdtMap udtMap) {
-    super(connection, udtMap);
+  public TextValueAccess(BaseConnection connection, int oid, String value) {
+    super(connection);
     this.oid = oid;
     this.value = value;
   }
@@ -171,7 +171,7 @@ public class TextValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public Object getObject() throws SQLException {
+  public Object getObject(UdtMap udtMap) throws SQLException {
     // TODO: typemap?  Could probably do a lot more in AbstractValueAccess for getObject()
     //       regarding intercepting custom type maps and doing conversions from the various get* methods.
     //       Then this would become a protected getObjectImpl() used when no custom maps applied.

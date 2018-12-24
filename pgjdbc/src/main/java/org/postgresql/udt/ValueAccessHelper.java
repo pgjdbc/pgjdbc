@@ -230,9 +230,9 @@ public class ValueAccessHelper {
                 conversionNotSupported);
       }
     } else if (type == UUID.class) {
-      return type.cast(access.getObject());
+      return type.cast(access.getObject(udtMap));
     } else if (type == InetAddress.class) {
-      Object addressString = access.getObject();
+      Object addressString = access.getObject(udtMap);
       if (addressString == null) {
         return null;
       }

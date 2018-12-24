@@ -20,8 +20,8 @@ public class UUIDValueAccess extends BaseValueAccess {
 
   // TODO: oid passed here just because UIDArrayAssistant registers itself for both
   //       Oid.UUID and Oid.UUID_ARRAY
-  public UUIDValueAccess(BaseConnection connection, int oid, UUID value, UdtMap udtMap) {
-    super(connection, udtMap);
+  public UUIDValueAccess(BaseConnection connection, int oid, UUID value) {
+    super(connection);
     this.oid = oid;
     this.value = value;
   }
@@ -37,7 +37,7 @@ public class UUIDValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public Object getObject() throws SQLException {
+  public Object getObject(UdtMap udtMap) throws SQLException {
     // TODO: typemap?
     return value;
   }

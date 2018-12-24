@@ -3254,7 +3254,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (wasNullFlag) {
       return null;
     }
-    return new PgResultSetValueAccess(this, columnIndex, udtMap).getObject(type);
+    return new PgResultSetValueAccess(this, columnIndex).getObject(type, udtMap);
   }
 
   public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {

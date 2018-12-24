@@ -19,8 +19,8 @@ public class BoolValueAccess extends BaseValueAccess {
 
   private final boolean value;
 
-  public BoolValueAccess(BaseConnection connection, boolean value, UdtMap udtMap) {
-    super(connection, udtMap);
+  public BoolValueAccess(BaseConnection connection, boolean value) {
+    super(connection);
     this.value = value;
   }
 
@@ -158,7 +158,7 @@ public class BoolValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public Object getObject() throws SQLException {
+  public Object getObject(UdtMap udtMap) throws SQLException {
     // TODO: typemap?
     return value;
   }

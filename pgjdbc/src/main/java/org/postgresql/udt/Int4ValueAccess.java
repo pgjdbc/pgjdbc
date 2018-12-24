@@ -20,8 +20,8 @@ public class Int4ValueAccess extends BaseValueAccess {
 
   private final int value;
 
-  public Int4ValueAccess(BaseConnection connection, int value, UdtMap udtMap) {
-    super(connection, udtMap);
+  public Int4ValueAccess(BaseConnection connection, int value) {
+    super(connection);
     this.value = value;
   }
 
@@ -86,7 +86,7 @@ public class Int4ValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public Object getObject() throws SQLException {
+  public Object getObject(UdtMap udtMap) throws SQLException {
     // TODO: typemap?
     return value;
   }

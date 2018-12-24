@@ -6,7 +6,6 @@
 package org.postgresql.jdbc2;
 
 import org.postgresql.core.BaseConnection;
-import org.postgresql.udt.UdtMap;
 import org.postgresql.udt.ValueAccess;
 
 /**
@@ -51,8 +50,7 @@ public interface ArrayAssistant {
    * @param connection the current connection
    * @param oid the oid of this array type
    * @param value the element value object from {@link #buildElement(java.lang.String)} or {@link #buildElement(byte[], int, int)}
-   * @param udtMap the current user-defined data type mapping
    * @return the implementation of {@link ValueAccess} for elements of this type
    */
-  ValueAccess getValueAccess(BaseConnection connection, int oid, Object value, UdtMap udtMap);
+  ValueAccess getValueAccess(BaseConnection connection, int oid, Object value);
 }
