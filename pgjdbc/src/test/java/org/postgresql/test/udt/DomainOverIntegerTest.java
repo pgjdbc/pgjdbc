@@ -367,8 +367,12 @@ public class DomainOverIntegerTest {
       Statement stmt = con.createStatement();
       try {
         // PostgreSQL doesn't support arrays of domains, use base type
+        long startNanos = System.nanoTime();
         ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT * FROM generate_series(1, 65535)) AS ports");
         try {
+          long endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "Query large array in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
+
           Assert.assertTrue(result.next());
           Array array = result.getArray(1);
 
