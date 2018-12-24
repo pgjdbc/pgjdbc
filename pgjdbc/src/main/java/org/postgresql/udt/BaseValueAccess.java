@@ -81,11 +81,11 @@ public abstract class BaseValueAccess implements ValueAccess {
 
   /**
    * {@inheritDoc}
-   * <p>
+   *
+   * @implNote
    * Defaults to false, favoring the string representation because all types are
    * required to be convertible to {@link String}, whereas not all types are convertible
    * to {@code byte[]}.
-   * </p>
    */
   @Override
   public boolean isBinary() {
