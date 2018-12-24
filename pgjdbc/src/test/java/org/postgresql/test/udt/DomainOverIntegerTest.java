@@ -373,8 +373,11 @@ public class DomainOverIntegerTest {
           long endNanos = System.nanoTime();
           LOGGER.log(Level.INFO, "Query large array in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
 
+          startNanos = System.nanoTime();
           Assert.assertTrue(result.next());
           Array array = result.getArray(1);
+          endNanos = System.nanoTime();
+          LOGGER.log(Level.INFO, "ResultSet.getArray(int) in {0} ms", BigDecimal.valueOf(endNanos - startNanos, 6));
 
           // Get the array as base type
           startNanos = System.nanoTime();
