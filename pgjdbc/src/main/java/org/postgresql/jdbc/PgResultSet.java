@@ -276,11 +276,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getArray(findColumn(colName));
   }
 
-  protected Array makeArray(int oid, byte[] value) throws SQLException {
+  protected Array makeArray(int oid, byte[] value) {
     return new PgArray(connection, oid, value);
   }
 
-  protected Array makeArray(int oid, String value) throws SQLException {
+  protected Array makeArray(int oid, String value) {
     return new PgArray(connection, oid, value);
   }
 

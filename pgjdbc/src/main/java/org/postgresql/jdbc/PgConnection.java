@@ -1258,7 +1258,7 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 
-  protected Array makeArray(int oid, String fieldString) throws SQLException {
+  protected Array makeArray(int oid, String fieldString) {
     return new PgArray(this, oid, fieldString);
   }
 

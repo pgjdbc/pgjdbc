@@ -36,7 +36,7 @@ public class Int2ValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public String getString() throws SQLException {
+  public String getString() {
     return Integer.toString(value);
   }
 
@@ -51,37 +51,37 @@ public class Int2ValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public byte getByte() throws SQLException {
+  public byte getByte() {
     return (byte)value;
   }
 
   @Override
-  public short getShort() throws SQLException {
+  public short getShort() {
     return value;
   }
 
   @Override
-  public int getInt() throws SQLException {
+  public int getInt() {
     return value;
   }
 
   @Override
-  public long getLong() throws SQLException {
+  public long getLong() {
     return value;
   }
 
   @Override
-  public float getFloat() throws SQLException {
+  public float getFloat() {
     return value;
   }
 
   @Override
-  public double getDouble() throws SQLException {
+  public double getDouble() {
     return value;
   }
 
   @Override
-  public BigDecimal getBigDecimal() throws SQLException {
+  public BigDecimal getBigDecimal() {
     return BigDecimal.valueOf(value);
   }
 

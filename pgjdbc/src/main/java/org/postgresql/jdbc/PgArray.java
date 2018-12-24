@@ -103,7 +103,7 @@ public class PgArray implements java.sql.Array {
 
   protected byte[] fieldBytes;
 
-  private PgArray(BaseConnection connection, int oid) throws SQLException {
+  private PgArray(BaseConnection connection, int oid) {
     this.connection = connection;
     this.oid = oid;
     this.useObjects = true;
@@ -115,9 +115,8 @@ public class PgArray implements java.sql.Array {
    * @param connection a database connection
    * @param oid the oid of the array datatype
    * @param fieldString the array data in string form
-   * @throws SQLException if something wrong happens
    */
-  public PgArray(BaseConnection connection, int oid, String fieldString) throws SQLException {
+  public PgArray(BaseConnection connection, int oid, String fieldString) {
     this(connection, oid);
     this.fieldString = fieldString;
   }
@@ -128,9 +127,8 @@ public class PgArray implements java.sql.Array {
    * @param connection a database connection
    * @param oid the oid of the array datatype
    * @param fieldBytes the array data in byte form
-   * @throws SQLException if something wrong happens
    */
-  public PgArray(BaseConnection connection, int oid, byte[] fieldBytes) throws SQLException {
+  public PgArray(BaseConnection connection, int oid, byte[] fieldBytes) {
     this(connection, oid);
     this.fieldBytes = fieldBytes;
   }
@@ -377,7 +375,7 @@ public class PgArray implements java.sql.Array {
   }
 
   private int storeValues(List<byte[][]> rows, Field[] fields, int elementOid, final int[] dims,
-      int pos, final int thisDimension, int index) throws SQLException {
+      int pos, final int thisDimension, int index) {
     // handle an empty array
     if (dims.length == 0) {
       fields[0] = new Field("INDEX", Oid.INT4);
@@ -1149,7 +1147,8 @@ public class PgArray implements java.sql.Array {
     return fieldBytes;
   }
 
-  public void free() throws SQLException {
+  @Override
+  public void free() {
     connection = null;
     fieldString = null;
     fieldBytes = null;

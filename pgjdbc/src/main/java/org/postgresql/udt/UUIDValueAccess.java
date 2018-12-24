@@ -7,7 +7,6 @@ package org.postgresql.udt;
 
 import org.postgresql.core.BaseConnection;
 
-import java.sql.SQLException;
 import java.util.UUID;
 
 
@@ -32,7 +31,7 @@ public class UUIDValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public String getString() throws SQLException {
+  public String getString() {
     return value.toString();
   }
 

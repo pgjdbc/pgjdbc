@@ -42,7 +42,7 @@ public class TextValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public String getString() throws SQLException {
+  public String getString() {
     return value;
   }
 
@@ -177,7 +177,7 @@ public class TextValueAccess extends BaseValueAccess {
    * @see  PgResultSet#getArray(int)
    */
   @Override
-  public Array getArray() throws SQLException {
+  public Array getArray() {
     return (value == null) ? null : new PgArray(connection, oid, value);
   }
 

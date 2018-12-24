@@ -10,7 +10,6 @@ import org.postgresql.core.Oid;
 import org.postgresql.jdbc.PgResultSet;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 
 
 // TODO: Review for conversion compatibility with PgResultSet
@@ -35,12 +34,12 @@ public class BoolValueAccess extends BaseValueAccess {
   }
 
   @Override
-  public String getString() throws SQLException {
+  public String getString() {
     return value ? "t" : "f";
   }
 
   @Override
-  public boolean getBoolean() throws SQLException {
+  public boolean getBoolean() {
     return value;
   }
 
@@ -56,7 +55,7 @@ public class BoolValueAccess extends BaseValueAccess {
    * @see PgResultSet#getByte(int)
    */
   @Override
-  public byte getByte() throws SQLException {
+  public byte getByte() {
     return value ? (byte)1 : (byte)0;
   }
 
@@ -72,7 +71,7 @@ public class BoolValueAccess extends BaseValueAccess {
    * @see PgResultSet#getShort(int)
    */
   @Override
-  public short getShort() throws SQLException {
+  public short getShort() {
     return value ? (short)1 : (short)0;
   }
 
@@ -88,7 +87,7 @@ public class BoolValueAccess extends BaseValueAccess {
    * @see PgResultSet#getInt(int)
    */
   @Override
-  public int getInt() throws SQLException {
+  public int getInt() {
     return value ? 1 : 0;
   }
 
@@ -104,7 +103,7 @@ public class BoolValueAccess extends BaseValueAccess {
    * @see PgResultSet#getLong(int)
    */
   @Override
-  public long getLong() throws SQLException {
+  public long getLong() {
     return value ? 1 : 0;
   }
 
@@ -120,7 +119,7 @@ public class BoolValueAccess extends BaseValueAccess {
    * @see PgResultSet#getFloat(int)
    */
   @Override
-  public float getFloat() throws SQLException {
+  public float getFloat() {
     return value ? 1 : 0;
   }
 
@@ -136,7 +135,7 @@ public class BoolValueAccess extends BaseValueAccess {
    * @see PgResultSet#getDouble(int)
    */
   @Override
-  public double getDouble() throws SQLException {
+  public double getDouble() {
     return value ? 1 : 0;
   }
 
@@ -152,7 +151,7 @@ public class BoolValueAccess extends BaseValueAccess {
    * @see PgResultSet#getBigDecimal(int)
    */
   @Override
-  public BigDecimal getBigDecimal() throws SQLException {
+  public BigDecimal getBigDecimal() {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
   }
 
