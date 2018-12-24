@@ -5,7 +5,6 @@
 
 package org.postgresql.test.udt;
 
-import java.math.BigDecimal;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -13,6 +12,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
