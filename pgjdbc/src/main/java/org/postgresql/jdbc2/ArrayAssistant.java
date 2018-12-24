@@ -8,6 +8,9 @@ package org.postgresql.jdbc2;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.udt.ValueAccess;
 
+import java.sql.SQLException;
+
+
 /**
  * Implement this interface and register the its instance to ArrayAssistantRegistry, to let Postgres
  * driver to support more array type.
@@ -32,16 +35,18 @@ public interface ArrayAssistant {
    * @param pos position in input array
    * @param len length of the element
    * @return array element from its binary bytes
+   * @throws SQLException if something wrong happens
    */
-  Object buildElement(byte[] bytes, int pos, int len);
+  Object buildElement(byte[] bytes, int pos, int len) throws SQLException;
 
   /**
    * build an array element from its literal string.
    *
    * @param literal string representation of array element
    * @return array element
+   * @throws SQLException if something wrong happens
    */
-  Object buildElement(String literal);
+  Object buildElement(String literal) throws SQLException;
 
   /**
    * Gets the {@link ValueAccess} that will be used for user-defined data types

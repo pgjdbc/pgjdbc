@@ -10,13 +10,13 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.PgResultSet;
-import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.NumberConverter;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.UUIDConverter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -115,25 +115,6 @@ public class ValueAccessHelper {
     return NumberConverter.toBigDecimal(stringValue, scale);
   }
 
-  // TODO: Move to a new util class UUIDConverter?
-  // TODO: A getUUID method on ValueAccess?
-  public static Object getUUID(String data) throws SQLException {
-    UUID uuid;
-    try {
-      uuid = UUID.fromString(data);
-    } catch (IllegalArgumentException iae) {
-      throw new PSQLException(GT.tr("Invalid UUID data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
-    }
-
-    return uuid;
-  }
-
-  // TODO: Move to a new util class UUIDConverter?
-  // TODO: A getUUID method on ValueAccess?
-  public static Object getUUID(byte[] data) throws SQLException {
-    return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
-  }
-
   public static Object internalGetObject(BaseConnection connection, int rsType, ValueAccess access, int sqlType, String pgType, int scale) throws SQLException {
     switch (sqlType) {
       case Types.BOOLEAN:
@@ -169,6 +150,7 @@ public class ValueAccessHelper {
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
+        // TODO: access doesn't necessary have getBytes implementation
         return access.getBytes();
       case Types.ARRAY:
         return access.getArray();
@@ -186,9 +168,10 @@ public class ValueAccessHelper {
 
         if (pgType.equals("uuid")) {
           if (access.isBinary()) {
-            return getUUID(access.getBytes());
+            // TODO: A getUUID method on ValueAccess?
+            return UUIDConverter.getUUID(access.getBytes());
           }
-          return getUUID(access.getString());
+          return UUIDConverter.getUUID(access.getString());
         }
 
         // Specialized support for ref cursors is neater.
@@ -226,6 +209,7 @@ public class ValueAccessHelper {
         }
         if ("hstore".equals(pgType)) {
           if (access.isBinary()) {
+            // TODO: A getHstore method on ValueAccess?
             return HStoreConverter.fromBytes(access.getBytes(), connection.getEncoding());
           }
           return HStoreConverter.fromString(access.getString());

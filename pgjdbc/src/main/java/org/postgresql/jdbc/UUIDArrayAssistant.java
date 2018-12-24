@@ -9,9 +9,11 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.udt.UUIDValueAccess;
 import org.postgresql.udt.ValueAccess;
-import org.postgresql.util.ByteConverter;
+import org.postgresql.util.UUIDConverter;
 
+import java.sql.SQLException;
 import java.util.UUID;
+
 
 public class UUIDArrayAssistant implements ArrayAssistant {
   @Override
@@ -21,12 +23,12 @@ public class UUIDArrayAssistant implements ArrayAssistant {
 
   @Override
   public Object buildElement(byte[] bytes, int pos, int len) {
-    return new UUID(ByteConverter.int8(bytes, pos + 0), ByteConverter.int8(bytes, pos + 8));
+    return UUIDConverter.getUUID(bytes, pos);
   }
 
   @Override
-  public Object buildElement(String literal) {
-    return UUID.fromString(literal);
+  public Object buildElement(String literal) throws SQLException {
+    return UUIDConverter.getUUID(literal);
   }
 
   @Override
