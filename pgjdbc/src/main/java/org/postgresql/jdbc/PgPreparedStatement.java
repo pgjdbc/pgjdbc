@@ -904,6 +904,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
     if (x == null) {
       setNull(parameterIndex, Types.OTHER);
+    } else if (x instanceof SQLData) {
+      // TODO: Should this be restricted to those types registered in the type map?
+      // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
+      SingleAttributeSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));
     } else if (x instanceof UUID && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
       setUuid(parameterIndex, (UUID) x);
     } else if (x instanceof SQLXML) {
@@ -942,10 +946,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setArray(parameterIndex, (Array) x);
     } else if (x instanceof PGobject) {
       setPGobject(parameterIndex, (PGobject) x);
-    } else if (x instanceof SQLData) {
-      // TODO: Should this be restricted to those types registered in the type map?
-      // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-      SingleAttributeSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));
     } else if (x instanceof Character) {
       setString(parameterIndex, ((Character) x).toString());
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"

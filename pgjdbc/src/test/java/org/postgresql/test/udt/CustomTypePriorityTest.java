@@ -53,17 +53,17 @@ public class CustomTypePriorityTest {
   @Test
   public void testGetObjectPreparedStatement() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS normal, ? AS sqldata");
-    // If this uses SQLData, it will actually write CONSTANT_VALUE
     pstmt.setObject(1, new BigDecimal("1.00"));
+    // If this uses SQLData, it will actually write CONSTANT_VALUE:
     pstmt.setObject(2, new BigDecimalSQLData("2.00"));
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
 
     Assert.assertEquals(new BigDecimal("1.00"), result.getBigDecimal(1));
-    Assert.assertEquals(new BigDecimal("2.00"), result.getBigDecimal(2));
+    Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal(2));
 
     Assert.assertEquals(new BigDecimal("1.00"), result.getObject("normal"));
-    Assert.assertEquals("SQLData should have taken priority here", new BigDecimal("2.00"), result.getObject("sqldata"));
+    Assert.assertEquals("SQLData should have taken priority here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata"));
 
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject(1, Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
