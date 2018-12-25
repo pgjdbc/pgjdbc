@@ -5,21 +5,15 @@
 
 package org.postgresql.test.udt;
 
-import org.postgresql.test.TestUtil;
-
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.Array;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,55 +26,9 @@ import java.util.logging.Logger;
  * Tests a user-defined data type mapping to a <a href="https://www.postgresql.org/docs/current/sql-createdomain.html">DOMAIN</a>
  * over an integer type.  This tests the type inference because the server sends back the oid of the base type for domains.
  */
-public class DomainOverIntegerTest {
+public class DomainOverIntegerTest extends DomainTest {
 
   private static final Logger LOGGER = Logger.getLogger(DomainOverIntegerTest.class.getName());
-
-  private static final String EMAIL_SQL_TYPE = "public.\"Email\"";
-  private static final String PORT_SQL_TYPE = "\"port\"";
-
-  private Connection con;
-
-  // Set up the fixture for this testcase: the tables for this test.
-  @Before
-  public void setUp() throws Exception {
-    con = TestUtil.openDB();
-
-    TestUtil.createDomain(con, PORT_SQL_TYPE, "integer", "value >= 1 and value <= 65535");
-    TestUtil.createTable(con, "testport", "port " + PORT_SQL_TYPE + " primary key");
-
-    Map<String, Class<?>> typeMap = con.getTypeMap();
-    typeMap.put(PORT_SQL_TYPE, PortImpl.class);
-    typeMap.put(EMAIL_SQL_TYPE, Email.class);
-    con.setTypeMap(typeMap);
-
-    PreparedStatement pstmt = con.prepareStatement("INSERT INTO testport VALUES (?)");
-    try {
-      // Can add as the base type
-      pstmt.setInt(1, 1024);
-      pstmt.executeUpdate();
-      // Can also insert as Port object
-      pstmt.setObject(1, new PortImpl(16384));
-      pstmt.executeUpdate();
-      pstmt.setObject(1, new PortImpl(1337), Types.OTHER);
-      pstmt.executeUpdate();
-    } finally {
-      pstmt.close();
-    }
-  }
-
-  // Tear down the fixture for this test case.
-  @After
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(con);
-
-    con = TestUtil.openDB();
-
-    TestUtil.dropTable(con, "testport");
-    TestUtil.dropDomain(con, PORT_SQL_TYPE);
-
-    TestUtil.closeDB(con);
-  }
 
   @Test(expected = SQLException.class)
   public void testInsertPortTooLowInteger() throws Exception {
@@ -189,7 +137,7 @@ public class DomainOverIntegerTest {
     }
 
     Assert.assertEquals(
-        new HashSet<Port>(Arrays.asList(new PortImpl(1024), new PortImpl(1337), new PortImpl(16384))),
+        new HashSet<Port>(Arrays.asList(new PortImpl(PORT1), new PortImpl(PORT2), new PortImpl(PORT3))),
         ports
     );
   }
@@ -214,7 +162,7 @@ public class DomainOverIntegerTest {
     }
 
     Assert.assertEquals(
-        new HashSet<Port>(Arrays.asList(new PortImpl(1024), new PortImpl(1337), new PortImpl(16384))),
+        new HashSet<Port>(Arrays.asList(new PortImpl(PORT1), new PortImpl(PORT2), new PortImpl(PORT3))),
         ports
     );
   }
@@ -243,7 +191,7 @@ public class DomainOverIntegerTest {
     }
 
     Assert.assertEquals(
-        new HashSet<Port>(Arrays.asList(new PortImpl(1024), new PortImpl(1337), new PortImpl(16384))),
+        new HashSet<Port>(Arrays.asList(new PortImpl(PORT1), new PortImpl(PORT2), new PortImpl(PORT3))),
         ports
     );
   }
@@ -271,7 +219,7 @@ public class DomainOverIntegerTest {
     }
 
     Assert.assertEquals(
-        new HashSet<Integer>(Arrays.asList(1024, 1337, 16384)),
+        new HashSet<Integer>(Arrays.asList(PORT1, PORT2, PORT3)),
         ports
     );
   }
@@ -291,6 +239,7 @@ public class DomainOverIntegerTest {
       try {
         while (result.next()) {
           emails.add(result.getObject(1, Email.class));
+          Assert.fail();
         }
       } finally {
         result.close();
@@ -312,10 +261,10 @@ public class DomainOverIntegerTest {
         Array array = result.getArray("ports");
         // Get the array as base type
         Integer[] ints = (Integer[])array.getArray();
-        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints);
+        Assert.assertArrayEquals(new Integer[] {PORT1, PORT2, PORT3}, ints);
         // Get the array as domain type
         PortImpl[] ports = (PortImpl[])array.getArray(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
-        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports);
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(PORT1), new PortImpl(PORT2), new PortImpl(PORT3)}, ports);
         // TODO: ResultSet variations
         // Must have only been one row
         Assert.assertFalse(result.next());
@@ -339,15 +288,15 @@ public class DomainOverIntegerTest {
         // Get the array as base type
         Integer[][] ints = (Integer[][])array.getArray();
         Assert.assertEquals(3, ints.length);
-        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[0]);
-        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[1]);
-        Assert.assertArrayEquals(new Integer[] {1024, 1337, 16384}, ints[2]);
+        Assert.assertArrayEquals(new Integer[] {PORT1, PORT2, PORT3}, ints[0]);
+        Assert.assertArrayEquals(new Integer[] {PORT1, PORT2, PORT3}, ints[1]);
+        Assert.assertArrayEquals(new Integer[] {PORT1, PORT2, PORT3}, ints[2]);
         // Get the array as domain type
         PortImpl[][] ports = (PortImpl[][])array.getArray(Collections.<String, Class<?>>singletonMap("int4", PortImpl.class));
         Assert.assertEquals(3, ports.length);
-        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[0]);
-        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[1]);
-        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(1024), new PortImpl(1337), new PortImpl(16384)}, ports[2]);
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(PORT1), new PortImpl(PORT2), new PortImpl(PORT3)}, ports[0]);
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(PORT1), new PortImpl(PORT2), new PortImpl(PORT3)}, ports[1]);
+        Assert.assertArrayEquals(new PortImpl[] {new PortImpl(PORT1), new PortImpl(PORT2), new PortImpl(PORT3)}, ports[2]);
         // TODO: ResultSet variations
         // TODO: Test with inference, too via resultset
         // Must have only been one row

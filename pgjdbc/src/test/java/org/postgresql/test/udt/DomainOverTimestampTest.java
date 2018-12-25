@@ -13,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -21,16 +22,15 @@ import java.util.Set;
 
 /**
  * Tests a user-defined data type mapping to a <a href="https://www.postgresql.org/docs/current/sql-createdomain.html">DOMAIN</a>
- * over a text type.  This tests the type inference because the server sends back the oid of the base type for domains.
+ * over a timestamp type.  This tests the type inference because the server sends back the oid of the base type for domains.
  */
-// TODO: Use fail() on the exact statement after the one where SQLException is expected, here and other tests
-public class DomainOverTextTest extends DomainTest {
+public class DomainOverTimestampTest extends DomainTest {
 
   @Test(expected = SQLException.class)
-  public void testInsertInvalidEmailString() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("INSERT INTO testemail VALUES (?)");
+  public void testInsertInvalidTimestamp() throws Exception {
+    PreparedStatement pstmt = con.prepareStatement("INSERT INTO sales VALUES (?)");
     try {
-      pstmt.setString(1, "invalidemail");
+      pstmt.setTimestamp(1, TS_INVALID);
       pstmt.executeUpdate();
     } finally {
       pstmt.close();
@@ -38,10 +38,10 @@ public class DomainOverTextTest extends DomainTest {
   }
 
   @Test(expected = SQLException.class)
-  public void testInsertInvalidEmailUDT() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("INSERT INTO testemail VALUES (?)");
+  public void testInsertInvalidUDT() throws Exception {
+    PreparedStatement pstmt = con.prepareStatement("INSERT INTO sales VALUES (?)");
     try {
-      pstmt.setObject(1, new Email("invalidUDT"));
+      pstmt.setObject(1, new SaleDate(TS_INVALID));
       pstmt.executeUpdate();
     } finally {
       pstmt.close();
@@ -51,13 +51,13 @@ public class DomainOverTextTest extends DomainTest {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test
   public void testGetObjectUDT() throws Exception {
-    Set<Email> emails = new HashSet<Email>();
+    Set<SaleDate> dates = new HashSet<SaleDate>();
     Statement stmt = con.createStatement();
     try {
-      ResultSet result = stmt.executeQuery("SELECT * FROM testemail");
+      ResultSet result = stmt.executeQuery("SELECT * FROM sales");
       try {
         while (result.next()) {
-          emails.add(result.getObject(1, Email.class));
+          dates.add(result.getObject(1, SaleDate.class));
         }
       } finally {
         result.close();
@@ -67,8 +67,8 @@ public class DomainOverTextTest extends DomainTest {
     }
 
     Assert.assertEquals(
-        new HashSet<Email>(Arrays.asList(new Email(EMAIL3), new Email(EMAIL1), new Email(EMAIL2))),
-        emails
+        new HashSet<SaleDate>(Arrays.asList(new SaleDate(TS3), new SaleDate(TS1), new SaleDate(TS2))),
+        dates
     );
   }
   //#endif
@@ -78,11 +78,11 @@ public class DomainOverTextTest extends DomainTest {
   public void testNullRow() throws Exception {
     Statement stmt = con.createStatement();
     try {
-      stmt.executeUpdate("INSERT INTO testemail VALUES (NULL)");
-      ResultSet result = stmt.executeQuery("SELECT * FROM testemail WHERE email IS NULL");
+      stmt.executeUpdate("INSERT INTO sales VALUES (NULL)");
+      ResultSet result = stmt.executeQuery("SELECT * FROM sales WHERE date IS NULL");
       try {
         while (result.next()) {
-          Assert.assertNull(result.getObject("email", Email.class));
+          Assert.assertNull(result.getObject("date", SaleDate.class));
         }
       } finally {
         result.close();
@@ -95,18 +95,18 @@ public class DomainOverTextTest extends DomainTest {
 
   @Test
   public void testOverrideBaseType() throws Exception {
-    // Add base type from "text" to go to Email
+    // Add base type from "timestamptz" to go to SaleDate
     Map<String, Class<?>> typemap = con.getTypeMap();
-    typemap.put("text", Email.class);
+    typemap.put("timestamptz", SaleDate.class);
     con.setTypeMap(typemap);
 
-    Set<Email> emails = new HashSet<Email>();
+    Set<SaleDate> dates = new HashSet<SaleDate>();
     Statement stmt = con.createStatement();
     try {
-      ResultSet result = stmt.executeQuery("SELECT * FROM testemail");
+      ResultSet result = stmt.executeQuery("SELECT * FROM sales");
       try {
         while (result.next()) {
-          emails.add((Email)result.getObject(1));
+          dates.add((SaleDate)result.getObject(1));
         }
       } finally {
         result.close();
@@ -116,25 +116,25 @@ public class DomainOverTextTest extends DomainTest {
     }
 
     Assert.assertEquals(
-        new HashSet<Email>(Arrays.asList(new Email(EMAIL3), new Email(EMAIL1), new Email(EMAIL2))),
-        emails
+        new HashSet<SaleDate>(Arrays.asList(new SaleDate(TS3), new SaleDate(TS1), new SaleDate(TS2))),
+        dates
     );
   }
 
   @Test
   public void testParamMapOverridesConnectionMap() throws Exception {
-    // Add base type from "text" to go to Email
+    // Add base type from "timestamptz" to go to SaleDate
     Map<String, Class<?>> typemap = con.getTypeMap();
-    typemap.put("text", Email.class);
+    typemap.put("timestamptz", SaleDate.class);
     con.setTypeMap(typemap);
 
-    Set<String> emails = new HashSet<String>();
+    Set<Timestamp> dates = new HashSet<Timestamp>();
     Statement stmt = con.createStatement();
     try {
-      ResultSet result = stmt.executeQuery("SELECT * FROM testemail");
+      ResultSet result = stmt.executeQuery("SELECT * FROM sales");
       try {
         while (result.next()) {
-          emails.add((String)result.getObject(1, Collections.<String, Class<?>>emptyMap()));
+          dates.add((Timestamp)result.getObject(1, Collections.<String, Class<?>>emptyMap()));
         }
       } finally {
         result.close();
@@ -144,26 +144,26 @@ public class DomainOverTextTest extends DomainTest {
     }
 
     Assert.assertEquals(
-        new HashSet<String>(Arrays.asList(EMAIL3, EMAIL1, EMAIL2)),
-        emails
+        new HashSet<Timestamp>(Arrays.asList(TS3, TS1, TS2)),
+        dates
     );
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testTypeUnassignable() throws Exception {
-    // Add base type from "text" to go to Email
+    // Add base type from "timestamptz" to go to SaleDate
     Map<String, Class<?>> typemap = con.getTypeMap();
-    typemap.put("text", Email.class);
+    typemap.put("timestamptz", SaleDate.class);
     con.setTypeMap(typemap);
 
     Set<Port> ports = new HashSet<Port>();
     Statement stmt = con.createStatement();
     try {
-      ResultSet result = stmt.executeQuery("SELECT * FROM testemail");
+      ResultSet result = stmt.executeQuery("SELECT * FROM sales");
       try {
         while (result.next()) {
-          ports.add(result.getObject("email", Port.class));
+          ports.add(result.getObject("date", Port.class));
           Assert.fail();
         }
       } finally {
@@ -180,16 +180,16 @@ public class DomainOverTextTest extends DomainTest {
     Statement stmt = con.createStatement();
     try {
       // PostgreSQL doesn't support arrays of domains, use base type
-      ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email) AS emails");
+      ResultSet result = stmt.executeQuery("SELECT ARRAY(SELECT date::timestamp with time zone FROM sales ORDER BY date) AS dates");
       try {
         Assert.assertTrue(result.next());
         Array array = result.getArray(1);
         // Get the array as base type
-        String[] strings = (String[])array.getArray();
-        Assert.assertArrayEquals(new String[] {EMAIL1, EMAIL2, EMAIL3}, strings);
+        Timestamp[] timestamps = (Timestamp[])array.getArray();
+        Assert.assertArrayEquals(new Timestamp[] {TS1, TS2, TS3}, timestamps);
         // Get the array as domain type
-        Email[] emails = (Email[])array.getArray(Collections.<String, Class<?>>singletonMap("text", Email.class));
-        Assert.assertArrayEquals(new Email[] {new Email(EMAIL1), new Email(EMAIL2), new Email(EMAIL3)}, emails);
+        SaleDate[] dates = (SaleDate[])array.getArray(Collections.<String, Class<?>>singletonMap("timestamptz", SaleDate.class));
+        Assert.assertArrayEquals(new SaleDate[] {new SaleDate(TS1), new SaleDate(TS2), new SaleDate(TS3)}, dates);
         // TODO: ResultSet variations
         // Must have only been one row
         Assert.assertFalse(result.next());
@@ -206,22 +206,22 @@ public class DomainOverTextTest extends DomainTest {
     Statement stmt = con.createStatement();
     try {
       // PostgreSQL doesn't support arrays of domains, use base type
-      ResultSet result = stmt.executeQuery("SELECT ARRAY[(SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email)), (SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email)), (SELECT ARRAY(SELECT email::text FROM testemail ORDER BY email))] AS emails");
+      ResultSet result = stmt.executeQuery("SELECT ARRAY[(SELECT ARRAY(SELECT date::timestamptz FROM sales ORDER BY date)), (SELECT ARRAY(SELECT date::timestamptz FROM sales ORDER BY date)), (SELECT ARRAY(SELECT date::timestamptz FROM sales ORDER BY date))] AS dates");
       try {
         Assert.assertTrue(result.next());
         Array array = result.getArray(1);
         // Get the array as base type
-        String[][] strings = (String[][])array.getArray();
-        Assert.assertEquals(3, strings.length);
-        Assert.assertArrayEquals(new String[] {EMAIL1, EMAIL2, EMAIL3}, strings[0]);
-        Assert.assertArrayEquals(new String[] {EMAIL1, EMAIL2, EMAIL3}, strings[1]);
-        Assert.assertArrayEquals(new String[] {EMAIL1, EMAIL2, EMAIL3}, strings[2]);
+        Timestamp[][] timestamps = (Timestamp[][])array.getArray();
+        Assert.assertEquals(3, timestamps.length);
+        Assert.assertArrayEquals(new Timestamp[] {TS1, TS2, TS3}, timestamps[0]);
+        Assert.assertArrayEquals(new Timestamp[] {TS1, TS2, TS3}, timestamps[1]);
+        Assert.assertArrayEquals(new Timestamp[] {TS1, TS2, TS3}, timestamps[2]);
         // Get the array as domain type
-        Email[][] emails = (Email[][])array.getArray(Collections.<String, Class<?>>singletonMap("text", Email.class));
-        Assert.assertEquals(3, emails.length);
-        Assert.assertArrayEquals(new Email[] {new Email(EMAIL1), new Email(EMAIL2), new Email(EMAIL3)}, emails[0]);
-        Assert.assertArrayEquals(new Email[] {new Email(EMAIL1), new Email(EMAIL2), new Email(EMAIL3)}, emails[1]);
-        Assert.assertArrayEquals(new Email[] {new Email(EMAIL1), new Email(EMAIL2), new Email(EMAIL3)}, emails[2]);
+        SaleDate[][] dates = (SaleDate[][])array.getArray(Collections.<String, Class<?>>singletonMap("timestamptz", SaleDate.class));
+        Assert.assertEquals(3, dates.length);
+        Assert.assertArrayEquals(new SaleDate[] {new SaleDate(TS1), new SaleDate(TS2), new SaleDate(TS3)}, dates[0]);
+        Assert.assertArrayEquals(new SaleDate[] {new SaleDate(TS1), new SaleDate(TS2), new SaleDate(TS3)}, dates[1]);
+        Assert.assertArrayEquals(new SaleDate[] {new SaleDate(TS1), new SaleDate(TS2), new SaleDate(TS3)}, dates[2]);
         // TODO: ResultSet variations
         // TODO: Test with inference, too via resultset
         // Must have only been one row

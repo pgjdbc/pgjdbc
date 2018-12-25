@@ -21,6 +21,7 @@ import org.junit.runners.Suite;
         InvertedMapTest.class,
         DomainOverIntegerTest.class,
         DomainOverTextTest.class,
+        DomainOverTimestampTest.class,
         SingleAttributeRequiredTest.class,
         MultipleAttributesNotAllowedTest.class,
         SQLInputWasNullBeforeReadTest.class,

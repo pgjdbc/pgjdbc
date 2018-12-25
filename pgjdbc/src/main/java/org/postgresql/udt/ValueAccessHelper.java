@@ -582,7 +582,7 @@ public class ValueAccessHelper {
         }
       }
     }
-    throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+    throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
             conversionNotSupported);
   }
 }
