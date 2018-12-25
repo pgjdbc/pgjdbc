@@ -147,6 +147,7 @@ public class EnumTest extends BaseTest4 {
     pstmt.close();
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectWithClassDirectFromString() throws Exception {
@@ -162,7 +163,9 @@ public class EnumTest extends BaseTest4 {
     Assert.assertFalse(result.next());
     pstmt.close();
   }
+  //#endif
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectWithClassDirectFromObject() throws Exception {
@@ -178,7 +181,9 @@ public class EnumTest extends BaseTest4 {
     Assert.assertFalse(result.next());
     pstmt.close();
   }
+  //#endif
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectWithClassInferredFromString() throws Exception {
@@ -194,7 +199,9 @@ public class EnumTest extends BaseTest4 {
     // TODO: Do another method like this, but giving an invalid value, to make sure the type is handled as ENUM server-side before being sent back to text
   }
   // TODO: Option to turn on/off inference, turn off here to make sure fails
+  //#endif
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectWithClassInferredFromObject() throws Exception {
@@ -210,6 +217,7 @@ public class EnumTest extends BaseTest4 {
     // TODO: Do another method like this, but giving an invalid value, to make sure the type is handled as ENUM server-side before being sent back to text
   }
   // TODO: Option to turn on/off inference, turn off here to make sure fails
+  // #endif
 
   @Test // TODO: Once implemented: (expected = SQLException.class)
   public void testGetObjectFromStringOverrideToNoMapping() throws Exception {
@@ -255,6 +263,7 @@ public class EnumTest extends BaseTest4 {
     // TODO: Once implemented: Assert.fail();
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testGetObjectFromStringWithClassNoMapping() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
@@ -269,6 +278,7 @@ public class EnumTest extends BaseTest4 {
     result.getObject(1, DayOfWeek.class); // TODO: Should we still support Enum in this case, even when not mapped?
     Assert.fail();
   }
+  //#endif
 
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
@@ -289,8 +299,10 @@ public class EnumTest extends BaseTest4 {
     Assert.assertEquals(DayOfWeek.wednesday.name(), result.getString("dow"));
     Assert.assertSame(DayOfWeek.wednesday, result.getObject(1));
     Assert.assertSame(DayOfWeek.wednesday, result.getObject("dow"));
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     Assert.assertSame(DayOfWeek.wednesday, result.getObject(1, DayOfWeek.class));
     Assert.assertSame(DayOfWeek.wednesday, result.getObject("dow", DayOfWeek.class));
+    //#endif
     Assert.assertFalse(result.next());
     stmt.close();
   }
@@ -314,8 +326,10 @@ public class EnumTest extends BaseTest4 {
     Assert.assertEquals(DayOfWeek.tuesday.name(), result.getString("dow"));
     Assert.assertSame(DayOfWeek.tuesday, result.getObject(1));
     Assert.assertSame(DayOfWeek.tuesday, result.getObject("dow"));
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     Assert.assertSame(DayOfWeek.tuesday, result.getObject(1, DayOfWeek.class));
     Assert.assertSame(DayOfWeek.tuesday, result.getObject("dow", DayOfWeek.class));
+    //#endif
     Assert.assertFalse(result.next());
     stmt.close();
   }
