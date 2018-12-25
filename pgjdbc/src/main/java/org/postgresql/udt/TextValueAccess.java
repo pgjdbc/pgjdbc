@@ -22,6 +22,10 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+//#endif
 import java.util.Calendar;
 
 
@@ -205,4 +209,26 @@ public class TextValueAccess extends BaseValueAccess {
   public boolean wasNull() {
     return value == null;
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  /**
+   * {@inheritDoc}
+   *
+   * @see PgResultSet#getLocalDateTime(int)
+   */
+  @Override
+  public LocalDateTime getLocalDateTime() throws SQLException {
+    return connection.getTimestampUtils().toLocalDateTime(value);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @see PgResultSet#getLocalTime(int)
+   */
+  @Override
+  public LocalTime getLocalTime() throws SQLException {
+    return connection.getTimestampUtils().toLocalTime(value);
+  }
+  //#endif
 }

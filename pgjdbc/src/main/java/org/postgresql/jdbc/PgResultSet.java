@@ -453,8 +453,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   // TODO: This checks the OID for only byte[], while getLocalDateTime checks
-  //       OID for both byte[] and string versions.  We are assuming the OID checks
-  //       only need to be done on the byte[] versions in BaseValueAccess
+  //       OID for both byte[] and string versions.
   LocalTime getLocalTime(int i) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
@@ -464,7 +463,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (isBinary(i)) {
       int col = i - 1;
       int oid = fields[col].getOID();
-      if (oid == Oid.TIME) {
+      if (oid == Oid.TIME) { // TODO: Oid.TIMETZ, too?
         return connection.getTimestampUtils().toLocalTimeBin(this_row[col]);
       } else {
         throw new PSQLException(
@@ -544,8 +543,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   // TODO: This checks the OID for both byte[] and String versions, while getLocalTime
-  //       only checks OID for byte[] version.  We are assuming the OID checks
-  //       only need to be done on the byte[] versions in BaseValueAccess
+  //       only checks OID for byte[] version.
   LocalDateTime getLocalDateTime(int i) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {

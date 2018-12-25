@@ -7,7 +7,6 @@ package org.postgresql.udt;
 
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.Oid;
 import org.postgresql.jdbc.PgBlob;
 import org.postgresql.jdbc.PgClob;
 import org.postgresql.jdbc.PgResultSet;
@@ -16,7 +15,6 @@ import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.AsciiStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.ByteArrayInputStream;
@@ -87,6 +85,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * to {@code byte[]}.
    * </p>
    */
+  // TODO: Does this belong here?
   @Override
   public boolean isBinary() {
     return false;
@@ -155,7 +154,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   public BigDecimal getBigDecimal() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
-            BigDecimal.class.getName(), getPGType()),
+            BigDecimal.class.getSimpleName(), getPGType()),
         conversionNotSupported.getState());
   }
 
@@ -176,7 +175,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   public Date getDate(Calendar cal) throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
-            Date.class.getName(), getPGType()),
+            "date", getPGType()),
         conversionNotSupported.getState());
   }
 
@@ -189,7 +188,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   public Time getTime(Calendar cal) throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
-            Time.class.getName(), getPGType()),
+            "time", getPGType()),
         conversionNotSupported.getState());
   }
 
@@ -202,7 +201,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   public Timestamp getTimestamp(Calendar cal) throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
-            Timestamp.class.getName(), getPGType()),
+            "timestamp", getPGType()),
         conversionNotSupported.getState());
   }
 
@@ -309,7 +308,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   public Array getArray() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
       GT.tr("conversion to {0} from {1} not supported",
-          Array.class.getName(), getPGType()),
+          "array", getPGType()),
       conversionNotSupported.getState());
   }
 
@@ -429,39 +428,16 @@ public abstract class BaseValueAccess implements ValueAccess {
   public LocalDateTime getLocalDateTime() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
       GT.tr("conversion to {0} from {1} not supported",
-          LocalDateTime.class.getName(), getPGType()),
+          LocalDateTime.class.getSimpleName(), getPGType()),
       conversionNotSupported.getState());
   }
 
-  /**
-   * {@inheritDoc}
-   *
-   * @see PgResultSet#getLocalTime(int)
-   */
-  // TODO: Redundant with PgResultSet
   @Override
   public LocalTime getLocalTime() throws SQLException, SQLFeatureNotSupportedException {
-    // TODO: Does isBinary() make sense for BaseValueAccess?
-    // TODO: Should this just be on a TimeValueAccess implementation?
-    if (isBinary()) {
-      int oid = getOid();
-      if (oid == Oid.TIME) {
-        byte[] bytes = getBytes();
-        if (bytes == null) {
-          return null;
-        }
-        return connection.getTimestampUtils().toLocalTimeBin(bytes);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), "time"),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
-    }
-
-    // TODO: Should this just be on the StringValueAccess implementation?
-    String string = getString();
-    return (string == null) ? null : connection.getTimestampUtils().toLocalTime(string);
+    throw new SQLFeatureNotSupportedException(
+      GT.tr("conversion to {0} from {1} not supported",
+          LocalTime.class.getSimpleName(), getPGType()),
+      conversionNotSupported.getState());
   }
   //#endif
 

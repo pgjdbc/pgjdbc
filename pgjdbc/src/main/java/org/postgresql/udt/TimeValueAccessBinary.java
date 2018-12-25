@@ -13,9 +13,10 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 //#endif
 import java.util.Arrays;
 import java.util.Calendar;
@@ -23,17 +24,17 @@ import java.util.TimeZone;
 
 
 /**
- * Handles {@link Oid#TIMESTAMP} and {@link Oid#TIMESTAMPTZ} from {@code byte[]}.
+ * Handles {@link Oid#TIME} and {@link Oid#TIMETZ} from {@code byte[]}.
  */
-// TODO: Consider renaming "PgTimestamp"
-public class TimestampValueAccessBinary extends TimestampValueAccess {
+// TODO: Consider renaming "PgTime"
+public class TimeValueAccessBinary extends TimeValueAccess {
 
   private final byte[] bytes;
 
-  public TimestampValueAccessBinary(BaseConnection connection, int oid, byte[] bytes, int pos, int len) throws SQLException {
+  public TimeValueAccessBinary(BaseConnection connection, int oid, byte[] bytes, int pos, int len) throws SQLException {
     super(connection, oid);
     int to = pos + len;
-    if (len != 8 || bytes.length < to) {
+    if ((len != 8 && len != 12) || bytes.length < to) {
       throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", getPGType()),
               PSQLState.BAD_DATETIME_FORMAT);
     } else if (pos == 0 && bytes.length == len) {
@@ -43,11 +44,11 @@ public class TimestampValueAccessBinary extends TimestampValueAccess {
     }
   }
 
-  public TimestampValueAccessBinary(BaseConnection connection, int oid, byte[] bytes) throws SQLException {
+  public TimeValueAccessBinary(BaseConnection connection, int oid, byte[] bytes) throws SQLException {
     super(connection, oid);
     if (bytes == null) {
       this.bytes = null;
-    } else if (bytes.length != 8) {
+    } else if (bytes.length != 8 && bytes.length != 12) {
       throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", getPGType()),
               PSQLState.BAD_DATETIME_FORMAT);
     } else {
@@ -70,12 +71,29 @@ public class TimestampValueAccessBinary extends TimestampValueAccess {
     if (bytes == null) {
       return null;
     }
-    return getTimestamp().toString();
+    return getTime().toString();
   }
 
   @Override
   public byte[] getBytes() {
     return bytes;
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @see PgResultSet#getTime(int, java.util.Calendar)
+   */
+  @Override
+  public Time getTime(Calendar cal) throws SQLException {
+    if (bytes == null) {
+      return null;
+    }
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
+    TimeZone tz = cal.getTimeZone();
+    return connection.getTimestampUtils().toTimeBin(tz, bytes);
   }
 
   /**
@@ -91,9 +109,8 @@ public class TimestampValueAccessBinary extends TimestampValueAccess {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
-    boolean hasTimeZone = getOid() == Oid.TIMESTAMPTZ;
-    TimeZone tz = cal.getTimeZone();
-    return connection.getTimestampUtils().toTimestampBin(tz, bytes, hasTimeZone);
+    // JDBC spec says getTimestamp of Time and Date must be supported
+    return new Timestamp(getTime(cal).getTime());
   }
 
   @Override
@@ -108,15 +125,14 @@ public class TimestampValueAccessBinary extends TimestampValueAccess {
    * Implemented via quick binary shortcut.
    * </p>
    *
-   * @see PgResultSet#getLocalDateTime(int)
+   * @see PgResultSet#getLocalTime(int)
    */
   @Override
-  public LocalDateTime getLocalDateTime() throws SQLException {
+  public LocalTime getLocalTime() throws SQLException {
     if (bytes == null) {
       return null;
     }
-    TimeZone timeZone = getDefaultCalendar().getTimeZone();
-    return connection.getTimestampUtils().toLocalDateTimeBin(timeZone, bytes);
+    return connection.getTimestampUtils().toLocalTimeBin(bytes);
   }
   //#endif
 }
