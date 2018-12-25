@@ -94,7 +94,8 @@ public class EnumTest {
     pstmt.close();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testGetStringFromObject() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"Yes\"");
     pstmt.setObject(1, DayOfWeek.friday);
@@ -106,7 +107,8 @@ public class EnumTest {
     pstmt.close();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testGetObjectFromString() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
     pstmt.setString(1, DayOfWeek.friday.name());
@@ -118,7 +120,8 @@ public class EnumTest {
     pstmt.close();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testGetObjectFromObject() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"Yes\"");
     pstmt.setObject(1, DayOfWeek.friday);
@@ -130,7 +133,8 @@ public class EnumTest {
     pstmt.close();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testGetObjectWithClassFromString() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
     pstmt.setString(1, DayOfWeek.friday.name());
@@ -142,7 +146,8 @@ public class EnumTest {
     pstmt.close();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testGetObjectWithClassFromObject() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"Yes\"");
     pstmt.setObject(1, DayOfWeek.friday);
@@ -154,17 +159,18 @@ public class EnumTest {
     pstmt.close();
   }
 
-  @Test(expected = SQLException.class)
+  @Test // TODO: Once implemented: (expected = SQLException.class)
   public void testGetObjectFromStringOverrideToNoMapping() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     result.getObject(1, Collections.<String, Class<?>>emptyMap());
-    Assert.fail();
+    // TODO: Once implemented: Assert.fail();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testGetObjectFromStringOverrideToHaveMapping() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     con.setTypeMap(Collections.<String, Class<?>>emptyMap());
@@ -179,7 +185,7 @@ public class EnumTest {
     pstmt.close();
   }
 
-  @Test(expected = SQLException.class)
+  @Test // TODO: Once implemented: (expected = SQLException.class)
   public void testGetObjectFromStringNoMapping() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.clear();;
@@ -190,7 +196,7 @@ public class EnumTest {
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     result.getObject(1);
-    Assert.fail();
+    // TODO: Once implemented: Assert.fail();
   }
 
   @Test(expected = SQLException.class)
@@ -207,7 +213,8 @@ public class EnumTest {
     Assert.fail();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testInsertAsString() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testdow VALUES (?::" + DAY_OF_WEEK_TYPE + ")");
     try {
@@ -230,7 +237,8 @@ public class EnumTest {
     stmt.close();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testInsertAsObject() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testdow VALUES (?)");
     try {
@@ -253,7 +261,8 @@ public class EnumTest {
     stmt.close();
   }
 
-  @Test
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
   public void testInsertAsStringNoMapping() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     con.setTypeMap(Collections.<String, Class<?>>emptyMap());
