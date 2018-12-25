@@ -240,10 +240,10 @@ public class EnumTest extends BaseTest4 {
     Assert.assertTrue(result.next());
     Assert.assertEquals(DayOfWeek.wednesday.name(), result.getString(1));
     Assert.assertEquals(DayOfWeek.wednesday.name(), result.getString("dow"));
-    Assert.assertEquals(DayOfWeek.wednesday, result.getObject(1));
-    Assert.assertEquals(DayOfWeek.wednesday, result.getObject("dow"));
-    Assert.assertEquals(DayOfWeek.wednesday, result.getObject(1, DayOfWeek.class));
-    Assert.assertEquals(DayOfWeek.wednesday, result.getObject("dow", DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.wednesday, result.getObject(1));
+    Assert.assertSame(DayOfWeek.wednesday, result.getObject("dow"));
+    Assert.assertSame(DayOfWeek.wednesday, result.getObject(1, DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.wednesday, result.getObject("dow", DayOfWeek.class));
     Assert.assertFalse(result.next());
     stmt.close();
   }
@@ -264,10 +264,10 @@ public class EnumTest extends BaseTest4 {
     Assert.assertTrue(result.next());
     Assert.assertEquals(DayOfWeek.tuesday.name(), result.getString(1));
     Assert.assertEquals(DayOfWeek.tuesday.name(), result.getString("dow"));
-    Assert.assertEquals(DayOfWeek.tuesday, result.getObject(1));
-    Assert.assertEquals(DayOfWeek.tuesday, result.getObject("dow"));
-    Assert.assertEquals(DayOfWeek.tuesday, result.getObject(1, DayOfWeek.class));
-    Assert.assertEquals(DayOfWeek.tuesday, result.getObject("dow", DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.tuesday, result.getObject(1));
+    Assert.assertSame(DayOfWeek.tuesday, result.getObject("dow"));
+    Assert.assertSame(DayOfWeek.tuesday, result.getObject(1, DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.tuesday, result.getObject("dow", DayOfWeek.class));
     Assert.assertFalse(result.next());
     stmt.close();
   }
@@ -291,8 +291,8 @@ public class EnumTest extends BaseTest4 {
     Assert.assertTrue(result.next());
     Assert.assertEquals(DayOfWeek.wednesday.name(), result.getString(1));
     Assert.assertEquals(DayOfWeek.wednesday.name(), result.getString("dow"));
-    Assert.assertEquals(DayOfWeek.wednesday, result.getObject(1, typeMap));
-    Assert.assertEquals(DayOfWeek.wednesday, result.getObject("dow", typeMap));
+    Assert.assertSame(DayOfWeek.wednesday, result.getObject(1, typeMap));
+    Assert.assertSame(DayOfWeek.wednesday, result.getObject("dow", typeMap));
     Assert.assertFalse(result.next());
     stmt.close();
   }
