@@ -20,6 +20,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.Map;
+import org.postgresql.jdbc.PreferQueryMode;
 
 public class CustomTypePriorityTest {
 
@@ -63,8 +64,14 @@ public class CustomTypePriorityTest {
     Assert.assertEquals(new BigDecimal("1.00"), result.getBigDecimal("normal"));
     Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal(2));
 
-    Assert.assertEquals(new BigDecimal("1.00"), result.getObject(1));
-    Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata"));
+    if (con.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+      // QUERY_MODE=simple does not work without the casts, it returns String
+      Assert.assertEquals("1.00", result.getObject(1));
+      Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE.toString(), result.getObject("sqldata"));
+    } else {
+      Assert.assertEquals(new BigDecimal("1.00"), result.getObject(1));
+      Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata"));
+    }
 
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject(1, Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
@@ -85,8 +92,14 @@ public class CustomTypePriorityTest {
     Assert.assertEquals(new BigDecimal("1.00"), result.getBigDecimal(1));
     Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal("sqldata"));
 
-    Assert.assertEquals(new BigDecimal("1.00"), result.getObject("normal"));
-    Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject(2));
+    if (con.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+      // QUERY_MODE=simple does not work without the casts, it returns String
+      Assert.assertEquals("1.00", result.getObject("normal"));
+      Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE.toString(), result.getObject(2));
+    } else {
+      Assert.assertEquals(new BigDecimal("1.00"), result.getObject("normal"));
+      Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject(2));
+    }
 
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject(1, Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
@@ -113,7 +126,12 @@ public class CustomTypePriorityTest {
     Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal(2));
 
     Assert.assertEquals(new BigDecimal("1.00"), result.getObject("normal"));
-    Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata"));
+    if (con.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+      // QUERY_MODE=simple does not work without the casts, it returns String
+      Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE.toString(), result.getObject("sqldata"));
+    } else {
+      Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata"));
+    }
 
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject(1, Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
