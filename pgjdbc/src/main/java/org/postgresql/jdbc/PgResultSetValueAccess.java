@@ -219,6 +219,11 @@ class PgResultSetValueAccess implements ValueAccess {
   }
    */
 
+  @Override
+  public Calendar getCalendar() throws SQLException {
+    return result.getCalendar(columnIndex);
+  }
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
   public LocalDateTime getLocalDateTime() throws SQLException {
@@ -230,11 +235,6 @@ class PgResultSetValueAccess implements ValueAccess {
     return result.getLocalTime(columnIndex);
   }
   //#endif
-
-  @Override
-  public Calendar getDefaultCalendar() {
-    return result.getDefaultCalendar();
-  }
 
   @Override
   public <T> T getObject(Class<T> type, UdtMap udtMap) throws SQLException {

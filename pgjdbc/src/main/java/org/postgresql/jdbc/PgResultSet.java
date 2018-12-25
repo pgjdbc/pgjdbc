@@ -525,6 +525,23 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return connection.getTimestampUtils().toTimestamp(cal, string);
   }
 
+
+  /**
+   * @see PgResultSetValueAccess#getCalendar()
+   */
+  Calendar getCalendar(int columnIndex) throws SQLException {
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
+    }
+
+    Timestamp timestampValue = getTimestamp(columnIndex);
+    Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
+    calendar.setTimeInMillis(timestampValue.getTime());
+    return calendar;
+  }
+
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   // TODO: This checks the OID for both byte[] and String versions, while getLocalTime
   //       only checks OID for byte[] version.  We are assuming the OID checks
@@ -3009,11 +3026,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
-  // TODO: Move to AbstractValueAccess.getDefaultCalendar()?
-  //       At least once the various get* methods are derived from ValueAccess implementations.
-  //       This is redundant right now.  Could also be moved to BaseConnection which is accessible to both
-  //       this and AbstractValueAccess
-  Calendar getDefaultCalendar() {
+  private Calendar getDefaultCalendar() {
     TimestampUtils timestampUtils = connection.getTimestampUtils();
     if (timestampUtils.hasFastDefaultTimeZone()) {
       return timestampUtils.getSharedCalendar(null);

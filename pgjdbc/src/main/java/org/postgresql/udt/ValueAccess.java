@@ -608,6 +608,22 @@ public interface ValueAccess {
   <T> T getObjectCustomType(UdtMap udtMap, String type, Class<? extends T> customType) throws SQLException;
    */
 
+  /**
+   * Gets a {@link Calendar} representation of this value.
+   * <p>
+   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
+   * </p>
+   *
+   * @return {@code null} if this value is null or {@link Calendar} of the value.
+   *
+   * @throws SQLException if a database access error occurs
+   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
+   *            this method
+   *
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   */
+  Calendar getCalendar() throws SQLException, SQLFeatureNotSupportedException;
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   /**
    * Gets the {@link LocalDateTime} representation of this value.
@@ -623,7 +639,6 @@ public interface ValueAccess {
    *
    * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
-  // TODO: Does this belong here?  It's part of the implementation of ValueAccessHelper
   LocalDateTime getLocalDateTime() throws SQLException, SQLFeatureNotSupportedException;
 
   /**
@@ -640,22 +655,8 @@ public interface ValueAccess {
    *
    * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
-  // TODO: Does this belong here?  It's part of the implementation of ValueAccessHelper
   LocalTime getLocalTime() throws SQLException, SQLFeatureNotSupportedException;
   //#endif
-
-  /**
-   * Gets the default {@link Calendar} for this value access.
-   * <p>
-   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
-   * </p>
-   *
-   * @return the calendar to use for date/time handling when no other calendar specified
-   *
-   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
-   */
-  // TODO: Does this belong here?  It's part of the implementation of ValueAccessHelper
-  Calendar getDefaultCalendar();
 
   /**
    * Gets the {@link Object} representation of this value in the requested type.

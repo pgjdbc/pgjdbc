@@ -374,13 +374,7 @@ public class ValueAccessHelper {
               || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
       //#endif
       ) {
-        Timestamp timestampValue = access.getTimestamp();
-        if (access.wasNull()) {
-          return null;
-        }
-        Calendar calendar = Calendar.getInstance(access.getDefaultCalendar().getTimeZone());
-        calendar.setTimeInMillis(timestampValue.getTime());
-        return type.cast(calendar);
+        return type.cast(access.getCalendar());
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
                 conversionNotSupported);

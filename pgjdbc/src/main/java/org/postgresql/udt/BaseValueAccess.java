@@ -57,7 +57,6 @@ public abstract class BaseValueAccess implements ValueAccess {
   //       Likewise, if we choose to follow its lead of using PSQLState.DATA_TYPE_MISMATCH
   protected final PSQLState conversionNotSupported;
 
-  // TODO: Redundant with PgResultSet
   private TimeZone defaultTimeZone;
 
   public BaseValueAccess(BaseConnection connection, PSQLState conversionNotSupported) {
@@ -409,6 +408,22 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
    */
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see PgResultSet#getCalendar(int)
+   */
+  @Override
+  public Calendar getCalendar() throws SQLException {
+    Timestamp timestampValue = getTimestamp();
+    if (timestampValue == null) {
+      return null;
+    }
+    Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
+    calendar.setTimeInMillis(timestampValue.getTime());
+    return calendar;
+  }
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   /**
    * {@inheritDoc}
@@ -475,14 +490,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
   //#endif
 
-  /**
-   * {@inheritDoc}
-   *
-   * @see PgResultSet#getDefaultCalendar()
-   */
-  // TODO: Redundant with PgResultSet
-  @Override
-  public Calendar getDefaultCalendar() {
+  protected Calendar getDefaultCalendar() {
     TimestampUtils timestampUtils = connection.getTimestampUtils();
     if (timestampUtils.hasFastDefaultTimeZone()) {
       return timestampUtils.getSharedCalendar(null);
