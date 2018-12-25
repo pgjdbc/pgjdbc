@@ -425,37 +425,12 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-  /**
-   * {@inheritDoc}
-   *
-   * @see PgResultSet#getLocalDateTime(int)
-   */
-  // TODO: Redundant with PgResultSet, except we only check OID on byte[] version
-  //       like in getLocalTime()
   @Override
-  public LocalDateTime getLocalDateTime() throws SQLException {
-    // TODO: Does isBinary() make sense for BaseValueAccess?
-    // TODO: Should this just be on a TimestampValueAccess implementation?
-    if (isBinary()) {
-      int oid = getOid();
-      if (oid == Oid.TIMESTAMP) {
-        byte[] bytes = getBytes();
-        if (bytes == null) {
-          return null;
-        }
-        TimeZone timeZone = getDefaultCalendar().getTimeZone();
-        return connection.getTimestampUtils().toLocalDateTimeBin(timeZone, bytes);
-      } else {
-        throw new PSQLException(
-                GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                    Oid.toString(oid), "timestamp"),
-                PSQLState.DATA_TYPE_MISMATCH);
-      }
-    }
-
-    // TODO: Should this just be on the StringValueAccess implementation?
-    String string = getString();
-    return (string == null) ? null : connection.getTimestampUtils().toLocalDateTime(string);
+  public LocalDateTime getLocalDateTime() throws SQLException, SQLFeatureNotSupportedException {
+    throw new SQLFeatureNotSupportedException(
+      GT.tr("conversion to {0} from {1} not supported",
+          LocalDateTime.class.getName(), getPGType()),
+      conversionNotSupported.getState());
   }
 
   /**

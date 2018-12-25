@@ -554,7 +554,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     int col = i - 1;
     int oid = fields[col].getOID();
-    if (oid != Oid.TIMESTAMP) {
+    if (oid != Oid.TIMESTAMP) { // TODO: Oid.TIMESTAMPTZ here, too?
       throw new PSQLException(
               GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                   Oid.toString(oid), "timestamp"),
