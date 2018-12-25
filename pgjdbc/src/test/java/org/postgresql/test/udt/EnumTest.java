@@ -92,6 +92,7 @@ public class EnumTest extends BaseTest4 {
 
   @Test
   public void testGetStringFromString() throws Exception {
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"AmbiguousName\", ?::" + DAY_OF_WEEK_TYPE + " AS \"ambiguousname\"");
     pstmt.setString(1, DayOfWeek.friday.name());
     pstmt.setString(2, DayOfWeek.tuesday.name());
@@ -107,6 +108,7 @@ public class EnumTest extends BaseTest4 {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetStringFromObject() throws Exception {
+    // :: cast not needed on setObject:
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"CapitalName\"");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
@@ -120,6 +122,7 @@ public class EnumTest extends BaseTest4 {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectFromString() throws Exception {
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"lowername\"");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
@@ -133,6 +136,7 @@ public class EnumTest extends BaseTest4 {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectFromObject() throws Exception {
+    // :: cast not needed on setObject:
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"lowername\"");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
@@ -148,6 +152,7 @@ public class EnumTest extends BaseTest4 {
   public void testGetObjectWithClassDirectFromString() throws Exception {
     // This should work without relying on the inference
     // TODO: Option to turn on/off inference, turn off here to make sure still works
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS noquotename");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
@@ -163,6 +168,7 @@ public class EnumTest extends BaseTest4 {
   public void testGetObjectWithClassDirectFromObject() throws Exception {
     // This should work without relying on the inference
     // TODO: Option to turn on/off inference, turn off here to make sure still works
+    // :: cast not needed on setObject:
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"noquotename\"");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
@@ -185,6 +191,7 @@ public class EnumTest extends BaseTest4 {
     Assert.assertSame(DayOfWeek.friday, result.getObject("noquotename", DayOfWeek.class));
     Assert.assertFalse(result.next());
     pstmt.close();
+    // TODO: Do another method like this, but giving an invalid value, to make sure the type is handled as ENUM server-side before being sent back to text
   }
   // TODO: Option to turn on/off inference, turn off here to make sure fails
 
@@ -200,11 +207,13 @@ public class EnumTest extends BaseTest4 {
     Assert.assertSame(DayOfWeek.friday, result.getObject("noquotename", DayOfWeek.class));
     Assert.assertFalse(result.next());
     pstmt.close();
+    // TODO: Do another method like this, but giving an invalid value, to make sure the type is handled as ENUM server-side before being sent back to text
   }
   // TODO: Option to turn on/off inference, turn off here to make sure fails
 
   @Test // TODO: Once implemented: (expected = SQLException.class)
   public void testGetObjectFromStringOverrideToNoMapping() throws Exception {
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS failure");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
@@ -219,6 +228,7 @@ public class EnumTest extends BaseTest4 {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     con.setTypeMap(Collections.<String, Class<?>>emptyMap());
 
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS NoQuoteCapitalName");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
@@ -236,6 +246,7 @@ public class EnumTest extends BaseTest4 {
     typeMap.clear();;
     con.setTypeMap(typeMap);
 
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS failure");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
@@ -250,6 +261,7 @@ public class EnumTest extends BaseTest4 {
     typeMap.clear();;
     con.setTypeMap(typeMap);
 
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS failure");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
@@ -261,6 +273,7 @@ public class EnumTest extends BaseTest4 {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testInsertAsString() throws Exception {
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testdow VALUES (?::" + DAY_OF_WEEK_TYPE + ")");
     try {
       pstmt.setString(1, DayOfWeek.wednesday.name());
@@ -285,6 +298,7 @@ public class EnumTest extends BaseTest4 {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testInsertAsObject() throws Exception {
+    // :: cast not needed on setObject:
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testdow VALUES (?)");
     try {
       pstmt.setObject(1, DayOfWeek.tuesday);
@@ -312,6 +326,7 @@ public class EnumTest extends BaseTest4 {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     con.setTypeMap(Collections.<String, Class<?>>emptyMap());
 
+    // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testdow VALUES (?::" + DAY_OF_WEEK_TYPE + ")");
     try {
       pstmt.setString(1, DayOfWeek.wednesday.name());
