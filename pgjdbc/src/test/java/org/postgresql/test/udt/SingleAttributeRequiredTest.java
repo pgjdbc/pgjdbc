@@ -25,7 +25,6 @@ import java.util.Map;
  * This tests the enforcement of these constraints.
  */
 public class SingleAttributeRequiredTest extends BaseTest4 {
-  private Connection con;
 
   public static class NoAttributeSQLData implements SQLData {
 
