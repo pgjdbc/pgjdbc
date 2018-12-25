@@ -42,6 +42,11 @@ public class EnumTest {
       this.toString = toString;
     }
 
+    /**
+     * Intentionally does not match the value of {@link #name()}, to be able to test
+     * that {@link #name()} is being used instead of {@link #toString()} when {@link Enum}
+     * support is enabled and active.
+     */
     @Override
     public String toString() {
       return toString;
@@ -84,12 +89,14 @@ public class EnumTest {
 
   @Test
   public void testGetStringFromString() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"AmbiguousName\", ?::" + DAY_OF_WEEK_TYPE + " AS \"ambiguousname\"");
     pstmt.setString(1, DayOfWeek.friday.name());
+    pstmt.setString(2, DayOfWeek.tuesday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     Assert.assertEquals(DayOfWeek.friday.name(), result.getString(1));
-    Assert.assertEquals(DayOfWeek.friday.name(), result.getString("Yes"));
+    Assert.assertEquals(DayOfWeek.friday.name(), result.getString("AmbiguousName"));
+    // TODO: Fails: Seems the driver is forcing case-insensitivity: Assert.assertEquals(DayOfWeek.tuesday.name(), result.getString("ambiguousname"));
     Assert.assertFalse(result.next());
     pstmt.close();
   }
@@ -97,12 +104,12 @@ public class EnumTest {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetStringFromObject() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"CapitalName\"");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     Assert.assertEquals(DayOfWeek.friday.name(), result.getString(1));
-    Assert.assertEquals(DayOfWeek.friday.name(), result.getString("Yes"));
+    Assert.assertEquals(DayOfWeek.friday.name(), result.getString("CapitalName"));
     Assert.assertFalse(result.next());
     pstmt.close();
   }
@@ -110,12 +117,12 @@ public class EnumTest {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectFromString() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"lowername\"");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     Assert.assertSame(DayOfWeek.friday, result.getObject(1));
-    Assert.assertSame(DayOfWeek.friday, result.getObject("Yes"));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("lowername"));
     Assert.assertFalse(result.next());
     pstmt.close();
   }
@@ -123,12 +130,12 @@ public class EnumTest {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectFromObject() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"lowername\"");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     Assert.assertSame(DayOfWeek.friday, result.getObject(1));
-    Assert.assertSame(DayOfWeek.friday, result.getObject("Yes"));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("lowername"));
     Assert.assertFalse(result.next());
     pstmt.close();
   }
@@ -136,12 +143,12 @@ public class EnumTest {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectWithClassFromString() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS noquotename");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     Assert.assertSame(DayOfWeek.friday, result.getObject(1, DayOfWeek.class));
-    Assert.assertSame(DayOfWeek.friday, result.getObject("Yes", DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("noquotename", DayOfWeek.class));
     Assert.assertFalse(result.next());
     pstmt.close();
   }
@@ -149,19 +156,19 @@ public class EnumTest {
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
   public void testGetObjectWithClassFromObject() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"noquotename\"");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     Assert.assertSame(DayOfWeek.friday, result.getObject(1, DayOfWeek.class));
-    Assert.assertSame(DayOfWeek.friday, result.getObject("Yes", DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("noquotename", DayOfWeek.class));
     Assert.assertFalse(result.next());
     pstmt.close();
   }
 
   @Test // TODO: Once implemented: (expected = SQLException.class)
   public void testGetObjectFromStringOverrideToNoMapping() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS failure");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
@@ -175,12 +182,13 @@ public class EnumTest {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     con.setTypeMap(Collections.<String, Class<?>>emptyMap());
 
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS NoQuoteCapitalName");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
     Assert.assertSame(DayOfWeek.friday, result.getObject(1, typeMap));
-    Assert.assertSame(DayOfWeek.friday, result.getObject("Yes", typeMap));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("NoQuoteCapitalName", typeMap));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("noquotecapitalname", typeMap));
     Assert.assertFalse(result.next());
     pstmt.close();
   }
@@ -191,7 +199,7 @@ public class EnumTest {
     typeMap.clear();;
     con.setTypeMap(typeMap);
 
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS failure");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
@@ -205,7 +213,7 @@ public class EnumTest {
     typeMap.clear();;
     con.setTypeMap(typeMap);
 
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"Yes\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS failure");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
