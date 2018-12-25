@@ -12,7 +12,7 @@ import java.sql.SQLOutput;
 import java.sql.Timestamp;
 
 /**
- * A user-defined data type implemented as a domain over timestamp on the
+ * A user-defined data type implemented as a domain over timestamptz on the
  * server-side.
  */
 public class SaleDate implements SQLData {
