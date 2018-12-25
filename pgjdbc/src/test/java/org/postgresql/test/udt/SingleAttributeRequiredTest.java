@@ -9,7 +9,6 @@ import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLData;
