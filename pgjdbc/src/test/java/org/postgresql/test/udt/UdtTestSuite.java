@@ -13,12 +13,12 @@ import org.junit.runners.Suite;
  */
 // TODO: Add tests for ENUM
 // TODO: See what happens with a single-column compound type
-// TODO: Add tests for Array, including perform of ValueAccess versus delegating to PgResultSet
 // TODO: Add tests of CallableStatement
 // TODO: Add tests for other types of arrays that are not supported but should be (BigDecimal, for example)
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         InvertedMapTest.class,
+        CustomTypePriorityTest.class,
         DomainOverIntegerTest.class,
         DomainOverTextTest.class,
         DomainOverTimestampTest.class,

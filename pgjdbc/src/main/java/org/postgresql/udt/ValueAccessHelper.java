@@ -94,7 +94,6 @@ public class ValueAccessHelper {
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        // TODO: access doesn't necessary have getBytes implementation
         byte[] bytes = access.getBytes();
         if (bytes == null) {
           return null;
@@ -150,7 +149,6 @@ public class ValueAccessHelper {
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
-        // TODO: access doesn't necessary have getBytes implementation
         return access.getBytes();
       case Types.ARRAY:
         return access.getArray();
@@ -221,18 +219,17 @@ public class ValueAccessHelper {
   }
 
   // TODO: Should this accept a scale when ultimately coming from a CallableStatement?
+  // TODO: Support enums value Enum.valueOf?
   public static Object getObject(BaseConnection connection, int rsType, ValueAccess access, int sqlType, String pgType, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
-    Map<String, Class<?>> map = udtMap.getTypeMap();
-    LOGGER.log(Level.FINEST, "  map: {0}", map);
-    if (!map.isEmpty()) {
-      Class<?> customType = map.get(pgType);
-      if (customType != null) {
-        if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
-        }
-        return SingleAttributeSQLInputHelper.getObjectCustomType(
-            udtMap, pgType, customType, access.getSQLInput(udtMap));
+    Map<String, Class<?>> typemap = udtMap.getTypeMap();
+    LOGGER.log(Level.FINEST, "  typemap: {0}", typemap);
+    Class<?> customType = typemap.get(pgType);
+    if (customType != null) {
+      if (LOGGER.isLoggable(Level.FINER)) {
+        LOGGER.log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
       }
+      return SingleAttributeSQLInputHelper.getObjectCustomType(
+          udtMap, pgType, customType, access.getSQLInput(udtMap));
     }
 
     Object result = internalGetObject(connection, rsType, access, sqlType, pgType, -1);
@@ -243,15 +240,29 @@ public class ValueAccessHelper {
     return access.getPGobject(pgType);
   }
 
+  // TODO: Should this accept a scale when ultimately coming from a CallableStatement?
   // TODO: Support enums value Enum.valueOf?
   public static <T> T getObject(ValueAccess access, int sqlType, String pgType, Class<T> type, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");
     }
-    // TODO: Should we check for custom types first, in case they override a base type?
-    //       This could then check is assignable to the requested type, throwing can't coerce otherwise
-    //       Then can use this implementation to get the actual objects.  Create a failing test case
-    //       first should we make this change.
+    Map<String, Class<?>> typemap = udtMap.getTypeMap();
+    LOGGER.log(Level.FINEST, "  typemap: {0}", typemap);
+    Class<?> customType = typemap.get(pgType);
+    if (customType != null) {
+      if (LOGGER.isLoggable(Level.FINER)) {
+        LOGGER.log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
+      }
+      // Direct match, as expected - no fancy workarounds required
+      if (type.isAssignableFrom(customType)) {
+        return type.cast(
+            SingleAttributeSQLInputHelper.getObjectCustomType(
+                udtMap, pgType, customType, access.getSQLInput(udtMap)));
+      } else {
+        throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", pgType, customType.getName(), type.getName()),
+                conversionNotSupported);
+      }
+    }
     if (type == BigDecimal.class) {
       if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
         return type.cast(access.getBigDecimal());
@@ -494,26 +505,7 @@ public class ValueAccessHelper {
     } else if (PGobject.class.isAssignableFrom(type)) {
       return type.cast(access.getPGobject(type.asSubclass(PGobject.class)));
     } else {
-      // In the wacky case an object both extends PGobject and implements SQLData, the PGobject implementation
-      // takes precedence for backwards compatibility.
-      Map<String, Class<?>> typemap = udtMap.getTypeMap();
-      LOGGER.log(Level.FINEST, "  typemap: {0}", typemap);
       if (!typemap.isEmpty()) {
-        Class<?> customType = typemap.get(pgType);
-        if (customType != null) {
-          if (LOGGER.isLoggable(Level.FINER)) {
-            LOGGER.log(Level.FINER, "  Found custom type without needing inference: {0} -> {1}", new Object[] {pgType, customType.getName()});
-          }
-          // Direct match, as expected - no fancy workarounds required
-          if (type.isAssignableFrom(customType)) {
-            return type.cast(
-                SingleAttributeSQLInputHelper.getObjectCustomType(
-                    udtMap, pgType, customType, access.getSQLInput(udtMap)));
-          } else {
-            throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", pgType, customType.getName(), type.getName()),
-                    conversionNotSupported);
-          }
-        }
         // It is an issue that a DOMAIN type is sent from the backend with its oid of non-domain type, which makes this pgType not match
         // what is expected.  For example, our "Email" DOMAIN is currently oid 4015336, but it is coming back as 25 "text".
         // This is tested on PostgreSQL 9.4.
