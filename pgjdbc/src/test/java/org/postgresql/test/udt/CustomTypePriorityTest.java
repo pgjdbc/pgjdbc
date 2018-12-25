@@ -6,6 +6,7 @@
 package org.postgresql.test.udt;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -20,7 +21,6 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.Map;
-import org.postgresql.jdbc.PreferQueryMode;
 
 public class CustomTypePriorityTest {
 
