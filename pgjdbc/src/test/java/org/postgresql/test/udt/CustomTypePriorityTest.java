@@ -138,5 +138,22 @@ public class CustomTypePriorityTest {
     Assert.assertFalse(result.next());
     stmt.close();
   }
+
+  @Test
+  public void testInferenceAfterStandardMappings() throws Exception {
+    Map<String, Class<?>> typeMap = con.getTypeMap();
+    typeMap.put("custom_type", BigDecimalSQLData.class);
+    con.setTypeMap(typeMap);
+
+    Statement stmt = con.createStatement();
+    ResultSet result = stmt.executeQuery("SELECT '1.00'::decimal AS testvalue");
+    Assert.assertTrue(result.next());
+    Assert.assertEquals(new BigDecimal("1.00"), result.getBigDecimal("testvalue"));
+    Assert.assertEquals("SQLData should not be used here", new BigDecimal("1.00"), result.getObject("testvalue"));
+    Assert.assertEquals("SQLData should not be used here", new BigDecimal("1.00"), result.getObject("testvalue", BigDecimal.class));
+    Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("testvalue", BigDecimalSQLData.class));
+    Assert.assertFalse(result.next());
+    stmt.close();
+  }
   //#endif
 }
