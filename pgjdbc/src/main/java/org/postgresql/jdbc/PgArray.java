@@ -14,6 +14,7 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.udt.BoolValueAccess;
+import org.postgresql.udt.DateValueAccessBinary;
 import org.postgresql.udt.Float4ValueAccess;
 import org.postgresql.udt.Float8ValueAccess;
 import org.postgresql.udt.Int2ValueAccess;
@@ -21,6 +22,8 @@ import org.postgresql.udt.Int4ValueAccess;
 import org.postgresql.udt.Int8ValueAccess;
 import org.postgresql.udt.SingleAttributeSQLInputHelper;
 import org.postgresql.udt.TextValueAccess;
+import org.postgresql.udt.TimeValueAccessBinary;
+import org.postgresql.udt.TimestampValueAccessBinary;
 import org.postgresql.udt.UdtMap;
 import org.postgresql.udt.ValueAccess;
 import org.postgresql.util.ByteConverter;
@@ -31,8 +34,11 @@ import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -234,8 +240,12 @@ public class PgArray implements java.sql.Array {
   }
 
   // TODO: Is pgType still used by our final implementation?
+  // TODO: Can arr be an array of ValueAccess, which would then delay conversion until needed?
+  //       Would this facilitate selecting an int4[] and getting as String[], for example?
+  //       Since there is no getArray(Class<?>), maybe this is pointless?  Only affected by UdtMap currently.
   private int storeValues(final Object[] arr, int elementOid, String pgType, int sqlType, final int[] dims, int pos,
       final int thisDimension, int index, UdtMap udtMap, Class<?> customType) throws SQLException, IOException {
+    // TODO: Could get Calendar once for getDate, getTime, getTimestamp, see BaseValueAccess.getDefaultCalendar().  Test and benchmark.
     if (thisDimension == dims.length - 1) {
       for (int i = 1; i < index; ++i) {
         int len = ByteConverter.int4(fieldBytes, pos);
@@ -274,6 +284,21 @@ public class PgArray implements java.sql.Array {
               break;
             case Oid.BOOL:
               arr[i] = ByteConverter.bool(fieldBytes, pos);
+              break;
+            // TODO: Is it possible to enable binary mode for arrays of timestamps?
+            case Oid.TIMESTAMP:
+            case Oid.TIMESTAMPTZ:
+              arr[i] = new TimestampValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len).getTimestamp(); // TODO: Keep as ValueAccess to delay conversion?
+              break;
+            case Oid.TIME:
+            case Oid.TIMETZ:
+              arr[i] = new TimeValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len).getTime(); // TODO: Keep as ValueAccess to delay conversion?
+              break;
+            case Oid.DATE:
+              arr[i] = new DateValueAccessBinary(connection,
+                  fieldBytes, pos, len).getDate(); // TODO: Keep as ValueAccess to delay conversion?
               break;
             // TODO: More types here?
             // TODO: PGobject here?
@@ -318,6 +343,21 @@ public class PgArray implements java.sql.Array {
             case Oid.BOOL:
               access = new BoolValueAccess(connection,
                   ByteConverter.bool(fieldBytes, pos));
+              break;
+            // TODO: Is it possible to enable binary mode for arrays of timestamps?
+            case Oid.TIMESTAMP:
+            case Oid.TIMESTAMPTZ:
+              access = new TimestampValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len);
+              break;
+            case Oid.TIME:
+            case Oid.TIMETZ:
+              access = new TimeValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len);
+              break;
+            case Oid.DATE:
+              access = new DateValueAccessBinary(connection,
+                  fieldBytes, pos, len);
               break;
             // TODO: More types here?
             // TODO: PGobject here?
@@ -478,6 +518,15 @@ public class PgArray implements java.sql.Array {
         return String.class;
       case Oid.BOOL:
         return Boolean.class;
+        // TODO: Is it possible to enable binary mode for arrays of timestamps?
+      case Oid.TIMESTAMP:
+      case Oid.TIMESTAMPTZ:
+        return Timestamp.class;
+      case Oid.TIME:
+      case Oid.TIMETZ:
+        return Time.class;
+      case Oid.DATE:
+        return Date.class;
       // TODO: More types here?
       // TODO: PGobject here?
       default:
@@ -886,7 +935,7 @@ public class PgArray implements java.sql.Array {
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toDate(null, (String) v));
       }
-    } else if (sqlType == Types.TIME) {
+    } else if (sqlType == Types.TIME) { // TODO: TIME_WITH_TIMEZONE?
       Object[] oa = null;
       ret = oa = (dims > 1
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Time.class, dimsLength)
@@ -898,7 +947,7 @@ public class PgArray implements java.sql.Array {
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toTime(null, (String) v));
       }
-    } else if (sqlType == Types.TIMESTAMP) {
+    } else if (sqlType == Types.TIMESTAMP) { // TODO: TIMESTAMP_WITH_TIMEZONE?
       Object[] oa = null;
       ret = oa = (dims > 1
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Timestamp.class, dimsLength)
