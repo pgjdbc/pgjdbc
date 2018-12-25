@@ -478,6 +478,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  // TODO: InputStream and Reader, verifying against scaleOrLength
   @Override
   public void setObject(int parameterIndex, Object in, int targetSqlType, int scale)
       throws SQLException {
@@ -485,6 +486,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     if (in == null) {
       setNull(parameterIndex, targetSqlType);
+      return;
+    }
+
+    if (in instanceof SQLData) {
+      // TODO: Should this be restricted to those types registered in the type map?
+      // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
+      SingleAttributeSQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
       return;
     }
 
@@ -658,11 +666,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.OTHER:
         if (in instanceof PGobject) {
           setPGobject(parameterIndex, (PGobject) in);
-        } else if (in instanceof SQLData) {
-          // TODO: Should this be restricted to those types registered in the type map?
-          // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-          SingleAttributeSQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
-          return;
         } else if (in instanceof Map) {
           setMap(parameterIndex, (Map<?, ?>) in);
         } else {

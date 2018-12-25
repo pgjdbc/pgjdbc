@@ -83,10 +83,10 @@ public class CustomTypePriorityTest {
     Assert.assertTrue(result.next());
 
     Assert.assertEquals(new BigDecimal("1.00"), result.getBigDecimal(1));
-    Assert.assertEquals("SQLData not have been used here", new BigDecimal("2.00"), result.getBigDecimal("sqldata"));
+    Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal("sqldata"));
 
     Assert.assertEquals(new BigDecimal("1.00"), result.getObject("normal"));
-    Assert.assertEquals("SQLData not have been used here", new BigDecimal("2.00"), result.getObject(2));
+    Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject(2));
 
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject(1, Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
     Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
@@ -97,7 +97,7 @@ public class CustomTypePriorityTest {
 
   @Test
   public void testSetObjectWithSqlTypeOther() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS normal, ? AS sqldata");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::numeric AS normal, ? AS sqldata");
     pstmt.setObject(1, new BigDecimal("1.00"), Types.OTHER);
     // If this uses SQLData, it will actually write CONSTANT_VALUE:
     pstmt.setObject(2, new BigDecimalSQLData("2.00"), Types.OTHER);
