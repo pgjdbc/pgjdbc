@@ -145,7 +145,9 @@ public class EnumTest extends BaseTest4 {
 
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
-  public void testGetObjectWithClassFromString() throws Exception {
+  public void testGetObjectWithClassDirectFromString() throws Exception {
+    // This should work without relying on the inferrence
+    // TODO: Option to turn on/off inference, turn off here to make sure still works
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS noquotename");
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
@@ -158,7 +160,9 @@ public class EnumTest extends BaseTest4 {
 
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
-  public void testGetObjectWithClassFromObject() throws Exception {
+  public void testGetObjectWithClassDirectFromObject() throws Exception {
+    // This should work without relying on the inferrence
+    // TODO: Option to turn on/off inference, turn off here to make sure still works
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"noquotename\"");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
@@ -168,6 +172,36 @@ public class EnumTest extends BaseTest4 {
     Assert.assertFalse(result.next());
     pstmt.close();
   }
+
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
+  public void testGetObjectWithClassInferredFromString() throws Exception {
+    // Added ::text cast to force inferrence to map back to requested type
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + "::text AS noquotename");
+    pstmt.setString(1, DayOfWeek.friday.name());
+    ResultSet result = pstmt.executeQuery();
+    Assert.assertTrue(result.next());
+    Assert.assertSame(DayOfWeek.friday, result.getObject(1, DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("noquotename", DayOfWeek.class));
+    Assert.assertFalse(result.next());
+    pstmt.close();
+  }
+  // TODO: Option to turn on/off inference, turn off here to make sure fails
+
+  // TODO: No exception expected once implemented
+  @Test(expected = SQLException.class)
+  public void testGetObjectWithClassInferredFromObject() throws Exception {
+    // Added ::text cast to force inferrence to map back to requested type
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::text AS \"noquotename\"");
+    pstmt.setObject(1, DayOfWeek.friday);
+    ResultSet result = pstmt.executeQuery();
+    Assert.assertTrue(result.next());
+    Assert.assertSame(DayOfWeek.friday, result.getObject(1, DayOfWeek.class));
+    Assert.assertSame(DayOfWeek.friday, result.getObject("noquotename", DayOfWeek.class));
+    Assert.assertFalse(result.next());
+    pstmt.close();
+  }
+  // TODO: Option to turn on/off inference, turn off here to make sure fails
 
   @Test // TODO: Once implemented: (expected = SQLException.class)
   public void testGetObjectFromStringOverrideToNoMapping() throws Exception {
