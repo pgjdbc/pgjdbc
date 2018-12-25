@@ -11,10 +11,8 @@ import org.junit.runners.Suite;
 /*
  * Executes all known tests for user-defined data types (custom types).
  */
-// TODO: Add tests for ENUM
 // TODO: See what happens with a single-column compound type
 // TODO: Add tests of CallableStatement
-// TODO: Add tests for other types of arrays that are not supported but should be (BigDecimal, for example)
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         InvertedMapTest.class,
@@ -22,6 +20,7 @@ import org.junit.runners.Suite;
         DomainOverIntegerTest.class,
         DomainOverTextTest.class,
         DomainOverTimestampTest.class,
+        EnumTest.class,
         SingleAttributeRequiredTest.class,
         MultipleAttributesNotAllowedTest.class,
         SQLInputWasNullBeforeReadTest.class,
