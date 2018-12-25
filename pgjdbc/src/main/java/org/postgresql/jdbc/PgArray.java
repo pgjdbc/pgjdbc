@@ -166,17 +166,25 @@ public class PgArray implements java.sql.Array {
   }
 
   public Object getArrayImpl(long index, int count, UdtMap udtMap) throws SQLException {
-    // TODO: What to do if count < 0?
-
     // array index is out of range
     if (index < 1) {
       throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
           PSQLState.DATA_ERROR);
     }
 
+    // count is out of range
+    if (count < 0) {
+      throw new PSQLException(GT.tr("The count is out of range: {0}", count),
+          PSQLState.DATA_ERROR);
+    }
+
     if (fieldBytes != null) {
       if (index > Integer.MAX_VALUE) {
         throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+          PSQLState.DATA_ERROR);
+      }
+      if ((index - 1 + count) > Integer.MAX_VALUE) {
+        throw new PSQLException(GT.tr("The array index + count is out of range: {0} + {1}", index, count),
             PSQLState.DATA_ERROR);
       }
       return readBinaryArray((int) index, count, udtMap);
@@ -205,6 +213,8 @@ public class PgArray implements java.sql.Array {
   }
 
   private Object readBinaryArray(int index, int count, UdtMap udtMap) throws SQLException {
+    assert ((long)index - 1 + (long)count) <= Integer.MAX_VALUE;
+
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
@@ -389,6 +399,8 @@ public class PgArray implements java.sql.Array {
 
 
   private ResultSet readBinaryResultSet(int index, int count, UdtMap udtMap) throws SQLException {
+    assert ((long)index - 1 + (long)count) <= Integer.MAX_VALUE;
+
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
@@ -444,7 +456,6 @@ public class PgArray implements java.sql.Array {
       for (int i = 0; i < dims[thisDimension]; ++i) {
         byte[][] rowData = new byte[2][];
         rowData[0] = new byte[4];
-        // TODO: Beware 32-bit index:
         ByteConverter.int4(rowData[0], 0, i + index);
         rows.add(rowData);
         int len = ByteConverter.int4(fieldBytes, pos);
@@ -469,7 +480,6 @@ public class PgArray implements java.sql.Array {
       for (int i = 0; i < dims[thisDimension]; ++i) {
         byte[][] rowData = new byte[2][];
         rowData[0] = new byte[4];
-        // TODO: Beware 32-bit index:
         ByteConverter.int4(rowData[0], 0, i + index);
         rows.add(rowData);
         int dataEndPos = calcRemainingDataLength(dims, pos, elementOid, nextDimension);
@@ -704,7 +714,6 @@ public class PgArray implements java.sql.Array {
         Object[] oa;
         ret = oa = (Object[]) java.lang.reflect.Array.newInstance(customType, dimsLength);
         for (; count > 0; count--) {
-          // TODO: Beware 32-bit index:
           Object v = input.get(index++);
           oa[length++] = (v != null) ? buildArray((PgArrayList) v, 0, -1, udtMap) : null;
         }
@@ -717,7 +726,6 @@ public class PgArray implements java.sql.Array {
         if (arrAssistant != null) {
           // Use array assistant
           for (; count > 0; count--) {
-            // TODO: Beware 32-bit index:
             Object v = input.get(index++);
             if (v != null) {
               ValueAccess access = arrAssistant.getValueAccess(connection, oid, // TODO: elementOID here?
@@ -738,7 +746,6 @@ public class PgArray implements java.sql.Array {
           //       from byte[] and String.  But we fear if we change too much core implementation this pull request
           //       would less likely be merged.
           for (; count > 0; count--) {
-            // TODO: Beware 32-bit index:
             Object v = input.get(index++);
             if (v != null) {
               ValueAccess access = new TextValueAccess(connection, elementOID, (String) v);
@@ -766,7 +773,6 @@ public class PgArray implements java.sql.Array {
 
       // add elements
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object o = input.get(index++);
 
         if (dims > 1 || useObjects) {
@@ -791,7 +797,6 @@ public class PgArray implements java.sql.Array {
       }
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object o = input.get(index++);
 
         if (dims > 1 || useObjects) {
@@ -816,7 +821,6 @@ public class PgArray implements java.sql.Array {
       }
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object o = input.get(index++);
 
         if (dims > 1 || useObjects) {
@@ -841,7 +845,6 @@ public class PgArray implements java.sql.Array {
       }
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object o = input.get(index++);
 
         if (dims > 1 || useObjects) {
@@ -858,7 +861,6 @@ public class PgArray implements java.sql.Array {
               : new BigDecimal[count]);
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : NumberConverter.toBigDecimal((String) v));
@@ -878,7 +880,6 @@ public class PgArray implements java.sql.Array {
       }
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object o = input.get(index++);
 
         if (dims > 1 || useObjects) {
@@ -902,7 +903,6 @@ public class PgArray implements java.sql.Array {
       }
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object o = input.get(index++);
 
         if (dims > 1 || useObjects) {
@@ -919,7 +919,6 @@ public class PgArray implements java.sql.Array {
               : new String[count]);
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap) : v;
       }
@@ -930,7 +929,6 @@ public class PgArray implements java.sql.Array {
           : new java.sql.Date[count]);
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toDate(null, (String) v));
@@ -942,7 +940,6 @@ public class PgArray implements java.sql.Array {
           : new java.sql.Time[count]);
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toTime(null, (String) v));
@@ -954,7 +951,6 @@ public class PgArray implements java.sql.Array {
           : new java.sql.Timestamp[count]);
 
       for (; count > 0; count--) {
-        // TODO: Beware 32-bit index:
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
@@ -969,7 +965,6 @@ public class PgArray implements java.sql.Array {
             : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
 
         for (; count > 0; count--) {
-          // TODO: Beware 32-bit index:
           Object v = input.get(index++);
           oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1, udtMap)
               : (v == null ? null : arrAssistant.buildElement((String) v));
@@ -977,7 +972,6 @@ public class PgArray implements java.sql.Array {
       } else if (dims == 1) {
         Object[] oa = new Object[count];
         for (; count > 0; count--) {
-          // TODO: Beware 32-bit index:
           Object v = input.get(index++);
           if (v instanceof String) {
             oa[length++] = connection.getObject(pgType, (String) v, null);
@@ -1047,7 +1041,6 @@ public class PgArray implements java.sql.Array {
 
   public ResultSet getResultSetImpl(long index, int count, UdtMap udtMap)
       throws SQLException {
-    // TODO: What to do if count < 0?
 
     // array index is out of range
     if (index < 1) {
@@ -1055,9 +1048,19 @@ public class PgArray implements java.sql.Array {
           PSQLState.DATA_ERROR);
     }
 
+    // count is out of range
+    if (count < 0) {
+      throw new PSQLException(GT.tr("The count is out of range: {0}", count),
+          PSQLState.DATA_ERROR);
+    }
+
     if (fieldBytes != null) {
       if (index > Integer.MAX_VALUE) {
         throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+            PSQLState.DATA_ERROR);
+      }
+      if ((index - 1 + count) > Integer.MAX_VALUE) {
+        throw new PSQLException(GT.tr("The array index + count is out of range: {0} + {1}", index, count),
             PSQLState.DATA_ERROR);
       }
       return readBinaryResultSet((int) index, count, udtMap);
@@ -1090,7 +1093,6 @@ public class PgArray implements java.sql.Array {
 
       for (int i = 0; i < count; i++) {
         assert index <= Integer.MAX_VALUE : "This cast to int is safe because it must be <= arrayList.size()";
-        // TODO: Beware 32-bit index:
         int offset = (int) index + i;
         byte[][] t = new byte[2][0];
         String v = (String) arrayList.get(offset);
@@ -1104,7 +1106,6 @@ public class PgArray implements java.sql.Array {
       fields[1] = new Field("VALUE", oid);
       for (int i = 0; i < count; i++) {
         assert index <= Integer.MAX_VALUE : "This cast to int is safe because it must be <= arrayList.size()";
-        // TODO: Beware 32-bit index:
         int offset = (int) index + i;
         byte[][] t = new byte[2][0];
         Object v = arrayList.get(offset);
