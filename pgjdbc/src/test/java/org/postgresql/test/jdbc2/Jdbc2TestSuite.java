@@ -17,6 +17,16 @@ import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
 import org.postgresql.test.core.OptionsPropertyTest;
+import org.postgresql.test.udt.CustomTypePriorityTest;
+import org.postgresql.test.udt.DomainOverIntegerTest;
+import org.postgresql.test.udt.DomainOverTextTest;
+import org.postgresql.test.udt.DomainOverTimestampTest;
+import org.postgresql.test.udt.EnumTest;
+import org.postgresql.test.udt.InvertedMapTest;
+import org.postgresql.test.udt.MultipleAttributesNotAllowedTest;
+import org.postgresql.test.udt.NestedObjectTest;
+import org.postgresql.test.udt.SQLInputWasNullBeforeReadTest;
+import org.postgresql.test.udt.SingleAttributeRequiredTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
@@ -133,7 +143,23 @@ import org.junit.runners.Suite;
         CopyLargeFileTest.class,
         ServerErrorTest.class,
         UpsertTest.class,
-        OuterJoinSyntaxTest.class
+        OuterJoinSyntaxTest.class,
+
+        /*
+         * All tests for user-defined data types (custom types).
+         */
+        // TODO: See what happens with a single-column compound type
+        // TODO: Add tests of CallableStatement
+        InvertedMapTest.class,
+        CustomTypePriorityTest.class,
+        DomainOverIntegerTest.class,
+        DomainOverTextTest.class,
+        DomainOverTimestampTest.class,
+        EnumTest.class,
+        SingleAttributeRequiredTest.class,
+        MultipleAttributesNotAllowedTest.class,
+        SQLInputWasNullBeforeReadTest.class,
+        NestedObjectTest.class
 })
 public class Jdbc2TestSuite {
 }
