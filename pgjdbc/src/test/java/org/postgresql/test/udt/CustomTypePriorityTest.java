@@ -98,9 +98,14 @@ public class CustomTypePriorityTest {
   @Test
   public void testSetObjectWithSqlTypeOther() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::numeric AS normal, ? AS sqldata");
+
+    // Cast "::numeric" required because BigDecimal as "OTHER" is simply converted via toString()
     pstmt.setObject(1, new BigDecimal("1.00"), Types.OTHER);
+
+    // No "::numeric" cast is required because the SQLData.writeSQL calls setBigDecimal, thus providing the type.
     // If this uses SQLData, it will actually write CONSTANT_VALUE:
     pstmt.setObject(2, new BigDecimalSQLData("2.00"), Types.OTHER);
+
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
 
