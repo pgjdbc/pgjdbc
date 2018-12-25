@@ -5,8 +5,8 @@
 
 package org.postgresql.test.udt;
 
-import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -22,7 +22,7 @@ import java.util.Map;
 
 // TODO: Separate tests for SQLData over enum type
 // TODO: Separate tests for Domain of enum type
-public class EnumTest {
+public class EnumTest extends BaseTest4 {
 
   protected static final String SCHEMA = "\"org.postgresql\"";
   protected static final String DAY_OF_WEEK_TYPE = SCHEMA + ".\"DayOfWeek\"";
@@ -53,11 +53,11 @@ public class EnumTest {
     }
   }
 
-  protected BaseConnection con;
-
   @Before
+  @Override
   public void setUp() throws Exception {
-    con = TestUtil.openDB().unwrap(BaseConnection.class);
+    super.setUp();
+
     TestUtil.createSchema(con, SCHEMA);
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put(DAY_OF_WEEK_TYPE, DayOfWeek.class);
@@ -75,16 +75,19 @@ public class EnumTest {
   }
 
   @After
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(con);
+  @Override
+  public void tearDown() throws SQLException {
+    try {
+      TestUtil.closeDB(con);
 
-    con = TestUtil.openDB().unwrap(BaseConnection.class);
+      con = TestUtil.openDB();
 
-    TestUtil.dropTable(con, "testdow");
-    TestUtil.dropType(con, DAY_OF_WEEK_TYPE);
-    TestUtil.dropSchema(con, SCHEMA);
-
-    TestUtil.closeDB(con);
+      TestUtil.dropTable(con, "testdow");
+      TestUtil.dropType(con, DAY_OF_WEEK_TYPE);
+      TestUtil.dropSchema(con, SCHEMA);
+    } finally {
+      super.tearDown();
+    }
   }
 
   @Test

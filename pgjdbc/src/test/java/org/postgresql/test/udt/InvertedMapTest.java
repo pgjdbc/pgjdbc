@@ -7,15 +7,11 @@ package org.postgresql.test.udt;
 
 import static org.junit.Assert.assertEquals;
 
-import org.postgresql.core.BaseConnection;
-import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.InsaneClass;
 import org.postgresql.test.util.InsaneInterface;
 import org.postgresql.test.util.InsaneInterfaceHierachy;
 import org.postgresql.udt.UdtMap;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -27,20 +23,7 @@ import java.util.Map;
 /**
  * This object tests the inverted forms of the map used for type inference.
  */
-public class InvertedMapTest {
-  private BaseConnection con;
-
-  // Set up the fixture for this testcase: the tables for this test.
-  @Before
-  public void setUp() throws Exception {
-    con = TestUtil.openDB().unwrap(BaseConnection.class);
-  }
-
-  // Tear down the fixture for this test case.
-  @After
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(con);
-  }
+public class InvertedMapTest extends BaseConnectionTest {
 
   /**
    * This test will operate slowly, or not complete at all when
@@ -57,7 +40,7 @@ public class InvertedMapTest {
     typeMap.put("insane_interface", InsaneInterface.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         Collections.singleton("insane_class"),
@@ -99,7 +82,7 @@ public class InvertedMapTest {
     typeMap.put("Integer 2", Integer.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         new HashSet<String>(Arrays.asList("Integer 1", "Integer 2")),
@@ -141,7 +124,7 @@ public class InvertedMapTest {
     typeMap.put("Float", Float.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         Collections.singleton("Integer"),
@@ -190,7 +173,7 @@ public class InvertedMapTest {
     typeMap.put("Number", Number.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         Collections.singleton("Integer"),
@@ -239,7 +222,7 @@ public class InvertedMapTest {
     typeMap.put("Integer", Integer.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         Collections.singleton("Comparable"),
@@ -255,7 +238,7 @@ public class InvertedMapTest {
     typeMap.put("Integer", Integer.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         Collections.singleton("Integer"),
@@ -279,7 +262,7 @@ public class InvertedMapTest {
 
     typeMap.put("Float", Float.class);
     con.setTypeMap(typeMap);
-    udtMap = con.getUdtMap();
+    udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         Collections.singleton("Integer"),
@@ -320,7 +303,7 @@ public class InvertedMapTest {
     typeMap.put("TestIndirectClass", TestIndirectClass.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         Collections.singleton("TestIndirectClass"),
@@ -364,7 +347,7 @@ public class InvertedMapTest {
     typeMap.put("Integer", Integer.class);
     con.setTypeMap(typeMap);
 
-    UdtMap udtMap = con.getUdtMap();
+    UdtMap udtMap = baseConnection.getUdtMap();
 
     assertEquals(
         "Direct mappings are allowed to Object",

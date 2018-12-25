@@ -5,13 +5,9 @@
 
 package org.postgresql.test.udt;
 
-import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.PreferQueryMode;
-import org.postgresql.test.TestUtil;
 
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -22,19 +18,7 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.Map;
 
-public class CustomTypePriorityTest {
-
-  protected BaseConnection con;
-
-  @Before
-  public void setUp() throws Exception {
-    con = TestUtil.openDB().unwrap(BaseConnection.class);
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(con);
-  }
+public class CustomTypePriorityTest extends BaseConnectionTest {
 
   @Test
   public void testGetObjectStatement() throws Exception {
@@ -64,7 +48,7 @@ public class CustomTypePriorityTest {
     Assert.assertEquals(new BigDecimal("1.00"), result.getBigDecimal("normal"));
     Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal(2));
 
-    if (con.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+    if (baseConnection.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       // QUERY_MODE=simple does not work without the casts, it returns String
       Assert.assertEquals("1.00", result.getObject(1));
       Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE.toString(), result.getObject("sqldata"));
@@ -92,7 +76,7 @@ public class CustomTypePriorityTest {
     Assert.assertEquals(new BigDecimal("1.00"), result.getBigDecimal(1));
     Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal("sqldata"));
 
-    if (con.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+    if (baseConnection.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       // QUERY_MODE=simple does not work without the casts, it returns String
       Assert.assertEquals("1.00", result.getObject("normal"));
       Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE.toString(), result.getObject(2));
@@ -126,7 +110,7 @@ public class CustomTypePriorityTest {
     Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getBigDecimal(2));
 
     Assert.assertEquals(new BigDecimal("1.00"), result.getObject("normal"));
-    if (con.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+    if (baseConnection.getQueryExecutor().getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       // QUERY_MODE=simple does not work without the casts, it returns String
       Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE.toString(), result.getObject("sqldata"));
     } else {

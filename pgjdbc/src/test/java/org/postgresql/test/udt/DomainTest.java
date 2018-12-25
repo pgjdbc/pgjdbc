@@ -5,24 +5,23 @@
 
 package org.postgresql.test.udt;
 
-import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.After;
 import org.junit.Before;
 
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 
-public class DomainTest {
+public class DomainTest extends BaseTest4 {
 
   protected static final String EMAIL_SQL_TYPE = "public.email";
   protected static final String PORT_SQL_TYPE = "\"Port\"";
   protected static final String SALE_DATE_SQL_TYPE = "sale_date";
-
-  protected BaseConnection con;
 
   protected static final String EMAIL1 = "foo@bar.baz";
   protected static final String EMAIL2 = "test2@example.com";
@@ -38,8 +37,10 @@ public class DomainTest {
   protected static final Timestamp TS_INVALID = new Timestamp(1976 - 1900,  3,  3,  1, 22,  0, 0);
 
   @Before
+  @Override
   public void setUp() throws Exception {
-    con = TestUtil.openDB().unwrap(BaseConnection.class);
+    super.setUp();
+
     Map<String, Class<?>> typeMap = con.getTypeMap();
 
     TestUtil.createDomain(con, EMAIL_SQL_TYPE, "text", "value like '%_@_%'"); // Not a true email validation - just for testing
@@ -98,20 +99,23 @@ public class DomainTest {
   }
 
   @After
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(con);
+  @Override
+  public void tearDown() throws SQLException {
+    try {
+      TestUtil.closeDB(con);
 
-    con = TestUtil.openDB().unwrap(BaseConnection.class);
+      con = TestUtil.openDB();
 
-    TestUtil.dropTable(con, "sales");
-    TestUtil.dropDomain(con, SALE_DATE_SQL_TYPE);
+      TestUtil.dropTable(con, "sales");
+      TestUtil.dropDomain(con, SALE_DATE_SQL_TYPE);
 
-    TestUtil.dropTable(con, "testport");
-    TestUtil.dropDomain(con, PORT_SQL_TYPE);
+      TestUtil.dropTable(con, "testport");
+      TestUtil.dropDomain(con, PORT_SQL_TYPE);
 
-    TestUtil.dropTable(con, "testemail");
-    TestUtil.dropDomain(con, EMAIL_SQL_TYPE);
-
-    TestUtil.closeDB(con);
+      TestUtil.dropTable(con, "testemail");
+      TestUtil.dropDomain(con, EMAIL_SQL_TYPE);
+    } finally {
+      super.tearDown();
+    }
   }
 }

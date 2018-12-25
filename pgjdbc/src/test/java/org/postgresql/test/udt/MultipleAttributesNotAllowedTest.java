@@ -5,13 +5,10 @@
 
 package org.postgresql.test.udt;
 
-import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLData;
@@ -26,20 +23,7 @@ import java.util.Map;
  * Currently, user-defined data types may only have a single attribute, and must have that one attribute.
  * This tests the enforcement of these constraints.
  */
-public class MultipleAttributesNotAllowedTest {
-  private Connection con;
-
-  // Set up the fixture for this testcase: the tables for this test.
-  @Before
-  public void setUp() throws Exception {
-    con = TestUtil.openDB();
-  }
-
-  // Tear down the fixture for this test case.
-  @After
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(con);
-  }
+public class MultipleAttributesNotAllowedTest extends BaseTest4 {
 
   public static class TwoAttributeSQLData implements SQLData {
 
