@@ -96,7 +96,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   public abstract String getString() throws SQLException;
 
   @Override
-  public boolean getBoolean() throws SQLException {
+  public boolean getBoolean() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "boolean", getPGType()),
@@ -104,7 +104,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public byte getByte() throws SQLException {
+  public byte getByte() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "byte", getPGType()),
@@ -112,7 +112,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public short getShort() throws SQLException {
+  public short getShort() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "short", getPGType()),
@@ -120,7 +120,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public int getInt() throws SQLException {
+  public int getInt() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "int", getPGType()),
@@ -128,7 +128,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public long getLong() throws SQLException {
+  public long getLong() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "long", getPGType()),
@@ -136,7 +136,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public float getFloat() throws SQLException {
+  public float getFloat() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "float", getPGType()),
@@ -144,7 +144,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public double getDouble() throws SQLException {
+  public double getDouble() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "double", getPGType()),
@@ -152,7 +152,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public BigDecimal getBigDecimal() throws SQLException {
+  public BigDecimal getBigDecimal() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             BigDecimal.class.getName(), getPGType()),
@@ -160,7 +160,7 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public byte[] getBytes() throws SQLException {
+  public byte[] getBytes() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             "byte[]", getPGType()),
@@ -168,12 +168,12 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public Date getDate() throws SQLException {
+  public Date getDate() throws SQLException, SQLFeatureNotSupportedException {
     return getDate(null);
   }
 
   @Override
-  public Date getDate(Calendar cal) throws SQLException {
+  public Date getDate(Calendar cal) throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             Date.class.getName(), getPGType()),
@@ -181,12 +181,12 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public Time getTime() throws SQLException {
+  public Time getTime() throws SQLException, SQLFeatureNotSupportedException {
     return getTime(null);
   }
 
   @Override
-  public Time getTime(Calendar cal) throws SQLException {
+  public Time getTime(Calendar cal) throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             Time.class.getName(), getPGType()),
@@ -194,12 +194,12 @@ public abstract class BaseValueAccess implements ValueAccess {
   }
 
   @Override
-  public Timestamp getTimestamp() throws SQLException {
+  public Timestamp getTimestamp() throws SQLException, SQLFeatureNotSupportedException {
     return getTimestamp(null);
   }
 
   @Override
-  public Timestamp getTimestamp(Calendar cal) throws SQLException {
+  public Timestamp getTimestamp(Calendar cal) throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
         GT.tr("conversion to {0} from {1} not supported",
             Timestamp.class.getName(), getPGType()),
@@ -251,7 +251,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see #getBytes()
    */
   @Override
-  public InputStream getBinaryStream() throws SQLException {
+  public InputStream getBinaryStream() throws SQLException, SQLFeatureNotSupportedException {
     byte[] b = getBytes();
     if (b != null) {
       return new ByteArrayInputStream(b);
@@ -278,7 +278,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getRef(int)
    */
   @Override
-  public Ref getRef() throws SQLException {
+  public Ref getRef() throws SQLException, SQLFeatureNotSupportedException {
     // The backend doesn't yet have SQL3 REF types
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getRef()");
   }
@@ -289,7 +289,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getBlob(int)
    */
   @Override
-  public Blob getBlob() throws SQLException {
+  public Blob getBlob() throws SQLException, SQLFeatureNotSupportedException {
     long oid = getLong();
     return wasNull() ? null : new PgBlob(connection, oid);
   }
@@ -300,13 +300,13 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getClob(int)
    */
   @Override
-  public Clob getClob() throws SQLException {
+  public Clob getClob() throws SQLException, SQLFeatureNotSupportedException {
     long oid = getLong();
     return wasNull() ? null : new PgClob(connection, oid);
   }
 
   @Override
-  public Array getArray() throws SQLException {
+  public Array getArray() throws SQLException, SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException(
       GT.tr("conversion to {0} from {1} not supported",
           Array.class.getName(), getPGType()),
@@ -322,7 +322,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getURL(int)
    */
   @Override
-  public URL getURL() throws SQLException {
+  public URL getURL() throws SQLException, SQLFeatureNotSupportedException {
     throw Driver.notImplemented(this.getClass(), "getURL()");
   }
 
@@ -332,7 +332,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getNClob(int)
    */
   @Override
-  public NClob getNClob() throws SQLException {
+  public NClob getNClob() throws SQLException, SQLFeatureNotSupportedException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getNClob()");
   }
 
@@ -342,7 +342,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getNString(int)
    */
   @Override
-  public String getNString() throws SQLException {
+  public String getNString() throws SQLException, SQLFeatureNotSupportedException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getNString()");
   }
 
@@ -363,7 +363,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getRowId(int)
    */
   @Override
-  public RowId getRowId() throws SQLException {
+  public RowId getRowId() throws SQLException, SQLFeatureNotSupportedException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getRowId()");
   }
 
@@ -414,7 +414,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    * @see PgResultSet#getCalendar(int)
    */
   @Override
-  public Calendar getCalendar() throws SQLException {
+  public Calendar getCalendar() throws SQLException, SQLFeatureNotSupportedException {
     Timestamp timestampValue = getTimestamp();
     if (timestampValue == null) {
       return null;
@@ -440,7 +440,7 @@ public abstract class BaseValueAccess implements ValueAccess {
    */
   // TODO: Redundant with PgResultSet
   @Override
-  public LocalTime getLocalTime() throws SQLException {
+  public LocalTime getLocalTime() throws SQLException, SQLFeatureNotSupportedException {
     // TODO: Does isBinary() make sense for BaseValueAccess?
     // TODO: Should this just be on a TimeValueAccess implementation?
     if (isBinary()) {
