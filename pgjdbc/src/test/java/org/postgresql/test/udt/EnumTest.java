@@ -169,7 +169,7 @@ public class EnumTest extends BaseTest4 {
     // This should work without relying on the inference
     // TODO: Option to turn on/off inference, turn off here to make sure still works
     // :: cast not needed on setObject:
-    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"noquotename\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ? AS noquotename");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
@@ -199,7 +199,7 @@ public class EnumTest extends BaseTest4 {
   @Test(expected = SQLException.class)
   public void testGetObjectWithClassInferredFromObject() throws Exception {
     // Added ::text cast to force inference to map back to requested type
-    PreparedStatement pstmt = con.prepareStatement("SELECT ?::text AS \"noquotename\"");
+    PreparedStatement pstmt = con.prepareStatement("SELECT ?::text AS noquotename");
     pstmt.setObject(1, DayOfWeek.friday);
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
