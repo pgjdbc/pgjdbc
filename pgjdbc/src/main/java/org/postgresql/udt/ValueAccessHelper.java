@@ -256,14 +256,14 @@ public class ValueAccessHelper {
       if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
         return type.cast(access.getBigDecimal());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == String.class) {
       if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
         return type.cast(access.getString());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Boolean.class) {
@@ -274,7 +274,7 @@ public class ValueAccessHelper {
         }
         return type.cast(booleanValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Short.class) {
@@ -285,7 +285,7 @@ public class ValueAccessHelper {
         }
         return type.cast(shortValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Integer.class) {
@@ -296,7 +296,7 @@ public class ValueAccessHelper {
         }
         return type.cast(intValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Long.class) {
@@ -307,7 +307,7 @@ public class ValueAccessHelper {
         }
         return type.cast(longValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == BigInteger.class) {
@@ -318,7 +318,7 @@ public class ValueAccessHelper {
         }
         return type.cast(BigInteger.valueOf(longValue));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Float.class) {
@@ -329,7 +329,7 @@ public class ValueAccessHelper {
         }
         return type.cast(floatValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Double.class) {
@@ -340,21 +340,21 @@ public class ValueAccessHelper {
         }
         return type.cast(doubleValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Date.class) {
       if (sqlType == Types.DATE) {
         return type.cast(access.getDate());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Time.class) {
       if (sqlType == Types.TIME) {
         return type.cast(access.getTime());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Timestamp.class) {
@@ -365,7 +365,7 @@ public class ValueAccessHelper {
       ) {
         return type.cast(access.getTimestamp());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Calendar.class) {
@@ -376,21 +376,21 @@ public class ValueAccessHelper {
       ) {
         return type.cast(access.getCalendar());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Blob.class) {
       if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.BIGINT) {
         return type.cast(access.getBlob());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Clob.class) {
       if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
         return type.cast(access.getClob());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == java.util.Date.class) {
@@ -401,21 +401,21 @@ public class ValueAccessHelper {
         }
         return type.cast(new java.util.Date(timestamp.getTime()));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == Array.class) {
       if (sqlType == Types.ARRAY) {
         return type.cast(access.getArray());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == SQLXML.class) {
       if (sqlType == Types.SQLXML) {
         return type.cast(access.getSQLXML());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == UUID.class) {
@@ -453,21 +453,21 @@ public class ValueAccessHelper {
         }
         return type.cast(localDateTimeValue.toLocalDate());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == LocalTime.class) {
       if (sqlType == Types.TIME) {
         return type.cast(access.getLocalTime());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == LocalDateTime.class) {
       if (sqlType == Types.TIMESTAMP) {
         return type.cast(access.getLocalDateTime());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
     } else if (type == OffsetDateTime.class) {
@@ -487,7 +487,7 @@ public class ValueAccessHelper {
         OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
         return type.cast(offsetDateTime);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} ({2}) not supported", type, sqlType, pgType),
                 conversionNotSupported);
       }
       //#endif
