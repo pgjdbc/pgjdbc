@@ -13,7 +13,7 @@ import org.junit.Before;
 
 import java.sql.SQLException;
 
-abstract class BaseConnectionTest extends BaseTest4 {
+public abstract class BaseConnectionTest extends BaseTest4 {
 
   protected BaseConnection baseConnection;
 
