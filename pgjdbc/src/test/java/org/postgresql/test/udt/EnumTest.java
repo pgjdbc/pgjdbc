@@ -204,7 +204,7 @@ public class EnumTest extends BaseTest4 {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
-  public void testGetObjectInferredFromObjectWithClass() throws Exception {
+  public void testGetObjectFromObjectWithClassInferred() throws Exception {
     // Added ::text cast to force inference to map back to requested type
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::text AS noquotename");
     pstmt.setObject(1, DayOfWeek.friday);
