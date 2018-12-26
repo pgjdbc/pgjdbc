@@ -103,6 +103,7 @@ public class EnumTest extends BaseTest4 {
     Assert.assertEquals(DayOfWeek.friday.name(), result.getString(1));
     Assert.assertEquals(DayOfWeek.friday.name(), result.getString("AmbiguousName"));
     // TODO: Fails: Seems the driver is forcing case-insensitivity: Assert.assertEquals(DayOfWeek.tuesday.name(), result.getString("ambiguousname"));
+    // TODO: Fix, if desired, could be to map the name twice - once case-sensitive once as done now.  Then look in case-sensitive map first.
     Assert.assertFalse(result.next());
     pstmt.close();
   }
