@@ -55,7 +55,7 @@ public class CustomTypePriorityTest extends BaseConnectionTest {
 
       // Is "text" correct here?  What does it become in simple query without cast?
       Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(1), BigDecimalSQLData.CONSTANT_VALUE, result.getObject(1, Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
-      Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(1), BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
+      Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(2), BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
     } else {
       Assert.assertEquals(new BigDecimal("1.00"), result.getObject(1));
       Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata"));
@@ -87,7 +87,7 @@ public class CustomTypePriorityTest extends BaseConnectionTest {
 
       // Is "text" correct here?  What does it become in simple query without cast?
       Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(1), BigDecimalSQLData.CONSTANT_VALUE, result.getObject(1, Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
-      Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(1), BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
+      Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(2), BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
     } else {
       Assert.assertEquals(new BigDecimal("1.00"), result.getObject("normal"));
       Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject(2));
@@ -123,7 +123,7 @@ public class CustomTypePriorityTest extends BaseConnectionTest {
       // QUERY_MODE=simple does not work without the casts, it returns String
       Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE.toString(), result.getObject("sqldata"));
       // Is "text" correct here?  What does it become in simple query without cast?
-      Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(1), BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
+      Assert.assertEquals("column type: " + result.getMetaData().getColumnTypeName(2), BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("text", BigDecimalSQLData.class)));
     } else {
       Assert.assertEquals("SQLData should have been used here", BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata"));
       Assert.assertEquals(BigDecimalSQLData.CONSTANT_VALUE, result.getObject("sqldata", Collections.<String, Class<?>>singletonMap("numeric", BigDecimalSQLData.class)));
