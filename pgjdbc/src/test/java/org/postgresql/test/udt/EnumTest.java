@@ -25,7 +25,9 @@ import java.util.Map;
 public class EnumTest extends BaseTest4 {
 
   protected static final String SCHEMA = "\"org.postgresql\"";
-  protected static final String DAY_OF_WEEK_TYPE = SCHEMA + ".\"DayOfWeek\"";
+  // TODO: Quotes needed on this type, due to quotes needed on schema.  This is inconsistent with
+  //       psql what would be type: "org.postgresql".dayofweek
+  protected static final String DAY_OF_WEEK_TYPE = SCHEMA + ".\"dayofweek\"";
 
   protected enum DayOfWeek {
     sunday("Sunday"),
