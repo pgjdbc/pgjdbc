@@ -150,7 +150,7 @@ public class EnumTest extends BaseTest4 {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
-  public void testGetObjectWithClassDirectFromString() throws Exception {
+  public void testGetObjectFromStringWithClassDirect() throws Exception {
     // This should work without relying on the inference
     // TODO: Option to turn on/off inference, turn off here to make sure still works
     // :: cast required on setString:
@@ -168,7 +168,7 @@ public class EnumTest extends BaseTest4 {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
-  public void testGetObjectWithClassDirectFromObject() throws Exception {
+  public void testGetObjectFromObjectWithClassDirect() throws Exception {
     // This should work without relying on the inference
     // TODO: Option to turn on/off inference, turn off here to make sure still works
     // :: cast not needed on setObject:
@@ -186,7 +186,7 @@ public class EnumTest extends BaseTest4 {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
-  public void testGetObjectWithClassInferredFromString() throws Exception {
+  public void testGetObjectFromStringWithClassInferred() throws Exception {
     // Added ::text cast to force inference to map back to requested type
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + "::text AS noquotename");
     pstmt.setString(1, DayOfWeek.friday.name());
@@ -204,7 +204,7 @@ public class EnumTest extends BaseTest4 {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   // TODO: No exception expected once implemented
   @Test(expected = SQLException.class)
-  public void testGetObjectWithClassInferredFromObject() throws Exception {
+  public void testGetObjectInferredFromObjectWithClass() throws Exception {
     // Added ::text cast to force inference to map back to requested type
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::text AS noquotename");
     pstmt.setObject(1, DayOfWeek.friday);
