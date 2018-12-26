@@ -217,7 +217,7 @@ public class EnumTest extends BaseTest4 {
     // TODO: Do another method like this, but giving an invalid value, to make sure the type is handled as ENUM server-side before being sent back to text
   }
   // TODO: Option to turn on/off inference, turn off here to make sure fails
-  // #endif
+  //#endif
 
   @Test // TODO: Once implemented: (expected = SQLException.class)
   public void testGetObjectFromStringOverrideToNoMapping() throws Exception {
