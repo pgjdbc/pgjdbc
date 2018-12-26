@@ -555,6 +555,7 @@ public class TypeInfoCache implements TypeInfo {
     return _pgNameToPgObject.get(type);
   }
 
+  // TODO: User-defined data types, too?  Or will this only be for base types?
   public synchronized String getJavaClass(int oid) throws SQLException {
     String pgTypeName = getPGType(oid);
 

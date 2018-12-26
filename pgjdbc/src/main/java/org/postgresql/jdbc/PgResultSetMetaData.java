@@ -312,6 +312,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return getField(column).getFormat();
   }
 
+  // TODO: User-defined data types: is it important to maintain this conversion back to serial types?
+  //       If so, consider moving this conversion to serial into "getPGType", or just this getColumnType
+  //       in preference to getPGType for UDT purposes
   public String getColumnTypeName(int column) throws SQLException {
     String type = getPGType(column);
     if (isAutoIncrement(column)) {
@@ -405,6 +408,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
   // This can hook into our PG_Object mechanism
 
+  // TODO: User-defined data types
   public String getColumnClassName(int column) throws SQLException {
     Field field = getField(column);
     String result = connection.getTypeInfo().getJavaClass(field.getOID());
