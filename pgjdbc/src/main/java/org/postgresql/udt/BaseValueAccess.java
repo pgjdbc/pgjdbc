@@ -383,7 +383,6 @@ public abstract class BaseValueAccess implements ValueAccess {
    */
   @Override
   public <T extends PGobject> T getPGobject(Class<T> type) throws SQLException {
-    // TODO: custom types here?  Or are PGobject accessed like other base (non-custom) types (getInt, getTime, ...)?
     PGobject object;
     if (isBinary()) {
       byte[] byteValue = getBytes();
