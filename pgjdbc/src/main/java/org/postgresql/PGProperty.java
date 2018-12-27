@@ -446,9 +446,9 @@ public enum PGProperty {
    * <ol>
    * <li>{@code "never"} - the driver will not behave in any special way with {@link Enum} objects and classes.
    *     This is most compliant with the JDBC specification.</li>
-   * <li>{@code "typemap"} (the default) - the driver will enable {@link Enum} support only when the enum is within the current
-   *     type map (either the {@link Connection#getTypeMap() type map of the connection} or the type map provided
-   *     per-method like {@link ResultSet#getObject(java.lang.String, java.util.Map)} and
+   * <li>{@code "typemap"} (the default) - the driver will enable {@link Enum} support only when the enum is within the
+   *     current type map (either the {@link Connection#getTypeMap() type map of the connection} or the type map
+   *     provided per-method like {@link ResultSet#getObject(java.lang.String, java.util.Map)} and
    *     {@link CallableStatement#getObject(int, java.util.Map)}.
    *     The type map will support {@link Enum}, in addition to {@link SQLData}.
    *     This mode offers extended capability that should not conflict with standard JDBC behavior.</li>
@@ -474,10 +474,10 @@ public enum PGProperty {
    *     that also implements {@link SQLData} is simply handled as an enum.
    *     </p>
    * </li>
-   * <li>When the {@link Enum} is in the current type map, the mapped type name will be used to avoid needing explicit casts:
-   *     {@code INSERT INTO table_with_enum (enumcol) VALUES (?)} will work correctly.</li>
-   * <li>{@code getObject(...)} and {@code getArray(...)} will use {@link Enum#valueOf(java.lang.Class, java.lang.String)}
-   *     for {@link Enum}.</li>
+   * <li>When the {@link Enum} is in the current type map, the mapped type name will be used to avoid needing explicit
+   *     casts: {@code INSERT INTO table_with_enum (enumcol) VALUES (?)} will work correctly.</li>
+   * <li>{@code getObject(...)} and {@code getArray(...)} will use
+   *     {@link Enum#valueOf(java.lang.Class, java.lang.String)} for {@link Enum}.</li>
    * </ol>
    * <p>
    * When {@link Enum} support is inactive:
@@ -494,8 +494,8 @@ public enum PGProperty {
       "Specifies the level of Enum support within setObject(...), getObject(...), and getArray(...) methods. "
           + "In enumMode=never, the driver will not behave in any special way with Enum objects and classes. "
           + "This is most compliant with the JDBC specification. "
-          + "In enumMode=typemap (the default), the driver will enable Enum support only when the enum is within the current type map. "
-          + "The type map will support {@link Enum}, in addition to {@link SQLData}. "
+          + "In enumMode=typemap (the default), the driver will enable Enum support only when the enum is within the "
+          + "current type map. The type map will support {@link Enum}, in addition to {@link SQLData}. "
           + "This mode offers extended capability that should not conflict with standard JDBC behavior. "
           + "In enumMode=always, the driver will always support Enum, whether or not in the current type map. "
           + "The type map will support {@link Enum}, in addition to {@link SQLData}. "
