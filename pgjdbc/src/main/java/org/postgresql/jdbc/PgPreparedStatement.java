@@ -700,6 +700,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     EnumMode enumMode = connection.getEnumMode();
     if ((enumMode == EnumMode.ALWAYS || enumMode == EnumMode.TYPEMAP) && in instanceof Enum) {
       // TODO: targetSqlType == Types.OTHER only?
+      //       or better: Types.JAVA_OBJECT only?
       if (setEnumImpl(parameterIndex, pgType, (Enum)in, enumMode)) {
         return;
       } else {
@@ -1163,7 +1164,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   // TODO: InputStream? (verify scaleOrLength)
   // TODO: Reader? (verify scaleOrLength)
-  // scaleOrLength unused?
   protected void setObjectImpl(int parameterIndex, String pgType, int scaleOrLength, Object x) throws SQLException {
     checkClosed();
 
@@ -1175,6 +1175,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     boolean supportSQLData;
     EnumMode enumMode = connection.getEnumMode();
     if ((enumMode == EnumMode.ALWAYS || enumMode == EnumMode.TYPEMAP) && x instanceof Enum) {
+      // TODO: targetSqlType == Types.OTHER only?
+      //       or better: Types.JAVA_OBJECT only?
       if (setEnumImpl(parameterIndex, pgType, (Enum)x, enumMode)) {
         return;
       } else {
@@ -1245,7 +1247,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     } else if (x instanceof Map) {
       setMapImpl(parameterIndex, pgType, (Map<?, ?>) x);
     } else if (x instanceof Number) {
-      // TODO: Pass scale through to all Number, nos just BigDecimal?
+      // TODO: Pass scale through to all Number, not just BigDecimal?
+      //       Currently is - could replace scaleOrLength with -1 to avoid this.
       setNumberImpl(parameterIndex, pgType, scaleOrLength, (Number) x);
     } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
       setPrimitiveArrayImpl(parameterIndex, pgType, x);
