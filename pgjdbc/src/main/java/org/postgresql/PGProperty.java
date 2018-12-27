@@ -5,12 +5,16 @@
 
 package org.postgresql;
 
+import java.sql.CallableStatement;
+import java.sql.Connection;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.SQLData;
 import java.util.Properties;
 
 /**
@@ -432,7 +436,72 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+
+  /**
+   * <p>
+   * Specifies the level of {@link Enum} support within {@code setObject(...)}, {@code getObject(...)},
+   * and {@code getArray(...)} methods.
+   * </p>
+   * <ol>
+   * <li>{@code "never"} - the driver will not behave in any special way with {@link Enum} objects and classes.
+   *     This is most compliant with the JDBC specification.</li>
+   * <li>{@code "typemap"} (the default) - the driver will enable {@link Enum} support only when the enum is within the current
+   *     type map (either the {@link Connection#getTypeMap() type map of the connection} or the type map provided
+   *     per-method like {@link ResultSet#getObject(java.lang.String, java.util.Map)} and
+   *     {@link CallableStatement#getObject(int, java.util.Map)}.
+   *     The type map will support {@link Enum}, in addition to {@link SQLData}.
+   *     This mode offers extended capability that should not conflict with standard JDBC behavior.</li>
+   * <li>{@code "always"} - the driver will always support {@link Enum}, whether or not in the current type map.
+   *     The type map will support {@link Enum}, in addition to {@link SQLData}.
+   *     Please note that without adding the {@link Enum} to the type map, explicit casting will still be required
+   *     on parameterized queries.
+   *     This mode conflicts with the JDBC specification when an {@link Enum} is used in {@code setObject(...)}, because
+   *     it always uses {@link Enum#name()} instead of {@link Enum#toString()}.</li>
+   * </ol>
+   * <p>
+   * When {@link Enum} support is active:
+   * </p>
+   * <ol>
+   * <li><p>
+   *     {@code setObject(...)} will use {@link Enum#name()} and convert to a call to {@code setString(...)},
+   *     even if the enum also implements {@link SQLData}.
+   *     </p>
+   *     <p>
+   *     Although an {@link Enum} could implement {@link SQLData}, this would not be of much use, as
+   *     reading a {@link SQLData} requires being able to instantiate the object with a default constructor,
+   *     which is impossible with an {@link Enum}.  For this reason, when enum support is active, any {@link Enum}
+   *     that also implements {@link SQLData} is simply handled as an enum.
+   *     </p>
+   * </li>
+   * <li>When the {@link Enum} is in the current type map, the mapped type name will be used to avoid needing explicit casts:
+   *     {@code INSERT INTO table_with_enum (enumcol) VALUES (?)} will work correctly.</li>
+   * <li>{@code getObject(...)} and {@code getArray(...)} will use {@link Enum#valueOf(java.lang.Class, java.lang.String)}
+   *     for {@link Enum}.</li>
+   * </ol>
+   * <p>
+   * When {@link Enum} support is inactive:
+   * </p>
+   * <ol>
+   * <li>{@code setObject(...)} will use {@link Enum#toString()}, 
+   *     unless it otherwise implements {@link SQLData}, in which case {@link SQLData} will be used instead.</li>
+   * <li>The current type map will not be used to avoid needing explicit casts:
+   *     {@code INSERT INTO table_with_enum (enumcol) VALUES (?::enumtype)} will be required.</li>
+   * <li>{@code getObject(..., Class)} and {@code getObject(..., Map)} will fail on {@link Enum}.</li>
+   * </ol>
+   */
+  ENUM_MODE("enumMode", "typemap",
+      "Specifies the level of Enum support within setObject(...), getObject(...), and getArray(...) methods. "
+          + "In enumMode=never, the driver will not behave in any special way with Enum objects and classes. "
+          + "This is most compliant with the JDBC specification. "
+          + "In enumMode=typemap (the default), the driver will enable Enum support only when the enum is within the current type map. "
+          + "The type map will support {@link Enum}, in addition to {@link SQLData}. "
+          + "This mode offers extended capability that should not conflict with standard JDBC behavior. "
+          + "In enumMode=always, the driver will always support Enum, whether or not in the current type map. "
+          + "The type map will support {@link Enum}, in addition to {@link SQLData}. "
+          + "This mode conflicts with the JDBC specification when an Enum is used in setObject(...), because "
+          + "it always uses Enum.name() instead of Enum.toString().", false,
+      "never", "typemap", "always");
 
   private String _name;
   private String _defaultValue;

@@ -252,6 +252,9 @@ class SimpleParameterList implements V3ParameterList {
       } else if (paramType == Oid.INTERVAL) {
         p.append("::interval");
       }
+      // TODO: user-defined data types here?
+      // TODO: Both Enum-based and SQLData-based?
+      // TODO: Use SQLData.getSQLTypeName() first, then if null lookup in current type map?
       return p.toString();
     }
   }
