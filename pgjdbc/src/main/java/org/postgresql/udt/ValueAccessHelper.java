@@ -223,7 +223,9 @@ public class ValueAccessHelper {
   // TODO: Should this accept a scale when ultimately coming from a CallableStatement?
   public static Object getObject(BaseConnection connection, int rsType, ValueAccess access, int sqlType, String pgType, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
     Map<String, Class<?>> typemap = udtMap.getTypeMap();
-    LOGGER.log(Level.FINEST, "  typemap: {0}", typemap);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "  rsType: {0}, sqlType: {1}, pgType: {2}, typemap: {3}", new Object[] {rsType, sqlType, pgType, typemap});
+    }
     Class<?> customType = typemap.get(pgType);
     if (customType != null) {
       if (LOGGER.isLoggable(Level.FINER)) {
