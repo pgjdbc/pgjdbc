@@ -239,7 +239,7 @@ class PgResultSetValueAccess implements ValueAccess {
   @Override
   public <T> T getObject(Class<T> type, UdtMap udtMap) throws SQLException {
     return ValueAccessHelper.getObject(this, result.getSQLType(columnIndex),
-        result.getPGType(columnIndex), type, udtMap,
+        result.getPGType(columnIndex), type, result.connection.getEnumMode(), udtMap,
         // PSQLState.INVALID_PARAMETER_VALUE is consistent with previous implementation of PgResultSet.getObject(Class)
         PSQLState.INVALID_PARAMETER_VALUE);
   }

@@ -5,6 +5,8 @@
 
 package org.postgresql;
 
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.EnumMode;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -489,6 +491,9 @@ public enum PGProperty {
    *     {@code INSERT INTO table_with_enum (enumcol) VALUES (?::enumtype)} will be required.</li>
    * <li>{@code getObject(..., Class)} and {@code getObject(..., Map)} will fail on {@link Enum}.</li>
    * </ol>
+   *
+   * @see EnumMode
+   * @see BaseConnection#getEnumMode()
    */
   ENUM_MODE("enumMode", "typemap",
       "Specifies the level of Enum support within setObject(...), getObject(...), and getArray(...) methods. "

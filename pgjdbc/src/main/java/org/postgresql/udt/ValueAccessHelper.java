@@ -8,6 +8,7 @@ package org.postgresql.udt;
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.EnumMode;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.GT;
@@ -52,6 +53,7 @@ import java.util.logging.Logger;
 /**
  * Base implementation of {@link ValueAccess}.
  */
+// TODO: Rename to "ObjectConverter"?
 public class ValueAccessHelper {
 
   private ValueAccessHelper() {}
@@ -219,7 +221,6 @@ public class ValueAccessHelper {
   }
 
   // TODO: Should this accept a scale when ultimately coming from a CallableStatement?
-  // TODO: Support enums value Enum.valueOf?
   public static Object getObject(BaseConnection connection, int rsType, ValueAccess access, int sqlType, String pgType, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
     Map<String, Class<?>> typemap = udtMap.getTypeMap();
     LOGGER.log(Level.FINEST, "  typemap: {0}", typemap);
@@ -229,7 +230,7 @@ public class ValueAccessHelper {
         LOGGER.log(Level.FINER, "  Found custom type: {0} -> {1}", new Object[] {pgType, customType.getName()});
       }
       return SingleAttributeSQLInputHelper.getObjectCustomType(
-          udtMap, pgType, customType, access.getSQLInput(udtMap));
+          connection.getEnumMode(), udtMap, pgType, customType, access.getSQLInput(udtMap));
     }
 
     Object result = internalGetObject(connection, rsType, access, sqlType, pgType, -1);
@@ -241,10 +242,15 @@ public class ValueAccessHelper {
   }
 
   // TODO: Should this accept a scale when ultimately coming from a CallableStatement?
-  // TODO: Support enums value Enum.valueOf?
-  public static <T> T getObject(ValueAccess access, int sqlType, String pgType, Class<T> type, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
+  public static <T> T getObject(ValueAccess access, int sqlType, String pgType, Class<T> type, EnumMode enumMode, UdtMap udtMap, PSQLState conversionNotSupported) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");
+    }
+    if (enumMode == EnumMode.ALWAYS && Enum.class.isAssignableFrom(type)) {
+      // Enum now always, no need to check typemap
+      Class<? extends Enum> enumClass = type.asSubclass(Enum.class);
+      LOGGER.log(Level.FINEST, "  enumClass: {0}", enumClass.getName());
+      return (T)SingleAttributeSQLInputHelper.getEnum(enumClass, access);
     }
     Map<String, Class<?>> typemap = udtMap.getTypeMap();
     LOGGER.log(Level.FINEST, "  typemap: {0}", typemap);
@@ -257,7 +263,7 @@ public class ValueAccessHelper {
       if (type.isAssignableFrom(customType)) {
         return type.cast(
             SingleAttributeSQLInputHelper.getObjectCustomType(
-                udtMap, pgType, customType, access.getSQLInput(udtMap)));
+                enumMode, udtMap, pgType, customType, access.getSQLInput(udtMap)));
       } else {
         throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", pgType, customType.getName(), type.getName()),
                 conversionNotSupported);
@@ -570,7 +576,7 @@ public class ValueAccessHelper {
         }
         if (inferredPgType != null) {
           return SingleAttributeSQLInputHelper.getObjectCustomType(
-              udtMap, inferredPgType, inferredClass, access.getSQLInput(udtMap));
+              enumMode, udtMap, inferredPgType, inferredClass, access.getSQLInput(udtMap));
         }
       }
     }

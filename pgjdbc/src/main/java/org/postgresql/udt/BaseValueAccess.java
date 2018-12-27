@@ -261,10 +261,10 @@ public abstract class BaseValueAccess implements ValueAccess {
   /**
    * {@inheritDoc}
    * <p>
-   * Implemented via {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}
+   * Implemented via {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}
    * </p>
    *
-   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
   @Override
   public Object getObject(UdtMap udtMap) throws SQLException {
@@ -456,14 +456,14 @@ public abstract class BaseValueAccess implements ValueAccess {
   /**
    * {@inheritDoc}
    * <p>
-   * Implemented via {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
+   * Implemented via {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
    * </p>
    *
-   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
   @Override
   public <T> T getObject(Class<T> type, UdtMap udtMap) throws SQLException {
-    return ValueAccessHelper.getObject(this, getSQLType(), getPGType(), type, udtMap, conversionNotSupported);
+    return ValueAccessHelper.getObject(this, getSQLType(), getPGType(), type, connection.getEnumMode(), udtMap, conversionNotSupported);
   }
 
   /**

@@ -14,6 +14,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.EnumMode;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
@@ -148,6 +149,11 @@ public class PgConnection implements BaseConnection {
    * The current type mappings.
    */
   protected volatile UdtMap udtMap = UdtMap.EMPTY;
+
+  /**
+   * The enum mode for this connection.
+   */
+  protected final EnumMode enumMode;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -297,6 +303,12 @@ public class PgConnection implements BaseConnection {
         false);
 
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
+
+    String enumModeName = PGProperty.ENUM_MODE.get(info);
+    if (enumModeName == null || (enumModeName = enumModeName.trim()).isEmpty()) {
+      enumModeName = PGProperty.ENUM_MODE.getDefaultValue();
+    }
+    enumMode = EnumMode.valueOf(enumModeName.toUpperCase(Locale.ROOT));
   }
 
   private static Set<Integer> getBinaryOids(Properties info) throws PSQLException {
@@ -388,6 +400,11 @@ public class PgConnection implements BaseConnection {
   @Override
   public UdtMap getUdtMap() {
     return udtMap;
+  }
+
+  @Override
+  public EnumMode getEnumMode() {
+    return enumMode;
   }
 
   public QueryExecutor getQueryExecutor() {

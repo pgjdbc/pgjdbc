@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.udt.UdtMap;
@@ -87,6 +88,16 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return  The UDT map for this connection.
    */
   UdtMap getUdtMap();
+
+  /**
+   * Gets the enum mode for this connection.
+   * This will not change for the life of the connection.
+   *
+   * @return the Enum mode
+   * @see PGProperty#ENUM_MODE
+   * @see EnumMode
+   */
+  EnumMode getEnumMode();
 
   /**
    * <p>Construct and return an appropriate object for the given type and value. This only considers

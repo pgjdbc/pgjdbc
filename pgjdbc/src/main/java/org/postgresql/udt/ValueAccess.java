@@ -42,7 +42,7 @@ import java.util.Calendar;
  * from various sources.
  * </p>
  *
- * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+ * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
  */
 // TODO: Consider renaming "BaseValue"
 public interface ValueAccess {
@@ -611,7 +611,7 @@ public interface ValueAccess {
   /**
    * Gets a {@link Calendar} representation of this value.
    * <p>
-   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
+   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
    * </p>
    *
    * @return {@code null} if this value is null or {@link Calendar} of the value.
@@ -620,7 +620,7 @@ public interface ValueAccess {
    * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
    *            this method
    *
-   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
   Calendar getCalendar() throws SQLException, SQLFeatureNotSupportedException;
 
@@ -628,7 +628,7 @@ public interface ValueAccess {
   /**
    * Gets the {@link LocalDateTime} representation of this value.
    * <p>
-   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
+   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
    * </p>
    *
    * @return {@code null} if this value is null or {@link LocalDateTime} of the value.
@@ -637,14 +637,14 @@ public interface ValueAccess {
    * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
    *            this method
    *
-   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
   LocalDateTime getLocalDateTime() throws SQLException, SQLFeatureNotSupportedException;
 
   /**
    * Gets the {@link LocalTime} representation of this value.
    * <p>
-   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
+   * This is used by the implementation of {@link ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)}.
    * </p>
    *
    * @return {@code null} if this value is null or {@link LocalTime} of the value.
@@ -653,7 +653,7 @@ public interface ValueAccess {
    * @throws SQLFeatureNotSupportedException if the JDBC driver does not support
    *            this method
    *
-   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
   LocalTime getLocalTime() throws SQLException, SQLFeatureNotSupportedException;
   //#endif

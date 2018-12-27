@@ -17,6 +17,7 @@ import java.sql.SQLException;
 /**
  * Helper for implementing {@link SingleAttributeSQLOutput}.
  */
+// TODO: Rename SQLOutputHelper?
 public class SingleAttributeSQLOutputHelper {
 
   private SingleAttributeSQLOutputHelper() {}

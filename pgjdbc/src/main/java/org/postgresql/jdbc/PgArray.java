@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.EnumMode;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
@@ -384,7 +385,7 @@ public class PgArray implements java.sql.Array {
           }
           if (access != null) {
             arr[i] = SingleAttributeSQLInputHelper.getObjectCustomType(
-                udtMap, pgType, customType, access.getSQLInput(udtMap));
+                connection.getEnumMode(), udtMap, pgType, customType, access.getSQLInput(udtMap));
           }
         }
         pos += len;
@@ -720,6 +721,8 @@ public class PgArray implements java.sql.Array {
       } else {
         Object[] oa;
         ret = oa = (Object[]) java.lang.reflect.Array.newInstance(customType, count);
+        // Get EnumMode once before loop
+        EnumMode enumMode = connection.getEnumMode();
         // TODO: ArrayAssistantRegistry is accessed haphazardly by the array OID or the element OID.
         // TODO: In the case of UUID, both are in the registry, but this inconsistency is unexpected.
         ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
@@ -731,7 +734,7 @@ public class PgArray implements java.sql.Array {
               ValueAccess access = arrAssistant.getValueAccess(connection, oid, // TODO: elementOID here?
                   arrAssistant.buildElement((String) v));
               oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
-                  udtMap, pgType, customType, access.getSQLInput(udtMap));
+                  enumMode, udtMap, pgType, customType, access.getSQLInput(udtMap));
             } else {
               // oa[length] is already null
               length++;
@@ -750,7 +753,7 @@ public class PgArray implements java.sql.Array {
             if (v != null) {
               ValueAccess access = new TextValueAccess(connection, elementOID, (String) v);
               oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
-                  udtMap, pgType, customType, access.getSQLInput(udtMap));
+                  enumMode, udtMap, pgType, customType, access.getSQLInput(udtMap));
             } else {
               // oa[length] is already null
               length++;

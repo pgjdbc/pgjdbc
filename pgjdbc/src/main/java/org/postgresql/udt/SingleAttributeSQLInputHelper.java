@@ -6,17 +6,20 @@
 package org.postgresql.udt;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.EnumMode;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.SQLInput;
 
 
 /**
  * Helper for implementing {@link SingleAttributeSQLInput}.
  */
+// TODO: Rename SQLInputHelper?  Combine with ValueAccessHelper, and rename it to ObjectConverter?
 public class SingleAttributeSQLInputHelper {
 
   private SingleAttributeSQLInputHelper() {}
@@ -55,6 +58,62 @@ public class SingleAttributeSQLInputHelper {
   }
 
   /**
+   * Get an {@link Enum} from the given {@link ValueAccess}
+   * via a single call to {@link ValueAccess#getString()}.
+   *
+   * @param <T> The enum type whose constant is to be returned
+   * @param enumType the {@code Class} object of the enum type from which
+   *      to return a constant
+   * @param access the value access
+   * @return an appropriate object; possibly null.
+   * @throws SQLException if something goes wrong
+   *
+   * @see Enum#valueOf(java.lang.Class, java.lang.String)
+   */
+  public static <T extends Enum<T>> T getEnum(Class<T> enumType, ValueAccess access) throws SQLException {
+    // Read enum value through single call to readString()
+    String value = access.getString();
+    if (value == null) {
+      return null;
+    } else {
+      try {
+        return Enum.valueOf(enumType, value);
+      } catch (IllegalArgumentException e) {
+        throw new PSQLException(GT.tr("Enum value not found for type {0}: {1}", enumType.getName(), value),
+            PSQLState.DATA_ERROR, e); // TODO: Review: Is this the most appropriate PSQLState?
+      }
+    }
+  }
+
+  /**
+   * Reads an {@link Enum} from the given {@link SQLInput}
+   * via a single call to {@link SQLInput#readString()}.
+   *
+   * @param <T> The enum type whose constant is to be returned
+   * @param enumType the {@code Class} object of the enum type from which
+   *      to return a constant
+   * @param in the field source for the custom type
+   * @return an appropriate object; possibly null.
+   * @throws SQLException if something goes wrong
+   *
+   * @see Enum#valueOf(java.lang.Class, java.lang.String)
+   */
+  public static <T extends Enum<T>> T readEnum(Class<T> enumType, SQLInput in) throws SQLException {
+    // Read enum value through single call to readString()
+    String value = in.readString();
+    if (value == null) {
+      return null;
+    } else {
+      try {
+        return Enum.valueOf(enumType, value);
+      } catch (IllegalArgumentException e) {
+        throw new PSQLException(GT.tr("Enum value not found for type {0}: {1}", enumType.getName(), value),
+            PSQLState.DATA_ERROR, e); // TODO: Review: Is this the most appropriate PSQLState?
+      }
+    }
+  }
+
+  /**
    * Implementation of {@link BaseConnection#getObject(java.lang.String, java.lang.String, byte[])} for custom types
    * once the custom type is known.
    *
@@ -66,18 +125,23 @@ public class SingleAttributeSQLInputHelper {
    * @param <T> the custom type to be returned
    * @param udtMap the current user-defined data types
    * @param type the backend typename
+   * @param enumMode the Enum mode
    * @param customType the class of the custom type to be returned
    * @param in the field source for the custom type
-   * @return an appropriate object; never null.
+   * @return an appropriate object; possibly null.
    * @throws SQLException if something goes wrong
    *
    * @see  BaseConnection#getObject(java.lang.String, java.lang.String, byte[])
    * @see  org.postgresql.jdbc.PgResultSet#getObject(java.lang.String, java.lang.Class)
    * @see  org.postgresql.jdbc.PgResultSet#getObject(int, java.lang.Class)
    *
-   * @see  SingleAttributeSQLInputHelper#readSQLData(org.postgresql.udt.UdtMap, java.lang.String, java.lang.Class, org.postgresql.udt.SingleAttributeSQLInput)
+   * @see  #readEnum(java.lang.Class, java.sql.SQLInput)
+   * @see  #readSQLData(org.postgresql.udt.UdtMap, java.lang.String, java.lang.Class, org.postgresql.udt.SingleAttributeSQLInput)
    */
-  public static <T> T getObjectCustomType(UdtMap udtMap, String type, Class<? extends T> customType, SingleAttributeSQLInput in) throws SQLException {
+  public static <T> T getObjectCustomType(EnumMode enumMode, UdtMap udtMap, String type, Class<? extends T> customType, SingleAttributeSQLInput in) throws SQLException {
+    if ((enumMode == EnumMode.TYPEMAP || enumMode == EnumMode.ALWAYS) && Enum.class.isAssignableFrom(customType)) {
+      return (T)readEnum(customType.asSubclass(Enum.class), in);
+    }
     if (SQLData.class.isAssignableFrom(customType)) {
       Class<? extends SQLData> sqlDataType = customType.asSubclass(SQLData.class);
       return customType.cast(SingleAttributeSQLInputHelper.readSQLData(udtMap, type, sqlDataType, in));

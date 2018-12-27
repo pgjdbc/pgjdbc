@@ -122,8 +122,7 @@ public class EnumTest extends BaseTest4 {
     pstmt.close();
   }
 
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testGetObjectFromString() throws Exception {
     // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS \"lowername\"");
@@ -151,8 +150,7 @@ public class EnumTest extends BaseTest4 {
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testGetObjectFromStringWithClassDirect() throws Exception {
     // This should work without relying on the inference
     // TODO: Option to turn on/off inference, turn off here to make sure still works
@@ -187,8 +185,7 @@ public class EnumTest extends BaseTest4 {
   //#endif
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testGetObjectFromStringWithClassInferred() throws Exception {
     // Added ::text cast to force inference to map back to requested type
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + "::text AS noquotename");
@@ -233,8 +230,7 @@ public class EnumTest extends BaseTest4 {
     // TODO: Once implemented: Assert.fail();
   }
 
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testGetObjectFromStringOverrideToHaveMapping() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     con.setTypeMap(Collections.<String, Class<?>>emptyMap());
@@ -278,13 +274,12 @@ public class EnumTest extends BaseTest4 {
     pstmt.setString(1, DayOfWeek.friday.name());
     ResultSet result = pstmt.executeQuery();
     Assert.assertTrue(result.next());
-    result.getObject(1, DayOfWeek.class); // TODO: Should we still support Enum in this case, even when not mapped?
+    result.getObject(1, DayOfWeek.class); // TODO: Should we still support Enum in this case, even when not mapped? TODO: Test different EnumMode
     Assert.fail();
   }
   //#endif
 
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testInsertAsString() throws Exception {
     // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testdow VALUES (?::" + DAY_OF_WEEK_TYPE + ")");
@@ -337,8 +332,7 @@ public class EnumTest extends BaseTest4 {
     stmt.close();
   }
 
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testInsertAsStringNoMapping() throws Exception {
     Map<String, Class<?>> typeMap = con.getTypeMap();
     con.setTypeMap(Collections.<String, Class<?>>emptyMap());
