@@ -451,7 +451,7 @@ public enum PGProperty {
    *     provided per-method like {@link ResultSet#getObject(java.lang.String, java.util.Map)} and
    *     {@link CallableStatement#getObject(int, java.util.Map)}.
    *     The type map will support {@link Enum}, in addition to {@link SQLData}.
-   *     This mode offers extended capability that should not conflict with standard JDBC behavior.</li>
+   *     This mode offers extended capability that does not conflict with standard JDBC behavior.</li>
    * <li>{@code "always"} - the driver will always support {@link Enum}, whether or not in the current type map.
    *     The type map will support {@link Enum}, in addition to {@link SQLData}.
    *     Please note that without adding the {@link Enum} to the type map, explicit casting will still be required
@@ -496,7 +496,7 @@ public enum PGProperty {
           + "This is most compliant with the JDBC specification. "
           + "In enumMode=typemap (the default), the driver will enable Enum support only when the enum is within the "
           + "current type map. The type map will support {@link Enum}, in addition to {@link SQLData}. "
-          + "This mode offers extended capability that should not conflict with standard JDBC behavior. "
+          + "This mode offers extended capability that does not conflict with standard JDBC behavior. "
           + "In enumMode=always, the driver will always support Enum, whether or not in the current type map. "
           + "The type map will support {@link Enum}, in addition to {@link SQLData}. "
           + "This mode conflicts with the JDBC specification when an Enum is used in setObject(...), because "
