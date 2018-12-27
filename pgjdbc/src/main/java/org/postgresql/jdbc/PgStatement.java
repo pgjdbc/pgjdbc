@@ -93,6 +93,7 @@ public class PgStatement implements Statement, BaseStatement {
   public boolean wantsGeneratedKeysAlways = false;
 
   // The connection who created us
+  // TODO: This could be PgConnection to avoid one cast from BaseConnection to PgConnection
   protected final BaseConnection connection;
 
   /**
