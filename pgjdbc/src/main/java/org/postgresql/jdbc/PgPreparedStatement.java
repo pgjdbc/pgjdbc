@@ -573,6 +573,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       throw new PSQLException(GT.tr("No hstore extension installed."),
           PSQLState.INVALID_PARAMETER_TYPE);
     }
+    // Maintain outermost pgType on nested objects
+    if (pgType == null) {
+      pgType = "hstore";
+    }
     if (connection.binaryTransferSend(oid)) {
       byte[] data = HStoreConverter.toBytes(x, connection.getEncoding());
       bindBytes(parameterIndex, pgType, data, oid);
