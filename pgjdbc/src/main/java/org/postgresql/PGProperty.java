@@ -5,13 +5,13 @@
 
 package org.postgresql;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
 import java.sql.ResultSet;
 import java.sql.SQLData;
@@ -483,7 +483,7 @@ public enum PGProperty {
    * When {@link Enum} support is inactive:
    * </p>
    * <ol>
-   * <li>{@code setObject(...)} will use {@link Enum#toString()}, 
+   * <li>{@code setObject(...)} will use {@link Enum#toString()},
    *     unless it otherwise implements {@link SQLData}, in which case {@link SQLData} will be used instead.</li>
    * <li>The current type map will not be used to avoid needing explicit casts:
    *     {@code INSERT INTO table_with_enum (enumcol) VALUES (?::enumtype)} will be required.</li>
