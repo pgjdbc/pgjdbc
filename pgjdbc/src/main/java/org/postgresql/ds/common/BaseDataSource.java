@@ -6,6 +6,7 @@
 package org.postgresql.ds.common;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.EnumMode;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.ExpressionProperties;
@@ -1333,4 +1334,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return Logger.getLogger("org.postgresql");
   }
   //#endif
+
+  /**
+   * @return Enum mode
+   * @see PGProperty#ENUM_MODE
+   * @see EnumMode
+   */
+  public String getEnumMode() {
+    return PGProperty.ENUM_MODE.get(properties);
+  }
+
+  /**
+   * @param mode Enum mode
+   * @see PGProperty#ENUM_MODE
+   * @see EnumMode
+   */
+  public void setEnumMode(String mode) {
+    PGProperty.ENUM_MODE.set(properties, mode);
+  }
 }
