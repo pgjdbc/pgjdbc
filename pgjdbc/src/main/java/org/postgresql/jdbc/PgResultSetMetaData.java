@@ -315,6 +315,11 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   // TODO: User-defined data types: is it important to maintain this conversion back to serial types?
   //       If so, consider moving this conversion to serial into "getPGType", or just this getColumnType
   //       in preference to getPGType for UDT purposes
+  //
+  //       In other words, should registered a custom type for "serial" be distinct from "int4" across the system?
+  //       If so, we'll need a way to distinguish between the two all places they are used.  The current implementation
+  //       just matches whatever it gets from getPGType(int) - which assumes the base type int4/int8 and never matches
+  //       custom types serial/bigserial.
   public String getColumnTypeName(int column) throws SQLException {
     String type = getPGType(column);
     if (isAutoIncrement(column)) {
