@@ -587,16 +587,16 @@ public interface ValueAccess {
   // TODO: Does getPGobject belong on the ValueAcces interface, or is it part of the SQLInput implementations?
   //       Or should there be a PGobectValueAccess implementation, as PGobject acts like base types?
   //       Or both?
-  // TODO: This would get the PGobject always, even when there are user-defined data types for it, just like getInt does.
-  //       PGobject should behave like base types - below the level of user-defined data types.
+  // TODO: This gets the PGobject always, even when there are user-defined data types for it, just like getInt does.
+  //       PGobject behaves like base types - below the level of user-defined data types.
   // TODO: Javadocs if will stay here
   PGobject getPGobject(String pgType) throws SQLException, SQLFeatureNotSupportedException;
 
   // TODO: Does getPGobject belong on the ValueAcces interface, or is it part of the SQLInput implementations?
   //       Or should there be a PGobectValueAccess implementation, as PGobject acts like base types?
   //       Or both?
-  // TODO: This would get the PGobject always, even when there are user-defined data types for it, just like getInt does.
-  //       PGobject should behave like base types - below the level of user-defined data types.
+  // TODO: This gets the PGobject always, even when there are user-defined data types for it, just like getInt does.
+  //       PGobject behaves like base types - below the level of user-defined data types.
   // TODO: Javadocs if will stay here
   <T extends PGobject> T getPGobject(Class<T> type) throws SQLException, SQLFeatureNotSupportedException;
 
