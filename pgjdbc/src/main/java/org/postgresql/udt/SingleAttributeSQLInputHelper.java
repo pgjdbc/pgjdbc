@@ -71,7 +71,7 @@ public class SingleAttributeSQLInputHelper {
    * @see Enum#valueOf(java.lang.Class, java.lang.String)
    */
   public static <T extends Enum<T>> T getEnum(Class<T> enumType, ValueAccess access) throws SQLException {
-    // Read enum value through single call to readString()
+    // Read enum value through single call to getString()
     String value = access.getString();
     if (value == null) {
       return null;
