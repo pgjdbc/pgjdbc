@@ -5,6 +5,7 @@
 
 package org.postgresql.test.udt;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGobject;
@@ -36,6 +37,8 @@ public class EnumTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
+
+    assumeMinimumServerVersion(ServerVersion.v8_3);
 
     TestUtil.createSchema(con, SCHEMA);
     Map<String, Class<?>> typeMap = con.getTypeMap();
