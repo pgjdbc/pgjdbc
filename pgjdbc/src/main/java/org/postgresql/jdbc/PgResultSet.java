@@ -1159,11 +1159,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(int columnIndex, Object x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(int columnIndex, Object x, int scale) throws SQLException {
     this.updateObject(columnIndex, x);
 
@@ -1427,12 +1429,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(String columnName, Object x, int scale)
       throws SQLException {
     updateObject(findColumn(columnName), x);
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(String columnName, Object x) throws SQLException {
     updateObject(findColumn(columnName), x);
   }
@@ -2764,21 +2768,25 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  // TODO: user-defined data types
   public void updateObject(int columnIndex, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  // TODO: user-defined data types
   public void updateObject(String columnLabel, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  // TODO: user-defined data types
   public void updateObject(int columnIndex, Object x, java.sql.SQLType targetSqlType)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  // TODO: user-defined data types
   public void updateObject(String columnLabel, Object x, java.sql.SQLType targetSqlType)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
