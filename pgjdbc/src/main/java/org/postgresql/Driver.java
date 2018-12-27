@@ -256,6 +256,7 @@ public class Driver implements java.sql.Driver {
         return makeConnection(url, props);
       }
 
+      // TODO: Consider unbounded ExecutorService here instead of spawning a thread for each connect.
       ConnectThread ct = new ConnectThread(url, props);
       Thread thread = new Thread(ct, "PostgreSQL JDBC driver connection thread");
       thread.setDaemon(true); // Don't prevent the VM from shutting down
