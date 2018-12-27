@@ -553,7 +553,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       throw new PSQLException(GT.tr("Unknown type {0}.", typename),
           PSQLState.INVALID_PARAMETER_TYPE);
     }
-
+    // Maintain outermost pgType on nested objects
+    if (pgType == null) {
+      pgType = typename;
+    }
     if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)) {
       PGBinaryObject binObj = (PGBinaryObject) x;
       byte[] data = new byte[binObj.lengthInBytes()];
