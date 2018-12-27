@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
+import org.postgresql.core.EnumMode;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
@@ -18,6 +19,8 @@ import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.udt.SingleAttributeSQLOutputHelper;
+import org.postgresql.udt.UdtMap;
+import org.postgresql.udt.ValueAccessHelper;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -66,10 +69,18 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeSet;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class PgPreparedStatement extends PgStatement implements PreparedStatement {
+
+  // TODO: Should we use the connection logger whenever possible?
+  private static final Logger LOGGER = Logger.getLogger(PgPreparedStatement.class.getName());
+
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
@@ -478,6 +489,66 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  /**
+   * @see #setObject(int, java.lang.Object)
+   * @see #setObject(int, java.lang.Object, int, int)
+   *
+   * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   */
+  private boolean setEnum(int parameterIndex, Enum in, EnumMode enumMode) throws SQLException {
+    // ValueAccessHelper.getObject is the inverse of this, and changes here will probably require changes there
+    UdtMap udtMap = connection.getUdtMap();
+    Class<? extends Enum> enumClass = in.getClass();
+    Set<String> directTypes = udtMap.getInvertedDirect(enumClass);
+    int size = directTypes.size();
+    if (size == 1) {
+      String inferredPgType = directTypes.iterator().next();
+      Class<? extends Enum> inferredClass = enumClass;
+      if (LOGGER.isLoggable(Level.FINER)) {
+        LOGGER.log(Level.FINER, "  Found single match in direct inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
+      }
+      // TODO: Carry-through the type to avoid ::enumtype casting
+      setString(parameterIndex, ((Enum)in).name());
+      return true;
+    } else if (size > 1) {
+      Set<String> sortedTypes = new TreeSet<String>(directTypes);
+      LOGGER.log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
+      throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", enumClass, sortedTypes.toString()),
+              PSQLState.INVALID_PARAMETER_TYPE);
+    } else {
+      // Now check for inherited inference (matches the type or any subclass/implementation of it)
+      Set<String> inheritedTypes = udtMap.getInvertedInherited(enumClass);
+      size = inheritedTypes.size();
+      if (size == 1) {
+        String inferredPgType = inheritedTypes.iterator().next();
+        // We've worked backward to a mapped pgType, now lookup which specific
+        // class this pgType is mapped to:
+        Class<?> inferredClassUnbounded = udtMap.getTypeMap().get(inferredPgType);
+        Class<? extends Enum> inferredClass = inferredClassUnbounded.asSubclass(enumClass);
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.log(Level.FINER, "  Found single match in inherited inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
+        }
+        // TODO: Carry-through the type to avoid ::enumtype casting
+        setString(parameterIndex, ((Enum)in).name());
+        return true;
+      } else if (size > 1) {
+        // Sort types for easier reading
+        Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
+        LOGGER.log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
+        throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", enumClass, sortedTypes.toString()),
+                PSQLState.INVALID_PARAMETER_TYPE);
+      } else {
+        if (enumMode == EnumMode.ALWAYS) {
+          // Still do when not in typemap, but without any ::enumtype casting
+          setString(parameterIndex, in.name());
+          return true;
+        } else {
+          return false;
+        }
+      }
+    }
+  }
+
   // TODO: InputStream and Reader, verifying against scaleOrLength
   @Override
   public void setObject(int parameterIndex, Object in, int targetSqlType, int scale)
@@ -489,9 +560,26 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    if (in instanceof SQLData) {
+    boolean supportSQLData;
+    EnumMode enumMode = connection.getEnumMode();
+    if ((enumMode == EnumMode.ALWAYS || enumMode == EnumMode.TYPEMAP) && in instanceof Enum) {
+      // TODO: targetSqlType == Types.OTHER only?
+      if (setEnum(parameterIndex, (Enum)in, enumMode)) {
+        return;
+      } else {
+        // Enum type supported, but not in map, do not check for SQLData and fall-through to Object.toString().
+        supportSQLData = false;
+      }
+    } else {
+      // No Enum handling, support SQLData
+      supportSQLData = true;
+    }
+
+    if (supportSQLData && in instanceof SQLData) {
+      // TODO: targetSqlType == Types.OTHER only?
       // TODO: Should this be restricted to those types registered in the type map?
       // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
+      // TODO: Carry-through the type to have ::sqldatatype instead of ::basetype, from SQLData.getSQLTypeName() then, when null, based on typemap
       SingleAttributeSQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
       return;
     }
@@ -903,11 +991,30 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   //       object is of a class implementing more than one of the interfaces named above.
   @Override
   public void setObject(int parameterIndex, Object x) throws SQLException {
-    // TODO: Struct
     checkClosed();
+
     if (x == null) {
       setNull(parameterIndex, Types.OTHER);
-    } else if (x instanceof SQLData) {
+      return;
+    }
+
+    boolean supportSQLData;
+    EnumMode enumMode = connection.getEnumMode();
+    if ((enumMode == EnumMode.ALWAYS || enumMode == EnumMode.TYPEMAP) && x instanceof Enum) {
+      if (setEnum(parameterIndex, (Enum)x, enumMode)) {
+        return;
+      } else {
+        // Enum type supported, but not in map, do not check for SQLData and fall-through to Object.toString().
+        supportSQLData = false;
+      }
+    } else {
+      // No Enum handling, support SQLData
+      supportSQLData = true;
+    }
+
+    // TODO: Struct
+
+    if (supportSQLData && x instanceof SQLData) {
       // TODO: Should this be restricted to those types registered in the type map?
       // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
       SingleAttributeSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));

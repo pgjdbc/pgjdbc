@@ -7,6 +7,7 @@ package org.postgresql;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.EnumMode;
+import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -21,7 +22,7 @@ import java.util.Properties;
 
 /**
  * All connection parameters that can be either set in JDBC URL, in Driver properties or in
- * datasource setters.
+ * {@link BaseDataSource datasource setters}.
  */
 public enum PGProperty {
 
@@ -495,6 +496,7 @@ public enum PGProperty {
    * @see EnumMode
    * @see BaseConnection#getEnumMode()
    */
+  // TODO: We could simplify a few things by stating "Behavior undefined when an Enum implements SQLData", then not worrying about it at all
   ENUM_MODE("enumMode", "typemap",
       "Specifies the level of Enum support within setObject(...), getObject(...), and getArray(...) methods. "
           + "In enumMode=never, the driver will not behave in any special way with Enum objects and classes. "

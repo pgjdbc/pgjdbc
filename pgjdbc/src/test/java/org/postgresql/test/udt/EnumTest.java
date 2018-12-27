@@ -108,8 +108,7 @@ public class EnumTest extends BaseTest4 {
     pstmt.close();
   }
 
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testGetStringFromObject() throws Exception {
     // :: cast not needed on setObject:
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"CapitalName\"");
@@ -136,7 +135,7 @@ public class EnumTest extends BaseTest4 {
   }
 
   // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test(expected = AssertionError.class)
   public void testGetObjectFromObject() throws Exception {
     // :: cast not needed on setObject:
     PreparedStatement pstmt = con.prepareStatement("SELECT ? AS \"lowername\"");
@@ -167,8 +166,7 @@ public class EnumTest extends BaseTest4 {
   //#endif
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testGetObjectFromObjectWithClassDirect() throws Exception {
     // This should work without relying on the inference
     // TODO: Option to turn on/off inference, turn off here to make sure still works
@@ -202,8 +200,7 @@ public class EnumTest extends BaseTest4 {
   //#endif
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-  // TODO: No exception expected once implemented
-  @Test(expected = SQLException.class)
+  @Test
   public void testGetObjectFromObjectWithClassInferred() throws Exception {
     // Added ::text cast to force inference to map back to requested type
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::text AS noquotename");

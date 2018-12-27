@@ -525,6 +525,7 @@ public class ValueAccessHelper {
         //
         // See https://github.com/pgjdbc/pgjdbc/issues/641 for more details
 
+        // PgPreparedStatement.setObject and PgPreparedStatement.setEnum are the inverse of this, and changes here will probably require changes there
         String inferredPgType;
         Class<? extends T> inferredClass;
         // First check for direct inference (exact match to type map)
@@ -551,6 +552,7 @@ public class ValueAccessHelper {
             // We've worked backward to a mapped pgType, now lookup which specific
             // class this pgType is mapped to:
             Class<?> inferredClassUnbounded = typemap.get(inferredPgType);
+            // TODO: Can this race condition happen now that UdtMap is a separate class managing its own state?  Probably not
             // There is a slight race condition: inferred type might have been just
             // added and was not known when this method retrieved the typemap.
             if (inferredClassUnbounded == null) {
