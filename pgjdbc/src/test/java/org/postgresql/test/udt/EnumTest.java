@@ -23,6 +23,8 @@ import java.util.Map;
 
 // TODO: Separate tests for SQLData over enum type
 // TODO: Separate tests for Domain of enum type
+
+// TODO: Consider Enum support being Types.JAVA_OBJECT instead of Types.OTHER
 public class EnumTest extends BaseTest4 {
 
   protected static final String SCHEMA = "\"org.postgresql\"";
