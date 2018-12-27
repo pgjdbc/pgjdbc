@@ -118,7 +118,7 @@ class SimpleQuery implements Query {
     this.deallocateEpoch = deallocateEpoch;
   }
 
-  void setPrepareTypes(int[] paramTypes) {
+  void setPrepareTypes(int[] paramTypes, String[] paramPgTypes) {
     // Remember which parameters were unspecified since the parameters will be overridden later by
     // ParameterDescription message
     for (int i = 0; i < paramTypes.length; i++) {
@@ -135,13 +135,22 @@ class SimpleQuery implements Query {
     // However, we can reuse array if there is one
     if (this.preparedTypes == null) {
       this.preparedTypes = paramTypes.clone();
-      return;
+    } else {
+      System.arraycopy(paramTypes, 0, this.preparedTypes, 0, paramTypes.length);
     }
-    System.arraycopy(paramTypes, 0, this.preparedTypes, 0, paramTypes.length);
+    if (this.preparedPgTypes == null) {
+      this.preparedPgTypes = paramPgTypes.clone();
+    } else {
+      System.arraycopy(paramPgTypes, 0, this.preparedPgTypes, 0, paramPgTypes.length);
+    }
   }
 
   int[] getPrepareTypes() {
     return preparedTypes;
+  }
+
+  String[] getPreparePgTypes() {
+    return preparedPgTypes;
   }
 
   String getStatementName() {
@@ -159,6 +168,9 @@ class SimpleQuery implements Query {
     assert paramTypes.length == preparedTypes.length
         : String.format("paramTypes:%1$d preparedTypes:%2$d", paramTypes.length,
         preparedTypes.length);
+    assert paramTypes.length == preparedPgTypes.length
+        : String.format("paramTypes:%1$d preparedPgTypes:%2$d", paramTypes.length,
+        preparedPgTypes.length);
     // Check for compatible types.
     BitSet unspecified = this.unspecifiedParams;
     for (int i = 0; i < paramTypes.length; ++i) {
@@ -176,18 +188,20 @@ class SimpleQuery implements Query {
       // 4.3) bind(name="S_01", ..., types={DATE}) -> KO, unprepare and parse required
 
       int preparedType = preparedTypes[i];
+      // TODO: preparedPgTypes affect this?
       if (paramType != preparedType
           && (paramType != Oid.UNSPECIFIED
           || unspecified == null
           || !unspecified.get(i))) {
         if (LOGGER.isLoggable(Level.FINER)) {
+          String preparedPgType = preparedPgTypes[i];
           LOGGER.log(Level.FINER,
               "Statement {0} does not match new parameter types. Will have to un-prepare it and parse once again."
                   + " To avoid performance issues, use the same data type for the same bind position. Bind index (1-based) is {1},"
-                  + " preparedType was {2} (after describe {3}), current bind type is {4}",
+                  + " preparedType was {2} (after describe {3}), preparedPgType was {4}, current bind type is {5}",
               new Object[]{statementName, i + 1,
                   Oid.toString(unspecified != null && unspecified.get(i) ? 0 : preparedType),
-                  Oid.toString(preparedType), Oid.toString(paramType)});
+                  Oid.toString(preparedType), preparedPgType == null ? "<null>" : preparedPgType, Oid.toString(paramType)});
         }
         return false;
       }
@@ -361,6 +375,7 @@ class SimpleQuery implements Query {
   private final boolean sanitiserDisabled;
   private PhantomReference<?> cleanupRef;
   private int[] preparedTypes;
+  private String[] preparedPgTypes;
   private BitSet unspecifiedParams;
   private short deallocateEpoch;
 

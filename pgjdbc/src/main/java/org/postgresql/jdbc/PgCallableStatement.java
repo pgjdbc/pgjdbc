@@ -30,6 +30,7 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -49,14 +50,16 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * This array is only created when first needed, since it only applies to the limited
    * subset of statements using the type name feature.
    */
+  // TODO: Might be able to get from the Parameters now that pgType provided to registerOutParameter
   private String[] functionReturnTypeName;
 
   /**
    * The scale set in {@link #registerOutParameter(int, int, int)}.
    * This array is only created when first needed, since it only applies to the limited
-   * subset of statements using the scale feature.
+   * subset of statements using the scale feature.  Elements that are not set will be {@code -1}.
    */
-  private Integer[] functionReturnScale;
+  // TODO: Might be able to get from the Parameters now that scaleOrLength provided to registerOutParameter
+  private int[] functionReturnScale;
 
   /**
    * The column index within {@link #callResultSet} for each out parameter index.
@@ -184,8 +187,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * {@inheritDoc}
-   *
    * <p>Before executing a stored procedure call you must explicitly call registerOutParameter to
    * register the java.sql.Type of each out parameter.</p>
    *
@@ -195,12 +196,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * <p>ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used</p>
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scale the scale or {@code -1} for none
    * @param sqlType SQL type code defined by java.sql.Types; for parameters of type Numeric or
    *        Decimal use the version of registerOutParameter that accepts a scale value
    * @throws SQLException if a database-access error occurs.
    */
-  @Override
-  public void registerOutParameter(int parameterIndex, int sqlType)
+  protected void registerOutParameterImpl(int parameterIndex, String pgType, int scale, int sqlType)
       throws SQLException {
     checkClosed();
     switch (sqlType) {
@@ -236,12 +238,27 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
     checkIndex(parameterIndex, false);
 
-    preparedParameters.registerOutParameter(parameterIndex, sqlType);
+    preparedParameters.registerOutParameter(parameterIndex, pgType, scale, sqlType);
     // functionReturnType contains the user supplied value to check
     // testReturn contains a modified version to make it easier to
     // check the getXXX methods..
     functionReturnType[parameterIndex - 1] = sqlType;
+    if (pgType != null) {
+      if (functionReturnTypeName == null) {
+        functionReturnTypeName = new String[functionReturnType.length];
+      }
+      functionReturnTypeName[parameterIndex - 1] = pgType;
+    }
     testReturn[parameterIndex - 1] = sqlType;
+
+    // TODO: Do we still need to store scale here, since now registered in preparedParameters?
+    if (scale >= 0) {
+      if (functionReturnScale == null) {
+        functionReturnScale = new int[functionReturnType.length];
+        Arrays.fill(functionReturnScale, -1);
+      }
+      functionReturnScale[parameterIndex] = scale;
+    }
 
     if (functionReturnType[parameterIndex - 1] == Types.CHAR
         || functionReturnType[parameterIndex - 1] == Types.LONGVARCHAR) {
@@ -250,6 +267,28 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       testReturn[parameterIndex - 1] = Types.REAL; // changes to streamline later error checking
     }
     returnTypeSet = true;
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Before executing a stored procedure call you must explicitly call registerOutParameter to
+   * register the java.sql.Type of each out parameter.</p>
+   *
+   * <p>Note: When reading the value of an out parameter, you must use the getXXX method whose Java
+   * type XXX corresponds to the parameter's registered SQL type.</p>
+   *
+   * <p>ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used</p>
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2,...
+   * @param sqlType SQL type code defined by java.sql.Types; for parameters of type Numeric or
+   *        Decimal use the version of registerOutParameter that accepts a scale value
+   * @throws SQLException if a database-access error occurs.
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, int sqlType)
+      throws SQLException {
+    registerOutParameterImpl(parameterIndex, null, -1, sqlType);
   }
 
   @Override
@@ -574,8 +613,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
     // Use the scale set, if any
     if (functionReturnScale != null) {
-      Integer scale = functionReturnScale[parameterIndex - 1];
-      if (scale != null) {
+      int scale = functionReturnScale[parameterIndex - 1];
+      if (scale >= 0) {
         return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex], scale);
       }
     }
@@ -627,11 +666,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    registerOutParameter(parameterIndex, sqlType);
-    if (functionReturnTypeName == null) {
-      functionReturnTypeName = new String[functionReturnType.length];
-    }
-    functionReturnTypeName[parameterIndex] = typeName;
+    registerOutParameterImpl(parameterIndex, typeName, -1, sqlType);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
@@ -1099,10 +1134,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
-    registerOutParameter(parameterIndex, sqlType);
-    if (functionReturnScale == null) {
-      functionReturnScale = new Integer[functionReturnType.length];
+    if (scale < 0) {
+      throw new PSQLException(GT.tr("Invalid scale {0}.", scale),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
-    functionReturnScale[parameterIndex] = scale;
+    registerOutParameterImpl(parameterIndex, null, scale, sqlType);
   }
 }

@@ -39,187 +39,188 @@ import java.sql.Types;
 class PgPreparedStatementSQLOutput extends SingleAttributeSQLOutput {
 
   private final PgPreparedStatement pstmt;
-
   private final int parameterIndex;
+  private final String pgType;
 
-  PgPreparedStatementSQLOutput(PgPreparedStatement pstmt, int parameterIndex) {
+  PgPreparedStatementSQLOutput(PgPreparedStatement pstmt, int parameterIndex, String pgType) {
     this.pstmt = pstmt;
     this.parameterIndex = parameterIndex;
+    this.pgType = pgType;
   }
 
   @Override
   public void writeString(String x) throws SQLException {
     markWrite();
-    pstmt.setString(parameterIndex, x);
+    pstmt.setStringImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeBoolean(boolean x) throws SQLException {
     markWrite();
-    pstmt.setBoolean(parameterIndex, x);
+    pstmt.setBooleanImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeByte(byte x) throws SQLException {
     markWrite();
-    pstmt.setByte(parameterIndex, x);
+    pstmt.setByteImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeShort(short x) throws SQLException {
     markWrite();
-    pstmt.setShort(parameterIndex, x);
+    pstmt.setShortImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeInt(int x) throws SQLException {
     markWrite();
-    pstmt.setInt(parameterIndex, x);
+    pstmt.setIntImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeLong(long x) throws SQLException {
     markWrite();
-    pstmt.setLong(parameterIndex, x);
+    pstmt.setLongImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeFloat(float x) throws SQLException {
     markWrite();
-    pstmt.setFloat(parameterIndex, x);
+    pstmt.setFloatImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeDouble(double x) throws SQLException {
     markWrite();
-    pstmt.setDouble(parameterIndex, x);
+    pstmt.setDoubleImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeBigDecimal(BigDecimal x) throws SQLException {
     markWrite();
-    pstmt.setBigDecimal(parameterIndex, x);
+    pstmt.setBigDecimalImpl(parameterIndex, pgType, -1, x);
   }
 
   @Override
   public void writeBytes(byte[] x) throws SQLException {
     markWrite();
-    pstmt.setBytes(parameterIndex, x);
+    pstmt.setBytesImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeDate(Date x) throws SQLException {
     markWrite();
-    pstmt.setDate(parameterIndex, x);
+    pstmt.setDateImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeTime(Time x) throws SQLException {
     markWrite();
-    pstmt.setTime(parameterIndex, x);
+    pstmt.setTimeImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeTimestamp(Timestamp x) throws SQLException {
     markWrite();
-    pstmt.setTimestamp(parameterIndex, x);
+    pstmt.setTimestampImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeCharacterStream(Reader x) throws SQLException {
     markWrite();
-    pstmt.setCharacterStream(parameterIndex, x);
+    pstmt.setCharacterStreamImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeAsciiStream(InputStream x) throws SQLException {
     markWrite();
-    pstmt.setAsciiStream(parameterIndex, x);
+    pstmt.setAsciiStreamImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeBinaryStream(InputStream x) throws SQLException {
     markWrite();
-    pstmt.setBinaryStream(parameterIndex, x);
+    pstmt.setBinaryStreamImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeObject(SQLData x) throws SQLException {
     if (x == null) {
       markWrite();
-      pstmt.setNull(parameterIndex, Types.OTHER);
+      pstmt.setNull(parameterIndex, Types.OTHER, pgType);
     } else {
       x.writeSQL(this);
-      //PgSQLOutputHelper.writeSQLData(x, new PgPreparedStatementSQLOutput(pstmt, parameterIndex));
+      //PgSQLOutputHelper.writeSQLData(x, new PgPreparedStatementSQLOutput(pstmt, parameterIndex, pgType));
     }
-    //pstmt.setObject(parameterIndex, x);
+    //pstmt.setObject(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeRef(Ref x) throws SQLException {
     markWrite();
-    pstmt.setRef(parameterIndex, x);
+    pstmt.setRefImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeBlob(Blob x) throws SQLException {
     markWrite();
-    pstmt.setBlob(parameterIndex, x);
+    pstmt.setBlobImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeClob(Clob x) throws SQLException {
     markWrite();
-    pstmt.setClob(parameterIndex, x);
+    pstmt.setClobImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeStruct(Struct x) throws SQLException {
     markWrite();
-    pstmt.setObject(parameterIndex, x);
+    pstmt.setObjectImpl(parameterIndex, pgType, -1, x);
   }
 
   @Override
   public void writeArray(Array x) throws SQLException {
     markWrite();
-    pstmt.setArray(parameterIndex, x);
+    pstmt.setArrayImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeURL(URL x) throws SQLException {
     markWrite();
-    pstmt.setURL(parameterIndex, x);
+    pstmt.setURLImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeNString(String x) throws SQLException {
     markWrite();
-    pstmt.setNString(parameterIndex, x);
+    pstmt.setNStringImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeNClob(NClob x) throws SQLException {
     markWrite();
-    pstmt.setNClob(parameterIndex, x);
+    pstmt.setNClobImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeRowId(RowId x) throws SQLException {
     markWrite();
-    pstmt.setRowId(parameterIndex, x);
+    pstmt.setRowIdImpl(parameterIndex, pgType, x);
   }
 
   @Override
   public void writeSQLXML(SQLXML x) throws SQLException {
     markWrite();
-    pstmt.setSQLXML(parameterIndex, x);
+    pstmt.setSQLXMLImpl(parameterIndex, pgType, x);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
   public void writeObject(Object x, SQLType targetSqlType) throws SQLException {
     markWrite();
-    pstmt.setObject(parameterIndex, x, targetSqlType);
+    pstmt.setObjectImpl(parameterIndex, pgType, x, targetSqlType);
   }
   //#endif
 }

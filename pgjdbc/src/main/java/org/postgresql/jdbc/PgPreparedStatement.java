@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
+import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.EnumMode;
@@ -174,13 +175,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public void closeImpl() throws SQLException {
     if (preparedQuery != null) {
+      // TODO: connection could be PgConnection to avoid this cast
       ((PgConnection) connection).releaseQuery(preparedQuery);
     }
   }
 
-  public void setNull(int parameterIndex, int sqlType) throws SQLException {
+  protected void setNullImpl(int parameterIndex, String pgType, int scale, int sqlType) throws SQLException {
     checkClosed();
 
+    int selectedScale = -1;
     int oid;
     switch (sqlType) {
       case Types.SQLXML:
@@ -206,6 +209,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.DECIMAL:
       case Types.NUMERIC:
         oid = Oid.NUMERIC;
+        selectedScale = scale;
         break;
       case Types.CHAR:
         oid = Oid.BPCHAR;
@@ -249,128 +253,205 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         // Bad Types value.
         throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
     }
-    preparedParameters.setNull(parameterIndex, oid);
+    preparedParameters.setNull(parameterIndex, pgType, selectedScale, oid);
   }
 
-  public void setBoolean(int parameterIndex, boolean x) throws SQLException {
+  @Override
+  public final void setNull(int parameterIndex, int sqlType) throws SQLException {
+    setNullImpl(parameterIndex, null, -1, sqlType);
+  }
+
+  protected void setBooleanImpl(int parameterIndex, String pgType, boolean x) throws SQLException {
     checkClosed();
     // The key words TRUE and FALSE are the preferred (SQL-compliant) usage.
-    bindLiteral(parameterIndex, x ? "TRUE" : "FALSE", Oid.BOOL);
+    bindLiteral(parameterIndex, pgType, -1, x ? "TRUE" : "FALSE", Oid.BOOL);
   }
 
-  public void setByte(int parameterIndex, byte x) throws SQLException {
-    setShort(parameterIndex, x);
+  @Override
+  public final void setBoolean(int parameterIndex, boolean x) throws SQLException {
+    setBooleanImpl(parameterIndex, null, x);
   }
 
-  public void setShort(int parameterIndex, short x) throws SQLException {
+  protected void setByteImpl(int parameterIndex, String pgType, byte x) throws SQLException {
+    setShortImpl(parameterIndex, pgType, x);
+  }
+
+  @Override
+  public final void setByte(int parameterIndex, byte x) throws SQLException {
+    setByteImpl(parameterIndex, null, x);
+  }
+
+  protected void setShortImpl(int parameterIndex, String pgType, short x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.INT2)) {
       byte[] val = new byte[2];
       ByteConverter.int2(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.INT2);
+      bindBytes(parameterIndex, pgType, val, Oid.INT2);
       return;
     }
-    bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
+    bindLiteral(parameterIndex, pgType, -1, Integer.toString(x), Oid.INT2);
   }
 
-  public void setInt(int parameterIndex, int x) throws SQLException {
+  @Override
+  public final void setShort(int parameterIndex, short x) throws SQLException {
+    setShortImpl(parameterIndex, null, x);
+  }
+
+  protected void setIntImpl(int parameterIndex, String pgType, int x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.INT4)) {
       byte[] val = new byte[4];
       ByteConverter.int4(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.INT4);
+      bindBytes(parameterIndex, pgType, val, Oid.INT4);
       return;
     }
-    bindLiteral(parameterIndex, Integer.toString(x), Oid.INT4);
+    bindLiteral(parameterIndex, pgType, -1, Integer.toString(x), Oid.INT4);
   }
 
-  public void setLong(int parameterIndex, long x) throws SQLException {
+  @Override
+  public final void setInt(int parameterIndex, int x) throws SQLException {
+    setIntImpl(parameterIndex, null, x);
+  }
+
+  protected void setLongImpl(int parameterIndex, String pgType, long x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.INT8)) {
       byte[] val = new byte[8];
       ByteConverter.int8(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.INT8);
+      bindBytes(parameterIndex, pgType, val, Oid.INT8);
       return;
     }
-    bindLiteral(parameterIndex, Long.toString(x), Oid.INT8);
+    bindLiteral(parameterIndex, pgType, -1, Long.toString(x), Oid.INT8);
   }
 
-  public void setFloat(int parameterIndex, float x) throws SQLException {
+  @Override
+  public final void setLong(int parameterIndex, long x) throws SQLException {
+    setLongImpl(parameterIndex, null, x);
+  }
+
+  protected void setFloatImpl(int parameterIndex, String pgType, float x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.FLOAT4)) {
       byte[] val = new byte[4];
       ByteConverter.float4(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.FLOAT4);
+      bindBytes(parameterIndex, pgType, val, Oid.FLOAT4);
       return;
     }
-    bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT8);
+    bindLiteral(parameterIndex, pgType, -1, Float.toString(x), Oid.FLOAT8);
   }
 
-  public void setDouble(int parameterIndex, double x) throws SQLException {
+  @Override
+  public final void setFloat(int parameterIndex, float x) throws SQLException {
+    setFloatImpl(parameterIndex, null, x);
+  }
+
+  protected void setDoubleImpl(int parameterIndex, String pgType, double x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.FLOAT8)) {
       byte[] val = new byte[8];
       ByteConverter.float8(val, 0, x);
-      bindBytes(parameterIndex, val, Oid.FLOAT8);
+      bindBytes(parameterIndex, pgType, val, Oid.FLOAT8);
       return;
     }
-    bindLiteral(parameterIndex, Double.toString(x), Oid.FLOAT8);
+    bindLiteral(parameterIndex, pgType, -1, Double.toString(x), Oid.FLOAT8);
   }
 
-  public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-    setNumber(parameterIndex, x);
+  @Override
+  public final void setDouble(int parameterIndex, double x) throws SQLException {
+    setDoubleImpl(parameterIndex, null, x);
   }
 
-  public void setString(int parameterIndex, String x) throws SQLException {
+  protected void setBigDecimalImpl(int parameterIndex, String pgType, int scale, BigDecimal x) throws SQLException {
+    if (scale >= 0) {
+      x = x.setScale(scale, RoundingMode.HALF_UP);
+    }
+    setNumberImpl(parameterIndex, pgType, scale, x);
+  }
+
+  @Override
+  public final void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
+    setBigDecimalImpl(parameterIndex, null, -1, x);
+  }
+
+  protected void setStringImpl(int parameterIndex, String pgType, String x) throws SQLException {
     checkClosed();
-    setString(parameterIndex, x, getStringType());
+    setStringImpl(parameterIndex, pgType, x, getStringType());
+  }
+
+  @Override
+  public final void setString(int parameterIndex, String x) throws SQLException {
+    setStringImpl(parameterIndex, null, x);
   }
 
   private int getStringType() {
     return (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED);
   }
 
-  protected void setString(int parameterIndex, String x, int oid) throws SQLException {
+  /**
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   */
+  protected void setStringImpl(int parameterIndex, String pgType, String x, int oid) throws SQLException {
     // if the passed string is null, then set this column to null
     checkClosed();
     if (x == null) {
-      preparedParameters.setNull(parameterIndex, oid);
+      preparedParameters.setNull(parameterIndex, pgType, -1, oid);
     } else {
-      bindString(parameterIndex, x, oid);
+      bindString(parameterIndex, x, oid, pgType);
     }
   }
 
-  public void setBytes(int parameterIndex, byte[] x) throws SQLException {
+  protected void setBytesImpl(int parameterIndex, String pgType, byte[] x) throws SQLException {
     checkClosed();
 
     if (null == x) {
-      setNull(parameterIndex, Types.VARBINARY);
+      setNull(parameterIndex, Types.VARBINARY, pgType);
       return;
     }
 
     // Version 7.2 supports the bytea datatype for byte arrays
     byte[] copy = new byte[x.length];
     System.arraycopy(x, 0, copy, 0, x.length);
-    preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
+    // TODO: scale from length?
+    preparedParameters.setBytea(parameterIndex, pgType, copy, 0, x.length);
   }
 
-  public void setDate(int parameterIndex, java.sql.Date x) throws SQLException {
-    setDate(parameterIndex, x, null);
+  @Override
+  public final void setBytes(int parameterIndex, byte[] x) throws SQLException {
+    setBytesImpl(parameterIndex, null, x);
   }
 
-  public void setTime(int parameterIndex, Time x) throws SQLException {
-    setTime(parameterIndex, x, null);
+  protected void setDateImpl(int parameterIndex, String pgType, java.sql.Date x) throws SQLException {
+    setDateImpl(parameterIndex, pgType, x, null);
   }
 
-  public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-    setTimestamp(parameterIndex, x, null);
+  @Override
+  public final void setDate(int parameterIndex, java.sql.Date x) throws SQLException {
+    setDateImpl(parameterIndex, null, x);
   }
 
-  private void setCharacterStreamPost71(int parameterIndex, InputStream x, int length,
+  protected void setTimeImpl(int parameterIndex, String pgType, Time x) throws SQLException {
+    setTimeImpl(parameterIndex, pgType, x, null);
+  }
+
+  @Override
+  public final void setTime(int parameterIndex, Time x) throws SQLException {
+    setTimeImpl(parameterIndex, null, x);
+  }
+
+  protected void setTimestampImpl(int parameterIndex, String pgType, Timestamp x) throws SQLException {
+    setTimestampImpl(parameterIndex, pgType, x, null);
+  }
+
+  @Override
+  public final void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
+    setTimestampImpl(parameterIndex, null, x);
+  }
+
+  private void setCharacterStreamPost71(int parameterIndex, String pgType, InputStream x, int length,
       String encoding) throws SQLException {
 
     if (x == null) {
-      setNull(parameterIndex, Types.VARCHAR);
+      setNull(parameterIndex, Types.VARCHAR, pgType);
       return;
     }
     if (length < 0) {
@@ -401,7 +482,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         }
       }
 
-      setString(parameterIndex, new String(l_chars, 0, l_charsRead), Oid.VARCHAR);
+      setStringImpl(parameterIndex, pgType, new String(l_chars, 0, l_charsRead), Oid.VARCHAR);
     } catch (UnsupportedEncodingException l_uee) {
       throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding),
           PSQLState.UNEXPECTED_ERROR, l_uee);
@@ -411,22 +492,34 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
+  protected void setAsciiStreamImpl(int parameterIndex, String pgType, InputStream x, int length) throws SQLException {
     checkClosed();
-    setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
+    setCharacterStreamPost71(parameterIndex, pgType, x, length, "ASCII");
   }
 
-  public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    checkClosed();
-
-    setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
+  @Override
+  public final void setAsciiStream(int parameterIndex, InputStream x,
+      int length) throws SQLException {
+    setAsciiStreamImpl(parameterIndex, null, x, length);
   }
 
-  public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
+  protected void setUnicodeStreamImpl(int parameterIndex, String pgType, InputStream x,
+      int length) throws SQLException {
+    checkClosed();
+
+    setCharacterStreamPost71(parameterIndex, pgType, x, length, "UTF-8");
+  }
+
+  @Override
+  public final void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
+    setUnicodeStreamImpl(parameterIndex, null, x, length);
+  }
+
+  protected void setBinaryStreamImpl(int parameterIndex, String pgType, InputStream x, int length) throws SQLException {
     checkClosed();
 
     if (x == null) {
-      setNull(parameterIndex, Types.VARBINARY);
+      setNull(parameterIndex, Types.VARBINARY, pgType);
       return;
     }
 
@@ -440,7 +533,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
     // long binary datatype, but with toast the bytea datatype is capable of
     // handling very large values.
-    preparedParameters.setBytea(parameterIndex, x, length);
+    preparedParameters.setBytea(parameterIndex, pgType, x, length);
+  }
+
+  @Override
+  public final void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
+    setBinaryStreamImpl(parameterIndex, null, x, length);
   }
 
   public void clearParameters() throws SQLException {
@@ -448,7 +546,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   // Helper method for setting parameters to PGobject subclasses.
-  private void setPGobject(int parameterIndex, PGobject x) throws SQLException {
+  private void setPGobjectImpl(int parameterIndex, String pgType, PGobject x) throws SQLException {
     String typename = x.getType();
     int oid = connection.getTypeInfo().getPGType(typename);
     if (oid == Oid.UNSPECIFIED) {
@@ -460,13 +558,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       PGBinaryObject binObj = (PGBinaryObject) x;
       byte[] data = new byte[binObj.lengthInBytes()];
       binObj.toBytes(data, 0);
-      bindBytes(parameterIndex, data, oid);
+      bindBytes(parameterIndex, pgType, data, oid);
     } else {
-      setString(parameterIndex, x.getValue(), oid);
+      setStringImpl(parameterIndex, pgType, x.getValue(), oid);
     }
   }
 
-  private void setMap(int parameterIndex, Map<?, ?> x) throws SQLException {
+  private void setMapImpl(int parameterIndex, String pgType, Map<?, ?> x) throws SQLException {
     int oid = connection.getTypeInfo().getPGType("hstore");
     if (oid == Oid.UNSPECIFIED) {
       throw new PSQLException(GT.tr("No hstore extension installed."),
@@ -474,18 +572,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
     if (connection.binaryTransferSend(oid)) {
       byte[] data = HStoreConverter.toBytes(x, connection.getEncoding());
-      bindBytes(parameterIndex, data, oid);
+      bindBytes(parameterIndex, pgType, data, oid);
     } else {
-      setString(parameterIndex, HStoreConverter.toString(x), oid);
+      setStringImpl(parameterIndex, pgType, HStoreConverter.toString(x), oid);
     }
   }
 
-  private void setNumber(int parameterIndex, Number x) throws SQLException {
+  private void setNumberImpl(int parameterIndex, String pgType, int scale, Number x) throws SQLException {
     checkClosed();
     if (x == null) {
-      setNull(parameterIndex, Types.DECIMAL);
+      setNullImpl(parameterIndex, pgType, scale, Types.DECIMAL);
     } else {
-      bindLiteral(parameterIndex, x.toString(), Oid.NUMERIC);
+      bindLiteral(parameterIndex, pgType, scale, x.toString(), Oid.NUMERIC);
     }
   }
 
@@ -495,7 +593,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    *
    * @see ValueAccessHelper#getObject(org.postgresql.udt.ValueAccess, int, java.lang.String, java.lang.Class, org.postgresql.core.EnumMode, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
    */
-  private boolean setEnum(int parameterIndex, Enum in, EnumMode enumMode) throws SQLException {
+  private boolean setEnumImpl(int parameterIndex, String pgType, Enum in, EnumMode enumMode) throws SQLException {
     // ValueAccessHelper.getObject is the inverse of this, and changes here will probably require changes there
     UdtMap udtMap = connection.getUdtMap();
     Class<? extends Enum> enumClass = in.getClass();
@@ -503,17 +601,32 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     int size = directTypes.size();
     if (size == 1) {
       String inferredPgType = directTypes.iterator().next();
-      Class<? extends Enum> inferredClass = enumClass;
       if (LOGGER.isLoggable(Level.FINER)) {
-        LOGGER.log(Level.FINER, "  Found single match in direct inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
+        Class<? extends Enum> inferredClass = enumClass;
+        LOGGER.log(Level.FINER,
+            "  Found single match in direct inverted map, using as inferred type: {0} -> {1}",
+            new Object[] {inferredPgType, inferredClass.getName()});
       }
-      // TODO: Carry-through the type to avoid ::enumtype casting
-      setString(parameterIndex, ((Enum)in).name());
+      // Carry-through the type to avoid ::enumtype casting
+      String name = in.name();
+      int inferredOid = connection.getTypeInfo().getPGType(inferredPgType);
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST,
+            "  enum direct: {0}, inferredPgType: {1}, inferredOid: {2}",
+            new Object[] {name, inferredPgType, inferredOid});
+      }
+      // Maintain outermost pgType on nested objects
+      if (pgType == null) {
+        pgType = inferredPgType;
+      }
+      // TODO: Use getStringType() when getPGType returns Oid.UNSPECIFIED?
+      setStringImpl(parameterIndex, pgType, name, inferredOid);
       return true;
     } else if (size > 1) {
       Set<String> sortedTypes = new TreeSet<String>(directTypes);
       LOGGER.log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
-      throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}", enumClass, sortedTypes.toString()),
+      throw new PSQLException(GT.tr("Unable to infer type: more than one type directly maps to {0}: {1}",
+          enumClass, sortedTypes.toString()),
               PSQLState.INVALID_PARAMETER_TYPE);
     } else {
       // Now check for inherited inference (matches the type or any subclass/implementation of it)
@@ -524,23 +637,40 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         // We've worked backward to a mapped pgType, now lookup which specific
         // class this pgType is mapped to:
         Class<?> inferredClassUnbounded = udtMap.getTypeMap().get(inferredPgType);
-        Class<? extends Enum> inferredClass = inferredClassUnbounded.asSubclass(enumClass);
         if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.log(Level.FINER, "  Found single match in inherited inverted map, using as inferred type: {0} -> {1}", new Object[] {inferredPgType, inferredClass.getName()});
+          Class<? extends Enum> inferredClass = inferredClassUnbounded.asSubclass(enumClass);
+          LOGGER.log(Level.FINER, "  Found single match in inherited inverted map, using as inferred type: {0} -> {1}",
+              new Object[] {inferredPgType, inferredClass.getName()});
         }
-        // TODO: Carry-through the type to avoid ::enumtype casting
-        setString(parameterIndex, ((Enum)in).name());
+        // Carry-through the type to avoid ::enumtype casting
+        String name = in.name();
+        int inferredOid = connection.getTypeInfo().getPGType(inferredPgType);
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, "  enum inherited: {0}, inferredPgType: {1}, inferredOid: {2}",
+              new Object[] {name, inferredPgType, inferredOid});
+        }
+        // Maintain outermost pgType on nested objects
+        if (pgType == null) {
+          pgType = inferredPgType;
+        }
+        // TODO: Use getStringType() when getPGType returns Oid.UNSPECIFIED?
+        setStringImpl(parameterIndex, pgType, name, inferredOid);
         return true;
       } else if (size > 1) {
         // Sort types for easier reading
         Set<String> sortedTypes = new TreeSet<String>(inheritedTypes);
         LOGGER.log(Level.FINE, "  sortedTypes: {0}", sortedTypes);
-        throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}", enumClass, sortedTypes.toString()),
+        throw new PSQLException(GT.tr("Unable to infer type: more than one type maps to {0}: {1}",
+            enumClass, sortedTypes.toString()),
                 PSQLState.INVALID_PARAMETER_TYPE);
       } else {
         if (enumMode == EnumMode.ALWAYS) {
           // Still do when not in typemap, but without any ::enumtype casting
-          setString(parameterIndex, in.name());
+          String name = in.name();
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, "  enum not mapped (enumMode={0}): {1}", new Object[] {enumMode, name});
+          }
+          setStringImpl(parameterIndex, pgType, name);
           return true;
         } else {
           return false;
@@ -549,14 +679,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  // TODO: InputStream and Reader, verifying against scaleOrLength
-  @Override
-  public void setObject(int parameterIndex, Object in, int targetSqlType, int scale)
+  // TODO: InputStream and Reader: verify amount read against scaleOrLength per specifications
+  protected void setObjectImpl(int parameterIndex, String pgType, int scaleOrLength, Object in, int targetSqlType)
       throws SQLException {
     checkClosed();
 
     if (in == null) {
-      setNull(parameterIndex, targetSqlType);
+      setNull(parameterIndex, targetSqlType, pgType);
       return;
     }
 
@@ -564,7 +693,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     EnumMode enumMode = connection.getEnumMode();
     if ((enumMode == EnumMode.ALWAYS || enumMode == EnumMode.TYPEMAP) && in instanceof Enum) {
       // TODO: targetSqlType == Types.OTHER only?
-      if (setEnum(parameterIndex, (Enum)in, enumMode)) {
+      if (setEnumImpl(parameterIndex, pgType, (Enum)in, enumMode)) {
         return;
       } else {
         // Enum type supported, but not in map, do not check for SQLData and fall-through to Object.toString().
@@ -579,14 +708,21 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // TODO: targetSqlType == Types.OTHER only?
       // TODO: Should this be restricted to those types registered in the type map?
       // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-      // TODO: Carry-through the type to have ::sqldatatype instead of ::basetype, from SQLData.getSQLTypeName() then, when null, based on typemap
-      SingleAttributeSQLOutputHelper.writeSQLData((SQLData)in, new PgPreparedStatementSQLOutput(this, parameterIndex));
+      // TODO: Carry-through the type to have ::sqldatatype instead of ::basetype, from SQLData.getSQLTypeName() then,
+      //       when null, based on typemap
+      SQLData sqlData = (SQLData)in;
+      // Maintain outermost pgType on nested objects
+      if (pgType == null) {
+        pgType = sqlData.getSQLTypeName();
+      }
+      SingleAttributeSQLOutputHelper.writeSQLData(sqlData,
+          new PgPreparedStatementSQLOutput(this, parameterIndex, pgType));
       return;
     }
 
     if (targetSqlType == Types.OTHER && in instanceof UUID
         && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      setUuid(parameterIndex, (UUID) in);
+      setUuidImpl(parameterIndex, pgType, (UUID) in);
       return;
     }
 
@@ -595,107 +731,107 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     switch (targetSqlType) {
       case Types.SQLXML:
         if (in instanceof SQLXML) {
-          setSQLXML(parameterIndex, (SQLXML) in);
+          setSQLXMLImpl(parameterIndex, pgType, (SQLXML) in);
         } else {
-          setSQLXML(parameterIndex, new PgSQLXML(connection, in.toString()));
+          setSQLXMLImpl(parameterIndex, pgType, new PgSQLXML(connection, in.toString()));
         }
         break;
       case Types.INTEGER:
-        setInt(parameterIndex, castToInt(in));
+        setIntImpl(parameterIndex, pgType, castToInt(in));
         break;
       case Types.TINYINT:
       case Types.SMALLINT:
-        setShort(parameterIndex, castToShort(in));
+        setShortImpl(parameterIndex, pgType, castToShort(in));
         break;
       case Types.BIGINT:
-        setLong(parameterIndex, castToLong(in));
+        setLongImpl(parameterIndex, pgType, castToLong(in));
         break;
       case Types.REAL:
-        setFloat(parameterIndex, castToFloat(in));
+        setFloatImpl(parameterIndex, pgType, castToFloat(in));
         break;
       case Types.DOUBLE:
       case Types.FLOAT:
-        setDouble(parameterIndex, castToDouble(in));
+        setDoubleImpl(parameterIndex, pgType, castToDouble(in));
         break;
       case Types.DECIMAL:
       case Types.NUMERIC:
-        setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
+        setBigDecimalImpl(parameterIndex, pgType, scaleOrLength, castToBigDecimal(in, scaleOrLength));
         break;
       case Types.CHAR:
-        setString(parameterIndex, castToString(in), Oid.BPCHAR);
+        setStringImpl(parameterIndex, pgType, castToString(in), Oid.BPCHAR);
         break;
       case Types.VARCHAR:
-        setString(parameterIndex, castToString(in), getStringType());
+        setStringImpl(parameterIndex, pgType, castToString(in), getStringType());
         break;
       case Types.LONGVARCHAR:
         if (in instanceof InputStream) {
-          preparedParameters.setText(parameterIndex, (InputStream)in);
+          preparedParameters.setText(parameterIndex, pgType, scaleOrLength, (InputStream)in);
         } else {
-          setString(parameterIndex, castToString(in), getStringType());
+          setStringImpl(parameterIndex, pgType, castToString(in), getStringType());
         }
         break;
       case Types.DATE:
         if (in instanceof java.sql.Date) {
-          setDate(parameterIndex, (java.sql.Date) in);
+          setDateImpl(parameterIndex, pgType, (java.sql.Date) in);
         } else {
           java.sql.Date tmpd;
           if (in instanceof java.util.Date) {
             tmpd = new java.sql.Date(((java.util.Date) in).getTime());
             //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           } else if (in instanceof LocalDate) {
-            setDate(parameterIndex, (LocalDate) in);
+            setDateImpl(parameterIndex, pgType, (LocalDate) in);
             break;
             //#endif
           } else {
             tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
           }
-          setDate(parameterIndex, tmpd);
+          setDateImpl(parameterIndex, pgType, tmpd);
         }
         break;
       case Types.TIME:
         if (in instanceof java.sql.Time) {
-          setTime(parameterIndex, (java.sql.Time) in);
+          setTimeImpl(parameterIndex, pgType, (java.sql.Time) in);
         } else {
           java.sql.Time tmpt;
           if (in instanceof java.util.Date) {
             tmpt = new java.sql.Time(((java.util.Date) in).getTime());
             //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           } else if (in instanceof LocalTime) {
-            setTime(parameterIndex, (LocalTime) in);
+            setTimeImpl(parameterIndex, pgType, (LocalTime) in);
             break;
             //#endif
           } else {
             tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
           }
-          setTime(parameterIndex, tmpt);
+          setTimeImpl(parameterIndex, pgType, tmpt);
         }
         break;
       case Types.TIMESTAMP:
         if (in instanceof PGTimestamp) {
-          setObject(parameterIndex, in);
+          setObjectImpl(parameterIndex, pgType, -1, in);
         } else if (in instanceof java.sql.Timestamp) {
-          setTimestamp(parameterIndex, (java.sql.Timestamp) in);
+          setTimestampImpl(parameterIndex, pgType, (java.sql.Timestamp) in);
         } else {
           java.sql.Timestamp tmpts;
           if (in instanceof java.util.Date) {
             tmpts = new java.sql.Timestamp(((java.util.Date) in).getTime());
             //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           } else if (in instanceof LocalDateTime) {
-            setTimestamp(parameterIndex, (LocalDateTime) in);
+            setTimestampImpl(parameterIndex, pgType, (LocalDateTime) in);
             break;
             //#endif
           } else {
             tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
           }
-          setTimestamp(parameterIndex, tmpts);
+          setTimestampImpl(parameterIndex, pgType, tmpts);
         }
         break;
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       case Types.TIMESTAMP_WITH_TIMEZONE:
         if (in instanceof OffsetDateTime) {
-          setTimestamp(parameterIndex, (OffsetDateTime) in);
+          setTimestampImpl(parameterIndex, pgType, (OffsetDateTime) in);
         } else if (in instanceof PGTimestamp) {
-          setObject(parameterIndex, in);
+          setObjectImpl(parameterIndex, pgType, -1, in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -706,19 +842,20 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       //#endif
       case Types.BOOLEAN:
       case Types.BIT:
-        setBoolean(parameterIndex, BooleanTypeUtil.castToBoolean(in));
+        setBooleanImpl(parameterIndex, pgType, BooleanTypeUtil.castToBoolean(in));
         break;
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
-        setObject(parameterIndex, in);
+        setObjectImpl(parameterIndex, pgType, scaleOrLength, in);
         break;
       case Types.BLOB:
         if (in instanceof Blob) {
-          setBlob(parameterIndex, (Blob) in);
+          setBlobImpl(parameterIndex, pgType, (Blob) in);
         } else if (in instanceof InputStream) {
-          long oid = createBlob(parameterIndex, (InputStream) in, -1);
-          setLong(parameterIndex, oid);
+          // TODO: Verify scaleOrLength
+          long oid = createBlob((InputStream) in, -1);
+          setLongImpl(parameterIndex, pgType, oid);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -728,7 +865,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         break;
       case Types.CLOB:
         if (in instanceof Clob) {
-          setClob(parameterIndex, (Clob) in);
+          setClobImpl(parameterIndex, pgType, (Clob) in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -738,9 +875,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         break;
       case Types.ARRAY:
         if (in instanceof Array) {
-          setArray(parameterIndex, (Array) in);
+          setArrayImpl(parameterIndex, pgType, (Array) in);
         } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(in)) {
-          setPrimitiveArray(parameterIndex, in);
+          setPrimitiveArrayImpl(parameterIndex, pgType, in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -749,15 +886,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         }
         break;
       case Types.DISTINCT:
-        bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
+        bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED, pgType);
         break;
       case Types.OTHER:
         if (in instanceof PGobject) {
-          setPGobject(parameterIndex, (PGobject) in);
+          setPGobjectImpl(parameterIndex, pgType, (PGobject) in);
         } else if (in instanceof Map) {
-          setMap(parameterIndex, (Map<?, ?>) in);
+          setMapImpl(parameterIndex, pgType, (Map<?, ?>) in);
         } else {
-          bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
+          bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED, pgType);
         }
         break;
       default:
@@ -766,7 +903,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
+  @Override
+  public final void setObject(int parameterIndex, Object in, int targetSqlType, int scaleOrLength)
+      throws SQLException {
+    setObjectImpl(parameterIndex, null, scaleOrLength, in, targetSqlType);
+  }
+
+  private <A> void setPrimitiveArrayImpl(int parameterIndex, String pgType, A in) throws SQLException {
     final PrimitiveArraySupport<A> arrayToString = PrimitiveArraySupport.getArraySupport(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();
@@ -774,10 +917,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     final int oid = arrayToString.getDefaultArrayTypeOid(typeInfo);
 
     if (arrayToString.supportBinaryRepresentation() && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in), oid);
+      bindBytes(parameterIndex, pgType, arrayToString.toBinaryRepresentation(connection, in), oid);
     } else {
       final char delim = typeInfo.getArrayDelimiter(oid);
-      setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
+      setStringImpl(parameterIndex, pgType, arrayToString.toArrayString(delim, in), oid);
     }
   }
 
@@ -977,10 +1120,31 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.INVALID_PARAMETER_TYPE, cause);
   }
 
-  public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-    // TODO: -1 matches Types.LONGVARCHAR - is this expected?
-    // TODO: If so, please use Types.LONGVARCHAR here, otherwise from some other value for "unknown" like Integer.MIN_VALUE.
-    setObject(parameterIndex, x, targetSqlType, -1);
+  /**
+   * TODO: The specification states "except that it assumes a scale of zero" in
+   * {@link PreparedStatement#setObject(int, java.lang.Object, int)}.  Passing {@code -1} here in violation of the
+   * specification.  Is this an intentional deviation from the specification?
+   * <p>
+   * If so, maybe we need a {@link PGProperty} that toggles a strict JDBC-compliant mode, which would change this.  This
+   * toggle could then also be used for things like {@link InputStream} and {@link Reader} length validation on
+   * parameters, which is currently not done), unless we're willing to break things for the sake of standards
+   * compliance.
+   * </p>
+   * <p>
+   * When changed to {@code 0}, {@link Types#NUMERIC} values are then scaled to {@code 0}, which breaks a few of the
+   * existing tests.
+   * </p>
+   *
+   * @see PreparedStatement#setObject(int, java.lang.Object, int)
+   */
+  protected void setObjectImpl(int parameterIndex, String pgType, Object x, int targetSqlType) throws SQLException {
+    setObjectImpl(parameterIndex, pgType, -1, // TODO: Should this be 0?
+        x, targetSqlType);
+  }
+
+  @Override
+  public final void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
+    setObjectImpl(parameterIndex, null, x, targetSqlType);
   }
 
   /*
@@ -989,19 +1153,22 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   // TODO: The specification states, but this is not enforced here - or other setObject methods within this project:
   //       <b>Note:</b> This method throws an exception if there is an ambiguity, for example, if the
   //       object is of a class implementing more than one of the interfaces named above.
-  @Override
-  public void setObject(int parameterIndex, Object x) throws SQLException {
+
+  // TODO: InputStream? (verify scaleOrLength)
+  // TODO: Reader? (verify scaleOrLength)
+  // scaleOrLength unused?
+  protected void setObjectImpl(int parameterIndex, String pgType, int scaleOrLength, Object x) throws SQLException {
     checkClosed();
 
     if (x == null) {
-      setNull(parameterIndex, Types.OTHER);
+      setNull(parameterIndex, Types.OTHER, pgType);
       return;
     }
 
     boolean supportSQLData;
     EnumMode enumMode = connection.getEnumMode();
     if ((enumMode == EnumMode.ALWAYS || enumMode == EnumMode.TYPEMAP) && x instanceof Enum) {
-      if (setEnum(parameterIndex, (Enum)x, enumMode)) {
+      if (setEnumImpl(parameterIndex, pgType, (Enum)x, enumMode)) {
         return;
       } else {
         // Enum type supported, but not in map, do not check for SQLData and fall-through to Object.toString().
@@ -1017,69 +1184,75 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (supportSQLData && x instanceof SQLData) {
       // TODO: Should this be restricted to those types registered in the type map?
       // If so, can use connection.getTypeMapInvertedDirect(Class) for constant-time checks.
-      SingleAttributeSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex));
+      SingleAttributeSQLOutputHelper.writeSQLData((SQLData)x, new PgPreparedStatementSQLOutput(this, parameterIndex, pgType));
     } else if (x instanceof UUID && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      setUuid(parameterIndex, (UUID) x);
+      setUuidImpl(parameterIndex, pgType, (UUID) x);
     } else if (x instanceof SQLXML) {
-      setSQLXML(parameterIndex, (SQLXML) x);
+      setSQLXMLImpl(parameterIndex, pgType, (SQLXML) x);
     } else if (x instanceof String) {
-      setString(parameterIndex, (String) x);
+      setStringImpl(parameterIndex, pgType, (String) x);
     } else if (x instanceof BigDecimal) {
-      setBigDecimal(parameterIndex, (BigDecimal) x);
+      setBigDecimalImpl(parameterIndex, pgType, scaleOrLength, (BigDecimal) x);
     } else if (x instanceof Short) {
-      setShort(parameterIndex, (Short) x);
+      setShortImpl(parameterIndex, pgType, (Short) x);
     } else if (x instanceof Integer) {
-      setInt(parameterIndex, (Integer) x);
+      setIntImpl(parameterIndex, pgType, (Integer) x);
     } else if (x instanceof Long) {
-      setLong(parameterIndex, (Long) x);
+      setLongImpl(parameterIndex, pgType, (Long) x);
     } else if (x instanceof Float) {
-      setFloat(parameterIndex, (Float) x);
+      setFloatImpl(parameterIndex, pgType, (Float) x);
     } else if (x instanceof Double) {
-      setDouble(parameterIndex, (Double) x);
+      setDoubleImpl(parameterIndex, pgType, (Double) x);
     } else if (x instanceof byte[]) {
-      setBytes(parameterIndex, (byte[]) x);
+      setBytesImpl(parameterIndex, pgType, (byte[]) x);
     } else if (x instanceof java.sql.Date) {
-      setDate(parameterIndex, (java.sql.Date) x);
+      setDateImpl(parameterIndex, pgType, (java.sql.Date) x);
     } else if (x instanceof Time) {
-      setTime(parameterIndex, (Time) x);
+      setTimeImpl(parameterIndex, pgType, (Time) x);
     } else if (x instanceof Timestamp) {
-      setTimestamp(parameterIndex, (Timestamp) x);
+      setTimestampImpl(parameterIndex, pgType, (Timestamp) x);
     } else if (x instanceof Boolean) {
-      setBoolean(parameterIndex, (Boolean) x);
+      setBooleanImpl(parameterIndex, pgType, (Boolean) x);
     } else if (x instanceof Byte) {
-      setByte(parameterIndex, (Byte) x);
+      setByteImpl(parameterIndex, pgType, (Byte) x);
     } else if (x instanceof Blob) {
-      setBlob(parameterIndex, (Blob) x);
+      setBlobImpl(parameterIndex, pgType, (Blob) x);
     } else if (x instanceof Clob) {
-      setClob(parameterIndex, (Clob) x);
+      setClobImpl(parameterIndex, pgType, (Clob) x);
     } else if (x instanceof Array) {
-      setArray(parameterIndex, (Array) x);
+      setArrayImpl(parameterIndex, pgType, (Array) x);
     } else if (x instanceof PGobject) {
-      setPGobject(parameterIndex, (PGobject) x);
+      setPGobjectImpl(parameterIndex, pgType, (PGobject) x);
     } else if (x instanceof Character) {
-      setString(parameterIndex, ((Character) x).toString());
+      setStringImpl(parameterIndex, pgType, ((Character) x).toString());
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     } else if (x instanceof LocalDate) {
-      setDate(parameterIndex, (LocalDate) x);
+      setDateImpl(parameterIndex, pgType, (LocalDate) x);
     } else if (x instanceof LocalTime) {
-      setTime(parameterIndex, (LocalTime) x);
+      setTimeImpl(parameterIndex, pgType, (LocalTime) x);
     } else if (x instanceof LocalDateTime) {
-      setTimestamp(parameterIndex, (LocalDateTime) x);
+      setTimestampImpl(parameterIndex, pgType, (LocalDateTime) x);
     } else if (x instanceof OffsetDateTime) {
-      setTimestamp(parameterIndex, (OffsetDateTime) x);
+      setTimestampImpl(parameterIndex, pgType, (OffsetDateTime) x);
       //#endif
     } else if (x instanceof Map) {
-      setMap(parameterIndex, (Map<?, ?>) x);
+      setMapImpl(parameterIndex, pgType, (Map<?, ?>) x);
     } else if (x instanceof Number) {
-      setNumber(parameterIndex, (Number) x);
+      // TODO: Pass scale through to all Number, nos just BigDecimal?
+      setNumberImpl(parameterIndex, pgType, scaleOrLength, (Number) x);
     } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
-      setPrimitiveArray(parameterIndex, x);
+      setPrimitiveArrayImpl(parameterIndex, pgType, x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
           "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.",
           x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
     }
+  }
+
+  @Override
+  public final void setObject(int parameterIndex, Object x) throws SQLException {
+    setObjectImpl(parameterIndex, null, -1, x);
   }
 
   /**
@@ -1100,30 +1273,32 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * not done here for efficiency reasons as most calls to this method do not require escaping as
    * the source of the string is known safe (i.e. {@code Integer.toString()})
    *
-   * @param paramIndex parameter index
+   * @param parameterIndex parameter index
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
    * @param s value (the value should already be escaped)
    * @param oid type oid
    * @throws SQLException if something goes wrong
    */
-  protected void bindLiteral(int paramIndex, String s, int oid) throws SQLException {
-    preparedParameters.setLiteralParameter(paramIndex, s, oid);
+  protected void bindLiteral(int parameterIndex, String pgType, int scale, String s, int oid) throws SQLException {
+    preparedParameters.setLiteralParameter(parameterIndex, pgType, scale, s, oid);
   }
 
-  protected void bindBytes(int paramIndex, byte[] b, int oid) throws SQLException {
-    preparedParameters.setBinaryParameter(paramIndex, b, oid);
+  protected void bindBytes(int parameterIndex, String pgType, byte[] b, int oid) throws SQLException {
+    preparedParameters.setBinaryParameter(parameterIndex, pgType, b, oid);
   }
 
   /**
    * This version is for values that should turn into strings e.g. setString directly calls
    * bindString with no escaping; the per-protocol ParameterList does escaping as needed.
    *
-   * @param paramIndex parameter index
+   * @param parameterIndex parameter index
    * @param s value
    * @param oid type oid
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
    * @throws SQLException if something goes wrong
    */
-  private void bindString(int paramIndex, String s, int oid) throws SQLException {
-    preparedParameters.setStringParameter(paramIndex, s, oid);
+  private void bindString(int parameterIndex, String s, int oid, String pgType) throws SQLException {
+    preparedParameters.setStringParameter(parameterIndex, pgType, -1, s, oid);
   }
 
   public boolean isUseServerPrepare() {
@@ -1181,11 +1356,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return null;
   }
 
-  public void setArray(int i, java.sql.Array x) throws SQLException {
+  protected void setArrayImpl(int parameterIndex, String pgType, java.sql.Array x) throws SQLException {
     checkClosed();
 
     if (null == x) {
-      setNull(i, Types.ARRAY);
+      setNull(parameterIndex, Types.ARRAY, pgType);
       return;
     }
 
@@ -1203,15 +1378,20 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (x instanceof PgArray) {
       PgArray arr = (PgArray) x;
       if (arr.isBinary()) {
-        bindBytes(i, arr.toBytes(), oid);
+        bindBytes(parameterIndex, pgType, arr.toBytes(), oid);
         return;
       }
     }
 
-    setString(i, x.toString(), oid);
+    setStringImpl(parameterIndex, pgType, x.toString(), oid);
   }
 
-  protected long createBlob(int i, InputStream inputStream, long length) throws SQLException {
+  @Override
+  public final void setArray(int parameterIndex, java.sql.Array x) throws SQLException {
+    setArrayImpl(parameterIndex, null, x);
+  }
+
+  protected long createBlob(InputStream inputStream, long length) throws SQLException {
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
@@ -1244,24 +1424,29 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return oid;
   }
 
-  public void setBlob(int i, Blob x) throws SQLException {
+  protected void setBlobImpl(int parameterIndex, String pgType, Blob x) throws SQLException {
     checkClosed();
 
     if (x == null) {
-      setNull(i, Types.BLOB);
+      setNullImpl(parameterIndex, pgType, -1, Types.BLOB);
       return;
     }
 
     InputStream inStream = x.getBinaryStream();
     try {
-      long oid = createBlob(i, inStream, x.length());
-      setLong(i, oid);
+      long oid = createBlob(inStream, x.length());
+      setLongImpl(parameterIndex, pgType, oid);
     } finally {
       try {
         inStream.close();
       } catch (Exception e) {
       }
     }
+  }
+
+  @Override
+  public final void setBlob(int parameterIndex, Blob x) throws SQLException {
+    setBlobImpl(parameterIndex, null, x);
   }
 
   private String readerToString(Reader value, int maxLength) throws SQLException {
@@ -1282,11 +1467,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException {
+  protected void setCharacterStreamImpl(int parameterIndex, String pgType, java.io.Reader x,
+      int length) throws SQLException {
     checkClosed();
 
     if (x == null) {
-      setNull(i, Types.VARCHAR);
+      setNull(parameterIndex, Types.VARCHAR, pgType);
       return;
     }
 
@@ -1301,14 +1487,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // long varchar datatype, but with toast all the text datatypes are capable of
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
-    setString(i, readerToString(x, length));
+    setStringImpl(parameterIndex, pgType, readerToString(x, length));
   }
 
-  public void setClob(int i, Clob x) throws SQLException {
+  @Override
+  public final void setCharacterStream(int parameterIndex, java.io.Reader x, int length) throws SQLException {
+    setCharacterStreamImpl(parameterIndex, null, x, length);
+  }
+
+  protected void setClobImpl(int parameterIndex, String pgType, Clob x) throws SQLException {
     checkClosed();
 
     if (x == null) {
-      setNull(i, Types.CLOB);
+      setNull(parameterIndex, Types.CLOB, pgType);
       return;
     }
 
@@ -1337,12 +1528,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.UNEXPECTED_ERROR, se);
     }
     // lob is closed by the stream so don't call lob.close()
-    setLong(i, oid);
+    setLongImpl(parameterIndex, pgType, oid);
   }
 
-  public void setNull(int parameterIndex, int t, String typeName) throws SQLException {
+  @Override
+  public final void setClob(int parameterIndex, Clob x) throws SQLException {
+    setClobImpl(parameterIndex, null, x);
+  }
+
+  @Override
+  public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
     if (typeName == null) {
-      setNull(parameterIndex, t);
+      setNull(parameterIndex, sqlType);
       return;
     }
 
@@ -1351,18 +1548,24 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     TypeInfo typeInfo = connection.getTypeInfo();
     int oid = typeInfo.getPGType(typeName);
 
-    preparedParameters.setNull(parameterIndex, oid);
+    preparedParameters.setNull(parameterIndex, typeName, -1, oid);
   }
 
-  public void setRef(int i, Ref x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setRef(int,Ref)");
+  protected void setRefImpl(int parameterIndex, String pgType, Ref x) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setRefImpl(int,String,Ref)");
   }
 
-  public void setDate(int i, java.sql.Date d, java.util.Calendar cal) throws SQLException {
+  @Override
+  public final void setRef(int parameterIndex, Ref x) throws SQLException {
+    setRefImpl(parameterIndex, null, x);
+  }
+
+  protected void setDateImpl(int parameterIndex, String pgType, java.sql.Date d,
+      java.util.Calendar cal) throws SQLException {
     checkClosed();
 
     if (d == null) {
-      setNull(i, Types.DATE);
+      setNull(parameterIndex, Types.DATE, pgType);
       return;
     }
 
@@ -1370,7 +1573,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       byte[] val = new byte[4];
       TimeZone tz = cal != null ? cal.getTimeZone() : null;
       connection.getTimestampUtils().toBinDate(tz, val, d);
-      preparedParameters.setBinaryParameter(i, val, Oid.DATE);
+      preparedParameters.setBinaryParameter(parameterIndex, pgType, val, Oid.DATE);
       return;
     }
 
@@ -1396,14 +1599,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
-    bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
+    bindString(parameterIndex, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED, pgType);
   }
 
-  public void setTime(int i, Time t, java.util.Calendar cal) throws SQLException {
+  @Override
+  public final void setDate(int parameterIndex, java.sql.Date d, java.util.Calendar cal) throws SQLException {
+    setDateImpl(parameterIndex, null, d, cal);
+  }
+
+  protected void setTimeImpl(int parameterIndex, String pgType, Time t, java.util.Calendar cal) throws SQLException {
     checkClosed();
 
     if (t == null) {
-      setNull(i, Types.TIME);
+      setNull(parameterIndex, Types.TIME, pgType);
       return;
     }
 
@@ -1423,14 +1631,20 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
-    bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
+    bindString(parameterIndex, connection.getTimestampUtils().toString(cal, t), oid, pgType);
   }
 
-  public void setTimestamp(int i, Timestamp t, java.util.Calendar cal) throws SQLException {
+  @Override
+  public final void setTime(int parameterIndex, Time t, java.util.Calendar cal) throws SQLException {
+    setTimeImpl(parameterIndex, null, t, cal);
+  }
+
+  protected void setTimestampImpl(int parameterIndex, String pgType, Timestamp t,
+      java.util.Calendar cal) throws SQLException {
     checkClosed();
 
     if (t == null) {
-      setNull(i, Types.TIMESTAMP);
+      setNull(parameterIndex, Types.TIMESTAMP, pgType);
       return;
     }
 
@@ -1479,122 +1693,208 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
-    bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
+    bindString(parameterIndex, connection.getTimestampUtils().toString(cal, t), oid, pgType);
+  }
+
+  @Override
+  public final void setTimestamp(int parameterIndex, Timestamp t, java.util.Calendar cal) throws SQLException {
+    setTimestampImpl(parameterIndex, null, t, cal);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-  private void setDate(int i, LocalDate localDate) throws SQLException {
+  private void setDateImpl(int parameterIndex, String pgType, LocalDate localDate) throws SQLException {
     int oid = Oid.DATE;
-    bindString(i, connection.getTimestampUtils().toString(localDate), oid);
+    bindString(parameterIndex, connection.getTimestampUtils().toString(localDate), oid, pgType);
   }
 
-  private void setTime(int i, LocalTime localTime) throws SQLException {
+  private void setTimeImpl(int parameterIndex, String pgType, LocalTime localTime) throws SQLException {
     int oid = Oid.TIME;
-    bindString(i, connection.getTimestampUtils().toString(localTime), oid);
+    bindString(parameterIndex, connection.getTimestampUtils().toString(localTime), oid, pgType);
   }
 
-  private void setTimestamp(int i, LocalDateTime localDateTime) throws SQLException {
+  private void setTimestampImpl(int parameterIndex, String pgType, LocalDateTime localDateTime) throws SQLException {
     int oid = Oid.TIMESTAMP;
-    bindString(i, connection.getTimestampUtils().toString(localDateTime), oid);
+    bindString(parameterIndex, connection.getTimestampUtils().toString(localDateTime), oid, pgType);
   }
 
-  private void setTimestamp(int i, OffsetDateTime offsetDateTime) throws SQLException {
+  private void setTimestampImpl(int parameterIndex, String pgType, OffsetDateTime offsetDateTime) throws SQLException {
     int oid = Oid.TIMESTAMPTZ;
-    bindString(i, connection.getTimestampUtils().toString(offsetDateTime), oid);
+    bindString(parameterIndex, connection.getTimestampUtils().toString(offsetDateTime), oid, pgType);
   }
   //#endif
 
-  public ParameterMetaData createParameterMetaData(BaseConnection conn, int[] oids)
+  public ParameterMetaData createParameterMetaData(BaseConnection conn, int[] oids, String[] pgTypes, int[] scales)
       throws SQLException {
-    return new PgParameterMetaData(conn, oids);
+    return new PgParameterMetaData(conn, oids, pgTypes, scales);
   }
 
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-  public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType,
-      int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+  protected void setObjectImpl(int parameterIndex, String pgType, int scaleOrLength, Object x,
+      java.sql.SQLType targetSqlType) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setObjectImpl(int, String, Object, SQLType, int)");
   }
 
-  public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType)
+  @Override
+  public final void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType,
+      int scaleOrLength) throws SQLException {
+    setObjectImpl(parameterIndex, null, scaleOrLength, x, targetSqlType);
+  }
+
+  protected void setObjectImpl(int parameterIndex, String pgType, Object x, java.sql.SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    throw Driver.notImplemented(this.getClass(), "setObjectImpl(int, String, Object, SQLType)");
+  }
+
+  @Override
+  public final void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType)
+      throws SQLException {
+    setObjectImpl(parameterIndex, null, x, targetSqlType);
   }
   //#endif
 
 
-  public void setRowId(int parameterIndex, RowId x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setRowId(int, RowId)");
+  protected void setRowIdImpl(int parameterIndex, String pgType, RowId x) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setRowIdImpl(int, String, RowId)");
   }
 
-  public void setNString(int parameterIndex, String value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNString(int, String)");
+  @Override
+  public final void setRowId(int parameterIndex, RowId x) throws SQLException {
+    setRowIdImpl(parameterIndex, null, x);
   }
 
-  public void setNCharacterStream(int parameterIndex, Reader value, long length)
+  protected void setNStringImpl(int parameterIndex, String pgType, String value) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setNStringImpl(int, String, String)");
+  }
+
+  @Override
+  public final void setNString(int parameterIndex, String value) throws SQLException {
+    setNStringImpl(parameterIndex, null, value);
+  }
+
+  protected void setNCharacterStreamImpl(int parameterIndex, String pgType, Reader value, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNCharacterStream(int, Reader, long)");
+    throw Driver.notImplemented(this.getClass(), "setNCharacterStreamImpl(int, String, Reader, long)");
   }
 
-  public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNCharacterStream(int, Reader)");
-  }
-
-  public void setCharacterStream(int parameterIndex, Reader value, long length)
+  @Override
+  public final void setNCharacterStream(int parameterIndex, Reader value, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader, long)");
+    setNCharacterStreamImpl(parameterIndex, null, value, length);
   }
 
-  public void setCharacterStream(int parameterIndex, Reader value) throws SQLException {
+  protected void setNCharacterStreamImpl(int parameterIndex, String pgType, Reader value) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setNCharacterStreamImpl(int, String, Reader)");
+  }
+
+  @Override
+  public final void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
+    setNCharacterStreamImpl(parameterIndex, null, value);
+  }
+
+  protected void setCharacterStreamImpl(int parameterIndex, String pgType, Reader value, long length)
+      throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setCharacterStreamImpl(int, String, Reader, long)");
+  }
+
+  @Override
+  public final void setCharacterStream(int parameterIndex, Reader value, long length)
+      throws SQLException {
+    setCharacterStreamImpl(parameterIndex, null, value, length);
+  }
+
+  protected void setCharacterStreamImpl(int parameterIndex, String pgType, Reader value) throws SQLException {
     if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       String s = (value != null) ? readerToString(value, Integer.MAX_VALUE) : null;
-      setString(parameterIndex, s);
+      setStringImpl(parameterIndex, pgType, s);
       return;
     }
     InputStream is = (value != null) ? new ReaderInputStream(value) : null;
-    setObject(parameterIndex, is, Types.LONGVARCHAR);
+    setObjectImpl(parameterIndex, pgType, is, Types.LONGVARCHAR);
   }
 
-  public void setBinaryStream(int parameterIndex, InputStream value, long length)
+  @Override
+  public final void setCharacterStream(int parameterIndex, Reader value) throws SQLException {
+    setCharacterStreamImpl(parameterIndex, null, value);
+  }
+
+  protected void setBinaryStreamImpl(int parameterIndex, String pgType, InputStream value, long length)
       throws SQLException {
     if (length > Integer.MAX_VALUE) {
       throw new PSQLException(GT.tr("Object is too large to send over the protocol."),
           PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
     }
-    preparedParameters.setBytea(parameterIndex, value, (int) length);
+    preparedParameters.setBytea(parameterIndex, pgType, value, (int) length);
   }
 
-  public void setBinaryStream(int parameterIndex, InputStream value) throws SQLException {
-    preparedParameters.setBytea(parameterIndex, value);
-  }
-
-  public void setAsciiStream(int parameterIndex, InputStream value, long length)
+  @Override
+  public final void setBinaryStream(int parameterIndex, InputStream value, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setAsciiStream(int, InputStream, long)");
+    setBinaryStreamImpl(parameterIndex, null, value, length);
   }
 
-  public void setAsciiStream(int parameterIndex, InputStream value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setAsciiStream(int, InputStream)");
+  protected void setBinaryStreamImpl(int parameterIndex, String pgType, InputStream value) throws SQLException {
+    preparedParameters.setBytea(parameterIndex, pgType, -1, value);
   }
 
-  public void setNClob(int parameterIndex, NClob value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNClob(int, NClob)");
+  @Override
+  public final void setBinaryStream(int parameterIndex, InputStream value) throws SQLException {
+    setBinaryStreamImpl(parameterIndex, null, value);
   }
 
-  public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setClob(int, Reader, long)");
+  protected void setAsciiStreamImpl(int parameterIndex, String pgType, InputStream value, long length)
+      throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setAsciiStreamImpl(int, String, InputStream, long)");
   }
 
-  public void setClob(int parameterIndex, Reader reader) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setClob(int, Reader)");
+  @Override
+  public final void setAsciiStream(int parameterIndex, InputStream value, long length)
+      throws SQLException {
+    setAsciiStreamImpl(parameterIndex, null, value, length);
   }
 
-  public void setBlob(int parameterIndex, InputStream inputStream, long length)
+  protected void setAsciiStreamImpl(int parameterIndex, String pgType, InputStream value) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setAsciiStream(int, String, InputStream)");
+  }
+
+  @Override
+  public final void setAsciiStream(int parameterIndex, InputStream value) throws SQLException {
+    setAsciiStreamImpl(parameterIndex, null, value);
+  }
+
+  protected void setNClobImpl(int parameterIndex, String pgType, NClob value) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setNClobImpl(int, String, NClob)");
+  }
+
+  @Override
+  public final void setNClob(int parameterIndex, NClob value) throws SQLException {
+    setNClobImpl(parameterIndex, null, value);
+  }
+
+  protected void setClobImpl(int parameterIndex, String pgType, Reader reader, long length) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setClobImpl(int, String, Reader, long)");
+  }
+
+  @Override
+  public final void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
+    setClobImpl(parameterIndex, null, reader, length);
+  }
+
+  protected void setClobImpl(int parameterIndex, String pgType, Reader reader) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setClobImpl(int, String, Reader)");
+  }
+
+  @Override
+  public final void setClob(int parameterIndex, Reader reader) throws SQLException {
+    setClobImpl(parameterIndex, null, reader);
+  }
+
+  protected void setBlobImpl(int parameterIndex, String pgType, InputStream inputStream, long length)
       throws SQLException {
     checkClosed();
 
     if (inputStream == null) {
-      setNull(parameterIndex, Types.BLOB);
+      setNull(parameterIndex, Types.BLOB, pgType);
       return;
     }
 
@@ -1603,53 +1903,84 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    long oid = createBlob(parameterIndex, inputStream, length);
-    setLong(parameterIndex, oid);
+    long oid = createBlob(inputStream, length);
+    setLongImpl(parameterIndex, pgType, oid);
   }
 
-  public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+  @Override
+  public final void setBlob(int parameterIndex, InputStream inputStream, long length)
+      throws SQLException {
+    setBlobImpl(parameterIndex, null, inputStream, length);
+  }
+
+  protected void setBlobImpl(int parameterIndex, String pgType, InputStream inputStream) throws SQLException {
     checkClosed();
 
     if (inputStream == null) {
-      setNull(parameterIndex, Types.BLOB);
+      setNull(parameterIndex, Types.BLOB, pgType);
       return;
     }
 
-    long oid = createBlob(parameterIndex, inputStream, -1);
-    setLong(parameterIndex, oid);
+    long oid = createBlob(inputStream, -1);
+    setLongImpl(parameterIndex, pgType, oid);
   }
 
-  public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNClob(int, Reader, long)");
+  @Override
+  public final void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+    setBlobImpl(parameterIndex, null, inputStream);
   }
 
-  public void setNClob(int parameterIndex, Reader reader) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNClob(int, Reader)");
+  protected void setNClobImpl(int parameterIndex, String pgType, Reader reader, long length) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setNClobImpl(int, String, Reader, long)");
   }
 
-  public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
+  @Override
+  public final void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
+    setNClobImpl(parameterIndex, null, reader, length);
+  }
+
+  protected void setNClobImpl(int parameterIndex, String pgType, Reader reader) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setNClob(int, String, Reader)");
+  }
+
+  @Override
+  public final void setNClob(int parameterIndex, Reader reader) throws SQLException {
+    setNClobImpl(parameterIndex, null, reader);
+  }
+
+  protected void setSQLXMLImpl(int parameterIndex, String pgType, SQLXML xmlObject) throws SQLException {
     checkClosed();
     String stringValue = xmlObject == null ? null : xmlObject.getString();
     if (stringValue == null) {
-      setNull(parameterIndex, Types.SQLXML);
+      setNull(parameterIndex, Types.SQLXML, pgType);
     } else {
-      setString(parameterIndex, stringValue, Oid.XML);
+      setStringImpl(parameterIndex, pgType, stringValue, Oid.XML);
     }
   }
 
-  private void setUuid(int parameterIndex, UUID uuid) throws SQLException {
+  @Override
+  public final void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
+    setSQLXMLImpl(parameterIndex, null, xmlObject);
+  }
+
+  private void setUuidImpl(int parameterIndex, String pgType, UUID uuid) throws SQLException {
     if (connection.binaryTransferSend(Oid.UUID)) {
       byte[] val = new byte[16];
       ByteConverter.int8(val, 0, uuid.getMostSignificantBits());
       ByteConverter.int8(val, 8, uuid.getLeastSignificantBits());
-      bindBytes(parameterIndex, val, Oid.UUID);
+      bindBytes(parameterIndex, pgType, val, Oid.UUID);
     } else {
-      bindLiteral(parameterIndex, uuid.toString(), Oid.UUID);
+      bindLiteral(parameterIndex, pgType, -1, uuid.toString(), Oid.UUID);
     }
   }
 
-  public void setURL(int parameterIndex, java.net.URL x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setURL(int,URL)");
+  protected void setURLImpl(int parameterIndex, String pgType, java.net.URL url) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setURLImpl(int, String, URL)");
+  }
+
+  @Override
+  public final void setURL(int parameterIndex, java.net.URL url) throws SQLException {
+    setURLImpl(parameterIndex, null, url);
   }
 
   @Override
@@ -1692,7 +2023,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     int[] oids = preparedParameters.getTypeOIDs();
     if (oids != null) {
-      return createParameterMetaData(connection, oids);
+      return createParameterMetaData(connection, oids, preparedParameters.getPgTypes(), preparedParameters.getScales());
     }
 
     return null;

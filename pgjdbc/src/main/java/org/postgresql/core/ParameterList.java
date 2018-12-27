@@ -22,10 +22,11 @@ import java.sql.SQLException;
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
+// TODO: Review uses of scale, make sure all remaining are required
 public interface ParameterList {
 
 
-  void registerOutParameter(int index, int sqlType) throws SQLException;
+  void registerOutParameter(int index, String pgType, int scale, int sqlType) throws SQLException;
 
   /**
    * Get the number of parameters in this list. This value never changes for a particular instance,
@@ -58,13 +59,28 @@ public interface ParameterList {
   int[] getTypeOIDs();
 
   /**
+   * Return the pgTypes of the parameters in this list.
+   *
+   * @return pgTypes of the parameters, where each element may be {@code null} to use default behavior
+   */
+  String[] getPgTypes();
+
+  /**
+   * Return the scales of the parameters in this list.
+   *
+   * @return scales of the parameters, where each element may be {@code -1} if undefined
+   */
+  int[] getScales();
+
+  /**
    * Binds an integer value to a parameter. The type of the parameter is implicitly 'int4'.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
    * @param value the integer value to use.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setIntParameter(int index, int value) throws SQLException;
+  void setIntParameter(int index, String pgType, int value) throws SQLException;
 
   /**
    * Binds a String value that is an unquoted literal to the server's query parser (for example, a
@@ -72,11 +88,13 @@ public interface ParameterList {
    * that should correspond to an entry in pg_types.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scale the scale or {@code -1} for none
    * @param value the unquoted literal string to use.
    * @param oid the type OID of the parameter, or <code>0</code> to infer the type.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setLiteralParameter(int index, String value, int oid) throws SQLException;
+  void setLiteralParameter(int index, String pgType, int scale, String value, int oid) throws SQLException;
 
   /**
    * Binds a String value that needs to be quoted for the server's parser to understand (for
@@ -84,11 +102,14 @@ public interface ParameterList {
    * parameter that should correspond to an entry in pg_types.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scale the scale or {@code -1} for none
+   *              (TODO: Only here because setLiteralParameter crosses over to setStringParameter - bug?)
    * @param value the quoted string to use.
    * @param oid the type OID of the parameter, or <code>0</code> to infer the type.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setStringParameter(int index, String value, int oid) throws SQLException;
+  void setStringParameter(int index, String pgType, int scale, String value, int oid) throws SQLException;
 
   /**
    * Binds a binary bytea value stored as a bytearray to a parameter. The parameter's type is
@@ -96,33 +117,37 @@ public interface ParameterList {
    * execution has completed.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
    * @param data an array containing the raw data value
    * @param offset the offset within <code>data</code> of the start of the parameter data.
    * @param length the number of bytes of parameter data within <code>data</code> to use.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBytea(int index, byte[] data, int offset, int length) throws SQLException;
+  void setBytea(int index, String pgType, byte[] data, int offset, int length) throws SQLException;
 
   /**
    * Binds a binary bytea value stored as an InputStream. The parameter's type is implicitly set to
    * 'bytea'. The stream should remain valid until query execution has completed.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
    * @param stream a stream containing the parameter data.
    * @param length the number of bytes of parameter data to read from <code>stream</code>.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBytea(int index, InputStream stream, int length) throws SQLException;
+  void setBytea(int index, String pgType, InputStream stream, int length) throws SQLException;
 
   /**
    * Binds a binary bytea value stored as an InputStream. The parameter's type is implicitly set to
    * 'bytea'. The stream should remain valid until query execution has completed.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scaleOrLength the scale or {@code -1} for none
    * @param stream a stream containing the parameter data.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBytea(int index, InputStream stream) throws SQLException;
+  void setBytea(int index, String pgType, int scaleOrLength, InputStream stream) throws SQLException;
 
   /**
    * Binds a text value stored as an InputStream that is a valid UTF-8 byte stream.
@@ -131,31 +156,36 @@ public interface ParameterList {
    * The stream should remain valid until query execution has completed.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scaleOrLength the scale or {@code -1} for none
    * @param stream a stream containing the parameter data.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setText(int index, InputStream stream) throws SQLException;
+  void setText(int index, String pgType, int scaleOrLength, InputStream stream) throws SQLException;
 
   /**
    * Binds given byte[] value to a parameter. The bytes must already be in correct format matching
    * the OID.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
    * @param value the bytes to send.
    * @param oid the type OID of the parameter.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBinaryParameter(int index, byte[] value, int oid) throws SQLException;
+  void setBinaryParameter(int index, String pgType, byte[] value, int oid) throws SQLException;
 
   /**
    * Binds a SQL NULL value to a parameter. Associated with the parameter is a typename for the
    * parameter that should correspond to an entry in pg_types.
    *
    * @param index the 1-based parameter index to bind.
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scale the scale or {@code -1} for none
    * @param oid the type OID of the parameter, or <code>0</code> to infer the type.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setNull(int index, int oid) throws SQLException;
+  void setNull(int index, String pgType, int scale, int oid) throws SQLException;
 
   /**
    * Perform a shallow copy of this ParameterList, returning a new instance (still suitable for

@@ -99,9 +99,10 @@ public class FastpathArg {
 
   void populateParameter(ParameterList params, int index) throws SQLException {
     if (bytes == null) {
-      params.setNull(index, 0);
+      // TODO: Find where "0" is used instead of Oid.UNSPECIFIED, it is more meaningful
+      params.setNull(index, null, -1, 0);
     } else {
-      params.setBytea(index, bytes, bytesStart, bytesLength);
+      params.setBytea(index, null, bytes, bytesStart, bytesLength);
     }
   }
 }

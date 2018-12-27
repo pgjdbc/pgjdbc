@@ -1375,6 +1375,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
       return;
     }
+    String[] pgTypes = params.getPgTypes();
 
     // Clean up any existing statement, as we can't use it.
     query.unprepare();
@@ -1395,10 +1396,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // the SimpleParameterList's internal array that might be modified
       // under us.
       query.setStatementName(statementName, deallocateEpoch);
-      query.setPrepareTypes(typeOIDs);
+      query.setPrepareTypes(typeOIDs, pgTypes);
       registerParsedQuery(query, statementName);
     }
 
+    // TODO: pgTypes have any affect here?
     byte[] encodedStatementName = query.getEncodedStatementName();
     String nativeSql = query.getNativeSql();
 
@@ -1777,13 +1779,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
       int[] queryOIDs = query.getPrepareTypes();
+      String[] queryPgTypes = query.getPreparePgTypes();
       int[] paramOIDs = params.getTypeOIDs();
       for (int i = 0; i < paramOIDs.length; i++) {
         // Only supply type information when there isn't any
         // already, don't arbitrarily overwrite user supplied
         // type information.
         if (paramOIDs[i] == Oid.UNSPECIFIED) {
-          params.setResolvedType(i + 1, queryOIDs[i]);
+          // TODO: Any useful scale here?  Perhaps from Field?
+          params.setResolvedType(i + 1, queryOIDs[i], queryPgTypes[i], -1);
         }
       }
     }
@@ -1982,7 +1986,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           for (int i = 1; i <= numParams; i++) {
             int typeOid = pgStream.receiveInteger4();
-            params.setResolvedType(i, typeOid);
+            // TODO: is there where we should maintain the custom type on OUT parameters?
+            //       Should this have been set while registering the OUT parameter?
+            //       If so, this should not overwrite it.
+            // TODO: Can typeOid change when we sent a DOMAIN type - would we get back the base type?
+            //       Can we even send the DOMAIN type, since the OID is the same as the base type?
+            // TODO: Any useful scale here?
+            params.setResolvedType(i, typeOid, null, -1);
           }
 
           // Since we can issue multiple Parse and DescribeStatement
@@ -1993,7 +2003,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if ((origStatementName == null && query.getStatementName() == null)
               || (origStatementName != null
                   && origStatementName.equals(query.getStatementName()))) {
-            query.setPrepareTypes(params.getTypeOIDs());
+            query.setPrepareTypes(params.getTypeOIDs(), params.getPgTypes());
           }
 
           if (describeOnly) {
