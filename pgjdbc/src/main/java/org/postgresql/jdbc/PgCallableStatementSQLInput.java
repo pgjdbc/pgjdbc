@@ -176,7 +176,7 @@ class PgCallableStatementSQLInput extends SingleAttributeSQLInput {
     markRead();
     // Avoid unbounded recursion
     throw new PSQLException(GT.tr(
-        "To avoid stack overflow, SQLInput.readObject() does not support getting objects."),
+        "To avoid stack overflow, {0}.{1} does not support reading objects.", this.getClass().getSimpleName(), "readObject()"),
         PSQLState.NOT_IMPLEMENTED);
     //return cstmt.getObject(parameterIndex, typemap);
   }
