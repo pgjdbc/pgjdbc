@@ -38,9 +38,11 @@ public class EnumTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
 
-    assumeMinimumServerVersion(ServerVersion.v8_3);
 
     TestUtil.createSchema(con, SCHEMA);
+
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+
     Map<String, Class<?>> typeMap = con.getTypeMap();
     typeMap.put(DAY_OF_WEEK_TYPE, DayOfWeek.class);
     con.setTypeMap(typeMap);
