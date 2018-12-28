@@ -234,9 +234,8 @@ public class EnumTest extends BaseTest4 {
 
   @Test
   public void testGetObjectFromStringNoMapping() throws Exception {
-    Map<String, Class<?>> typeMap = con.getTypeMap();
-    typeMap.clear();;
-    con.setTypeMap(typeMap);
+    // Setting to null will clear the typemap
+    con.setTypeMap(null);
 
     // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS will_be_pgobject");
@@ -255,9 +254,8 @@ public class EnumTest extends BaseTest4 {
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Test(expected = SQLException.class)
   public void testGetObjectFromStringWithClassNoMapping() throws Exception {
-    Map<String, Class<?>> typeMap = con.getTypeMap();
-    typeMap.clear();;
-    con.setTypeMap(typeMap);
+    // May also set to empty map to clear the typemap
+    con.setTypeMap(Collections.<String, Class<?>>emptyMap());
 
     // :: cast required on setString:
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::" + DAY_OF_WEEK_TYPE + " AS failure");
