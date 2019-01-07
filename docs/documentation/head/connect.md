@@ -358,6 +358,11 @@ Connection conn = DriverManager.getConnection(url);
 
 	On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
 
+        To use SSPI with PgJDBC you must ensure that
+        [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/)
+	and its dependencies are present on the `CLASSPATH`. PgJDBC does *not*
+        bundle `waffle-jna` in the PgJDBC jar.
+
 	Since: 9.4
 
 * **sspiServiceClass** = String
