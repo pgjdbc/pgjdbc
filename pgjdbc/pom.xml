@@ -254,7 +254,7 @@
               </includes>
             </filter>
             <filter>
-              <artifact>com.github.dblock.waffle:waffle-jna</artifact>
+              <artifact>com.github.waffle:waffle-jna</artifact>
               <excludes>
                 <exclude>**</exclude>
               </excludes>
