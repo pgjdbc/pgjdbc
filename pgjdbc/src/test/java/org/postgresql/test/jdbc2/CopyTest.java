@@ -125,7 +125,7 @@ public class CopyTest {
   @Test
   public void testCopyInAsOutputStream() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
-    OutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    OutputStream os = new PGCopyOutputStream((PGConnection) con, sql);
     for (String anOrigData : origData) {
       byte[] buf = anOrigData.getBytes();
       os.write(buf);
