@@ -86,6 +86,7 @@ public class PGCopyOutputStream extends OutputStream {
   }
 
   public void flush() throws IOException {
+    checkClosed();
     try {
       op.flushCopy();
     } catch (SQLException e) {
