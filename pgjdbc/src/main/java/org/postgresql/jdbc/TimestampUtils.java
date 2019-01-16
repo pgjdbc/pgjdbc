@@ -836,7 +836,7 @@ public class TimestampUtils {
   }
 
   private static void appendDate(StringBuilder sb, LocalDate localDate) {
-    int year = Math.abs(localDate.getYear()); // year is negative for BC dates
+    int year = localDate.get(ChronoField.YEAR_OF_ERA);
     int month = localDate.getMonthValue();
     int day = localDate.getDayOfMonth();
     appendDate(sb, year, month, day);
