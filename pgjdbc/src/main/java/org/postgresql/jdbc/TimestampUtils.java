@@ -830,9 +830,8 @@ public class TimestampUtils {
       return "-infinity";
     }
 
-    // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
-    ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
-    return toString(zonedDateTime.toOffsetDateTime());
+    OffsetDateTime offsetDateTime = localDateTime.atOffset(ZoneOffset.UTC);
+    return toString(offsetDateTime);
   }
 
   private static void appendDate(StringBuilder sb, LocalDate localDate) {

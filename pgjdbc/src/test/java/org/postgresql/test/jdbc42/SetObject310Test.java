@@ -199,7 +199,7 @@ public class SetObject310Test {
       ZoneId zone = ZoneId.of(zoneId);
       for (String date : datesToTest) {
         LocalDateTime localDateTime = LocalDateTime.parse(date);
-        String expected = localDateTime.atZone(zone)
+        String expected = localDateTime
             .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             .replace('T', ' ');
         localTimestamps(zone, localDateTime, expected);
