@@ -31,7 +31,7 @@ public class Parser {
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
    * by semicolon.
    *
-   * @param query                     jdbc query to parse
+   * @param sql                     jdbc query to parse
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
    *                                  in single quote literals
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
@@ -41,10 +41,32 @@ public class Parser {
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
-  public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
+  public static List<NativeQuery> parseJdbcSql(String sql, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
       boolean isBatchedReWriteConfigured,
       String... returningColumnNames) throws SQLException {
+    return parseJdbcSql(new ParserBufferHolder(sql), standardConformingStrings, withParameters, splitStatements, isBatchedReWriteConfigured, returningColumnNames);
+  }
+
+  /**
+   * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
+   * by semicolon.
+   *
+   * @param parserBufferHolder        jdbc query to parse, in a form that allow buffer re-use
+   * @param standardConformingStrings whether to allow backslashes to be used as escape characters
+   *                                  in single quote literals
+   * @param withParameters            whether to replace ?, ? with $1, $2, etc
+   * @param splitStatements           whether to split statements by semicolon
+   * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+   * @param returningColumnNames      for simple insert, update, delete add returning with given column names
+   * @return list of native queries
+   * @throws SQLException if unable to add returning clause (invalid column names)
+   */
+  public static List<NativeQuery> parseJdbcSql(ParserBufferHolder parserBufferHolder, boolean standardConformingStrings,
+      boolean withParameters, boolean splitStatements,
+      boolean isBatchedReWriteConfigured,
+      String... returningColumnNames) throws SQLException {
+    String query = parserBufferHolder.query;
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
       return Collections.singletonList(new NativeQuery(query,
@@ -54,9 +76,9 @@ public class Parser {
     int fragmentStart = 0;
     int inParen = 0;
 
-    char[] aChars = query.toCharArray();
+    char[] aChars = parserBufferHolder.getQueryAsCharArray();
+    StringBuilder nativeSql = parserBufferHolder.ensureCapacity(query.length() + 10);
 
-    StringBuilder nativeSql = new StringBuilder(query.length() + 10);
     List<Integer> bindPositions = null; // initialized on demand
     List<NativeQuery> nativeQueries = null;
     boolean isCurrentReWriteCompatible = false;
@@ -895,19 +917,19 @@ public class Parser {
    * [?,..])] }} into the PostgreSQL format which is {@code select <some_function> (?, [?, ...]) as
    * result} or {@code select * from <some_function> (?, [?, ...]) as result} (7.3)
    *
-   * @param jdbcSql         sql text with JDBC escapes
+   * @param parserBufferHolder   sql text with JDBC escapes
    * @param stdStrings      if backslash in single quotes should be regular character or escape one
    * @param serverVersion   server version
    * @param protocolVersion protocol version
    * @return SQL in appropriate for given server format
    * @throws SQLException if given SQL is malformed
    */
-  public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
+  public static JdbcCallParseInfo modifyJdbcCall(ParserBufferHolder parserBufferHolder, boolean stdStrings,
       int serverVersion, int protocolVersion) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
-    String sql = jdbcSql;
+    String jdbcSql = parserBufferHolder.query;
     boolean isFunction = false;
     boolean outParamBeforeFunc = false;
 
@@ -974,8 +996,8 @@ public class Parser {
           break;
 
         case 5:  // Should be at 'call ' either at start of string or after ?=
-          if ((ch == 'c' || ch == 'C') && i + 4 <= len && jdbcSql.substring(i, i + 4)
-              .equalsIgnoreCase("call")) {
+          if ((ch == 'c' || ch == 'C') && i + 4 <= len
+              && jdbcSql.regionMatches(true, i, "call", 0, "call".length()) ) {
             isFunction = true;
             i += 4;
             ++state;
@@ -1041,7 +1063,7 @@ public class Parser {
     if (i == len && !syntaxError) {
       if (state == 1) {
         // Not an escaped syntax.
-        return new JdbcCallParseInfo(sql, isFunction);
+        return new JdbcCallParseInfo(jdbcSql, isFunction);
       }
       if (state != 8) {
         syntaxError = true; // Ran out of query while still parsing
@@ -1057,13 +1079,22 @@ public class Parser {
     String prefix = "select * from ";
     String suffix = " as result";
 
-    String s = jdbcSql.substring(startIndex, endIndex);
     int prefixLength = prefix.length();
-    StringBuilder sb = new StringBuilder(prefixLength + jdbcSql.length() + suffix.length() + 10);
-    sb.append(prefix);
-    sb.append(s);
+    StringBuilder sb = parserBufferHolder.ensureCapacity(prefixLength + jdbcSql.length() + suffix.length() + 10);
 
-    int opening = s.indexOf('(') + 1;
+    sb.append(prefix);
+    sb.append(jdbcSql, startIndex, endIndex);
+
+    // try to find if the call has parameters declaration
+    int opening = jdbcSql.indexOf('(', startIndex);
+    // ensure the '(' found is between the procedure name and the end of the query ('}')
+    if (opening >= endIndex || opening < 0) {
+      opening = -1;
+    } else {
+      opening -= startIndex;
+    }
+    opening++;
+
     if (opening == 0) {
       // here the function call has no parameters declaration eg : "{ ? = call pack_getValue}"
       sb.append(outParamBeforeFunc ? "(?)" : "()");
@@ -1094,7 +1125,11 @@ public class Parser {
       }
     }
 
-    sql = sb.append(suffix).toString();
+    String sql = sb.append(suffix).toString();
+
+    parserBufferHolder.resetQuery(sql);
+    parserBufferHolder.resetBuffer();
+
     return new JdbcCallParseInfo(sql, isFunction);
   }
 
@@ -1107,26 +1142,27 @@ public class Parser {
    * part. So, something like "select * from x where d={d '2001-10-09'}" would return "select * from
    * x where d= '2001-10-09'".</p>
    *
-   * @param p_sql                     the original query text
+   * @param parserBufferHolder        the original query text, in a form that allow buffer re-use
    * @param replaceProcessingEnabled  whether replace_processing_enabled is on
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
    * @throws SQLException if given SQL is wrong
    */
-  public static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
+  public static String replaceProcessing(ParserBufferHolder parserBufferHolder, boolean replaceProcessingEnabled,
       boolean standardConformingStrings) throws SQLException {
     if (replaceProcessingEnabled) {
       // Since escape codes can only appear in SQL CODE, we keep track
       // of if we enter a string or not.
-      int len = p_sql.length();
-      char[] chars = p_sql.toCharArray();
-      StringBuilder newsql = new StringBuilder(len);
+      int len = parserBufferHolder.query.length();
+      char[] chars = parserBufferHolder.getQueryAsCharArray();
+      StringBuilder newsql = parserBufferHolder.ensureCapacity((int) (len * 1.15));
+
       int i = 0;
       while (i < len) {
-        i = parseSql(chars, i, newsql, false, standardConformingStrings);
+        i = parseSql(parserBufferHolder, i, false, standardConformingStrings);
         // We need to loop here in case we encounter invalid
         // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
-        // We can't ending replacing after the extra closing paren
+        // We can't ending replacing after the extra closing parent
         // because that changes a syntax error to a valid query
         // that isn't what the user specified.
         if (i < len) {
@@ -1134,9 +1170,17 @@ public class Parser {
           i++;
         }
       }
-      return newsql.toString();
+      if (parserBufferHolder.queryWasChanged) {
+        String newQuery = newsql.toString();
+        parserBufferHolder.resetQuery(newQuery);
+        parserBufferHolder.resetBuffer();
+        return newQuery;
+      } else {
+        parserBufferHolder.resetBuffer();
+        return parserBufferHolder.query;
+      }
     } else {
-      return p_sql;
+      return parserBufferHolder.query;
     }
   }
 
@@ -1145,7 +1189,7 @@ public class Parser {
    * right parentheses or end of string. When the stopOnComma flag is set we also stop processing
    * when a comma is found in sql text that isn't inside nested parenthesis.
    *
-   * @param p_sql the original query text
+   * @param parserBufferHolder the original query text, in a form that allow buffer re-use
    * @param i starting position for replacing
    * @param newsql where to write the replaced output
    * @param stopOnComma should we stop after hitting the first comma in sql text?
@@ -1153,8 +1197,10 @@ public class Parser {
    * @return the position we stopped processing at
    * @throws SQLException if given SQL is wrong
    */
-  private static int parseSql(char[] p_sql, int i, StringBuilder newsql, boolean stopOnComma,
+  private static int parseSql(ParserBufferHolder parserBufferHolder, int i, boolean stopOnComma,
       boolean stdStrings) throws SQLException {
+    StringBuilder newsql = parserBufferHolder.getBuffer();
+    char[] p_sql = parserBufferHolder.getQueryAsCharArray();
     SqlParseState state = SqlParseState.IN_SQLCODE;
     int len = p_sql.length;
     int nestedParenthesis = 0;
@@ -1238,8 +1284,9 @@ public class Parser {
 
         case ESC_FUNCTION:
           // extract function name
-          i = escapeFunction(p_sql, i, newsql, stdStrings);
+          i = escapeFunction(parserBufferHolder, i, stdStrings);
           state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
+          parserBufferHolder.queryWasChanged = true;
           break;
         case ESC_DATE:
         case ESC_TIME:
@@ -1251,6 +1298,7 @@ public class Parser {
           } else {
             newsql.append(c);
           }
+          parserBufferHolder.queryWasChanged = true;
           break;
       } // end switch
     }
@@ -1276,19 +1324,20 @@ public class Parser {
         PSQLState.SYNTAX_ERROR);
   }
 
-  private static int escapeFunction(char[] p_sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
+  private static int escapeFunction(ParserBufferHolder parserBufferHolder, int i, boolean stdStrings) throws SQLException {
     String functionName;
+    char[] p_sql = parserBufferHolder.getQueryAsCharArray();
     int argPos = findOpenBrace(p_sql, i);
     if (argPos < p_sql.length) {
       functionName = new String(p_sql, i, argPos - i).trim();
       // extract arguments
       i = argPos + 1;// we start the scan after the first (
-      i = escapeFunctionArguments(newsql, functionName, p_sql, i, stdStrings);
+      i = escapeFunctionArguments(parserBufferHolder, functionName, i, stdStrings);
     }
     // go to the end of the function copying anything found
     i++;
     while (i < p_sql.length && p_sql[i] != '}') {
-      newsql.append(p_sql[i++]);
+      parserBufferHolder.getBuffer().append(p_sql[i++]);
     }
     return i;
   }
@@ -1296,7 +1345,7 @@ public class Parser {
   /**
    * Generate sql for escaped functions.
    *
-   * @param newsql destination StringBuilder
+   * @param parserBufferHolder destination escape buffer
    * @param functionName the escaped function name
    * @param p_sql input SQL text (containing arguments of a function call with possible JDBC escapes)
    * @param i position in the input SQL
@@ -1304,15 +1353,20 @@ public class Parser {
    * @return the right PostgreSQL sql
    * @throws SQLException if something goes wrong
    */
-  private static int escapeFunctionArguments(StringBuilder newsql, String functionName, char[] p_sql, int i,
+  private static int escapeFunctionArguments(ParserBufferHolder parserBufferHolder, String functionName, int i,
       boolean stdStrings)
       throws SQLException {
+    StringBuilder newsql = parserBufferHolder.getBuffer();
+    char[] p_sql = parserBufferHolder.getQueryAsCharArray();
     // Maximum arity of functions in EscapedFunctions is 3
     List<CharSequence> parsedArgs = new ArrayList<CharSequence>(3);
     while (true) {
+      // here we don't want to append the parsed parameter into the main buffer
+      // so use a temporary one in the buffer holder
       StringBuilder arg = new StringBuilder();
+      parserBufferHolder.setBuffer(arg);
       int lastPos = i;
-      i = parseSql(p_sql, i, arg, true, stdStrings);
+      i = parseSql(parserBufferHolder, i, true, stdStrings);
       if (i != lastPos) {
         parsedArgs.add(arg);
       }
@@ -1322,6 +1376,9 @@ public class Parser {
       }
       i++;
     }
+    // restore the main buffer
+    parserBufferHolder.setBuffer(newsql);
+
     Method method = EscapedFunctions2.getFunction(functionName);
     if (method == null) {
       newsql.append(functionName);
@@ -1412,6 +1469,56 @@ public class Parser {
         }
       }
       return 0;
+    }
+  }
+
+  /**
+   * Note: This class should not be considered as pgjdbc public API.
+   */
+  public static class ParserBufferHolder {
+    private char[] queryAsCharArray;
+    private StringBuilder buffer;
+    private boolean queryWasChanged = false;
+    private String query;
+
+    public ParserBufferHolder(String query) {
+      this.query = query;
+    }
+
+    public StringBuilder ensureCapacity(int size) {
+      if (buffer == null) {
+        buffer = new StringBuilder(size);
+      } else {
+        buffer.ensureCapacity(size);
+      }
+
+      return buffer;
+    }
+
+    public StringBuilder getBuffer() {
+      return buffer;
+    }
+
+    public void setBuffer(StringBuilder buffer) {
+      this.buffer = buffer;
+    }
+
+    public void resetBuffer() {
+      if (this.buffer != null) {
+        this.buffer.setLength(0);
+      }
+    }
+
+    public void resetQuery(String query) {
+      this.query = query;
+      this.queryAsCharArray = null;
+    }
+
+    public char[] getQueryAsCharArray() {
+      if (queryAsCharArray == null) {
+        queryAsCharArray = query.toCharArray();
+      }
+      return queryAsCharArray;
     }
   }
 }

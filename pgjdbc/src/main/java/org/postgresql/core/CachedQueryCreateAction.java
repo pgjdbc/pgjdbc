@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.core.Parser.ParserBufferHolder;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.LruCache;
 
@@ -25,8 +26,8 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
   @Override
   public CachedQuery create(Object key) throws SQLException {
     assert key instanceof String || key instanceof BaseQueryKey
-        : "Query key should be String or BaseQueryKey. Given " + key.getClass() + ", sql: "
-        + String.valueOf(key);
+        : "Query key should be String or BaseQueryKey. Given " + key.getClass() + ", sql: " + key;
+
     BaseQueryKey queryKey;
     String parsedSql;
     if (key instanceof BaseQueryKey) {
@@ -36,20 +37,26 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       queryKey = null;
       parsedSql = (String) key;
     }
+
+    // it's better to have a slightly over sized buffer than to re-allocate it several times
+    // here we try to account for escaping, parameter replacement, and procedure call suffix / prefix
+    int heuristicBufferSize = Math.max(parsedSql.length() + 35, (int) (parsedSql.length() * 1.15));
+
+    ParserBufferHolder bufferHolder = new ParserBufferHolder(parsedSql);
+    bufferHolder.ensureCapacity(heuristicBufferSize);
+
     if (key instanceof String || queryKey.escapeProcessing) {
-      parsedSql =
-          Parser.replaceProcessing(parsedSql, true, queryExecutor.getStandardConformingStrings());
+      Parser.replaceProcessing(bufferHolder, true, queryExecutor.getStandardConformingStrings());
     }
-    boolean isFunction;
+
+    boolean isFunction = false;
     if (key instanceof CallableQueryKey) {
       JdbcCallParseInfo callInfo =
-          Parser.modifyJdbcCall(parsedSql, queryExecutor.getStandardConformingStrings(),
+          Parser.modifyJdbcCall(bufferHolder, queryExecutor.getStandardConformingStrings(),
               queryExecutor.getServerVersionNum(), queryExecutor.getProtocolVersion());
-      parsedSql = callInfo.getSql();
       isFunction = callInfo.isFunction();
-    } else {
-      isFunction = false;
     }
+
     boolean isParameterized = key instanceof String || queryKey.isParameterized;
     boolean splitStatements = isParameterized || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
 
@@ -60,7 +67,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       returningColumns = EMPTY_RETURNING;
     }
 
-    List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
+    List<NativeQuery> queries = Parser.parseJdbcSql(bufferHolder,
         queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
         queryExecutor.isReWriteBatchedInsertsEnabled(), returningColumns);
 
