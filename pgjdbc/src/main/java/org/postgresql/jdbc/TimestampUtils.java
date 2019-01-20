@@ -1281,7 +1281,10 @@ public class TimestampUtils {
       int offset = tz.getRawOffset();
       millis += offset;
       // 2) Truncate year, month, day. Day is always 86400 seconds, no matter what leap seconds are
-      millis = millis % ONEDAY;
+      if (millis != ONEDAY) {
+        // Note: we do allow 24:00:00, so we don't wrap 86400000 to 0
+        millis = millis % ONEDAY;
+      }
       // 2) Now millis is 1970 1 Jan 15:40 UTC, however we need that in GMT+02:00, so subtract some
       // offset
       millis -= offset;
@@ -1294,7 +1297,14 @@ public class TimestampUtils {
     cal.set(Calendar.ERA, GregorianCalendar.AD);
     cal.set(Calendar.YEAR, 1970);
     cal.set(Calendar.MONTH, 0);
-    cal.set(Calendar.DAY_OF_MONTH, 1);
+    // We allow 24:00:00, however all the other dates go with 1970-01-01
+    if (cal.get(Calendar.DAY_OF_MONTH) != 2
+        || cal.get(Calendar.HOUR_OF_DAY) != 0
+        || cal.get(Calendar.MINUTE) != 0
+        || cal.get(Calendar.SECOND) != 0
+        || cal.get(Calendar.MILLISECOND) != 0) {
+      cal.set(Calendar.DAY_OF_MONTH, 1);
+    }
 
     return new Time(cal.getTimeInMillis());
   }
