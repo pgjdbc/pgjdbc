@@ -39,6 +39,7 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 public class SetObject310Test {
@@ -60,7 +61,7 @@ public class SetObject310Test {
           .optionalStart()
           .appendLiteral(' ')
           .appendPattern("GG")
-          .toFormatter()
+          .toFormatter(Locale.ROOT)
           .withResolverStyle(ResolverStyle.LENIENT)
           .withChronology(IsoChronology.INSTANCE);
 
