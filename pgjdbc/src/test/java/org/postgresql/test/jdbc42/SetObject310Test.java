@@ -11,12 +11,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -38,11 +40,13 @@ import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-public class SetObject310Test {
+@RunWith(Parameterized.class)
+public class SetObject310Test extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();
 
   public static final DateTimeFormatter LOCAL_TIME_FORMATTER =
@@ -65,11 +69,22 @@ public class SetObject310Test {
           .withResolverStyle(ResolverStyle.LENIENT)
           .withChronology(IsoChronology.INSTANCE);
 
-  private Connection con;
+  public SetObject310Test(BaseTest4.BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BaseTest4.BinaryMode binaryMode : BaseTest4.BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Before
   public void setUp() throws Exception {
-    con = TestUtil.openDB();
+    super.setUp();
     TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
             + "timestamp_with_time_zone_column timestamp with time zone,"
             + "date_column date,"
@@ -82,7 +97,7 @@ public class SetObject310Test {
   public void tearDown() throws SQLException {
     TimeZone.setDefault(saveTZ);
     TestUtil.dropTable(con, "table1");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   private void insert(Object data, String columnName, Integer type) throws SQLException {
