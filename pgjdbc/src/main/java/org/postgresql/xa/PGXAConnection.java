@@ -408,7 +408,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           }
           rs.close();
 
-          return l.toArray(new Xid[l.size()]);
+          return l.toArray(new Xid[0]);
         } finally {
           stmt.close();
         }
