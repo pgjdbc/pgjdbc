@@ -13,6 +13,7 @@ import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Query;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.TypeInfo;
@@ -229,37 +230,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
 
         // Specialized support for ref cursors is neater.
-        if (type.equals("refcursor")) {
-          // Fetch all results.
-          String cursorName = getString(columnIndex);
-
-          StringBuilder sb = new StringBuilder("FETCH ALL IN ");
-          Utils.escapeIdentifier(sb, cursorName);
-
-          // nb: no BEGIN triggered here. This is fine. If someone
-          // committed, and the cursor was not holdable (closing the
-          // cursor), we avoid starting a new xact and promptly causing
-          // it to fail. If the cursor *was* holdable, we don't want a
-          // new xact anyway since holdable cursor state isn't affected
-          // by xact boundaries. If our caller didn't commit at all, or
-          // autocommit was on, then we wouldn't issue a BEGIN anyway.
-          //
-          // We take the scrollability from the statement, but until
-          // we have updatable cursors it must be readonly.
-          ResultSet rs =
-              connection.execSQLQuery(sb.toString(), resultsettype, ResultSet.CONCUR_READ_ONLY);
-          //
-          // In long running transactions these backend cursors take up memory space
-          // we could close in rs.close(), but if the transaction is closed before the result set,
-          // then
-          // the cursor no longer exists
-
-          sb.setLength(0);
-          sb.append("CLOSE ");
-          Utils.escapeIdentifier(sb, cursorName);
-          connection.execSQLUpdate(sb.toString());
-          ((PgResultSet) rs).setRefCursor(cursorName);
-          return rs;
+        if ("refcursor".equals(type)) {
+          return getRefCursor(columnIndex);
         }
         if ("hstore".equals(type)) {
           if (isBinary(columnIndex)) {
@@ -271,6 +243,45 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         // Caller determines what to do (JDBC3 overrides in this case)
         return null;
     }
+  }
+
+  private Object getRefCursor(int columnIndex) throws SQLException {
+    String cursorName = getString(columnIndex);
+
+    StringBuilder sb = new StringBuilder("FETCH ");
+    if (fetchSize > 0) {
+      sb.append("FORWARD ");
+      sb.append(fetchSize);
+      sb.append(" IN ");
+    } else {
+      sb.append("ALL IN ");
+    }
+    Utils.escapeIdentifier(sb, cursorName);
+
+    // nb: no BEGIN triggered here. This is fine. If someone
+    // committed, and the cursor was not holdable (closing the
+    // cursor), we avoid starting a new xact and promptly causing
+    // it to fail. If the cursor *was* holdable, we don't want a
+    // new xact anyway since holdable cursor state isn't affected
+    // by xact boundaries. If our caller didn't commit at all, or
+    // autocommit was on, then we wouldn't issue a BEGIN anyway.
+    //
+    // We take the scrollability from the statement, but until
+    // we have updatable cursors it must be readonly.
+    ResultSet rs =
+        connection.execSQLQuery(sb.toString(), resultsettype, ResultSet.CONCUR_READ_ONLY);
+    //
+    // In long running transactions these backend cursors take up memory space
+    // we could close in rs.close(), but if the transaction is closed before the result set,
+    // then
+    // the cursor no longer exists
+    if (fetchSize == 0) {
+      closeRefCursor(cursorName);
+    }
+
+    rs.setFetchSize(fetchSize);
+    ((PgResultSet) rs).setRefCursor(cursorName);
+    return rs;
   }
 
   private void checkScrollable() throws SQLException {
@@ -1834,7 +1845,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     if (current_row + 1 >= rows.size()) {
-      if (cursor == null || (maxRows > 0 && row_offset + rows.size() >= maxRows)) {
+      if (checkEndOfResult()) {
         current_row = rows.size();
         this_row = null;
         rowBuffer = null;
@@ -1853,7 +1864,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
 
       // Execute the fetch and update this resultset.
-      connection.getQueryExecutor().fetch(cursor, new CursorResultHandler(), fetchRows);
+      if (refCursorName == null || refCursorName.isEmpty()) {
+        connection.getQueryExecutor().fetch(cursor, new CursorResultHandler(), fetchRows);
+      } else {
+        StringBuilder sb = new StringBuilder("FETCH FORWARD ");
+        sb.append(fetchRows);
+        sb.append(" IN ");
+        Utils.escapeIdentifier(sb, refCursorName);
+        final Query cursorForward = connection.getQueryExecutor().createSimpleQuery(sb.toString());
+        // pass maxRows=0 since fetchSize has already been corrected to account for maxRows
+        connection.getQueryExecutor().execute(cursorForward, null, new CursorResultHandler(), 0, fetchSize, QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN
+                | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE );
+      }
 
       current_row = 0;
 
@@ -1871,6 +1893,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return true;
   }
 
+  private boolean checkEndOfResult() {
+    return cursor == null && refCursorName == null
+        || (refCursorName != null && fetchSize == 0) // all data fetched
+        || (maxRows > 0 && row_offset + rows.size() >= maxRows);
+  }
+
   public void close() throws SQLException {
     try {
       // release resources held (memory for tuples)
@@ -1879,9 +1907,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         cursor.close();
         cursor = null;
       }
+      if (refCursorName != null && fetchSize > 0) {
+        closeRefCursor(refCursorName);
+      }
     } finally {
       ((PgStatement) statement).checkCompletion();
     }
+  }
+
+  private void closeRefCursor(String refCursorName) throws SQLException {
+    StringBuilder sb = new StringBuilder("CLOSE ");
+    Utils.escapeIdentifier(sb, refCursorName);
+    connection.execSQLUpdate(sb.toString());
   }
 
   public boolean wasNull() throws SQLException {
