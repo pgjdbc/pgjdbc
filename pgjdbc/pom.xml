@@ -33,7 +33,7 @@
     <jdbc.specification.version>4.2</jdbc.specification.version>
     <jdbc.specification.version.nodot>42</jdbc.specification.version.nodot>
     <skip.assembly>false</skip.assembly>
-    <checkstyle.version>8.5</checkstyle.version>
+    <checkstyle.version>8.16</checkstyle.version>
   </properties>
 
   <dependencies>
@@ -297,7 +297,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>2.17</version>
+          <version>3.0.0</version>
           <dependencies>
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
