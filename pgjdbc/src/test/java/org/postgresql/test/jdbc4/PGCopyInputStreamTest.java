@@ -86,7 +86,7 @@ public class PGCopyInputStreamTest {
 
     byte[] buff = new byte[100];
     while (sut.read(buff) > 0) {
-      ;
+      // do nothing
     }
 
     sut.close();

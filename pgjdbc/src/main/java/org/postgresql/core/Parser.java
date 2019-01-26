@@ -446,7 +446,7 @@ public class Parser {
    */
   public static int parseDoubleQuotes(final char[] query, int offset) {
     while (++offset < query.length && query[offset] != '"') {
-      ;
+      // do nothing
     }
     return offset;
   }
@@ -1258,9 +1258,9 @@ public class Parser {
   }
 
   private static int findOpenBrace(char[] p_sql, int i) {
-    int posArgs;
-    for (posArgs = i; posArgs < p_sql.length && p_sql[posArgs] != '('; posArgs++) {
-      ;
+    int posArgs = i;
+    while (posArgs < p_sql.length && p_sql[posArgs] != '(') {
+      posArgs++;
     }
     return posArgs;
   }

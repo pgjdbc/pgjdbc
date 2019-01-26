@@ -114,6 +114,7 @@
       <message key="name.invalidPattern"
                value="Package name ''{0}'' must match pattern ''{1}''."/>
     </module>
+    <module name="EmptyStatement"/>
     <module name="EqualsHashCode"/>
     <!--<module name="TypeName">
         <message key="name.invalidPattern"
