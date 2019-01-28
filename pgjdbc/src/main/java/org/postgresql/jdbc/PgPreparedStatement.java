@@ -229,6 +229,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.DISTINCT:
       case Types.STRUCT:
       case Types.NULL:
+      case Types.JAVA_OBJECT:
       case Types.OTHER:
         oid = Oid.UNSPECIFIED;
         break;
