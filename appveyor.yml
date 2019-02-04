@@ -52,6 +52,8 @@ install:
 - echo pf=%pf%
 - set pgroot=%pf%\PostgreSQL\%pgversion%
 - echo %pgroot%
+
+AssemblyInfo:
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_keep_segments=10"
@@ -77,6 +79,3 @@ test_script:
 
 cache:
   - C:\Users\appveyor\.m2
-
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
