@@ -56,7 +56,7 @@ install:
 - ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_sender_timeout=5s"
 - ps: Add-Content "%pgroot%\data\postgresql.conf" "max_replication_slots=10"
 - ps: Add-Content "%pgroot%\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
-	
+
 before_build:
   - path %pgroot%\bin;%PATH%
   - SET PGUSER=postgres 
