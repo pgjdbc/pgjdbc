@@ -882,6 +882,7 @@ public class StatementTest {
               e.getSQLState()
           );
           cancels++;
+          break;
         } finally {
           TestUtil.closeQuietly(st);
         }
