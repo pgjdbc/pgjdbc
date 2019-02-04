@@ -52,12 +52,12 @@ install:
 - echo pf=%pf%
 - set pgroot=%pf%\PostgreSQL\%pgversion%
 - echo %pgroot%
-- ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_level=logical"
-- ps: Add-Content "%pgroot%\data\postgresql.conf" "max_wal_senders=3"
-- ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_keep_segments=10"
-- ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_sender_timeout=5s"
-- ps: Add-Content "%pgroot%\data\postgresql.conf" "max_replication_slots=10"
-- ps: Add-Content "%pgroot%\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
+- ps: Add-Content -PATH "%pgroot%\data\postgresql.conf" "wal_level=logical"
+- ps: Add-Content -PATH "%pgroot%\data\postgresql.conf" "max_wal_senders=3"
+- ps: Add-Content -PATH "%pgroot%\data\postgresql.conf" "wal_keep_segments=10"
+- ps: Add-Content -PATH "%pgroot%\data\postgresql.conf" "wal_sender_timeout=5s"
+- ps: Add-Content -PATH "%pgroot%\data\postgresql.conf" "max_replication_slots=10"
+- ps: Add-Content -PATH "%pgroot%\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
 
 before_build:
   - path %pgroot%\bin;%PATH%
