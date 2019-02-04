@@ -1,4 +1,41 @@
 # appveyor.yml
+image: Visual Studio 2015
+configuration: Release
+platform:
+  - x86
+  - x64
+clone_depth: 1
+environment:
+  PGUSER: postgres
+  PGPASSWORD: Password12!
+  rversion: 3.5.1
+  matrix:
+  - pg: master
+    PlatformToolset: v141
+    configuration: Debug
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  - pg: 9.3.24-1
+    PlatformToolset: Windows7.1SDK
+  - pg: 9.4.19-1
+    PlatformToolset: v120
+  - pg: 9.5.15-1
+    PlatformToolset: v120
+  - pg: 9.6.11-1
+    PlatformToolset: v120
+  - pg: 10.6-1
+    PlatformToolset: v120
+  - pg: 11.1-1
+    PlatformToolset: v140
+matrix:
+  allow_failures:
+    - pg: master
+  exclude:
+    - platform: x86
+      pg: 11.1-1
+      PlatformToolset: v140
+    - platform: x86
+      pg: master
+	  
 init: 
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 - ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_level=logical"
@@ -13,11 +50,8 @@ branches:
     - /^tmp\/.*/
     - /^REL.*/
 
-services:
-  - postgresql96
-
 before_build:
-  - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH% 
+  - path %pgroot%\bin;%PATH%
   - SET PGUSER=postgres 
   - SET PGPASSWORD=Password12! 
   - createuser -U postgres test
