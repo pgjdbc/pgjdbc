@@ -37,19 +37,26 @@ matrix:
       pg: master
   
 init: 
+- if %PLATFORM%==x64 ( set pf=%ProgramFiles%&& set x64=-x64) else set pf=%ProgramFiles(x86)%
+- set exe=postgresql-%pg%-windows%x64%.exe
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_level=logical"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "max_wal_senders=3"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_keep_segments=10"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_sender_timeout=5s"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "max_replication_slots=10"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
 
 branches:
   except:
     - /^tmp\/.*/
     - /^REL.*/
 
+install:
+- for /f "tokens=1 delims=-" %%A in ("%pg%") do set pgversion=%%~nA
+- echo pgversion=%pgversion%
+- set pgroot=%pf%\PostgreSQL\%pgversion%
+- ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_level=logical"
+- ps: Add-Content "%pgroot%\data\postgresql.conf" "max_wal_senders=3"
+- ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_keep_segments=10"
+- ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_sender_timeout=5s"
+- ps: Add-Content "%pgroot%\data\postgresql.conf" "max_replication_slots=10"
+- ps: Add-Content "%pgroot%\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
+	
 before_build:
   - path %pgroot%\bin;%PATH%
   - SET PGUSER=postgres 
