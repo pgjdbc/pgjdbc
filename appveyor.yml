@@ -49,7 +49,9 @@ branches:
 install:
 - for /f "tokens=1 delims=-" %%A in ("%pg%") do set pgversion=%%~nA
 - echo pgversion=%pgversion%
+- echo pf=%pf%
 - set pgroot=%pf%\PostgreSQL\%pgversion%
+- echo %pgroot%
 - ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content "%pgroot%\data\postgresql.conf" "max_wal_senders=3"
 - ps: Add-Content "%pgroot%\data\postgresql.conf" "wal_keep_segments=10"
