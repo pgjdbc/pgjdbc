@@ -8,11 +8,9 @@ clone_depth: 1
 environment:
   PGUSER: postgres
   PGPASSWORD: Password12!
-  rversion: 3.5.1
   matrix:
   - pg: master
     PlatformToolset: v141
-    configuration: Debug
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   - pg: 9.3.24-1
     PlatformToolset: Windows7.1SDK
@@ -53,21 +51,19 @@ install:
 - set pgroot=%pf%\PostgreSQL\%pgversion%
 - echo %pgroot%
 
-AssemblyInfo:
+before_build:
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_keep_segments=10"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_sender_timeout=5s"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_replication_slots=10"
 - ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
-
-before_build:
-  - path %pgroot%\bin;%PATH%
-  - SET PGUSER=postgres 
-  - SET PGPASSWORD=Password12! 
-  - createuser -U postgres test
-  - psql -U postgres -c "alter user test with password 'test'" postgres 
-  - createdb -U postgres -O test test
+- path %pgroot%\bin;%PATH%
+- SET PGUSER=postgres 
+- SET PGPASSWORD=Password12! 
+- createuser -U postgres test
+- psql -U postgres -c "alter user test with password 'test'" postgres 
+- createdb -U postgres -O test test
 
 build_script:
   - mvn clean package -DskipTests
