@@ -343,6 +343,24 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  private int numAutoSave=0;
+
+  public void resetAutoSaveCount(){
+    numAutoSave = 0;
+  }
+
+  public boolean clearAutoSavePoints() throws IOException {
+
+    if (getAutoSave() == AutoSave.ALWAYS && numAutoSave > 0){
+      sendOneQuery(clearAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
+          QUERY_NO_RESULTS | QUERY_NO_METADATA
+              // PostgreSQL does not support bind, exec, simple, sync message flow,
+              // so we force autosavepoint to use simple if the main query is using simple
+              | QUERY_EXECUTE_AS_SIMPLE);
+    }
+    numAutoSave = 0;
+    return true;
+  }
   private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
     if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
         || getTransactionState() == TransactionState.OPEN)
@@ -354,11 +372,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // If CompositeQuery is observed, just assume it might fail and set the savepoint
         || !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null)) {
-      sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
+
+      sendOneQuery(numAutoSave++ == 0 ? firstAutoSaveQuery:autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
               | QUERY_EXECUTE_AS_SIMPLE);
+
       return true;
     }
     return false;
@@ -370,7 +390,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
       try {
         // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
-        execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
+        execute(--numAutoSave > 0 ? restoreToAutoSave:restoreToFirstAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
             1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       } catch (SQLException e2) {
         // That's O(N), sorry
@@ -2737,13 +2757,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
 
+  private final SimpleQuery firstAutoSaveQuery =
+      new SimpleQuery(
+          new NativeQuery("SAVEPOINT PGJDBC_FIRST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
   private final SimpleQuery autoSaveQuery =
       new SimpleQuery(
           new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
+  private final SimpleQuery clearAutoSave =
+      new SimpleQuery(
+          new NativeQuery("RELEASE SAVEPOINT PGJDBC_FIRST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
   private final SimpleQuery restoreToAutoSave =
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  private final SimpleQuery restoreToFirstAutoSave =
+      new SimpleQuery(
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_FIRSST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 }

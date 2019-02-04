@@ -20,6 +20,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -322,6 +323,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void closeForNextExecution() throws SQLException {
+
     // Every statement execution clears any previous warnings.
     clearWarnings();
 
@@ -342,6 +344,14 @@ public class PgStatement implements Statement, BaseStatement {
         }
         generatedKeys = null;
       }
+    }
+    try {
+      if (connection.getAutoCommit()==false) {
+        connection.getQueryExecutor().clearAutoSavePoints();
+      }
+    } catch ( IOException ex ) {
+      throw new PSQLException(GT.tr("Error clearing save points"),
+          PSQLState.IO_ERROR);
     }
   }
 

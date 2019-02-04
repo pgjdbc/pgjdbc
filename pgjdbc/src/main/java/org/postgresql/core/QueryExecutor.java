@@ -450,4 +450,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setNetworkTimeout(int milliseconds) throws IOException;
 
   int getNetworkTimeout() throws IOException;
+
+  boolean clearAutoSavePoints() throws IOException;
+
+  void resetAutoSaveCount() ;
 }
