@@ -35,7 +35,7 @@ matrix:
       PlatformToolset: v140
     - platform: x86
       pg: master
-	  
+  
 init: 
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 - ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_level=logical"
