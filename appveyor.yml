@@ -51,7 +51,7 @@ before_build:
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_sender_timeout=5s"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_replication_slots=10"
 - ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
-- ps: net start postgresql%x64%-%pgversion%
+- ps: net start postgresql-%x64%-%pgversion%
 - path %pgroot%\bin;%PATH%
 - SET PGUSER=postgres 
 - SET PGPASSWORD=Password12! 
@@ -69,7 +69,3 @@ test_script:
 
 cache:
   - C:\Users\appveyor\.m2
-
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-
