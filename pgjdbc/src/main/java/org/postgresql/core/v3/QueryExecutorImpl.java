@@ -372,12 +372,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (autosave
         && (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 1
         && getAutoSave() == AutoSave.ALWAYS
-        && getTransactionState() == TransactionState.OPEN ){
+        && getTransactionState() == TransactionState.OPEN) {
       try {
         sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
             QUERY_NO_RESULTS | QUERY_NO_METADATA
                 | QUERY_EXECUTE_AS_SIMPLE);
-      }catch (IOException ex) {
+      } catch (IOException ex) {
         throw  new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
       }
     }
