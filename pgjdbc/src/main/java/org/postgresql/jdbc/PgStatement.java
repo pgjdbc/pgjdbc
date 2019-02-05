@@ -345,14 +345,6 @@ public class PgStatement implements Statement, BaseStatement {
         generatedKeys = null;
       }
     }
-    try {
-      if (connection.getAutoCommit()==false) {
-        connection.getQueryExecutor().clearAutoSavePoints();
-      }
-    } catch ( IOException ex ) {
-      throw new PSQLException(GT.tr("Error clearing save points"),
-          PSQLState.IO_ERROR);
-    }
   }
 
   /**

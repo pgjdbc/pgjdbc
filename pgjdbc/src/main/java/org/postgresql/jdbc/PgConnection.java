@@ -762,7 +762,6 @@ public class PgConnection implements BaseConnection {
       // retry
       getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
     }
-    getQueryExecutor().resetAutoSaveCount();
   }
 
   @Override
