@@ -7,9 +7,6 @@ environment:
   PGUSER: postgres
   PGPASSWORD: Password12!
   matrix:
-  - pg: master
-    PlatformToolset: v141
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   - pg: 9.3.24-1
     PlatformToolset: Windows7.1SDK
   - pg: 9.4.19-1
@@ -20,8 +17,6 @@ environment:
     PlatformToolset: v120
   - pg: 10.6-1
     PlatformToolset: v120
-  - pg: 11.1-1
-    PlatformToolset: v140
 matrix:
   allow_failures:
     - pg: master
