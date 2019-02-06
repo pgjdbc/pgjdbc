@@ -338,45 +338,52 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try {
       handler.handleCompletion();
-      releaseSavePoint(autosave, flags);
+      if (numAutoSavePoints >= 1000) {
+        releaseSavePoint(autosave, flags);
+      }
     } catch (SQLException e) {
       rollbackIfRequired(autosave, e);
     }
   }
 
+  private int numAutoSavePoints=0;
 
   private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
     if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
         || getTransactionState() == TransactionState.OPEN)
         && query != restoreToAutoSave
+        && !query.getNativeSql().equalsIgnoreCase("COMMIT")
         && getAutoSave() != AutoSave.NEVER
         // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
-        // thus no need to set a safepoint before such query
+        // thus no need to set a savepoint before such query
         && (getAutoSave() == AutoSave.ALWAYS
         // If CompositeQuery is observed, just assume it might fail and set the savepoint
         || !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null)) {
 
-      sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
+      sendOneQuery(numAutoSavePoints==0 ? firstAutoSaveQuery : autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
               | QUERY_EXECUTE_AS_SIMPLE);
 
+      numAutoSavePoints++;
       return true;
+
     }
     return false;
   }
 
   private void releaseSavePoint(boolean autosave, int flags) throws SQLException {
-    if (autosave
-        && (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 1
+    if (numAutoSavePoints > 0 && autosave
         && getAutoSave() == AutoSave.ALWAYS
         && getTransactionState() == TransactionState.OPEN) {
       try {
         sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
             QUERY_NO_RESULTS | QUERY_NO_METADATA
                 | QUERY_EXECUTE_AS_SIMPLE);
+
+        numAutoSavePoints = 0;
       } catch (IOException ex) {
         throw  new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
       }
@@ -389,7 +396,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
       try {
         // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
-        execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
+        execute(--numAutoSavePoints==0? restoreToFirstAutoSave: restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
             1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       } catch (SQLException e2) {
         // That's O(N), sorry
@@ -2114,8 +2121,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
           }
 
-          if (currentQuery == autoSaveQuery) {
-            // ignore "SAVEPOINT" status from autosave query
+          if (currentQuery == autoSaveQuery
+              || currentQuery == firstAutoSaveQuery
+              || currentQuery == releaseAutoSave) {
+            // ignore "SAVEPOINT" or RELEASE SAVEPOINT status from autosave query
             break;
           }
 
@@ -2756,6 +2765,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
 
+  private final SimpleQuery firstAutoSaveQuery =
+      new SimpleQuery(
+          new NativeQuery("SAVEPOINT PGJDBC_FIRST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
   private final SimpleQuery autoSaveQuery =
       new SimpleQuery(
           new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
@@ -2763,12 +2777,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private final SimpleQuery releaseAutoSave =
       new SimpleQuery(
-          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          new NativeQuery("RELEASE SAVEPOINT PGJDBC_FIRST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery restoreToAutoSave =
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  private final SimpleQuery restoreToFirstAutoSave =
+      new SimpleQuery(
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_FIRST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
 }
