@@ -338,7 +338,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try {
       handler.handleCompletion();
-      if (numAutoSavePoints >= 1000) {
+      if (numAutoSavePoints >= QueryExecutor.MAX_SAVE_POINTS  ) {
         releaseSavePoint(autosave, flags);
       }
     } catch (SQLException e) {
@@ -346,7 +346,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private int numAutoSavePoints=0;
+  private int numAutoSavePoints = 0;
 
   private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
     if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
@@ -361,7 +361,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null)) {
 
-      sendOneQuery(numAutoSavePoints==0 ? firstAutoSaveQuery : autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
+      /*
+      create a different SAVEPOINT the first time so that all subsequent SAVEPOINTS can be released
+      easily. There have been reports of server resources running out if there are too many
+      SAVEPOINTS.
+       */
+      sendOneQuery(numAutoSavePoints == 0 ? firstAutoSaveQuery : autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
@@ -374,6 +379,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return false;
   }
 
+  /*
+  Periodically release all SAVEPOINTS to avoid running out of server resources on large ingestions
+  of data
+   */
   private void releaseSavePoint(boolean autosave, int flags) throws SQLException {
     if (numAutoSavePoints > 0 && autosave
         && getAutoSave() == AutoSave.ALWAYS
@@ -396,7 +405,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
       try {
         // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
-        execute(--numAutoSavePoints==0? restoreToFirstAutoSave: restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
+        execute(--numAutoSavePoints == 0 ? restoreToFirstAutoSave : restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
             1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       } catch (SQLException e2) {
         // That's O(N), sorry
@@ -2121,6 +2130,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
           }
 
+          // we want to make sure we do not add any results from these queries to the result set
           if (currentQuery == autoSaveQuery
               || currentQuery == firstAutoSaveQuery
               || currentQuery == releaseAutoSave) {
@@ -2765,25 +2775,39 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
 
+  /*
+  We send this as the first SAVE POINT so that all the subsequent ones can be released at once.
+ */
   private final SimpleQuery firstAutoSaveQuery =
       new SimpleQuery(
           new NativeQuery("SAVEPOINT PGJDBC_FIRST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
+  /*
+  After the first SAVE POINT we send this, save points do not have to have unique names so multiple
+  save points can be sent with the same name
+   */
   private final SimpleQuery autoSaveQuery =
       new SimpleQuery(
           new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
+  /*
+  This is sent to release all subsequent SAVE POINTS after the first one
+   */
   private final SimpleQuery releaseAutoSave =
       new SimpleQuery(
           new NativeQuery("RELEASE SAVEPOINT PGJDBC_FIRST_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
+  /*
+  In autosave mode we use this query to roll back errored transactions
+   */
   private final SimpleQuery restoreToAutoSave =
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
+
 
   private final SimpleQuery restoreToFirstAutoSave =
       new SimpleQuery(
