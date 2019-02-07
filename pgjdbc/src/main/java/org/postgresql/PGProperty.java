@@ -408,6 +408,11 @@ public enum PGProperty {
       "always", "never", "conservative"),
 
   /**
+   *
+   */
+  CLEANUP_SAVEPOINTS("cleanupSavePoints", "false","Determine whether SAVEPOINTS used in AUTOSAVE will be released per query or not",
+      false, "true", "false"),
+  /**
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS("reWriteBatchedInserts", "false",
