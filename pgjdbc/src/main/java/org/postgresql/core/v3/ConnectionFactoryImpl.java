@@ -512,17 +512,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            int l_elen = pgStream.receiveInteger4();
+            int elen = pgStream.receiveInteger4();
 
             ServerErrorMessage errorMsg =
-                new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
+                new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
             throw new PSQLException(errorMsg);
 
           case 'R':
             // Authentication request.
             // Get the message length
-            int l_msgLen = pgStream.receiveInteger4();
+            int msgLen = pgStream.receiveInteger4();
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();
@@ -655,7 +655,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 /*
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
-                sspiClient.continueSSPI(l_msgLen - 8);
+                sspiClient.continueSSPI(msgLen - 8);
                 break;
 
               case AUTH_REQ_SASL:
@@ -681,11 +681,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
               case AUTH_REQ_SASL_CONTINUE:
-                scramAuthenticator.processServerFirstMessage(l_msgLen - 4 - 4);
+                scramAuthenticator.processServerFirstMessage(msgLen - 4 - 4);
                 break;
 
               case AUTH_REQ_SASL_FINAL:
-                scramAuthenticator.verifyServerSignature(l_msgLen - 4 - 4);
+                scramAuthenticator.verifyServerSignature(msgLen - 4 - 4);
                 break;
               //#endif
 

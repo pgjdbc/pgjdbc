@@ -22,27 +22,27 @@ import java.sql.Types;
 
 public class DatabaseMetaDataTest {
 
-  private Connection _conn;
+  private Connection conn;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    Statement stmt = _conn.createStatement();
+    conn = TestUtil.openDB();
+    Statement stmt = conn.createStatement();
     stmt.execute("CREATE DOMAIN mydom AS int");
     stmt.execute("CREATE TABLE domtab (a mydom)");
   }
 
   @After
   public void tearDown() throws Exception {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.execute("DROP TABLE domtab");
     stmt.execute("DROP DOMAIN mydom");
-    TestUtil.closeDB(_conn);
+    TestUtil.closeDB(conn);
   }
 
   @Test
   public void testGetColumnsForDomain() throws Exception {
-    DatabaseMetaData dbmd = _conn.getMetaData();
+    DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "domtab", "%");
     assertTrue(rs.next());

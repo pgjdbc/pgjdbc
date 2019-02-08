@@ -35,9 +35,9 @@ import javax.transaction.xa.Xid;
 
 public class XADataSourceTest {
 
-  private XADataSource _ds;
+  private XADataSource xaDs;
 
-  private Connection _conn;
+  private Connection dbConn;
   private boolean connIsSuper;
 
   private XAConnection xaconn;
@@ -46,30 +46,30 @@ public class XADataSourceTest {
 
 
   public XADataSourceTest() {
-    _ds = new PGXADataSource();
-    BaseDataSourceTest.setupDataSource((PGXADataSource) _ds);
+    xaDs = new PGXADataSource();
+    BaseDataSourceTest.setupDataSource((PGXADataSource) xaDs);
   }
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    assumeTrue(isPreparedTransactionEnabled(_conn));
+    dbConn = TestUtil.openDB();
+    assumeTrue(isPreparedTransactionEnabled(dbConn));
 
     // Check if we're operating as a superuser; some tests require it.
-    Statement st = _conn.createStatement();
+    Statement st = dbConn.createStatement();
     st.executeQuery("SHOW is_superuser;");
     ResultSet rs = st.getResultSet();
     rs.next(); // One row is guaranteed
     connIsSuper = rs.getBoolean(1); // One col is guaranteed
     st.close();
 
-    TestUtil.createTable(_conn, "testxa1", "foo int");
-    TestUtil.createTable(_conn, "testxa2", "foo int primary key");
-    TestUtil.createTable(_conn, "testxa3", "foo int references testxa2(foo) deferrable");
+    TestUtil.createTable(dbConn, "testxa1", "foo int");
+    TestUtil.createTable(dbConn, "testxa2", "foo int primary key");
+    TestUtil.createTable(dbConn, "testxa3", "foo int references testxa2(foo) deferrable");
 
     clearAllPrepared();
 
-    xaconn = _ds.getXAConnection();
+    xaconn = xaDs.getXAConnection();
     xaRes = xaconn.getXAResource();
     conn = xaconn.getConnection();
   }
@@ -92,22 +92,22 @@ public class XADataSourceTest {
     }
 
     clearAllPrepared();
-    TestUtil.dropTable(_conn, "testxa3");
-    TestUtil.dropTable(_conn, "testxa2");
-    TestUtil.dropTable(_conn, "testxa1");
-    TestUtil.closeDB(_conn);
+    TestUtil.dropTable(dbConn, "testxa3");
+    TestUtil.dropTable(dbConn, "testxa2");
+    TestUtil.dropTable(dbConn, "testxa1");
+    TestUtil.closeDB(dbConn);
 
   }
 
   private void clearAllPrepared() throws SQLException {
-    Statement st = _conn.createStatement();
+    Statement st = dbConn.createStatement();
     try {
       ResultSet rs = st.executeQuery(
           "SELECT x.gid, x.owner = current_user "
               + "FROM pg_prepared_xacts x "
               + "WHERE x.database = current_database()");
 
-      Statement st2 = _conn.createStatement();
+      Statement st2 = dbConn.createStatement();
       while (rs.next()) {
         // TODO: This should really use org.junit.Assume once we move to JUnit 4
         assertTrue("Only prepared xacts owned by current user may be present in db",
@@ -223,7 +223,7 @@ public class XADataSourceTest {
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.commit(xid, true);
 
-    ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+    ResultSet rs = dbConn.createStatement().executeQuery("SELECT foo FROM testxa1");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
   }
