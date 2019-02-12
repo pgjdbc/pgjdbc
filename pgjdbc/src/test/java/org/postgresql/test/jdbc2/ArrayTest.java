@@ -387,7 +387,7 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
-  public void testNullFieldString() throws SQLException {
+  public void testNullFieldString() {
     Array arr = new PgArray((BaseConnection) conn, 1, (String) null);
     Assert.assertNull(arr.toString());
   }

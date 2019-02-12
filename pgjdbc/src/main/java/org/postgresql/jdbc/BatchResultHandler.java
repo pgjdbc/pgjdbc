@@ -16,7 +16,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.sql.BatchUpdateException;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
@@ -65,7 +64,7 @@ public class BatchResultHandler extends ResultHandlerBase {
         // Thus it is up to handleCommandStatus to decide if resultSet is good enough
         latestGeneratedKeysRs =
             (PgResultSet) pgStatement.createResultSet(fromQuery, fields,
-                new ArrayList<byte[][]>(), cursor);
+                new ArrayList<byte[][]>(), cursor, null);
       } catch (SQLException e) {
         handleError(e);
       }
@@ -176,7 +175,7 @@ public class BatchResultHandler extends ResultHandlerBase {
     }
   }
 
-  public ResultSet getGeneratedKeys() {
+  public PgResultSet getGeneratedKeys() {
     return generatedKeys;
   }
 

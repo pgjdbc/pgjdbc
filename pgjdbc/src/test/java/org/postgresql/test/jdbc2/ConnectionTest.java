@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -283,6 +284,76 @@ public class ConnectionTest {
     // restore the old one
     con.setTypeMap(oldmap);
     assertEquals(oldmap, con.getTypeMap());
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  public void testTypeMapNotNull() throws Exception {
+    con = TestUtil.openDB();
+
+    assertNotNull(
+        "Per the specification, the type map will be empty when not types set - not null",
+        con.getTypeMap());
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  public void testTypeMapEmpty() throws Exception {
+    con = TestUtil.openDB();
+
+    assertEquals(
+        "We expect any empty type map on a new connection",
+        0,
+        con.getTypeMap().size());
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  public void testTypeMapDefensiveCopy() throws Exception {
+    con = TestUtil.openDB();
+
+    Map<String, Class<?>> typeMap = con.getTypeMap();
+    typeMap.put("test1", Integer.class);
+    con.setTypeMap(typeMap);
+
+    Map<String, Class<?>> typeMap1 = con.getTypeMap();
+    assertEquals(
+        "Type map should be equal after defensive copying in setTypeMap",
+        typeMap,
+        typeMap1);
+
+    typeMap.put("test2", Double.class);
+    Map<String, Class<?>> typeMap2 = con.getTypeMap();
+
+    assertEquals(
+        "Type map should not have been modified by changes after setTypeMap",
+        typeMap1,
+        typeMap2);
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  public void testSetTypeMapTreatsNullAsEmpty() throws Exception {
+    con = TestUtil.openDB();
+
+    Map<String, Class<?>> typeMap = con.getTypeMap();
+    typeMap.put("test1", Integer.class);
+    con.setTypeMap(typeMap);
+
+    assertEquals(
+        "Type map should be equal after defensive copying in setTypeMap",
+        typeMap,
+        con.getTypeMap());
+
+    con.setTypeMap(null);
+    assertEquals(
+        "Type map must be empty when set to null",
+        Collections.emptyMap(),
+        con.getTypeMap());
 
     TestUtil.closeDB(con);
   }

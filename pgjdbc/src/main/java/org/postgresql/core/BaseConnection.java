@@ -6,13 +6,17 @@
 package org.postgresql.core;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.LruCache;
+import org.postgresql.util.PGobject;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.TimerTask;
 
 /**
@@ -64,6 +68,38 @@ public interface BaseConnection extends PGConnection, Connection {
   ReplicationProtocol getReplicationProtocol();
 
   /**
+   * {@inheritDoc}
+   *
+   * <p>
+   * Performs a defensive copy, per specification that returned map should be
+   * modifiable.  Use {@link #getUdtMap()} to avoid this defensive copy.
+   * </p>
+   *
+   * @see  #getUdtMap()
+   */
+  @Override
+  Map<String, Class<?>> getTypeMap() throws SQLException;
+
+  /**
+   * Gets the current user-defined data type mapping for this connection.
+   * This will likely perform better than {@link #getTypeMap()}
+   * because no defensive copy is made.
+   *
+   * @return  The UDT map for this connection.
+   */
+  UdtMap getUdtMap();
+
+  /**
+   * Gets the enum mode for this connection.
+   * This will not change for the life of the connection.
+   *
+   * @return the Enum mode
+   * @see PGProperty#ENUM_MODE
+   * @see EnumMode
+   */
+  EnumMode getEnumMode();
+
+  /**
    * <p>Construct and return an appropriate object for the given type and value. This only considers
    * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)} and
    * {@link org.postgresql.PGConnection#addDataType(String, String)}.</p>
@@ -77,7 +113,8 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
    */
-  Object getObject(String type, String value, byte[] byteValue) throws SQLException;
+  // TODO: Before release, review uses of this method - it is likely not needed here, but only in PgConnection or PgResultSet/ValueAccessHelper
+  PGobject getObject(String type, String value, byte[] byteValue) throws SQLException;
 
   Encoding getEncoding() throws SQLException;
 

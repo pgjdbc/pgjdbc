@@ -42,13 +42,16 @@ class SimpleParameterList implements V3ParameterList {
   SimpleParameterList(int paramCount, TypeTransferModeRegistry transferModeRegistry) {
     this.paramValues = new Object[paramCount];
     this.paramTypes = new int[paramCount];
+    this.paramPgTypes = new String[paramCount];
+    this.scales = new int[paramCount];
+    Arrays.fill(scales, -1);
     this.encoded = new byte[paramCount][];
     this.flags = new byte[paramCount];
     this.transferModeRegistry = transferModeRegistry;
   }
 
   @Override
-  public void registerOutParameter(int index, int sqlType) throws SQLException {
+  public void registerOutParameter(int index, String pgType, int scale, int sqlType) throws SQLException {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
@@ -56,10 +59,22 @@ class SimpleParameterList implements V3ParameterList {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
+    // TODO: Is paramTypes useful here, or always set on the return value from the server?
+    // TODO: It is possible that paramPgTypes is already set and not null?  If so, do we ever overwrite it to null?
+    if (pgType != null) {
+      paramPgTypes[index - 1] = pgType;
+    }
+    if (scale >= 0) {
+      scales[index - 1] = scale;
+    }
     flags[index - 1] |= OUT;
   }
 
-  private void bind(int index, Object value, int oid, byte binary) throws SQLException {
+  /**
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scaleOrLength the length or {@code -1} for none
+   */
+  private void bind(int index, String pgType, int scaleOrLength, Object value, int oid, byte binary) throws SQLException {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
@@ -70,6 +85,7 @@ class SimpleParameterList implements V3ParameterList {
     --index;
 
     encoded[index] = null;
+    // TODO: Verify scaleOrLength
     paramValues[index] = value;
     flags[index] = (byte) (direction(index) | IN | binary);
 
@@ -82,6 +98,12 @@ class SimpleParameterList implements V3ParameterList {
     }
 
     paramTypes[index] = oid;
+    if (pgType != null) {
+      paramPgTypes[index] = pgType;
+    }
+    if (scaleOrLength >= 0) {
+      scales[index] = scaleOrLength;
+    }
     pos = index + 1;
   }
 
@@ -114,110 +136,145 @@ class SimpleParameterList implements V3ParameterList {
     return count;
   }
 
-  public void setIntParameter(int index, int value) throws SQLException {
+  @Override
+  public void setIntParameter(int index, String pgType, int value) throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, value);
-    bind(index, data, Oid.INT4, BINARY);
-  }
-
-  public void setLiteralParameter(int index, String value, int oid) throws SQLException {
-    bind(index, value, oid, TEXT);
-  }
-
-  public void setStringParameter(int index, String value, int oid) throws SQLException {
-    bind(index, value, oid, TEXT);
-  }
-
-  public void setBinaryParameter(int index, byte[] value, int oid) throws SQLException {
-    bind(index, value, oid, BINARY);
+    bind(index, pgType, -1, data, Oid.INT4, BINARY);
   }
 
   @Override
-  public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
-    bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA, BINARY);
+  public void setLiteralParameter(int index, String pgType, int scale, String value, int oid) throws SQLException {
+    bind(index, pgType, scale, value, oid, TEXT);
   }
 
   @Override
-  public void setBytea(int index, InputStream stream, int length) throws SQLException {
-    bind(index, new StreamWrapper(stream, length), Oid.BYTEA, BINARY);
+  public void setStringParameter(int index, String pgType, int scale, String value, int oid) throws SQLException {
+    bind(index, pgType, scale, value, oid, TEXT);
   }
 
   @Override
-  public void setBytea(int index, InputStream stream) throws SQLException {
-    bind(index, new StreamWrapper(stream), Oid.BYTEA, BINARY);
+  public void setBinaryParameter(int index, String pgType, byte[] value, int oid) throws SQLException {
+    bind(index, pgType, -1, value, oid, BINARY);
   }
 
   @Override
-  public void setText(int index, InputStream stream) throws SQLException {
-    bind(index, new StreamWrapper(stream), Oid.TEXT, TEXT);
+  public void setBytea(int index, String pgType, byte[] data, int offset, int length) throws SQLException {
+    bind(index, pgType, -1, new StreamWrapper(data, offset, length), Oid.BYTEA, BINARY);
   }
 
   @Override
-  public void setNull(int index, int oid) throws SQLException {
+  public void setBytea(int index, String pgType, InputStream stream, int length) throws SQLException {
+    bind(index, pgType, length, new StreamWrapper(stream, length), Oid.BYTEA, BINARY);
+  }
+
+  @Override
+  public void setBytea(int index, String pgType, int scaleOrLength, InputStream stream) throws SQLException {
+    bind(index, pgType, scaleOrLength, new StreamWrapper(stream), Oid.BYTEA, BINARY);
+  }
+
+  @Override
+  public void setText(int index, String pgType, int scaleOrLength, InputStream stream) throws SQLException {
+    bind(index, pgType, scaleOrLength, new StreamWrapper(stream), Oid.TEXT, TEXT);
+  }
+
+  @Override
+  public void setNull(int index, String pgType, int scale, int oid) throws SQLException {
 
     byte binaryTransfer = TEXT;
 
     if (transferModeRegistry.useBinaryForReceive(oid)) {
       binaryTransfer = BINARY;
     }
-    bind(index, NULL_OBJECT, oid, binaryTransfer);
+    bind(index, pgType, scale, NULL_OBJECT, oid, binaryTransfer);
   }
 
+  // TODO: Should we be trying to maintain the specific user-defined data type inside simple queries?
+  //       We are currently adding an additional ::cast to achieve this.
   @Override
   public String toString(int index, boolean standardConformingStrings) {
     --index;
-    if (paramValues[index] == null) {
-      return "?";
-    } else if (paramValues[index] == NULL_OBJECT) {
-      return "NULL";
+    Object paramValue = paramValues[index];
+    String paramPgType = paramPgTypes[index];
+    // TODO: scale any affect here?
+    if (paramValue == null) {
+      return (paramPgType == null)
+          ? "?"
+          : ("?::" + paramPgType);
+    } else if (paramValue == NULL_OBJECT) {
+      return (paramPgType == null)
+          ? "NULL"
+          : ("NULL::" + paramPgType);
     } else if ((flags[index] & BINARY) == BINARY) {
       // handle some of the numeric types
 
       switch (paramTypes[index]) {
         case Oid.INT2:
-          short s = ByteConverter.int2((byte[]) paramValues[index], 0);
-          return Short.toString(s);
+          short s = ByteConverter.int2((byte[]) paramValue, 0);
+          return (paramPgType == null)
+              ? Short.toString(s)
+              : (Short.toString(s) + "::" + paramPgType);
 
         case Oid.INT4:
-          int i = ByteConverter.int4((byte[]) paramValues[index], 0);
-          return Integer.toString(i);
+          int i = ByteConverter.int4((byte[]) paramValue, 0);
+          return (paramPgType == null)
+              ? Integer.toString(i)
+              : (Integer.toString(i) + "::" + paramPgType);
 
         case Oid.INT8:
-          long l = ByteConverter.int8((byte[]) paramValues[index], 0);
-          return Long.toString(l);
+          long l = ByteConverter.int8((byte[]) paramValue, 0);
+          return (paramPgType == null)
+              ? Long.toString(l)
+              : (Long.toString(l) + "::" + paramPgType);
 
         case Oid.FLOAT4:
-          float f = ByteConverter.float4((byte[]) paramValues[index], 0);
+          float f = ByteConverter.float4((byte[]) paramValue, 0);
           if (Float.isNaN(f)) {
-            return "'NaN'::real";
+            return (paramPgType == null)
+                ? "'NaN'::real"
+                : ("'NaN'::real::" + paramPgType);
           }
-          return Float.toString(f);
+          return (paramPgType == null)
+              ? Float.toString(f)
+              : (Float.toString(f) + "::" + paramPgType);
 
         case Oid.FLOAT8:
-          double d = ByteConverter.float8((byte[]) paramValues[index], 0);
+          double d = ByteConverter.float8((byte[]) paramValue, 0);
           if (Double.isNaN(d)) {
-            return "'NaN'::double precision";
+            return (paramPgType == null)
+                ? "'NaN'::double precision"
+                : ("'NaN'::double precision::" + paramPgType);
           }
-          return Double.toString(d);
+          return (paramPgType == null)
+              ? Double.toString(d)
+              : (Double.toString(d) + "::" + paramPgType);
 
         case Oid.UUID:
           String uuid =
-              new UUIDArrayAssistant().buildElement((byte[]) paramValues[index], 0, 16).toString();
-          return "'" + uuid + "'::uuid";
+              new UUIDArrayAssistant().buildElement((byte[]) paramValue, 0, 16).toString();
+          return (paramPgType == null)
+              ? ("'" + uuid + "'::uuid")
+              : ("'" + uuid + "'::uuid::" + paramPgType);
 
         case Oid.POINT:
           PGpoint pgPoint = new PGpoint();
-          pgPoint.setByteValue((byte[]) paramValues[index], 0);
-          return "'" + pgPoint.toString() + "'::point";
+          pgPoint.setByteValue((byte[]) paramValue, 0);
+          return (paramPgType == null)
+              ? ("'" + pgPoint.toString() + "'::point")
+              : ("'" + pgPoint.toString() + "'::point::" + paramPgType);
 
         case Oid.BOX:
           PGbox pgBox = new PGbox();
-          pgBox.setByteValue((byte[]) paramValues[index], 0);
-          return "'" + pgBox.toString() + "'::box";
+          pgBox.setByteValue((byte[]) paramValue, 0);
+          return (paramPgType == null)
+              ? ("'" + pgBox.toString() + "'::box")
+              : ("'" + pgBox.toString() + "'::box::" + paramPgType);
       }
-      return "?";
+      return (paramPgType == null)
+          ? "?"
+          : ("?::" + paramPgType);
     } else {
-      String param = paramValues[index].toString();
+      String param = paramValue.toString();
 
       // add room for quotes + potential escaping.
       StringBuilder p = new StringBuilder(3 + (param.length() + 10) / 10 * 11);
@@ -252,6 +309,11 @@ class SimpleParameterList implements V3ParameterList {
       } else if (paramType == Oid.INTERVAL) {
         p.append("::interval");
       }
+      if (paramPgType != null) {
+        // It is intentional to possibly double-cast when paramPgType exists.  This will force the parser to the
+        // expected type, then cast to the user-defined data type / enum.
+        p.append("::").append(paramPgType);
+      }
       return p.toString();
     }
   }
@@ -272,6 +334,7 @@ class SimpleParameterList implements V3ParameterList {
       if (direction(i) == OUT) {
         paramTypes[i] = Oid.VOID;
         paramValues[i] = "null";
+        // TODO: paramPgType stayes the same, or set to null?
       }
     }
   }
@@ -290,14 +353,27 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
   }
 
+  // TODO: Redundant with getParamTypes()
   public int[] getTypeOIDs() {
     return paramTypes;
+  }
+
+  // TODO: Redundant with getParamPgTypes()
+  @Override
+  public String[] getPgTypes() {
+    return paramPgTypes;
+  }
+
+  @Override
+  public int[] getScales() {
+    return scales;
   }
 
   //
   // Package-private V3 accessors
   //
 
+  // paramPgTypes needs getter, too?  How is this used?
   int getTypeOID(int index) {
     return paramTypes[index - 1];
   }
@@ -311,13 +387,24 @@ class SimpleParameterList implements V3ParameterList {
     return false;
   }
 
-  void setResolvedType(int index, int oid) {
+  // TODO: scale might be unnecessary, since it was set while registering the OUT parameter
+  void setResolvedType(int index, int oid, String pgType, int scale) {
     // only allow overwriting an unknown value
     if (paramTypes[index - 1] == Oid.UNSPECIFIED) {
       paramTypes[index - 1] = oid;
+      // TODO: If paramPgTypes already set, do we overwrite it?
+      if (pgType != null) {
+        paramPgTypes[index - 1] = pgType;
+      }
+      if (scale >= 0) {
+        scales[index - 1] = scale;
+      }
     } else if (paramTypes[index - 1] != oid) {
       throw new IllegalArgumentException("Can't change resolved type for param: " + index + " from "
           + paramTypes[index - 1] + " to " + oid);
+    } else {
+      // TODO: Allow change paramPgTypes here?  What if was null and now has a value?
+      // TODO: Do we allow scale to change?
     }
   }
 
@@ -388,18 +475,24 @@ class SimpleParameterList implements V3ParameterList {
   }
 
 
+  @Override
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
+    System.arraycopy(paramPgTypes, 0, newCopy.paramPgTypes, 0, paramPgTypes.length);
+    System.arraycopy(scales, 0, newCopy.scales, 0, scales.length);
     System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
     System.arraycopy(flags, 0, newCopy.flags, 0, flags.length);
     newCopy.pos = pos;
     return newCopy;
   }
 
+  @Override
   public void clear() {
     Arrays.fill(paramValues, null);
     Arrays.fill(paramTypes, 0);
+    Arrays.fill(paramPgTypes, null);
+    Arrays.fill(scales, -1);
     Arrays.fill(encoded, null);
     Arrays.fill(flags, (byte) 0);
     pos = 0;
@@ -413,8 +506,14 @@ class SimpleParameterList implements V3ParameterList {
     return paramValues;
   }
 
+  // TODO: Redundant with getTypeOIDs()
   public int[] getParamTypes() {
     return paramTypes;
+  }
+
+  // TODO: Redundant with getPgTypes()
+  public String[] getParamPgTypes() {
+    return paramPgTypes;
   }
 
   public byte[] getFlags() {
@@ -440,6 +539,8 @@ class SimpleParameterList implements V3ParameterList {
       }
       System.arraycopy(spl.getValues(), 0, this.paramValues, pos, inParamCount);
       System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, inParamCount);
+      System.arraycopy(spl.getParamPgTypes(), 0, this.paramPgTypes, pos, inParamCount);
+      System.arraycopy(spl.getScales(), 0, this.scales, pos, inParamCount);
       System.arraycopy(spl.getFlags(), 0, this.flags, pos, inParamCount);
       System.arraycopy(spl.getEncoding(), 0, this.encoded, pos, inParamCount);
       pos += inParamCount;
@@ -463,8 +564,11 @@ class SimpleParameterList implements V3ParameterList {
     return ts.toString();
   }
 
+  // TODO: Move fields to top of class per project standards
   private final Object[] paramValues;
   private final int[] paramTypes;
+  private final String[] paramPgTypes;
+  private final int[] scales;
   private final byte[] flags;
   private final byte[][] encoded;
   private final TypeTransferModeRegistry transferModeRegistry;

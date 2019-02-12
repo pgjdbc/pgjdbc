@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.Driver;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -22,12 +23,14 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -41,7 +44,34 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   private int[] testReturn;
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
-  protected Object[] callResult;
+
+  /**
+   * The type name set in {@link #registerOutParameter(int, int, java.lang.String)}.
+   * This array is only created when first needed, since it only applies to the limited
+   * subset of statements using the type name feature.
+   */
+  // TODO: Might be able to get from the Parameters now that pgType provided to registerOutParameter
+  private String[] functionReturnTypeName;
+
+  /**
+   * The scale set in {@link #registerOutParameter(int, int, int)}.
+   * This array is only created when first needed, since it only applies to the limited
+   * subset of statements using the scale feature.  Elements that are not set will be {@code -1}.
+   */
+  // TODO: Might be able to get from the Parameters now that scaleOrLength provided to registerOutParameter
+  private int[] functionReturnScale;
+
+  /**
+   * The column index within {@link #callResultSet} for each out parameter index.
+   */
+  private int[] callResultColumnIndex;
+
+  /**
+   * The result set for the most recent call, if it had any out parameters registered.
+   */
+  protected PgResultSet callResultSet;
+
+  // TODO: lastIndex will not be necessary if PgResultSet were to throw SQLException properly on wasNull() before any get*()
   private int lastIndex = 0;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
@@ -64,14 +94,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return super.executeUpdate();
   }
 
-  public Object getObject(int i, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(i, map);
-  }
-
-  public Object getObject(String s, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(s, map);
-  }
-
   @Override
   public boolean executeWithFlags(int flags) throws SQLException {
     boolean hasResultSet = super.executeWithFlags(flags);
@@ -86,7 +108,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           PSQLState.NO_DATA);
     }
 
-    ResultSet rs;
+    PgResultSet rs;
     synchronized (this) {
       checkClosed();
       rs = result.getResultSet();
@@ -111,53 +133,60 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     lastIndex = 0;
 
     // allocate enough space for all possible parameters without regard to in/out
-    callResult = new Object[preparedParameters.getParameterCount() + 1];
+    callResultColumnIndex = new int[preparedParameters.getParameterCount() + 1];
 
     // move them into the result set
-    for (int i = 0, j = 0; i < cols; i++, j++) {
-      // find the next out parameter, the assumption is that the functionReturnType
-      // array will be initialized with 0 and only out parameters will have values
-      // other than 0. 0 is the value for java.sql.Types.NULL, which should not
-      // conflict
-      while (j < functionReturnType.length && functionReturnType[j] == 0) {
-        j++;
-      }
+    if (cols > 0) {
+      ResultSetMetaData rsMetaData = rs.getMetaData();
+      for (int i = 0, j = 0; i < cols; i++, j++) {
+        // find the next out parameter, the assumption is that the functionReturnType
+        // array will be initialized with 0 and only out parameters will have values
+        // other than 0. 0 is the value for java.sql.Types.NULL, which should not
+        // conflict
+        while (j < functionReturnType.length && functionReturnType[j] == 0) {
+          j++;
+        }
 
-      callResult[j] = rs.getObject(i + 1);
-      int columnType = rs.getMetaData().getColumnType(i + 1);
+        callResultColumnIndex[j + 1] = i + 1;
+        int columnType = rsMetaData.getColumnType(i + 1);
 
-      if (columnType != functionReturnType[j]) {
-        // this is here for the sole purpose of passing the cts
-        if (columnType == Types.DOUBLE && functionReturnType[j] == Types.REAL) {
-          // return it as a float
-          if (callResult[j] != null) {
-            callResult[j] = ((Double) callResult[j]).floatValue();
-          }
-          //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-        } else if (columnType == Types.REF_CURSOR && functionReturnType[j] == Types.OTHER) {
-          // For backwards compatibility reasons we support that ref cursors can be
-          // registered with both Types.OTHER and Types.REF_CURSOR so we allow
-          // this specific mismatch
-          //#endif
-        } else {
+        int registered = functionReturnType[j];
+        if (
+            columnType != registered
+            // this is here for the sole purpose of passing the cts
+            && !(columnType == Types.DOUBLE && registered == Types.REAL)
+            //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+            && !(columnType == Types.REF_CURSOR && registered == Types.OTHER)
+            // For backwards compatibility reasons we support that ref cursors can be
+            // registered with both Types.OTHER and Types.REF_CURSOR so we allow
+            // this specific mismatch
+            //#endif
+            ) {
           throw new PSQLException(GT.tr(
               "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
-              i + 1, "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j]),
+              i + 1, "java.sql.Types=" + columnType, "java.sql.Types=" + registered),
               PSQLState.DATA_TYPE_MISMATCH);
         }
       }
-
     }
-    rs.close();
+    callResultSet = rs;
     synchronized (this) {
       result = null;
     }
     return false;
   }
 
+  @Override
+  protected void closeForNextExecution() throws SQLException {
+    ResultSet rs = callResultSet;
+    if (rs != null) {
+      callResultSet = null;
+      rs.close();
+    }
+    super.closeForNextExecution();
+  }
+
   /**
-   * {@inheritDoc}
-   *
    * <p>Before executing a stored procedure call you must explicitly call registerOutParameter to
    * register the java.sql.Type of each out parameter.</p>
    *
@@ -167,12 +196,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * <p>ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used</p>
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
+   * @param pgType the type name, if known, or {@code null} to use the default behavior
+   * @param scale the scale or {@code -1} for none
    * @param sqlType SQL type code defined by java.sql.Types; for parameters of type Numeric or
    *        Decimal use the version of registerOutParameter that accepts a scale value
    * @throws SQLException if a database-access error occurs.
    */
-  @Override
-  public void registerOutParameter(int parameterIndex, int sqlType)
+  protected void registerOutParameterImpl(int parameterIndex, String pgType, int scale, int sqlType)
       throws SQLException {
     checkClosed();
     switch (sqlType) {
@@ -208,12 +238,27 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
     checkIndex(parameterIndex, false);
 
-    preparedParameters.registerOutParameter(parameterIndex, sqlType);
+    preparedParameters.registerOutParameter(parameterIndex, pgType, scale, sqlType);
     // functionReturnType contains the user supplied value to check
     // testReturn contains a modified version to make it easier to
     // check the getXXX methods..
     functionReturnType[parameterIndex - 1] = sqlType;
+    if (pgType != null) {
+      if (functionReturnTypeName == null) {
+        functionReturnTypeName = new String[functionReturnType.length];
+      }
+      functionReturnTypeName[parameterIndex - 1] = pgType;
+    }
     testReturn[parameterIndex - 1] = sqlType;
+
+    // TODO: Do we still need to store scale here, since now registered in preparedParameters?
+    if (scale >= 0) {
+      if (functionReturnScale == null) {
+        functionReturnScale = new int[functionReturnType.length];
+        Arrays.fill(functionReturnScale, -1);
+      }
+      functionReturnScale[parameterIndex] = scale;
+    }
 
     if (functionReturnType[parameterIndex - 1] == Types.CHAR
         || functionReturnType[parameterIndex - 1] == Types.LONGVARCHAR) {
@@ -224,132 +269,249 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     returnTypeSet = true;
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Before executing a stored procedure call you must explicitly call registerOutParameter to
+   * register the java.sql.Type of each out parameter.</p>
+   *
+   * <p>Note: When reading the value of an out parameter, you must use the getXXX method whose Java
+   * type XXX corresponds to the parameter's registered SQL type.</p>
+   *
+   * <p>ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used</p>
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2,...
+   * @param sqlType SQL type code defined by java.sql.Types; for parameters of type Numeric or
+   *        Decimal use the version of registerOutParameter that accepts a scale value
+   * @throws SQLException if a database-access error occurs.
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, int sqlType)
+      throws SQLException {
+    registerOutParameterImpl(parameterIndex, null, -1, sqlType);
+  }
+
+  @Override
   public boolean wasNull() throws SQLException {
+    // TODO: Can we rely on callResultSet.wasNull() properly throwing SQLException?  It doesn't at this time
     if (lastIndex == 0) {
       throw new PSQLException(GT.tr("wasNull cannot be call before fetching a result."),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
-
-    // check to see if the last access threw an exception
-    return (callResult[lastIndex - 1] == null);
+    return callResultSet.wasNull();
   }
 
+  @Override
   public String getString(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.VARCHAR, "String");
-    return (String) callResult[parameterIndex - 1];
+    return callResultSet.getString(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public boolean getBoolean(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.BIT, "Boolean");
-    if (callResult[parameterIndex - 1] == null) {
-      return false;
-    }
-
-    return (Boolean) callResult[parameterIndex - 1];
+    return callResultSet.getBoolean(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public byte getByte(int parameterIndex) throws SQLException {
     checkClosed();
     // fake tiny int with smallint
     checkIndex(parameterIndex, Types.SMALLINT, "Byte");
-
-    if (callResult[parameterIndex - 1] == null) {
-      return 0;
-    }
-
-    return ((Integer) callResult[parameterIndex - 1]).byteValue();
-
+    return callResultSet.getByte(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public short getShort(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.SMALLINT, "Short");
-    if (callResult[parameterIndex - 1] == null) {
-      return 0;
-    }
-    return ((Integer) callResult[parameterIndex - 1]).shortValue();
+    return callResultSet.getShort(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public int getInt(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.INTEGER, "Int");
-    if (callResult[parameterIndex - 1] == null) {
-      return 0;
-    }
-
-    return (Integer) callResult[parameterIndex - 1];
+    return callResultSet.getInt(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public long getLong(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.BIGINT, "Long");
-    if (callResult[parameterIndex - 1] == null) {
-      return 0;
-    }
-
-    return (Long) callResult[parameterIndex - 1];
+    return callResultSet.getLong(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public float getFloat(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.REAL, "Float");
-    if (callResult[parameterIndex - 1] == null) {
-      return 0;
-    }
-
-    return (Float) callResult[parameterIndex - 1];
+    return callResultSet.getFloat(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public double getDouble(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.DOUBLE, "Double");
-    if (callResult[parameterIndex - 1] == null) {
-      return 0;
-    }
-
-    return (Double) callResult[parameterIndex - 1];
-  }
-
-  public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
-    checkClosed();
-    checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
-    return ((BigDecimal) callResult[parameterIndex - 1]);
-  }
-
-  public byte[] getBytes(int parameterIndex) throws SQLException {
-    checkClosed();
-    checkIndex(parameterIndex, Types.VARBINARY, Types.BINARY, "Bytes");
-    return ((byte[]) callResult[parameterIndex - 1]);
-  }
-
-  public java.sql.Date getDate(int parameterIndex) throws SQLException {
-    checkClosed();
-    checkIndex(parameterIndex, Types.DATE, "Date");
-    return (java.sql.Date) callResult[parameterIndex - 1];
-  }
-
-  public java.sql.Time getTime(int parameterIndex) throws SQLException {
-    checkClosed();
-    checkIndex(parameterIndex, Types.TIME, "Time");
-    return (java.sql.Time) callResult[parameterIndex - 1];
-  }
-
-  public java.sql.Timestamp getTimestamp(int parameterIndex) throws SQLException {
-    checkClosed();
-    checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return (java.sql.Timestamp) callResult[parameterIndex - 1];
-  }
-
-  public Object getObject(int parameterIndex) throws SQLException {
-    checkClosed();
-    checkIndex(parameterIndex);
-    return callResult[parameterIndex - 1];
+    return callResultSet.getDouble(callResultColumnIndex[parameterIndex]);
   }
 
   /**
-   * helperfunction for the getXXX calls to check isFunction and index == 1 Compare BOTH type fields
+   * {@inheritDoc}
+   *
+   * @deprecated use <code>getBigDecimal(int parameterIndex)</code>
+   *             or <code>getBigDecimal(String parameterName)</code>
+   */
+  @Deprecated
+  @Override
+  public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
+    return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex], scale);
+  }
+
+  @Override
+  public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex);
+    if (functionReturnTypeName != null) {
+      String returnType = functionReturnTypeName[parameterIndex - 1];
+      if (returnType != null) {
+        UdtMap udtMap;
+        if (map == null) {
+          // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html:
+          //   "If you do not pass a type map to a method that can accept one, the driver will by default use the type map associated with the connection."
+          udtMap = connection.getUdtMap();
+          map = udtMap.getTypeMap();
+        } else {
+          // Only created when there is a type mapping
+          udtMap = null;
+        }
+        Class<?> customType = map.get(returnType);
+        if (customType != null) {
+          if (udtMap == null) {
+            udtMap = new UdtMap(map);
+          }
+          return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, udtMap);
+        }
+      }
+    }
+    return callResultSet.getObject(callResultColumnIndex[parameterIndex], map);
+  }
+
+  @Override
+  public byte[] getBytes(int parameterIndex) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.VARBINARY, Types.BINARY, "Bytes");
+    return callResultSet.getBytes(callResultColumnIndex[parameterIndex]);
+  }
+
+  @Override
+  public java.sql.Date getDate(int parameterIndex) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.DATE, "Date");
+    return callResultSet.getDate(callResultColumnIndex[parameterIndex]);
+  }
+
+  @Override
+  public java.sql.Time getTime(int parameterIndex) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.TIME, "Time");
+    return callResultSet.getTime(callResultColumnIndex[parameterIndex]);
+  }
+
+  @Override
+  public java.sql.Timestamp getTimestamp(int parameterIndex) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
+    return callResultSet.getTimestamp(callResultColumnIndex[parameterIndex]);
+  }
+
+  /**
+   * This is not defined in {@link CallableStatement}, but is here for the
+   * implementation of {@link PgCallableStatementSQLInput#readAsciiStream()}.
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2,
+   *        and so on
+   *
+   * @return a Java input stream that delivers the database column value
+   *         as a stream of one-byte ASCII characters;
+   *         if the value is SQL <code>NULL</code>, the
+   *         value returned is <code>null</code>
+   *
+   * @exception SQLException if the parameterIndex is not valid;
+   *            if a database access error occurs or
+   *            this method is called on a closed <code>CallableStatement</code>
+   */
+  // TODO: If we can continue to delegate to PgResultSet, and PgCallableStatementSQLInput is
+  //       no longer needed, remove this method
+  InputStream getAsciiStream(int parameterIndex) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex);
+    return callResultSet.getAsciiStream(callResultColumnIndex[parameterIndex]);
+  }
+
+  /**
+   * This is not defined in {@link CallableStatement}, but is here for the
+   * implementation of {@link PgCallableStatementSQLInput#readBinaryStream()}.
+   *
+   * @param parameterIndex the first parameter is 1, the second is 2,
+   *        and so on
+   *
+   * @return a Java input stream that delivers the database column value
+   *         as a stream of uninterpreted bytes;
+   *         if the value is SQL <code>NULL</code>, the value returned is
+   *         <code>null</code>
+   *
+   * @exception SQLException if the parameterIndex is not valid;
+   *            if a database access error occurs or
+   *            this method is called on a closed <code>CallableStatement</code>
+   */
+  // TODO: If we can continue to delegate to PgResultSet, and PgCallableStatementSQLInput is
+  //       no longer needed, remove this method
+  InputStream getBinaryStream(int parameterIndex) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex);
+    return callResultSet.getBinaryStream(callResultColumnIndex[parameterIndex]);
+  }
+
+  @Override
+  public Object getObject(int parameterIndex) throws SQLException {
+    return getObject(parameterIndex, (Map)null);
+  }
+
+  /**
+   * Helper function for the getXXX calls to check isFunction and index == 1 Compare ALL type fields
+   * against the return type.
+   *
+   * @param parameterIndex parameter index (1-based)
+   * @param type1 type 1
+   * @param type2 type 2
+   * @param type3 type 3
+   * @param getName getter name
+   * @throws SQLException if something goes wrong
+   */
+  protected void checkIndex(int parameterIndex, int type1, int type2, int type3, String getName)
+      throws SQLException {
+    checkIndex(parameterIndex);
+    int registered = this.testReturn[parameterIndex - 1];
+    if (type1 != registered
+        && type2 != registered
+        && type3 != registered) {
+      throw new PSQLException(
+          GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}, sqltype={3}, or sqltype={4}) was made.",
+                  "java.sql.Types=" + registered, getName,
+                  "java.sql.Types=" + type1,
+                  "java.sql.Types=" + type2,
+                  "java.sql.Types=" + type3),
+          PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
+    }
+  }
+
+  /**
+   * Helper function for the getXXX calls to check isFunction and index == 1 Compare BOTH type fields
    * against the return type.
    *
    * @param parameterIndex parameter index (1-based)
@@ -361,12 +523,14 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   protected void checkIndex(int parameterIndex, int type1, int type2, String getName)
       throws SQLException {
     checkIndex(parameterIndex);
-    if (type1 != this.testReturn[parameterIndex - 1]
-        && type2 != this.testReturn[parameterIndex - 1]) {
+    int registered = this.testReturn[parameterIndex - 1];
+    if (type1 != registered
+        && type2 != registered) {
       throw new PSQLException(
-          GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-                  "java.sql.Types=" + testReturn[parameterIndex - 1], getName,
-                  "java.sql.Types=" + type1),
+          GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2} or sqltype={3}) was made.",
+                  "java.sql.Types=" + registered, getName,
+                  "java.sql.Types=" + type1,
+                  "java.sql.Types=" + type2),
           PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
     }
   }
@@ -381,10 +545,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    */
   protected void checkIndex(int parameterIndex, int type, String getName) throws SQLException {
     checkIndex(parameterIndex);
-    if (type != this.testReturn[parameterIndex - 1]) {
+    int registered = this.testReturn[parameterIndex - 1];
+    if (type != registered) {
       throw new PSQLException(
           GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-              "java.sql.Types=" + testReturn[parameterIndex - 1], getName,
+              "java.sql.Types=" + registered, getName,
                   "java.sql.Types=" + type),
           PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
     }
@@ -414,7 +579,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
             PSQLState.OBJECT_NOT_IN_STATE);
       }
 
-      if (callResult == null) {
+      if (callResultSet == null) {
         throw new PSQLException(
             GT.tr("Results cannot be retrieved from a CallableStatement before it is executed."),
             PSQLState.NO_DATA);
@@ -430,76 +595,78 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return new CallableBatchResultHandler(this, queries, parameterLists);
   }
 
-  public java.sql.Array getArray(int i) throws SQLException {
+  /*
+   * TODO: Should functionReturnTypeName affect this?  If the out parameter is
+   * set to a user-defined data type, does it define the type of the individual elements within the
+   * array?
+   */
+  @Override
+  public java.sql.Array getArray(int parameterIndex) throws SQLException {
     checkClosed();
-    checkIndex(i, Types.ARRAY, "Array");
-    return (Array) callResult[i - 1];
+    checkIndex(parameterIndex, Types.ARRAY, "Array");
+    return callResultSet.getArray(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
   public java.math.BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
-    return ((BigDecimal) callResult[parameterIndex - 1]);
-  }
-
-  public Blob getBlob(int i) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getBlob(int)");
-  }
-
-  public Clob getClob(int i) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getClob(int)");
-  }
-
-  public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException {
-    if (map == null || map.isEmpty()) {
-      return getObject(i);
+    // Use the scale set, if any
+    if (functionReturnScale != null) {
+      int scale = functionReturnScale[parameterIndex - 1];
+      if (scale >= 0) {
+        return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex], scale);
+      }
     }
-    throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
+    return callResultSet.getBigDecimal(callResultColumnIndex[parameterIndex]);
   }
 
-  public Ref getRef(int i) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getRef(int)");
-  }
-
-  public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException {
+  @Override
+  public Blob getBlob(int parameterIndex) throws SQLException {
     checkClosed();
-    checkIndex(i, Types.DATE, "Date");
-
-    if (callResult[i - 1] == null) {
-      return null;
-    }
-
-    String value = callResult[i - 1].toString();
-    return connection.getTimestampUtils().toDate(cal, value);
+    checkIndex(parameterIndex, Types.BLOB, "Blob");
+    return callResultSet.getBlob(callResultColumnIndex[parameterIndex]);
   }
 
-  public Time getTime(int i, java.util.Calendar cal) throws SQLException {
+  @Override
+  public Clob getClob(int parameterIndex) throws SQLException {
     checkClosed();
-    checkIndex(i, Types.TIME, "Time");
-
-    if (callResult[i - 1] == null) {
-      return null;
-    }
-
-    String value = callResult[i - 1].toString();
-    return connection.getTimestampUtils().toTime(cal, value);
+    checkIndex(parameterIndex, Types.CLOB, "Clob");
+    return callResultSet.getClob(callResultColumnIndex[parameterIndex]);
   }
 
-  public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException {
+  @Override
+  public Ref getRef(int parameterIndex) throws SQLException {
     checkClosed();
-    checkIndex(i, Types.TIMESTAMP, "Timestamp");
-
-    if (callResult[i - 1] == null) {
-      return null;
-    }
-
-    String value = callResult[i - 1].toString();
-    return connection.getTimestampUtils().toTimestamp(cal, value);
+    checkIndex(parameterIndex, Types.REF, "Ref");
+    return callResultSet.getRef(callResultColumnIndex[parameterIndex]);
   }
 
+  @Override
+  public java.sql.Date getDate(int parameterIndex, java.util.Calendar cal) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.DATE, "Date");
+    return callResultSet.getDate(callResultColumnIndex[parameterIndex], cal);
+  }
+
+  @Override
+  public Time getTime(int parameterIndex, java.util.Calendar cal) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.TIME, "Time");
+    return callResultSet.getTime(callResultColumnIndex[parameterIndex], cal);
+  }
+
+  @Override
+  public Timestamp getTimestamp(int parameterIndex, java.util.Calendar cal) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
+    return callResultSet.getTimestamp(callResultColumnIndex[parameterIndex], cal);
+  }
+
+  @Override
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
+    registerOutParameterImpl(parameterIndex, typeName, -1, sqlType);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
@@ -544,9 +711,16 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
   //#endif
 
+  @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getRowId(int)");
+    checkClosed();
+    checkIndex(parameterIndex, Types.ROWID, "RowId");
+    return callResultSet.getRowId(callResultColumnIndex[parameterIndex]);
   }
+
+  // TODO: All these get*(String parameterName) methods could trivially be mapped onto callResultSet,
+  //       but would this be meaningful as-is?  Or would the set*(String parameterName, ...) need to
+  //       be implemented as well?
 
   public RowId getRowId(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getRowId(String)");
@@ -633,8 +807,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setNClob(String, Reader)");
   }
 
+  @Override
   public NClob getNClob(int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getNClob(int)");
+    checkClosed();
+    checkIndex(parameterIndex, Types.NCLOB, "NClob");
+    return callResultSet.getNClob(callResultColumnIndex[parameterIndex]);
   }
 
   public NClob getNClob(String parameterName) throws SQLException {
@@ -645,50 +822,99 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setSQLXML(String, SQLXML)");
   }
 
+  @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.SQLXML, "SQLXML");
-    return (SQLXML) callResult[parameterIndex - 1];
+    return callResultSet.getSQLXML(callResultColumnIndex[parameterIndex]);
   }
 
   public SQLXML getSQLXML(String parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getSQLXML(String)");
   }
 
+  @Override
   public String getNString(int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getNString(int)");
+    checkClosed();
+    checkIndex(parameterIndex, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR, "NString");
+    return callResultSet.getNString(callResultColumnIndex[parameterIndex]);
   }
 
   public String getNString(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNString(String)");
   }
 
+  @Override
   public Reader getNCharacterStream(int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getNCharacterStream(int)");
+    checkClosed();
+    checkIndex(parameterIndex, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR, "NCharacterStream");
+    return callResultSet.getNCharacterStream(callResultColumnIndex[parameterIndex]);
   }
 
   public Reader getNCharacterStream(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNCharacterStream(String)");
   }
 
+  @Override
   public Reader getCharacterStream(int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getCharacterStream(int)");
+    checkClosed();
+    checkIndex(parameterIndex, Types.VARCHAR, "CharacterStream");
+    return callResultSet.getCharacterStream(callResultColumnIndex[parameterIndex]);
   }
 
   public Reader getCharacterStream(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getCharacterStream(String)");
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
+  //#endif
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
+    return getObjectImpl(parameterIndex, type, connection.getUdtMap());
+  }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
+  //#endif
+  public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "getObject(String, Class<T>)");
+  }
+
+  /**
+   * The implementation of {@link #getObject(int, java.lang.Class)}, but accepting
+   * the currently active type map.  This additional method is required because the
+   * provided map is used for type inference.
+   *
+   * @see #getObject(int, java.lang.Class)
+   * @see PgCallableStatementSQLInput#readObject(java.lang.Class)
+   */
+  // TODO: If we can continue to delegate to PgResultSet, and PgCallableStatementSQLInput is
+  //       no longer needed, remove this method and move its implementation to
+  //       getObject(int,Class) above.
+  <T> T getObjectImpl(int parameterIndex, Class<T> type, UdtMap udtMap) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex);
+    // TODO: Is ResultSet going to be OK by delegating to PgResultSet.getObjectImpl?
+    // TODO: Why this special case here?
     if (type == ResultSet.class) {
       return type.cast(getObject(parameterIndex));
     }
-    throw new PSQLException(GT.tr("Unsupported type conversion to {1}.", type),
-            PSQLState.INVALID_PARAMETER_VALUE);
-  }
-
-  public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getObject(String, Class<T>)");
+    if (functionReturnTypeName != null) {
+      String returnType = functionReturnTypeName[parameterIndex - 1];
+      if (returnType != null) {
+        Class<?> customType = udtMap.getTypeMap().get(returnType);
+        if (customType != null) {
+          // Make sure customType is assignable to type
+          if (type.isAssignableFrom(customType)) {
+            return type.cast(callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], customType, udtMap));
+          } else {
+            throw new PSQLException(GT.tr("Customized type from map {0} -> {1} is not assignable to requested type {2}", returnType, customType.getName(), type.getName()),
+                    PSQLState.CANNOT_COERCE);
+          }
+        }
+      }
+    }
+    return callResultSet.getObjectImpl(callResultColumnIndex[parameterIndex], type, udtMap);
   }
 
   public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
@@ -705,8 +931,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,String)");
   }
 
+  @Override
   public java.net.URL getURL(int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getURL(String)");
+    checkClosed();
+    checkIndex(parameterIndex, Types.DATALINK, "URL");
+    return callResultSet.getURL(callResultColumnIndex[parameterIndex]);
   }
 
   public void setURL(String parameterName, java.net.URL val) throws SQLException {
@@ -867,7 +1096,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getBigDecimal(String)");
   }
 
-  public Object getObjectImpl(String parameterName, Map<String, Class<?>> map) throws SQLException {
+  public Object getObject(String parameterName, Map<String, Class<?>> map) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getObject(String,Map)");
   }
 
@@ -903,8 +1132,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getURL(String)");
   }
 
+  @Override
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
-    // ignore scale for now
-    registerOutParameter(parameterIndex, sqlType);
+    if (scale < 0) {
+      throw new PSQLException(GT.tr("Invalid scale {0}.", scale),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    registerOutParameterImpl(parameterIndex, null, scale, sqlType);
   }
 }

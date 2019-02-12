@@ -385,6 +385,7 @@ public class TypeInfoCache implements TypeInfo {
     return oid;
   }
 
+  // TODO: This is returning the type without schema, sometimes, even when not "onPath"
   public synchronized String getPGType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return null;
@@ -416,10 +417,16 @@ public class TypeInfoCache implements TypeInfo {
       boolean onPath = rs.getBoolean(1);
       String schema = rs.getString(2);
       String name = rs.getString(3);
+      // TODO: Consider adding a multi-value map back from oid to the types that match it, and check each of them in the type map
+      //       and add all four possible combinations of quoting here, and with and with schema (when schema on path).
+
+      // TODO: When in type map as fully qualified, use full qualified always, even when onPath
+      // TODO: Check typemap for a few combinations regarding if name vs schema quoted, use value that matches typemap, error if multiple matches
       if (onPath) {
         pgTypeName = name;
         _pgNameToOid.put(schema + "." + name, oid);
       } else {
+        // TODO: quote schema and name independently, as-needed, to match psql
         // TODO: escaping !?
         pgTypeName = "\"" + schema + "\".\"" + name + "\"";
         // if all is lowercase add special type info
@@ -555,6 +562,7 @@ public class TypeInfoCache implements TypeInfo {
     return _pgNameToPgObject.get(type);
   }
 
+  // TODO: User-defined data types, too?  Or will this only be for base types?
   public synchronized String getJavaClass(int oid) throws SQLException {
     String pgTypeName = getPGType(oid);
 

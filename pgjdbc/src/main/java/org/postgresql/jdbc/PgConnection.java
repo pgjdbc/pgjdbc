@@ -14,6 +14,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.EnumMode;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
@@ -30,6 +31,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.udt.UdtMap;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -61,6 +63,7 @@ import java.sql.Types;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -141,6 +144,16 @@ public class PgConnection implements BaseConnection {
   private final boolean replicationConnection;
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
+
+  /**
+   * The current type mappings.
+   */
+  protected volatile UdtMap udtMap = UdtMap.EMPTY;
+
+  /**
+   * The enum mode for this connection.
+   */
+  protected final EnumMode enumMode;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -290,6 +303,12 @@ public class PgConnection implements BaseConnection {
         false);
 
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
+
+    String enumModeName = PGProperty.ENUM_MODE.get(info);
+    if (enumModeName == null || (enumModeName = enumModeName.trim()).isEmpty()) {
+      enumModeName = PGProperty.ENUM_MODE.getDefaultValue();
+    }
+    enumMode = EnumMode.valueOf(enumModeName.toUpperCase(Locale.ROOT));
   }
 
   private static Set<Integer> getBinaryOids(Properties info) throws PSQLException {
@@ -355,11 +374,6 @@ public class PgConnection implements BaseConnection {
     return timestampUtils;
   }
 
-  /**
-   * The current type mappings.
-   */
-  protected Map<String, Class<?>> typemap;
-
   @Override
   public Statement createStatement() throws SQLException {
     // We now follow the spec and default to TYPE_FORWARD_ONLY.
@@ -379,7 +393,18 @@ public class PgConnection implements BaseConnection {
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     checkClosed();
-    return typemap;
+    // LinkedHashMap to maintain order of map provided by caller.
+    return new LinkedHashMap<String, Class<?>>(udtMap.getTypeMap());
+  }
+
+  @Override
+  public UdtMap getUdtMap() {
+    return udtMap;
+  }
+
+  @Override
+  public EnumMode getEnumMode() {
+    return enumMode;
   }
 
   public QueryExecutor getQueryExecutor() {
@@ -534,21 +559,19 @@ public class PgConnection implements BaseConnection {
    * You can use the getValue() or setValue() methods to handle the returned object. Custom objects
    * can have their own methods.
    *
+   * <p>
+   * This does not handle user-defined data types.  The {@link #getTypeMapNoCopy() type map} should
+   * have already been checked, with the object being retrieved from
+   * {@link PgSQLInputHelper#getObjectCustomType(java.util.Map, java.lang.String, java.lang.Class, org.postgresql.jdbc.PgSQLInput)}
+   * when there is a type mapped.
+   * </p>
+   *
    * @return PGobject for this type, and set to value
    *
    * @exception SQLException if value is not correct for this type
    */
   @Override
-  public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
-    if (typemap != null) {
-      Class<?> c = typemap.get(type);
-      if (c != null) {
-        // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
-        throw new PSQLException(GT.tr("Custom type maps are not supported."),
-            PSQLState.NOT_IMPLEMENTED);
-      }
-    }
-
+  public PGobject getObject(String type, String value, byte[] byteValue) throws SQLException {
     PGobject obj = null;
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -1048,10 +1071,6 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
   }
 
-  public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
-    typemap = map;
-  }
-
   public Logger getLogger() {
     return LOGGER;
   }
@@ -1243,11 +1262,20 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-    setTypeMapImpl(map);
+    checkClosed();
+    if (map == null || map.isEmpty()) {
+      // null map is accepted as empty map
+      udtMap = UdtMap.EMPTY;
+    } else {
+      // Defensive copy
+      // LinkedHashMap to maintain order of map provided by caller, and aids in
+      // iteration peformance while creating the inverted maps.
+      udtMap = new UdtMap(new LinkedHashMap<String, Class<?>>(map));
+    }
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 
-  protected Array makeArray(int oid, String fieldString) throws SQLException {
+  protected Array makeArray(int oid, String fieldString) {
     return new PgArray(this, oid, fieldString);
   }
 

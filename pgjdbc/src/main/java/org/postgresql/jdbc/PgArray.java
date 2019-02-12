@@ -8,19 +8,38 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.EnumMode;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
+import org.postgresql.udt.BoolValueAccess;
+import org.postgresql.udt.DateValueAccessBinary;
+import org.postgresql.udt.Float4ValueAccess;
+import org.postgresql.udt.Float8ValueAccess;
+import org.postgresql.udt.Int2ValueAccess;
+import org.postgresql.udt.Int4ValueAccess;
+import org.postgresql.udt.Int8ValueAccess;
+import org.postgresql.udt.SingleAttributeSQLInputHelper;
+import org.postgresql.udt.TextValueAccess;
+import org.postgresql.udt.TimeValueAccessBinary;
+import org.postgresql.udt.TimestampValueAccessBinary;
+import org.postgresql.udt.UdtMap;
+import org.postgresql.udt.ValueAccess;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.NumberConverter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +110,7 @@ public class PgArray implements java.sql.Array {
 
   protected byte[] fieldBytes;
 
-  private PgArray(BaseConnection connection, int oid) throws SQLException {
+  private PgArray(BaseConnection connection, int oid) {
     this.connection = connection;
     this.oid = oid;
     this.useObjects = true;
@@ -103,9 +122,8 @@ public class PgArray implements java.sql.Array {
    * @param connection a database connection
    * @param oid the oid of the array datatype
    * @param fieldString the array data in string form
-   * @throws SQLException if something wrong happens
    */
-  public PgArray(BaseConnection connection, int oid, String fieldString) throws SQLException {
+  public PgArray(BaseConnection connection, int oid, String fieldString) {
     this(connection, oid);
     this.fieldString = fieldString;
   }
@@ -116,48 +134,61 @@ public class PgArray implements java.sql.Array {
    * @param connection a database connection
    * @param oid the oid of the array datatype
    * @param fieldBytes the array data in byte form
-   * @throws SQLException if something wrong happens
    */
-  public PgArray(BaseConnection connection, int oid, byte[] fieldBytes) throws SQLException {
+  public PgArray(BaseConnection connection, int oid, byte[] fieldBytes) {
     this(connection, oid);
     this.fieldBytes = fieldBytes;
   }
 
+  @Override
   public Object getArray() throws SQLException {
-    return getArrayImpl(1, 0, null);
+    return getArrayImpl(1, 0, connection.getUdtMap());
   }
 
+  @Override
   public Object getArray(long index, int count) throws SQLException {
-    return getArrayImpl(index, count, null);
+    // TODO: count == 0 here would cause all elements to be retrieved.  Is this part of the specification
+    //       or an unintended side-effect?
+    return getArrayImpl(index, count, connection.getUdtMap());
   }
 
-  public Object getArrayImpl(Map<String, Class<?>> map) throws SQLException {
-    return getArrayImpl(1, 0, map);
-  }
-
+  @Override
   public Object getArray(Map<String, Class<?>> map) throws SQLException {
-    return getArrayImpl(map);
+    return getArrayImpl(1, 0,
+        (map != null) ? new UdtMap(map) : UdtMap.EMPTY);
   }
 
+  @Override
   public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
-    return getArrayImpl(index, count, map);
+    // TODO: count == 0 here would cause all elements to be retrieved.  Is this part of the specification
+    //       or an unintended side-effect?
+    return getArrayImpl(index, count,
+        (map != null) ? new UdtMap(map) : UdtMap.EMPTY);
   }
 
-  public Object getArrayImpl(long index, int count, Map<String, Class<?>> map) throws SQLException {
-
-    // for now maps aren't supported.
-    if (map != null && !map.isEmpty()) {
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
-    }
-
+  public Object getArrayImpl(long index, int count, UdtMap udtMap) throws SQLException {
     // array index is out of range
     if (index < 1) {
       throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
           PSQLState.DATA_ERROR);
     }
 
+    // count is out of range
+    if (count < 0) {
+      throw new PSQLException(GT.tr("The count is out of range: {0}", count),
+          PSQLState.DATA_ERROR);
+    }
+
     if (fieldBytes != null) {
-      return readBinaryArray((int) index, count);
+      if (index > Integer.MAX_VALUE) {
+        throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+          PSQLState.DATA_ERROR);
+      }
+      if ((index - 1 + count) > Integer.MAX_VALUE) {
+        throw new PSQLException(GT.tr("The array index + count is out of range: {0} + {1}", index, count),
+            PSQLState.DATA_ERROR);
+      }
+      return readBinaryArray((int) index, count, udtMap);
     }
 
     if (fieldString == null) {
@@ -178,10 +209,13 @@ public class PgArray implements java.sql.Array {
           PSQLState.DATA_ERROR);
     }
 
-    return buildArray(arrayList, (int) index, count);
+    assert index <= Integer.MAX_VALUE : "This cast to int is safe because it must be <= arrayList.size()";
+    return buildArray(arrayList, (int) index, count, udtMap);
   }
 
-  private Object readBinaryArray(int index, int count) throws SQLException {
+  private Object readBinaryArray(int index, int count, UdtMap udtMap) throws SQLException {
+    assert ((long)index - 1 + (long)count) <= Integer.MAX_VALUE;
+
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
@@ -193,15 +227,20 @@ public class PgArray implements java.sql.Array {
       /* int lbound = ByteConverter.int4(fieldBytes, pos); */
       pos += 4;
     }
+    TypeInfo typeInfo = connection.getTypeInfo();
+    String pgType = typeInfo.getPGType(elementOid);
+    Class<?> customType = udtMap.getTypeMap().get(pgType);
     if (dimensions == 0) {
-      return java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), 0);
+      return java.lang.reflect.Array.newInstance(customType != null ? customType : elementOidToClass(elementOid), 0);
     }
     if (count > 0) {
+      // TODO: If allowing count == 0 to mean no elements, not all elements, this would be affected
       dims[0] = Math.min(count, dims[0]);
     }
-    Object arr = java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), dims);
+    final int sqlType = typeInfo.getSQLType(elementOid);
+    Object arr = java.lang.reflect.Array.newInstance(customType != null ? customType : elementOidToClass(elementOid), dims);
     try {
-      storeValues((Object[]) arr, elementOid, dims, pos, 0, index);
+      storeValues((Object[]) arr, elementOid, pgType, sqlType, dims, pos, 0, index, udtMap, customType);
     } catch (IOException ioe) {
       throw new PSQLException(
           GT.tr(
@@ -211,8 +250,13 @@ public class PgArray implements java.sql.Array {
     return arr;
   }
 
-  private int storeValues(final Object[] arr, int elementOid, final int[] dims, int pos,
-      final int thisDimension, int index) throws SQLException, IOException {
+  // TODO: Is pgType still used by our final implementation?
+  // TODO: Can arr be an array of ValueAccess, which would then delay conversion until needed?
+  //       Would this facilitate selecting an int4[] and getting as String[], for example?
+  //       Since there is no getArray(Class<?>), maybe this is pointless?  Only affected by UdtMap currently.
+  private int storeValues(final Object[] arr, int elementOid, String pgType, int sqlType, final int[] dims, int pos,
+      final int thisDimension, int index, UdtMap udtMap, Class<?> customType) throws SQLException, IOException {
+    // TODO: Could get Calendar once for getDate, getTime, getTimestamp, see BaseValueAccess.getDefaultCalendar().  Test and benchmark.
     if (thisDimension == dims.length - 1) {
       for (int i = 1; i < index; ++i) {
         int len = ByteConverter.int4(fieldBytes, pos);
@@ -227,48 +271,137 @@ public class PgArray implements java.sql.Array {
         if (len == -1) {
           continue;
         }
-        switch (elementOid) {
-          case Oid.INT2:
-            arr[i] = ByteConverter.int2(fieldBytes, pos);
-            break;
-          case Oid.INT4:
-            arr[i] = ByteConverter.int4(fieldBytes, pos);
-            break;
-          case Oid.INT8:
-            arr[i] = ByteConverter.int8(fieldBytes, pos);
-            break;
-          case Oid.FLOAT4:
-            arr[i] = ByteConverter.float4(fieldBytes, pos);
-            break;
-          case Oid.FLOAT8:
-            arr[i] = ByteConverter.float8(fieldBytes, pos);
-            break;
-          case Oid.TEXT:
-          case Oid.VARCHAR:
-            Encoding encoding = connection.getEncoding();
-            arr[i] = encoding.decode(fieldBytes, pos, len);
-            break;
-          case Oid.BOOL:
-            arr[i] = ByteConverter.bool(fieldBytes, pos);
-            break;
-          default:
-            ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
-            if (arrAssistant != null) {
-              arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
-            }
+        if (customType == null) {
+          switch (elementOid) {
+            case Oid.INT2:
+              arr[i] = ByteConverter.int2(fieldBytes, pos);
+              break;
+            case Oid.INT4:
+              arr[i] = ByteConverter.int4(fieldBytes, pos);
+              break;
+            case Oid.INT8:
+              arr[i] = ByteConverter.int8(fieldBytes, pos);
+              break;
+            case Oid.FLOAT4:
+              arr[i] = ByteConverter.float4(fieldBytes, pos);
+              break;
+            case Oid.FLOAT8:
+              arr[i] = ByteConverter.float8(fieldBytes, pos);
+              break;
+            case Oid.TEXT:
+            case Oid.VARCHAR:
+              Encoding encoding = connection.getEncoding();
+              arr[i] = encoding.decode(fieldBytes, pos, len);
+              break;
+            case Oid.BOOL:
+              arr[i] = ByteConverter.bool(fieldBytes, pos);
+              break;
+            // TODO: Is it possible to enable binary mode for arrays of timestamps?
+            case Oid.TIMESTAMP:
+            case Oid.TIMESTAMPTZ:
+              arr[i] = new TimestampValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len).getTimestamp(); // TODO: Keep as ValueAccess to delay conversion?
+              break;
+            case Oid.TIME:
+            case Oid.TIMETZ:
+              arr[i] = new TimeValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len).getTime(); // TODO: Keep as ValueAccess to delay conversion?
+              break;
+            case Oid.DATE:
+              arr[i] = new DateValueAccessBinary(connection,
+                  fieldBytes, pos, len).getDate(); // TODO: Keep as ValueAccess to delay conversion?
+              break;
+            // TODO: More types here?
+            // TODO: PGobject here?
+            default:
+              ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
+              if (arrAssistant != null) {
+                arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
+              } else {
+                // TODO: Why is arr[i] left as null when no assistant?
+                // TODO: Would this be a place for an exception or an AssertionError?
+              }
+          }
+        } else {
+          final ValueAccess access;
+          switch (elementOid) {
+            case Oid.INT2:
+              access = new Int2ValueAccess(connection,
+                  ByteConverter.int2(fieldBytes, pos));
+              break;
+            case Oid.INT4:
+              access = new Int4ValueAccess(connection,
+                  ByteConverter.int4(fieldBytes, pos));
+              break;
+            case Oid.INT8:
+              access = new Int8ValueAccess(connection,
+                  ByteConverter.int8(fieldBytes, pos));
+              break;
+            case Oid.FLOAT4:
+              access = new Float4ValueAccess(connection,
+                  ByteConverter.float4(fieldBytes, pos));
+              break;
+            case Oid.FLOAT8:
+              access = new Float8ValueAccess(connection,
+                  ByteConverter.float8(fieldBytes, pos));
+              break;
+            case Oid.TEXT:
+            case Oid.VARCHAR:
+              Encoding encoding = connection.getEncoding();
+              access = new TextValueAccess(connection, elementOid,
+                  encoding.decode(fieldBytes, pos, len));
+              break;
+            case Oid.BOOL:
+              access = new BoolValueAccess(connection,
+                  ByteConverter.bool(fieldBytes, pos));
+              break;
+            // TODO: Is it possible to enable binary mode for arrays of timestamps?
+            case Oid.TIMESTAMP:
+            case Oid.TIMESTAMPTZ:
+              access = new TimestampValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len);
+              break;
+            case Oid.TIME:
+            case Oid.TIMETZ:
+              access = new TimeValueAccessBinary(connection,
+                  elementOid, fieldBytes, pos, len);
+              break;
+            case Oid.DATE:
+              access = new DateValueAccessBinary(connection,
+                  fieldBytes, pos, len);
+              break;
+            // TODO: More types here?
+            // TODO: PGobject here?
+            default:
+              ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
+              if (arrAssistant != null) {
+                access = arrAssistant.getValueAccess(connection, elementOid,
+                    arrAssistant.buildElement(fieldBytes, pos, len));
+              } else {
+                // TODO: Why is arr[i] left as null when no assistant?
+                // TODO: Would this be a place for an exception or an AssertionError?
+                access = null;
+              }
+          }
+          if (access != null) {
+            arr[i] = SingleAttributeSQLInputHelper.getObjectCustomType(
+                connection.getEnumMode(), udtMap, pgType, customType, access.getSQLInput(udtMap));
+          }
         }
         pos += len;
       }
     } else {
       for (int i = 0; i < dims[thisDimension]; ++i) {
-        pos = storeValues((Object[]) arr[i], elementOid, dims, pos, thisDimension + 1, 0);
+        pos = storeValues((Object[]) arr[i], elementOid, pgType, sqlType, dims, pos, thisDimension + 1, 0, udtMap, customType);
       }
     }
     return pos;
   }
 
 
-  private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
+  private ResultSet readBinaryResultSet(int index, int count, UdtMap udtMap) throws SQLException {
+    assert ((long)index - 1 + (long)count) <= Integer.MAX_VALUE;
+
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
@@ -281,6 +414,7 @@ public class PgArray implements java.sql.Array {
       pos += 4;
     }
     if (count > 0 && dimensions > 0) {
+      // TODO: If allowing count == 0 to mean no elements, not all elements, this would be affected
       dims[0] = Math.min(count, dims[0]);
     }
     List<byte[][]> rows = new ArrayList<byte[][]>();
@@ -290,11 +424,11 @@ public class PgArray implements java.sql.Array {
 
     BaseStatement stat = (BaseStatement) connection
         .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    return stat.createDriverResultSet(fields, rows);
+    return stat.createDriverResultSet(fields, rows, udtMap);
   }
 
   private int storeValues(List<byte[][]> rows, Field[] fields, int elementOid, final int[] dims,
-      int pos, final int thisDimension, int index) throws SQLException {
+      int pos, final int thisDimension, int index) {
     // handle an empty array
     if (dims.length == 0) {
       fields[0] = new Field("INDEX", Oid.INT4);
@@ -395,10 +529,21 @@ public class PgArray implements java.sql.Array {
         return String.class;
       case Oid.BOOL:
         return Boolean.class;
+        // TODO: Is it possible to enable binary mode for arrays of timestamps?
+      case Oid.TIMESTAMP:
+      case Oid.TIMESTAMPTZ:
+        return Timestamp.class;
+      case Oid.TIME:
+      case Oid.TIMETZ:
+        return Time.class;
+      case Oid.DATE:
+        return Date.class;
+      // TODO: More types here?
+      // TODO: PGobject here?
       default:
-        ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
-        if (arrElemBuilder != null) {
-          return arrElemBuilder.baseType();
+        ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
+        if (arrAssistant != null) {
+          return arrAssistant.baseType();
         }
 
         throw org.postgresql.Driver.notImplemented(this.getClass(), "readBinaryArray(data,oid)");
@@ -422,7 +567,7 @@ public class PgArray implements java.sql.Array {
     if (fieldString != null) {
 
       char[] chars = fieldString.toCharArray();
-      StringBuilder buffer = null;
+      StringBuilder buffer = null; // TODO: Reuse object with boolean hasBuffer flag?  Would it make any difference due to escape analysis?
       boolean insideString = false;
       boolean wasInsideString = false; // needed for checking if NULL
       // value occurred
@@ -523,6 +668,7 @@ public class PgArray implements java.sql.Array {
         }
 
         if (buffer != null) {
+          // TODO: Can also just keep track of indices instead of building the buffer
           buffer.append(chars[i]);
         }
       }
@@ -534,8 +680,7 @@ public class PgArray implements java.sql.Array {
    *
    * @param input list to be converted into array
    */
-  private Object buildArray(PgArrayList input, int index, int count) throws SQLException {
-
+  private Object buildArray(PgArrayList input, int index, int count, UdtMap udtMap) throws SQLException {
     if (count < 0) {
       count = input.size();
     }
@@ -559,10 +704,64 @@ public class PgArray implements java.sql.Array {
     int length = 0;
 
     // array elements type
-    final int type =
-        connection.getTypeInfo().getSQLType(connection.getTypeInfo().getPGArrayElement(oid));
+    TypeInfo typeInfo = connection.getTypeInfo();
+    int elementOID = typeInfo.getPGArrayElement(oid);
+    final int sqlType = typeInfo.getSQLType(elementOID);
+    String pgType = typeInfo.getPGType(elementOID);
+    Class<?> customType = udtMap.getTypeMap().get(pgType);
 
-    if (type == Types.BIT) {
+    if (customType != null) {
+      if (dims > 1) {
+        Object[] oa;
+        ret = oa = (Object[]) java.lang.reflect.Array.newInstance(customType, dimsLength);
+        for (; count > 0; count--) {
+          Object v = input.get(index++);
+          oa[length++] = (v != null) ? buildArray((PgArrayList) v, 0, -1, udtMap) : null;
+        }
+      } else {
+        Object[] oa;
+        ret = oa = (Object[]) java.lang.reflect.Array.newInstance(customType, count);
+        // Get EnumMode once before loop
+        EnumMode enumMode = connection.getEnumMode();
+        // TODO: ArrayAssistantRegistry is accessed haphazardly by the array OID or the element OID.
+        // TODO: In the case of UUID, both are in the registry, but this inconsistency is unexpected.
+        ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
+        if (arrAssistant != null) {
+          // Use array assistant
+          for (; count > 0; count--) {
+            Object v = input.get(index++);
+            if (v != null) {
+              ValueAccess access = arrAssistant.getValueAccess(connection, oid, // TODO: elementOID here?
+                  arrAssistant.buildElement((String) v));
+              oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
+                  enumMode, udtMap, pgType, customType, access.getSQLInput(udtMap));
+            } else {
+              // oa[length] is already null
+              length++;
+            }
+          }
+        } else {
+          // Since we have a string value at this point, all custom objects are processed
+          // via StringValueAccess, which performs conversions compatible with PgResultSet
+
+          // TODO: Ultimately we'd like to eliminate this redundancy betwen PgResultSet and TextValueAccess,
+          //       and instead have PgResultSet hold a set of ValueAccess objects, which would do the conversions
+          //       from byte[] and String.  But we fear if we change too much core implementation this pull request
+          //       would less likely be merged.
+          for (; count > 0; count--) {
+            Object v = input.get(index++);
+            if (v != null) {
+              ValueAccess access = new TextValueAccess(connection, elementOID, (String) v);
+              oa[length++] = SingleAttributeSQLInputHelper.getObjectCustomType(
+                  enumMode, udtMap, pgType, customType, access.getSQLInput(udtMap));
+            } else {
+              // oa[length] is already null
+              length++;
+            }
+          }
+        }
+      }
+    } else if (sqlType == Types.BIT) {
       boolean[] pa = null; // primitive array
       Object[] oa = null; // objects array
 
@@ -581,12 +780,12 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-            : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : BooleanTypeUtil.castToBoolean((String) o));
+            : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : BooleanTypeUtil.fromString((String) o));
         } else {
-          pa[length++] = o == null ? false : BooleanTypeUtil.castToBoolean((String) o);
+          pa[length++] = o == null ? false : BooleanTypeUtil.fromString((String) o);
         }
       }
-    } else if (type == Types.SMALLINT) {
+    } else if (sqlType == Types.SMALLINT) {
       short[] pa = null;
       Object[] oa = null;
 
@@ -605,12 +804,12 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toShort((String) o));
         } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
+          pa[length++] = o == null ? 0 : NumberConverter.toShort((String) o);
         }
       }
-    } else if (type == Types.INTEGER) {
+    } else if (sqlType == Types.INTEGER) {
       int[] pa = null;
       Object[] oa = null;
 
@@ -629,12 +828,12 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toInt((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toInt((String) o));
         } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toInt((String) o);
+          pa[length++] = o == null ? 0 : NumberConverter.toInt((String) o);
         }
       }
-    } else if (type == Types.BIGINT) {
+    } else if (sqlType == Types.BIGINT) {
       long[] pa = null;
       Object[] oa = null;
 
@@ -653,12 +852,12 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toLong((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toLong((String) o));
         } else {
-          pa[length++] = o == null ? 0L : PgResultSet.toLong((String) o);
+          pa[length++] = o == null ? 0L : NumberConverter.toLong((String) o);
         }
       }
-    } else if (type == Types.NUMERIC) {
+    } else if (sqlType == Types.NUMERIC) {
       Object[] oa = null;
       ret = oa =
           (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(BigDecimal.class, dimsLength)
@@ -666,10 +865,10 @@ public class PgArray implements java.sql.Array {
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : PgResultSet.toBigDecimal((String) v));
+        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
+            : (v == null ? null : NumberConverter.toBigDecimal((String) v));
       }
-    } else if (type == Types.REAL) {
+    } else if (sqlType == Types.REAL) {
       float[] pa = null;
       Object[] oa = null;
 
@@ -688,12 +887,12 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toFloat((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toFloat((String) o));
         } else {
-          pa[length++] = o == null ? 0f : PgResultSet.toFloat((String) o);
+          pa[length++] = o == null ? 0f : NumberConverter.toFloat((String) o);
         }
       }
-    } else if (type == Types.DOUBLE) {
+    } else if (sqlType == Types.DOUBLE) {
       double[] pa = null;
       Object[] oa = null;
 
@@ -711,12 +910,12 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toDouble((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1, udtMap) : NumberConverter.toDouble((String) o));
         } else {
-          pa[length++] = o == null ? 0d : PgResultSet.toDouble((String) o);
+          pa[length++] = o == null ? 0d : NumberConverter.toDouble((String) o);
         }
       }
-    } else if (type == Types.CHAR || type == Types.VARCHAR || oid == Oid.JSONB_ARRAY) {
+    } else if (sqlType == Types.CHAR || sqlType == Types.VARCHAR || oid == Oid.JSONB_ARRAY) {
       Object[] oa = null;
       ret =
           oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(String.class, dimsLength)
@@ -724,9 +923,9 @@ public class PgArray implements java.sql.Array {
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1) : v;
+        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap) : v;
       }
-    } else if (type == Types.DATE) {
+    } else if (sqlType == Types.DATE) {
       Object[] oa = null;
       ret = oa = (dims > 1
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Date.class, dimsLength)
@@ -734,10 +933,10 @@ public class PgArray implements java.sql.Array {
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
+        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toDate(null, (String) v));
       }
-    } else if (type == Types.TIME) {
+    } else if (sqlType == Types.TIME) { // TODO: TIME_WITH_TIMEZONE?
       Object[] oa = null;
       ret = oa = (dims > 1
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Time.class, dimsLength)
@@ -745,10 +944,10 @@ public class PgArray implements java.sql.Array {
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
+        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toTime(null, (String) v));
       }
-    } else if (type == Types.TIMESTAMP) {
+    } else if (sqlType == Types.TIMESTAMP) { // TODO: TIMESTAMP_WITH_TIMEZONE?
       Object[] oa = null;
       ret = oa = (dims > 1
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Timestamp.class, dimsLength)
@@ -756,43 +955,45 @@ public class PgArray implements java.sql.Array {
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
+        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1, udtMap)
             : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
       }
-    } else if (ArrayAssistantRegistry.getAssistant(oid) != null) {
-      ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
-
-      Object[] oa = null;
-      ret = oa = (dims > 1)
-          ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), dimsLength)
-          : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
-
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : arrAssistant.buildElement((String) v));
-      }
-    } else if (dims == 1) {
-      Object[] oa = new Object[count];
-      String typeName = getBaseTypeName();
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        if (v instanceof String) {
-          oa[length++] = connection.getObject(typeName, (String) v, null);
-        } else if (v instanceof byte[]) {
-          oa[length++] = connection.getObject(typeName, null, (byte[]) v);
-        } else if (v == null) {
-          oa[length++] = null;
-        } else {
-          throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
-        }
-      }
-      ret = oa;
     } else {
-      // other datatypes not currently supported
-      connection.getLogger().log(Level.FINEST, "getArrayImpl(long,int,Map) with {0}", getBaseTypeName());
+      ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
+      if (arrAssistant != null) {
 
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+        Object[] oa = null;
+        ret = oa = (dims > 1)
+            ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), dimsLength)
+            : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
+
+        for (; count > 0; count--) {
+          Object v = input.get(index++);
+          oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1, udtMap)
+              : (v == null ? null : arrAssistant.buildElement((String) v));
+        }
+      } else if (dims == 1) {
+        Object[] oa = new Object[count];
+        for (; count > 0; count--) {
+          Object v = input.get(index++);
+          if (v instanceof String) {
+            oa[length++] = connection.getObject(pgType, (String) v, null);
+          } else if (v instanceof byte[]) {
+            // TODO: is v ever a byte[] here?  It's assumes String in all the above
+            oa[length++] = connection.getObject(pgType, null, (byte[]) v);
+          } else if (v == null) {
+            oa[length++] = null;
+          } else {
+            throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+          }
+        }
+        ret = oa;
+      } else {
+        // other datatypes not currently supported
+        connection.getLogger().log(Level.FINEST, "getArrayImpl(long,int,Map) with {0}", pgType);
+
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+      }
     }
 
     return ret;
@@ -802,40 +1003,47 @@ public class PgArray implements java.sql.Array {
     return connection.getTypeInfo().getSQLType(getBaseTypeName());
   }
 
+  @Override
   public String getBaseTypeName() throws SQLException {
+    // TODO: Would this in any way be affected by custom type map?
+    // TODO: Including if a base type is provided via PgCallableStatement?
+    // TODO: If it is affected, other places that assume TypeInfo.getPGType(...)
+    //       would probably need to call this method instead
     buildArrayList();
-    int elementOID = connection.getTypeInfo().getPGArrayElement(oid);
-    return connection.getTypeInfo().getPGType(elementOID);
+    TypeInfo typeInfo = connection.getTypeInfo();
+    int elementOID = typeInfo.getPGArrayElement(oid);
+    return typeInfo.getPGType(elementOID);
   }
 
+  @Override
   public java.sql.ResultSet getResultSet() throws SQLException {
-    return getResultSetImpl(1, 0, null);
+    return getResultSetImpl(1, 0, connection.getUdtMap());
   }
 
+  @Override
   public java.sql.ResultSet getResultSet(long index, int count) throws SQLException {
-    return getResultSetImpl(index, count, null);
+    // TODO: count == 0 here would cause all elements to be retrieved.  Is this part of the specification
+    //       or an unintended side-effect?
+    return getResultSetImpl(index, count, connection.getUdtMap());
   }
 
+  @Override
   public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
-    return getResultSetImpl(map);
+    return getResultSetImpl(1, 0,
+        (map != null) ? new UdtMap(map) : UdtMap.EMPTY);
   }
 
+  @Override
   public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map)
       throws SQLException {
-    return getResultSetImpl(index, count, map);
+    // TODO: count == 0 here would cause all elements to be retrieved.  Is this part of the specification
+    //       or an unintended side-effect?
+    return getResultSetImpl(index, count,
+        (map != null) ? new UdtMap(map) : UdtMap.EMPTY);
   }
 
-  public ResultSet getResultSetImpl(Map<String, Class<?>> map) throws SQLException {
-    return getResultSetImpl(1, 0, map);
-  }
-
-  public ResultSet getResultSetImpl(long index, int count, Map<String, Class<?>> map)
+  public ResultSet getResultSetImpl(long index, int count, UdtMap udtMap)
       throws SQLException {
-
-    // for now maps aren't supported.
-    if (map != null && !map.isEmpty()) {
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
-    }
 
     // array index is out of range
     if (index < 1) {
@@ -843,8 +1051,22 @@ public class PgArray implements java.sql.Array {
           PSQLState.DATA_ERROR);
     }
 
+    // count is out of range
+    if (count < 0) {
+      throw new PSQLException(GT.tr("The count is out of range: {0}", count),
+          PSQLState.DATA_ERROR);
+    }
+
     if (fieldBytes != null) {
-      return readBinaryResultSet((int) index, count);
+      if (index > Integer.MAX_VALUE) {
+        throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+            PSQLState.DATA_ERROR);
+      }
+      if ((index - 1 + count) > Integer.MAX_VALUE) {
+        throw new PSQLException(GT.tr("The array index + count is out of range: {0} + {1}", index, count),
+            PSQLState.DATA_ERROR);
+      }
+      return readBinaryResultSet((int) index, count, udtMap);
     }
 
     buildArrayList();
@@ -873,6 +1095,7 @@ public class PgArray implements java.sql.Array {
       fields[1] = new Field("VALUE", baseOid);
 
       for (int i = 0; i < count; i++) {
+        assert index <= Integer.MAX_VALUE : "This cast to int is safe because it must be <= arrayList.size()";
         int offset = (int) index + i;
         byte[][] t = new byte[2][0];
         String v = (String) arrayList.get(offset);
@@ -885,6 +1108,7 @@ public class PgArray implements java.sql.Array {
       fields[0] = new Field("INDEX", Oid.INT4);
       fields[1] = new Field("VALUE", oid);
       for (int i = 0; i < count; i++) {
+        assert index <= Integer.MAX_VALUE : "This cast to int is safe because it must be <= arrayList.size()";
         int offset = (int) index + i;
         byte[][] t = new byte[2][0];
         Object v = arrayList.get(offset);
@@ -897,13 +1121,15 @@ public class PgArray implements java.sql.Array {
 
     BaseStatement stat = (BaseStatement) connection
         .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    return stat.createDriverResultSet(fields, rows);
+    return stat.createDriverResultSet(fields, rows, udtMap);
   }
 
+  @Override
   public String toString() {
+    // TODO: toString() will return null when both fieldString == null and fieldBytes == null, is this possible to happen?
     if (fieldString == null && fieldBytes != null) {
       try {
-        Object array = readBinaryArray(1, 0);
+        Object array = readBinaryArray(1, 0, connection.getUdtMap());
 
         final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
         if (arraySupport != null) {
@@ -913,6 +1139,7 @@ public class PgArray implements java.sql.Array {
           fieldString = tmpArray.toString();
         }
       } catch (SQLException e) {
+        // TODO: Swallowing exceptions is not cool.  At least log this...
         fieldString = "NULL"; // punt
       }
     }
@@ -973,7 +1200,8 @@ public class PgArray implements java.sql.Array {
     return fieldBytes;
   }
 
-  public void free() throws SQLException {
+  @Override
+  public void free() {
     connection = null;
     fieldString = null;
     fieldBytes = null;

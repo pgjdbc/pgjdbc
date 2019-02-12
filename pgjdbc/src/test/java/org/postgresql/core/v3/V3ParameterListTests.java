@@ -46,16 +46,16 @@ public class V3ParameterListTests {
   @Test
   public void testMergeOfParameterLists() throws SQLException {
     SimpleParameterList s1SPL = new SimpleParameterList(8, transferModeRegistry);
-    s1SPL.setIntParameter(1, 1);
-    s1SPL.setIntParameter(2, 2);
-    s1SPL.setIntParameter(3, 3);
-    s1SPL.setIntParameter(4, 4);
+    s1SPL.setIntParameter(1, null, 1);
+    s1SPL.setIntParameter(2, null, 2);
+    s1SPL.setIntParameter(3, null, 3);
+    s1SPL.setIntParameter(4, null, 4);
 
     SimpleParameterList s2SPL = new SimpleParameterList(4, transferModeRegistry);
-    s2SPL.setIntParameter(1, 5);
-    s2SPL.setIntParameter(2, 6);
-    s2SPL.setIntParameter(3, 7);
-    s2SPL.setIntParameter(4, 8);
+    s2SPL.setIntParameter(1, null, 5);
+    s2SPL.setIntParameter(2, null, 6);
+    s2SPL.setIntParameter(3, null, 7);
+    s2SPL.setIntParameter(4, null, 8);
 
     s1SPL.appendAll(s2SPL);
     assertEquals(

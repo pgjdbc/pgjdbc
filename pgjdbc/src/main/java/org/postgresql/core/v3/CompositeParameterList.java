@@ -43,7 +43,8 @@ class CompositeParameterList implements V3ParameterList {
     throw new IllegalArgumentException("I am confused; can't find a subparam for index " + index);
   }
 
-  public void registerOutParameter(int index, int sqlType) {
+  @Override
+  public void registerOutParameter(int index, String pgType, int scale, int sqlType) {
 
   }
 
@@ -72,49 +73,79 @@ class CompositeParameterList implements V3ParameterList {
     return oids;
   }
 
-  public void setIntParameter(int index, int value) throws SQLException {
-    int sub = findSubParam(index);
-    subparams[sub].setIntParameter(index - offsets[sub], value);
+  @Override
+  public String[] getPgTypes() {
+    String[] pgTypes = new String[total];
+    for (int i = 0; i < offsets.length; i++) {
+      String[] subPgTypes = subparams[i].getPgTypes();
+      System.arraycopy(subPgTypes, 0, pgTypes, offsets[i], subPgTypes.length);
+    }
+    return pgTypes;
   }
 
-  public void setLiteralParameter(int index, String value, int oid) throws SQLException {
-    int sub = findSubParam(index);
-    subparams[sub].setStringParameter(index - offsets[sub], value, oid);
+  @Override
+  public int[] getScales() {
+    int[] scales = new int[total];
+    for (int i = 0; i < offsets.length; i++) {
+      int[] subScales = subparams[i].getScales();
+      System.arraycopy(subScales, 0, scales, offsets[i], subScales.length);
+    }
+    return scales;
   }
 
-  public void setStringParameter(int index, String value, int oid) throws SQLException {
+  @Override
+  public void setIntParameter(int index, String pgType, int value) throws SQLException {
     int sub = findSubParam(index);
-    subparams[sub].setStringParameter(index - offsets[sub], value, oid);
+    subparams[sub].setIntParameter(index - offsets[sub], pgType, value);
   }
 
-  public void setBinaryParameter(int index, byte[] value, int oid) throws SQLException {
+  @Override
+  public void setLiteralParameter(int index, String pgType, int scale, String value, int oid) throws SQLException {
     int sub = findSubParam(index);
-    subparams[sub].setBinaryParameter(index - offsets[sub], value, oid);
+    // TODO: Should this be a call to setLiteralParameter?
+    subparams[sub].setStringParameter(index - offsets[sub], pgType, scale, value, oid);
   }
 
-  public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
+  @Override
+  public void setStringParameter(int index, String pgType, int scale, String value, int oid) throws SQLException {
     int sub = findSubParam(index);
-    subparams[sub].setBytea(index - offsets[sub], data, offset, length);
+    subparams[sub].setStringParameter(index - offsets[sub], pgType, scale, value, oid);
   }
 
-  public void setBytea(int index, InputStream stream, int length) throws SQLException {
+  @Override
+  public void setBinaryParameter(int index, String pgType, byte[] value, int oid) throws SQLException {
     int sub = findSubParam(index);
-    subparams[sub].setBytea(index - offsets[sub], stream, length);
+    subparams[sub].setBinaryParameter(index - offsets[sub], pgType, value, oid);
   }
 
-  public void setBytea(int index, InputStream stream) throws SQLException {
+  @Override
+  public void setBytea(int index, String pgType, byte[] data, int offset, int length) throws SQLException {
     int sub = findSubParam(index);
-    subparams[sub].setBytea(index - offsets[sub], stream);
+    subparams[sub].setBytea(index - offsets[sub], pgType, data, offset, length);
   }
 
-  public void setText(int index, InputStream stream) throws SQLException {
+  @Override
+  public void setBytea(int index, String pgType, InputStream stream, int length) throws SQLException {
     int sub = findSubParam(index);
-    subparams[sub].setText(index - offsets[sub], stream);
+    subparams[sub].setBytea(index - offsets[sub], pgType, stream, length);
   }
 
-  public void setNull(int index, int oid) throws SQLException {
+  @Override
+  public void setBytea(int index, String pgType, int scaleOrLength, InputStream stream) throws SQLException {
     int sub = findSubParam(index);
-    subparams[sub].setNull(index - offsets[sub], oid);
+    subparams[sub].setBytea(index - offsets[sub], pgType, scaleOrLength, stream);
+  }
+
+  @Override
+  public void setText(int index, String pgType, int scaleOrLength, InputStream stream) throws SQLException {
+    int sub = findSubParam(index);
+    subparams[sub].setText(index - offsets[sub], pgType, scaleOrLength, stream);
+  }
+
+  @Override
+  public void setNull(int index, String pgType, int scale, int oid) throws SQLException {
+    int sub = findSubParam(index);
+    subparams[sub].setNull(index - offsets[sub], pgType, scale, oid);
   }
 
   public String toString(int index, boolean standardConformingStrings) {

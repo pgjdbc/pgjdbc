@@ -6,7 +6,6 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGResultSetMetaData;
-import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
@@ -17,12 +16,15 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.udt.UdtMap;
+import org.postgresql.udt.ValueAccessHelper;
+import org.postgresql.util.AsciiStream;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
+import org.postgresql.util.NumberConverter;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -34,9 +36,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -55,11 +54,8 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 //#endif
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -70,9 +66,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
@@ -92,6 +88,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private PreparedStatement selectStatement = null;
   private final int resultsettype;
   private final int resultsetconcurrency;
+
+  /**
+   * The user-defined data type map for this result set or {@link UdtMap#EMPTY}
+   * for no custom types.
+   */
+  private final UdtMap udtMap;
+
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
   private TimeZone defaultTimeZone;
   protected final BaseConnection connection; // the connection we belong to
@@ -136,9 +139,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return rsMetaData;
   }
 
+  /**
+   * @param udtMap the current user-defined data types or {@code null} to use
+   *               {@link BaseConnection#getUdtMap() the connection's user-defined data type map}.
+   */
   PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List<byte[][]> tuples,
       ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
-      int rsHoldability) throws SQLException {
+      int rsHoldability, UdtMap udtMap) throws SQLException {
+    // TODO: rsHoldability is unused
     // Fail-fast on invalid null inputs
     if (tuples == null) {
       throw new NullPointerException("tuples must be non-null");
@@ -148,7 +156,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     this.originalQuery = originalQuery;
-    this.connection = (BaseConnection) statement.getConnection();
+    this.connection = statement.getConnection();
     this.statement = statement;
     this.fields = fields;
     this.rows = tuples;
@@ -157,6 +165,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.maxFieldSize = maxFieldSize;
     this.resultsettype = rsType;
     this.resultsetconcurrency = rsConcurrency;
+    this.udtMap = (udtMap != null) ? udtMap : connection.getUdtMap();
   }
 
   public java.net.URL getURL(int columnIndex) throws SQLException {
@@ -168,109 +177,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public java.net.URL getURL(String columnName) throws SQLException {
     return getURL(findColumn(columnName));
-  }
-
-  protected Object internalGetObject(int columnIndex, Field field) throws SQLException {
-    switch (getSQLType(columnIndex)) {
-      case Types.BOOLEAN:
-      case Types.BIT:
-        return getBoolean(columnIndex);
-      case Types.SQLXML:
-        return getSQLXML(columnIndex);
-      case Types.TINYINT:
-      case Types.SMALLINT:
-      case Types.INTEGER:
-        return getInt(columnIndex);
-      case Types.BIGINT:
-        return getLong(columnIndex);
-      case Types.NUMERIC:
-      case Types.DECIMAL:
-        return getNumeric(columnIndex,
-            (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff), true);
-      case Types.REAL:
-        return getFloat(columnIndex);
-      case Types.FLOAT:
-      case Types.DOUBLE:
-        return getDouble(columnIndex);
-      case Types.CHAR:
-      case Types.VARCHAR:
-      case Types.LONGVARCHAR:
-        return getString(columnIndex);
-      case Types.DATE:
-        return getDate(columnIndex);
-      case Types.TIME:
-        return getTime(columnIndex);
-      case Types.TIMESTAMP:
-        return getTimestamp(columnIndex, null);
-      case Types.BINARY:
-      case Types.VARBINARY:
-      case Types.LONGVARBINARY:
-        return getBytes(columnIndex);
-      case Types.ARRAY:
-        return getArray(columnIndex);
-      case Types.CLOB:
-        return getClob(columnIndex);
-      case Types.BLOB:
-        return getBlob(columnIndex);
-
-      default:
-        String type = getPGType(columnIndex);
-
-        // if the backend doesn't know the type then coerce to String
-        if (type.equals("unknown")) {
-          return getString(columnIndex);
-        }
-
-        if (type.equals("uuid")) {
-          if (isBinary(columnIndex)) {
-            return getUUID(this_row[columnIndex - 1]);
-          }
-          return getUUID(getString(columnIndex));
-        }
-
-        // Specialized support for ref cursors is neater.
-        if (type.equals("refcursor")) {
-          // Fetch all results.
-          String cursorName = getString(columnIndex);
-
-          StringBuilder sb = new StringBuilder("FETCH ALL IN ");
-          Utils.escapeIdentifier(sb, cursorName);
-
-          // nb: no BEGIN triggered here. This is fine. If someone
-          // committed, and the cursor was not holdable (closing the
-          // cursor), we avoid starting a new xact and promptly causing
-          // it to fail. If the cursor *was* holdable, we don't want a
-          // new xact anyway since holdable cursor state isn't affected
-          // by xact boundaries. If our caller didn't commit at all, or
-          // autocommit was on, then we wouldn't issue a BEGIN anyway.
-          //
-          // We take the scrollability from the statement, but until
-          // we have updatable cursors it must be readonly.
-          ResultSet rs =
-              connection.execSQLQuery(sb.toString(), resultsettype, ResultSet.CONCUR_READ_ONLY);
-          //
-          // In long running transactions these backend cursors take up memory space
-          // we could close in rs.close(), but if the transaction is closed before the result set,
-          // then
-          // the cursor no longer exists
-
-          sb.setLength(0);
-          sb.append("CLOSE ");
-          Utils.escapeIdentifier(sb, cursorName);
-          connection.execSQLUpdate(sb.toString());
-          ((PgResultSet) rs).setRefCursor(cursorName);
-          return rs;
-        }
-        if ("hstore".equals(type)) {
-          if (isBinary(columnIndex)) {
-            return HStoreConverter.fromBytes(this_row[columnIndex - 1], connection.getEncoding());
-          }
-          return HStoreConverter.fromString(getString(columnIndex));
-        }
-
-        // Caller determines what to do (JDBC3 overrides in this case)
-        return null;
-    }
   }
 
   private void checkScrollable() throws SQLException {
@@ -370,25 +276,31 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getArray(findColumn(colName));
   }
 
-  protected Array makeArray(int oid, byte[] value) throws SQLException {
+  protected Array makeArray(int oid, byte[] value) {
     return new PgArray(connection, oid, value);
   }
 
-  protected Array makeArray(int oid, String value) throws SQLException {
+  protected Array makeArray(int oid, String value) {
     return new PgArray(connection, oid, value);
   }
 
-  public java.sql.Array getArray(int i) throws SQLException {
-    checkResultSet(i);
+  public java.sql.Array getArray(int columnIndex) throws SQLException {
+    checkResultSet(columnIndex);
     if (wasNullFlag) {
       return null;
     }
 
-    int oid = fields[i - 1].getOID();
-    if (isBinary(i)) {
-      return makeArray(oid, this_row[i - 1]);
+    int oid = fields[columnIndex - 1].getOID();
+    if (isBinary(columnIndex)) {
+      return makeArray(oid, this_row[columnIndex - 1]);
     }
-    return makeArray(oid, getFixedString(i));
+    // TOOD: Do we always have this_row available in binary form?
+    //       Is this binary form a byte[] representation of this String?
+    //       If it is, should it be parsed in preference to creating a String then
+    //       parsing it?  In particular, we're trying to find a way to implement
+    //       StringValueAccess.getBytes().
+    // TODO: Is trimMoney correct here?  Why?
+    return makeArray(oid, NumberConverter.trimMoney(getString(columnIndex)));
   }
 
 
@@ -540,7 +452,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-  private LocalTime getLocalTime(int i) throws SQLException {
+  // TODO: This checks the OID for only byte[], while getLocalDateTime checks
+  //       OID for both byte[] and string versions.
+  LocalTime getLocalTime(int i) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
       return null;
@@ -549,7 +463,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (isBinary(i)) {
       int col = i - 1;
       int oid = fields[col].getOID();
-      if (oid == Oid.TIME) {
+      if (oid == Oid.TIME) { // TODO: Oid.TIMETZ, too?
         return connection.getTimestampUtils().toLocalTimeBin(this_row[col]);
       } else {
         throw new PSQLException(
@@ -610,8 +524,27 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return connection.getTimestampUtils().toTimestamp(cal, string);
   }
 
+
+  /**
+   * @see PgResultSetValueAccess#getCalendar()
+   */
+  Calendar getCalendar(int columnIndex) throws SQLException {
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
+    }
+
+    Timestamp timestampValue = getTimestamp(columnIndex);
+    Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
+    calendar.setTimeInMillis(timestampValue.getTime());
+    return calendar;
+  }
+
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-  private LocalDateTime getLocalDateTime(int i) throws SQLException {
+  // TODO: This checks the OID for both byte[] and String versions, while getLocalTime
+  //       only checks OID for byte[] version.
+  LocalDateTime getLocalDateTime(int i) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
       return null;
@@ -619,7 +552,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     int col = i - 1;
     int oid = fields[col].getOID();
-    if (oid != Oid.TIMESTAMP) {
+    if (oid != Oid.TIMESTAMP) { // TODO: Oid.TIMESTAMPTZ here, too?
       throw new PSQLException(
               GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                   Oid.toString(oid), "timestamp"),
@@ -654,24 +587,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public int getFetchDirection() throws SQLException {
     checkClosed();
     return fetchdirection;
-  }
-
-
-  public Object getObjectImpl(String columnName, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(findColumn(columnName), map);
-  }
-
-
-  /*
-   * This checks against map for the type of column i, and if found returns an object based on that
-   * mapping. The class must implement the SQLData interface.
-   */
-  public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException {
-    checkClosed();
-    if (map == null || map.isEmpty()) {
-      return getObject(i);
-    }
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
   }
 
 
@@ -1244,11 +1159,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(int columnIndex, Object x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(int columnIndex, Object x, int scale) throws SQLException {
     this.updateObject(columnIndex, x);
 
@@ -1512,12 +1429,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(String columnName, Object x, int scale)
       throws SQLException {
     updateObject(findColumn(columnName), x);
   }
 
 
+  // TODO: user-defined data types
   public synchronized void updateObject(String columnName, Object x) throws SQLException {
     updateObject(findColumn(columnName), x);
   }
@@ -1807,7 +1726,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return refCursorName;
   }
 
-  private void setRefCursor(String refCursorName) {
+  /**
+   * Public for access from {@link ValueAccessHelper#internalGetObject(org.postgresql.core.BaseConnection, int, org.postgresql.udt.ValueAccess, int, java.lang.String, int)}
+   *
+   * @param refCursorName the cursor name
+   *
+   * @see ValueAccessHelper#internalGetObject(org.postgresql.core.BaseConnection, int, org.postgresql.udt.ValueAccess, int, java.lang.String, int)
+   */
+  public void setRefCursor(String refCursorName) {
     this.refCursorName = refCursorName;
   }
 
@@ -1884,6 +1810,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
+  // TODO: This does not correctly throw SQLException when accessed before any get* method.
   public boolean wasNull() throws SQLException {
     checkClosed();
     return wasNullFlag;
@@ -1897,9 +1824,19 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     // varchar in binary is same as text, other binary fields are converted to their text format
-    if (isBinary(columnIndex) && getSQLType(columnIndex) != Types.VARCHAR) {
+    int sqlType;
+    if (isBinary(columnIndex) && (sqlType = getSQLType(columnIndex)) != Types.VARCHAR) {
       Field field = fields[columnIndex - 1];
-      Object obj = internalGetObject(columnIndex, field);
+      // TODO: getObject ends up calling internalGetObject anyway, no need to check it first?
+      int scale;
+      if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
+        scale = (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff);
+      } else {
+        scale = -1;
+      }
+      String pgType = getPGType(columnIndex);
+      Object obj = ValueAccessHelper.internalGetObject(connection, resultsettype, new PgResultSetValueAccess(this, columnIndex), sqlType, pgType, scale);
+
       if (obj == null) {
         // internalGetObject() knows jdbc-types and some extra like hstore. It does not know of
         // PGobject based types like geometric types but getObject does
@@ -1915,7 +1852,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return connection.getTimestampUtils().timeToString((java.util.Date) obj,
             oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ);
       }
-      if ("hstore".equals(getPGType(columnIndex))) {
+      if ("hstore".equals(pgType)) {
         return HStoreConverter.toString((Map<?, ?>) obj);
       }
       return trimString(columnIndex, obj.toString());
@@ -1969,14 +1906,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     if (isBinary(columnIndex)) {
-      return BooleanTypeUtil.castToBoolean(readDoubleValue(this_row[col], fields[col].getOID(), "boolean"));
+      return BooleanTypeUtil.fromNumber(readDoubleValue(this_row[col], fields[col].getOID(), "boolean"));
     }
 
-    return BooleanTypeUtil.castToBoolean(getString(columnIndex));
+    return BooleanTypeUtil.fromString(getString(columnIndex));
   }
-
-  private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
-  private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
 
   @Override
   public byte getByte(int columnIndex) throws SQLException {
@@ -1994,37 +1928,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           Byte.MAX_VALUE, "byte");
     }
 
-    String s = getString(columnIndex);
-
-    if (s != null) {
-      s = s.trim();
-      if (s.isEmpty()) {
-        return 0;
-      }
-      try {
-        // try the optimal parse
-        return Byte.parseByte(s);
-      } catch (NumberFormatException e) {
-        // didn't work, assume the column is not a byte
-        try {
-          BigDecimal n = new BigDecimal(s);
-          BigInteger i = n.toBigInteger();
-
-          int gt = i.compareTo(BYTEMAX);
-          int lt = i.compareTo(BYTEMIN);
-
-          if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-          }
-          return i.byteValue();
-        } catch (NumberFormatException ex) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-      }
-    }
-    return 0; // SQL NULL
+    return NumberConverter.toByte(getString(columnIndex)); // TODO: trimMoney here like in getShort?
   }
 
   @Override
@@ -2044,7 +1948,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return (short) readLongValue(this_row[col], oid, Short.MIN_VALUE, Short.MAX_VALUE, "short");
     }
 
-    return toShort(getFixedString(columnIndex));
+    return NumberConverter.toShort(NumberConverter.trimMoney(getString(columnIndex)));
   }
 
   public int getInt(int columnIndex) throws SQLException {
@@ -2066,11 +1970,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return getFastInt(columnIndex);
-      } catch (NumberFormatException ex) {
+        return NumberConverter.getFastInt(this_row[columnIndex - 1]);
+      } catch (NumberFormatException ignore) {
+        assert ignore == NumberConverter.FAST_NUMBER_FAILED;
       }
     }
-    return toInt(getFixedString(columnIndex));
+    return NumberConverter.toInt(NumberConverter.trimMoney(getString(columnIndex)));
   }
 
   public long getLong(int columnIndex) throws SQLException {
@@ -2092,197 +1997,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return getFastLong(columnIndex);
-      } catch (NumberFormatException ex) {
+        return NumberConverter.getFastLong(this_row[columnIndex - 1]);
+      } catch (NumberFormatException ignore) {
+        assert ignore == NumberConverter.FAST_NUMBER_FAILED;
       }
     }
-    return toLong(getFixedString(columnIndex));
-  }
-
-  /**
-   * A dummy exception thrown when fast byte[] to number parsing fails and no value can be returned.
-   * The exact stack trace does not matter because the exception is always caught and is not visible
-   * to users.
-   */
-  private static final NumberFormatException FAST_NUMBER_FAILED = new NumberFormatException() {
-
-    // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
-    // The field is not observable via reflection, however when throwable contains stacktrace, it
-    // does
-    // hold strong references to user objects (e.g. classes -> classloaders), thus it might lead to
-    // OutOfMemory conditions.
-    @Override
-    public synchronized Throwable fillInStackTrace() {
-      return this;
-    }
-  };
-
-  /**
-   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
-   * checkResultSet and handle null values prior to calling this function.
-   *
-   * @param columnIndex The column to parse.
-   * @return The parsed number.
-   * @throws SQLException If an error occurs while fetching column.
-   * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *         The value must then be parsed by {@link #toLong(String)}.
-   */
-  private long getFastLong(int columnIndex) throws SQLException, NumberFormatException {
-
-    byte[] bytes = this_row[columnIndex - 1];
-
-    if (bytes.length == 0) {
-      throw FAST_NUMBER_FAILED;
-    }
-
-    long val = 0;
-    int start;
-    boolean neg;
-    if (bytes[0] == '-') {
-      neg = true;
-      start = 1;
-      if (bytes.length == 1 || bytes.length > 19) {
-        throw FAST_NUMBER_FAILED;
-      }
-    } else {
-      start = 0;
-      neg = false;
-      if (bytes.length > 18) {
-        throw FAST_NUMBER_FAILED;
-      }
-    }
-
-    while (start < bytes.length) {
-      byte b = bytes[start++];
-      if (b < '0' || b > '9') {
-        throw FAST_NUMBER_FAILED;
-      }
-
-      val *= 10;
-      val += b - '0';
-    }
-
-    if (neg) {
-      val = -val;
-    }
-
-    return val;
-  }
-
-  /**
-   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
-   * checkResultSet and handle null values prior to calling this function.
-   *
-   * @param columnIndex The column to parse.
-   * @return The parsed number.
-   * @throws SQLException If an error occurs while fetching column.
-   * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *         The value must then be parsed by {@link #toInt(String)}.
-   */
-  private int getFastInt(int columnIndex) throws SQLException, NumberFormatException {
-
-    byte[] bytes = this_row[columnIndex - 1];
-
-    if (bytes.length == 0) {
-      throw FAST_NUMBER_FAILED;
-    }
-
-    int val = 0;
-    int start;
-    boolean neg;
-    if (bytes[0] == '-') {
-      neg = true;
-      start = 1;
-      if (bytes.length == 1 || bytes.length > 10) {
-        throw FAST_NUMBER_FAILED;
-      }
-    } else {
-      start = 0;
-      neg = false;
-      if (bytes.length > 9) {
-        throw FAST_NUMBER_FAILED;
-      }
-    }
-
-    while (start < bytes.length) {
-      byte b = bytes[start++];
-      if (b < '0' || b > '9') {
-        throw FAST_NUMBER_FAILED;
-      }
-
-      val *= 10;
-      val += b - '0';
-    }
-
-    if (neg) {
-      val = -val;
-    }
-
-    return val;
-  }
-
-  /**
-   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
-   * checkResultSet and handle null values prior to calling this function.
-   *
-   * @param columnIndex The column to parse.
-   * @return The parsed number.
-   * @throws SQLException If an error occurs while fetching column.
-   * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *         The value must then be parsed by {@link #toBigDecimal(String, int)}.
-   */
-  private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException, NumberFormatException {
-
-    byte[] bytes = this_row[columnIndex - 1];
-
-    if (bytes.length == 0) {
-      throw FAST_NUMBER_FAILED;
-    }
-
-    int scale = 0;
-    long val = 0;
-    int start;
-    boolean neg;
-    if (bytes[0] == '-') {
-      neg = true;
-      start = 1;
-      if (bytes.length == 1 || bytes.length > 19) {
-        throw FAST_NUMBER_FAILED;
-      }
-    } else {
-      start = 0;
-      neg = false;
-      if (bytes.length > 18) {
-        throw FAST_NUMBER_FAILED;
-      }
-    }
-
-    int periodsSeen = 0;
-    while (start < bytes.length) {
-      byte b = bytes[start++];
-      if (b < '0' || b > '9') {
-        if (b == '.') {
-          scale = bytes.length - start;
-          periodsSeen++;
-          continue;
-        } else {
-          throw FAST_NUMBER_FAILED;
-        }
-      }
-      val *= 10;
-      val += b - '0';
-    }
-
-    int numNonSignChars = neg ? bytes.length - 1 : bytes.length;
-    if (periodsSeen > 1 || periodsSeen == numNonSignChars) {
-      throw FAST_NUMBER_FAILED;
-    }
-
-    if (neg) {
-      val = -val;
-    }
-
-    return BigDecimal.valueOf(val, scale);
+    return NumberConverter.toLong(NumberConverter.trimMoney(getString(columnIndex)));
   }
 
   public float getFloat(int columnIndex) throws SQLException {
@@ -2301,7 +2021,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return (float) readDoubleValue(this_row[col], oid, "float");
     }
 
-    return toFloat(getFixedString(columnIndex));
+    return NumberConverter.toFloat(NumberConverter.trimMoney(getString(columnIndex)));
   }
 
   public double getDouble(int columnIndex) throws SQLException {
@@ -2320,51 +2040,26 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return readDoubleValue(this_row[col], oid, "double");
     }
 
-    return toDouble(getFixedString(columnIndex));
+    return NumberConverter.toDouble(NumberConverter.trimMoney(getString(columnIndex)));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @deprecated Use {@code getBigDecimal(int columnIndex)}
+   *             or {@code getBigDecimal(String columnLabel)}
+   */
+  @Deprecated
+  @Override
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBigDecimal columnIndex: {0}", columnIndex);
-    return (BigDecimal) getNumeric(columnIndex, scale, false);
-  }
 
-  private Number getNumeric(int columnIndex, int scale, boolean allowNaN) throws SQLException {
     checkResultSet(columnIndex);
     if (wasNullFlag) {
       return null;
     }
 
-    if (isBinary(columnIndex)) {
-      int sqlType = getSQLType(columnIndex);
-      if (sqlType != Types.NUMERIC && sqlType != Types.DECIMAL) {
-        Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
-        if (obj == null) {
-          return null;
-        }
-        if (obj instanceof Long || obj instanceof Integer || obj instanceof Byte) {
-          BigDecimal res = BigDecimal.valueOf(((Number) obj).longValue());
-          res = scaleBigDecimal(res, scale);
-          return res;
-        }
-        return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
-      }
-    }
-
-    Encoding encoding = connection.getEncoding();
-    if (encoding.hasAsciiNumbers()) {
-      try {
-        BigDecimal res = getFastBigDecimal(columnIndex);
-        res = scaleBigDecimal(res, scale);
-        return res;
-      } catch (NumberFormatException ignore) {
-      }
-    }
-
-    String stringValue = getFixedString(columnIndex);
-    if (allowNaN && "NaN".equalsIgnoreCase(stringValue)) {
-      return Double.NaN;
-    }
-    return toBigDecimal(stringValue, scale);
+    return (BigDecimal) ValueAccessHelper.getNumeric(connection, resultsettype, new PgResultSetValueAccess(this, columnIndex), getSQLType(columnIndex), getPGType(columnIndex), scale, false);
   }
 
   /**
@@ -2422,14 +2117,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
-    try {
-      return new ByteArrayInputStream(getString(columnIndex).getBytes("ASCII"));
-    } catch (UnsupportedEncodingException l_uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
-    }
+    return AsciiStream.getAsciiStream(getString(columnIndex));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @deprecated use <code>getCharacterStream</code> in place of
+   *              <code>getUnicodeStream</code>
+   */
+  @Deprecated
+  @Override
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getUnicodeStream columnIndex: {0}", columnIndex);
     checkResultSet(columnIndex);
@@ -2505,6 +2203,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getDouble(findColumn(columnName));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @deprecated Use {@code getBigDecimal(int columnIndex)}
+   *             or {@code getBigDecimal(String columnLabel)}
+   */
+  @Deprecated
+  @Override
   public BigDecimal getBigDecimal(String columnName, int scale) throws SQLException {
     return getBigDecimal(findColumn(columnName), scale);
   }
@@ -2529,6 +2235,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getAsciiStream(findColumn(columnName));
   }
 
+  /**
+   * {@inheritDoc}
+   * @deprecated use <code>getCharacterStream</code> instead
+   */
+  @Deprecated
+  @Override
   public InputStream getUnicodeStream(String columnName) throws SQLException {
     return getUnicodeStream(findColumn(columnName));
   }
@@ -2561,31 +2273,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public Object getObject(int columnIndex) throws SQLException {
-    connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
-    Field field;
-
-    checkResultSet(columnIndex);
-    if (wasNullFlag) {
-      return null;
-    }
-
-    field = fields[columnIndex - 1];
-
-    // some fields can be null, mainly from those returned by MetaData methods
-    if (field == null) {
-      wasNullFlag = true;
-      return null;
-    }
-
-    Object result = internalGetObject(columnIndex, field);
-    if (result != null) {
-      return result;
-    }
-
-    if (isBinary(columnIndex)) {
-      return connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
-    }
-    return connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
+    return getObject(columnIndex, (Map)null);
   }
 
   public Object getObject(String columnName) throws SQLException {
@@ -2606,7 +2294,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public static Map<String, Integer> createColumnNameIndexMap(Field[] fields,
       boolean isSanitiserDisabled) {
-    Map<String, Integer> columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
+    Map<String, Integer> columnNameIndexMap = new HashMap<String, Integer>((int) (fields.length / 0.75) + 1, 0.75f);
     // The JDBC spec says when you have duplicate columns names,
     // the first one should be returned. So load the map in
     // reverse order so the first ones will overwrite later ones.
@@ -2661,49 +2349,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return fields[field - 1].getOID();
   }
 
-  /**
-   * <p>This is used to fix get*() methods on Money fields. It should only be used by those methods!</p>
-   *
-   * <p>It converts ($##.##) to -##.## and $##.## to ##.##</p>
-   *
-   * @param col column position (1-based)
-   * @return numeric-parsable representation of money string literal
-   * @throws SQLException if something wrong happens
-   */
-  public String getFixedString(int col) throws SQLException {
-    return trimMoney(getString(col));
-  }
-
-  private String trimMoney(String s) {
-    if (s == null) {
-      return null;
-    }
-
-    // if we don't have at least 2 characters it can't be money.
-    if (s.length() < 2) {
-      return s;
-    }
-
-    // Handle Money
-    char ch = s.charAt(0);
-
-    // optimise for non-money type: return immediately with one check
-    // if the first char cannot be '(', '$' or '-'
-    if (ch > '-') {
-      return s;
-    }
-
-    if (ch == '(') {
-      s = "-" + PGtokenizer.removePara(s).substring(1);
-    } else if (ch == '$') {
-      s = s.substring(1);
-    } else if (ch == '-' && s.charAt(1) == '$') {
-      s = "-" + s.substring(2);
-    }
-
-    return s;
-  }
-
   protected String getPGType(int column) throws SQLException {
     Field field = fields[column - 1];
     initSqlType(field);
@@ -2740,7 +2385,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (updateValues == null) {
       // allow every column to be updated without a rehash.
-      updateValues = new HashMap<String, Object>((int) (fields.length / 0.75), 0.75f);
+      updateValues = new HashMap<String, Object>((int) (fields.length / 0.75) + 1, 0.75f);
     }
   }
 
@@ -2792,158 +2437,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    */
   protected boolean isBinary(int column) {
     return fields[column - 1].getFormat() == Field.BINARY_FORMAT;
-  }
-
-  // ----------------- Formatting Methods -------------------
-
-  private static final BigInteger SHORTMAX = new BigInteger(Short.toString(Short.MAX_VALUE));
-  private static final BigInteger SHORTMIN = new BigInteger(Short.toString(Short.MIN_VALUE));
-
-  public static short toShort(String s) throws SQLException {
-    if (s != null) {
-      try {
-        s = s.trim();
-        return Short.parseShort(s);
-      } catch (NumberFormatException e) {
-        try {
-          BigDecimal n = new BigDecimal(s);
-          BigInteger i = n.toBigInteger();
-          int gt = i.compareTo(SHORTMAX);
-          int lt = i.compareTo(SHORTMIN);
-
-          if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-          }
-          return i.shortValue();
-
-        } catch (NumberFormatException ne) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-      }
-    }
-    return 0; // SQL NULL
-  }
-
-  private static final BigInteger INTMAX = new BigInteger(Integer.toString(Integer.MAX_VALUE));
-  private static final BigInteger INTMIN = new BigInteger(Integer.toString(Integer.MIN_VALUE));
-
-  public static int toInt(String s) throws SQLException {
-    if (s != null) {
-      try {
-        s = s.trim();
-        return Integer.parseInt(s);
-      } catch (NumberFormatException e) {
-        try {
-          BigDecimal n = new BigDecimal(s);
-          BigInteger i = n.toBigInteger();
-
-          int gt = i.compareTo(INTMAX);
-          int lt = i.compareTo(INTMIN);
-
-          if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "int", s),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-          }
-          return i.intValue();
-
-        } catch (NumberFormatException ne) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "int", s),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-      }
-    }
-    return 0; // SQL NULL
-  }
-
-  private static final BigInteger LONGMAX = new BigInteger(Long.toString(Long.MAX_VALUE));
-  private static final BigInteger LONGMIN = new BigInteger(Long.toString(Long.MIN_VALUE));
-
-  public static long toLong(String s) throws SQLException {
-    if (s != null) {
-      try {
-        s = s.trim();
-        return Long.parseLong(s);
-      } catch (NumberFormatException e) {
-        try {
-          BigDecimal n = new BigDecimal(s);
-          BigInteger i = n.toBigInteger();
-          int gt = i.compareTo(LONGMAX);
-          int lt = i.compareTo(LONGMIN);
-
-          if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", s),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-          }
-          return i.longValue();
-        } catch (NumberFormatException ne) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", s),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-      }
-    }
-    return 0; // SQL NULL
-  }
-
-  public static BigDecimal toBigDecimal(String s) throws SQLException {
-    if (s == null) {
-      return null;
-    }
-    try {
-      s = s.trim();
-      return new BigDecimal(s);
-    } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "BigDecimal", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-  }
-
-  public BigDecimal toBigDecimal(String s, int scale) throws SQLException {
-    if (s == null) {
-      return null;
-    }
-    BigDecimal val = toBigDecimal(s);
-    return scaleBigDecimal(val, scale);
-  }
-
-  private BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
-    if (scale == -1) {
-      return val;
-    }
-    try {
-      return val.setScale(scale);
-    } catch (ArithmeticException e) {
-      throw new PSQLException(
-          GT.tr("Bad value for type {0} : {1}", "BigDecimal", val),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-  }
-
-  public static float toFloat(String s) throws SQLException {
-    if (s != null) {
-      try {
-        s = s.trim();
-        return Float.parseFloat(s);
-      } catch (NumberFormatException e) {
-        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "float", s),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-    }
-    return 0; // SQL NULL
-  }
-
-  public static double toDouble(String s) throws SQLException {
-    if (s != null) {
-      try {
-        s = s.trim();
-        return Double.parseDouble(s);
-      } catch (NumberFormatException e) {
-        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "double", s),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-    }
-    return 0; // SQL NULL
   }
 
   private void initRowBuffer() {
@@ -3062,8 +2555,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         break;
       default:
         throw new PSQLException(
+            // TODO: This error message is used a lot - put in Driver like the notImplemented error?
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                 Oid.toString(oid), targetType),
+            // TODO: CANNOT_COERCE better here?  Look elsewhere, too
             PSQLState.DATA_TYPE_MISMATCH);
     }
     if (val < minVal || val > maxVal) {
@@ -3092,21 +2587,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       PGResultSetMetaData md = (PGResultSetMetaData) getMetaData();
       updateValues.put(md.getBaseColumnName(columnIndex), value);
     }
-  }
-
-  protected Object getUUID(String data) throws SQLException {
-    UUID uuid;
-    try {
-      uuid = UUID.fromString(data);
-    } catch (IllegalArgumentException iae) {
-      throw new PSQLException(GT.tr("Invalid UUID data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
-    }
-
-    return uuid;
-  }
-
-  protected Object getUUID(byte[] data) throws SQLException {
-    return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
   }
 
   private class PrimaryKey {
@@ -3179,297 +2659,134 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     updateArray(findColumn(columnName), x);
   }
 
+  // TODO: Must this pgType match that of this column?
+  PGobject getPGobject(int columnIndex, String pgType) throws SQLException {
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
+    }
+    if (isBinary(columnIndex)) {
+      return connection.getObject(pgType, null, this_row[columnIndex - 1]);
+    }
+    return connection.getObject(pgType, getString(columnIndex), null);
+  }
+
+  <T extends PGobject> T getPGobject(int columnIndex, Class<T> type) throws SQLException {
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
+    }
+    PGobject object;
+    if (isBinary(columnIndex)) {
+      object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
+    } else {
+      object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
+    }
+    // TODO: Check if assignable first and make a more appropriate SQLException?
+    return type.cast(object);
+  }
+
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+    return getObjectImpl(columnIndex, type, udtMap);
+  }
+
+  /**
+   * The implementation of {@link #getObject(int, java.lang.Class)}, but accepting
+   * the currently active type map.  This additional method is required because the
+   * provided map is used for type inference.
+   *
+   * @see #getObject(int, java.lang.Class)
+   * @see PgResultSetSQLInput#readObject(java.lang.Class)
+   */
+  <T> T getObjectImpl(int columnIndex, Class<T> type, UdtMap udtMap) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");
     }
-    int sqlType = getSQLType(columnIndex);
-    if (type == BigDecimal.class) {
-      if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
-        return type.cast(getBigDecimal(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == String.class) {
-      if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
-        return type.cast(getString(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Boolean.class) {
-      if (sqlType == Types.BOOLEAN || sqlType == Types.BIT) {
-        boolean booleanValue = getBoolean(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(booleanValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Short.class) {
-      if (sqlType == Types.SMALLINT) {
-        short shortValue = getShort(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(shortValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Integer.class) {
-      if (sqlType == Types.INTEGER || sqlType == Types.SMALLINT) {
-        int intValue = getInt(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(intValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Long.class) {
-      if (sqlType == Types.BIGINT) {
-        long longValue = getLong(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(longValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == BigInteger.class) {
-      if (sqlType == Types.BIGINT) {
-        long longValue = getLong(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(BigInteger.valueOf(longValue));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Float.class) {
-      if (sqlType == Types.REAL) {
-        float floatValue = getFloat(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(floatValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Double.class) {
-      if (sqlType == Types.FLOAT || sqlType == Types.DOUBLE) {
-        double doubleValue = getDouble(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(doubleValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Date.class) {
-      if (sqlType == Types.DATE) {
-        return type.cast(getDate(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Time.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Timestamp.class) {
-      if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      //#endif
-      ) {
-        return type.cast(getTimestamp(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Calendar.class) {
-      if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      //#endif
-      ) {
-        Timestamp timestampValue = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
-        calendar.setTimeInMillis(timestampValue.getTime());
-        return type.cast(calendar);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Blob.class) {
-      if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.BIGINT) {
-        return type.cast(getBlob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Clob.class) {
-      if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
-        return type.cast(getClob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == java.util.Date.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        Timestamp timestamp = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(new java.util.Date(timestamp.getTime()));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Array.class) {
-      if (sqlType == Types.ARRAY) {
-        return type.cast(getArray(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == SQLXML.class) {
-      if (sqlType == Types.SQLXML) {
-        return type.cast(getSQLXML(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == UUID.class) {
-      return type.cast(getObject(columnIndex));
-    } else if (type == InetAddress.class) {
-      Object addressString = getObject(columnIndex);
-      if (addressString == null) {
-        return null;
-      }
-      try {
-        return type.cast(InetAddress.getByName(((PGobject) addressString).getValue()));
-      } catch (UnknownHostException e) {
-        throw new SQLException("could not create inet address from string '" + addressString + "'");
-      }
-      // JSR-310 support
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-    } else if (type == LocalDate.class) {
-      if (sqlType == Types.DATE) {
-        Date dateValue = getDate(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        long time = dateValue.getTime();
-        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(LocalDate.MAX);
-        }
-        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(LocalDate.MIN);
-        }
-        return type.cast(dateValue.toLocalDate());
-      } else if (sqlType == Types.TIMESTAMP) {
-        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(localDateTimeValue.toLocalDate());
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == LocalTime.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getLocalTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == LocalDateTime.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        return type.cast(getLocalDateTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == OffsetDateTime.class) {
-      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
-        Timestamp timestampValue = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        long time = timestampValue.getTime();
-        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(OffsetDateTime.MAX);
-        }
-        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(OffsetDateTime.MIN);
-        }
-        // Postgres stores everything in UTC and does not keep original time zone
-        OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
-        return type.cast(offsetDateTime);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-      //#endif
-    } else if (PGobject.class.isAssignableFrom(type)) {
-      Object object;
-      if (isBinary(columnIndex)) {
-        object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
-      } else {
-        object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
-      }
-      return type.cast(object);
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
     }
-    throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-            PSQLState.INVALID_PARAMETER_VALUE);
+    return new PgResultSetValueAccess(this, columnIndex).getObject(type, udtMap);
   }
 
   public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
     return getObject(findColumn(columnLabel), type);
   }
 
-  public Object getObject(String s, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(s, map);
+  /**
+   * {@inheritDoc}
+   *
+   * @see #getObjectImpl(int, org.postgresql.udt.UdtMap)
+   */
+  public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
+    UdtMap udtMap;
+    if (map == null) {
+      // https://docs.oracle.com/javase/tutorial/jdbc/basics/sqlcustommapping.html:
+      //   "If you do not pass a type map to a method that can accept one, the driver will by default use the type map associated with the connection."
+      udtMap = this.udtMap;
+      map = udtMap.getTypeMap();
+    } else {
+      udtMap = new UdtMap(map);
+    }
+    return getObjectImpl(columnIndex, udtMap);
   }
 
-  public Object getObject(int i, Map<String, Class<?>> map) throws SQLException {
-    return getObjectImpl(i, map);
+  /**
+   * @param columnIndex the first column is 1, the second is 2, ...
+   * @param udtMap the current user-defined data types
+   * @return the object
+   * @throws SQLException if something wrong happens
+   *
+   * @see PgResultSetValueAccess#getObject(org.postgresql.udt.UdtMap)
+   * @see ValueAccessHelper#getObject(org.postgresql.core.BaseConnection, int, org.postgresql.udt.ValueAccess, int, java.lang.String, org.postgresql.udt.UdtMap, org.postgresql.util.PSQLState)
+   */
+  public Object getObjectImpl(int columnIndex, UdtMap udtMap) throws SQLException {
+    Logger logger = connection.getLogger();
+    logger.log(Level.FINEST, "  getObjectImpl columnIndex: {0}", columnIndex);
+    Field field;
+
+    checkResultSet(columnIndex);
+    if (wasNullFlag) {
+      return null;
+    }
+
+    field = fields[columnIndex - 1];
+
+    // some fields can be null, mainly from those returned by MetaData methods
+    if (field == null) {
+      wasNullFlag = true;
+      return null;
+    }
+
+    return ValueAccessHelper.getObject(connection, resultsettype, new PgResultSetValueAccess(this, columnIndex),
+        // PSQLState.INVALID_PARAMETER_VALUE is consistent with previous implementation of PgResultSet.getObject(Class)
+        getSQLType(columnIndex), getPGType(columnIndex), udtMap, PSQLState.INVALID_PARAMETER_VALUE);
+  }
+
+  public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
+    return getObject(findColumn(columnLabel), map);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  // TODO: user-defined data types
   public void updateObject(int columnIndex, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  // TODO: user-defined data types
   public void updateObject(String columnLabel, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  // TODO: user-defined data types
   public void updateObject(int columnIndex, Object x, java.sql.SQLType targetSqlType)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  // TODO: user-defined data types
   public void updateObject(String columnLabel, Object x, java.sql.SQLType targetSqlType)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");

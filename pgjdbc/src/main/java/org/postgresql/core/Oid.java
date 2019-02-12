@@ -16,6 +16,7 @@ import java.util.Map;
 /**
  * Provides constants for well-known backend OIDs for the types we commonly use.
  */
+// TODO: This looks like a very good candidate for an Enum.
 public class Oid {
   public static final int UNSPECIFIED = 0;
   public static final int INT2 = 21;
@@ -113,6 +114,8 @@ public class Oid {
     if (oid.length() > 0 && !Character.isDigit(oid.charAt(0))) {
       Integer id = NAME_TO_OID.get(oid);
       if (id == null) {
+        // TODO: Locale-sensitive toUpperCase() here.  Should be toUpperCase(Locale.ROOT).
+        //       There should be a quick review of the entire codebase for toUpperCase() and toLowerCase() without Locale.
         id = NAME_TO_OID.get(oid.toUpperCase());
       }
       if (id != null) {

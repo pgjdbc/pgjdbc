@@ -39,7 +39,7 @@ public interface TypeInfo {
    * {@link #getPGType(int)}.
    *
    * @param pgTypeName the server type name to look up
-   * @return the type's OID, or 0 if unknown
+   * @return the type's OID, or {@link Oid#UNSPECIFIED} if unknown
    * @throws SQLException if an error occurs when retrieving PG type
    */
   int getPGType(String pgTypeName) throws SQLException;
@@ -58,7 +58,7 @@ public interface TypeInfo {
    * Look up the oid of an array's base type given the array's type oid.
    *
    * @param oid the array type's OID
-   * @return the base type's OID, or 0 if unknown
+   * @return the base type's OID, or {@link Oid#UNSPECIFIED} if unknown
    * @throws SQLException if an error occurs when retrieving array element
    */
   int getPGArrayElement(int oid) throws SQLException;
@@ -67,7 +67,7 @@ public interface TypeInfo {
    * Determine the oid of the given base postgresql type's array type.
    *
    * @param elementTypeName the base type's
-   * @return the array type's OID, or 0 if unknown
+   * @return the array type's OID, or {@link Oid#UNSPECIFIED} if unknown
    * @throws SQLException if an error occurs when retrieving array type
    */
   int getPGArrayType(String elementTypeName) throws SQLException;

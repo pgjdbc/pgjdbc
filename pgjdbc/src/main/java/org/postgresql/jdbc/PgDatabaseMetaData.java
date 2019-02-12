@@ -1239,7 +1239,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1430,7 +1430,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tuple[0] = connection.encodeString(connection.getCatalog());
     v.add(tuple);
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1447,7 +1447,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       v.add(tuple);
     }
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
@@ -1630,7 +1630,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1715,7 +1715,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   @Override
@@ -1785,7 +1785,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   /**
@@ -2017,7 +2017,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getVersionColumns(String catalog, String schema, String table)
@@ -2059,7 +2059,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     /*
      * Perhaps we should check that the given catalog.schema.table actually exists. -KJ
      */
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getPrimaryKeys(String catalog, String schema, String table)
@@ -2301,7 +2301,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getIndexInfo(String catalog, String schema, String tableName,
@@ -2474,6 +2474,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
+  // TODO: Should the current type map affect this?  Such as selecting the form of pgType that matches the currently
+  //       mapped type.  Furthermore, does this format the type consistent with TypeInfo.getPGType(), especially
+  //       regarding quoting, or lack thereof, on the schema and name parts, along with the presence or not of the
+  //       schema.  We require consistency between this and the pgType representation used elsewhere.
+  //
+  // TODO: Are domains returned in this?
+  //
+  // TODO: What if a type is mapped that doesn't exist in the database?  This works currently because of the type
+  //       inference necessary to handle DOMAIN, which are passed by the oid of their base.  If type mapped and not
+  //       in this, should it be added to the results for consistency?  Alternatively, if domains are returned by this
+  //       method, should we use this to enforce correct domain -> base oid mappings, and have the type inference be
+  //       more strict?  It is very lenient right now.
+  @Override
   public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
       int[] types) throws SQLException {
     String sql = "select "
@@ -2599,7 +2612,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       v.add(tuple);
     }
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
@@ -2848,7 +2861,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v, null);
   }
 
   public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
