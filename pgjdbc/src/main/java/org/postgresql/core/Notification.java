@@ -8,37 +8,38 @@ package org.postgresql.core;
 import org.postgresql.PGNotification;
 
 public class Notification implements PGNotification {
-  public Notification(String p_name, int p_pid) {
-    this(p_name, p_pid, "");
+
+  private final String name;
+  private final String parameter;
+  private final int pid;
+
+  public Notification(String name, int pid) {
+    this(name, pid, "");
   }
 
-  public Notification(String p_name, int p_pid, String p_parameter) {
-    m_name = p_name;
-    m_pid = p_pid;
-    m_parameter = p_parameter;
+  public Notification(String name, int pid, String parameter) {
+    this.name = name;
+    this.pid = pid;
+    this.parameter = parameter;
   }
 
   /*
    * Returns name of this notification
    */
   public String getName() {
-    return m_name;
+    return name;
   }
 
   /*
    * Returns the process id of the backend process making this notification
    */
   public int getPID() {
-    return m_pid;
+    return pid;
   }
 
   public String getParameter() {
-    return m_parameter;
+    return parameter;
   }
-
-  private String m_name;
-  private String m_parameter;
-  private int m_pid;
 
 }
 

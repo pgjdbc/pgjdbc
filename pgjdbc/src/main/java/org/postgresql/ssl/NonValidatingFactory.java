@@ -32,7 +32,7 @@ public class NonValidatingFactory extends WrappedFactory {
 
     ctx.init(null, new TrustManager[]{new NonValidatingTM()}, null);
 
-    _factory = ctx.getSocketFactory();
+    factory = ctx.getSocketFactory();
   }
 
   public static class NonValidatingTM implements X509TrustManager {

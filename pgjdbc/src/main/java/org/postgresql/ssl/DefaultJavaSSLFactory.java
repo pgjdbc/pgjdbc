@@ -15,6 +15,6 @@ import javax.net.ssl.SSLSocketFactory;
  */
 public class DefaultJavaSSLFactory extends WrappedFactory {
   public DefaultJavaSSLFactory(Properties info) {
-    _factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+    factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
   }
 }

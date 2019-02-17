@@ -175,9 +175,9 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
     }
 
     // Last attempt: no DNS Subject Alternative Name entries detected, try common name
-    LdapName DN;
+    LdapName dn;
     try {
-      DN = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
+      dn = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
     } catch (InvalidNameException e) {
       LOGGER.log(Level.SEVERE,
           GT.tr("Server name validation failed: unable to extract common name"
@@ -186,7 +186,7 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
     }
 
     List<String> commonNames = new ArrayList<String>(1);
-    for (Rdn rdn : DN.getRdns()) {
+    for (Rdn rdn : dn.getRdns()) {
       if ("CN".equals(rdn.getType())) {
         commonNames.add((String) rdn.getValue());
       }

@@ -40,11 +40,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   protected final PgConnection connection; // The connection association
 
-  private int NAMEDATALEN = 0; // length for name datatype
-  private int INDEX_MAX_KEYS = 0; // maximum number of keys in an index.
+  private int nameDataLength = 0; // length for name datatype
+  private int indexMaxKeys = 0; // maximum number of keys in an index.
 
   protected int getMaxIndexKeys() throws SQLException {
-    if (INDEX_MAX_KEYS == 0) {
+    if (indexMaxKeys == 0) {
       String sql;
       sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='max_index_keys'";
 
@@ -59,17 +59,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                   "Unable to determine a value for MaxIndexKeys due to missing system catalog data."),
               PSQLState.UNEXPECTED_ERROR);
         }
-        INDEX_MAX_KEYS = rs.getInt(1);
+        indexMaxKeys = rs.getInt(1);
       } finally {
         JdbcBlackHole.close(rs);
         JdbcBlackHole.close(stmt);
       }
     }
-    return INDEX_MAX_KEYS;
+    return indexMaxKeys;
   }
 
   protected int getMaxNameLength() throws SQLException {
-    if (NAMEDATALEN == 0) {
+    if (nameDataLength == 0) {
       String sql;
       sql = "SELECT t.typlen FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n "
             + "WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'";
@@ -82,13 +82,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           throw new PSQLException(GT.tr("Unable to find name datatype in the system catalogs."),
               PSQLState.UNEXPECTED_ERROR);
         }
-        NAMEDATALEN = rs.getInt("typlen");
+        nameDataLength = rs.getInt("typlen");
       } finally {
         JdbcBlackHole.close(rs);
         JdbcBlackHole.close(stmt);
       }
     }
-    return NAMEDATALEN - 1;
+    return nameDataLength - 1;
   }
 
 

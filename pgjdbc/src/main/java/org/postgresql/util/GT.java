@@ -25,25 +25,25 @@ public class GT {
     return _gt.translate(message, args);
   }
 
-  private ResourceBundle _bundle;
+  private ResourceBundle bundle;
 
   private GT() {
     try {
       //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
+      bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
       //#else
-      _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages", Locale.getDefault(Locale.Category.DISPLAY));
+      bundle = ResourceBundle.getBundle("org.postgresql.translation.messages", Locale.getDefault(Locale.Category.DISPLAY));
       //#endif
     } catch (MissingResourceException mre) {
       // translation files have not been installed
-      _bundle = null;
+      bundle = null;
     }
   }
 
   private String translate(String message, Object[] args) {
-    if (_bundle != null && message != null) {
+    if (bundle != null && message != null) {
       try {
-        message = _bundle.getString(message);
+        message = bundle.getString(message);
       } catch (MissingResourceException mre) {
         // If we can't find a translation, just
         // use the untranslated message.

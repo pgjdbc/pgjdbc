@@ -157,7 +157,7 @@ public class LibPQFactory extends WrappedFactory {
             PSQLState.CONNECTION_FAILURE, ex);
       }
 
-      _factory = ctx.getSocketFactory();
+      factory = ctx.getSocketFactory();
     } catch (NoSuchAlgorithmException ex) {
       throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
               ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);

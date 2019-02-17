@@ -56,15 +56,15 @@ public class XmlTest extends BaseTest4 {
   private static final String _xmlDocument = "<a><b>1</b><b>2</b></a>";
   private static final String _xmlFragment = "<a>f</a><b>g</b>";
 
-  private final Transformer _xslTransformer;
-  private final Transformer _identityTransformer;
+  private final Transformer xslTransformer;
+  private final Transformer identityTransformer;
 
 
   public XmlTest() throws Exception {
     TransformerFactory factory = TransformerFactory.newInstance();
-    _xslTransformer = factory.newTransformer(new StreamSource(new StringReader(_xsl)));
-    _xslTransformer.setErrorListener(new Ignorer());
-    _identityTransformer = factory.newTransformer();
+    xslTransformer = factory.newTransformer(new StreamSource(new StringReader(_xsl)));
+    xslTransformer.setErrorListener(new Ignorer());
+    identityTransformer = factory.newTransformer();
   }
 
   @Override
@@ -144,7 +144,7 @@ public class XmlTest extends BaseTest4 {
   private void transform(Source source) throws Exception {
     StringWriter writer = new StringWriter();
     StreamResult result = new StreamResult(writer);
-    _xslTransformer.transform(source, result);
+    xslTransformer.transform(source, result);
     assertEquals("B1B2", writer.toString());
   }
 
@@ -196,7 +196,7 @@ public class XmlTest extends BaseTest4 {
     Result result = xml.setResult(resultClass);
 
     Source source = new StreamSource(new StringReader(_xmlDocument));
-    _identityTransformer.transform(source, result);
+    identityTransformer.transform(source, result);
 
     ps.setInt(1, 1);
     ps.setSQLXML(2, xml);

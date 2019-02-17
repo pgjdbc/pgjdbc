@@ -37,7 +37,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public PgResultSetMetaData(BaseConnection connection, Field[] fields) {
     this.connection = connection;
     this.fields = fields;
-    fieldInfoFetched = false;
+    this.fieldInfoFetched = false;
   }
 
   public int getColumnCount() throws SQLException {
@@ -87,6 +87,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * @return true if they can be used in a WHERE clause
    * @exception SQLException if a database access error occurs
    */
+  @Override
   public boolean isSearchable(int column) throws SQLException {
     return true;
   }
@@ -101,12 +102,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * @return true if its a cash column
    * @exception SQLException if a database access error occurs
    */
+  @Override
   public boolean isCurrency(int column) throws SQLException {
-    String type_name = getPGType(column);
+    String typeName = getPGType(column);
 
-    return type_name.equals("cash") || type_name.equals("money");
+    return typeName.equals("cash") || typeName.equals("money");
   }
 
+  @Override
   public int isNullable(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);

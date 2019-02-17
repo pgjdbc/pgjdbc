@@ -223,7 +223,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Query wrap(List<NativeQuery> queries) {
     if (queries.isEmpty()) {
       // Empty query
-      return EMPTY_QUERY;
+      return emptyQuery;
     }
     if (queries.size() == 1) {
       NativeQuery firstQuery = queries.get(0);
@@ -2341,9 +2341,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * communication stream.
    */
   private void skipMessage() throws IOException {
-    int l_len = pgStream.receiveInteger4();
-    // skip l_len-4 (length includes the 4 bytes for message length itself
-    pgStream.skip(l_len - 4);
+    int len = pgStream.receiveInteger4();
+    // skip len-4 (length includes the 4 bytes for message length itself
+    pgStream.skip(len - 4);
   }
 
   public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
@@ -2385,7 +2385,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    int l_msgSize = pgStream.receiveInteger4();
+    int msgSize = pgStream.receiveInteger4();
     int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
@@ -2459,9 +2459,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private String receiveCommandStatus() throws IOException {
     // TODO: better handle the msg len
-    int l_len = pgStream.receiveInteger4();
-    // read l_len -5 bytes (-4 for l_len and -1 for trailing \0)
-    String status = pgStream.receiveString(l_len - 5);
+    int len = pgStream.receiveInteger4();
+    // read len -5 bytes (-4 for len and -1 for trailing \0)
+    String status = pgStream.receiveString(len - 5);
     // now read and discard the trailing \0
     pgStream.receiveChar(); // Receive(1) would allocate new byte[1], so avoid it
 
@@ -2538,8 +2538,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'K':
           // BackendKeyData
-          int l_msgLen = pgStream.receiveInteger4();
-          if (l_msgLen != 12) {
+          int msgLen = pgStream.receiveInteger4();
+          if (msgLen != 12) {
             throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
                 PSQLState.PROTOCOL_VIOLATION);
           }
@@ -2583,7 +2583,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    int l_len = pgStream.receiveInteger4();
+    int len = pgStream.receiveInteger4();
     String name = pgStream.receiveString();
     String value = pgStream.receiveString();
 
@@ -2731,7 +2731,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
           null, false);
 
-  private final SimpleQuery EMPTY_QUERY =
+  private final SimpleQuery emptyQuery =
       new SimpleQuery(
           new NativeQuery("", new int[0], false,
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
