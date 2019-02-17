@@ -1322,7 +1322,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * see PGProperty#CLEANUP_SAVEPOINTS
-   * @param cleanupSavepoints set to enable
+   * @param cleanupSavepoints will cleanup savepoints after a successful transaction
    */
   public void setCleanupSavepoints(Boolean cleanupSavepoints) {
     PGProperty.CLEANUP_SAVEPOINTS.set(properties, cleanupSavepoints);
