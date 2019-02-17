@@ -1538,6 +1538,9 @@ public class PgConnection implements BaseConnection {
   }
 
   public void abort(Executor executor) throws SQLException {
+    if (executor == null) {
+      throw new SQLException("executor is null");
+    }
     if (isClosed()) {
       return;
     }
@@ -1545,11 +1548,7 @@ public class PgConnection implements BaseConnection {
     SQL_PERMISSION_ABORT.checkGuard(this);
 
     AbortCommand command = new AbortCommand();
-    if (executor != null) {
-      executor.execute(command);
-    } else {
-      command.run();
-    }
+    executor.execute(command);
   }
 
   public void setNetworkTimeout(Executor executor /*not used*/, int milliseconds) throws SQLException {

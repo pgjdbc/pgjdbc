@@ -84,4 +84,13 @@ public class AbortTest extends BaseTest4 {
       fail(e.getMessage());
     }
   }
+
+  /**
+   * According to the javadoc, calling abort when the {@code executor} is {@code null}
+   * results in SQLException
+   */
+  @Test(expected = SQLException.class)
+  public void abortWithNullExecutor() throws SQLException {
+    con.abort(null);
+  }
 }
