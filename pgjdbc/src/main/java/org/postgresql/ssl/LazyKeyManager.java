@@ -148,7 +148,7 @@ public class LazyKeyManager implements X509KeyManager {
             certfile), PSQLState.CONNECTION_FAILURE, gsex);
         return null;
       }
-      cert = certs.toArray(new X509Certificate[certs.size()]);
+      cert = certs.toArray(new X509Certificate[0]);
     }
     return cert;
   }

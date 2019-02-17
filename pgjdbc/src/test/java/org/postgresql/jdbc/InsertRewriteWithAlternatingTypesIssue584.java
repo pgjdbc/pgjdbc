@@ -101,8 +101,8 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
       Object[] row3 = new Object[]{1, ts, 0.0, true, null, ts, 0.0, 0.0};
       Object[][] tRows = new Object[][]{row0, row1, row2, row3};
       List<Object[]> rowList = new ArrayList<Object[]>();
-      for (int ROW_INDEX : ROW_INDEXES) {
-        rowList.add(tRows[ROW_INDEX]);
+      for (int rowIndex : ROW_INDEXES) {
+        rowList.add(tRows[rowIndex]);
       }
 
       StringBuilder sb = new StringBuilder();

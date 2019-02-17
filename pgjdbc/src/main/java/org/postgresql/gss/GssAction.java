@@ -57,10 +57,9 @@ class GssAction implements PrivilegedAction<Exception> {
     return false;
   }
 
+  @Override
   public Exception run() {
-
     try {
-
       GSSManager manager = GSSManager.getInstance();
       GSSCredential clientCreds = null;
       Oid[] desiredMechs = new Oid[1];
@@ -107,13 +106,13 @@ class GssAction implements PrivilegedAction<Exception> {
           // Error
           switch (response) {
             case 'E':
-              int l_elen = pgStream.receiveInteger4();
-              ServerErrorMessage l_errorMsg
-                  = new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
+              int elen = pgStream.receiveInteger4();
+              ServerErrorMessage errorMsg
+                  = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
 
-              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", l_errorMsg);
+              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
 
-              return new PSQLException(l_errorMsg);
+              return new PSQLException(errorMsg);
             case 'R':
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();

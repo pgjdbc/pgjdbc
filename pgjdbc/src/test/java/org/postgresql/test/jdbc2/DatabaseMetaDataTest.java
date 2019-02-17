@@ -571,17 +571,17 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
-    boolean l_foundSelect = false;
+    boolean foundSelect = false;
     while (rs.next()) {
       if (rs.getString("GRANTEE").equals(TestUtil.getUser())
           && rs.getString("PRIVILEGE").equals("SELECT")) {
-        l_foundSelect = true;
+        foundSelect = true;
       }
     }
     rs.close();
     // Test that the table owner has select priv
     assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        l_foundSelect);
+        foundSelect);
   }
 
   @Test

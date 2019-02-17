@@ -128,14 +128,14 @@ public class Base64 {
 
   /* Determine which ALPHABET to use. */
   static {
-    byte[] __bytes;
+    byte[] bytes;
     try {
-      __bytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+      bytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
           .getBytes(PREFERRED_ENCODING);
     } catch (java.io.UnsupportedEncodingException use) {
-      __bytes = _NATIVE_ALPHABET; // Fall back to native encoding
+      bytes = _NATIVE_ALPHABET; // Fall back to native encoding
     }
-    ALPHABET = __bytes;
+    ALPHABET = bytes;
   }
 
 

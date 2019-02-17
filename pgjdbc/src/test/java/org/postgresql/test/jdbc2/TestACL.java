@@ -14,8 +14,8 @@ public class TestACL {
 
   @Test
   public void testParseACL() {
-    PgConnection _a = null;
-    PgDatabaseMetaData a = new PgDatabaseMetaData(_a) {
+    PgConnection pgConnection = null;
+    PgDatabaseMetaData a = new PgDatabaseMetaData(pgConnection) {
     };
     a.parseACL("{jurka=arwdRxt/jurka,permuser=rw*/jurka}", "jurka");
     a.parseACL("{jurka=a*r*w*d*R*x*t*/jurka,permuser=rw*/jurka}", "jurka");

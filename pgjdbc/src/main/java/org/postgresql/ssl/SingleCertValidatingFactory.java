@@ -123,7 +123,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
 
       SSLContext ctx = SSLContext.getInstance("TLS");
       ctx.init(null, new TrustManager[]{new SingleCertTrustManager(in)}, null);
-      _factory = ctx.getSocketFactory();
+      factory = ctx.getSocketFactory();
     } catch (RuntimeException e) {
       throw e;
     } catch (Exception e) {
