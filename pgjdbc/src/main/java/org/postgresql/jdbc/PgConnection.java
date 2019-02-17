@@ -1189,17 +1189,15 @@ public class PgConnection implements BaseConnection {
 
   // Parse a "dirty" integer surrounded by non-numeric characters
   private static int integerPart(String dirtyString) {
-    int start;
-    int end;
+    int start = 0;
 
-    for (start = 0; start < dirtyString.length()
-        && !Character.isDigit(dirtyString.charAt(start)); ++start) {
-      ;
+    while (start < dirtyString.length() && !Character.isDigit(dirtyString.charAt(start))) {
+      ++start;
     }
 
-    for (end = start; end < dirtyString.length()
-        && Character.isDigit(dirtyString.charAt(end)); ++end) {
-      ;
+    int end = start;
+    while (end < dirtyString.length() && Character.isDigit(dirtyString.charAt(end))) {
+      ++end;
     }
 
     if (start == end) {
