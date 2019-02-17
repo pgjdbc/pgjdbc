@@ -1313,6 +1313,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * see PGProperty#CLEANUP_SAVEPOINTS
+   * @return boolean indicating property set
+   */
+  public boolean getCleanupSavepoints() {
+    return PGProperty.CLEANUP_SAVEPOINTS.getBoolean(properties);
+  }
+
+  /**
+   * see PGProperty#CLEANUP_SAVEPOINTS
+   * @param cleanupSavepoints set to enable
+   */
+  public void setCleanupSavepoints(Boolean cleanupSavepoints) {
+    PGProperty.CLEANUP_SAVEPOINTS.set(properties, cleanupSavepoints);
+  }
+
+  /**
    * @return boolean indicating property is enabled or not.
    * @see PGProperty#REWRITE_BATCHED_INSERTS
    */

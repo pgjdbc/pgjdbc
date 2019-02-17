@@ -129,7 +129,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     super(pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
-    this.cleanupSavePoints= PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
   }

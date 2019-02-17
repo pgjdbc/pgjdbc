@@ -41,6 +41,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     TRUE,
     FALSE
   }
+
   private enum FailMode {
     /**
      * Executes "select 1/0" and causes transaction failure (if autocommit=no).
