@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  * Simple container for host and port.
  */
 public class HostSpec {
-  public static String DEFAULT_NON_PROXY_HOSTS = "localhost|127.*|[::1]|0.0.0.0|[::0]";
+  public static final String DEFAULT_NON_PROXY_HOSTS = "localhost|127.*|[::1]|0.0.0.0|[::0]";
 
   protected final String host;
   protected final int port;
