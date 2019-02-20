@@ -152,6 +152,7 @@ public class TypeInfoCache implements TypeInfo {
     //
     Character delim = ',';
     arrayOidToDelimiter.put(oid, delim);
+    arrayOidToDelimiter.put(arrayOid, delim);
 
     String pgArrayTypeName = pgTypeName + "[]";
     pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
