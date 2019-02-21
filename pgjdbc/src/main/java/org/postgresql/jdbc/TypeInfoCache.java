@@ -114,16 +114,16 @@ public class TypeInfoCache implements TypeInfo {
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;
     this.unknownLength = unknownLength;
-    oidToPgName = new HashMap<Integer, String>();
-    pgNameToOid = new HashMap<String, Integer>();
-    pgNameToJavaClass = new HashMap<String, String>();
-    pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>();
-    pgArrayToPgType = new HashMap<Integer, Integer>();
-    arrayOidToDelimiter = new HashMap<Integer, Character>();
+    oidToPgName = new HashMap<Integer, String>((int) Math.round(types.length * 1.5));
+    pgNameToOid = new HashMap<String, Integer>((int) Math.round(types.length * 1.5));
+    pgNameToJavaClass = new HashMap<String, String>((int) Math.round(types.length * 1.5));
+    pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>((int) Math.round(types.length * 1.5));
+    pgArrayToPgType = new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5));
+    arrayOidToDelimiter = new HashMap<Integer, Character>((int) Math.round(types.length * 2.5));
 
     // needs to be synchronized because the iterator is returned
     // from getPGTypeNamesWithSQLTypes()
-    pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>());
+    pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>((int) Math.round(types.length * 1.5)));
 
     for (Object[] type : types) {
       String pgTypeName = (String) type[0];
