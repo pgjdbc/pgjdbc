@@ -118,6 +118,7 @@
     <module name="EqualsHashCode"/>
     <module name="MemberName"/>
     <module name="ParameterName"/>
+    <module name="StaticVariableName"/>
     <module name="TypeName"/>
     <module name="LocalVariableName">
       <property name="allowOneCharVarInForLoop" value="true"/>

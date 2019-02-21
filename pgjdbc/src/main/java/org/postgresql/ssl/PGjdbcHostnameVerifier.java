@@ -33,7 +33,7 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
   private static final int TYPE_DNS_NAME = 2;
   private static final int TYPE_IP_ADDRESS = 7;
 
-  public static Comparator<String> HOSTNAME_PATTERN_COMPARATOR = new Comparator<String>() {
+  public static final Comparator<String> HOSTNAME_PATTERN_COMPARATOR = new Comparator<String>() {
     private int countChars(String value, char ch) {
       int count = 0;
       int pos = -1;
