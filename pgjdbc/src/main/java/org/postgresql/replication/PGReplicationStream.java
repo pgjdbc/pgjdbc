@@ -118,8 +118,8 @@ public interface PGReplicationStream
    * method explicit, because {@link PGReplicationStream} send status to backend periodical by
    * configured interval via {@link LogicalReplicationOptions#getStatusInterval}
    *
-   * @see LogicalReplicationOptions#getStatusInterval()
    * @throws SQLException when some internal exception occurs during read from stream
+   * @see LogicalReplicationOptions#getStatusInterval()
    */
   void forceUpdateStatus() throws SQLException;
 
