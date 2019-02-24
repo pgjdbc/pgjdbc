@@ -208,6 +208,14 @@ Connection conn = DriverManager.getConnection(url);
 
     The default is `never` 
 
+* **cleanupSavePoints** = boolean
+
+    Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
+    done to avoid running out of shared buffers on the server in the case where 1000's of queries are
+    performed.
+     
+    The default is 'false'
+
 * **binaryTransferEnable** = String
 
 	A comma separated list of types to enable binary transfer. Either OID numbers or names.

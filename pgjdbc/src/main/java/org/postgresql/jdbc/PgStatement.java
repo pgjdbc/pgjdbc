@@ -322,6 +322,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void closeForNextExecution() throws SQLException {
+
     // Every statement execution clears any previous warnings.
     clearWarnings();
 
