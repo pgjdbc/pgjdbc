@@ -798,10 +798,9 @@ public class Parser {
    * PostgreSQL 9.4 allows column names like _, ‿, ⁀, ⁔, ︳, ︴, ﹍, ﹎, ﹏, ＿, so
    * it is assumed isJavaIdentifierPart is good enough for PostgreSQL.
    *
-   * @see <a href="https://www.postgresql.org/docs/9.6/static/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS">Identifiers and Key Words</a>
-   *
    * @param c the character to check
    * @return true if valid as first character of an identifier; false if not
+   * @see <a href="https://www.postgresql.org/docs/9.6/static/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS">Identifiers and Key Words</a>
    */
   public static boolean isIdentifierStartChar(char c) {
     /*

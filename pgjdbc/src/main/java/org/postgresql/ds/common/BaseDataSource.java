@@ -1281,48 +1281,48 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @see PGProperty#PREFER_QUERY_MODE
    * @return preferred query execution mode
+   * @see PGProperty#PREFER_QUERY_MODE
    */
   public PreferQueryMode getPreferQueryMode() {
     return PreferQueryMode.of(PGProperty.PREFER_QUERY_MODE.get(properties));
   }
 
   /**
-   * @see PGProperty#PREFER_QUERY_MODE
    * @param preferQueryMode extended, simple, extendedForPrepared, or extendedCacheEverything
+   * @see PGProperty#PREFER_QUERY_MODE
    */
   public void setPreferQueryMode(PreferQueryMode preferQueryMode) {
     PGProperty.PREFER_QUERY_MODE.set(properties, preferQueryMode.value());
   }
 
   /**
-   * @see PGProperty#AUTOSAVE
    * @return connection configuration regarding automatic per-query savepoints
+   * @see PGProperty#AUTOSAVE
    */
   public AutoSave getAutosave() {
     return AutoSave.of(PGProperty.AUTOSAVE.get(properties));
   }
 
   /**
-   * @see PGProperty#AUTOSAVE
    * @param autoSave connection configuration regarding automatic per-query savepoints
+   * @see PGProperty#AUTOSAVE
    */
   public void setAutosave(AutoSave autoSave) {
     PGProperty.AUTOSAVE.set(properties, autoSave.value());
   }
 
   /**
-   * @see PGProperty#REWRITE_BATCHED_INSERTS
    * @return boolean indicating property is enabled or not.
+   * @see PGProperty#REWRITE_BATCHED_INSERTS
    */
   public boolean getReWriteBatchedInserts() {
     return PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(properties);
   }
 
   /**
-   * @see PGProperty#REWRITE_BATCHED_INSERTS
    * @param reWrite boolean value to set the property in the properties collection
+   * @see PGProperty#REWRITE_BATCHED_INSERTS
    */
   public void setReWriteBatchedInserts(boolean reWrite) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
