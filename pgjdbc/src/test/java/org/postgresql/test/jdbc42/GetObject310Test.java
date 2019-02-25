@@ -22,14 +22,17 @@ import org.junit.runners.Parameterized;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 import java.util.TimeZone;
@@ -202,8 +205,9 @@ public class GetObject310Test extends BaseTest4 {
     }
   }
 
-  public void localTimestamps(ZoneId zoneId, String timestamp) throws SQLException {
-    TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
+  private void localTimestamps(ZoneId zoneId, String timestamp) throws SQLException {
+    final TimeZone timeZone = TimeZone.getTimeZone(zoneId);
+    TimeZone.setDefault(timeZone);
     Statement stmt = con.createStatement();
     try {
       stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column","TIMESTAMP '" + timestamp + "'"));
@@ -211,13 +215,55 @@ public class GetObject310Test extends BaseTest4 {
       ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
       try {
         assertTrue(rs.next());
-        LocalDateTime localDateTime = LocalDateTime.parse(timestamp);
-        assertEquals(localDateTime, rs.getObject("timestamp_without_time_zone_column", LocalDateTime.class));
-        assertEquals(localDateTime, rs.getObject(1, LocalDateTime.class));
+        final LocalDateTime localDateTime = LocalDateTime.parse(timestamp);
+        final String message = zoneId + " " + timestamp;
+        assertEquals(message, localDateTime, rs.getObject("timestamp_without_time_zone_column", LocalDateTime.class));
+        assertEquals(message, localDateTime, rs.getObject(1, LocalDateTime.class));
 
         //Also test that we get the correct values when retrieving the data as LocalDate objects
-        assertEquals(localDateTime.toLocalDate(), rs.getObject("timestamp_without_time_zone_column", LocalDate.class));
-        assertEquals(localDateTime.toLocalDate(), rs.getObject(1, LocalDate.class));
+        assertEquals(message, localDateTime.toLocalDate(), rs.getObject("timestamp_without_time_zone_column", LocalDate.class));
+        assertEquals(message, localDateTime.toLocalDate(), rs.getObject(1, LocalDate.class));
+
+        //Also test that we get the correct values when retrieving the data as LocalTime objects
+        assertEquals(message, localDateTime.toLocalTime(), rs.getObject("timestamp_without_time_zone_column", LocalTime.class));
+        assertEquals(message, localDateTime.toLocalTime(), rs.getObject(1, LocalTime.class));
+
+        //since zoned date time and offset date time are time zone aware our expected value
+        //must also reflect the current time zone
+        final ZonedDateTime expectedZDT = ZonedDateTime.of(LocalDateTime.parse(timestamp), zoneId);
+        final ZonedDateTime actualZDT = rs.getObject(1, ZonedDateTime.class);
+
+        //assert that the zone is the same. Note that this is /not/ the same as the offset being the same
+        assertEquals(message, zoneId, actualZDT.getZone());
+
+        //assert that the local date time is the same
+        assertEquals(message, expectedZDT.toLocalDateTime(), actualZDT.toLocalDateTime());
+
+        final OffsetDateTime actualODT = rs.getObject(1, OffsetDateTime.class);
+        assertEquals(message, expectedZDT.toLocalDateTime(), actualODT.toLocalDateTime());
+
+        //for ambiguous timestamps (i.e. when hour repeats in fall), either offset would be considered valid here
+        //so we use the Calendar and TimeZone (matching behavior for reading Timestamp) to determine which
+        //approach java is using
+        final Calendar expectedCal = Calendar.getInstance(timeZone);
+        expectedCal.set(localDateTime.getYear(),
+                        localDateTime.getMonthValue() - 1,
+                        localDateTime.getDayOfMonth(),
+                        localDateTime.getHour(),
+                        localDateTime.getMinute(),
+                        localDateTime.getSecond());
+        expectedCal.set(Calendar.MILLISECOND, localDateTime.getNano() / 1_000_000);
+
+        final long expectedTime = expectedCal.getTimeInMillis();
+        final int offset = timeZone.getOffset(expectedTime);
+
+        assertEquals(message, offset / 1000, actualODT.getOffset().getTotalSeconds());
+
+        final Instant actualInstant = rs.getObject(1, Instant.class);
+        assertEquals(message, expectedTime, actualInstant.toEpochMilli());
+        assertEquals(message, rs.getTimestamp(1).toInstant(), actualInstant);
+        assertEquals(message, expectedTime, actualZDT.toInstant().toEpochMilli());
+        assertEquals(message, expectedTime, actualODT.toInstant().toEpochMilli());
       } finally {
         rs.close();
       }
@@ -236,6 +282,42 @@ public class GetObject310Test extends BaseTest4 {
     runGetOffsetDateTime(GMT03);
     runGetOffsetDateTime(GMT05);
     runGetOffsetDateTime(GMT13);
+
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
+    List<String> zoneIdsToTest = new ArrayList<String>();
+    zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
+    zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9
+    zoneIdsToTest.add("Atlantic/Azores"); // It is something like GMT-1..GMT+0
+    zoneIdsToTest.add("Europe/Moscow"); // It is something like GMT+3..GMT+4 for 2000s
+    zoneIdsToTest.add("Pacific/Apia"); // It is something like GMT+13..GMT+14
+    zoneIdsToTest.add("Pacific/Niue"); // It is something like GMT-11..GMT-11
+    for (int i = -12; i <= 13; i++) {
+      zoneIdsToTest.add(String.format("GMT%+02d", i));
+    }
+
+    List<String> datesToTest = Arrays.asList("2015-09-03T12:00:00", "2015-06-30T23:59:58",
+            "1997-06-30T23:59:59", "1997-07-01T00:00:00", "2012-06-30T23:59:59", "2012-07-01T00:00:00",
+            "2015-06-30T23:59:59", "2015-07-01T00:00:00", "2005-12-31T23:59:59", "2006-01-01T00:00:00",
+            "2008-12-31T23:59:59", "2009-01-01T00:00:00", /* "2015-06-30T23:59:60", */ "2015-07-31T00:00:00",
+            "2015-07-31T00:00:01", "2015-07-31T00:00:00.000001",
+
+            // On 2000-03-26 02:00:00 Moscow went to DST, thus local time became 03:00:00
+            "2000-03-26T01:59:59", "2000-03-26T02:00:00", "2000-03-26T02:00:01", "2000-03-26T02:59:59",
+            "2000-03-26T03:00:00", "2000-03-26T03:00:01", "2000-03-26T03:59:59", "2000-03-26T04:00:00",
+            "2000-03-26T04:00:01", "2000-03-26T04:00:00.000001",
+
+            // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
+            "2000-10-29T01:59:59", "2000-10-29T02:00:00", "2000-10-29T02:00:01", "2000-10-29T02:59:59",
+            "2000-10-29T03:00:00", "2000-10-29T03:00:01", "2000-10-29T03:59:59", "2000-10-29T04:00:00",
+            "2000-10-29T04:00:01", "2000-10-29T04:00:00.000001");
+
+    for (String zoneId : zoneIdsToTest) {
+      ZoneId zone = ZoneId.of(zoneId);
+      for (String date : datesToTest) {
+        runGetZonedDateTime(date, zone);
+      }
+    }
   }
 
   private void runGetOffsetDateTime(ZoneOffset offset) throws SQLException {
@@ -260,4 +342,50 @@ public class GetObject310Test extends BaseTest4 {
     }
   }
 
+  private void runGetZonedDateTime(String timestamp, ZoneId zoneId) throws SQLException {
+    TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
+    final ZonedDateTime zdt = ZonedDateTime.of(LocalDateTime.parse(timestamp), zoneId);
+    final String utcTimestamp = zdt.withZoneSameInstant(ZoneOffset.UTC).toOffsetDateTime().toString();
+    Statement stmt = con.createStatement();
+    try {
+      stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_with_time_zone_column","TIMESTAMP WITH TIME ZONE '" + utcTimestamp + "'"));
+
+      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_with_time_zone_column"));
+      try {
+        assertTrue(rs.next());
+        final ZonedDateTime expected = zdt.withZoneSameInstant(UTC);
+        final String message = zoneId + " " + timestamp;
+        assertEquals(message, expected, rs.getObject("timestamp_with_time_zone_column", ZonedDateTime.class));
+        assertEquals(message, expected, rs.getObject(1, ZonedDateTime.class));
+
+        final OffsetDateTime expectedODT = expected.toOffsetDateTime();
+        assertEquals(expectedODT, rs.getObject("timestamp_with_time_zone_column", OffsetDateTime.class));
+        assertEquals(expectedODT, rs.getObject(1, OffsetDateTime.class));
+
+        final Instant expectedInstant = zdt.toInstant();
+        assertEquals(expectedInstant, rs.getObject("timestamp_with_time_zone_column", Instant.class));
+        assertEquals(expectedInstant, rs.getObject(1, Instant.class));
+
+        //since this is timezone aware, we can only produce LocalDateTime values which actually existed in the
+        //current time zone. For example, 2000-03-26T02:00:00 never existed in Europe/Moscow.
+        //so when we are timezone aware, that is massaged to 2000-03-26T03:00:00
+        final LocalDateTime expectedLDT = zdt.toLocalDateTime();
+        assertEquals(message, expectedLDT, rs.getObject("timestamp_with_time_zone_column", LocalDateTime.class));
+        assertEquals(message, expectedLDT, rs.getObject(1, LocalDateTime.class));
+
+        //Also test that we get the correct values when retrieving the data as LocalDate objects
+        assertEquals(message, expectedLDT.toLocalDate(), rs.getObject("timestamp_with_time_zone_column", LocalDate.class));
+        assertEquals(message, expectedLDT.toLocalDate(), rs.getObject(1, LocalDate.class));
+
+        //Also test that we get the correct values when retrieving the data as LocalTime objects
+        assertEquals(message, expectedLDT.toLocalTime(), rs.getObject("timestamp_with_time_zone_column", LocalTime.class));
+        assertEquals(message, expectedLDT.toLocalTime(), rs.getObject(1, LocalTime.class));
+      } finally {
+        rs.close();
+      }
+      stmt.executeUpdate("DELETE FROM table1");
+    } finally {
+      stmt.close();
+    }
+  }
 }

@@ -55,19 +55,24 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 //#endif
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -76,6 +81,26 @@ import java.util.logging.Level;
 
 
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
+
+  private static final Set<Class<?>> DATE_CLASSES;
+
+  static {
+    final Map<Class<?>, Boolean> dateClasses = new IdentityHashMap<Class<?>, Boolean>(11);
+    dateClasses.put(Calendar.class, Boolean.TRUE);
+    dateClasses.put(Timestamp.class, Boolean.TRUE);
+    dateClasses.put(java.util.Date.class, Boolean.TRUE);
+    dateClasses.put(java.sql.Date.class, Boolean.TRUE);
+    dateClasses.put(java.sql.Time.class, Boolean.TRUE);
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    dateClasses.put(Instant.class, Boolean.TRUE);
+    dateClasses.put(ZonedDateTime.class, Boolean.TRUE);
+    dateClasses.put(OffsetDateTime.class, Boolean.TRUE);
+    dateClasses.put(LocalDateTime.class, Boolean.TRUE);
+    dateClasses.put(LocalDate.class, Boolean.TRUE);
+    dateClasses.put(LocalTime.class, Boolean.TRUE);
+    //#endif
+    DATE_CLASSES = Collections.unmodifiableSet(dateClasses.keySet());
+  }
 
   // needed for updateable result set support
   private boolean updateable = false;
@@ -3214,16 +3239,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (type == BigDecimal.class) {
       if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
         return type.cast(getBigDecimal(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == String.class) {
       if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
         return type.cast(getString(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Boolean.class) {
       if (sqlType == Types.BOOLEAN || sqlType == Types.BIT) {
@@ -3232,9 +3251,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return type.cast(booleanValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Short.class) {
       if (sqlType == Types.SMALLINT) {
@@ -3243,9 +3259,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return type.cast(shortValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Integer.class) {
       if (sqlType == Types.INTEGER || sqlType == Types.SMALLINT) {
@@ -3254,9 +3267,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return type.cast(intValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Long.class) {
       if (sqlType == Types.BIGINT) {
@@ -3265,9 +3275,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return type.cast(longValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == BigInteger.class) {
       if (sqlType == Types.BIGINT) {
@@ -3276,9 +3283,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return type.cast(BigInteger.valueOf(longValue));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Float.class) {
       if (sqlType == Types.REAL) {
@@ -3287,9 +3291,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return type.cast(floatValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Double.class) {
       if (sqlType == Types.FLOAT || sqlType == Types.DOUBLE) {
@@ -3298,90 +3299,164 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return type.cast(doubleValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == Date.class) {
-      if (sqlType == Types.DATE) {
-        return type.cast(getDate(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Time.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Timestamp.class) {
+    } else if (DATE_CLASSES.contains(type)) {
       if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
+          //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+          || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
       //#endif
       ) {
-        return type.cast(getTimestamp(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
+        final Timestamp timestampValue = getTimestamp(columnIndex);
+        if (timestampValue == null) {
+          return null;
+        }
+        if (type == Timestamp.class) {
+          return type.cast(timestampValue);
+        }
+
+        final long time = timestampValue.getTime();
+
+        if (type == java.util.Date.class) {
+          return type.cast(new java.util.Date(time));
+        }
+
+        if (type == Calendar.class) {
+          final Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
+          calendar.setTimeInMillis(time);
+          return type.cast(calendar);
+        }
+
+        //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+        if (type == Instant.class) {
+          if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+            return type.cast(Instant.MAX);
+          }
+          if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+            return type.cast(Instant.MIN);
+          }
+          return type.cast(timestampValue.toInstant());
+        }
+
+        final int columnOID = getColumnOID(columnIndex);
+
+        if (type == ZonedDateTime.class || type == OffsetDateTime.class) {
+          final ZonedDateTime zdt;
+          if (columnOID == Oid.TIMESTAMPTZ) {
+            zdt = ZonedDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
+          } else {
+            zdt = ZonedDateTime.ofInstant(timestampValue.toInstant(), getDefaultCalendar().getTimeZone().toZoneId());
+          }
+
+          if (type == ZonedDateTime.class) {
+            return type.cast(zdt);
+          }
+
+          if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+            return type.cast(OffsetDateTime.MAX);
+          }
+          if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+            return type.cast(OffsetDateTime.MIN);
+          }
+          return type.cast(zdt.toOffsetDateTime());
+        }
+
+        final LocalDateTime ldt;
+        if (columnOID == Oid.TIMESTAMPTZ) {
+          ldt = LocalDateTime.ofInstant(timestampValue.toInstant(), getDefaultCalendar().getTimeZone().toZoneId());
+        } else {
+          ldt = getLocalDateTime(columnIndex);
+        }
+
+        if (type == LocalDateTime.class) {
+          if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+            return type.cast(LocalDateTime.MAX);
+          }
+          if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+            return type.cast(LocalDateTime.MIN);
+          }
+          return type.cast(ldt);
+        }
+
+        if (type == LocalDate.class) {
+          if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+            return type.cast(LocalDate.MAX);
+          }
+          if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+            return type.cast(LocalDate.MIN);
+          }
+          return type.cast(ldt.toLocalDate());
+        }
+
+        if (type == LocalTime.class) {
+          if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+            return type.cast(LocalTime.MAX);
+          }
+          if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+            return type.cast(LocalTime.MIN);
+          }
+          return type.cast(ldt.toLocalTime());
+        }
+        //#endif
+      } else if (sqlType == Types.DATE) {
+        final Date dateValue = getDate(columnIndex);
+        if (dateValue == null) {
+          return null;
+        }
+
+        if (type == Date.class) {
+          return type.cast(dateValue);
+        }
+
+        //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+        if (type == LocalDate.class) {
+          final long time = dateValue.getTime();
+          if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+            return type.cast(LocalDate.MAX);
+          }
+          if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+            return type.cast(LocalDate.MIN);
+          }
+          return type.cast(dateValue.toLocalDate());
+        }
+        //#endif
+      } else if (sqlType == Types.TIME) {
+        if (type == Time.class) {
+          return type.cast(getTime(columnIndex));
+        }
+
+        //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+        if (type == LocalTime.class) {
+          return type.cast(getLocalTime(columnIndex));
+        }
+        //#endif
       }
-    } else if (type == Calendar.class) {
-      if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      //#endif
-      ) {
-        Timestamp timestampValue = getTimestamp(columnIndex);
+    } else if (type == String.class) {
+      if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
+        return type.cast(getString(columnIndex));
+      }
+    } else if (type == Boolean.class) {
+      if (sqlType == Types.BOOLEAN || sqlType == Types.BIT) {
+        boolean booleanValue = getBoolean(columnIndex);
         if (wasNull()) {
           return null;
         }
-        Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
-        calendar.setTimeInMillis(timestampValue.getTime());
-        return type.cast(calendar);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
+        return type.cast(booleanValue);
       }
     } else if (type == Blob.class) {
       if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.BIGINT) {
         return type.cast(getBlob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Clob.class) {
       if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
         return type.cast(getClob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == java.util.Date.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        Timestamp timestamp = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(new java.util.Date(timestamp.getTime()));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Array.class) {
+    }  else if (type == Array.class) {
       if (sqlType == Types.ARRAY) {
         return type.cast(getArray(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == SQLXML.class) {
       if (sqlType == Types.SQLXML) {
         return type.cast(getSQLXML(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == UUID.class) {
       return type.cast(getObject(columnIndex));
@@ -3395,67 +3470,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       } catch (UnknownHostException e) {
         throw new SQLException("could not create inet address from string '" + addressString + "'");
       }
-      // JSR-310 support
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-    } else if (type == LocalDate.class) {
-      if (sqlType == Types.DATE) {
-        Date dateValue = getDate(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        long time = dateValue.getTime();
-        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(LocalDate.MAX);
-        }
-        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(LocalDate.MIN);
-        }
-        return type.cast(dateValue.toLocalDate());
-      } else if (sqlType == Types.TIMESTAMP) {
-        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(localDateTimeValue.toLocalDate());
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == LocalTime.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getLocalTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == LocalDateTime.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        return type.cast(getLocalDateTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == OffsetDateTime.class) {
-      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
-        Timestamp timestampValue = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        long time = timestampValue.getTime();
-        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(OffsetDateTime.MAX);
-        }
-        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(OffsetDateTime.MIN);
-        }
-        // Postgres stores everything in UTC and does not keep original time zone
-        OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
-        return type.cast(offsetDateTime);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-      //#endif
     } else if (PGobject.class.isAssignableFrom(type)) {
       Object object;
       if (isBinary(columnIndex)) {
