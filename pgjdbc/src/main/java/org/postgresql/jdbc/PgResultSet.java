@@ -3215,14 +3215,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
         return type.cast(getBigDecimal(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == String.class) {
       if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
         return type.cast(getString(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Boolean.class) {
@@ -3233,7 +3233,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(booleanValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Short.class) {
@@ -3244,7 +3244,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(shortValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Integer.class) {
@@ -3255,7 +3255,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(intValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Long.class) {
@@ -3266,7 +3266,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(longValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == BigInteger.class) {
@@ -3277,7 +3277,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(BigInteger.valueOf(longValue));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Float.class) {
@@ -3288,7 +3288,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(floatValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Double.class) {
@@ -3299,21 +3299,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(doubleValue);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Date.class) {
       if (sqlType == Types.DATE) {
         return type.cast(getDate(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Time.class) {
       if (sqlType == Types.TIME) {
         return type.cast(getTime(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Timestamp.class) {
@@ -3324,7 +3324,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       ) {
         return type.cast(getTimestamp(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Calendar.class) {
@@ -3341,21 +3341,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Blob.class) {
       if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.BIGINT) {
         return type.cast(getBlob(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Clob.class) {
       if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
         return type.cast(getClob(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == java.util.Date.class) {
@@ -3366,21 +3366,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(new java.util.Date(timestamp.getTime()));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Array.class) {
       if (sqlType == Types.ARRAY) {
         return type.cast(getArray(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == SQLXML.class) {
       if (sqlType == Types.SQLXML) {
         return type.cast(getSQLXML(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == UUID.class) {
@@ -3418,21 +3418,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         return type.cast(localDateTimeValue.toLocalDate());
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == LocalTime.class) {
       if (sqlType == Types.TIME) {
         return type.cast(getLocalTime(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == LocalDateTime.class) {
       if (sqlType == Types.TIMESTAMP) {
         return type.cast(getLocalDateTime(columnIndex));
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == OffsetDateTime.class) {
@@ -3452,7 +3452,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
         return type.cast(offsetDateTime);
       } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
       //#endif
@@ -3465,7 +3465,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
       return type.cast(object);
     }
-    throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+    throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
             PSQLState.INVALID_PARAMETER_VALUE);
   }
 
