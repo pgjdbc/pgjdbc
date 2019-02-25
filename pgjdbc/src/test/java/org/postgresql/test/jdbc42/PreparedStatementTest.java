@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc42;
 
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
@@ -16,6 +17,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 
 public class PreparedStatementTest extends BaseTest4 {
@@ -90,5 +93,44 @@ public class PreparedStatementTest extends BaseTest4 {
 
     Assert.assertEquals( LocalTime.MIN, localTime);
 
+  }
+
+  @Test
+  public void testZonedDateTime() throws Exception {
+
+    PreparedStatement preparedStatement = con.prepareStatement("insert into timestamptztable values (?)");
+    ZonedDateTime zonedDateTime = ZonedDateTime.now(ZoneId.of("UTC"));
+    preparedStatement.setObject(1, zonedDateTime);
+
+    preparedStatement.executeUpdate();
+
+    ResultSet rs = con.createStatement().executeQuery("select * from timestamptztable");
+
+    Assert.assertTrue(rs.next());
+
+    ZonedDateTime inserted = rs.getObject(1, ZonedDateTime.class);
+
+    Assert.assertEquals( zonedDateTime.withZoneSameInstant(inserted.getZone()) ,inserted );
+  }
+
+  @Test
+  public void testZonedDateTimeBinary() throws Exception {
+
+    ((PgConnection)con).setForceBinary(true);
+
+    PreparedStatement preparedStatement = con.prepareStatement("insert into timestamptztable values (?)");
+
+    ZonedDateTime zonedDateTime = ZonedDateTime.now(ZoneId.of("UTC"));
+    preparedStatement.setObject(1, zonedDateTime);
+
+    preparedStatement.executeUpdate();
+
+    ResultSet rs = con.createStatement().executeQuery("select * from timestamptztable");
+
+    Assert.assertTrue(rs.next());
+
+    ZonedDateTime inserted = rs.getObject(1, ZonedDateTime.class);
+
+    Assert.assertEquals( zonedDateTime.withZoneSameInstant(inserted.getZone()) ,inserted );
   }
 }

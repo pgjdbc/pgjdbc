@@ -59,8 +59,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 //#endif
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -638,6 +640,28 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     String string = getString(i);
     return connection.getTimestampUtils().toLocalDateTime(string);
+  }
+
+  private ZonedDateTime getZonedDateTime(int i) throws SQLException {
+    checkResultSet(i);
+    if (wasNullFlag) {
+      return null;
+    }
+
+    int col = i - 1;
+    int oid = fields[col].getOID();
+    if (oid != Oid.TIMESTAMPTZ) {
+      throw new PSQLException(
+          GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+              Oid.toString(oid), "timestamptz"),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
+    if (isBinary(i)) {
+      return connection.getTimestampUtils().toZonedDateTimeBin(this_row[col]);
+    }
+
+    String string = getString(i);
+    return connection.getTimestampUtils().toZonedDateTime(string);
   }
   //#endif
 
@@ -3433,7 +3457,27 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return type.cast(getLocalDateTime(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
-                PSQLState.INVALID_PARAMETER_VALUE);
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
+    } else if (type == ZonedDateTime.class) {
+      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
+        Timestamp timestampValue = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        long time = timestampValue.getTime();
+        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
+          return type.cast(ZonedDateTime.of(LocalDateTime.MAX, ZoneOffset.UTC));
+        }
+        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
+          return type.cast(ZonedDateTime.of(LocalDateTime.MIN, ZoneOffset.UTC));
+        }
+        // Postgres stores everything in UTC and does not keep original time zone
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
+        return type.cast(zonedDateTime);
+      } else {
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, sqlType),
+            PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == OffsetDateTime.class) {
       if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {

@@ -470,6 +470,7 @@ public class TimestampUtils {
       return result;
     }
   }
+
   //#endif
 
   public synchronized Time toTime(Calendar cal, String s) throws SQLException {
@@ -1144,6 +1145,7 @@ public class TimestampUtils {
 
     return LocalDateTime.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos, ZoneOffset.UTC);
   }
+
   //#endif
 
   /**

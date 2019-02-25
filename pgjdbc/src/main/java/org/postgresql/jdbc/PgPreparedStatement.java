@@ -60,6 +60,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 //#endif
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -943,6 +944,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setTimestamp(parameterIndex, (LocalDateTime) x);
     } else if (x instanceof OffsetDateTime) {
       setTimestamp(parameterIndex, (OffsetDateTime) x);
+    } else if ( x instanceof ZonedDateTime) {
+      setTimestamp(parameterIndex, ((ZonedDateTime)x));
+
       //#endif
     } else if (x instanceof Map) {
       setMap(parameterIndex, (Map<?, ?>) x);
@@ -1381,6 +1385,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private void setTimestamp(int i, OffsetDateTime offsetDateTime) throws SQLException {
     int oid = Oid.TIMESTAMPTZ;
     bindString(i, connection.getTimestampUtils().toString(offsetDateTime), oid);
+  }
+
+  private void setTimestamp(int i, ZonedDateTime zonedDateTime) throws SQLException {
+    int oid = Oid.TIMESTAMPTZ;
+    bindString(i, connection.getTimestampUtils().toString(zonedDateTime.toOffsetDateTime()), oid);
   }
   //#endif
 

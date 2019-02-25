@@ -23,4 +23,5 @@ public class SimpleJdbc42Test extends BaseTest4 {
   public void testSupportsRefCursors() throws Exception {
     assertTrue(con.getMetaData().supportsRefCursors());
   }
+
 }
