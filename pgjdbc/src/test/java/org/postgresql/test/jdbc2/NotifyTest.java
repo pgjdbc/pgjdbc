@@ -41,7 +41,7 @@ public class NotifyTest {
 
   @Test(timeout = 60000)
   public void testNotify() throws SQLException {
-    AtomicBoolean flag = new AtomicBoolean(false);
+    final AtomicBoolean flag = new AtomicBoolean(false);
     Statement stmt = conn.createStatement();
     ((PGConnection)conn).addNotificationListener(new PGNotificationListener() {
       @Override
