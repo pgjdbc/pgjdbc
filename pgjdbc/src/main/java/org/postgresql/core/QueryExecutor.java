@@ -235,14 +235,14 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    *
    * @param listener is called upon notivy
    */
-  public void addNotificationListener(PGNotificationListener listener);
+  void addNotificationListener(PGNotificationListener listener);
 
   /**
    * Removes the listener
    *
    * @param listener listener to be removed
    */
-  public void removeNotificationListener(PGNotificationListener listener);
+  void removeNotificationListener(PGNotificationListener listener);
   //
   // Fastpath interface.
   //

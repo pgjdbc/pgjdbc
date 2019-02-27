@@ -12,8 +12,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.PGNotificationListener;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
