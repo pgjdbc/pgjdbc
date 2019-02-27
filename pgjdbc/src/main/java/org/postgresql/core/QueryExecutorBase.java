@@ -199,7 +199,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     }
   }
 
-  synchronized void addNotification(PGNotification notification) {
+  public synchronized void addNotification(PGNotification notification) {
     notifications.add(notification);
 
     if ( !notificationListeners.isEmpty() ) {
