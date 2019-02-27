@@ -88,5 +88,4 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
       con.setAutoCommit(true);
     }
   }
-
 }

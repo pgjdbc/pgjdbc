@@ -516,7 +516,6 @@ public class StatementTest {
     }
   }
 
-
   /**
    * <p>Demonstrates a safe approach to concurrently reading the latest
    * warnings while periodically clearing them.</p>

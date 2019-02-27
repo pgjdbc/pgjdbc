@@ -358,7 +358,6 @@ public class CopyTest {
 
       stmt.execute("SET DateStyle = 'ISO, DMY'");
 
-
       // I expect an SQLException
       String sql = "COPY copytest FROM STDIN with xxx " + copyParams;
       CopyIn cp = manager.copyIn(sql);

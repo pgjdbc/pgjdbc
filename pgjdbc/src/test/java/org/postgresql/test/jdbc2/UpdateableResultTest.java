@@ -114,7 +114,6 @@ public class UpdateableResultTest extends BaseTest4 {
     assertEquals(999, rs.getInt(1));
     assertEquals("anyvalue", rs.getString(2));
 
-
     // make sure the update got to the db and the driver isn't lying to us.
     rs.close();
     rs = st.executeQuery("select * from second");
@@ -322,8 +321,6 @@ public class UpdateableResultTest extends BaseTest4 {
         rs.updateString("name", "dave");
         rs.updateRow();
       }
-
-
       fail("should not get here, update should fail");
     } catch (SQLException ex) {
     }

@@ -1107,7 +1107,6 @@ public class TimestampUtils {
       micros = ByteConverter.int8(bytes, 0);
     }
 
-
     return LocalTime.ofNanoOfDay(micros * 1000);
   }
   //#endif

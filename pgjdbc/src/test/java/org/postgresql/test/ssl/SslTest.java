@@ -123,7 +123,6 @@ public class SslTest extends BaseTest4 {
 
     Collection<Object[]> tests = new ArrayList<Object[]>();
 
-
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();
 
@@ -271,7 +270,6 @@ public class SslTest extends BaseTest4 {
     } catch (AssertionError ae) {
       errors = addError(errors, ae);
     }
-
 
     try {
       if (assertClientCertificate(e)) {

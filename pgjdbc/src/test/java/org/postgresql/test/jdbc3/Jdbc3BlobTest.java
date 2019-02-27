@@ -186,7 +186,6 @@ public class Jdbc3BlobTest {
     ps.close();
   }
 
-
   /**
    * Test the writing and reading of a single byte.
    */

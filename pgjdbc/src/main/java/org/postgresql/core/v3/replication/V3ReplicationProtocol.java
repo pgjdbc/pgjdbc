@@ -136,5 +136,4 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
     }
   }
-
 }

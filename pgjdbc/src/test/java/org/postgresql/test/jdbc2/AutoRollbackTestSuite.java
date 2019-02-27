@@ -356,7 +356,6 @@ public class AutoRollbackTestSuite extends BaseTest4 {
       }
     }
 
-
     try {
       assertRows("rollbacktest", rowsExpected);
       executeSqlSuccess();

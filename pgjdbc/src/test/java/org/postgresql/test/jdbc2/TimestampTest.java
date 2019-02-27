@@ -213,7 +213,6 @@ public class TimestampTest extends BaseTest4 {
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
         "'" + tsu.toString(null, new Timestamp(tmpTime4.getTime())) + "'")));
 
-
     // Fall through helper
     timestampTestWTZ();
 

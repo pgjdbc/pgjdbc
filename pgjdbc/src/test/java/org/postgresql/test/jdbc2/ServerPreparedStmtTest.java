@@ -94,8 +94,6 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     rs.close();
 
     // Verify that using the statement still works after turning off prepares
-
-
     if (Boolean.getBoolean("org.postgresql.forceBinary")) {
       return;
     }

@@ -540,7 +540,6 @@ public class PGStream implements Closeable, Flushable {
     }
   }
 
-
   /**
    * Flush any pending output to the backend.
    *

@@ -243,8 +243,5 @@ public class ParserTest {
     command = qry.get(0).getCommand();
     Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
-
-
-
   }
 }

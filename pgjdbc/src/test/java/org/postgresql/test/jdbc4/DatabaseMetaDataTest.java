@@ -42,8 +42,6 @@ public class DatabaseMetaDataTest {
     TestUtil.createSchema(conn, "nofunctions");
     TestUtil.execute("create function hasfunctions.addfunction (integer, integer) "
         + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE", conn);
-
-
   }
 
   @After
@@ -128,7 +126,6 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
     ResultSet rs = dbmd.getProcedures("", "hasfunctions",null);
     assertTrue(rs.next());
-
 
     Statement statement = conn.createStatement();
     statement.execute("set search_path=hasfunctions");

@@ -223,7 +223,6 @@ public class DriverTest {
     String loggerFile = System.getProperty("loggerFile");
 
     try {
-
       PrintWriter printWriter = new PrintWriter(new NullOutputStream(System.err));
       DriverManager.setLogWriter(printWriter);
       assertEquals(DriverManager.getLogWriter(), printWriter);
@@ -243,14 +242,11 @@ public class DriverTest {
       DriverManager.setLogWriter(null);
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
-
     }
-
   }
 
   @Test
   public void testSetLogStream() throws Exception {
-
     // this is a dummy to make sure TestUtil is initialized
     Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
     con.close();
@@ -258,7 +254,6 @@ public class DriverTest {
     String loggerFile = System.getProperty("loggerFile");
 
     try {
-
       DriverManager.setLogStream(new NullOutputStream(System.err));
       System.clearProperty("loggerFile");
       System.clearProperty("loggerLevel");
@@ -276,10 +271,6 @@ public class DriverTest {
       DriverManager.setLogStream(null);
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
-
-
     }
-
   }
-
 }

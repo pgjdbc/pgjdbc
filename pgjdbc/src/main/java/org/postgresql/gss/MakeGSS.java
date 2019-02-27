@@ -24,7 +24,6 @@ import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 
 public class MakeGSS {
-
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
 
   public static void authenticate(PGStream pgStream, String host, String user, String password,
