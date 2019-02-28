@@ -60,16 +60,17 @@ class MultiHostChooser implements HostChooser {
       return getCandidateHosts(targetServerType).iterator();
     }
 
-    List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
     final HostRequirement preferredTargetServerType;
-    if (targetServerType == HostRequirement.preferSecondary)
+    if (targetServerType == HostRequirement.preferSecondary) {
       preferredTargetServerType = HostRequirement.secondary;
-    else
+    } else {
       preferredTargetServerType = HostRequirement.master;
+    }
     // preferSecondary and preferMaster try to find secondary/master hosts first
     // Note: sort does not work here since there are "unknown" hosts,
     // and that "unknown" might turn out to be unwanted master/secondary, so we should discard that
     // if other secondaries/masters exist
+    List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
     List<CandidateHost> preferredHosts = getCandidateHosts(preferredTargetServerType);
 
     if (preferredHosts.isEmpty()) {
