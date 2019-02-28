@@ -56,32 +56,37 @@ class MultiHostChooser implements HostChooser {
   }
 
   private Iterator<CandidateHost> candidateIterator() {
-    if (targetServerType != HostRequirement.preferSecondary) {
+    if (targetServerType != HostRequirement.preferSecondary && targetServerType != HostRequirement.preferMaster) {
       return getCandidateHosts(targetServerType).iterator();
     }
 
-    // preferSecondary tries to find secondary hosts first
-    // Note: sort does not work here since there are "unknown" hosts,
-    // and that "unknown" might turn out to be master, so we should discard that
-    // if other secondaries exist
-    List<CandidateHost> secondaries = getCandidateHosts(HostRequirement.secondary);
     List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
+    final HostRequirement preferredTargetServerType;
+    if (targetServerType == HostRequirement.preferSecondary)
+      preferredTargetServerType = HostRequirement.secondary;
+    else
+      preferredTargetServerType = HostRequirement.master;
+    // preferSecondary and preferMaster try to find secondary/master hosts first
+    // Note: sort does not work here since there are "unknown" hosts,
+    // and that "unknown" might turn out to be unwanted master/secondary, so we should discard that
+    // if other secondaries/masters exist
+    List<CandidateHost> preferredHosts = getCandidateHosts(preferredTargetServerType);
 
-    if (secondaries.isEmpty()) {
+    if (preferredHosts.isEmpty()) {
       return any.iterator();
     }
 
     if (any.isEmpty()) {
-      return secondaries.iterator();
+      return preferredHosts.iterator();
     }
 
-    if (secondaries.get(secondaries.size() - 1).equals(any.get(0))) {
-      // When the last secondary's hostspec is the same as the first in "any" list, there's no need
-      // to attempt to connect it as "secondary"
+    if (preferredHosts.get(preferredHosts.size() - 1).equals(any.get(0))) {
+      // When the last preferred host's hostspec is the same as the first in "any" list, there's no need
+      // to attempt to connect it as preferred
       // Note: this is only an optimization
-      secondaries = rtrim(1, secondaries);
+      preferredHosts = rtrim(1, preferredHosts);
     }
-    return append(secondaries, any).iterator();
+    return append(preferredHosts, any).iterator();
   }
 
   private List<CandidateHost> getCandidateHosts(HostRequirement hostRequirement) {
