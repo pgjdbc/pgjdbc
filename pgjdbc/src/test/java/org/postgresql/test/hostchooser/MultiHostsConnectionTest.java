@@ -9,11 +9,16 @@ import static java.lang.Integer.parseInt;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-import static org.postgresql.hostchooser.HostRequirement.*;
+import static org.postgresql.hostchooser.HostRequirement.any;
+import static org.postgresql.hostchooser.HostRequirement.master;
+import static org.postgresql.hostchooser.HostRequirement.preferMaster;
+import static org.postgresql.hostchooser.HostRequirement.preferSecondary;
+import static org.postgresql.hostchooser.HostRequirement.secondary;
 import static org.postgresql.hostchooser.HostStatus.Master;
 import static org.postgresql.hostchooser.HostStatus.Secondary;
 import static org.postgresql.test.TestUtil.closeDB;
@@ -33,7 +38,11 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 public class MultiHostsConnectionTest {
 
@@ -189,6 +198,7 @@ public class MultiHostsConnectionTest {
     if (status == null) {
       assertNull(hostStatusMap.get(spec));
     } else {
+      assertNotNull(hostStatusMap.get(spec));
       assertEquals(host + "=" + status, hostStatusMap.get(spec).toString());
     }
   }
@@ -279,7 +289,7 @@ public class MultiHostsConnectionTest {
     assertGlobalState(master1, "Master");
     assertGlobalState(secondary1, "Secondary"); // tried as it was unknown
 
-    getConnection(preferMaster, true, fake1, master1, secondary1);
+    getConnection(preferMaster, true, fake1, secondary1, master1);
     assertRemote(masterIP);
     assertGlobalState(fake1, "ConnectFail");
     assertGlobalState(master1, "Master");
@@ -379,7 +389,7 @@ public class MultiHostsConnectionTest {
       }
     }
     assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
-      connectedHosts);
+        connectedHosts);
 
     // connect to secondary when there's no master
     getConnection(preferMaster, true, true, fake1, secondary1);
