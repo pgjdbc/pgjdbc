@@ -15,10 +15,11 @@ class UTF8Encoding extends Encoding {
   private static final int MIN_4_BYTES = 0x10000;
   private static final int MAX_CODE_POINT = 0x10ffff;
 
-  private char[] decoderArray = new char[1024];
+  private char[] decoderArray;
 
   UTF8Encoding(String jvmEncoding) {
     super(jvmEncoding);
+    decoderArray = new char[Integer.parseInt(System.getProperty("PG_UTF8_ENC_BYTES", String.valueOf(1024)))];
   }
 
   // helper for decode
@@ -83,7 +84,7 @@ class UTF8Encoding extends Encoding {
   public synchronized String decode(byte[] data, int offset, int length) throws IOException {
     char[] cdata = decoderArray;
     if (cdata.length < length) {
-      cdata = decoderArray = new char[length];
+      cdata = new char[length];
     }
 
     int in = offset;
