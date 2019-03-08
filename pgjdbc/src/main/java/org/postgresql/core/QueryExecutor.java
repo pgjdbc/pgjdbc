@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -452,4 +453,9 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setNetworkTimeout(int milliseconds) throws IOException;
 
   int getNetworkTimeout() throws IOException;
+
+  // Expose parameter status to PGConnection
+  Map<String,String> getParameterStatuses();
+
+  String getParameterStatus(String parameterName);
 }

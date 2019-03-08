@@ -1726,4 +1726,15 @@ public class PgConnection implements BaseConnection {
     }
     return ps;
   }
+
+  @Override
+  public final Map<String,String> getParameterStatuses() {
+    return queryExecutor.getParameterStatuses();
+  }
+
+  @Override
+  public final String getParameterStatus(String parameterName) {
+    return queryExecutor.getParameterStatus(parameterName);
+  }
+
 }
