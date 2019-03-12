@@ -1349,4 +1349,149 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return Logger.getLogger("org.postgresql");
   }
   //#endif
+
+  /*
+   * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
+   * which expect normal java bean getters / setters to exist for the property names.
+   */
+
+  public boolean isSsl()
+  {
+    return getSsl();
+  }
+
+  public String getSslfactoryarg()
+  {
+    return getSslFactoryArg();
+  }
+
+  public void setSslfactoryarg(final String arg)
+  {
+    setSslFactoryArg(arg);
+  }
+
+  public String getSslcert()
+  {
+    return getSslCert();
+  }
+
+  public void setSslcert(final String file)
+  {
+    setSslCert(file);
+  }
+
+  public String getSslmode()
+  {
+    return getSslMode();
+  }
+
+  public void setSslmode(final String mode)
+  {
+    setSslMode(mode);
+  }
+
+  public String getSslhostnameverifier()
+  {
+    return getSslHostnameVerifier();
+  }
+
+  public void setSslhostnameverifier(final String className)
+  {
+    setSslHostnameVerifier(className);
+  }
+
+  public String getSslkey()
+  {
+    return getSslKey();
+  }
+
+  public void setSslkey(final String file)
+  {
+    setSslKey(file);
+  }
+
+  public String getSslrootcert()
+  {
+    return getSslRootCert();
+  }
+
+  public void setSslrootcert(final String file)
+  {
+    setSslRootCert(file);
+  }
+
+  public String getSslpasswordcallback()
+  {
+    return getSslPasswordCallback();
+  }
+
+  public void setSslpasswordcallback(final String className)
+  {
+    setSslPasswordCallback(className);
+  }
+
+  public String getSslpassword()
+  {
+    return getSslPassword();
+  }
+
+  public void setSslpassword(final String sslpassword)
+  {
+    setSslPassword(sslpassword);
+  }
+
+  public int getRecvBufferSize()
+  {
+    return getReceiveBufferSize();
+  }
+
+  public void setRecvBufferSize(final int nbytes)
+  {
+    setReceiveBufferSize(nbytes);
+  }
+
+  public boolean isAllowEncodingChanges()
+  {
+    return getAllowEncodingChanges();
+  }
+
+  public boolean isLogUnclosedConnections()
+  {
+    return getLogUnclosedConnections();
+  }
+
+  public boolean isTcpKeepAlive()
+  {
+    return getTcpKeepAlive();
+  }
+
+  public boolean isReadOnly()
+  {
+    return getReadOnly();
+  }
+
+  public boolean isDisableColumnSanitiser()
+  {
+    return getDisableColumnSanitiser();
+  }
+
+  public boolean isLoadBalanceHosts()
+  {
+    return getLoadBalanceHosts();
+  }
+
+  public boolean isCleanupSavePoints()
+  {
+    return getCleanupSavepoints();
+  }
+
+  public void setCleanupSavePoints(final boolean cleanupSavepoints)
+  {
+    setCleanupSavepoints(cleanupSavepoints);
+  }
+
+  public boolean isReWriteBatchedInserts()
+  {
+    return getReWriteBatchedInserts();
+  }
 }
