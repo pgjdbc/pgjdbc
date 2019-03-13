@@ -87,20 +87,32 @@ public class Encoding {
   }
 
   /**
-   * Use the charset passed as parameter.
+   * Subclasses may use this constructor if they know in advance of their ASCII number
+   * compatibility.
    *
    * @param encoding charset name to use
+   * @param fastASCIINumbers whether this encoding is compatible with ASCII numbers.
    */
-  protected Encoding(String encoding) {
+  protected Encoding(String encoding, boolean fastASCIINumbers) {
     if (encoding == null) {
       throw new NullPointerException("Null encoding charset not supported");
     }
     this.encoding = encoding;
-    this.fastASCIINumbers = testAsciiNumbers(encoding);
+    this.fastASCIINumbers = fastASCIINumbers;
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "Creating new Encoding {0} with fastASCIINumbers {1}",
           new Object[]{encoding, fastASCIINumbers});
     }
+  }
+
+  /**
+   * Use the charset passed as parameter and tests at creation time whether the specified encoding
+   * is compatible with ASCII numbers.
+   *
+   * @param encoding charset name to use
+   */
+  protected Encoding(String encoding) {
+    this(encoding, testAsciiNumbers(encoding));
   }
 
   /**
@@ -122,7 +134,7 @@ public class Encoding {
    */
   public static Encoding getJVMEncoding(String jvmEncoding) {
     if ("UTF-8".equals(jvmEncoding)) {
-      return new UTF8Encoding(jvmEncoding);
+      return new UTF8Encoding();
     }
     if (Charset.isSupported(jvmEncoding)) {
       return new Encoding(jvmEncoding);
