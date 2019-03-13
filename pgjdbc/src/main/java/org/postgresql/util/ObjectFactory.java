@@ -23,7 +23,7 @@ public class ObjectFactory {
    *
    * @param classname name of the class to instantiate
    * @param info parameter to pass as Properties
-   * @param tryString weather to look for a single String argument constructor
+   * @param tryString whether to look for a single String argument constructor
    * @param stringarg parameter to pass as String
    * @return the instantiated class
    * @throws ClassNotFoundException if something goes wrong
