@@ -251,7 +251,7 @@ public class Encoding {
   }
 
   /**
-   * Checks weather this encoding is compatible with ASCII for the number characters '-' and
+   * Checks whether this encoding is compatible with ASCII for the number characters '-' and
    * '0'..'9'. Where compatible means that they are encoded with exactly same values.
    *
    * @return If faster ASCII number parsing can be used with this encoding.
