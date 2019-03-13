@@ -96,7 +96,7 @@ public class Encoding {
       throw new NullPointerException("Null encoding charset not supported");
     }
     this.encoding = encoding;
-    fastASCIINumbers = testAsciiNumbers();
+    this.fastASCIINumbers = testAsciiNumbers(encoding);
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "Creating new Encoding {0} with fastASCIINumbers {1}",
           new Object[]{encoding, fastASCIINumbers});
@@ -256,19 +256,17 @@ public class Encoding {
    *
    * @return If faster ASCII number parsing can be used with this encoding.
    */
-  private boolean testAsciiNumbers() {
+  private static boolean testAsciiNumbers(String encoding) {
     // TODO: test all postgres supported encoding to see if there are
     // any which do _not_ have ascii numbers in same location
     // at least all the encoding listed in the encodings hashmap have
     // working ascii numbers
     try {
       String test = "-0123456789";
-      byte[] bytes = encode(test);
+      byte[] bytes = test.getBytes(encoding);
       String res = new String(bytes, "US-ASCII");
       return test.equals(res);
     } catch (java.io.UnsupportedEncodingException e) {
-      return false;
-    } catch (IOException e) {
       return false;
     }
   }
