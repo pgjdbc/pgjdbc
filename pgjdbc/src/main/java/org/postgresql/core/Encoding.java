@@ -25,7 +25,6 @@ public class Encoding {
   private static final Logger LOGGER = Logger.getLogger(Encoding.class.getName());
 
   private static final Encoding DEFAULT_ENCODING = new Encoding();
-  private static final Encoding UTF8_ENCODING = new Encoding("UTF-8");
 
   /*
    * Preferred JVM encodings for backend encodings.
@@ -74,6 +73,31 @@ public class Encoding {
     encodings.put("LATIN6", new String[0]);
     encodings.put("LATIN8", new String[0]);
     encodings.put("LATIN10", new String[0]);
+  }
+
+  private static interface UTFEncodingProvider {
+    public Encoding getEncoding();
+  }
+
+  private static final UTFEncodingProvider UTF_ENCODING_PROVIDER;
+
+  static {
+    final String version = System.getProperty("java.version");
+    if (version == null || version.startsWith("1.")) {
+      UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
+        @Override
+        public Encoding getEncoding() {
+          return new CharOptimizedUTF8Encoding();
+        }
+      };
+    } else {
+      UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
+        @Override
+        public Encoding getEncoding() {
+          return new ByteOptimizedUTF8Encoding();
+        }
+      };
+    }
   }
 
   private final String encoding;
@@ -134,13 +158,12 @@ public class Encoding {
    */
   public static Encoding getJVMEncoding(String jvmEncoding) {
     if ("UTF-8".equals(jvmEncoding)) {
-      return new UTF8Encoding();
+      return UTF_ENCODING_PROVIDER.getEncoding();
     }
     if (Charset.isSupported(jvmEncoding)) {
       return new Encoding(jvmEncoding);
-    } else {
-      return DEFAULT_ENCODING;
     }
+    return DEFAULT_ENCODING;
   }
 
   /**
@@ -152,7 +175,7 @@ public class Encoding {
    */
   public static Encoding getDatabaseEncoding(String databaseEncoding) {
     if ("UTF8".equals(databaseEncoding)) {
-      return UTF8_ENCODING;
+      return UTF_ENCODING_PROVIDER.getEncoding();
     }
     // If the backend encoding is known and there is a suitable
     // encoding in the JVM we use that. Otherwise we fall back

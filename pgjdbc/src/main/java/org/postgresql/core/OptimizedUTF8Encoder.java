@@ -9,86 +9,50 @@ import org.postgresql.util.GT;
 
 import java.io.IOException;
 
-class UTF8Encoding extends Encoding {
+abstract class OptimizedUTF8Encoder extends Encoding {
+
   private static final int MIN_2_BYTES = 0x80;
   private static final int MIN_3_BYTES = 0x800;
   private static final int MIN_4_BYTES = 0x10000;
   private static final int MAX_CODE_POINT = 0x10ffff;
 
-  private char[] decoderArray = new char[1024];
+  static final int MAX_CHAR_SIZE = 32 * 1024;
 
-  UTF8Encoding() {
+  char[] decoderArray = new char[1024];
+
+  public OptimizedUTF8Encoder() {
     super("UTF-8", true);
   }
 
-  // helper for decode
-  private static void checkByte(int ch, int pos, int len) throws IOException {
-    if ((ch & 0xc0) != 0x80) {
-      throw new IOException(
-          GT.tr("Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}",
-              pos, len, ch));
+  char[] getChars(int length) {
+    char[] chars = decoderArray;
+    if (chars.length < length) {
+      if (chars.length < MAX_CHAR_SIZE) {
+        chars = decoderArray = new char[length];
+      } else {
+        chars = new char[length];
+      }
     }
-  }
-
-  private static void checkMinimal(int ch, int minValue) throws IOException {
-    if (ch >= minValue) {
-      return;
-    }
-
-    int actualLen;
-    switch (minValue) {
-      case MIN_2_BYTES:
-        actualLen = 2;
-        break;
-      case MIN_3_BYTES:
-        actualLen = 3;
-        break;
-      case MIN_4_BYTES:
-        actualLen = 4;
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "unexpected minValue passed to checkMinimal: " + minValue);
-    }
-
-    int expectedLen;
-    if (ch < MIN_2_BYTES) {
-      expectedLen = 1;
-    } else if (ch < MIN_3_BYTES) {
-      expectedLen = 2;
-    } else if (ch < MIN_4_BYTES) {
-      expectedLen = 3;
-    } else {
-      throw new IllegalArgumentException("unexpected ch passed to checkMinimal: " + ch);
-    }
-
-    throw new IOException(
-        GT.tr("Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}",
-            actualLen, expectedLen, ch));
+    return chars;
   }
 
   /**
-   * Custom byte[] -> String conversion routine for UTF-8 only. This is about twice as fast as using
-   * the String(byte[],int,int,String) ctor, at least under JDK 1.4.2. The extra checks for illegal
-   * representations add about 10-15% overhead, but they seem worth it given the number of SQL_ASCII
-   * databases out there.
+   * Decodes <i>data</i> from <i>offset</i> with given <i>length</i> as utf-8 and
+   * gives each decoded code point to the <i>codePointConsumer</i>.
    *
-   * @param data the array containing UTF8-encoded data
-   * @param offset the offset of the first byte in {@code data} to decode from
-   * @param length the number of bytes to decode
-   * @return a decoded string
-   * @throws IOException if something goes wrong
+   * @param data
+   *          The {@code byte[]} to decode.
+   * @param offset
+   *          The starting index in <i>data</i>.
+   * @param length
+   *          The number of bytes in <i>data</i> to decode.
+   * @param codePointConsumer
+   *          The consumer of all decoded code points.
+   * @throws IOException
    */
-  @Override
-  public synchronized String decode(byte[] data, int offset, int length) throws IOException {
-    char[] cdata = decoderArray;
-    if (cdata.length < length) {
-      cdata = decoderArray = new char[length];
-    }
-
+  static String decodeToChars(byte[] data, int offset, int length, char[] chars, int out) throws IOException {
     int in = offset;
-    int out = 0;
-    int end = length + offset;
+    final int end = length + offset;
 
     try {
       while (in < end) {
@@ -134,35 +98,69 @@ class UTF8Encoding extends Encoding {
           throw new IOException(
               GT.tr("Illegal UTF-8 sequence: final value is out of range: {0}", ch));
         }
-
         // Convert 21-bit codepoint to Java chars:
         // 0..ffff are represented directly as a single char
         // 10000..10ffff are represented as a "surrogate pair" of two chars
         // See: http://java.sun.com/developer/technicalArticles/Intl/Supplementary/
-
         if (ch > 0xffff) {
           // Use a surrogate pair to represent it.
           ch -= 0x10000; // ch is now 0..fffff (20 bits)
-          cdata[out++] = (char) (0xd800 + (ch >> 10)); // top 10 bits
-          cdata[out++] = (char) (0xdc00 + (ch & 0x3ff)); // bottom 10 bits
+          chars[out++] = (char) (0xd800 + (ch >> 10)); // top 10 bits
+          chars[out++] = (char) (0xdc00 + (ch & 0x3ff)); // bottom 10 bits
         } else if (ch >= 0xd800 && ch < 0xe000) {
           // Not allowed to encode the surrogate range directly.
-          throw new IOException(
-              GT.tr("Illegal UTF-8 sequence: final value is a surrogate value: {0}", ch));
+          throw new IOException(GT.tr("Illegal UTF-8 sequence: final value is a surrogate value: {0}", ch));
         } else {
           // Normal case.
-          cdata[out++] = (char) ch;
+          chars[out++] = (char) ch;
         }
       }
     } catch (ArrayIndexOutOfBoundsException a) {
       throw new IOException("Illegal UTF-8 sequence: multibyte sequence was truncated");
     }
+    return new String(chars, 0, out);
+  }
 
-    // Check if we ran past the end without seeing an exception.
-    if (in > end) {
-      throw new IOException("Illegal UTF-8 sequence: multibyte sequence was truncated");
+  // helper for decode
+  private static void checkByte(int ch, int pos, int len) throws IOException {
+    if ((ch & 0xc0) != 0x80) {
+      throw new IOException(
+          GT.tr("Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}", pos, len, ch));
+    }
+  }
+
+  private static void checkMinimal(int ch, int minValue) throws IOException {
+    if (ch >= minValue) {
+      return;
     }
 
-    return new String(cdata, 0, out);
+    int actualLen;
+    switch (minValue) {
+      case MIN_2_BYTES:
+        actualLen = 2;
+        break;
+      case MIN_3_BYTES:
+        actualLen = 3;
+        break;
+      case MIN_4_BYTES:
+        actualLen = 4;
+        break;
+      default:
+        throw new IllegalArgumentException("unexpected minValue passed to checkMinimal: " + minValue);
+    }
+
+    int expectedLen;
+    if (ch < MIN_2_BYTES) {
+      expectedLen = 1;
+    } else if (ch < MIN_3_BYTES) {
+      expectedLen = 2;
+    } else if (ch < MIN_4_BYTES) {
+      expectedLen = 3;
+    } else {
+      throw new IllegalArgumentException("unexpected ch passed to checkMinimal: " + ch);
+    }
+
+    throw new IOException(
+        GT.tr("Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}", actualLen, expectedLen, ch));
   }
 }
