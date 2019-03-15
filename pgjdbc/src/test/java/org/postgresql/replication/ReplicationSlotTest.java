@@ -6,6 +6,9 @@
 package org.postgresql.replication;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
@@ -221,6 +224,47 @@ public class ReplicationSlotTest {
     result = isSlotTemporary(slotName);
 
     assertThat("Slot should not be temporary by default", result, CoreMatchers.equalTo(false));
+  }
+
+  @Test
+  public void testCreateLogicalSlotReturnedInfo() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    slotName = "pgjdbc_test_create_logical_replication_slot_info";
+
+    ReplicationSlotInfo info = pgConnection
+        .getReplicationAPI()
+        .createReplicationSlot()
+        .logical()
+        .withSlotName(slotName)
+        .withOutputPlugin("test_decoding")
+        .make();
+
+    assertEquals(slotName, info.getSlotName());
+    assertEquals(ReplicationType.LOGICAL, info.getReplicationType());
+    assertNotNull(info.getConsistentPoint());
+    assertNotNull(info.getSnapshotName());
+    assertEquals("test_decoding", info.getOutputPlugin());
+  }
+
+  @Test
+  public void testCreatePhysicalSlotReturnedInfo() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    slotName = "pgjdbc_test_create_physical_replication_slot_info";
+
+    ReplicationSlotInfo info = pgConnection
+        .getReplicationAPI()
+        .createReplicationSlot()
+        .physical()
+        .withSlotName(slotName)
+        .make();
+
+    assertEquals(slotName, info.getSlotName());
+    assertEquals(ReplicationType.PHYSICAL, info.getReplicationType());
+    assertNotNull(info.getConsistentPoint());
+    assertNull(info.getSnapshotName());
+    assertNull(info.getOutputPlugin());
   }
 
   @Test

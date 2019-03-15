@@ -24,13 +24,13 @@ import java.sql.Types;
 import java.util.Properties;
 
 public class SchemaTest {
-  private Connection _conn;
+  private Connection conn;
   private boolean dropUserSchema;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    Statement stmt = _conn.createStatement();
+    conn = TestUtil.openDB();
+    Statement stmt = conn.createStatement();
     try {
       stmt.execute("CREATE SCHEMA " + TestUtil.getUser());
       dropUserSchema = true;
@@ -44,18 +44,18 @@ public class SchemaTest {
     stmt.execute("CREATE SCHEMA \"schema '5\"");
     stmt.execute("CREATE SCHEMA \"schema ,6\"");
     stmt.execute("CREATE SCHEMA \"UpperCase\"");
-    TestUtil.createTable(_conn, "schema1.table1", "id integer");
-    TestUtil.createTable(_conn, "schema2.table2", "id integer");
-    TestUtil.createTable(_conn, "\"UpperCase\".table3", "id integer");
-    TestUtil.createTable(_conn, "schema1.sptest", "id integer");
-    TestUtil.createTable(_conn, "schema2.sptest", "id varchar");
+    TestUtil.createTable(conn, "schema1.table1", "id integer");
+    TestUtil.createTable(conn, "schema2.table2", "id integer");
+    TestUtil.createTable(conn, "\"UpperCase\".table3", "id integer");
+    TestUtil.createTable(conn, "schema1.sptest", "id integer");
+    TestUtil.createTable(conn, "schema2.sptest", "id varchar");
   }
 
   @After
   public void tearDown() throws SQLException {
-    _conn.setAutoCommit(true);
-    _conn.setSchema(null);
-    Statement stmt = _conn.createStatement();
+    conn.setAutoCommit(true);
+    conn.setSchema(null);
+    Statement stmt = conn.createStatement();
     if (dropUserSchema) {
       stmt.execute("DROP SCHEMA " + TestUtil.getUser() + " CASCADE");
     }
@@ -66,7 +66,7 @@ public class SchemaTest {
     stmt.execute("DROP SCHEMA \"schema '5\" CASCADE");
     stmt.execute("DROP SCHEMA \"schema ,6\"");
     stmt.execute("DROP SCHEMA \"UpperCase\" CASCADE");
-    TestUtil.closeDB(_conn);
+    TestUtil.closeDB(conn);
   }
 
   /**
@@ -74,18 +74,18 @@ public class SchemaTest {
    */
   @Test
   public void testGetSetSchema() throws SQLException {
-    _conn.setSchema("schema1");
-    assertEquals("schema1", _conn.getSchema());
-    _conn.setSchema("schema2");
-    assertEquals("schema2", _conn.getSchema());
-    _conn.setSchema("schema 3");
-    assertEquals("schema 3", _conn.getSchema());
-    _conn.setSchema("schema \"4");
-    assertEquals("schema \"4", _conn.getSchema());
-    _conn.setSchema("schema '5");
-    assertEquals("schema '5", _conn.getSchema());
-    _conn.setSchema("UpperCase");
-    assertEquals("UpperCase", _conn.getSchema());
+    conn.setSchema("schema1");
+    assertEquals("schema1", conn.getSchema());
+    conn.setSchema("schema2");
+    assertEquals("schema2", conn.getSchema());
+    conn.setSchema("schema 3");
+    assertEquals("schema 3", conn.getSchema());
+    conn.setSchema("schema \"4");
+    assertEquals("schema \"4", conn.getSchema());
+    conn.setSchema("schema '5");
+    assertEquals("schema '5", conn.getSchema());
+    conn.setSchema("UpperCase");
+    assertEquals("UpperCase", conn.getSchema());
   }
 
   /**
@@ -94,10 +94,10 @@ public class SchemaTest {
    */
   @Test
   public void testUsingSchema() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     try {
       try {
-        _conn.setSchema("schema1");
+        conn.setSchema("schema1");
         stmt.executeQuery(TestUtil.selectSQL("table1", "*"));
         stmt.executeQuery(TestUtil.selectSQL("schema2.table2", "*"));
         try {
@@ -107,7 +107,7 @@ public class SchemaTest {
           // expected
         }
 
-        _conn.setSchema("schema2");
+        conn.setSchema("schema2");
         stmt.executeQuery(TestUtil.selectSQL("table2", "*"));
         stmt.executeQuery(TestUtil.selectSQL("schema1.table1", "*"));
         try {
@@ -117,7 +117,7 @@ public class SchemaTest {
           // expected
         }
 
-        _conn.setSchema("UpperCase");
+        conn.setSchema("UpperCase");
         stmt.executeQuery(TestUtil.selectSQL("table3", "*"));
         stmt.executeQuery(TestUtil.selectSQL("schema1.table1", "*"));
         try {
@@ -143,10 +143,10 @@ public class SchemaTest {
   @Test
   public void testMultipleSearchPath() throws SQLException {
     execute("SET search_path TO schema1,schema2");
-    assertEquals("schema1", _conn.getSchema());
+    assertEquals("schema1", conn.getSchema());
 
     execute("SET search_path TO \"schema ,6\",schema2");
-    assertEquals("schema ,6", _conn.getSchema());
+    assertEquals("schema ,6", conn.getSchema());
   }
 
   @Test
@@ -174,11 +174,11 @@ public class SchemaTest {
   @Test
   public void testSchemaPath$User() throws Exception {
     execute("SET search_path TO \"$user\",public,schema2");
-    assertEquals(TestUtil.getUser(), _conn.getSchema());
+    assertEquals(TestUtil.getUser(), conn.getSchema());
   }
 
   private void execute(String sql) throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     try {
       stmt.execute(sql);
     } finally {
@@ -191,7 +191,7 @@ public class SchemaTest {
 
   @Test
   public void testSearchPathPreparedStatementAutoCommitFalse() throws SQLException {
-    _conn.setAutoCommit(false);
+    conn.setAutoCommit(false);
     testSearchPathPreparedStatement();
   }
 
@@ -203,7 +203,7 @@ public class SchemaTest {
   @Test
   public void testSearchPathPreparedStatement() throws SQLException {
     execute("set search_path to schema1,public");
-    PreparedStatement ps = _conn.prepareStatement("select * from sptest");
+    PreparedStatement ps = conn.prepareStatement("select * from sptest");
     for (int i = 0; i < 10; i++) {
       ps.execute();
     }
@@ -211,7 +211,7 @@ public class SchemaTest {
         Types.INTEGER);
     ps.close();
     execute("set search_path to schema2,public");
-    ps = _conn.prepareStatement("select * from sptest");
+    ps = conn.prepareStatement("select * from sptest");
     assertColType(ps, "sptest should point to schema2.sptest, thus column type should be VARCHAR",
         Types.VARCHAR);
     ps.close();

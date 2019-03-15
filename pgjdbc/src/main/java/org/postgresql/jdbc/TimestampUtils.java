@@ -648,10 +648,10 @@ public class TimestampUtils {
   }
 
   private static void appendDate(StringBuilder sb, Calendar cal) {
-    int l_year = cal.get(Calendar.YEAR);
-    int l_month = cal.get(Calendar.MONTH) + 1;
-    int l_day = cal.get(Calendar.DAY_OF_MONTH);
-    appendDate(sb, l_year, l_month, l_day);
+    int year = cal.get(Calendar.YEAR);
+    int month = cal.get(Calendar.MONTH) + 1;
+    int day = cal.get(Calendar.DAY_OF_MONTH);
+    appendDate(sb, year, month, day);
   }
 
   private static void appendDate(StringBuilder sb, int year, int month, int day) {
@@ -836,7 +836,7 @@ public class TimestampUtils {
   }
 
   private static void appendDate(StringBuilder sb, LocalDate localDate) {
-    int year = Math.abs(localDate.getYear()); // year is negative for BC dates
+    int year = localDate.get(ChronoField.YEAR_OF_ERA);
     int month = localDate.getMonthValue();
     int day = localDate.getDayOfMonth();
     appendDate(sb, year, month, day);

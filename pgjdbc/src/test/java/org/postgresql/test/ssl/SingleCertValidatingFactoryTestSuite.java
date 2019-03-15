@@ -30,7 +30,7 @@ import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class SingleCertValidatingFactoryTestSuite {
-  private static String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
+  private static final String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
 
   /**
    * <p>This method returns the parameters that JUnit will use when constructing this class for

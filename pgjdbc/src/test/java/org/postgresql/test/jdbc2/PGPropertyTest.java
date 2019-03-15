@@ -131,11 +131,11 @@ public class PGPropertyTest {
         assertTrue("Missing getter/setter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]", propertyDescriptors.containsKey(property.getName()));
 
-        assertNotNull("Not getter for property [" + property.getName() + "] in ["
+        assertNotNull("No getter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]",
             propertyDescriptors.get(property.getName()).getReadMethod());
 
-        assertNotNull("Not setter for property [" + property.getName() + "] in ["
+        assertNotNull("No setter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]",
             propertyDescriptors.get(property.getName()).getWriteMethod());
       }

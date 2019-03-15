@@ -71,15 +71,15 @@ public class TimezoneTest {
   private Calendar cGMT13;
 
   public TimezoneTest() {
-    TimeZone UTC = TimeZone.getTimeZone("UTC"); // +0000 always
-    TimeZone GMT03 = TimeZone.getTimeZone("GMT+03"); // +0300 always
-    TimeZone GMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
-    TimeZone GMT13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
+    TimeZone tzUTC = TimeZone.getTimeZone("UTC"); // +0000 always
+    TimeZone tzGMT03 = TimeZone.getTimeZone("GMT+03"); // +0300 always
+    TimeZone tzGMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
+    TimeZone tzGMT13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
 
-    cUTC = Calendar.getInstance(UTC);
-    cGMT03 = Calendar.getInstance(GMT03);
-    cGMT05 = Calendar.getInstance(GMT05);
-    cGMT13 = Calendar.getInstance(GMT13);
+    cUTC = Calendar.getInstance(tzUTC);
+    cGMT03 = Calendar.getInstance(tzGMT03);
+    cGMT05 = Calendar.getInstance(tzGMT05);
+    cGMT13 = Calendar.getInstance(tzGMT13);
   }
 
   @Before

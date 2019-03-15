@@ -27,31 +27,31 @@ public class MD5Digest {
    */
   public static byte[] encode(byte[] user, byte[] password, byte[] salt) {
     MessageDigest md;
-    byte[] temp_digest;
-    byte[] pass_digest;
-    byte[] hex_digest = new byte[35];
+    byte[] tempDigest;
+    byte[] passDigest;
+    byte[] hexDigest = new byte[35];
 
     try {
       md = MessageDigest.getInstance("MD5");
 
       md.update(password);
       md.update(user);
-      temp_digest = md.digest();
+      tempDigest = md.digest();
 
-      bytesToHex(temp_digest, hex_digest, 0);
-      md.update(hex_digest, 0, 32);
+      bytesToHex(tempDigest, hexDigest, 0);
+      md.update(hexDigest, 0, 32);
       md.update(salt);
-      pass_digest = md.digest();
+      passDigest = md.digest();
 
-      bytesToHex(pass_digest, hex_digest, 3);
-      hex_digest[0] = (byte) 'm';
-      hex_digest[1] = (byte) 'd';
-      hex_digest[2] = (byte) '5';
+      bytesToHex(passDigest, hexDigest, 3);
+      hexDigest[0] = (byte) 'm';
+      hexDigest[1] = (byte) 'd';
+      hexDigest[2] = (byte) '5';
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("Unable to encode password with MD5", e);
     }
 
-    return hex_digest;
+    return hexDigest;
   }
 
   /*

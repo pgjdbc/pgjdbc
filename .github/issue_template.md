@@ -8,11 +8,13 @@
 **Describe the issue**
 A clear and concise description of what the issue is.
 
-**Java Version**
+**Driver Version?** 
 
-**OS Version**
+**Java Version?**
 
-**PostgreSQL Version**
+**OS Version?**
+
+**PostgreSQL Version?**
 
 **To Reproduce**
 Steps to reproduce the behaviour:

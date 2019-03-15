@@ -54,6 +54,9 @@ URL or an additional `Properties` object parameter to `DriverManager.getConnecti
 The following examples illustrate the use of both methods to establish a SSL
 connection.
 
+If a property is specified both in URL and in `Properties` object, the value from
+`Properties` object is ignored.
+
 ```java
 String url = "jdbc:postgresql://localhost/test";
 Properties props = new Properties();
@@ -68,11 +71,20 @@ Connection conn = DriverManager.getConnection(url);
 
 * **user** = String
 
-	The database user on whose behalf the connection is being made. 
+	The database user on whose behalf the connection is being made.
 
 * **password** = String
 
-	The database user's password. 
+	The database user's password.
+
+* **options** = String
+
+	Specify 'options' connection initialization parameter.
+
+	The value of this property may contain spaces or other special characters,
+	and it should be properly encoded if provided in the connection URL. Spaces
+	are considered to separate command-line arguments, unless escaped with
+	a backslash (`\`); `\\` represents a literal backslash.
 
 * **ssl** = boolean
 
@@ -112,7 +124,11 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslkey** = String
 
-	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8
+	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
+	
+	*Note:* The key file **must** be in [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	
+	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der`
 
 * **sslrootcert** = String
 
@@ -191,6 +207,14 @@ Connection conn = DriverManager.getConnection(url);
     like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
 
     The default is `never` 
+
+* **cleanupSavePoints** = boolean
+
+    Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
+    done to avoid running out of shared buffers on the server in the case where 1000's of queries are
+    performed.
+     
+    The default is 'false'
 
 * **binaryTransferEnable** = String
 
@@ -341,6 +365,11 @@ Connection conn = DriverManager.getConnection(url);
 	gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour.
 
 	On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
+
+        To use SSPI with PgJDBC you must ensure that
+        [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/)
+	and its dependencies are present on the `CLASSPATH`. PgJDBC does *not*
+        bundle `waffle-jna` in the PgJDBC jar.
 
 	Since: 9.4
 

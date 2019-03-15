@@ -5,6 +5,7 @@
 PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a PostgreSQL database using standard, database independent Java code. Is an open source JDBC driver written in Pure Java (Type 4), and communicates in the PostgreSQL native network protocol.
 
 ### Status
+[![Build status](https://ci.appveyor.com/api/projects/status/d8ucmegnmourohwu/branch/master?svg=true)](https://ci.appveyor.com/project/davecramer/pgjdbc/branch/master)
 [![Build Status](https://travis-ci.org/pgjdbc/pgjdbc.svg?branch=master)](https://travis-ci.org/pgjdbc/pgjdbc)
 [![codecov.io](http://codecov.io/github/pgjdbc/pgjdbc/coverage.svg?branch=master)](http://codecov.io/github/pgjdbc/pgjdbc?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
@@ -100,7 +101,7 @@ where:
  * **host** (Optional) is the server address to connect. This could be a DNS or IP address, or it could be *localhost* or *127.0.0.1* for the local computer. To specify an IPv6 address your must enclose the host parameter with square brackets (jdbc:postgresql://[::1]:5740/accounting). Defaults to `localhost`.
  * **port** (Optional) is the port number listening on the host. Defaults to `5432`.
  * **database** (Optional) is the database name. Defaults to the same name as the *user name* used in the connection.
- * **propertyX** (Optional) is one or more option connection properties. For more information see *Connection properties*. 
+ * **propertyX** (Optional) is one or more option connection properties. For more information see *Connection properties*.
 
 #### Connection Properties
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL™. These properties may be specified in either the connection URL or an additional Properties object parameter to DriverManager.getConnection.
@@ -109,6 +110,7 @@ In addition to the standard connection parameters the driver supports a number o
 | ----------------------------- | ------- | :-----: | ------------- |
 | user                          | String  | null    | The database user on whose behalf the connection is being made. |
 | password                      | String  | null    | The database user's password. |
+| options                       | String  | null    | Specify 'options' connection initialization parameter. |
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
 | sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
@@ -146,10 +148,11 @@ In addition to the standard connection parameters the driver supports a number o
 | socketFactory                 | String  | null    | Specify a socket factory for socket creation |
 | socketFactoryArg (deprecated) | String  | null    | Argument forwarded to constructor of SocketFactory class. |
 | autosave                      | String  | never   | Specifies what the driver should do if a query fails, possible values: always, never, conservative |
+| cleanupSavePoints             | Boolean | false   | In Autosave mode the driver sets a SAVEPOINT for every query. It is possible to exhaust the server shared buffers. Setting this to true will release each SAVEPOINT at the cost of an additional round trip. |
 | preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, possible values: extended, extendedForPrepared, extendedCacheEverything, simple |
 | reWriteBatchedInserts         | Boolean | false  | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
 
-## Contributing 
+## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
 
 ----------------------------------------------------

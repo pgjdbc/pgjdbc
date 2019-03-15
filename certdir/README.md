@@ -36,9 +36,15 @@ openssl req -x509 -newkey rsa:1024 -days 3650 -nodes -keyout badroot.key -out ba
 rm badroot.key
 
 openssl pkcs8 -topk8 -in goodclient.key -out goodclient.pk8 -outform DER -v1 PBE-MD5-DES
+
 openssl pkcs8 -topk8 -in badclient.key -out badclient.pk8 -outform DER -v1 PBE-MD5-DES
+
 cp goodclient.crt server/root.crt
+
 cd server
+
 openssl req -x509 -newkey rsa:1024 -nodes -days 3650 -keyout server.key -out server.crt
+
 cp server.crt ../goodroot.crt
+
 #Common name is localhost, no password

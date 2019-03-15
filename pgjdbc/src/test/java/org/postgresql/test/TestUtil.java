@@ -69,6 +69,11 @@ public class TestUtil {
       protocolVersion = "&protocolVersion=" + getProtocolVersion();
     }
 
+    String options = "";
+    if (getOptions() != null) {
+      options = "&options=" + getOptions();
+    }
+
     String binaryTransfer = "";
     if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
       binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
@@ -96,6 +101,7 @@ public class TestUtil {
         + logLevel
         + logFile
         + protocolVersion
+        + options
         + binaryTransfer
         + receiveBufferSize
         + sendBufferSize
@@ -125,6 +131,10 @@ public class TestUtil {
 
   public static int getProtocolVersion() {
     return Integer.parseInt(System.getProperty("protocolVersion", "0"));
+  }
+
+  public static String getOptions() {
+    return System.getProperty("options");
   }
 
   /*
@@ -242,7 +252,7 @@ public class TestUtil {
     return p;
   }
 
-  public static void initDriver() throws Exception {
+  public static void initDriver() {
     synchronized (TestUtil.class) {
       if (initialized) {
         return;
@@ -281,7 +291,7 @@ public class TestUtil {
    * @return connection using a privileged user mostly for tests that the ability to load C
    *         functions now as of 4/14
    */
-  public static Connection openPrivilegedDB() throws Exception {
+  public static Connection openPrivilegedDB() throws SQLException {
     initDriver();
     Properties properties = new Properties();
     properties.setProperty("user", getPrivilegedUser());
@@ -295,7 +305,7 @@ public class TestUtil {
    *
    * @return connection
    */
-  public static Connection openDB() throws Exception {
+  public static Connection openDB() throws SQLException {
     return openDB(new Properties());
   }
 
@@ -303,7 +313,7 @@ public class TestUtil {
    * Helper - opens a connection with the allowance for passing additional parameters, like
    * "compatible".
    */
-  public static Connection openDB(Properties props) throws Exception {
+  public static Connection openDB(Properties props) throws SQLException {
     initDriver();
 
     // Allow properties to override the user name.
@@ -375,33 +385,23 @@ public class TestUtil {
   public static void dropSchema(Connection con, String schema) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP SCHEMA " + schema + " CASCADE ";
-
-      stmt.executeUpdate(sql);
-    } catch (SQLException ex) {
-      // Since every create schema issues a drop schema
-      // it's easy to get a schema doesn't exist error.
-      // we want to ignore these, but if we're in a
-      // transaction then we've got trouble
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP SCHEMA " + schema + " CASCADE");
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
+
 
   /*
    * Helper - creates a test table for use by a test
    */
   public static void createTable(Connection con, String table, String columns) throws SQLException {
-    // by default we don't request oids.
-    createTable(con, table, columns, false);
-  }
-
-  /*
-   * Helper - creates a test table for use by a test
-   */
-  public static void createTable(Connection con, String table, String columns, boolean withOids)
-      throws SQLException {
     Statement st = con.createStatement();
     try {
       // Drop the table
@@ -409,10 +409,6 @@ public class TestUtil {
 
       // Now create the table
       String sql = "CREATE TABLE " + table + " (" + columns + ")";
-
-      if (withOids) {
-        sql += " WITH OIDS";
-      }
 
       st.executeUpdate(sql);
     } finally {
@@ -471,16 +467,26 @@ public class TestUtil {
    * @param name String
    * @param values String
    */
+  public static void createCompositeType(Connection con, String name, String values) throws SQLException {
+    createCompositeType(con, name, values, true);
+  }
 
-  public static void createCompositeType(Connection con, String name, String values)
+  /**
+   * Helper creates an composite type.
+   *
+   * @param con Connection
+   * @param name String
+   * @param values String
+   */
+  public static void createCompositeType(Connection con, String name, String values, boolean shouldDrop)
       throws SQLException {
     Statement st = con.createStatement();
     try {
-      dropType(con, name);
-
-
-      // Now create the table
-      st.executeUpdate("create type " + name + " as (" + values + ")");
+      if (shouldDrop) {
+        dropType(con, name);
+      }
+      // Now create the type
+      st.executeUpdate("CREATE TYPE " + name + " AS (" + values + ")");
     } finally {
       closeQuietly(st);
     }
@@ -494,15 +500,17 @@ public class TestUtil {
    */
   public static void dropDomain(Connection con, String name)
       throws SQLException {
-    Statement st = con.createStatement();
+    Statement stmt = con.createStatement();
     try {
-      st.executeUpdate("drop domain " + name + " cascade");
-    } catch (SQLException ex) {
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP DOMAIN IF EXISTS " + name + " CASCADE");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP DOMAIN " + name + " CASCADE");
       }
     } finally {
-      closeQuietly(st);
+      closeQuietly(stmt);
     }
   }
 
@@ -531,12 +539,15 @@ public class TestUtil {
   public static void dropSequence(Connection con, String sequence) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP SEQUENCE " + sequence;
-      stmt.executeUpdate(sql);
-    } catch (SQLException sqle) {
-      if (!con.getAutoCommit()) {
-        throw sqle;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP SEQUENCE IF EXISTS " + sequence + " CASCADE");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP SEQUENCE " + sequence + " CASCADE");
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
 
@@ -546,16 +557,15 @@ public class TestUtil {
   public static void dropTable(Connection con, String table) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TABLE " + table + " CASCADE ";
-      stmt.executeUpdate(sql);
-    } catch (SQLException ex) {
-      // Since every create table issues a drop table
-      // it's easy to get a table doesn't exist error.
-      // we want to ignore these, but if we're in a
-      // transaction then we've got trouble
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP TABLE IF EXISTS " + table + " CASCADE ");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP TABLE " + table + " CASCADE ");
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
 
@@ -565,12 +575,15 @@ public class TestUtil {
   public static void dropType(Connection con, String type) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TYPE " + type + " CASCADE";
-      stmt.executeUpdate(sql);
-    } catch (SQLException ex) {
-      if (!con.getAutoCommit()) {
-        throw ex;
+      if (con.getAutoCommit()) {
+        // Not in a transaction so ignore error for missing object
+        stmt.executeUpdate("DROP TYPE IF EXISTS " + type + " CASCADE");
+      } else {
+        // In a transaction so do not ignore errors for missing object
+        stmt.executeUpdate("DROP TYPE " + type + " CASCADE");
       }
+    } finally {
+      closeQuietly(stmt);
     }
   }
 

@@ -119,7 +119,7 @@ PgJDBC doesn't natively support building from IDEs like Eclipse, NetBeans or
 IntelliJ. However you can use the tools Maven support from within the IDE if you wish.
 You can use regular IDE tools to develop, execute tests, etc, however if you want to build final
 artifacts you should use `mvn`.
-  
+
 After running the build , and build a .jar file (Java ARchive)
 depending on the version of java and which release you have the jar will be named
 postgresql-<major>.<minor>.<patch>.[jre<N>].jar. We use Semantic versioning; as such
@@ -178,7 +178,7 @@ It is recommended you run
     mvn checkstyle:check 
 
 before creating your pull request
-    
+​    
 
 ## Updating translations
 
@@ -362,8 +362,10 @@ You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.co
 
 Then, to test against old JDK, run `mvn test` in `pgjdbc-jre6` or `pgjdbc-jre7` modules.
 
-For information about the unit tests and how to run them, see
-  [org/postgresql/test/README](pgjdbc/src/test/java/org/postgresql/test/README.md)
+An easy way to set up the test PostgreSQL database is to use [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm). Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
+
+For more information about the unit tests and how to run them, see
+  [TESTING.md](TESTING.md)
 
 ## Support for IDEs
 
