@@ -75,8 +75,8 @@ public class Encoding {
     encodings.put("LATIN10", new String[0]);
   }
 
-  private static interface UTFEncodingProvider {
-    public Encoding getEncoding();
+  private interface UTFEncodingProvider {
+    Encoding getEncoding();
   }
 
   private static final UTFEncodingProvider UTF_ENCODING_PROVIDER;

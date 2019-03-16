@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2019, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -20,7 +20,7 @@ abstract class OptimizedUTF8Encoder extends Encoding {
 
   char[] decoderArray = new char[1024];
 
-  public OptimizedUTF8Encoder() {
+  OptimizedUTF8Encoder() {
     super("UTF-8", true);
   }
 
@@ -49,6 +49,7 @@ abstract class OptimizedUTF8Encoder extends Encoding {
    * @param codePointConsumer
    *          The consumer of all decoded code points.
    * @throws IOException
+   *          If data is not valid utf-8 content.
    */
   static String decodeToChars(byte[] data, int offset, int length, char[] chars, int out) throws IOException {
     int in = offset;

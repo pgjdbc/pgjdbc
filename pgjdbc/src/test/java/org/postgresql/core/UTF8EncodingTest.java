@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2019, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.core;
 
 import static org.junit.Assert.assertEquals;
@@ -22,7 +27,7 @@ public class UTF8EncodingTest {
   @Parameterized.Parameters(name = "string={1}, encoding={0}")
   public static Iterable<Object[]> data() {
     final StringBuilder reallyLongString = new StringBuilder(1024 * 1024);
-    for (int i=0; i<185000; ++i) {
+    for (int i = 0; i < 185000; ++i) {
       reallyLongString.append(i);
     }
 
@@ -30,10 +35,11 @@ public class UTF8EncodingTest {
         "short simple",
         "longer but still not really all that long",
         reallyLongString.toString(),
-        "eat \u03A3 \u03C0"
+        reallyLongString.append('\u03C0').toString(), //add multi-byte to end of a long string
+        "eat \u03A3 \u03C0 \u798F" //need to test some multi-byte characters
     };
 
-    final List<Object[]> data = new ArrayList<>(strings.length * 2);
+    final List<Object[]> data = new ArrayList<Object[]>(strings.length * 2);
     for (Encoding encoding : Arrays.asList(new CharOptimizedUTF8Encoding(), new ByteOptimizedUTF8Encoding())) {
       for (String string : strings) {
         data.add(new Object[] {encoding, string});

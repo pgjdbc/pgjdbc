@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2019, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -47,14 +47,6 @@ final class ByteOptimizedUTF8Encoding extends OptimizedUTF8Encoder {
     return new String(encodedString, offset, length, ASCII_CHARSET);
   }
 
-  /**
-   * @param encodedString
-   * @param offset
-   * @param length
-   * @param i
-   * @return
-   * @throws IOException
-   */
   private synchronized String slowDecode(byte[] encodedString, int offset, int length, int curIdx) throws IOException {
     char[] chars = getChars(length);
     int out = 0;
