@@ -18,16 +18,26 @@ abstract class OptimizedUTF8Encoder extends Encoding {
 
   static final int MAX_CHAR_SIZE = 32 * 1024;
 
-  char[] decoderArray = new char[1024];
+  private char[] decoderArray = new char[1024];
 
   OptimizedUTF8Encoder() {
     super("UTF-8", true);
   }
 
+  /**
+   * Returns a {@code char[]} to use for decoding. Will use member variable if <i>length</i>
+   * is small enough. This method must be called, and {@code char[]} only used, from
+   * {@code synchronized} block.
+   *
+   * @param length
+   *          The needed length of returned {@code char[]}.
+   * @return
+   *          A {@code char[]} at least as long as <i>length</i>.
+   */
   char[] getChars(int length) {
     char[] chars = decoderArray;
     if (chars.length < length) {
-      if (chars.length < MAX_CHAR_SIZE) {
+      if (chars.length <= MAX_CHAR_SIZE) {
         chars = decoderArray = new char[length];
       } else {
         chars = new char[length];

@@ -16,12 +16,6 @@ import java.io.IOException;
 final class CharOptimizedUTF8Encoding extends OptimizedUTF8Encoder {
 
   /**
-   *
-   */
-  CharOptimizedUTF8Encoding() {
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override

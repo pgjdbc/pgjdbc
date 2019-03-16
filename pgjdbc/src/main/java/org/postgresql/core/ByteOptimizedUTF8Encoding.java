@@ -19,21 +19,13 @@ final class ByteOptimizedUTF8Encoding extends OptimizedUTF8Encoder {
   private static final Charset ASCII_CHARSET = Charset.forName("ascii");
   private static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
 
-  private static final int MAX_OPTIMIZED_LENGTH = 512 * 1024;
-
-  /**
-   * Constructs new instance.
-   */
-  ByteOptimizedUTF8Encoding() {
-  }
-
   /**
    * {@inheritDoc}
    */
   @Override
   public String decode(byte[] encodedString, int offset, int length) throws IOException {
 
-    if (length >= MAX_OPTIMIZED_LENGTH) {
+    if (length >= MAX_CHAR_SIZE) {
       return new String(encodedString, offset, length, UTF_8_CHARSET);
     }
 
