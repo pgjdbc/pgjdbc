@@ -82,8 +82,8 @@ public class Encoding {
   private static final UTFEncodingProvider UTF_ENCODING_PROVIDER;
 
   static {
-    final String version = System.getProperty("java.version");
-    if (version == null || version.startsWith("1.")) {
+    //for java 1.8 and older, use implementation optimized for char[]
+    if (JavaVersion.v1_8.compareTo(JavaVersion.getRuntimeVersion()) >= 0) {
       UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
         @Override
         public Encoding getEncoding() {
@@ -91,6 +91,7 @@ public class Encoding {
         }
       };
     } else {
+      //for newer versions, use implementation optimized for byte[]
       UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
         @Override
         public Encoding getEncoding() {

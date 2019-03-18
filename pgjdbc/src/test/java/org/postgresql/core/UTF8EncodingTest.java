@@ -36,7 +36,11 @@ public class UTF8EncodingTest {
         "longer but still not really all that long",
         reallyLongString.toString(),
         reallyLongString.append('\u03C0').toString(), //add multi-byte to end of a long string
-        "eat \u03A3 \u03C0 \u798F" //need to test some multi-byte characters
+        reallyLongString.delete((32 * 1024) + 5, reallyLongString.capacity() - 1).toString(),
+        reallyLongString.append('\u00DC').toString(), //add high order char to end of mid length string
+        reallyLongString.delete((16 * 1024) + 5, reallyLongString.capacity() - 1).toString(),
+        reallyLongString.append('\u00DD').toString(), //add high order char to end of mid length string
+        "e\u00E4t \u03A3 \u03C0 \u798F, it is good" //need to test some multi-byte characters
     };
 
     final List<Object[]> data = new ArrayList<Object[]>(strings.length * 2);

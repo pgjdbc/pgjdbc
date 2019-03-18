@@ -40,7 +40,7 @@ final class ByteOptimizedUTF8Encoding extends OptimizedUTF8Encoder {
   }
 
   private synchronized String slowDecode(byte[] encodedString, int offset, int length, int curIdx) throws IOException {
-    char[] chars = getChars(length);
+    final char[] chars = getChars(length);
     int out = 0;
     for (int i = offset; i < curIdx; ++i) {
       chars[out++] = (char) encodedString[i];

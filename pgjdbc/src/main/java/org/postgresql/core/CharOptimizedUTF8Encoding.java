@@ -20,12 +20,12 @@ final class CharOptimizedUTF8Encoding extends OptimizedUTF8Encoder {
    */
   @Override
   public synchronized String decode(byte[] encodedString, int offset, int length) throws IOException {
-    char[] chars = getChars(length);
+    final char[] chars = getChars(length);
     int out = 0;
     for (int i = offset, j = offset + length; i < j; ++i) {
-      final char ch = (char) encodedString[i];
-      if ((ch & 0x80) == 0) {
-        chars[out++] = ch;
+      // bytes are signed values. all ascii values are positive
+      if (encodedString[i] < 0) {
+        chars[out++] = (char) encodedString[i];
       } else {
         return decodeToChars(encodedString, i, j - i, chars, out);
       }
