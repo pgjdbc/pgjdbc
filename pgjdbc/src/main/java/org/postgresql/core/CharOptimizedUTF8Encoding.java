@@ -24,7 +24,7 @@ final class CharOptimizedUTF8Encoding extends OptimizedUTF8Encoder {
     int out = 0;
     for (int i = offset, j = offset + length; i < j; ++i) {
       // bytes are signed values. all ascii values are positive
-      if (encodedString[i] < 0) {
+      if (encodedString[i] >= 0) {
         chars[out++] = (char) encodedString[i];
       } else {
         return decodeToChars(encodedString, i, j - i, chars, out);
