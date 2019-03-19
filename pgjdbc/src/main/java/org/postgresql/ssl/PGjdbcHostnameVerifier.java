@@ -152,7 +152,7 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
       anyDnsSan |= sanType == TYPE_DNS_NAME;
       if (verifyHostName(canonicalHostname, san)) {
         if (LOGGER.isLoggable(Level.FINEST)) {
-          LOGGER.log(Level.SEVERE,
+          LOGGER.log(Level.FINEST,
               GT.tr("Server name validation pass for {0}, subjectAltName {1}", hostname, san));
         }
         return true;
