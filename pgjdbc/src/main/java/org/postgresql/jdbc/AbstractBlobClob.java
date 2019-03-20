@@ -31,6 +31,14 @@ public abstract class AbstractBlobClob {
   private boolean currentLoIsWriteable;
   private boolean support64bit;
 
+  private enum State {
+    EMPTY,
+    OPEN,
+    FREED;
+  }
+
+  private State state;
+  private boolean unlinkOnFree;
 
   /**
    * We create separate LargeObjects for methods that use streams so they won't interfere with each
@@ -38,7 +46,16 @@ public abstract class AbstractBlobClob {
    */
   private ArrayList<LargeObject> subLOs;
 
-  private final long oid;
+  /**
+   * OID of the large object or 0 in case the blob has not been materialized
+   * at the backend yet.
+   */
+  private long oid;
+
+  public AbstractBlobClob(BaseConnection conn) throws SQLException {
+    this(conn, 0);
+    this.state = State.EMPTY;
+  }
 
   public AbstractBlobClob(BaseConnection conn, long oid) throws SQLException {
     this.conn = conn;
@@ -47,15 +64,31 @@ public abstract class AbstractBlobClob {
     this.currentLoIsWriteable = false;
 
     support64bit = conn.haveMinimumServerVersion(90300);
+  }
 
-    subLOs = new ArrayList<LargeObject>();
+  protected long getOid() {
+    return oid;
+  }
+
+  /**
+   * Large object is kept in the database by default,
+   * however we want to prevent garbage, so unlink the lob in case
+   * it has never been sent to the database.
+   * @param unlinkOnFree true if lo_unlink should be called on free
+   */
+  void setUnlinkOnFree(boolean unlinkOnFree) {
+    this.unlinkOnFree = unlinkOnFree;
   }
 
   public synchronized void free() throws SQLException {
+    state = State.FREED;
     if (currentLo != null) {
       currentLo.close();
       currentLo = null;
       currentLoIsWriteable = false;
+    }
+    if (subLOs == null) {
+      return;
     }
     for (LargeObject subLO : subLOs) {
       subLO.close();
@@ -83,6 +116,12 @@ public abstract class AbstractBlobClob {
       throw new PSQLException(GT.tr("Cannot truncate LOB to a negative length."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
+    if (state == State.EMPTY) {
+      if (len == 0) {
+        return;
+      }
+      materializeBlob();
+    }
     if (len > Integer.MAX_VALUE) {
       if (support64bit) {
         getLo(true).truncate64(len);
@@ -97,6 +136,9 @@ public abstract class AbstractBlobClob {
 
   public synchronized long length() throws SQLException {
     checkFreed();
+    if (state == State.EMPTY) {
+      return 0;
+    }
     if (support64bit) {
       return getLo(false).size64();
     } else {
@@ -120,6 +162,7 @@ public abstract class AbstractBlobClob {
   }
 
   public synchronized OutputStream setBinaryStream(long pos) throws SQLException {
+    checkFreed();
     assertPosition(pos);
     LargeObject subLO = getLo(true).copy();
     addSubLO(subLO);
@@ -242,14 +285,14 @@ public abstract class AbstractBlobClob {
    * @throws SQLException if LOB has been freed.
    */
   protected void checkFreed() throws SQLException {
-    if (subLOs == null) {
+    if (state == State.FREED) {
       throw new PSQLException(GT.tr("free() was called on this LOB previously"),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
   }
 
   protected synchronized LargeObject getLo(boolean forWrite) throws SQLException {
-
+    materializeBlob();
 
     if (this.currentLo != null) {
       if (forWrite && !currentLoIsWriteable) {
@@ -258,7 +301,7 @@ public abstract class AbstractBlobClob {
 
         LargeObjectManager lom = conn.getLargeObjectAPI();
         LargeObject newLo = lom.open(oid, LargeObjectManager.READWRITE);
-        this.subLOs.add(this.currentLo);
+        addSubLO(this.currentLo);
         this.currentLo = newLo;
 
         if (currentPos != 0) {
@@ -274,7 +317,24 @@ public abstract class AbstractBlobClob {
     return currentLo;
   }
 
+  /**
+   * Creates a blob at the backend so data can be put there.
+   * @throws SQLException in case error happens
+   */
+  private void materializeBlob() throws SQLException {
+    if (state != State.EMPTY) {
+      return;
+    }
+    // Materialize the blob
+    LargeObjectManager largeObjectAPI = conn.getLargeObjectAPI();
+    oid = largeObjectAPI.createLO();
+    state = State.OPEN;
+  }
+
   protected void addSubLO(LargeObject subLO) {
+    if (subLOs == null) {
+      subLOs = new ArrayList<LargeObject>();
+    }
     subLOs.add(subLO);
   }
 }

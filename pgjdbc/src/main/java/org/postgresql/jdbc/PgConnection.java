@@ -1264,19 +1264,19 @@ public class PgConnection implements BaseConnection {
   @Override
   public Clob createClob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
+    return new PgClob(this);
   }
 
   @Override
   public Blob createBlob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
+    return new PgBlob(this);
   }
 
   @Override
   public NClob createNClob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createNClob()");
+    return new PgClob(this);
   }
 
   @Override

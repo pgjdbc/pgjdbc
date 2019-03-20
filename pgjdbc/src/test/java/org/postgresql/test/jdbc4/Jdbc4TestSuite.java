@@ -21,6 +21,7 @@ import org.junit.runners.Suite;
         ClientInfoTest.class,
         PGCopyInputStreamTest.class,
         BlobTest.class,
+        ClobTest.class,
         BinaryStreamTest.class,
         CharacterStreamTest.class,
         UUIDTest.class,
