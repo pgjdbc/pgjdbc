@@ -213,16 +213,19 @@ public class DatabaseMetaDataTest {
   public void testCrossReference() throws Exception {
     Connection con1 = TestUtil.openDB();
 
-    TestUtil.createTable(con1, "vv", "a int not null, b int not null, primary key ( a, b )");
+    TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
 
     TestUtil.createTable(con1, "ww",
-        "m int not null, n int not null, primary key ( m, n ), foreign key ( m, n ) references vv ( a, b )");
+        "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
 
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
     ResultSet rs = dbmd.getCrossReference(null, "", "vv", null, "", "ww");
+    String[] expectedPkColumnNames = new String[]{"a", "b"};
+    String[] expectedFkColumnNames = new String[]{"m", "n"};
+    int numRows = 0;
 
     for (int j = 1; rs.next(); j++) {
 
@@ -230,13 +233,13 @@ public class DatabaseMetaDataTest {
       assertEquals("vv", pkTableName);
 
       String pkColumnName = rs.getString("PKCOLUMN_NAME");
-      assertTrue(pkColumnName.equals("a") || pkColumnName.equals("b"));
+      assertEquals(expectedPkColumnNames[j - 1], pkColumnName);
 
       String fkTableName = rs.getString("FKTABLE_NAME");
       assertEquals("ww", fkTableName);
 
       String fkColumnName = rs.getString("FKCOLUMN_NAME");
-      assertTrue(fkColumnName.equals("m") || fkColumnName.equals("n"));
+      assertEquals(expectedFkColumnNames[j - 1], fkColumnName);
 
       String fkName = rs.getString("FK_NAME");
       assertEquals("ww_m_fkey", fkName);
@@ -246,7 +249,9 @@ public class DatabaseMetaDataTest {
 
       int keySeq = rs.getInt("KEY_SEQ");
       assertEquals(j, keySeq);
+      numRows += 1;
     }
+    assertEquals(2, numRows);
 
 
     TestUtil.dropTable(con1, "vv");

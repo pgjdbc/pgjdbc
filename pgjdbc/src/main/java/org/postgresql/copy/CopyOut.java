@@ -22,7 +22,7 @@ public interface CopyOut extends CopyOperation {
    * @param block {@code true} if need wait data from server otherwise {@code false} and will read
    *              pending message from server
    * @return byte array received from server, if pending message from server absent and use no
-   * blocking mode return null
+   *         blocking mode return null
    * @throws SQLException if something goes wrong for example socket timeout
    */
   byte[] readFromCopy(boolean block) throws SQLException;
