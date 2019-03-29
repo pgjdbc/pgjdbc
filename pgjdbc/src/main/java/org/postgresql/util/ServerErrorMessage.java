@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * This class represents an error message from the server.
+ */
 public class ServerErrorMessage implements Serializable {
 
   private static final Logger LOGGER = Logger.getLogger(ServerErrorMessage.class.getName());
