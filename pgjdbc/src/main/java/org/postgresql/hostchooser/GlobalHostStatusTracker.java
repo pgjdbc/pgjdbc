@@ -48,7 +48,7 @@ public class GlobalHostStatusTracker {
    * @param hostRecheckMillis How stale information is allowed.
    * @return candidate hosts to connect to.
    */
-  static List<HostSpec> getCandidateHosts(HostSpec[] hostSpecs,
+  public static List<HostSpec> getCandidateHosts(HostSpec[] hostSpecs,
       HostRequirement targetServerType, long hostRecheckMillis) {
     List<HostSpec> candidates = new ArrayList<HostSpec>(hostSpecs.length);
     long latestAllowedUpdate = currentTimeMillis() - hostRecheckMillis;
@@ -66,7 +66,7 @@ public class GlobalHostStatusTracker {
     return candidates;
   }
 
-  static class HostSpecStatus {
+  private static class HostSpecStatus {
     final HostSpec host;
     HostStatus status;
     long lastUpdated;
