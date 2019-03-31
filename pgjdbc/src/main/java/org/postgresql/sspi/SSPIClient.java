@@ -46,7 +46,6 @@ public class SSPIClient implements ISSPIClient {
   private WindowsSecurityContextImpl sspiContext;
   private String targetName;
 
-
   /**
    * <p>Instantiate an SSPIClient for authentication of a connection.</p>
    *

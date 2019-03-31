@@ -31,7 +31,6 @@ public abstract class AbstractBlobClob {
   private boolean currentLoIsWriteable;
   private boolean support64bit;
 
-
   /**
    * We create separate LargeObjects for methods that use streams so they won't interfere with each
    * other.
@@ -191,7 +190,6 @@ public abstract class AbstractBlobClob {
       return buffer[idx++];
     }
   }
-
 
   /**
    * This is simply passing the byte value of the pattern Blob.

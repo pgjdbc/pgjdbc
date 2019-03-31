@@ -397,7 +397,6 @@ public class TestUtil {
     }
   }
 
-
   /*
    * Helper - creates a test table for use by a test
    */

@@ -1731,8 +1731,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // statement name terminator
   }
 
-
-
   // sendOneQuery sends a single statement via the extended query protocol.
   // Per the FE/BE docs this is essentially the same as how a simple query runs
   // (except that it generates some extra acknowledgement messages, and we
@@ -2745,7 +2743,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
-
 
   /**
    * <p>The estimated server response size since we last consumed the input stream from the server, in
