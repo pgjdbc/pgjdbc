@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
-
 /**
  * Misc utils for handling time and date values.
  */
@@ -1002,7 +1001,6 @@ public class TimestampUtils {
 
     return convertToTime(millis, tz); // Ensure date part is 1970-01-01
   }
-
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   /**

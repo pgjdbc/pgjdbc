@@ -557,7 +557,6 @@ public final class EscapedFunctions2 {
     return interval.regionMatches(true, 0, SQL_TSI_ROOT, 0, SQL_TSI_ROOT.length());
   }
 
-
   /**
    * time stamp diff
    *

@@ -239,7 +239,6 @@ public class Jdbc3BlobTest {
     readWriteStream(1, data);
   }
 
-
   /**
    * Reads then writes data to the blob via a stream.
    */

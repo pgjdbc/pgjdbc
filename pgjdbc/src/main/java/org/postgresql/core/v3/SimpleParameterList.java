@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-
 /**
  * Parameter list for a single-statement V3 query.
  *

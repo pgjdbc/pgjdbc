@@ -8,7 +8,6 @@ package org.postgresql.core.v3;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
 
-
 /**
  * Purpose of this object is to support batched query re write behaviour. Responsibility for
  * tracking the batch size and implement the clean up of the query fragments after the batch execute
