@@ -12,7 +12,6 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
-
 public class LogSequenceNumberTest {
   @Test
   public void testNotNullWhenCreateFromStr() throws Exception {

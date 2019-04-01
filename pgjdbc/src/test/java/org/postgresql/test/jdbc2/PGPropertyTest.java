@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
-
 public class PGPropertyTest {
 
   /**

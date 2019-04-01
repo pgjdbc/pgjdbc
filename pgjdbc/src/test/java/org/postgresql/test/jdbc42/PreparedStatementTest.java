@@ -17,7 +17,6 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalTime;
 
-
 public class PreparedStatementTest extends BaseTest4 {
 
   @Override

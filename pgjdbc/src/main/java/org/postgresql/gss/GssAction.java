@@ -33,7 +33,6 @@ class GssAction implements PrivilegedAction<Exception> {
   private final boolean useSpnego;
   private final GSSCredential clientCredentials;
 
-
   GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
       String kerberosServerName, boolean useSpnego) {
     this.pgStream = pgStream;

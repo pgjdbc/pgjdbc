@@ -44,7 +44,6 @@ public class GetObject310Test extends BaseTest4 {
   private static final ZoneOffset GMT05 = ZoneOffset.of("-05:00"); // -0500 always
   private static final ZoneOffset GMT13 = ZoneOffset.of("+13:00"); // +1300 always
 
-
   public GetObject310Test(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }

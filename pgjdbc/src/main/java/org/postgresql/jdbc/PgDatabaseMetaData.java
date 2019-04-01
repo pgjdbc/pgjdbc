@@ -91,7 +91,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return nameDataLength - 1;
   }
 
-
   public boolean allProceduresAreCallable() throws SQLException {
     return true; // For now...
   }
@@ -2415,7 +2414,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return type != ResultSet.TYPE_SCROLL_SENSITIVE;
   }
 
-
   public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
     // These combinations are not supported!
     if (type == ResultSet.TYPE_SCROLL_SENSITIVE) {
@@ -2543,7 +2541,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }
-
 
   @Override
   public Connection getConnection() throws SQLException {

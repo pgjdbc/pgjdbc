@@ -120,7 +120,6 @@ public class RefCursorTest extends BaseTest4 {
     call.close();
   }
 
-
   @Test
   public void testEmptyResult() throws SQLException {
     assumeCallableStatementsSupported();

@@ -3,7 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.jre8.sasl;
 
 import org.postgresql.core.PGStream;

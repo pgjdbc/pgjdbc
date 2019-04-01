@@ -696,7 +696,6 @@ public class PgConnection implements BaseConnection {
     firstWarning = null;
   }
 
-
   @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
@@ -784,7 +783,6 @@ public class PgConnection implements BaseConnection {
           PSQLState.CONNECTION_DOES_NOT_EXIST);
     }
   }
-
 
   @Override
   public void rollback() throws SQLException {

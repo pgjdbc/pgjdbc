@@ -417,7 +417,6 @@ public class TimezoneTest {
     }
   }
 
-
   @Test
   public void testSetTimestamp() throws Exception {
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {

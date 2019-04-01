@@ -456,7 +456,6 @@ public class SslTest extends BaseTest4 {
     return null;
   }
 
-
   @Test
   public void run() throws SQLException {
     if (con == null) {

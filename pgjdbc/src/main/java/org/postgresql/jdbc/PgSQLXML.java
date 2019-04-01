@@ -288,7 +288,6 @@ public class PgSQLXML implements SQLXML {
     }
   }
 
-
   private void initialize() throws SQLException {
     if (initialized) {
       throw new PSQLException(
