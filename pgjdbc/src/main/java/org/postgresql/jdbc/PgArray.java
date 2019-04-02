@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -759,6 +760,17 @@ public class PgArray implements java.sql.Array {
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
             : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
       }
+    } else if (type == Types.SQLXML) {
+      Object[] oa = null;
+      ret = oa = (dims > 1
+          ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.SQLXML.class, dimsLength)
+          : new java.sql.SQLXML[count]);
+
+      for (; count > 0; count--) {
+        Object v = input.get(index++);
+        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
+            : (v == null ? null : getAsXml((String) v));
+      }
     } else if (ArrayAssistantRegistry.getAssistant(oid) != null) {
       ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
 
@@ -796,6 +808,12 @@ public class PgArray implements java.sql.Array {
     }
 
     return ret;
+  }
+
+  private SQLXML getAsXml(String value) throws SQLException {
+    SQLXML xml = connection.createSQLXML();
+    xml.setString(value);
+    return xml;
   }
 
   public int getBaseType() throws SQLException {

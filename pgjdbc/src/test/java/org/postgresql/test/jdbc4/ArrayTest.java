@@ -25,6 +25,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -59,12 +60,25 @@ public class ArrayTest extends BaseTest4 {
         "intarr int[], decarr decimal(2,1)[], strarr text[]"
         + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
         + ", floatarr float8[]"
-        + ", intarr2 int4[][]");
+        + ", intarr2 int4[][]"
+        + (isXmlEnabled(conn) ? ", xmlarr xml[]" : ""));
     TestUtil.createTable(conn, "arrcompprnttest", "id serial, name character(10)");
     TestUtil.createTable(conn, "arrcompchldttest",
         "id serial, name character(10), description character varying, parent integer");
     TestUtil.createTable(conn, "\"CorrectCasing\"", "id serial");
     TestUtil.createTable(conn, "\"Evil.Table\"", "id serial");
+  }
+
+  private static boolean isXmlEnabled(Connection conn) {
+    try {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT '<a>b</a>'::xml");
+      rs.close();
+      stmt.close();
+      return true;
+    } catch (SQLException sqle) {
+      return false;
+    }
   }
 
   @Override
@@ -199,6 +213,32 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertTrue(arrRs.next());
     Assert.assertEquals(in[1], arrRs.getObject(2));
     Assert.assertFalse(arrRs.next());
+  }
+
+  @Test
+  public void testCreateArrayOfXml() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+    Assume.assumeTrue("Server has been compiled --with-libxml", isXmlEnabled(con));
+
+    String xmlA = "<a><b>1</b><b>2</b></a>";
+    String xmlB = "<a>f</a><b>g</b>";
+
+    SQLXML[] in = new SQLXML[2];
+    in[0] = conn.createSQLXML();
+    in[0].setString(xmlA);
+    in[1] = conn.createSQLXML();
+    in[1].setString(xmlB);
+
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::xml[]");
+    pstmt.setArray(1, conn.createArrayOf("xml", in));
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+    Assert.assertEquals("xml", arr.getBaseTypeName());
+    SQLXML[] out = (SQLXML[]) arr.getArray();
+    Assert.assertEquals(2, out.length);
+    Assert.assertEquals(xmlA, out[0].getString());
+    Assert.assertEquals(xmlB, out[1].getString());
   }
 
   @Test
