@@ -38,16 +38,16 @@ import javax.sql.CommonDataSource;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public abstract class BaseDataSource implements CommonDataSource, Referenceable {
 
+public abstract class BaseDataSource implements CommonDataSource, Referenceable {
   private static final Logger LOGGER = Logger.getLogger(BaseDataSource.class.getName());
 
   // Standard properties, defined in the JDBC 2.0 Optional Package spec
-  private String serverName = "localhost";
+  private String[] serverNames = new String[] {"localhost"};
   private String databaseName = "";
   private String user;
   private String password;
-  private int portNumber = 0;
+  private int[] portNumbers = new int[] {0};
 
   // Map for all other properties
   private Properties properties = new Properties();
@@ -124,9 +124,20 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * Gets the name of the host the PostgreSQL database is running on.
    *
    * @return name of the host the PostgreSQL database is running on
+   * @deprecated use {@link #getServerNames()}
    */
+  @Deprecated
   public String getServerName() {
-    return serverName;
+    return serverNames[0];
+  }
+  
+  /**
+   * Gets the name of the host(s) the PostgreSQL database is running on.
+   *
+   * @return name of the host(s) the PostgreSQL database is running on
+   */
+  public String[] getServerNames() {
+    return serverNames;
   }
 
   /**
@@ -134,14 +145,30 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
    *
    * @param serverName name of the host the PostgreSQL database is running on
+   * @deprecated use {@link #setServerNames(String[])}
    */
+  @Deprecated
   public void setServerName(String serverName) {
     if (serverName == null || serverName.equals("")) {
-      this.serverName = "localhost";
+      this.serverNames = new String[] {"localhost"};
     } else {
-      this.serverName = serverName;
+      this.serverNames = new String[] {serverName};
     }
   }
+  
+  /**
+   * Sets the name of the host(s) the PostgreSQL database is running on. If this is changed, it will
+   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   *
+   * @param serverNames name of the host(s) the PostgreSQL database is running on
+   */
+  public void setServerNames(String[] serverNames) {
+	    if (serverNames == null || serverNames.length==0 || serverNames[0].equals("")) {
+	      this.serverNames = new String[] {"localhost"};
+	    } else {
+	      this.serverNames = serverNames;
+	    }
+	  }
 
   /**
    * Gets the name of the PostgreSQL database, running on the server identified by the serverName
@@ -216,21 +243,45 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * Gets the port which the PostgreSQL server is listening on for TCP/IP connections.
    *
    * @return The port, or 0 if the default port will be used.
+   * @deprecated use {@link #getPortNumbers()}
    */
+  @Deprecated
   public int getPortNumber() {
-    return portNumber;
+    return portNumbers[0];
   }
+  
+  /**
+   * Gets the port(s) which the PostgreSQL server is listening on for TCP/IP connections.
+   *
+   * @return The port(s), or 0 if the default port will be used.
+   */
+  public int[] getPortNumbers() {
+	    return portNumbers;
+	  }
 
   /**
-   * Gets the port which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
+   * Sets the port which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
    * -i flag is passed to postmaster when PostgreSQL is started. If this is not set, or set to 0,
    * the default port will be used.
    *
    * @param portNumber port which the PostgreSQL server is listening on for TCP/IP
+   * @deprecated use {@link #setPortNumbers(int[])}
    */
+  @Deprecated
   public void setPortNumber(int portNumber) {
-    this.portNumber = portNumber;
+    this.portNumbers = new int[] { portNumber };
   }
+  
+  /**
+   * Sets the port(s) which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
+   * -i flag is passed to postmaster when PostgreSQL is started. If this is not set, or set to 0,
+   * the default port will be used.
+   *
+   * @param portNumbers port(s) which the PostgreSQL server is listening on for TCP/IP
+   */
+  public void setPortNumbers(int[] portNumbers) {
+	    this.portNumbers = portNumbers;
+	  }
 
   /**
    * @return command line options for this connection
@@ -1079,9 +1130,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public String getUrl() {
     StringBuilder url = new StringBuilder(100);
     url.append("jdbc:postgresql://");
-    url.append(serverName);
-    if (portNumber != 0) {
-      url.append(":").append(portNumber);
+    for (int i=0; i<serverNames.length; i++) {
+    	if (i>0) {
+    		url.append(",");
+    	}
+    	url.append(serverNames[i]);
+	    if (portNumbers.length>=i && portNumbers[i] != 0) {
+	      url.append(":").append(portNumbers[i]);
+	    }
     }
     url.append("/").append(URLCoder.encode(databaseName));
 
@@ -1173,14 +1229,18 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
     switch (property) {
       case PG_HOST:
-        serverName = value;
+        serverNames = value.split(",");
         break;
       case PG_PORT:
-        try {
-          portNumber = Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-          portNumber = 0;
-        }
+    	String[] ps = value.split(",");
+    	portNumbers = new int[ps.length];
+    	for (int i=0; i<ps.length; i++) {
+          try {
+            portNumbers[i] = Integer.parseInt(ps[i]);
+          } catch (NumberFormatException e) {
+            portNumbers[i] = 0;
+          }
+    	}
         break;
       case PG_DBNAME:
         databaseName = value;
@@ -1207,9 +1267,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
-    ref.add(new StringRefAddr("serverName", serverName));
-    if (portNumber != 0) {
-      ref.add(new StringRefAddr("portNumber", Integer.toString(portNumber)));
+    ref.add(new StringRefAddr("serverName", String.join(",", serverNames)));
+    if (portNumbers!=null) {
+    	String[] ps = new String[portNumbers.length];
+    	for (int i=0; i<portNumbers.length; i++) {
+    		int p = portNumbers[i];
+    		ps[i] = Integer.toString(p);
+    	}
+      ref.add(new StringRefAddr("portNumber", String.join(",",  ps)));
     }
     ref.add(new StringRefAddr("databaseName", databaseName));
     if (user != null) {
@@ -1230,11 +1295,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public void setFromReference(Reference ref) {
     databaseName = getReferenceProperty(ref, "databaseName");
-    String port = getReferenceProperty(ref, "portNumber");
-    if (port != null) {
-      portNumber = Integer.parseInt(port);
+    String ports = getReferenceProperty(ref, "portNumber");
+    if (ports != null) {
+    	String[] ps = ports.split(",");
+    	portNumbers = new int[ps.length];
+    	for (int i=0; i<ps.length; i++) {
+          portNumbers[i] = Integer.parseInt(ps[i]);
+    	}
     }
-    serverName = getReferenceProperty(ref, "serverName");
+    serverNames = getReferenceProperty(ref, "serverName").split(",");
 
     for (PGProperty property : PGProperty.values()) {
       setProperty(property, getReferenceProperty(ref, property.getName()));
@@ -1250,21 +1319,21 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   protected void writeBaseObject(ObjectOutputStream out) throws IOException {
-    out.writeObject(serverName);
+    out.writeObject(serverNames);
     out.writeObject(databaseName);
     out.writeObject(user);
     out.writeObject(password);
-    out.writeInt(portNumber);
+    out.writeObject(portNumbers);
 
     out.writeObject(properties);
   }
 
   protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    serverName = (String) in.readObject();
+    serverNames = (String[]) in.readObject();
     databaseName = (String) in.readObject();
     user = (String) in.readObject();
     password = (String) in.readObject();
-    portNumber = in.readInt();
+    portNumbers = (int[]) in.readObject();
 
     properties = (Properties) in.readObject();
   }
