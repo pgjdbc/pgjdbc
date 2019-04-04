@@ -187,7 +187,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       case Types.NUMERIC:
       case Types.DECIMAL:
         return getNumeric(columnIndex,
-            (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff), true);
+            (field.getMod() == -1) ? null : ((field.getMod() - 4) & 0xffff), true);
       case Types.REAL:
         return getFloat(columnIndex);
       case Types.FLOAT:
@@ -400,7 +400,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
 
   public java.math.BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-    return getBigDecimal(columnIndex, -1);
+    return getBigDecimal(columnIndex, null);
   }
 
 
@@ -2251,7 +2251,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @return The parsed number.
    * @throws SQLException If an error occurs while fetching column.
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *         The value must then be parsed by {@link #toBigDecimal(String, int)}.
+   *         The value must then be parsed by {@link #toBigDecimal(String, Integer)}.
    */
   private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException, NumberFormatException {
 
@@ -2348,11 +2348,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
+    return getBigDecimal(columnIndex, (Integer) scale);
+  }
+
+  private BigDecimal getBigDecimal(int columnIndex, Integer scale) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBigDecimal columnIndex: {0}", columnIndex);
     return (BigDecimal) getNumeric(columnIndex, scale, false);
   }
 
-  private Number getNumeric(int columnIndex, int scale, boolean allowNaN) throws SQLException {
+  private Number getNumeric(int columnIndex, Integer scale, boolean allowNaN) throws SQLException {
     checkResultSet(columnIndex);
     if (wasNullFlag) {
       return null;
@@ -2925,7 +2929,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-  public BigDecimal toBigDecimal(String s, int scale) throws SQLException {
+  private BigDecimal toBigDecimal(String s, Integer scale) throws SQLException {
     if (s == null) {
       return null;
     }
@@ -2933,8 +2937,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return scaleBigDecimal(val, scale);
   }
 
-  private BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
-    if (scale == -1) {
+  private BigDecimal scaleBigDecimal(BigDecimal val, Integer scale) throws PSQLException {
+    if (scale == null) {
       return val;
     }
     try {
