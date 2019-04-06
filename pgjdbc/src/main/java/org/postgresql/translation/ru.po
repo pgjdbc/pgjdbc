@@ -5,6 +5,7 @@
 #
 # ChangeLog:
 #
+# - July 28, 2018 - Added missing translations <sitnikov.vladimir@gmail.com>
 # - October 6 - November 15, 2004 - Updates for PostgreSQL 8.0 and corresponding JDBC driver, <mokhov@cs.concordia.ca>
 #                                 - Change to .po from .properties. Incorporate original messages.
 # - October 12, 2003 - ... Initial translation, Serguei Mokhov, <mokhov@cs.concordia.ca>
@@ -24,11 +25,11 @@ msgstr ""
 
 #: org/postgresql/Driver.java:217
 msgid "Error loading default settings from driverconfig.properties"
-msgstr ""
+msgstr "Ошибка при загрузке значений по умолчанию из org/postgresql/driverconfig.properties"
 
 #: org/postgresql/Driver.java:229
 msgid "Properties for the driver contains a non-string value for the key "
-msgstr ""
+msgstr "Свойство {0} содержит нестроковое значение"
 
 #: org/postgresql/Driver.java:272
 msgid ""
@@ -36,6 +37,9 @@ msgid ""
 "probably need to grant the connect java.net.SocketPermission to the database "
 "server host and port that you wish to connect to."
 msgstr ""
+"Настройки политики безопасности Java запрещают установку соединения. Для "
+"подключения к базе нужно выдать привилегию java.net.SocketPermission с "
+"указанием хоста и порта базы."
 
 # key: postgresql.unusual
 #: org/postgresql/Driver.java:278 org/postgresql/Driver.java:410
@@ -44,17 +48,17 @@ msgid ""
 "this exception."
 msgstr ""
 "Случилось что-то необычное, что заставило драйвер произвести ошибку. "
-"Пожалуйста сообщите это исключение."
+"Пожалуйста сообщите об этом исключении в pgsql-jdbc@postgresql.org"
 
 # key: postgresql.con.failed
 #: org/postgresql/Driver.java:418
 msgid "Connection attempt timed out."
-msgstr "Закончилось время ожидания"
+msgstr "Не удалось подключиться к базе, т.к. закончилось время ожидания loginTimeout."
 
 # key: postgresql.con.sslfail
 #: org/postgresql/Driver.java:431
 msgid "Interrupted while attempting to connect."
-msgstr "Подключение прервано получаением interrupt"
+msgstr "Не удалось подключиться к базе, т.к. пришёл сигнал interrupt."
 
 # key: postgresql.unimplemented
 #: org/postgresql/Driver.java:687
@@ -65,7 +69,7 @@ msgstr "Метод {0} ещё не реализован"
 #: org/postgresql/PGProperty.java:537 org/postgresql/PGProperty.java:557
 #, java-format
 msgid "{0} parameter value must be an integer but was: {1}"
-msgstr ""
+msgstr "Параметр {0} должен быть целым числом, а передано {1}"
 
 #: org/postgresql/copy/CopyManager.java:49
 #, java-format
@@ -78,9 +82,9 @@ msgid "Requested CopyOut but got {0}"
 msgstr "Ожидался ответ CopyOut, а получен {0}"
 
 #: org/postgresql/copy/CopyManager.java:71
-#, fuzzy, java-format
+#, java-format
 msgid "Requested CopyDual but got {0}"
-msgstr "Ожидался ответ CopyOut, а получен {0}"
+msgstr "Ожидался ответ CopyDual, а получен {0}"
 
 # key: postgresql.geo.box
 #: org/postgresql/copy/PGCopyInputStream.java:51
@@ -91,11 +95,11 @@ msgstr "Ошибка при обработке ответа команды COPY:
 #: org/postgresql/copy/PGCopyInputStream.java:67
 #: org/postgresql/copy/PGCopyOutputStream.java:94
 msgid "This copy stream is closed."
-msgstr "Поток уже был закрыт"
+msgstr "COPY поток уже был закрыт"
 
 #: org/postgresql/copy/PGCopyInputStream.java:110
 msgid "Read from copy failed."
-msgstr ""
+msgstr "Ошибка при чтении COPY данных."
 
 #: org/postgresql/copy/PGCopyOutputStream.java:71
 #, java-format
@@ -103,7 +107,7 @@ msgid "Cannot write to copy a byte of value {0}"
 msgstr "Значение byte должно быть в диапазоне 0..255, переданное значение: {0}"
 
 #: org/postgresql/core/CommandCompleteParser.java:71
-#, fuzzy, java-format
+#, java-format
 msgid "Unable to parse the count in command completion tag: {0}."
 msgstr "Не удалось узнать количество обновлённых строк по ответу {0}"
 
@@ -156,8 +160,7 @@ msgstr ""
 #, java-format
 msgid "Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}"
 msgstr ""
-"Неверная последовательность UTF-8: {0} bytes used to encode a {1} byte "
-"value: {2}"
+"Неверная последовательность UTF-8: для кодирования {1} байт символа использовано {0} байт. Байт: {2}"
 
 #: org/postgresql/core/UTF8Encoding.java:102
 #: org/postgresql/core/UTF8Encoding.java:129
@@ -221,13 +224,13 @@ msgid ""
 "that the postmaster is accepting TCP/IP connections."
 msgstr ""
 "Подсоединение по адресу {0} отклонено. Проверьте что хост и порт указаны "
-"правильно и что postmaster принимает TCP/IP-подсоединения."
+"правильно и что postmaster принимает TCP/IP соединения."
 
 # key: postgresql.con.failed
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:250
 #: org/postgresql/core/v3/replication/V3ReplicationProtocol.java:133
 msgid "The connection attempt failed."
-msgstr "Ошибка при попытке подсоединения."
+msgstr "Ошибка при соединении с сервером."
 
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:265
 #, java-format
@@ -243,7 +246,7 @@ msgstr "Сервер не поддерживает SSL."
 # key: postgresql.con.sslfail
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:388
 msgid "An error occurred while setting up the SSL connection."
-msgstr "Ошибка при установке SSL-подсоединения."
+msgstr "Ошибка при установке SSL соединения."
 
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:484
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:511
@@ -257,6 +260,8 @@ msgid ""
 "SCRAM authentication is not supported by this driver. You need JDK >= 8 and "
 "pgjdbc >= 42.2.0 (not \".jre\" versions)"
 msgstr ""
+"SCRAM аутентификация не поддерживается этой версией JDBC драйвера. Пожалуйста, "
+"используйте pgjdbc >= 42.2.0 (а не версии с суффиксами \".jre\")"
 
 # key: postgresql.con.auth
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:638
@@ -266,9 +271,9 @@ msgid ""
 "the pg_hba.conf file to include the client''s IP address or subnet, and that "
 "it is using an authentication scheme supported by the driver."
 msgstr ""
-"Тип аутентификации {0} не поддерживается. Проверьте если вы сконфигурировали "
-"файл pg_hba.conf чтобы включить IP-адреса клиентов или подсеть. Также "
-"удостовертесь что он использует схему аутентификации поддерживаемую "
+"Тип аутентификации {0} не поддерживается. Проверьте присутствует ли "
+"IP адрес клиента (или подсеть) в файле pg_hba.conf. Также "
+"удостовертесь, что он использует схему аутентификации поддерживаемую "
 "драйвером."
 
 # key: postgresql.con.setup
@@ -279,23 +284,23 @@ msgstr ""
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2648
 #: org/postgresql/gss/GssAction.java:126
 msgid "Protocol error.  Session setup failed."
-msgstr "Ошибка протокола.  Установление сессии не удалось."
+msgstr "Ошибка протокола. Установление сессии не удалось."
 
 #: org/postgresql/core/v3/CopyInImpl.java:49
 msgid "CopyIn copy direction can't receive data"
-msgstr ""
+msgstr "CopyIn не может получать данные"
 
 #: org/postgresql/core/v3/CopyOperationImpl.java:54
 msgid "CommandComplete expected COPY but got: "
-msgstr ""
+msgstr "Ожидалось, что вернётся CommandComplete(COPY), а пришло {0}"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:163
 msgid "Tried to obtain lock while already holding it"
-msgstr ""
+msgstr "Блокировка на БД операцию уже была захвачена, но почему-то накладывается ещё раз"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:179
 msgid "Tried to break lock on database connection"
-msgstr ""
+msgstr "Блокировка была захвачена другой БД операцией"
 
 # key: postgresql.con.sslfail
 #: org/postgresql/core/v3/QueryExecutorImpl.java:197
@@ -305,8 +310,7 @@ msgstr "Ожидание COPY блокировки прервано получе
 #: org/postgresql/core/v3/QueryExecutorImpl.java:329
 msgid "Unable to bind parameter values for statement."
 msgstr ""
-"Не в состоянии ассоциировать значения параметров для команды "
-"(PGBindException)"
+"Ошибка при связи параметров (PGBindException)"
 
 # key: postgresql.con.ioerror
 #: org/postgresql/core/v3/QueryExecutorImpl.java:335
@@ -317,7 +321,7 @@ msgstr ""
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2377
 #: org/postgresql/util/StreamWrapper.java:130
 msgid "An I/O error occurred while sending to the backend."
-msgstr "Ошибка ввода/ввывода при отправке бэкенду"
+msgstr "Ошибка ввода/ввывода при отправке серверу"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:536
 #: org/postgresql/core/v3/QueryExecutorImpl.java:578
@@ -333,9 +337,9 @@ msgstr "Неожиданный статус команды: {0}."
 
 # key: postgresql.con.ioerror
 #: org/postgresql/core/v3/QueryExecutorImpl.java:689
-#, fuzzy
+#,
 msgid "An error occurred while trying to get the socket timeout."
-msgstr "Ошибка ввода/ввывода при отправке бэкенду"
+msgstr "Ошибка при получении таймаута соединения"
 
 # key: postgresql.con.type
 #: org/postgresql/core/v3/QueryExecutorImpl.java:724
@@ -348,78 +352,78 @@ msgstr "Неизвестный тип ответа {0}."
 #: org/postgresql/core/v3/QueryExecutorImpl.java:747
 #, fuzzy
 msgid "An error occurred while trying to reset the socket timeout."
-msgstr "Ошибка ввода/ввывода при отправке бэкенду"
+msgstr "Ошибка установке таймаута соединения"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:845
 msgid "Database connection failed when starting copy"
-msgstr ""
+msgstr "Ошибка при запуске операции COPY"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:880
 msgid "Tried to cancel an inactive copy operation"
-msgstr ""
+msgstr "Невозможно отменить опреацию COPY, т.к. она неактивна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:919
 msgid "Database connection failed when canceling copy operation"
-msgstr ""
+msgstr "Ошибка при отмене операции COPY"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:935
 msgid "Missing expected error response to copy cancel request"
-msgstr ""
+msgstr "При отмене операции COPY ожидалась ровно одна ошибка, но ни одной не возникло"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:939
 #, java-format
 msgid "Got {0} error responses to single copy cancel request"
-msgstr ""
+msgstr "При отмене операции COPY ожидалась ровно одна ошибка, а возникло {0} шт"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:954
 msgid "Tried to end inactive copy"
-msgstr ""
+msgstr "Невозможно завершить опреацию COPY, т.к. она неактивна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:969
 msgid "Database connection failed when ending copy"
-msgstr ""
+msgstr "Ошибка при завершении операции COPY"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:987
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1007
 msgid "Tried to write to an inactive copy operation"
-msgstr ""
+msgstr "Невозможно записать данные, т.к. операция COPY неактивна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1000
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1015
 msgid "Database connection failed when writing to copy"
-msgstr ""
+msgstr "Ошибка при записи данных операцией COPY"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1030
 msgid "Tried to read from inactive copy"
-msgstr ""
+msgstr "Невозможно прочитать данные, т.к. операция COPY неактивна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1037
 msgid "Database connection failed when reading from copy"
-msgstr ""
+msgstr "Ошибка при чтении данных операцией COPY"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1103
 #, java-format
 msgid "Received CommandComplete ''{0}'' without an active copy operation"
-msgstr ""
+msgstr "Получен ответ CommandComplete ''{0}'', хотя команда COPY не была активна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1128
 #, java-format
 msgid "Got CopyInResponse from server during an active {0}"
-msgstr ""
+msgstr "Получен ответ CopyInResponse, хотя операция {0} уже была активна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1142
 #, java-format
 msgid "Got CopyOutResponse from server during an active {0}"
-msgstr ""
+msgstr "Получен ответ CopyOutResponse, хотя операция {0} уже была активна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1156
 #, java-format
 msgid "Got CopyBothResponse from server during an active {0}"
-msgstr ""
+msgstr "Получен ответ CopyBothResponse, хотя операция {0} уже была активна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1172
 msgid "Got CopyData without an active copy operation"
-msgstr ""
+msgstr "Получен ответ CopyData, хотя операция {0} уже была активна"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1176
 #, java-format
@@ -429,7 +433,7 @@ msgstr "Неожиданный статус команды COPY: {0}"
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1236
 #, java-format
 msgid "Unexpected packet type during copy: {0}"
-msgstr ""
+msgstr "При обработке операции copy пришёл неожиданный ответ {0}"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1526
 #, java-format
@@ -437,6 +441,8 @@ msgid ""
 "Bind message length {0} too long.  This can be caused by very large or "
 "incorrect length specifications on InputStream parameters."
 msgstr ""
+"Bind сообщение оказалось слишком длинным и заняло {0} байт. Это может быть "
+"вызвано слишком большими значениями длины для параметров InputStream."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2150
 msgid "Ran out of memory retrieving query results."
@@ -447,7 +453,7 @@ msgstr ""
 # key: postgresql.con.sslnotsupported
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2318
 msgid "The driver currently does not support COPY operations."
-msgstr "Драйвер в данный момент не поддерживате операции COPY."
+msgstr "В данном состоянии ответ CopyOutResponse не поддерживается."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2605
 #, java-format
@@ -455,6 +461,8 @@ msgid ""
 "The server''s client_encoding parameter was changed to {0}. The JDBC driver "
 "requires client_encoding to be UTF8 for correct operation."
 msgstr ""
+"Значение client_encoding было изменено на {0}. JDBC драйвер корректно работает "
+"только с кодировкой UTF-8"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2615
 #, java-format
@@ -462,6 +470,8 @@ msgid ""
 "The server''s DateStyle parameter was changed to {0}. The JDBC driver "
 "requires DateStyle to begin with ISO for correct operation."
 msgstr ""
+"Значение DateStyle было изменено на {0}. Для правильной работы JDBC драйвера "
+"параметр DateStyle должен начинаться с ISO"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2628
 #, java-format
@@ -469,6 +479,7 @@ msgid ""
 "The server''s standard_conforming_strings parameter was reported as {0}. The "
 "JDBC driver expected on or off."
 msgstr ""
+"Значение standard_conforming_strings оказалось {0}. Ожидалось, что оно будет либо on либо off."
 
 # key: postgresql.prep.param
 #: org/postgresql/core/v3/SimpleParameterList.java:257
@@ -485,10 +496,9 @@ msgstr "Индекс параметра вне диапазона: {0}. Допу
 #: org/postgresql/core/v3/replication/V3PGReplicationStream.java:144
 #, java-format
 msgid "Unexpected packet type during replication: {0}"
-msgstr ""
+msgstr "В replication потоке пришёл неожиданный пакет: {0}"
 
 #: org/postgresql/core/v3/replication/V3PGReplicationStream.java:269
-#, fuzzy
 msgid "This replication stream has been closed."
 msgstr "Соединение уже было закрыто"
 
@@ -501,6 +511,7 @@ msgid ""
 "Connection has been closed automatically because a new connection was opened "
 "for the same PooledConnection or the PooledConnection has been closed."
 msgstr ""
+"Соединение уже было автоматически закрыто"
 
 #: org/postgresql/ds/PGPooledConnection.java:315
 msgid "Connection has been closed."
@@ -512,7 +523,7 @@ msgstr "Statement закрыт."
 
 #: org/postgresql/ds/PGPoolingDataSource.java:269
 msgid "Failed to setup DataSource."
-msgstr ""
+msgstr "Ошибка при инициализации DataSource."
 
 #: org/postgresql/ds/PGPoolingDataSource.java:371
 msgid "DataSource has been closed."
@@ -528,39 +539,39 @@ msgstr "Свойство {0} не поддерживается"
 #: org/postgresql/fastpath/Fastpath.java:84
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected a numeric."
-msgstr ""
+msgstr "Fastpath call {0} - результат пустой, а ожидалось int4/int8"
 
 # key: postgresql.fp.expint
 #: org/postgresql/fastpath/Fastpath.java:161
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected an integer."
-msgstr ""
+msgstr "Fastpath call {0} - результат пустой, а ожидалось int4"
 
 #: org/postgresql/fastpath/Fastpath.java:169
 #, java-format
 msgid ""
 "Fastpath call {0} - No result was returned or wrong size while expecting an "
 "integer."
-msgstr ""
+msgstr "Fastpath call {0} - неверная длина результата, ожидалось int4"
 
 # key: postgresql.stat.result
 #: org/postgresql/fastpath/Fastpath.java:186
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected a long."
-msgstr "Вызов fastpath {0} ничего не вернул, а ожидалось long"
+msgstr "Вызов fastpath {0} ничего не вернул, а ожидалось int8"
 
 #: org/postgresql/fastpath/Fastpath.java:194
 #, java-format
 msgid ""
 "Fastpath call {0} - No result was returned or wrong size while expecting a "
 "long."
-msgstr ""
+msgstr "Fastpath call {0} - неверная длина результата, ожидалось int8"
 
 # key: postgresql.fp.unknown
 #: org/postgresql/fastpath/Fastpath.java:297
 #, java-format
 msgid "The fastpath function {0} is unknown."
-msgstr ""
+msgstr "Вызов fastpath {0} неизвестен."
 
 # key: postgresql.geo.lseg
 #: org/postgresql/geometric/PGbox.java:77
@@ -578,40 +589,41 @@ msgstr "Ошибка при преобразовании к типу {0}: {1}"
 #: org/postgresql/geometric/PGpath.java:70
 #, java-format
 msgid "Cannot tell if path is open or closed: {0}."
-msgstr ""
+msgstr "Неверный формат path. Должны использоваться или [] или (): {0}"
 
 #: org/postgresql/gss/GssAction.java:137 org/postgresql/gss/MakeGSS.java:66
 #: org/postgresql/gss/MakeGSS.java:74
 msgid "GSS Authentication failed"
-msgstr ""
+msgstr "Ошибка при проведении GSS аутентификации"
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:78
 msgid ""
 "Truncation of large objects is only implemented in 8.3 and later servers."
 msgstr ""
+"Операция truncate для LOB поддерживается только в PostgreSQL 8.3+"
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:83
 msgid "Cannot truncate LOB to a negative length."
-msgstr ""
+msgstr "Длина не может быть отрицательной"
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:90
 #: org/postgresql/jdbc/AbstractBlobClob.java:234
 #, java-format
 msgid "PostgreSQL LOBs can only index to: {0}"
-msgstr ""
+msgstr "Максимально допустимый индекс равен {0}"
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:230
 msgid "LOB positioning offsets start at 1."
-msgstr ""
+msgstr "Индексы LOB начинаются с 1."
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:246
 msgid "free() was called on this LOB previously"
-msgstr ""
+msgstr "Операция free() вызвана повторно"
 
 # key: postgresql.stat.noresult
 #: org/postgresql/jdbc/BatchResultHandler.java:92
 msgid "Too many update results were returned."
-msgstr "Возвращено слишком много результатов обновления."
+msgstr "Batch операция вернула данных больше, чем было SQL команд."
 
 #: org/postgresql/jdbc/BatchResultHandler.java:146
 #, java-format
@@ -619,17 +631,18 @@ msgid ""
 "Batch entry {0} {1} was aborted: {2}  Call getNextException to see other "
 "errors in the batch."
 msgstr ""
+"Ошибка в batch команде {0} {1}: {2}. Используйте метод getNextException для просмотра подробностей."
 
 #: org/postgresql/jdbc/BooleanTypeUtil.java:99
 #, java-format
 msgid "Cannot cast to boolean: \"{0}\""
-msgstr ""
+msgstr "Значение {0} невозможно преобразовать в boolean"
 
 #: org/postgresql/jdbc/EscapedFunctions.java:240
 #: org/postgresql/jdbc/EscapedFunctions2.java:167
 #, java-format
 msgid "{0} function takes four and only four argument."
-msgstr ""
+msgstr "Функция {0} принимает ровно 4 аргумента"
 
 #: org/postgresql/jdbc/EscapedFunctions.java:270
 #: org/postgresql/jdbc/EscapedFunctions.java:337
@@ -639,7 +652,7 @@ msgstr ""
 #: org/postgresql/jdbc/EscapedFunctions2.java:665
 #, java-format
 msgid "{0} function takes two and only two arguments."
-msgstr ""
+msgstr "Функция {0} принимает ровно 2 аргумента"
 
 #: org/postgresql/jdbc/EscapedFunctions.java:288
 #: org/postgresql/jdbc/EscapedFunctions.java:441
@@ -653,7 +666,7 @@ msgstr ""
 #: org/postgresql/jdbc/EscapedFunctions2.java:654
 #, java-format
 msgid "{0} function takes one and only one argument."
-msgstr ""
+msgstr "Функция {0} принимает 1 или 2 аргумента"
 
 #: org/postgresql/jdbc/EscapedFunctions.java:312
 #: org/postgresql/jdbc/EscapedFunctions.java:386
@@ -661,7 +674,7 @@ msgstr ""
 #: org/postgresql/jdbc/EscapedFunctions2.java:307
 #, java-format
 msgid "{0} function takes two or three arguments."
-msgstr ""
+msgstr "Функция {0} принимает 2 или 3 аргумента"
 
 #: org/postgresql/jdbc/EscapedFunctions.java:411
 #: org/postgresql/jdbc/EscapedFunctions.java:426
@@ -670,7 +683,7 @@ msgstr ""
 #: org/postgresql/jdbc/EscapedFunctions2.java:645
 #, java-format
 msgid "{0} function doesn''t take any argument."
-msgstr ""
+msgstr "Функция {0} не принимает аргументов"
 
 #: org/postgresql/jdbc/EscapedFunctions.java:586
 #: org/postgresql/jdbc/EscapedFunctions.java:639
@@ -678,7 +691,7 @@ msgstr ""
 #: org/postgresql/jdbc/EscapedFunctions2.java:571
 #, java-format
 msgid "{0} function takes three and only three arguments."
-msgstr ""
+msgstr "Функция {0} принимает ровно 3 аргумента"
 
 # key: postgresql.unimplemented
 #: org/postgresql/jdbc/EscapedFunctions.java:599
@@ -699,15 +712,15 @@ msgstr "Интеврвал {0} ещё не реализован"
 #: org/postgresql/jdbc/PSQLSavepoint.java:51
 #: org/postgresql/jdbc/PSQLSavepoint.java:69
 msgid "Cannot reference a savepoint after it has been released."
-msgstr ""
+msgstr "Использовать savepoint после releaseSavepoint недопустимо."
 
 #: org/postgresql/jdbc/PSQLSavepoint.java:42
 msgid "Cannot retrieve the id of a named savepoint."
-msgstr ""
+msgstr "Получить ID именованного savepoint невозможно."
 
 #: org/postgresql/jdbc/PSQLSavepoint.java:56
 msgid "Cannot retrieve the name of an unnamed savepoint."
-msgstr ""
+msgstr "Получить название безымянного savepoint невозможно."
 
 # key: postgresql.arr.range
 #: org/postgresql/jdbc/PgArray.java:155 org/postgresql/jdbc/PgArray.java:842
@@ -732,19 +745,19 @@ msgid ""
 "was created in.  The most common example of this is storing 8bit data in a "
 "SQL_ASCII database."
 msgstr ""
-"Найдены неверные символьные данные.  Причиной этого скорее всего являются "
-"хранимые данные содержащие символы не соответствующие набору символов базы.  "
+"Найдены неверные символьные данные. Причиной этого скорее всего являются "
+"хранимые данные содержащие символы не соответствующие набору символов базы. "
 "Типичным примером этого является хранение 8-битных данных в базе SQL_ASCII."
 
 # key: postgresql.call.noreturnval
 #: org/postgresql/jdbc/PgCallableStatement.java:85
 #: org/postgresql/jdbc/PgCallableStatement.java:95
 msgid "A CallableStatement was executed with nothing returned."
-msgstr ""
+msgstr "Команда CallableStatement не вернула результатов, хотя они ожидались."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:106
 msgid "A CallableStatement was executed with an invalid number of parameters"
-msgstr ""
+msgstr "Количество колонок в результате CallableStatement не соответствует количеству OUT параметров."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:144
 #, java-format
@@ -752,16 +765,18 @@ msgid ""
 "A CallableStatement function was executed and the out parameter {0} was of "
 "type {1} however type {2} was registered."
 msgstr ""
+"Тип OUT параметра {0} {1} не соответствует тому, который использовался при регистрации: {2}."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:206
 msgid ""
 "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
 "to declare one."
 msgstr ""
+"Для использования OUT параметров используйте синтаксис'{' ?= call ... '}'."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:229
 msgid "wasNull cannot be call before fetching a result."
-msgstr ""
+msgstr "Метод wasNull должен использоваться после какого-нибудь get метода."
 
 # key: postgresql.call.wrongget
 #: org/postgresql/jdbc/PgCallableStatement.java:367
@@ -771,6 +786,7 @@ msgid ""
 "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was "
 "made."
 msgstr ""
+"Параметр был зарегистрирован как {0}, а используется методget{1} (sqltype={2})."
 
 # key: postgresql.call.noreturntype
 #: org/postgresql/jdbc/PgCallableStatement.java:407
@@ -778,6 +794,8 @@ msgid ""
 "A CallableStatement was declared, but no call to registerOutParameter(1, "
 "<some type>) was made."
 msgstr ""
+"This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
+"to declare one."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:413
 msgid "No function outputs were registered."
@@ -787,18 +805,19 @@ msgstr ""
 msgid ""
 "Results cannot be retrieved from a CallableStatement before it is executed."
 msgstr ""
+"Невозможно получить результат, т.к. CallableStatement ещё не выполнялось."
 
 # key: postgresql.prep.type
 #: org/postgresql/jdbc/PgCallableStatement.java:686
-#, fuzzy, java-format
+#, java-format
 msgid "Unsupported type conversion to {1}."
-msgstr "Бинарная передача не поддерживается для типа  {0}"
+msgstr "Преобразование не поддерживается для типа {0}"
 
 # key: postgresql.prep.type
 #: org/postgresql/jdbc/PgConnection.java:241
 #, java-format
 msgid "Unsupported value for stringtype parameter: {0}"
-msgstr "Неподдерживаемое значение для параметра stringtype: {0}"
+msgstr "Неподдерживаемое значение для строкового параметра: {0}"
 
 # key: postgresql.stat.noresult
 #: org/postgresql/jdbc/PgConnection.java:424
