@@ -873,7 +873,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     // have to add 1 since absolute expects a 1-based index
-    return absolute(currentRow + 1 + rows);
+    int index = currentRow + 1 + rows;
+    if (index < 0) {
+      beforeFirst();
+      return false;
+    }
+    return absolute(index);
   }
 
 
