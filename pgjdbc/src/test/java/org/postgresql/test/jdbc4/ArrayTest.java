@@ -116,9 +116,9 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testCreateArrayOfBytes() throws SQLException {
 
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bytea[]");
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::bytea[]");
     final byte[][] in = new byte[][] { { 0x01, (byte) 0xFF, (byte) 0x12 }, {}, { (byte) 0xAC, (byte) 0xE4 }, null };
-    final Array createdArray = _conn.createArrayOf("bytea", in);
+    final Array createdArray = conn.createArrayOf("bytea", in);
 
     byte[][] inCopy = (byte[][]) createdArray.getArray();
 
@@ -153,7 +153,7 @@ public class ArrayTest extends BaseTest4 {
     assumeMinimumServerVersion("support for bytea[] as string requires hex string support from 9.0",
         ServerVersion.v9_0);
 
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::bytea[]");
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::bytea[]");
     final byte[][] in = new byte[][] { { 0x01, (byte) 0xFF, (byte) 0x12 }, {}, { (byte) 0xAC, (byte) 0xE4 }, null };
 
     pstmt.setString(1, "{\"\\\\x01ff12\",\"\\\\x\",\"\\\\xace4\",NULL}");
