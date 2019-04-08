@@ -19,6 +19,7 @@ import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,6 +71,15 @@ public class StatementTest {
     con.createStatement().execute("DROP FUNCTION IF EXISTS notify_loop()");
     con.createStatement().execute("DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
+  }
+
+  private void assumeLongTest() {
+    // Run the test:
+    //   Travis: in PG_VERSION=HEAD
+    //   Other: always
+    if ("true".equals(System.getenv("TRAVIS"))) {
+      Assume.assumeTrue("HEAD".equals(System.getenv("PG_VERSION")));
+    }
   }
 
   @Test
@@ -712,6 +722,8 @@ public class StatementTest {
    */
   @Test
   public void testShortQueryTimeout() throws SQLException {
+    assumeLongTest();
+
     long deadLine = System.currentTimeMillis() + 10000;
     Statement stmt = con.createStatement();
     ((PgStatement) stmt).setQueryTimeoutMs(1);
@@ -870,6 +882,7 @@ public class StatementTest {
               e.getSQLState()
           );
           cancels++;
+          break;
         } finally {
           TestUtil.closeQuietly(st);
         }

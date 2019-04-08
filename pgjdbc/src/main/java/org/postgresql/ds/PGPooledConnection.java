@@ -163,7 +163,7 @@ public class PGPooledConnection implements PooledConnection {
     ConnectionEvent evt = null;
     // Copy the listener list so the listener can remove itself during this method call
     ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        listeners.toArray(new ConnectionEventListener[0]);
     for (ConnectionEventListener listener : local) {
       if (evt == null) {
         evt = createConnectionEvent(null);
@@ -179,7 +179,7 @@ public class PGPooledConnection implements PooledConnection {
     ConnectionEvent evt = null;
     // Copy the listener list so the listener can remove itself during this method call
     ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        listeners.toArray(new ConnectionEventListener[0]);
     for (ConnectionEventListener listener : local) {
       if (evt == null) {
         evt = createConnectionEvent(e);

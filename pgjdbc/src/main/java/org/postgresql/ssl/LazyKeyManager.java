@@ -3,13 +3,12 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.ssl.jdbc4;
+package org.postgresql.ssl;
 
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -149,7 +148,7 @@ public class LazyKeyManager implements X509KeyManager {
             certfile), PSQLState.CONNECTION_FAILURE, gsex);
         return null;
       }
-      cert = certs.toArray(new X509Certificate[certs.size()]);
+      cert = certs.toArray(new X509Certificate[0]);
     }
     return cert;
   }
@@ -160,9 +159,19 @@ public class LazyKeyManager implements X509KeyManager {
     return (alias == null ? new String[]{} : new String[]{alias});
   }
 
+  private static byte[] readFileFully(String path) throws IOException {
+    RandomAccessFile raf = new RandomAccessFile(path, "r");
+    try {
+      byte[] ret = new byte[(int) raf.length()];
+      raf.readFully(ret);
+      return ret;
+    } finally {
+      raf.close();
+    }
+  }
+
   @Override
   public PrivateKey getPrivateKey(String alias) {
-    RandomAccessFile raf = null;
     try {
       if (key == null && keyfile != null) {
         // If keyfile is null, we do not load the key
@@ -173,8 +182,9 @@ public class LazyKeyManager implements X509KeyManager {
           }
         }
 
+        byte[] keydata;
         try {
-          raf = new RandomAccessFile(new File(keyfile), "r"); // NOSONAR
+          keydata = readFileFully(keyfile);
         } catch (FileNotFoundException ex) {
           if (!defaultfile) {
             // It is not an error if there is no file at the default location
@@ -182,10 +192,6 @@ public class LazyKeyManager implements X509KeyManager {
           }
           return null;
         }
-        byte[] keydata = new byte[(int) raf.length()];
-        raf.readFully(keydata);
-        raf.close();
-        raf = null;
 
         KeyFactory kf = KeyFactory.getInstance(cert[0].getPublicKey().getAlgorithm());
         try {
@@ -222,6 +228,7 @@ public class LazyKeyManager implements X509KeyManager {
           }
           try {
             PBEKeySpec pbeKeySpec = new PBEKeySpec(pwdcb.getPassword());
+            pwdcb.clearPassword();
             // Now create the Key from the PBEKeySpec
             SecretKeyFactory skFac = SecretKeyFactory.getInstance(ePKInfo.getAlgName());
             Key pbeKey = skFac.generateSecret(pbeKeySpec);
@@ -240,13 +247,6 @@ public class LazyKeyManager implements X509KeyManager {
         }
       }
     } catch (IOException ioex) {
-      if (raf != null) {
-        try {
-          raf.close();
-        } catch (IOException ex) {
-        }
-      }
-
       error = new PSQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
           PSQLState.CONNECTION_FAILURE, ioex);
     } catch (NoSuchAlgorithmException ex) {

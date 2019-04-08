@@ -39,7 +39,8 @@ import javax.naming.NamingException;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public abstract class BaseDataSourceTest {
-  public static String DATA_SOURCE_JNDI = "BaseDataSource";
+  public static final String DATA_SOURCE_JNDI = "BaseDataSource";
+
   protected Connection con;
   protected BaseDataSource bds;
 

@@ -17,7 +17,9 @@ import org.postgresql.jdbc.ArraysTestSuite;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
+import org.postgresql.test.core.OptionsPropertyTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
+import org.postgresql.test.util.HostSpecTest;
 import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
@@ -45,23 +47,12 @@ import org.junit.runners.Suite;
         ColumnSanitiserDisabledTest.class,
         ColumnSanitiserEnabledTest.class,
         LruCacheTest.class,
+        HostSpecTest.class,
         ReaderInputStreamTest.class,
         ServerVersionParseTest.class,
         ServerVersionTest.class,
 
-        DriverTest.class,
-        ConnectionTest.class,
-        DatabaseMetaDataTest.class,
-        DatabaseMetaDataPropertiesTest.class,
-        SearchPathLookupTest.class,
-        EncodingTest.class,
-        ExpressionPropertiesTest.class,
-        ColumnSanitiserDisabledTest.class,
-        ColumnSanitiserEnabledTest.class,
-        LruCacheTest.class,
-        ReaderInputStreamTest.class,
-        ServerVersionParseTest.class,
-        ServerVersionTest.class,
+        OptionsPropertyTest.class,
 
         TypeCacheDLLStressTest.class,
 

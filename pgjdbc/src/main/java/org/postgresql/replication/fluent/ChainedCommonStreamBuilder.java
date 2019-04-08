@@ -37,7 +37,7 @@ public interface ChainedCommonStreamBuilder<T extends ChainedCommonStreamBuilder
   T withStatusInterval(int time, TimeUnit format);
 
   /**
-   * Specify start position from wich backend will start stream changes. If parameter will not
+   * Specify start position from which backend will start stream changes. If parameter will not
    * specify, streaming starts from restart_lsn. For more details see pg_replication_slots
    * description.
    *

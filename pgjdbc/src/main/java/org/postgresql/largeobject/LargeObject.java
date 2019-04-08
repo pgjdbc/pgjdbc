@@ -44,7 +44,7 @@ public class LargeObject
     //#endif
     /* hi, checkstyle */ {
   /**
-   * Indicates a seek from the begining of a file.
+   * Indicates a seek from the beginning of a file.
    */
   public static final int SEEK_SET = 0;
 
@@ -279,7 +279,7 @@ public class LargeObject
    * <p>This is similar to the fseek() call in the standard C library. It allows you to have random
    * access to the large object.</p>
    *
-   * @param pos position within object from begining
+   * @param pos position within object from beginning
    * @throws SQLException if a database-access error occurs.
    */
   public void seek(int pos) throws SQLException {

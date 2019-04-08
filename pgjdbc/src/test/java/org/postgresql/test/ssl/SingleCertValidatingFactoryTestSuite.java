@@ -30,10 +30,10 @@ import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class SingleCertValidatingFactoryTestSuite {
-  private static String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
+  private static final String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
 
   /**
-   * <p>This method returns the paramaters that JUnit will use when constructing this class for
+   * <p>This method returns the parameters that JUnit will use when constructing this class for
    * testing. It returns a collection of arrays, each containing a single value for the JDBC URL to
    * test against.</p>
    *
@@ -97,7 +97,7 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   /**
-   * Helper method to create a connection using the additional properites specified in the "info"
+   * Helper method to create a connection using the additional properties specified in the "info"
    * paramater.
    *
    * @param info The additional properties to use when creating a connection
@@ -279,7 +279,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * <p>Connect using SSL and attempt to validate the server's certificate against the proper pre
    * shared certificate. The certificate is specified as an environment variable.</p>
    *
-   * <p>Note: To execute this test succesfully you need to set the value of the environment variable
+   * <p>Note: To execute this test successfully you need to set the value of the environment variable
    * DATASOURCE_SSL_CERT prior to running the test.</p>
    *
    * <p>Here's one way to do it: $ DATASOURCE_SSL_CERT=$(cat certdir/goodroot.crt) ant clean test</p>

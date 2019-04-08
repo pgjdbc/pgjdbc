@@ -35,9 +35,9 @@ public class V3PGReplicationStream implements PGReplicationStream {
   /**
    * Last receive LSN + payload size.
    */
-  private LogSequenceNumber lastReceiveLSN = LogSequenceNumber.INVALID_LSN;
-  private LogSequenceNumber lastAppliedLSN = LogSequenceNumber.INVALID_LSN;
-  private LogSequenceNumber lastFlushedLSN = LogSequenceNumber.INVALID_LSN;
+  private volatile LogSequenceNumber lastReceiveLSN = LogSequenceNumber.INVALID_LSN;
+  private volatile LogSequenceNumber lastAppliedLSN = LogSequenceNumber.INVALID_LSN;
+  private volatile LogSequenceNumber lastFlushedLSN = LogSequenceNumber.INVALID_LSN;
 
   /**
    * @param copyDual         bidirectional copy protocol

@@ -22,19 +22,19 @@ public class SocketFactoryTestSuite {
 
   private static final String STRING_ARGUMENT = "name of a socket";
 
-  private Connection _conn;
+  private Connection conn;
 
   @Before
   public void setUp() throws Exception {
     Properties properties = new Properties();
     properties.put(PGProperty.SOCKET_FACTORY.getName(), CustomSocketFactory.class.getName());
     properties.put(PGProperty.SOCKET_FACTORY_ARG.getName(), STRING_ARGUMENT);
-    _conn = TestUtil.openDB(properties);
+    conn = TestUtil.openDB(properties);
   }
 
   @After
   public void tearDown() throws Exception {
-    TestUtil.closeDB(_conn);
+    TestUtil.closeDB(conn);
   }
 
   /**

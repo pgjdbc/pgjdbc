@@ -25,19 +25,19 @@ import java.sql.Statement;
 
 public class WrapperTest {
 
-  private Connection _conn;
-  private Statement _statement;
+  private Connection conn;
+  private Statement statement;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    _statement = _conn.prepareStatement("SELECT 1");
+    conn = TestUtil.openDB();
+    statement = conn.prepareStatement("SELECT 1");
   }
 
   @After
   public void tearDown() throws SQLException {
-    _statement.close();
-    TestUtil.closeDB(_conn);
+    statement.close();
+    TestUtil.closeDB(conn);
   }
 
   /**
@@ -48,23 +48,23 @@ public class WrapperTest {
 
   @Test
   public void testConnectionIsWrapperForPrivate() throws SQLException {
-    assertFalse(_conn.isWrapperFor(PrivateInterface.class));
+    assertFalse(conn.isWrapperFor(PrivateInterface.class));
   }
 
   @Test
   public void testConnectionIsWrapperForConnection() throws SQLException {
-    assertTrue(_conn.isWrapperFor(Connection.class));
+    assertTrue(conn.isWrapperFor(Connection.class));
   }
 
   @Test
   public void testConnectionIsWrapperForPGConnection() throws SQLException {
-    assertTrue(_conn.isWrapperFor(PGConnection.class));
+    assertTrue(conn.isWrapperFor(PGConnection.class));
   }
 
   @Test
   public void testConnectionUnwrapPrivate() throws SQLException {
     try {
-      _conn.unwrap(PrivateInterface.class);
+      conn.unwrap(PrivateInterface.class);
       fail("unwrap of non-wrapped interface should fail");
     } catch (SQLException e) {
     }
@@ -72,14 +72,14 @@ public class WrapperTest {
 
   @Test
   public void testConnectionUnwrapConnection() throws SQLException {
-    Object v = _conn.unwrap(Connection.class);
+    Object v = conn.unwrap(Connection.class);
     assertNotNull(v);
     assertTrue(v instanceof Connection);
   }
 
   @Test
   public void testConnectionUnwrapPGConnection() throws SQLException {
-    Object v = _conn.unwrap(PGConnection.class);
+    Object v = conn.unwrap(PGConnection.class);
     assertNotNull(v);
     assertTrue(v instanceof PGConnection);
   }
@@ -100,23 +100,23 @@ public class WrapperTest {
 
   @Test
   public void testStatementIsWrapperForPrivate() throws SQLException {
-    assertFalse(_statement.isWrapperFor(PrivateInterface.class));
+    assertFalse(statement.isWrapperFor(PrivateInterface.class));
   }
 
   @Test
   public void testStatementIsWrapperForStatement() throws SQLException {
-    assertTrue(_statement.isWrapperFor(Statement.class));
+    assertTrue(statement.isWrapperFor(Statement.class));
   }
 
   @Test
   public void testStatementIsWrapperForPGStatement() throws SQLException {
-    assertTrue(_statement.isWrapperFor(PGStatement.class));
+    assertTrue(statement.isWrapperFor(PGStatement.class));
   }
 
   @Test
   public void testStatementUnwrapPrivate() throws SQLException {
     try {
-      _statement.unwrap(PrivateInterface.class);
+      statement.unwrap(PrivateInterface.class);
       fail("unwrap of non-wrapped interface should fail");
     } catch (SQLException e) {
     }
@@ -124,14 +124,14 @@ public class WrapperTest {
 
   @Test
   public void testStatementUnwrapStatement() throws SQLException {
-    Object v = _statement.unwrap(Statement.class);
+    Object v = statement.unwrap(Statement.class);
     assertNotNull(v);
     assertTrue(v instanceof Statement);
   }
 
   @Test
   public void testStatementUnwrapPGStatement() throws SQLException {
-    Object v = _statement.unwrap(PGStatement.class);
+    Object v = statement.unwrap(PGStatement.class);
     assertNotNull(v);
     assertTrue(v instanceof PGStatement);
   }

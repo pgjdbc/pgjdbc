@@ -37,6 +37,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AutoRollbackTestSuite extends BaseTest4 {
   private static final AtomicInteger counter = new AtomicInteger();
 
+  private enum CleanSavePoint {
+    TRUE,
+    FALSE
+  }
+
   private enum FailMode {
     /**
      * Executes "select 1/0" and causes transaction failure (if autocommit=no).
@@ -111,6 +116,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   }
 
   private final AutoSave autoSave;
+  private final CleanSavePoint cleanSavePoint;
   private final AutoCommit autoCommit;
   private final FailMode failMode;
   private final ContinueMode continueMode;
@@ -119,10 +125,11 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   private final TestStatement testSql;
   private final ReturnColumns cols;
 
-  public AutoRollbackTestSuite(AutoSave autoSave, AutoCommit autoCommit,
+  public AutoRollbackTestSuite(AutoSave autoSave, CleanSavePoint cleanSavePoint, AutoCommit autoCommit,
       FailMode failMode, ContinueMode continueMode, boolean flushCacheOnDeallocate,
       boolean trans, TestStatement testSql, ReturnColumns cols) {
     this.autoSave = autoSave;
+    this.cleanSavePoint = cleanSavePoint;
     this.autoCommit = autoCommit;
     this.failMode = failMode;
     this.continueMode = continueMode;
@@ -170,35 +177,39 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   }
 
 
-  @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, autoCommit={1}, failMode={2}, continueMode={3}, flushOnDeallocate={4}, hastransaction={5}, sql={6}, columns={7})")
+  @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     boolean[] booleans = new boolean[] {true, false};
     for (AutoSave autoSave : AutoSave.values()) {
-      for (AutoCommit autoCommit : AutoCommit.values()) {
-        for (FailMode failMode : FailMode.values()) {
-          // ERROR: DISCARD ALL cannot run inside a transaction block
-          if (failMode == FailMode.DISCARD && autoCommit == AutoCommit.NO) {
-            continue;
-          }
-          for (ContinueMode continueMode : ContinueMode.values()) {
-            if (failMode == FailMode.ALTER && continueMode != ContinueMode.SELECT) {
+      for (CleanSavePoint cleanSavePoint:CleanSavePoint.values()) {
+        for (AutoCommit autoCommit : AutoCommit.values()) {
+          for (FailMode failMode : FailMode.values()) {
+            // ERROR: DISCARD ALL cannot run inside a transaction block
+            if (failMode == FailMode.DISCARD && autoCommit == AutoCommit.NO) {
               continue;
             }
-            for (boolean flushCacheOnDeallocate : booleans) {
-              if (!(flushCacheOnDeallocate || DEALLOCATES.contains(failMode))) {
+            for (ContinueMode continueMode : ContinueMode.values()) {
+              if (failMode == FailMode.ALTER && continueMode != ContinueMode.SELECT) {
                 continue;
               }
-
-              for (boolean trans : new boolean[]{true, false}) {
-                // continueMode would commit, and autoCommit=YES would commit,
-                // so it does not make sense to test trans=true for those cases
-                if (trans && (continueMode == ContinueMode.COMMIT || autoCommit != AutoCommit.NO)) {
+              for (boolean flushCacheOnDeallocate : booleans) {
+                if (!(flushCacheOnDeallocate || DEALLOCATES.contains(failMode))) {
                   continue;
                 }
-                for (TestStatement statement : TestStatement.values()) {
-                  for (ReturnColumns columns : ReturnColumns.values()) {
-                    ids.add(new Object[]{autoSave, autoCommit, failMode, continueMode, flushCacheOnDeallocate, trans, statement, columns});
+
+                for (boolean trans : new boolean[]{true, false}) {
+                  // continueMode would commit, and autoCommit=YES would commit,
+                  // so it does not make sense to test trans=true for those cases
+                  if (trans && (continueMode == ContinueMode.COMMIT
+                      || autoCommit != AutoCommit.NO)) {
+                    continue;
+                  }
+                  for (TestStatement statement : TestStatement.values()) {
+                    for (ReturnColumns columns : ReturnColumns.values()) {
+                      ids.add(new Object[]{autoSave, cleanSavePoint, autoCommit, failMode, continueMode,
+                          flushCacheOnDeallocate, trans, statement, columns});
+                    }
                   }
                 }
               }

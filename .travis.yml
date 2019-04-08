@@ -94,6 +94,22 @@ matrix:
       services:
         - docker
       if: type != pull_request
+    - jdk: openjdk-ea
+      sudo: required
+      addons:
+        postgresql: "10"
+      env:
+      - PG_VERSION=10
+      - JDK=12
+      - TZ=America/New_York # flips between −05:00 and −04:00
+    - jdk: oraclejdk11
+      sudo: required
+      addons:
+        postgresql: "10"
+      env:
+      - PG_VERSION=10
+      - JDK=11
+      - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk9
       addons:
         postgresql: "9.6"
@@ -156,7 +172,7 @@ matrix:
         - MCENTRAL=Y
         - COVERAGE=Y
         - TZ=UTC
-    - jdk: openjdk6
+    - jdk: openjdk7
       sudo: required
       addons:
         postgresql: "9.1"
@@ -224,7 +240,7 @@ matrix:
         - PG_VERSION=9.2
         - ZULU_JDK=7
     - stage: release_prev
-      jdk: openjdk6
+      jdk: openjdk7
       sudo: required
       addons:
         postgresql: "9.1"

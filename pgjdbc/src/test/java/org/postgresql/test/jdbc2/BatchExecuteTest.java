@@ -596,9 +596,9 @@ public class BatchExecuteTest extends BaseTest4 {
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes4
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes5
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes6</p>
-   * @throws SQLException in case of failure
    * @param numPreliminaryInserts number of preliminary inserts to make so the statement gets
    *                              prepared
+   * @throws SQLException in case of failure
    */
   public void testBatchWithAlternatingAndUnknownTypesN(int numPreliminaryInserts)
       throws SQLException {

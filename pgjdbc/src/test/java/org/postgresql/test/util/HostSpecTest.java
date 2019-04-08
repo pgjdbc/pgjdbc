@@ -36,14 +36,14 @@ public class HostSpecTest {
   public void testShouldResolveWithEmptySocksProxyHost() throws Exception {
     System.setProperty("socksProxyHost", "");
     HostSpec hostSpec = new HostSpec("localhost", 5432);
-    assertFalse(hostSpec.shouldResolve());
+    assertTrue(hostSpec.shouldResolve());
   }
 
   @Test
   public void testShouldResolveWithWhiteSpaceSocksProxyHost() throws Exception {
     System.setProperty("socksProxyHost", " ");
     HostSpec hostSpec = new HostSpec("localhost", 5432);
-    assertFalse(hostSpec.shouldResolve());
+    assertTrue(hostSpec.shouldResolve());
   }
 
   @Test

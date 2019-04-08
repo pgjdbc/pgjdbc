@@ -118,6 +118,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    */
   int QUERY_EXECUTE_AS_SIMPLE = 1024;
 
+  int MAX_SAVE_POINTS = 1000;
+
   /**
    * Execute a Query, passing results to a provided ResultHandler.
    *

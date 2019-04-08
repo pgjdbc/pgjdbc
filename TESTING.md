@@ -1,75 +1,48 @@
-PostgreSQL/JDBC Test Suite Howto
-================================
-1 Introduction
-2 Installation
-3 Configuration
-4 Running the test suite
-5 Extending the test suite with new tests
-6 Guidelines for developing new tests
-7 Example
-8 Running the JDBC 2 test suite from Sun against PostgreSQL
-9 Credits, feedback
+# PostgreSQL/JDBC Test Suite Howto
 
 
-1 Introduction
---------------
+## 1 - Introduction
+
 The PostgreSQL source tree contains an automated test suite for
 the JDBC driver. This document explains how to install,
 configure and run this test suite. Furthermore, it offers
 guidelines and an example for developers to add new test cases.
 
-Sun provides two standard JDBC test suites that you may also
-find useful.
-http://java.sun.com/products/jdbc/download2.html (JDBC 1)
-http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html (JDBC
-2, including J2EE requirements)
-The JDBC 2 test suite is covered in section 8 below. The JDBC 1
-test suite is not currently covered in this document.
+## 2 - Installation
 
-2 Installation
---------------
-Of course, you need to have a Java 2 JDK or JRE installed. The
-standard JDK from Sun is OK. You can download it from
-http://java.sun.com/.
-
-You need to install the Ant build utility. You can download it
-from http://jakarta.apache.org/ant/.
-
-You also need to install the JUnit4 testing framework. You can
-download it from http://www.junit.org/. Add junit4.jar to your
-CLASSPATH before you perform the following steps. Ant will
-dynamically detect that JUnit is present and then build the JDBC
-test suite.
+Of course, you need to have a [Java 8 JDK](https://www.oracle.com/technetwork/java/javase/downloads/index.html). Also install [Apache Maven](https://maven.apache.org/).
 
 You need to install and build the PostgreSQL JDBC driver source
-tree. You can download it from http://jdbc.postgresql.org/.  See
-README in the top of the tree for more information.
+tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See
+[README](https://github.com/pgjdbc/pgjdbc) in that project for more information.
 
-In this Howto we'll use $JDBC_SRC to refer to the top-level directory
-of the JDBC driver source tree.  The test suite is located in the
-subdirectory $JDBC_SRC/org/postgresql/test.
+In this Howto we'll use `$JDBC_SRC` to refer to the top-level directory
+of the JDBC driver source tree.  The test suite is the directory where you cloned the https://github.com/pgjdbc/pgjdbc project from GitHub.
 
-3 Configuration
----------------
+## 3 Test PostgreSQL Database
+
 The test suite requires a PostgreSQL database to run the tests against
 and a user to login as. The tests will create and drop many objects in
 this database, so it should not contain production tables to avoid
 loss of data. We recommend you assign the following names:
 
-  database: test
-  username: test
-  password: test
+- database: test
+- username: test
+- password: test
 
-These names correspond with the default names set for the test suite
-in $JDBC_SRC/build.xml. If you have chosen other names you need to
-create a file named $JDBC_SRC/build.local.properties and add your
-customized values of the properties "database", "username" and
-"password".
+If you have chosen other names you need to
+create a file named `$JDBC_SRC/build.local.properties` and add your
+customized values of the properties `database`, `username` and
+`password`.
 
-4 Running the test suite
-------------------------
-%cd $JDBC_SRC
-%ant test
+An easy way to set up the test PostgreSQL database is to use [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm). Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
+
+## 4 - Running the test suite
+
+```sh
+% cd $JDBC_SRC
+% mvn test
+```
 
 This will run the command line version of JUnit. If you'd like
 to see an animated coloured progress bar as the tests are
@@ -80,12 +53,11 @@ If the test suite reports errors or failures that you cannot
 explain, please post the relevant parts of the output to the
 mailing list pgsql-jdbc@postgresql.org.
 
-5 Extending the test suite with new tests
------------------------------------------
+## 5 - Extending the test suite with new tests
+
 If you're not familiar with JUnit, we recommend that you
-first read the introductory article "JUnit Test Infected:
-Programmers Love Writing Tests" on
-http://junit.sourceforge.net/doc/testinfected/testing.htm.
+first read the introductory article [JUnit Test Infected:
+Programmers Love Writing Tests](http://junit.sourceforge.net/doc/testinfected/testing.htm).
 Before continuing, you should ensure you understand the
 following concepts: test suite, test case, test, fixture,
 assertion, failure.
@@ -104,15 +76,15 @@ In your test method you can use the fixture that is setup for it
 by the test case.
 
 If you decide to add a new test case, you should do two things:
-1) Add a test class. It should
-contain setUp() and tearDown() methods that create and destroy
-the fixture respectively.
-2) Edit $JDBC_SRC/org/postgresql/test/jdbc2/Jdbc2TestSuite.java or
-$JDBC_SRC/org/postgresql/test/jdbc3/Jdbc3TestSuite.java and add your class. This will make the test case
-part of the test suite.
 
-6 Guidelines for developing new tests
--------------------------------------
+1. Add a test class. It should
+   contain `setUp()` and `tearDown()` methods that create and destroy
+   the fixture respectively. 
+2. Add your test class in `$JDBC_SRC/src/test/java/org/postgresql/test`. This will make the test case
+   part of the test suite.
+
+## 6 - Guidelines for developing new tests
+
 Every test should create and drop its own tables. We suggest to
 consider database objects (e.g. tables) part of the fixture for
 the tests in the test case. The test should also succeed when a
@@ -122,13 +94,13 @@ The recommended pattern for creating and dropping tables can be
 found in the example in section 7 below.
 
 Please note that JUnit provides several convenience methods to
-check for conditions. See the Assert class in the Javadoc
+check for conditions. See the `Assert` class in the Javadoc
 documentation of JUnit, which is installed on your system. For
 example, you can compare two integers using
-Assert.assertEquals(int expected, int actual). This method
+`Assert.assertEquals(int expected, int actual)`. This method
 will print both values in case of a failure.
 
-To simply report a failure use Assert.fail().
+To simply report a failure use `Assert.fail()`.
 
 The JUnit FAQ explains how to test for a thrown exception.
 
@@ -146,94 +118,21 @@ For example, in the comments you can explain where a certain test
 condition originates from. Is it a JDBC requirement, PostgreSQL
 behaviour or the intended implementation of a feature?
 
-7 Example (incomplete)
-----------------------
-package org.postgresql.test.jdbc2;
+## 7 - Example
 
-import static org.junit.Assert.assertNotNull;
+See [BlobTest.java](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test/java/org/postgresql/test/jdbc2/BlobTest.java) for an example of a unit test that creates  test table, runs a test, and then drops the table. There are other tests in [pgjdbc/src/test/java/org/postgresql](https://github.com/pgjdbc/pgjdbc/tree/master/pgjdbc/src/test/java/org/postgresql) which you can use an examples. Please add your own tests in this location.
 
-import org.postgresql.test.TestUtil;
+## 8 - SSL tests
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.sql.*;
-
-/*
- * Test case for ...
- */
-public class FooTest {
-
-    private Connection con;
-    private Statement stmt;
-
-    @Before
-    public void setUp() throws Exception {
-        con = TestUtil.openDB();
-        stmt = con.createStatement();
-
-        // Drop the test table if it already exists for some
-        // reason. It is not an error if it doesn't exist.
-        try {
-            stmt.executeUpdate("DROP TABLE testfoo");
-        } catch (SQLException e) {
-             // Intentionally ignore. We cannot distinguish
-             // "table does not exist" from other errors, since
-             // PostgreSQL doesn't support error codes yet.
-        }
-
-        stmt.executeUpdate(
-           "CREATE TABLE testfoo(pk INTEGER, col1 INTEGER)");
-        stmt.executeUpdate("INSERT INTO testfoo VALUES(1, 0)");
-
-        // You may want to call con.setAutoCommit(false) at
-        // this point, if most tests in this test case require
-        // the use of transactions.
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        con.setAutoCommit(true);
-        if (stmt != null) {
-            stmt.executeUpdate("DROP TABLE testfoo");
-            stmt.close();
-        }
-        if (con != null) {
-              TestUtil.closeDB(con);
-        }
-    }
-
-    @Test
-    public void testFoo() {
-        // Use the assert methods in import org.junit.Assert
-        // for the actual tests
-
-        // Just some silly examples
-        assertNotNull(con);
-        if (stmt == null) {
-        	fail("Where is my statement?");
-        }
-    }
-
-    @Test
-    public void testBar() {
-    	// Another test.
-    }
-}
-
-8 ssltests
-----------------
-- requires ssl to be turned on in the database 'postgresql.conf ssl=true'
-- pg_hba.conf requires entries for hostssl, and hostnossl
+- requires SSL to be turned on in the database `postgresql.conf ssl=true`
+- `pg_hba.conf` requires entries for `hostssl`, and `hostnossl`
 - contrib module sslinfo needs to be installed in the databases
-- databases certdb, hostdb, hostnossldb, hostssldb, and hostsslcertdb need to be created
+- databases `certdb`, `hostdb`, `hostnossldb`, `hostssldb`, and `hostsslcertdb` need to be created
 
 
-9 Running the JDBC 2 test suite from Sun against PostgreSQL
-------------------------------------------------------------
-Download the test suite from
-http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html
+## 9 - Running the JDBC 2 test suite against PostgreSQL
+
+Download the [JDBC test suite](http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html). 
 This is the JDBC 2 test suite that includes J2EE requirements.
 
 1. Configure PostgreSQL so that it accepts TCP/IP connections and
@@ -270,11 +169,11 @@ This is the JDBC 2 test suite that includes J2EE requirements.
       the PostgreSQL JDBC jar to J2EE_CLASSPATH. Set the JAVA_HOME
       variable to where you installed the J2SE. You should end up with
       something like this:
-
+    
       CTS_HOME=/home/liams/linux/java/jdbccts
       J2EE_CLASSPATH=/home/liams/work/inst/postgresql-7.1.2/share/java/postgresql.jar:$CTS_HOME/lib/harness.jar:$CTS_HOME/lib/moo.jar:$CTS_HOME/lib/util.jar
       export J2EE_CLASSPATH
-
+    
       JAVA_HOME=/home/liams/linux/java/jdk1.3.1
       export JAVA_HOME
 
@@ -303,17 +202,12 @@ This is the JDBC 2 test suite that includes J2EE requirements.
 At the time of writing of this document, a great number of tests
 in this test suite fail.
 
-10 Credits, feedback
--------------------
+## 10 - Credits and Feedback
+
 The parts of this document describing the PostgreSQL test suite
 were originally written by Rene Pijlman. Liam Stewart contributed
 the section on the Sun JDBC 2 test suite.
 
 Please send your questions about the JDBC test suites or suggestions
 for improvement to the pgsql-jdbc@postgresql.org mailing list.
-
-The source of this document is maintained in
-org/postgresql/test/README in CVS. Patches for
-improvement can be send to the mailing list
-pgsql-jdbc@postgresql.org.
 

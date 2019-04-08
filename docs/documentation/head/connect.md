@@ -54,6 +54,9 @@ URL or an additional `Properties` object parameter to `DriverManager.getConnecti
 The following examples illustrate the use of both methods to establish a SSL
 connection.
 
+If a property is specified both in URL and in `Properties` object, the value from
+`Properties` object is ignored.
+
 ```java
 String url = "jdbc:postgresql://localhost/test";
 Properties props = new Properties();
@@ -68,11 +71,20 @@ Connection conn = DriverManager.getConnection(url);
 
 * **user** = String
 
-	The database user on whose behalf the connection is being made. 
+	The database user on whose behalf the connection is being made.
 
 * **password** = String
 
-	The database user's password. 
+	The database user's password.
+
+* **options** = String
+
+	Specify 'options' connection initialization parameter.
+
+	The value of this property may contain spaces or other special characters,
+	and it should be properly encoded if provided in the connection URL. Spaces
+	are considered to separate command-line arguments, unless escaped with
+	a backslash (`\`); `\\` represents a literal backslash.
 
 * **ssl** = boolean
 
@@ -88,18 +100,21 @@ Connection conn = DriverManager.getConnection(url);
 	establishing a SSL connection. For more information see the section
 	called [“Custom SSLSocketFactory”](ssl-factory.html). 
 
-* **sslfactoryarg** = String
+* **sslfactoryarg** (deprecated) = String
 
 	This value is an optional argument to the constructor of the sslfactory
 	class provided above. For more information see the section called [“Custom SSLSocketFactory”](ssl-factory.html). 
 
 * **sslmode** = String
 
-	possible values include "disable", "require", "verify-ca" and "verify-full", "allow" and "prefer" 
-	will throw an exception. "require" will default to a non validating SSL factory and not check the 
-	validity of the certificates. "verify-ca" and "verify-full" use a validating SSL factory and will 
-	check that the ca is correct and the host is correct. Setting these will necessitate storing the 
-	server certificate on the client machine ["Configuring the client"](ssl-client.html).
+	possible values include `disable`, `allow`, `prefer`, `require`, `verify-ca` and `verify-full`
+	. `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
+	validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
+	verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
+	host connected to has the same hostname as the certificate.
+
+	Setting these will necessitate storing the server certificate on the client machine see
+	["Configuring the client"](ssl-client.html) for details.
 
 * **sslcert** = String
 
@@ -109,7 +124,11 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslkey** = String
 
-	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8
+	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
+	
+	*Note:* The key file **must** be in [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	
+	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der`
 
 * **sslrootcert** = String
 
@@ -117,7 +136,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslhostnameverifier** = String
 
-	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.jdbc4.LibPQFactory.verify()`
+	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.PGjdbcHostnameVerifier`
 
 * **sslpasswordcallback** = String
 
@@ -188,6 +207,14 @@ Connection conn = DriverManager.getConnection(url);
     like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
 
     The default is `never` 
+
+* **cleanupSavePoints** = boolean
+
+    Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
+    done to avoid running out of shared buffers on the server in the case where 1000's of queries are
+    performed.
+     
+    The default is 'false'
 
 * **binaryTransferEnable** = String
 
@@ -339,6 +366,11 @@ Connection conn = DriverManager.getConnection(url);
 
 	On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
 
+        To use SSPI with PgJDBC you must ensure that
+        [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/)
+	and its dependencies are present on the `CLASSPATH`. PgJDBC does *not*
+        bundle `waffle-jna` in the PgJDBC jar.
+
 	Since: 9.4
 
 * **sspiServiceClass** = String
@@ -408,7 +440,7 @@ Connection conn = DriverManager.getConnection(url);
 	This class must have a zero argument constructor or a single argument constructor taking a String argument. 
 	This argument may optionally be supplied by `socketFactoryArg`.
 
-* **socketFactoryArg** = String
+* **socketFactoryArg** (deprecated) = String
 
 	This value is an optional argument to the constructor of the socket factory
 	class provided above. 

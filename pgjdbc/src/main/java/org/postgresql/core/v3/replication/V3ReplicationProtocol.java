@@ -129,6 +129,8 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
       }
 
       pgStream.getSocket().setSoTimeout(minimalTimeOut);
+      // Use blocking 1ms reads for `available()` checks
+      pgStream.setMinStreamAvailableCheckDelay(0);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("The connection attempt failed."),
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);

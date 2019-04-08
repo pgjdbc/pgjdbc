@@ -5,7 +5,7 @@ public class messages_nl extends java.util.ResourceBundle {
   static {
     java.lang.String[] t = new java.lang.String[36];
     t[0] = "";
-    t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.0\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2018-06-05 10:57+0300\nPO-Revision-Date: 2004-10-11 23:55-0700\nLast-Translator: Arnout Kuiper <ajkuiper@wxs.nl>\nLanguage-Team: Dutch <ajkuiper@wxs.nl>\nLanguage: nl\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
+    t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.0\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2004-10-11 23:55-0700\nLast-Translator: Arnout Kuiper <ajkuiper@wxs.nl>\nLanguage-Team: Dutch <ajkuiper@wxs.nl>\nLanguage: nl\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
     t[2] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
     t[3] = "Iets ongewoons is opgetreden, wat deze driver doet falen. Rapporteer deze fout AUB: {0}";
     t[8] = "Unknown Types value.";

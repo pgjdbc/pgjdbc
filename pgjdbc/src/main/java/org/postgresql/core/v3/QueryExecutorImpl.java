@@ -129,6 +129,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     super(pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
+    this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
   }
@@ -223,7 +224,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Query wrap(List<NativeQuery> queries) {
     if (queries.isEmpty()) {
       // Empty query
-      return EMPTY_QUERY;
+      return emptyQuery;
     }
     if (queries.size() == 1) {
       NativeQuery firstQuery = queries.get(0);
@@ -311,7 +312,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // There are three causes of this error, an
         // invalid total Bind message length, a
         // BinaryStream that cannot provide the amount
-        // of data claimed by the length arugment, and
+        // of data claimed by the length argument, and
         // a BinaryStream that throws an Exception
         // when reading.
         //
@@ -338,6 +339,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try {
       handler.handleCompletion();
+      if (cleanupSavePoints) {
+        releaseSavePoint(autosave, flags);
+      }
     } catch (SQLException e) {
       rollbackIfRequired(autosave, e);
     }
@@ -347,21 +351,45 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
         || getTransactionState() == TransactionState.OPEN)
         && query != restoreToAutoSave
+        && !query.getNativeSql().equalsIgnoreCase("COMMIT")
         && getAutoSave() != AutoSave.NEVER
         // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
-        // thus no need to set a safepoint before such query
+        // thus no need to set a savepoint before such query
         && (getAutoSave() == AutoSave.ALWAYS
         // If CompositeQuery is observed, just assume it might fail and set the savepoint
         || !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null)) {
+
+      /*
+      create a different SAVEPOINT the first time so that all subsequent SAVEPOINTS can be released
+      easily. There have been reports of server resources running out if there are too many
+      SAVEPOINTS.
+       */
       sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
               | QUERY_EXECUTE_AS_SIMPLE);
+
       return true;
+
     }
     return false;
+  }
+
+  private void releaseSavePoint(boolean autosave, int flags) throws SQLException {
+    if ( autosave
+        && getAutoSave() == AutoSave.ALWAYS
+        && getTransactionState() == TransactionState.OPEN) {
+      try {
+        sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
+            QUERY_NO_RESULTS | QUERY_NO_METADATA
+                | QUERY_EXECUTE_AS_SIMPLE);
+
+      } catch (IOException ex) {
+        throw  new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
+      }
+    }
   }
 
   private void rollbackIfRequired(boolean autosave, SQLException e) throws SQLException {
@@ -414,7 +442,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // the server is sending.
   //
   // Our message size estimation is coarse, and disregards asynchronous
-  // notifications, warnings/info/debug messages, etc, so the repsonse size may be
+  // notifications, warnings/info/debug messages, etc, so the response size may be
   // quite different from the 250 bytes assumed here even for queries that don't
   // return data.
   //
@@ -692,7 +720,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     try {
-      while (pgStream.hasMessagePending() || timeoutMillis >= 0 ) {
+      while (timeoutMillis >= 0 || pgStream.hasMessagePending()) {
         if (useTimeout && timeoutMillis >= 0) {
           setSocketTimeout(timeoutMillis);
         }
@@ -1703,8 +1731,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // statement name terminator
   }
 
-
-
   // sendOneQuery sends a single statement via the extended query protocol.
   // Per the FE/BE docs this is essentially the same as how a simple query runs
   // (except that it generates some extra acknowledgement messages, and we
@@ -2095,8 +2121,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
           }
 
-          if (currentQuery == autoSaveQuery) {
-            // ignore "SAVEPOINT" status from autosave query
+          // we want to make sure we do not add any results from these queries to the result set
+          if (currentQuery == autoSaveQuery
+              || currentQuery == releaseAutoSave) {
+            // ignore "SAVEPOINT" or RELEASE SAVEPOINT status from autosave query
             break;
           }
 
@@ -2341,9 +2369,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * communication stream.
    */
   private void skipMessage() throws IOException {
-    int l_len = pgStream.receiveInteger4();
-    // skip l_len-4 (length includes the 4 bytes for message length itself
-    pgStream.skip(l_len - 4);
+    int len = pgStream.receiveInteger4();
+    // skip len-4 (length includes the 4 bytes for message length itself
+    pgStream.skip(len - 4);
   }
 
   public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
@@ -2385,7 +2413,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    int l_msgSize = pgStream.receiveInteger4();
+    int msgSize = pgStream.receiveInteger4();
     int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
@@ -2459,9 +2487,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private String receiveCommandStatus() throws IOException {
     // TODO: better handle the msg len
-    int l_len = pgStream.receiveInteger4();
-    // read l_len -5 bytes (-4 for l_len and -1 for trailing \0)
-    String status = pgStream.receiveString(l_len - 5);
+    int len = pgStream.receiveInteger4();
+    // read len -5 bytes (-4 for len and -1 for trailing \0)
+    String status = pgStream.receiveString(len - 5);
     // now read and discard the trailing \0
     pgStream.receiveChar(); // Receive(1) would allocate new byte[1], so avoid it
 
@@ -2538,8 +2566,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'K':
           // BackendKeyData
-          int l_msgLen = pgStream.receiveInteger4();
-          if (l_msgLen != 12) {
+          int msgLen = pgStream.receiveInteger4();
+          if (msgLen != 12) {
             throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
                 PSQLState.PROTOCOL_VIOLATION);
           }
@@ -2583,7 +2611,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    int l_len = pgStream.receiveInteger4();
+    int len = pgStream.receiveInteger4();
     String name = pgStream.receiveString();
     String value = pgStream.receiveString();
 
@@ -2714,7 +2742,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
-
+  private final boolean cleanupSavePoints;
 
   /**
    * <p>The estimated server response size since we last consumed the input stream from the server, in
@@ -2731,19 +2759,32 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
           null, false);
 
-  private final SimpleQuery EMPTY_QUERY =
+  private final SimpleQuery emptyQuery =
       new SimpleQuery(
           new NativeQuery("", new int[0], false,
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
+
 
   private final SimpleQuery autoSaveQuery =
       new SimpleQuery(
           new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
+
+  private final SimpleQuery releaseAutoSave =
+      new SimpleQuery(
+          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  /*
+  In autosave mode we use this query to roll back errored transactions
+   */
   private final SimpleQuery restoreToAutoSave =
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
+
+
+
 }
