@@ -915,17 +915,17 @@ final class ArrayEncoding {
     /**
      * Bit Mask for first 4 bits.
      */
-    private final int BITS_1111_0000 = 0xF0;
+    private final int bits_1111_0000 = 0xF0;
 
     /**
      * Bit Mask for last 4 bits.
      */
-    private final int BITS_0000_1111 = 0x0F;
+    private final int bits_0000_1111 = 0x0F;
 
     /**
      * The possible characters to use for representing hex binary data.
      */
-    private final char[] HEX_DIGITS = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
+    private final char[] hexDigits = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
         'e', 'f' };
 
     /**
@@ -1025,9 +1025,9 @@ final class ArrayEncoding {
             byte b = array[i][j];
 
             // get the value for the left 4 bits (drop sign)
-            sb.append(HEX_DIGITS[(b & BITS_1111_0000) >>> 4]);
+            sb.append(hexDigits[(b & bits_1111_0000) >>> 4]);
             // get the value for the right 4 bits
-            sb.append(HEX_DIGITS[b & BITS_0000_1111]);
+            sb.append(hexDigits[b & bits_0000_1111]);
           }
           sb.append('"');
         } else {
