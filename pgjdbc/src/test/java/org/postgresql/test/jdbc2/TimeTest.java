@@ -9,11 +9,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,7 +28,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.List;
 import java.util.TimeZone;
 
 /*
@@ -30,14 +40,40 @@ import java.util.TimeZone;
  * problems from re-occurring ;-)
  *
  */
+@RunWith(Parameterized.class)
 public class TimeTest {
+
+  private static final TimeZone DEFAULT = TimeZone.getDefault();
+
+  @AfterClass
+  public static void resetDefault() {
+    TimeZone.setDefault(DEFAULT);
+  }
+
+  @Parameters(name = "Force Binary: {0}; TimeZone: {1}")
+  public static Collection<Object[]> data() {
+    List<Object[]> data = new ArrayList<Object[]>(12);
+    for (String tz : Arrays.asList("UTC", "America/Chicago", "Africa/Casablanca", "Europe/Moscow", "Pacific/Niue", "America/Adak")) {
+      for (int i = 0; i < 2; ++i) {
+        data.add(new Object[] { i == 1, TimeZone.getTimeZone(tz) } );
+      }
+    }
+    return data;
+  }
+
+  @Parameter(0)
+  public boolean binary;
+  @Parameter(1)
+  public TimeZone timeZone;
   private Connection con;
   private boolean testSetTime = false;
 
   @Before
   public void setUp() throws Exception {
+    TimeZone.setDefault(timeZone);
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "testtime", "tm time, tz time with time zone");
+    ((PgConnection)con).setForceBinary(binary);
   }
 
   @After
@@ -119,6 +155,204 @@ public class TimeTest {
     assertNotNull(timetz);
     timestamptz = rs.getTimestamp(2);
     assertNotNull(timestamptz);
+  }
+
+  @Test
+  public void test2400Time() throws SQLException {
+
+    Statement stmt = con.createStatement();
+
+    final Calendar defaultCal = Calendar.getInstance();
+
+    defaultCal.set(1970, 0, 2, 0, 0, 0);
+    defaultCal.set(Calendar.MILLISECOND, 0);
+
+    final long defaultPoint = defaultCal.getTimeInMillis();
+
+    //this appears to potentially be a defect in the way the default offset is calculated for a time with TZ fields are stored.
+    //it appears to store the "default" offset of the default time zone rather than the offset at January 1, 1970. So if the time
+    // zone had a different offset in January 1, 1970 than the default offset, strange things happen...
+    //we can deal with that by explicitly setting the expected offset
+    final String defaultOffset = buildOffset(defaultCal, defaultPoint);
+
+    final Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+
+    gmtCal.set(1970, 0, 2, 0, 0, 0);
+    gmtCal.set(Calendar.MILLISECOND, 0);
+
+    final long gmtPoint = gmtCal.getTimeInMillis();
+
+    final Calendar cstCal = Calendar.getInstance(TimeZone.getTimeZone("America/Chicago"));
+
+    cstCal.set(1970, 0, 2, 0, 0, 0);
+    cstCal.set(Calendar.MILLISECOND, 0);
+
+    final long cstPoint = cstCal.getTimeInMillis();
+
+    // set the time to 24:00:00
+    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'24:00:00','24:00:00" + defaultOffset + "'")));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testtime", "tm,tz"));
+    assertNotNull(rs);
+    assertTrue(rs.next());
+
+    Time timeDefault = rs.getTime(1);
+    assertNotNull(timeDefault);
+    assertEquals(defaultPoint, timeDefault.getTime());
+
+    timeDefault = rs.getTime(1, defaultCal);
+    assertNotNull(timeDefault);
+    assertEquals(defaultPoint, timeDefault.getTime());
+
+    Time timeGMT = rs.getTime(1, gmtCal);
+    assertNotNull(timeGMT);
+    assertEquals(gmtPoint, timeGMT.getTime());
+
+    Time timeCST = rs.getTime(1, cstCal);
+    assertNotNull(timeCST);
+    assertEquals(cstPoint, timeCST.getTime());
+
+    Timestamp tsDef = rs.getTimestamp(1);
+    assertNotNull(tsDef);
+    assertEquals(defaultPoint, tsDef.getTime());
+
+    tsDef = rs.getTimestamp(1, defaultCal);
+    assertNotNull(tsDef);
+    assertEquals(defaultPoint, tsDef.getTime());
+
+    Timestamp tsGMT = rs.getTimestamp(1, gmtCal);
+    assertNotNull(tsGMT);
+    assertEquals(gmtPoint, tsGMT.getTime());
+
+    Timestamp tsCST = rs.getTimestamp(1, cstCal);
+    assertNotNull(tsCST);
+    assertEquals(cstPoint, tsCST.getTime());
+
+    Timestamp tstzDef = rs.getTimestamp(2);
+    assertNotNull(tstzDef);
+    assertEquals(defaultPoint, tstzDef.getTime());
+    assertEquals(defaultPoint, rs.getTime(2).getTime());
+
+    tstzDef = rs.getTimestamp(2, defaultCal);
+    assertNotNull(tstzDef);
+    assertEquals(defaultPoint, tstzDef.getTime());
+    assertEquals(defaultPoint, rs.getTime(2, defaultCal).getTime());
+
+    //since the TZ field has a timezone in it, the provided calendar should be ignored
+    Timestamp tstzGMT = rs.getTimestamp(2, gmtCal);
+    assertNotNull(tstzGMT);
+    assertEquals(defaultPoint, tstzGMT.getTime());
+    assertEquals(defaultPoint, rs.getTime(2, gmtCal).getTime());
+
+    Timestamp tstzCST = rs.getTimestamp(2, cstCal);
+    assertNotNull(tstzCST);
+    assertEquals(defaultPoint, tstzCST.getTime());
+    assertEquals(defaultPoint, rs.getTime(2, cstCal).getTime());
+  }
+
+  private static String buildOffset(Calendar cal, long point) {
+    final StringBuilder offset = new StringBuilder(5);
+    final long offsetMillis = cal.getTimeZone().getOffset(point);
+    offset.append(offsetMillis >= 0 ? '+' : '-');
+    final long offsetTotMinutes = Math.abs(offsetMillis / 60000);
+    offset.append(offsetTotMinutes / 60);
+    final long offsetMinutes = offsetTotMinutes % 60;
+    if (offsetMinutes < 10) {
+      offset.append('0');
+    }
+    offset.append(offsetMinutes);
+    return offset.toString();
+  }
+
+  @Test
+  public void test0000Time() throws SQLException {
+
+    Statement stmt = con.createStatement();
+
+    final Calendar defaultCal = Calendar.getInstance();
+
+    defaultCal.set(1970, 0, 1, 0, 0, 0);
+    defaultCal.set(Calendar.MILLISECOND, 0);
+
+    final long defaultPoint = defaultCal.getTimeInMillis();
+
+    //this appears to potentially be a defect in the way the default offset is calculated for a time with TZ fields are stored.
+    //it appears to store the "default" offset of the default time zone rather than the offset at January 1, 1970. So if the time
+    // zone had a different offset in January 1, 1970 than the default offset, strange things happen...
+    //we can deal with that by explicitly setting the expected offset
+    final String defaultOffset = buildOffset(defaultCal, defaultPoint);
+
+    final Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+
+    gmtCal.set(1970, 0, 1, 0, 0, 0);
+    gmtCal.set(Calendar.MILLISECOND, 0);
+
+    final long gmtPoint = gmtCal.getTimeInMillis();
+
+    final Calendar cstCal = Calendar.getInstance(TimeZone.getTimeZone("America/Chicago"));
+
+    cstCal.set(1970, 0, 1, 0, 0, 0);
+    cstCal.set(Calendar.MILLISECOND, 0);
+
+    final long cstPoint = cstCal.getTimeInMillis();
+
+    // set the time to 00:00:00
+    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'00:00:00','00:00:00" + defaultOffset + "'")));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testtime", "tm,tz"));
+    assertNotNull(rs);
+    assertTrue(rs.next());
+
+    Time timeDefault = rs.getTime(1);
+    assertNotNull(timeDefault);
+    assertEquals(defaultPoint, timeDefault.getTime());
+
+    timeDefault = rs.getTime(1, defaultCal);
+    assertNotNull(timeDefault);
+    assertEquals(defaultPoint, timeDefault.getTime());
+
+    Time timeGMT = rs.getTime(1, gmtCal);
+    assertNotNull(timeGMT);
+    assertEquals(gmtPoint, timeGMT.getTime());
+
+    Time timeCST = rs.getTime(1, cstCal);
+    assertNotNull(timeCST);
+    assertEquals(cstPoint, timeCST.getTime());
+
+    Timestamp tsDef = rs.getTimestamp(1);
+    assertNotNull(tsDef);
+    assertEquals(defaultPoint, tsDef.getTime());
+
+    tsDef = rs.getTimestamp(1, defaultCal);
+    assertNotNull(tsDef);
+    assertEquals(defaultPoint, tsDef.getTime());
+
+    Timestamp tsGMT = rs.getTimestamp(1, gmtCal);
+    assertNotNull(tsGMT);
+    assertEquals(gmtPoint, tsGMT.getTime());
+
+    Timestamp tsCST = rs.getTimestamp(1, cstCal);
+    assertNotNull(tsCST);
+    assertEquals(cstPoint, tsCST.getTime());
+
+    Timestamp tstzDef = rs.getTimestamp(2);
+    assertNotNull(tstzDef);
+    assertEquals(defaultPoint, tstzDef.getTime());
+    assertEquals(defaultPoint, rs.getTime(2).getTime());
+
+    tstzDef = rs.getTimestamp(2, defaultCal);
+    assertNotNull(tstzDef);
+    assertEquals(defaultPoint, tstzDef.getTime());
+    assertEquals(defaultPoint, rs.getTime(2, defaultCal).getTime());
+
+    //since the TZ field has a timezone in it, the provided calendar should be ignored
+    Timestamp tstzGMT = rs.getTimestamp(2, gmtCal);
+    assertNotNull(tstzGMT);
+    assertEquals(defaultPoint, tstzGMT.getTime());
+    assertEquals(defaultPoint, rs.getTime(2, gmtCal).getTime());
+
+    Timestamp tstzCST = rs.getTimestamp(2, cstCal);
+    assertNotNull(tstzCST);
+    assertEquals(defaultPoint, tstzCST.getTime());
+    assertEquals(defaultPoint, rs.getTime(2, cstCal).getTime());
   }
 
   /*
