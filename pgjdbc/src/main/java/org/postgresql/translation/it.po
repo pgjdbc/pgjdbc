@@ -9,13 +9,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PostgreSQL JDBC Driver 8.2\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2006-06-23 17:25+0200\n"
-"Last-Translator: Giuseppe Sacco <eppesuig@debian.org>\n"
+"PO-Revision-Date: 2018-07-25 08:37+0100\n"
+"Last-Translator: Federico Campoli <rotellaro@gmail.com>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.12\n"
 
 #: org/postgresql/Driver.java:217
 msgid "Error loading default settings from driverconfig.properties"
@@ -26,6 +27,8 @@ msgstr ""
 #: org/postgresql/Driver.java:229
 msgid "Properties for the driver contains a non-string value for the key "
 msgstr ""
+"La proprietà del driver contiene un valore non stringa per la chiave "
+"corrispondente"
 
 #: org/postgresql/Driver.java:272
 msgid ""
@@ -33,6 +36,10 @@ msgid ""
 "probably need to grant the connect java.net.SocketPermission to the database "
 "server host and port that you wish to connect to."
 msgstr ""
+"Le impostazioni di sicurezza hanno impedito il tentativo di connessione. "
+"Probabilmente è necessario configurare «grant» affinché «java.net."
+"SocketPermission» abbia il con il permesso di connettersi all'host del "
+"database server a cui ci si vuole connettere."
 
 #: org/postgresql/Driver.java:278 org/postgresql/Driver.java:410
 msgid ""
@@ -59,26 +66,28 @@ msgstr "Il metodo «{0}» non è stato ancora implementato."
 #, java-format
 msgid "{0} parameter value must be an integer but was: {1}"
 msgstr ""
+"Il valore del parametro {0} deve essere un numero intero, invece il suo "
+"valore é {1}"
 
 #: org/postgresql/copy/CopyManager.java:49
 #, java-format
 msgid "Requested CopyIn but got {0}"
-msgstr ""
+msgstr "Era richiesto «CopyIn» ma si é ottenuto {0}"
 
 #: org/postgresql/copy/CopyManager.java:60
 #, java-format
 msgid "Requested CopyOut but got {0}"
-msgstr ""
+msgstr "Era richiesto «CopyOut» ma si é ottenuto {0}"
 
 #: org/postgresql/copy/CopyManager.java:71
 #, java-format
 msgid "Requested CopyDual but got {0}"
-msgstr ""
+msgstr "Era richiesto «CopyDual» ma si é ottenuto {0}"
 
 #: org/postgresql/copy/PGCopyInputStream.java:51
-#, fuzzy, java-format
+#, java-format
 msgid "Copying from database failed: {0}"
-msgstr "Fallita la conversione di un ``box'': {0}."
+msgstr "Copia dal database fallita: {0}"
 
 #: org/postgresql/copy/PGCopyInputStream.java:67
 #: org/postgresql/copy/PGCopyOutputStream.java:94
@@ -88,12 +97,12 @@ msgstr "Questo «ResultSet» è chiuso."
 
 #: org/postgresql/copy/PGCopyInputStream.java:110
 msgid "Read from copy failed."
-msgstr ""
+msgstr "Lettura da «copy» fallita."
 
 #: org/postgresql/copy/PGCopyOutputStream.java:71
 #, java-format
 msgid "Cannot write to copy a byte of value {0}"
-msgstr ""
+msgstr "Impossible scrivere in «copy» un byte il cui valore è {0}"
 
 #: org/postgresql/core/CommandCompleteParser.java:71
 #, fuzzy, java-format
@@ -112,7 +121,7 @@ msgstr ""
 #: org/postgresql/core/Oid.java:128
 #, java-format
 msgid "oid type {0} not known and not a number"
-msgstr ""
+msgstr "Lo oid {0} é di tipo sconosciuto oppure non é numerico"
 
 #: org/postgresql/core/PGStream.java:486
 #, java-format
@@ -184,6 +193,8 @@ msgstr ""
 #: org/postgresql/core/Utils.java:120 org/postgresql/core/Utils.java:170
 msgid "No IOException expected from StringBuffer or StringBuilder"
 msgstr ""
+"Errore «IOException» inaspettato generato dalla classe «StringBuffer» o "
+"«StringBuilder»"
 
 #: org/postgresql/core/Utils.java:159
 #, fuzzy
@@ -229,6 +240,7 @@ msgstr "Il tentativo di connessione è fallito."
 #, java-format
 msgid "Could not find a server with specified targetServerType: {0}"
 msgstr ""
+"Non riesco a trovare un server con il «targetServerType» specificato: {0}"
 
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:361
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:374
@@ -253,6 +265,8 @@ msgid ""
 "SCRAM authentication is not supported by this driver. You need JDK >= 8 and "
 "pgjdbc >= 42.2.0 (not \".jre\" versions)"
 msgstr ""
+"L'autenticazione SCRAM non é supportata da questo driver. É necessario usare "
+"un JDK >= 8 e pgjdbc >= 42.2.0 (versione non \".jre\")"
 
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:638
 #, java-format
@@ -277,19 +291,19 @@ msgstr "Errore di protocollo. Impostazione della sessione fallita."
 
 #: org/postgresql/core/v3/CopyInImpl.java:49
 msgid "CopyIn copy direction can't receive data"
-msgstr ""
+msgstr "La direzione di copia «CopyIn»  non può ricevere dati"
 
 #: org/postgresql/core/v3/CopyOperationImpl.java:54
 msgid "CommandComplete expected COPY but got: "
-msgstr ""
+msgstr "Atteso «COPY» da «CommandComplete». Invece si é ricevuto: "
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:163
 msgid "Tried to obtain lock while already holding it"
-msgstr ""
+msgstr "Si é tentato di ottenere un lock ma era già stato ottenuto"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:179
 msgid "Tried to break lock on database connection"
-msgstr ""
+msgstr "Si é tentato di rimuovere il lock sulla connessione al database"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:197
 #, fuzzy
@@ -342,74 +356,82 @@ msgstr "Si è verificato un errore di I/O nella spedizione di dati al server."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:845
 msgid "Database connection failed when starting copy"
-msgstr ""
+msgstr "Connessione al database fallita durante l'avvio della copy"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:880
 msgid "Tried to cancel an inactive copy operation"
-msgstr ""
+msgstr "Si é tentato di cancellare una operazione di «copy» inattiva"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:919
 msgid "Database connection failed when canceling copy operation"
 msgstr ""
+"Connessione al database fallita durante la cancellazione dell'operazione di "
+"«copy»"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:935
 msgid "Missing expected error response to copy cancel request"
 msgstr ""
+"La richiesta di cancellazione «copy» non ha ritornato nessun messaggio di "
+"errore"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:939
 #, java-format
 msgid "Got {0} error responses to single copy cancel request"
-msgstr ""
+msgstr "Ricevute {0} risposte da una singola richiesta di cancellazione «copy»"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:954
 msgid "Tried to end inactive copy"
-msgstr ""
+msgstr "Si é tentato di terminare una «copy» inattiva"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:969
 msgid "Database connection failed when ending copy"
 msgstr ""
+"La connessione al database é fallita durante la cancellazione di «copy»"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:987
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1007
 msgid "Tried to write to an inactive copy operation"
 msgstr ""
+"C'é stato un tentativo di scrittura su di una operazione «copy» inattiva"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1000
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1015
 msgid "Database connection failed when writing to copy"
-msgstr ""
+msgstr "La connessione al database é fallita durante la scrittura in «copy»"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1030
 msgid "Tried to read from inactive copy"
-msgstr ""
+msgstr "Tentativo di lettura da «copy» inattiva"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1037
 msgid "Database connection failed when reading from copy"
-msgstr ""
+msgstr "La connessione al database é fallita durante la lettura da «copy»"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1103
 #, java-format
 msgid "Received CommandComplete ''{0}'' without an active copy operation"
 msgstr ""
+"É stato ricevuto un «CommandComplete« ''{0}'' senza un'operazione «copy» "
+"attiva"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1128
 #, java-format
 msgid "Got CopyInResponse from server during an active {0}"
-msgstr ""
+msgstr "Ricevuto «CopyInResponse» dal server durante un {0} attivo"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1142
 #, java-format
 msgid "Got CopyOutResponse from server during an active {0}"
-msgstr ""
+msgstr "Ricevuto «CopyOutResponse» dal server durante un {0} attivo"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1156
 #, java-format
 msgid "Got CopyBothResponse from server during an active {0}"
-msgstr ""
+msgstr "Ricevuto «CopyBothResponse» dal server durante un {0} attivo"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1172
 msgid "Got CopyData without an active copy operation"
-msgstr ""
+msgstr "Ricevuto «CopyData» senza un'operazione «copy» attiva"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1176
 #, fuzzy, java-format
@@ -419,7 +441,7 @@ msgstr "Ricevuto dal server «{0}» mentre era atteso un EOF"
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1236
 #, java-format
 msgid "Unexpected packet type during copy: {0}"
-msgstr ""
+msgstr "Ricevuto «packet type» inaspettato durante operazione «copy»: {0}"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1526
 #, java-format
@@ -480,7 +502,7 @@ msgstr "Il parametro indice è fuori intervallo: {0}, numero di elementi: {1}."
 #: org/postgresql/core/v3/replication/V3PGReplicationStream.java:144
 #, java-format
 msgid "Unexpected packet type during replication: {0}"
-msgstr ""
+msgstr "Ricevuto «packet type» inaspettato durante replica: {0}"
 
 #: org/postgresql/core/v3/replication/V3PGReplicationStream.java:269
 #, fuzzy
@@ -510,7 +532,7 @@ msgstr "Questo «Statement» è stato chiuso."
 
 #: org/postgresql/ds/PGPoolingDataSource.java:269
 msgid "Failed to setup DataSource."
-msgstr ""
+msgstr "Configurazione «DataSource» fallita."
 
 #: org/postgresql/ds/PGPoolingDataSource.java:371
 msgid "DataSource has been closed."
@@ -585,16 +607,18 @@ msgstr "Impossibile stabilire se il percorso è aperto o chiuso: {0}."
 #: org/postgresql/gss/GssAction.java:137 org/postgresql/gss/MakeGSS.java:66
 #: org/postgresql/gss/MakeGSS.java:74
 msgid "GSS Authentication failed"
-msgstr ""
+msgstr "Autenticazione «GSS» fallita"
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:78
 msgid ""
 "Truncation of large objects is only implemented in 8.3 and later servers."
 msgstr ""
+"La truncate dei large object é implementata soltanto per i server di "
+"versione 8.3 e successive."
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:83
 msgid "Cannot truncate LOB to a negative length."
-msgstr ""
+msgstr "Non é possibile troncare i LOB ad una dimensione negativa."
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:90
 #: org/postgresql/jdbc/AbstractBlobClob.java:234
@@ -608,7 +632,7 @@ msgstr "L''offset per la posizione dei LOB comincia da 1."
 
 #: org/postgresql/jdbc/AbstractBlobClob.java:246
 msgid "free() was called on this LOB previously"
-msgstr ""
+msgstr "«free()» é già stata eseguita su questo LOB in precedenza"
 
 #: org/postgresql/jdbc/BatchResultHandler.java:92
 msgid "Too many update results were returned."
@@ -626,7 +650,7 @@ msgstr ""
 #: org/postgresql/jdbc/BooleanTypeUtil.java:99
 #, java-format
 msgid "Cannot cast to boolean: \"{0}\""
-msgstr ""
+msgstr "Non é possibile convertire in booleano: \"{0}\""
 
 #: org/postgresql/jdbc/EscapedFunctions.java:240
 #: org/postgresql/jdbc/EscapedFunctions2.java:167
@@ -771,7 +795,7 @@ msgstr ""
 
 #: org/postgresql/jdbc/PgCallableStatement.java:229
 msgid "wasNull cannot be call before fetching a result."
-msgstr ""
+msgstr "«wasNull» non può essere eseguito prima della lettura di un «result»."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:367
 #: org/postgresql/jdbc/PgCallableStatement.java:386
@@ -793,12 +817,14 @@ msgstr ""
 
 #: org/postgresql/jdbc/PgCallableStatement.java:413
 msgid "No function outputs were registered."
-msgstr ""
+msgstr "Non é stata registrata nessuna funzione di output."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:419
 msgid ""
 "Results cannot be retrieved from a CallableStatement before it is executed."
 msgstr ""
+"I «result» non possono essere letti da un «CallableStatement» prima che esso "
+"sia stato eseguito."
 
 #: org/postgresql/jdbc/PgCallableStatement.java:686
 #, fuzzy, java-format
@@ -830,7 +856,7 @@ msgstr "È stato restituito un valore nonostante non ne fosse atteso nessuno."
 
 #: org/postgresql/jdbc/PgConnection.java:547
 msgid "Custom type maps are not supported."
-msgstr ""
+msgstr "Le «type map» customizzate non sono supportate."
 
 #: org/postgresql/jdbc/PgConnection.java:589
 #, java-format
@@ -851,18 +877,17 @@ msgstr ""
 
 #: org/postgresql/jdbc/PgConnection.java:772
 msgid "Cannot commit when autoCommit is enabled."
-msgstr ""
+msgstr "Il «commit» esplicito non é possibile quando «autoCommit» é abilitato."
 
 #: org/postgresql/jdbc/PgConnection.java:783
 #: org/postgresql/jdbc/PgConnection.java:1401
 #: org/postgresql/jdbc/PgConnection.java:1445
-#, fuzzy
 msgid "This connection has been closed."
-msgstr "Questo «Connection» è stato chiuso."
+msgstr "Questa connessione é stata chiusa."
 
 #: org/postgresql/jdbc/PgConnection.java:794
 msgid "Cannot rollback when autoCommit is enabled."
-msgstr ""
+msgstr "Il «commit» non é possibile quando «autoCommit» é abilitato."
 
 #: org/postgresql/jdbc/PgConnection.java:844
 msgid ""
@@ -894,7 +919,7 @@ msgstr "La dimensione dell''area di «fetch» deve essere maggiore o eguale a 0."
 #: org/postgresql/jdbc/PgConnection.java:1347
 #, java-format
 msgid "Unable to find server array type for provided name {0}."
-msgstr ""
+msgstr "Il tipo array {0} non é presente sul server."
 
 #: org/postgresql/jdbc/PgConnection.java:1329
 #, fuzzy, java-format
@@ -908,7 +933,7 @@ msgstr "La dimensione specificata, {0}, per lo «stream» non è valida."
 
 #: org/postgresql/jdbc/PgConnection.java:1389
 msgid "Validating connection."
-msgstr ""
+msgstr "Verifica connessione."
 
 #: org/postgresql/jdbc/PgConnection.java:1422
 #, fuzzy, java-format
@@ -921,8 +946,9 @@ msgid "ClientInfo property not supported."
 msgstr "La restituzione di chiavi autogenerate non è supportata."
 
 #: org/postgresql/jdbc/PgConnection.java:1458
+#, fuzzy
 msgid "One or more ClientInfo failed."
-msgstr ""
+msgstr "Una o più operazioni «ClientInfo» sono fallite."
 
 #: org/postgresql/jdbc/PgConnection.java:1559
 #, fuzzy
@@ -931,11 +957,11 @@ msgstr "Il timeout relativo alle query deve essere maggiore o eguale a 0."
 
 #: org/postgresql/jdbc/PgConnection.java:1571
 msgid "Unable to set network timeout."
-msgstr ""
+msgstr "Impossibile impostare il timeout di rete."
 
 #: org/postgresql/jdbc/PgConnection.java:1582
 msgid "Unable to get network timeout."
-msgstr ""
+msgstr "Impossibile leggere il timeout di rete."
 
 #: org/postgresql/jdbc/PgConnection.java:1599
 #, java-format
@@ -970,42 +996,42 @@ msgstr "Non è possibile trovare il datatype «name» nel catalogo di sistema."
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1095
 msgid "oid"
-msgstr ""
+msgstr "oid"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1095
 msgid "proname"
-msgstr ""
+msgstr "proname"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1097
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1548
 msgid "typtype"
-msgstr ""
+msgstr "typtype"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1100
 msgid "proargtypes"
-msgstr ""
+msgstr "proargtypes"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1566
 msgid "adsrc"
-msgstr ""
+msgstr "adsrc"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1579
 msgid "attidentity"
-msgstr ""
+msgstr "attidentity"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1675
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1751
 msgid "rolname"
-msgstr ""
+msgstr "rolname"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1676
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1752
 msgid "relacl"
-msgstr ""
+msgstr "relacl"
 
 #: org/postgresql/jdbc/PgDatabaseMetaData.java:1682
 msgid "attacl"
-msgstr ""
+msgstr "attacl"
 
 #: org/postgresql/jdbc/PgParameterMetaData.java:83
 #, java-format
@@ -1053,7 +1079,7 @@ msgstr "Tipo sconosciuto {0}."
 
 #: org/postgresql/jdbc/PgPreparedStatement.java:459
 msgid "No hstore extension installed."
-msgstr ""
+msgstr "L'estensione hstore non é installata sul server."
 
 #: org/postgresql/jdbc/PgPreparedStatement.java:601
 #: org/postgresql/jdbc/PgPreparedStatement.java:624
@@ -1097,6 +1123,8 @@ msgstr "Il «Reader» fornito è fallito."
 #: org/postgresql/util/StreamWrapper.java:56
 msgid "Object is too large to send over the protocol."
 msgstr ""
+"Le dimensioni dell'oggetto sono troppo grandi per la trasmissione attraverso "
+"il protocollo."
 
 #: org/postgresql/jdbc/PgResultSet.java:280
 msgid ""
@@ -1113,9 +1141,9 @@ msgstr ""
 #: org/postgresql/jdbc/PgResultSet.java:624
 #: org/postgresql/jdbc/PgResultSet.java:3012
 #: org/postgresql/jdbc/PgResultSet.java:3057
-#, fuzzy, java-format
+#, java-format
 msgid "Cannot convert the column of type {0} to requested type {1}."
-msgstr "Non è possibile convertire una istanza di «{0}» nel tipo «{1}»"
+msgstr "Non è possibile convertire la colonna di tipo «{0}» nel tipo «{1}»"
 
 #: org/postgresql/jdbc/PgResultSet.java:838
 #: org/postgresql/jdbc/PgResultSet.java:859
@@ -1251,9 +1279,8 @@ msgstr ""
 "«next()»."
 
 #: org/postgresql/jdbc/PgResultSet.java:3094
-#, fuzzy
 msgid "Invalid UUID data."
-msgstr "Flag non valido"
+msgstr "Dati UUID non validi."
 
 #: org/postgresql/jdbc/PgResultSet.java:3183
 #: org/postgresql/jdbc/PgResultSet.java:3190
@@ -1278,27 +1305,26 @@ msgstr "Flag non valido"
 #: org/postgresql/jdbc/PgResultSet.java:3400
 #: org/postgresql/jdbc/PgResultSet.java:3420
 #: org/postgresql/jdbc/PgResultSet.java:3433
-#, fuzzy, java-format
+#, java-format
 msgid "conversion to {0} from {1} not supported"
-msgstr "Il livello di isolamento delle transazioni «{0}» non è supportato."
+msgstr "conversione da «{1}» a «{0}» non supportata."
 
 #: org/postgresql/jdbc/PgSQLXML.java:147
 msgid "Unable to decode xml data."
-msgstr ""
+msgstr "Impossibile decodificare i dati xml."
 
 #: org/postgresql/jdbc/PgSQLXML.java:150
 #, java-format
 msgid "Unknown XML Source class: {0}"
-msgstr ""
+msgstr "Classe sorgente XML sconosciuta: {0}"
 
 #: org/postgresql/jdbc/PgSQLXML.java:193
-#, fuzzy
 msgid "Unable to create SAXResult for SQLXML."
-msgstr "Fallita la creazione dell''oggetto per: {0}."
+msgstr "Impossibile creare «StAXResult» per «SQLXML»."
 
 #: org/postgresql/jdbc/PgSQLXML.java:208
 msgid "Unable to create StAXResult for SQLXML"
-msgstr ""
+msgstr "Impossibile creare «StAXResult» per «SQLXML»"
 
 #: org/postgresql/jdbc/PgSQLXML.java:213
 #, fuzzy, java-format
@@ -1314,22 +1340,24 @@ msgstr "Questo «PooledConnection» è stato chiuso."
 msgid ""
 "This SQLXML object has not been initialized, so you cannot retrieve data "
 "from it."
-msgstr ""
+msgstr "Impossibile leggere i dati da un oggetto «SQLXML» non inizializzato."
 
 #: org/postgresql/jdbc/PgSQLXML.java:247
 #, java-format
 msgid "Failed to convert binary xml data to encoding: {0}."
-msgstr ""
+msgstr "La conversione di dati binari xml ad encoding {0} é fallita."
 
 #: org/postgresql/jdbc/PgSQLXML.java:273
 msgid "Unable to convert DOMResult SQLXML data to a string."
-msgstr ""
+msgstr "Impossibile convertire i dati «DOMResult SQLXML» in stringa."
 
 #: org/postgresql/jdbc/PgSQLXML.java:287
 msgid ""
 "This SQLXML object has already been initialized, so you cannot manipulate it "
 "further."
 msgstr ""
+"Non è possibile manipolare l'oggetto «SQLXML»  dopo che è stato "
+"inizializzato."
 
 #: org/postgresql/jdbc/PgStatement.java:235
 msgid "Multiple ResultSets were returned by the query."
@@ -1337,7 +1365,7 @@ msgstr "La query ha restituito «ResultSet» multipli."
 
 #: org/postgresql/jdbc/PgStatement.java:316
 msgid "Can''t use executeWithFlags(int) on a Statement."
-msgstr ""
+msgstr "Non è possibile usare «executeWithFlags(int)» su di una istruzione."
 
 #: org/postgresql/jdbc/PgStatement.java:509
 msgid "Maximum number of rows must be a value grater than or equal to 0."
@@ -1377,11 +1405,11 @@ msgstr "Valore di tipo «{0}» non supportato."
 
 #: org/postgresql/jre8/sasl/ScramAuthenticator.java:68
 msgid "No SCRAM mechanism(s) advertised by the server"
-msgstr ""
+msgstr "Il server non dispone di funzionalità SCRAM"
 
 #: org/postgresql/jre8/sasl/ScramAuthenticator.java:81
 msgid "Invalid or unsupported by client SCRAM mechanisms"
-msgstr ""
+msgstr "Funzionalità SCRAM del client invalida o non supportata"
 
 #: org/postgresql/jre8/sasl/ScramAuthenticator.java:119
 #, fuzzy, java-format
@@ -1396,11 +1424,11 @@ msgstr "La dimensione specificata, {0}, per lo «stream» non è valida."
 #: org/postgresql/jre8/sasl/ScramAuthenticator.java:157
 #, java-format
 msgid "SCRAM authentication failed, server returned error: {0}"
-msgstr ""
+msgstr "Autenticazione SCRAM fallita, il server ha ritornato l''errore: {0}"
 
 #: org/postgresql/jre8/sasl/ScramAuthenticator.java:164
 msgid "Invalid server SCRAM signature"
-msgstr ""
+msgstr "La firma SCRAM del server é invalida"
 
 #: org/postgresql/largeobject/LargeObjectManager.java:136
 msgid "Failed to initialize LargeObject API"
@@ -1425,7 +1453,7 @@ msgstr ""
 #: org/postgresql/ssl/MakeSSL.java:67
 #, java-format
 msgid "SSL error: {0}"
-msgstr ""
+msgstr "Errore SSL: {0}"
 
 #: org/postgresql/ssl/MakeSSL.java:78
 #, fuzzy, java-format
@@ -1436,34 +1464,40 @@ msgstr ""
 #: org/postgresql/ssl/MakeSSL.java:84
 #, java-format
 msgid "The hostname {0} could not be verified by hostnameverifier {1}."
-msgstr ""
+msgstr "L''hostnameverifier {1} non é in grado di verificare l''hostname {0}."
 
 #: org/postgresql/ssl/MakeSSL.java:93
 #, java-format
 msgid "The hostname {0} could not be verified."
-msgstr ""
+msgstr "L''hostname {0} non può essere verificato."
 
 #: org/postgresql/ssl/SingleCertValidatingFactory.java:90
 msgid "The sslfactoryarg property may not be empty."
-msgstr ""
+msgstr "La proprietà sslfactoryarg non deve essere vuota."
 
 #: org/postgresql/ssl/SingleCertValidatingFactory.java:106
 msgid ""
 "The environment variable containing the server's SSL certificate must not be "
 "empty."
 msgstr ""
+"La variabile d''ambiente che contiene il certificato SSL del server non può "
+"essere vuota."
 
 #: org/postgresql/ssl/SingleCertValidatingFactory.java:114
 msgid ""
 "The system property containing the server's SSL certificate must not be "
 "empty."
 msgstr ""
+"La variabile di sistema che contiene il certificato SSL del server non può "
+"essere vuota."
 
 #: org/postgresql/ssl/SingleCertValidatingFactory.java:121
 msgid ""
 "The sslfactoryarg property must start with the prefix file:, classpath:, "
 "env:, sys:, or -----BEGIN CERTIFICATE-----."
 msgstr ""
+"La proprietà sslfactoryarg deve iniziare con il uno dei seguenti prefissi, "
+"file:, classpath:, env:, sys:, oppure -----BEGIN CERTIFICATE-----."
 
 #: org/postgresql/ssl/SingleCertValidatingFactory.java:133
 #, fuzzy
@@ -1472,52 +1506,58 @@ msgstr "Si è verificato un errore impostando la connessione SSL."
 
 #: org/postgresql/ssl/SingleCertValidatingFactory.java:166
 msgid "No X509TrustManager found"
-msgstr ""
+msgstr "Impossibile trovare «X509TrustManager»"
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:133
 msgid ""
 "Could not find a java cryptographic algorithm: X.509 CertificateFactory not "
 "available."
 msgstr ""
+"Impossibile trovare un algoritmo crittografico java: «X.509 "
+"CertificateFactory» non disponibile."
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:143
 #, java-format
 msgid "Could not open SSL certificate file {0}."
-msgstr ""
+msgstr "Impossibile accedere al file di certificato SSL {0}."
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:148
 #, java-format
 msgid "Loading the SSL certificate {0} into a KeyManager failed."
-msgstr ""
+msgstr "Impossibile caricare il certificato SSL {0} nel «KeyManager»."
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:205
 msgid "Enter SSL password: "
-msgstr ""
+msgstr "Inserire la password SSL: "
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:212
 msgid "Could not read password for SSL key file, console is not available."
 msgstr ""
+"Impossibile leggere la password del file di chiave SSL, console non "
+"disponibile."
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:217
 #, java-format
 msgid "Could not read password for SSL key file by callbackhandler {0}."
 msgstr ""
+"Impossibile leggere la password del file di chiave SSL con il "
+"«callbackhandler» {0}."
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:236
 #, java-format
 msgid "Could not decrypt SSL key file {0}."
-msgstr ""
+msgstr "Impossibile decriptare il file di chiave SSL {0}."
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:250
 #, java-format
 msgid "Could not read SSL key file {0}."
-msgstr ""
+msgstr "Impossibile leggere il file di chiave SSL {0}."
 
 #: org/postgresql/ssl/jdbc4/LazyKeyManager.java:253
 #: org/postgresql/ssl/jdbc4/LibPQFactory.java:176
 #, java-format
 msgid "Could not find a java cryptographic algorithm: {0}."
-msgstr ""
+msgstr "Impossibile determinare l''algoritmo crittografico java: {0}"
 
 #: org/postgresql/ssl/jdbc4/LibPQFactory.java:99
 #, fuzzy, java-format
@@ -1528,21 +1568,22 @@ msgstr ""
 #: org/postgresql/ssl/jdbc4/LibPQFactory.java:132
 #, java-format
 msgid "Could not open SSL root certificate file {0}."
-msgstr ""
+msgstr "Impossibile aprire il file di certificato root SSL {0}."
 
 #: org/postgresql/ssl/jdbc4/LibPQFactory.java:147
 #, java-format
 msgid "Could not read SSL root certificate file {0}."
-msgstr ""
+msgstr "Impossibile leggere il file di certificato root SSL {0}."
 
 #: org/postgresql/ssl/jdbc4/LibPQFactory.java:151
 #, java-format
 msgid "Loading the SSL root certificate {0} into a TrustManager failed."
 msgstr ""
+"Il caricamento del certificato SSL root {0}in «TrustManager» é fallito."
 
 #: org/postgresql/ssl/jdbc4/LibPQFactory.java:170
 msgid "Could not initialize SSL context."
-msgstr ""
+msgstr "Impossibile inizializzare il contesto SSL."
 
 #: org/postgresql/util/PGInterval.java:152
 msgid "Conversion of interval failed"
@@ -1559,6 +1600,9 @@ msgid ""
 "readable, please check database logs and/or host, port, dbname, user, "
 "password, pg_hba.conf)"
 msgstr ""
+"(pgjdbc:  l''encoding del server rilevato automaticamente é {0}. Se il "
+"messaggio non é leggibile verificare i log del database, i parametri host, "
+"port, dbname, user, password oppure il file pg_hba.conf )"
 
 #: org/postgresql/util/ServerErrorMessage.java:176
 #, java-format
@@ -1605,6 +1649,9 @@ msgid ""
 "Transaction control methods setAutoCommit(true), commit, rollback and "
 "setSavePoint not allowed while an XA transaction is active."
 msgstr ""
+"Con una transazione XA attiva non sono permessi i seguenti metodi di "
+"controllo transazione: «setAutoCommit(true)», «commit», «rollback» e "
+"«setSavePoint»."
 
 #: org/postgresql/xa/PGXAConnection.java:186
 #: org/postgresql/xa/PGXAConnection.java:272
@@ -1636,6 +1683,8 @@ msgid ""
 "Invalid protocol state requested. Attempted transaction interleaving is not "
 "supported. xid={0}, currentXid={1}, state={2}, flags={3}"
 msgstr ""
+"Stato del protocollo richiesto non valido. Il tentativo di interlacciamento "
+"transazioni non é supportato. xid={0}, currentXid={1}, state={2}, flags={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:233
 #, fuzzy
@@ -1654,11 +1703,14 @@ msgstr "È stata chiamata «end» senza la corrispondente chiamata a «start»"
 msgid ""
 "Preparing already prepared transaction, the prepared xid {0}, prepare xid={1}"
 msgstr ""
+"La «Prepared transaction» é già stata preparata, lo xid della transazione "
+"preparata é {0}, lo xid della transazione che si é tentato di preparare é {1}"
 
 #: org/postgresql/xa/PGXAConnection.java:329
 #, java-format
 msgid "Current connection does not have an associated xid. prepare xid={0}"
 msgstr ""
+"Alla connessione corrente non é associato nessun xid. «prepare xid»={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:336
 #, fuzzy, java-format
@@ -1695,6 +1747,8 @@ msgstr "Errore durante il «rollback» di una transazione preparata"
 msgid ""
 "One-phase commit called for xid {0} but connection was prepared with xid {1}"
 msgstr ""
+"«One-phase commit»  eseguito per xid {0}, tuttavia la connessione era stata "
+"già preparata con lo xid {1}"
 
 #: org/postgresql/xa/PGXAConnection.java:529
 msgid ""
@@ -1707,7 +1761,7 @@ msgstr ""
 #: org/postgresql/xa/PGXAConnection.java:533
 #, java-format
 msgid "One-phase commit with unknown xid. commit xid={0}, currentXid={1}"
-msgstr ""
+msgstr "«One-phase commit» con xid sconosciuto. commit xid={0}, currentXid={1}"
 
 #: org/postgresql/xa/PGXAConnection.java:537
 #, fuzzy, java-format
