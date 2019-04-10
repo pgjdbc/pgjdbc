@@ -968,6 +968,18 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testBigDecimalWithScale() throws SQLException {
+    final String bigDecimalString = "1.1234";
+    PreparedStatement pstmt = con.prepareStatement("select " + bigDecimalString);
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("rs.getBigDecimal(scale=2)",
+        new BigDecimal(bigDecimalString).setScale(2, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(1, 2));
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
   public void testSetSmallIntFloat() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE small_int (max_val int4, min_val int4, null_val int4)");

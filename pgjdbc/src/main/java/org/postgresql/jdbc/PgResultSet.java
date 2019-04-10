@@ -35,6 +35,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Array;
@@ -2937,7 +2938,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return val;
     }
     try {
-      return val.setScale(scale);
+      return val.setScale(scale, RoundingMode.HALF_EVEN);
     } catch (ArithmeticException e) {
       throw new PSQLException(
           GT.tr("Bad value for type {0} : {1}", "BigDecimal", val),
