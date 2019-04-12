@@ -90,11 +90,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
+    // Set the socket timeout if the "socketTimeout" property has been set.
+    int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
+    if (socketTimeout > 0) {
+      newStream.getSocket().setSoTimeout(socketTimeout * 1000);
+    }
+
     // Construct and send an ssl startup packet if requested.
     newStream = enableSSL(newStream, sslMode, info, connectTimeout);
 
-    // Set the socket timeout if the "socketTimeout" property has been set.
-    int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
+    // Set the socket timeout for newStream again because enableSSL might return
+    // a PGStream different from previous newStream.
     if (socketTimeout > 0) {
       newStream.getSocket().setSoTimeout(socketTimeout * 1000);
     }

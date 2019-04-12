@@ -397,7 +397,7 @@ public class Driver implements java.sql.Driver {
      * @throws SQLException if a connection error occurs or the timeout is reached
      */
     public Connection getResult(long timeout) throws SQLException {
-      long expiry = System.currentTimeMillis() + timeout;
+      long expiry = System.nanoTime() / 1000000 + timeout;
       synchronized (this) {
         while (true) {
           if (result != null) {
@@ -416,7 +416,7 @@ public class Driver implements java.sql.Driver {
             }
           }
 
-          long delay = expiry - System.currentTimeMillis();
+          long delay = expiry - System.nanoTime() / 1000000;
           if (delay <= 0) {
             abandoned = true;
             throw new PSQLException(GT.tr("Connection attempt timed out."),
