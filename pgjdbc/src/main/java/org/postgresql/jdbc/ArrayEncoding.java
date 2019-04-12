@@ -913,16 +913,6 @@ final class ArrayEncoding {
       Oid.BYTEA_ARRAY) {
 
     /**
-     * Bit Mask for first 4 bits.
-     */
-    private final int bits11110000 = 0xF0;
-
-    /**
-     * Bit Mask for last 4 bits.
-     */
-    private final int bits00001111 = 0x0F;
-
-    /**
      * The possible characters to use for representing hex binary data.
      */
     private final char[] hexDigits = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
@@ -1025,9 +1015,9 @@ final class ArrayEncoding {
             byte b = array[i][j];
 
             // get the value for the left 4 bits (drop sign)
-            sb.append(hexDigits[(b & bits11110000) >>> 4]);
+            sb.append(hexDigits[(b & 0xF0) >>> 4]);
             // get the value for the right 4 bits
-            sb.append(hexDigits[b & bits00001111]);
+            sb.append(hexDigits[b & 0x0F]);
           }
           sb.append('"');
         } else {
