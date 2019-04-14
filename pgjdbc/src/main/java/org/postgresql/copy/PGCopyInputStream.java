@@ -20,7 +20,7 @@ import java.sql.SQLException;
 public class PGCopyInputStream extends InputStream implements CopyOut {
   private CopyOut op;
   private byte[] buf;
-  private int at;
+  private int curPosition;
   private int len;
 
   /**
@@ -43,18 +43,21 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     this.op = op;
   }
 
-  private boolean gotBuf() throws IOException {
-    if (at >= len) {
+  // this does too much as it can change buf.
+  private boolean isBufAvailable() throws IOException {
+    if (curPosition >= len) {
       try {
         buf = op.readFromCopy();
       } catch (SQLException sqle) {
         throw new IOException(GT.tr("Copying from database failed: {0}", sqle));
       }
       if (buf == null) {
-        at = -1;
+        // make sure the test above will be true next time around
+        curPosition = -1;
+        len = -1;
         return false;
       } else {
-        at = 0;
+        curPosition = 0;
         len = buf.length;
         return true;
       }
@@ -71,12 +74,12 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public int available() throws IOException {
     checkClosed();
-    return (buf != null ? len - at : 0);
+    return (buf != null ? len - curPosition : 0);
   }
 
   public int read() throws IOException {
     checkClosed();
-    return gotBuf() ? (buf[at++] & 0xFF)  : -1;
+    return isBufAvailable() ? (buf[curPosition++] & 0xFF)  : -1;
   }
 
   public int read(byte[] buf) throws IOException {
@@ -85,27 +88,32 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public int read(byte[] buf, int off, int siz) throws IOException {
     checkClosed();
-    int got = 0;
+    int bytesRead = 0;
     boolean didReadSomething = false;
-    while (got < siz && (didReadSomething = gotBuf())) {
-      buf[off + got++] = this.buf[at++];
+    while (bytesRead < siz && (didReadSomething = isBufAvailable())) {
+      buf[off + bytesRead++] = this.buf[curPosition++];
     }
-    return got == 0 && !didReadSomething ? -1 : got;
+    // need to check both. In the loop above on the first iteration
+    // bytesRead==0 and didReadSomething=false indicates -1
+    return bytesRead == 0 && !didReadSomething ? -1 : bytesRead;
   }
 
   public byte[] readFromCopy() throws SQLException {
     byte[] result = buf;
     try {
-      if (gotBuf()) {
-        if (at > 0 || len < buf.length) {
-          byte[] ba = new byte[len - at];
-          for (int i = at; i < len; i++) {
-            ba[i - at] = buf[i];
+      if (isBufAvailable()) {
+        if (curPosition > 0 || len < buf.length) {
+          byte[] ba = new byte[len - curPosition];
+          for (int i = curPosition; i < len; i++) {
+            ba[i - curPosition] = buf[i];
           }
           result = ba;
         }
-        at = len; // either partly or fully returned, buffer is exhausted
+        curPosition = len; // either partly or fully returned, buffer is exhausted
+      } else {
+        result = null;
       }
+
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Read from copy failed."), PSQLState.CONNECTION_FAILURE);
     }
