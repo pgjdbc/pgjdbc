@@ -10,7 +10,7 @@
   <artifactId>postgresql</artifactId>
   <packaging>bundle</packaging>
   <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-  <version>42.2.4-SNAPSHOT</version>
+  <version>42.2.6-SNAPSHOT</version>
   <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 
@@ -33,7 +33,7 @@
     <jdbc.specification.version>4.2</jdbc.specification.version>
     <jdbc.specification.version.nodot>42</jdbc.specification.version.nodot>
     <skip.assembly>false</skip.assembly>
-    <checkstyle.version>8.5</checkstyle.version>
+    <checkstyle.version>[8.18,)</checkstyle.version>
   </properties>
 
   <dependencies>
@@ -55,7 +55,7 @@
           <plugin>
             <groupId>com.github.vlsi.gettext</groupId>
             <artifactId>gettext-maven-plugin</artifactId>
-            <version>1.2.11</version>
+            <version>1.4.0</version>
             <executions>
               <execution>
                 <id>update_po_with_new_messages</id>
@@ -254,7 +254,7 @@
               </includes>
             </filter>
             <filter>
-              <artifact>com.github.dblock.waffle:waffle-jna</artifact>
+              <artifact>com.github.waffle:waffle-jna</artifact>
               <excludes>
                 <exclude>**</exclude>
               </excludes>
@@ -297,7 +297,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>2.17</version>
+          <version>3.0.0</version>
           <dependencies>
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>

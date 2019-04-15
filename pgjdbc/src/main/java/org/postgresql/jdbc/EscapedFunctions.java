@@ -107,12 +107,10 @@ public class EscapedFunctions {
   public static final String SQL_TSI_WEEK = "WEEK";
   public static final String SQL_TSI_YEAR = "YEAR";
 
-
   // system functions
   public static final String DATABASE = "database";
   public static final String IFNULL = "ifnull";
   public static final String USER = "user";
-
 
   /**
    * storage for functions implementations.
@@ -624,7 +622,6 @@ public class EscapedFunctions {
           PSQLState.SYNTAX_ERROR);
     }
   }
-
 
   /**
    * time stamp diff.

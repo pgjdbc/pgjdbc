@@ -126,6 +126,20 @@ public class CompositeQueryParseTest {
     assertEquals("This is a delete command", SqlCommandType.DELETE, query.command.getType());
   }
 
+  @Test
+  public void testMultiQueryWithBind() throws SQLException {
+    // braces around (42) are required to puzzle the parser
+    String sql = "INSERT INTO inttable(a) VALUES (?);SELECT (42)";
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true,true);
+    NativeQuery query = queries.get(0);
+    assertEquals("query(0) of " + sql,
+        "INSERT: INSERT INTO inttable(a) VALUES ($1)",
+        query.command.getType() + ": " + query.nativeSql);
+    query = queries.get(1);
+    assertEquals("query(1) of " + sql,
+        "SELECT: SELECT (42)",
+        query.command.getType() + ": " + query.nativeSql);
+  }
 
   @Test
   public void testMove() throws SQLException {

@@ -29,16 +29,41 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.chrono.IsoChronology;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 public class SetObject310Test {
   private static final TimeZone saveTZ = TimeZone.getDefault();
+
+  public static final DateTimeFormatter LOCAL_TIME_FORMATTER =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .appendValue(ChronoField.YEAR_OF_ERA, 4, 10, SignStyle.EXCEEDS_PAD)
+          .appendLiteral('-')
+          .appendValue(ChronoField.MONTH_OF_YEAR, 2)
+          .appendLiteral('-')
+          .appendValue(ChronoField.DAY_OF_MONTH, 2)
+          .appendLiteral(' ')
+          .append(DateTimeFormatter.ISO_LOCAL_TIME)
+          .optionalStart()
+          .appendOffset("+HH:mm", "+00")
+          .optionalEnd()
+          .optionalStart()
+          .appendLiteral(' ')
+          .appendPattern("GG")
+          .toFormatter(Locale.ROOT)
+          .withResolverStyle(ResolverStyle.LENIENT)
+          .withChronology(IsoChronology.INSTANCE);
 
   private Connection con;
 
@@ -313,8 +338,7 @@ public class SetObject310Test {
     bcDates.add(LocalDateTime.parse("0997-06-30T23:59:59.999999").with(ChronoField.ERA, IsoEra.BCE.getValue()));
 
     for (LocalDateTime bcDate : bcDates) {
-      // -1997-06-30T23:59:59.999999 -> 1997-06-30 23:59:59.999999 BC
-      String expected = bcDate.toString().substring(1).replace('T', ' ') + " BC";
+      String expected = LOCAL_TIME_FORMATTER.format(bcDate);
       localTimestamps(ZoneOffset.UTC, bcDate, expected);
     }
   }

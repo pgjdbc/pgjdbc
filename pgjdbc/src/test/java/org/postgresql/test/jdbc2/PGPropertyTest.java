@@ -9,12 +9,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.jdbc.AutoSave;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.URLCoder;
 
@@ -129,11 +131,11 @@ public class PGPropertyTest {
         assertTrue("Missing getter/setter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]", propertyDescriptors.containsKey(property.getName()));
 
-        assertNotNull("Not getter for property [" + property.getName() + "] in ["
+        assertNotNull("No getter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]",
             propertyDescriptors.get(property.getName()).getReadMethod());
 
-        assertNotNull("Not setter for property [" + property.getName() + "] in ["
+        assertNotNull("No setter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]",
             propertyDescriptors.get(property.getName()).getWriteMethod());
       }
@@ -148,6 +150,18 @@ public class PGPropertyTest {
             propertyValue);
       }
     }
+  }
+
+  /**
+   * Test to make sure that setURL doesn't overwrite autosave
+   * more should be put in but this scratches the current itch
+   */
+  @Test
+  public void testOverWriteDSProperties() throws Exception {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setAutosave(AutoSave.CONSERVATIVE);
+    dataSource.setURL("jdbc:postgresql://localhost:5432/postgres");
+    assertSame(dataSource.getAutosave(),AutoSave.CONSERVATIVE);
   }
 
   /**

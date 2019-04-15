@@ -37,8 +37,7 @@ public class UpdateableResultTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "updateable",
-        "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]",
-        true);
+        "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
@@ -330,7 +329,7 @@ public class UpdateableResultTest extends BaseTest4 {
     } catch (SQLException ex) {
     }
 
-    rs = st.executeQuery("select oid,* from updateable");
+    rs = st.executeQuery("select * from updateable");
     assertTrue(rs.first());
     rs.updateInt("id", 3);
     rs.updateString("name", "dave3");

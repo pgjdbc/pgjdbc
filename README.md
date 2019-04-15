@@ -5,6 +5,7 @@
 PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a PostgreSQL database using standard, database independent Java code. Is an open source JDBC driver written in Pure Java (Type 4), and communicates in the PostgreSQL native network protocol.
 
 ### Status
+[![Build status](https://ci.appveyor.com/api/projects/status/d8ucmegnmourohwu/branch/master?svg=true)](https://ci.appveyor.com/project/davecramer/pgjdbc/branch/master)
 [![Build Status](https://travis-ci.org/pgjdbc/pgjdbc.svg?branch=master)](https://travis-ci.org/pgjdbc/pgjdbc)
 [![codecov.io](http://codecov.io/github/pgjdbc/pgjdbc/coverage.svg?branch=master)](http://codecov.io/github/pgjdbc/pgjdbc?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
@@ -23,36 +24,36 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.2.3-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.2.5-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.3</version>
+    <version>42.2.5</version>
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-42.2.3.jre7-blue.svg)][mvn-jre7]
+[![Java 7](https://img.shields.io/badge/Java_7-42.2.5.jre7-blue.svg)][mvn-jre7]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.3.jre7</version>
+    <version>42.2.5.jre7</version>
 </dependency>
 ```
 
-[![Java 6](https://img.shields.io/badge/Java_6-42.2.3.jre6-blue.svg)][mvn-jre6]
+[![Java 6](https://img.shields.io/badge/Java_6-42.2.5.jre6-blue.svg)][mvn-jre6]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.3.jre6</version>
+    <version>42.2.5.jre6</version>
 </dependency>
 ```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.3.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.3.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.3|bundle
+[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.5.jre6|bundle
+[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.5.jre7|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.5|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -60,9 +61,9 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.2.4-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.2.4.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.2.4.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.2.6-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.2.6.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.2.6.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
@@ -100,7 +101,7 @@ where:
  * **host** (Optional) is the server address to connect. This could be a DNS or IP address, or it could be *localhost* or *127.0.0.1* for the local computer. To specify an IPv6 address your must enclose the host parameter with square brackets (jdbc:postgresql://[::1]:5740/accounting). Defaults to `localhost`.
  * **port** (Optional) is the port number listening on the host. Defaults to `5432`.
  * **database** (Optional) is the database name. Defaults to the same name as the *user name* used in the connection.
- * **propertyX** (Optional) is one or more option connection properties. For more information see *Connection properties*. 
+ * **propertyX** (Optional) is one or more option connection properties. For more information see *Connection properties*.
 
 #### Connection Properties
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL™. These properties may be specified in either the connection URL or an additional Properties object parameter to DriverManager.getConnection.
@@ -109,9 +110,10 @@ In addition to the standard connection parameters the driver supports a number o
 | ----------------------------- | ------- | :-----: | ------------- |
 | user                          | String  | null    | The database user on whose behalf the connection is being made. |
 | password                      | String  | null    | The database user's password. |
+| options                       | String  | null    | Specify 'options' connection initialization parameter. |
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
-| sslfactoryarg                 | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
+| sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
 | sslmode                       | String  | null    | Parameter governing the use of SSL. |
 | sslcert                       | String  | null    | The location of the client's SSL certificate |
 | sslkey                        | String  | null    | The location of the client's PKCS#8 SSL key |
@@ -144,12 +146,13 @@ In addition to the standard connection parameters the driver supports a number o
 | hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after which the host status is checked again in case it has changed |
 | loadBalanceHosts              | Boolean | false   | If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates |
 | socketFactory                 | String  | null    | Specify a socket factory for socket creation |
-| socketFactoryArg              | String  | null    | Argument forwarded to constructor of SocketFactory class. |
+| socketFactoryArg (deprecated) | String  | null    | Argument forwarded to constructor of SocketFactory class. |
 | autosave                      | String  | never   | Specifies what the driver should do if a query fails, possible values: always, never, conservative |
+| cleanupSavePoints             | Boolean | false   | In Autosave mode the driver sets a SAVEPOINT for every query. It is possible to exhaust the server shared buffers. Setting this to true will release each SAVEPOINT at the cost of an additional round trip. |
 | preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, possible values: extended, extendedForPrepared, extendedCacheEverything, simple |
 | reWriteBatchedInserts         | Boolean | false  | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
 
-## Contributing 
+## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
 
 ----------------------------------------------------

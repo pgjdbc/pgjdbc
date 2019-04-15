@@ -134,9 +134,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
          * If the argument to equals-method is also a wrapper, present the original unwrapped
          * connection to the underlying equals method.
          */
-        if (method.getName().equals("equals")) {
+        if (method.getName().equals("equals") && args.length == 1) {
           Object arg = args[0];
-          if (Proxy.isProxyClass(arg.getClass())) {
+          if (arg != null && Proxy.isProxyClass(arg.getClass())) {
             InvocationHandler h = Proxy.getInvocationHandler(arg);
             if (h instanceof ConnectionHandler) {
               // unwrap argument
@@ -357,7 +357,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
       return XA_OK;
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error preparing transaction. prepare xid={0}", xid), ex, XAException.XAER_RMERR);
+      throw new PGXAException(GT.tr("Error preparing transaction. prepare xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
   }
 
@@ -408,7 +408,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           }
           rs.close();
 
-          return l.toArray(new Xid[l.size()]);
+          return l.toArray(new Xid[0]);
         } finally {
           stmt.close();
         }
@@ -545,7 +545,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       conn.commit();
       conn.setAutoCommit(localAutoCommitMode);
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error during one-phase commit. commit xid={0}", xid), ex, XAException.XAER_RMFAIL);
+      throw new PGXAException(GT.tr("Error during one-phase commit. commit xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
   }
 
@@ -641,6 +641,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   @Override
   public boolean setTransactionTimeout(int seconds) {
     return false;
+  }
+
+  private int mapSQLStateToXAErrorCode(SQLException sqlException) {
+    if (isPostgreSQLIntegrityConstraintViolation(sqlException)) {
+      return XAException.XA_RBINTEGRITY;
+    }
+
+    return XAException.XAER_RMFAIL;
+  }
+
+  private boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
+    return sqlException instanceof PSQLException
+        && sqlException.getSQLState().length() == 5
+        && sqlException.getSQLState().startsWith("23"); // Class 23 - Integrity Constraint Violation
   }
 
   private enum State {

@@ -545,7 +545,7 @@ public final class EscapedFunctions2 {
    */
   private static boolean areSameTsi(String a, String b) {
     return a.length() == b.length() && b.length() > SQL_TSI_ROOT.length()
-        && a.regionMatches(true, SQL_TSI_ROOT.length(), b, SQL_TSI_ROOT.length(), SQL_TSI_ROOT.length() - b.length());
+        && a.regionMatches(true, SQL_TSI_ROOT.length(), b, SQL_TSI_ROOT.length(), b.length() - SQL_TSI_ROOT.length());
   }
 
   /**
@@ -556,7 +556,6 @@ public final class EscapedFunctions2 {
   private static boolean isTsi(String interval) {
     return interval.regionMatches(true, 0, SQL_TSI_ROOT, 0, SQL_TSI_ROOT.length());
   }
-
 
   /**
    * time stamp diff

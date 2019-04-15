@@ -9,10 +9,39 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
+- Fixed async copy performance regression [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
+
+## [42.2.5] (2018-08-27)
+### Known issues
+- 1ms per async copy call [issue 1312](https://github.com/pgjdbc/pgjdbc/issues/1312)
+
+### Changed
+- `ssl=true` implies `sslmode=verify-full`, that is it requires valid server certificate [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
+
+### Added
+- Support for `sslmode=allow/prefer/require` [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
+
+### Fixed
+- Security: added server hostname verification for non-default SSL factories in `sslmode=verify-full` (CVE-2018-10936) [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
+- Updated documentation on SSL configuration [fa032732](https://github.com/pgjdbc/pgjdbc/commit/fa032732acfe51c6e663ee646dd5c1beaa1af857)
+- Updated Japanese translations [PR 1275](https://github.com/pgjdbc/pgjdbc/pull/1275)
+- IndexOutOfBounds on prepared multistatement with insert values [c2885dd0](https://github.com/pgjdbc/pgjdbc/commit/c2885dd0cfc793f81e5dd3ed2300bb32476eb14a)
+
+## [42.2.4] (2018-07-14)
+### Changed
+- PreparedStatement.setNull(int parameterIndex, int t, String typeName) no longer ignores the typeName
+argument if it is not null [PR 1160](https://github.com/pgjdbc/pgjdbc/pull/1160)
+
+### Fixed
+- Fix treatment of SQL_TSI_YEAR, SQL_TSI_WEEK, SQL_TSI_MINUTE [PR 1250](https://github.com/pgjdbc/pgjdbc/pull/1250)
+- Map integrity constraint violation to XA_RBINTEGRITY instead of XAER_RMFAIL [PR 1175](https://github.com/pgjdbc/pgjdbc/pull/1175) [f2d1352c](https://github.com/pgjdbc/pgjdbc/commit/f2d1352c2b3ea98492beb6127cd6d95039a0b92f)
 
 ## [42.2.3] (2018-07-12)
+### Known issues
+- SQL_TSI_YEAR is treated as hour, SQL_TSI_WEEK is treated as hour, SQL_TSI_MINUTE is treated as second
+
 ### Changed
-- Reduce the severity of the erorr log messages when an exception is re-thrown. The error will be 
+- Reduce the severity of the error log messages when an exception is re-thrown. The error will be 
 thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc  [PR 1187](https://github.com/pgjdbc/pgjdbc/pull/1187)
 - Deprecate Fastpath API [PR 903](https://github.com/pgjdbc/pgjdbc/pull/903)
 - Support parenthesis in {oj ...} JDBC escape syntax [PR 1204](https://github.com/pgjdbc/pgjdbc/pull/1204)
@@ -21,7 +50,7 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 
 ### Fixed
 - getString for PGObject-based types returned "null" string instead of null [PR 1154](https://github.com/pgjdbc/pgjdbc/pull/1154)
-- Field metadata cache can be disabled via databaseMetadataCacheFields=0 [PR 1052](https://github.com/pgjdbc/pgjdbc/pull/1152)
+- Field metadata cache can be disabled via databaseMetadataCacheFields=0 [PR 1052](https://github.com/pgjdbc/pgjdbc/pull/1052)
 - Properly encode special symbols in passwords in BaseDataSource [PR 1201](https://github.com/pgjdbc/pgjdbc/pull/1201)
 - Adjust date, hour, minute, second when rounding nanosecond part of a timestamp [PR 1212](https://github.com/pgjdbc/pgjdbc/pull/1212)
 - perf: reduce memory allocations in query cache [PR 1227](https://github.com/pgjdbc/pgjdbc/pull/1227)
@@ -159,4 +188,6 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.0...REL42.2.1
 [42.2.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.1...REL42.2.2
 [42.2.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...REL42.2.3
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...HEAD
+[42.2.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...REL42.2.4
+[42.2.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.4...REL42.2.5
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...HEAD

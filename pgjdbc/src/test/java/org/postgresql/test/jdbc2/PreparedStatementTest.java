@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -39,6 +40,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Handler;
@@ -255,6 +257,25 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testBinds() throws SQLException {
+    // braces around (42) are required to puzzle the parser
+    String query = "INSERT INTO inttable(a) VALUES (?);SELECT (42)";
+    PreparedStatement ps = con.prepareStatement(query);
+    ps.setInt(1, 100500);
+    ps.execute();
+    ResultSet rs = ps.getResultSet();
+    Assert.assertNull("insert produces no results ==> getResultSet should be null", rs);
+    Assert.assertTrue("There are two statements => getMoreResults should be true", ps.getMoreResults());
+    rs = ps.getResultSet();
+    Assert.assertNotNull("select produces results ==> getResultSet should be not null", rs);
+    Assert.assertTrue("select produces 1 row ==> rs.next should be true", rs.next());
+    Assert.assertEquals("second result of query " + query, 42, rs.getInt(1));
+
+    TestUtil.closeQuietly(rs);
+    TestUtil.closeQuietly(ps);
+  }
+
+  @Test
   public void testSetNull() throws SQLException {
     // valid: fully qualified type to setNull()
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
@@ -285,6 +306,20 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.executeUpdate();
 
     pstmt.close();
+
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+    pstmt = con.prepareStatement("select 'ok' where ?=? or (? is null) ");
+    pstmt.setObject(1, UUID.randomUUID(), Types.OTHER);
+    pstmt.setNull(2, Types.OTHER, "uuid");
+    pstmt.setNull(3, Types.OTHER, "uuid");
+    ResultSet rs = pstmt.executeQuery();
+
+    assertTrue(rs.next());
+    assertEquals("ok",rs.getObject(1));
+
+    rs.close();
+    pstmt.close();
+
   }
 
   @Test
@@ -531,6 +566,62 @@ public class PreparedStatementTest extends BaseTest4 {
     rs.close();
     pstmt.close();
 
+  }
+
+  @Test
+  public void testNaNLiteralsSimpleStatement() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select 'NaN'::numeric, 'NaN'::real, 'NaN'::double precision");
+    checkNaNLiterals(stmt, rs);
+  }
+
+  @Test
+  public void testNaNLiteralsPreparedStatement() throws SQLException {
+    PreparedStatement stmt = con.prepareStatement("select 'NaN'::numeric, 'NaN'::real, 'NaN'::double precision");
+    checkNaNLiterals(stmt, stmt.executeQuery());
+  }
+
+  private void checkNaNLiterals(Statement stmt, ResultSet rs) throws SQLException {
+    rs.next();
+    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(3)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(3)));
+    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(2)));
+    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(2)));
+    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(1)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(1)));
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testNaNSetDoubleFloat() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?");
+    ps.setFloat(1, Float.NaN);
+    ps.setDouble(2, Double.NaN);
+
+    checkNaNParams(ps);
+  }
+
+  @Test
+  public void testNaNSetObject() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?");
+    ps.setObject(1, Float.NaN);
+    ps.setObject(2, Double.NaN);
+
+    checkNaNParams(ps);
+  }
+
+  private void checkNaNParams(PreparedStatement ps) throws SQLException {
+    ResultSet rs = ps.executeQuery();
+    rs.next();
+
+    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(1)));
+    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(1)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
+
+    TestUtil.closeQuietly(rs);
+    TestUtil.closeQuietly(ps);
   }
 
   @Test
@@ -1212,7 +1303,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
   /**
    * When we have parameters of unknown type and it's not using the unnamed statement, we issue a
-   * protocol level statment describe message for the V3 protocol. This test just makes sure that
+   * protocol level statement describe message for the V3 protocol. This test just makes sure that
    * works.
    */
   @Test

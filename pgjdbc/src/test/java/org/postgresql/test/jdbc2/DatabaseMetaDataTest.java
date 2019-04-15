@@ -23,6 +23,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -51,8 +52,10 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
-    TestUtil.createCompositeType(con, "custom", "i int");
-    TestUtil.createCompositeType(con, "_custom", "f float");
+    TestUtil.dropType(con, "custom");
+    TestUtil.dropType(con, "_custom");
+    TestUtil.createCompositeType(con, "custom", "i int", false);
+    TestUtil.createCompositeType(con, "_custom", "f float", false);
 
 
     // 8.2 does not support arrays of composite types
@@ -106,7 +109,7 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     stmt.execute("DROP FUNCTION f2(int, varchar)");
     stmt.execute("DROP FUNCTION f3(int, varchar)");
-    TestUtil.dropType(con, "domaintable");
+    TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
 
     TestUtil.closeDB(con);
@@ -177,8 +180,16 @@ public class DatabaseMetaDataTest {
     assertEquals("metadatatest", tableName);
     String tableType = rs.getString("TABLE_TYPE");
     assertEquals("TABLE", tableType);
+    assertEquals(rs.findColumn("REMARKS"), 5);
+    assertEquals(rs.findColumn("TYPE_CAT"), 6);
+    assertEquals(rs.findColumn("TYPE_SCHEM"),7);
+    assertEquals(rs.findColumn("TYPE_NAME"), 8);
+    assertEquals(rs.findColumn("SELF_REFERENCING_COL_NAME"), 9);
+    assertEquals(rs.findColumn("REF_GENERATION"), 10);
+
     // There should only be one row returned
     assertTrue("getTables() returned too many rows", rs.next() == false);
+
     rs.close();
 
     rs = dbmd.getColumns("", "", "meta%", "%");
@@ -202,16 +213,19 @@ public class DatabaseMetaDataTest {
   public void testCrossReference() throws Exception {
     Connection con1 = TestUtil.openDB();
 
-    TestUtil.createTable(con1, "vv", "a int not null, b int not null, primary key ( a, b )");
+    TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
 
     TestUtil.createTable(con1, "ww",
-        "m int not null, n int not null, primary key ( m, n ), foreign key ( m, n ) references vv ( a, b )");
+        "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
 
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
     ResultSet rs = dbmd.getCrossReference(null, "", "vv", null, "", "ww");
+    String[] expectedPkColumnNames = new String[]{"a", "b"};
+    String[] expectedFkColumnNames = new String[]{"m", "n"};
+    int numRows = 0;
 
     for (int j = 1; rs.next(); j++) {
 
@@ -219,13 +233,13 @@ public class DatabaseMetaDataTest {
       assertEquals("vv", pkTableName);
 
       String pkColumnName = rs.getString("PKCOLUMN_NAME");
-      assertTrue(pkColumnName.equals("a") || pkColumnName.equals("b"));
+      assertEquals(expectedPkColumnNames[j - 1], pkColumnName);
 
       String fkTableName = rs.getString("FKTABLE_NAME");
       assertEquals("ww", fkTableName);
 
       String fkColumnName = rs.getString("FKCOLUMN_NAME");
-      assertTrue(fkColumnName.equals("m") || fkColumnName.equals("n"));
+      assertEquals(expectedFkColumnNames[j - 1], fkColumnName);
 
       String fkName = rs.getString("FK_NAME");
       assertEquals("ww_m_fkey", fkName);
@@ -235,7 +249,9 @@ public class DatabaseMetaDataTest {
 
       int keySeq = rs.getInt("KEY_SEQ");
       assertEquals(j, keySeq);
+      numRows += 1;
     }
+    assertEquals(2, numRows);
 
 
     TestUtil.dropTable(con1, "vv");
@@ -455,9 +471,21 @@ public class DatabaseMetaDataTest {
   @Test
   public void testColumns() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
+    String [] metadataColumns = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME",
+                                 "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH",
+                                 "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+                                 "COLUMN_DEF","SQL_DATA_TYPE","SQL_DATETIME_SUB","CHAR_OCTET_LENGTH",
+                                 "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA",
+                                 "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATED"};
+
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getColumns(null, null, "pg_class", null);
+    if ( rs.next() ) {
+      for (int i = 0; i < metadataColumns.length; i++) {
+        assertEquals(i + 1,  rs.findColumn(metadataColumns[i]));
+      }
+    }
     rs.close();
   }
 
@@ -548,17 +576,17 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
-    boolean l_foundSelect = false;
+    boolean foundSelect = false;
     while (rs.next()) {
       if (rs.getString("GRANTEE").equals(TestUtil.getUser())
           && rs.getString("PRIVILEGE").equals("SELECT")) {
-        l_foundSelect = true;
+        foundSelect = true;
       }
     }
     rs.close();
     // Test that the table owner has select priv
     assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        l_foundSelect);
+        foundSelect);
   }
 
   @Test
@@ -1315,6 +1343,70 @@ public class DatabaseMetaDataTest {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
       Assert.assertTrue("reindex should be in keywords", returnedSet.contains("reindex"));
     }
+  }
+
+  @Test
+  public void testFunctionColumns() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
+      return;
+    }
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getFunctionColumns(null, null, "f1", null);
+
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertEquals(17, rsmd.getColumnCount());
+    assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
+    assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
+    assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
+    assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+    assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
+    assertEquals("DATA_TYPE", rsmd.getColumnName(6));
+    assertEquals("TYPE_NAME", rsmd.getColumnName(7));
+    assertEquals("PRECISION", rsmd.getColumnName(8));
+    assertEquals("LENGTH", rsmd.getColumnName(9));
+    assertEquals("SCALE", rsmd.getColumnName(10));
+    assertEquals("RADIX", rsmd.getColumnName(11));
+    assertEquals("NULLABLE", rsmd.getColumnName(12));
+    assertEquals("REMARKS", rsmd.getColumnName(13));
+    assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
+    assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
+    assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
+    assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
+
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("returnValue", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionReturn, rs.getInt(5));
+    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals("int4", rs.getString(7));
+    assertEquals(0, rs.getInt(15));
+
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("$1", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
+    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals("int4", rs.getString(7));
+    assertEquals(1, rs.getInt(15));
+
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("$2", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
+    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals("varchar", rs.getString(7));
+    assertEquals(2, rs.getInt(15));
+
+    assertTrue(!rs.next());
+
+    rs.close();
   }
 
 }

@@ -206,21 +206,21 @@ public class TimestampTest extends BaseTest4 {
     assertEquals(1,
         stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS4WTZ_PGFORMAT + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate1.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate1.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate2.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate2.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate3.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate3.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate4.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate4.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime1.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime1.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime2.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime2.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime3.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime3.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime4.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime4.getTime())) + "'")));
 
 
     // Fall through helper
@@ -382,38 +382,38 @@ public class TimestampTest extends BaseTest4 {
         stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS10WOTZ_PGFORMAT + "'")));
 
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate1WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate1WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate2WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate2WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate3WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate3WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate4WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate4WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate5WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate5WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate6WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate6WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate7WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate7WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate8WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpDate8WOTZ.getTime())) + "'")));
 
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime1WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime1WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime2WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime2WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime3WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime3WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime4WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime4WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime5WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime5WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime6WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime6WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime7WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime7WOTZ.getTime())) + "'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE,
-        "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime8WOTZ.getTime())) + "'")));
+        "'" + tsu.toString(null, new Timestamp(tmpTime8WOTZ.getTime())) + "'")));
 
     // Fall through helper
     timestampTestWOTZ();
@@ -561,7 +561,7 @@ public class TimestampTest extends BaseTest4 {
   private void timestampTestWTZ() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs;
-    java.sql.Timestamp t;
+    Timestamp t;
 
     rs = stmt.executeQuery("select ts from " + TSWTZ_TABLE); // removed the order by ts
     assertNotNull(rs);
@@ -641,7 +641,7 @@ public class TimestampTest extends BaseTest4 {
    */
   private void timestampTestWOTZ() throws SQLException {
     Statement stmt = con.createStatement();
-    java.sql.Timestamp t;
+    Timestamp t;
     String tString;
 
     ResultSet rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); // removed the order by ts
@@ -827,13 +827,13 @@ public class TimestampTest extends BaseTest4 {
     stmt.close();
   }
 
-  private static java.sql.Timestamp getTimestamp(int y, int m, int d, int h, int mn, int se, int f,
+  private static Timestamp getTimestamp(int y, int m, int d, int h, int mn, int se, int f,
       String tz) {
-    java.sql.Timestamp l_return = null;
-    java.text.DateFormat l_df;
+    Timestamp result = null;
+    java.text.DateFormat dateFormat;
     try {
-      String l_ts;
-      l_ts = TestUtil.fix(y, 4) + "-"
+      String ts;
+      ts = TestUtil.fix(y, 4) + "-"
           + TestUtil.fix(m, 2) + "-"
           + TestUtil.fix(d, 2) + " "
           + TestUtil.fix(h, 2) + ":"
@@ -841,80 +841,80 @@ public class TimestampTest extends BaseTest4 {
           + TestUtil.fix(se, 2) + " ";
 
       if (tz == null) {
-        l_df = new SimpleDateFormat("y-M-d H:m:s");
+        dateFormat = new SimpleDateFormat("y-M-d H:m:s");
       } else {
-        l_ts = l_ts + tz;
-        l_df = new SimpleDateFormat("y-M-d H:m:s z");
+        ts = ts + tz;
+        dateFormat = new SimpleDateFormat("y-M-d H:m:s z");
       }
-      java.util.Date l_date = l_df.parse(l_ts);
-      l_return = new java.sql.Timestamp(l_date.getTime());
-      l_return.setNanos(f);
+      java.util.Date date = dateFormat.parse(ts);
+      result = new Timestamp(date.getTime());
+      result.setNanos(f);
     } catch (Exception ex) {
       fail(ex.getMessage());
     }
-    return l_return;
+    return result;
   }
 
-  private static final java.sql.Timestamp TS1WTZ =
+  private static final Timestamp TS1WTZ =
       getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, "PST");
   private static final String TS1WTZ_PGFORMAT = "1950-02-07 15:00:00.1-08";
 
-  private static final java.sql.Timestamp TS2WTZ =
+  private static final Timestamp TS2WTZ =
       getTimestamp(2000, 2, 7, 15, 0, 0, 120000000, "GMT");
   private static final String TS2WTZ_PGFORMAT = "2000-02-07 15:00:00.12+00";
 
-  private static final java.sql.Timestamp TS3WTZ =
+  private static final Timestamp TS3WTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 123000000, "GMT");
   private static final String TS3WTZ_PGFORMAT = "2000-07-07 15:00:00.123+00";
 
-  private static final java.sql.Timestamp TS4WTZ =
+  private static final Timestamp TS4WTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, "GMT");
   private static final String TS4WTZ_PGFORMAT = "2000-07-07 15:00:00.123456+00";
 
 
-  private static final java.sql.Timestamp TS1WOTZ =
+  private static final Timestamp TS1WOTZ =
       getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, null);
   private static final String TS1WOTZ_PGFORMAT = "1950-02-07 15:00:00.1";
 
-  private static final java.sql.Timestamp TS2WOTZ =
+  private static final Timestamp TS2WOTZ =
       getTimestamp(2000, 2, 7, 15, 0, 0, 120000000, null);
   private static final String TS2WOTZ_PGFORMAT = "2000-02-07 15:00:00.12";
 
-  private static final java.sql.Timestamp TS3WOTZ =
+  private static final Timestamp TS3WOTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 123000000, null);
   private static final String TS3WOTZ_PGFORMAT = "2000-07-07 15:00:00.123";
 
-  private static final java.sql.Timestamp TS4WOTZ =
+  private static final Timestamp TS4WOTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, null);
   private static final String TS4WOTZ_PGFORMAT = "2000-07-07 15:00:00.123456";
 
-  private static final java.sql.Timestamp TS5WOTZ =
+  private static final Timestamp TS5WOTZ =
       new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
   private static final String TS5WOTZ_PGFORMAT = "-infinity";
 
-  private static final java.sql.Timestamp TS6WOTZ =
+  private static final Timestamp TS6WOTZ =
       new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
   private static final String TS6WOTZ_PGFORMAT = "infinity";
 
-  private static final java.sql.Timestamp TS7WOTZ =
+  private static final Timestamp TS7WOTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 0, null);
   private static final String TS7WOTZ_PGFORMAT = "2000-07-07 15:00:00";
 
-  private static final java.sql.Timestamp TS8WOTZ =
+  private static final Timestamp TS8WOTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 20400000, null);
   private static final String TS8WOTZ_PGFORMAT = "2000-07-07 15:00:00.0204";
 
-  private static final java.sql.Timestamp TS9WOTZ =
+  private static final Timestamp TS9WOTZ =
       getTimestamp(2000, 2, 7, 15, 0, 0, 789, null);
   private static final String TS9WOTZ_PGFORMAT = "2000-02-07 15:00:00.000000789";
-  private static final java.sql.Timestamp TS9WOTZ_ROUNDED =
+  private static final Timestamp TS9WOTZ_ROUNDED =
       getTimestamp(2000, 2, 7, 15, 0, 0, 1000, null);
   private static final String TS9WOTZ_ROUNDED_PGFORMAT = "2000-02-07 15:00:00.000001";
 
-  private static final java.sql.Timestamp TS10WOTZ =
+  private static final Timestamp TS10WOTZ =
       getTimestamp(2018, 12, 31, 23, 59, 59, 999999500, null);
   private static final String TS10WOTZ_PGFORMAT = "2018-12-31 23:59:59.999999500";
-  private static final java.sql.Timestamp TS10WOTZ_ROUNDED =
+  private static final Timestamp TS10WOTZ_ROUNDED =
       getTimestamp(2019, 1, 1, 0, 0, 0, 0, null);
   private static final String TS10WOTZ_ROUNDED_PGFORMAT = "2019-01-01 00:00:00";
 

@@ -17,8 +17,8 @@ class UTF8Encoding extends Encoding {
 
   private char[] decoderArray = new char[1024];
 
-  UTF8Encoding(String jvmEncoding) {
-    super(jvmEncoding);
+  UTF8Encoding() {
+    super("UTF-8", true);
   }
 
   // helper for decode

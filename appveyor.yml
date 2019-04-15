@@ -1,28 +1,62 @@
 # appveyor.yml
+image: Visual Studio 2015
+configuration: Release
+
+clone_depth: 1
+environment:
+  PGUSER: postgres
+  PGPASSWORD: Password12!
+  matrix:
+  - pg: 9.4.19-1
+    PlatformToolset: v120
+  - pg: 9.5.15-1
+    PlatformToolset: v120
+  - pg: 9.6.11-1
+    PlatformToolset: v120
+  - pg: 10.6-1
+    PlatformToolset: v120
+matrix:
+  allow_failures:
+    - pg: master
+  exclude:
+    - platform: x86
+      pg: 11.1-1
+      PlatformToolset: v140
+    - platform: x86
+      pg: master
+  
 init: 
+- set pf=%ProgramFiles%&& set x64=-x64
+- set exe=postgresql-%pg%-windows%x64%.exe
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_level=logical"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "max_wal_senders=3"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_keep_segments=10"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "wal_sender_timeout=5s"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\postgresql.conf" "max_replication_slots=10"
-- ps: Add-Content "c:\program files\postgresql\9.6\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
 
 branches:
   except:
     - /^tmp\/.*/
     - /^REL.*/
 
-services:
-  - postgresql96
+install:
+- for /f "tokens=1 delims=-" %%A in ("%pg%") do set pgversion=%%~nA
+- echo pgversion=%pgversion%
+- echo pf=%pf%
+- set pgroot=%pf%\PostgreSQL\%pgversion%
+- echo %pgroot%
+- echo service=postgresql%x64%-%pgversion%
 
 before_build:
-  - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH% 
-  - SET PGUSER=postgres 
-  - SET PGPASSWORD=Password12! 
-  - createuser -U postgres test
-  - psql -U postgres -c "alter user test with password 'test'" postgres 
-  - createdb -U postgres -O test test
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_keep_segments=10"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_sender_timeout=5s"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_replication_slots=10"
+- ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
+- net start postgresql%x64%-%pgversion%
+- path %pgroot%\bin;%PATH%
+- SET PGUSER=postgres 
+- SET PGPASSWORD=Password12! 
+- createuser -U postgres test
+- psql -U postgres -c "alter user test with password 'test'" postgres 
+- createdb -U postgres -O test test
 
 build_script:
   - mvn clean package -DskipTests

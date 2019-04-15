@@ -5,11 +5,11 @@ Thank you so much for wanting to contribute to **PostgreSQL JDBC Driver**!
 The purpose of the *Guidelines for Contributing* is to create a collaboration baseline.
 **Do NOT** blindly obey these guidelines, use them (after understanding) where they make sense.
 
-You must know that the PgJDBC driver support Java versions **6**, **7** and **8** mostly the
-Oracle and OpenJDK implementations; and PostgreSQL server versions from **8.2** and higher.
+Currently the PgJDBC driver supports the Oracle and OpenJDK Java implementations of 
+versions **6**, **7**, **8** and **9**; and PostgreSQL server versions from **8.2** and higher.
 
-Some PostgreSQL forks *might* work but are not officially supported, we cheer the vendors of forks
-that want to improve this driver sending us pull requests that are not disruptive to the 
+Some PostgreSQL forks *might* work but are not officially supported, we support vendors of forks
+that want to improve this driver by sending us pull requests that are not disruptive to the 
 community ecosystem of PostgreSQL.
 
 ## Issues
@@ -18,7 +18,7 @@ Issues are a great way to keep track of tasks, enhancements, and bugs for the Pg
 
 ### How to submit a bug report
 
-If you found a bug in the PgJDBC driver please use an issue to report it, try to be concise
+If you find a bug in the PgJDBC driver please use an issue to report it, try to be concise
 and detailed in your report, please ensure to specify at least the following:
 
   * Use a concise subject.
@@ -31,17 +31,18 @@ and detailed in your report, please ensure to specify at least the following:
     * A pull request with failing JUnit test case is most preferred, although it's OK to paste
       the test case into the issue description.
 
-You can consider a bug: some behavior that worked before and now it does not; a violation of the
+You can consider a bug: some behaviour that worked before and now it does not; a violation of the
 JDBC spec in any form, unless it's stated otherwise as an extension.
 
-It's hard, but possible, to introduce some breaking changes to the driver every major version update,
-so, please read carefully the changelog and test thoroughly for any potential problem with your app.
+In the unlikely event that a breaking change is introduced in the driver we will update the major version.
+We will document this change but please read carefully the changelog and test thoroughly for any potential problems with your app.
 What is not acceptable is to introduce breaking changes in the minor or patch update of the driver,
-if you found a regression in a minor o patch update, please fill an issue.
+If you find a regression in a minor patch update, please report an issue.
 
-Not every bug report needs to be of code, some can be documentation erratum that can be improved as
-well, the website source code along with the documentation is under **docs**, your are welcome to
-report issues and send pull request too.
+Bug reports are not isolated only to code, errors in documentation as well as the website source 
+code located in the **docs** directory also qualify. You are welcome to report issues and send a 
+pull request on these as well. [skip ci] can be added to the commit message to prevent Travis-CI from building a 
+pull request that only changes the documentation.
 
 For enhancements request keep reading the *Ideas, enhancements and new features* seccion.
 
@@ -56,7 +57,7 @@ might have, how practical it is to implement, what implications it would
 have for standards compliance and security, etc. Include a detailed use-case
 description.
 
-Few of the PgJDBC developers have much spare time, so it's unlikely that your
+Few of the PgJDBC developers have spare time, so it's unlikely that your
 idea will be picked up and implemented for you. The best way to make sure a
 desired feature or improvement happens is to implement it yourself. The PgJDBC
 sources are reasonably clear and they're pure Java, so it's sometimes easier
@@ -118,12 +119,13 @@ PgJDBC doesn't natively support building from IDEs like Eclipse, NetBeans or
 IntelliJ. However you can use the tools Maven support from within the IDE if you wish.
 You can use regular IDE tools to develop, execute tests, etc, however if you want to build final
 artifacts you should use `mvn`.
-  
+
 After running the build , and build a .jar file (Java ARchive)
 depending on the version of java and which release you have the jar will be named
-postgresql-<major>.<minor>.<release>.jre<N>.jar. Where major,minor are the PostgreSQL major,minor
-version numbers. release is the jdbc release number. N is the version of the JDBC API which 
-corresponds to the version of Java used to compile the driver.
+postgresql-<major>.<minor>.<patch>.[jre<N>].jar. We use Semantic versioning; as such
+major, minor, patch refer to the level of change introduced. For Java 6, and Java 7
+jre<N> will be appended after the patch level. N corresponds to the version of Java, 
+roughly correlated to the JDBC version number.
 
 The target directory will contain the driver jar.
 If you need source code, documentation and runtime dependencies use `mvn package -P release-artifacts`.
@@ -168,11 +170,20 @@ Here's sample configuration for macOS:
   </toolchain>
 </toolchains>
 ```
+## Checkstyle
+
+We enforce a style using checkstyle, Travis CI will fail if there are checkstyle errors.
+It is recommended you run 
+
+    mvn checkstyle:check 
+
+before creating your pull request
+​    
 
 ## Updating translations
 
 From time to time, the translation packages will need to be updated as part of the build process.
-However, this is atypical, and is generally only done when needed such as by a project committer before a major release.
+However, this is atypical, and is generally only done when needed; such as by a project committer before a major release.
 This process adds additional compile time and generally should not be executed for every build.
 
 Updating translations can be accomplished with the following command:
@@ -351,8 +362,10 @@ You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.co
 
 Then, to test against old JDK, run `mvn test` in `pgjdbc-jre6` or `pgjdbc-jre7` modules.
 
-For information about the unit tests and how to run them, see
-  [org/postgresql/test/README](pgjdbc/src/test/java/org/postgresql/test/README.md)
+An easy way to set up the test PostgreSQL database is to use [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm). Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
+
+For more information about the unit tests and how to run them, see
+  [TESTING.md](TESTING.md)
 
 ## Support for IDEs
 

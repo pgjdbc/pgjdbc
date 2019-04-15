@@ -50,6 +50,7 @@ License:	BSD
 URL:		http://jdbc.postgresql.org/
 
 Source0:	https://github.com/pgjdbc/pgjdbc/archive/REL%{version}/pgjdbc-REL%{version}.tar.gz
+Provides:	pgjdbc = %version-%release
 
 # Upstream moved parent pom.xml into separate project (even though there is only
 # one dependant project on it?).  Let's try to not complicate packaging by
@@ -77,18 +78,12 @@ BuildRequires:	postgresql-test-rpm-macros
 # gettext is only needed if we try to update translations
 #BuildRequires:	gettext
 
+Obsoletes:	%{name}-parent-poms < 42.2.2-2
+
 %description
 PostgreSQL is an advanced Object-Relational database management
 system. The postgresql-jdbc package includes the .jar files needed for
 Java programs to access a PostgreSQL database.
-
-
-%package	parent-poms
-Summary:	Build dependency management for PostgreSQL JDBC driver.
-
-%description parent-poms
-Pom files bringing dependencies required for successful PostgreSQL JDBC driver
-build.
 
 
 %package javadoc
@@ -115,10 +110,10 @@ find -name "*.jar" -or -name "*.class" | xargs rm -f
 
 # compat symlink: requested by dtardon (libreoffice), reverts part of
 # 0af97ce32de877 commit.
-%mvn_file org.postgresql:postgresql %{name}/postgresql %{name}
+%mvn_file org.postgresql:postgresql %{name}/postgresql %{name} postgresql
 
-# Parent POMs should be installed in a separate subpackage.
-%mvn_package ":*{parent,versions,prevjre}*" parent-poms
+# Parent POMs should not be installed.
+%mvn_package ":*{parent,versions,prevjre}*" __noinstall
 
 # For compat reasons, make Maven artifact available under older coordinates.
 %mvn_alias org.postgresql:postgresql postgresql:postgresql
@@ -172,11 +167,6 @@ opts="-f"
 %files -f .mfiles
 %license LICENSE
 %doc README.md
-
-
-%files parent-poms -f .mfiles-parent-poms
-%license LICENSE
-%doc pgjdbc-parent-poms/CHANGELOG.md pgjdbc-parent-poms/README.md
 
 
 %files javadoc -f .mfiles-javadoc

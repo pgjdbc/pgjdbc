@@ -201,7 +201,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public synchronized PGNotification[] getNotifications() throws SQLException {
-    PGNotification[] array = notifications.toArray(new PGNotification[notifications.size()]);
+    PGNotification[] array = notifications.toArray(new PGNotification[0]);
     notifications.clear();
     return array;
   }

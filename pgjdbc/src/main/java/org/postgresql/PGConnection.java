@@ -220,15 +220,15 @@ public interface PGConnection {
   /**
    * Connection configuration regarding automatic per-query savepoints.
    *
-   * @see PGProperty#AUTOSAVE
    * @return connection configuration regarding automatic per-query savepoints
+   * @see PGProperty#AUTOSAVE
    */
   AutoSave getAutosave();
 
   /**
    * Configures if connection should use automatic savepoints.
-   * @see PGProperty#AUTOSAVE
    * @param autoSave connection configuration regarding automatic per-query savepoints
+   * @see PGProperty#AUTOSAVE
    */
   void setAutosave(AutoSave autoSave);
 

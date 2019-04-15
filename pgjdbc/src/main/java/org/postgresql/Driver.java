@@ -200,11 +200,15 @@ public class Driver implements java.sql.Driver {
    * @param url the URL of the database to connect to
    * @param info a list of arbitrary tag/value pairs as connection arguments
    * @return a connection to the URL or null if it isnt us
-   * @throws SQLException if a database access error occurs
+   * @exception SQLException if a database access error occurs or the url is
+   * {@code null}
    * @see java.sql.Driver#connect
    */
   @Override
   public Connection connect(String url, Properties info) throws SQLException {
+    if (url == null) {
+      throw new SQLException("url is null");
+    }
     // get defaults
     Properties defaults;
 
@@ -541,31 +545,31 @@ public class Driver implements java.sql.Driver {
   public static Properties parseURL(String url, Properties defaults) {
     Properties urlProps = new Properties(defaults);
 
-    String l_urlServer = url;
-    String l_urlArgs = "";
+    String urlServer = url;
+    String urlArgs = "";
 
-    int l_qPos = url.indexOf('?');
-    if (l_qPos != -1) {
-      l_urlServer = url.substring(0, l_qPos);
-      l_urlArgs = url.substring(l_qPos + 1);
+    int qPos = url.indexOf('?');
+    if (qPos != -1) {
+      urlServer = url.substring(0, qPos);
+      urlArgs = url.substring(qPos + 1);
     }
 
-    if (!l_urlServer.startsWith("jdbc:postgresql:")) {
+    if (!urlServer.startsWith("jdbc:postgresql:")) {
       LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
       return null;
     }
-    l_urlServer = l_urlServer.substring("jdbc:postgresql:".length());
+    urlServer = urlServer.substring("jdbc:postgresql:".length());
 
-    if (l_urlServer.startsWith("//")) {
-      l_urlServer = l_urlServer.substring(2);
-      int slash = l_urlServer.indexOf('/');
+    if (urlServer.startsWith("//")) {
+      urlServer = urlServer.substring(2);
+      int slash = urlServer.indexOf('/');
       if (slash == -1) {
         LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
         return null;
       }
-      urlProps.setProperty("PGDBNAME", URLCoder.decode(l_urlServer.substring(slash + 1)));
+      urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer.substring(slash + 1)));
 
-      String[] addresses = l_urlServer.substring(0, slash).split(",");
+      String[] addresses = urlServer.substring(0, slash).split(",");
       StringBuilder hosts = new StringBuilder();
       StringBuilder ports = new StringBuilder();
       for (String address : addresses) {
@@ -607,21 +611,21 @@ public class Driver implements java.sql.Driver {
         urlProps.setProperty("PGHOST", "localhost");
       }
       if (defaults == null || !defaults.containsKey("PGDBNAME")) {
-        urlProps.setProperty("PGDBNAME", URLCoder.decode(l_urlServer));
+        urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
       }
     }
 
     // parse the args part of the url
-    String[] args = l_urlArgs.split("&");
+    String[] args = urlArgs.split("&");
     for (String token : args) {
       if (token.isEmpty()) {
         continue;
       }
-      int l_pos = token.indexOf('=');
-      if (l_pos == -1) {
+      int pos = token.indexOf('=');
+      if (pos == -1) {
         urlProps.setProperty(token, "");
       } else {
-        urlProps.setProperty(token.substring(0, l_pos), URLCoder.decode(token.substring(l_pos + 1)));
+        urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
       }
     }
 

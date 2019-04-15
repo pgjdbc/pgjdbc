@@ -5,20 +5,26 @@
 
 package org.postgresql.test.jdbc42;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalTime;
+import java.util.Properties;
 
 
 public class PreparedStatementTest extends BaseTest4 {
+  protected void updateProperties(Properties props) {
+    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
+  }
 
   @Override
   public void setUp() throws Exception {
@@ -34,6 +40,19 @@ public class PreparedStatementTest extends BaseTest4 {
     TestUtil.dropTable(con, "timetztable");
     TestUtil.dropTable(con, "timetable");
     super.tearDown();
+  }
+
+  @Test
+  public void testSetNumber() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("SELECT ? * 2");
+
+    pstmt.setBigDecimal(1, new BigDecimal("1.6"));
+    ResultSet rs = pstmt.executeQuery();
+    rs.next();
+    BigDecimal d = rs.getBigDecimal(1);
+    pstmt.close();
+
+    Assert.assertEquals(new BigDecimal("3.2"), d);
   }
 
   @Test
