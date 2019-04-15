@@ -45,6 +45,17 @@ public class DriverTest {
     assertNull(driver.connect("jdbc:otherdb:database", new Properties()));
   }
 
+  /**
+   * According to the javadoc of java.sql.Driver.connect(...), calling abort when the {@code executor} is {@code null}
+   * results in SQLException
+   */
+  @Test(expected = SQLException.class)
+  public void urlIsNull() throws SQLException {
+    Driver driver = new Driver();
+
+    driver.connect(null, new Properties());
+  }
+
   /*
    * This tests the acceptsURL() method with a couple of well and poorly formed jdbc urls.
    */

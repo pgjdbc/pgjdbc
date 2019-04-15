@@ -84,7 +84,7 @@ public class PgConnection implements BaseConnection {
   //
   // Data initialized on construction:
   //
-  private final Properties _clientInfo;
+  private final Properties clientInfo;
 
   /* URL we were created via */
   private final String creatingURL;
@@ -99,7 +99,7 @@ public class PgConnection implements BaseConnection {
   /* Query that runs ROLLBACK */
   private final Query rollbackQuery;
 
-  private final TypeInfo _typeCache;
+  private final TypeInfo typeCache;
 
   private boolean disableColumnSanitiser = false;
 
@@ -262,7 +262,7 @@ public class PgConnection implements BaseConnection {
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 
     // Initialize object handling
-    _typeCache = createTypeInfo(this, unknownLength);
+    typeCache = createTypeInfo(this, unknownLength);
     initObjectTypes(info);
 
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
@@ -271,17 +271,17 @@ public class PgConnection implements BaseConnection {
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
-      _typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
-      _typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
+      typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
+      typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
     }
 
-    this._clientInfo = new Properties();
+    this.clientInfo = new Properties();
     if (haveMinimumServerVersion(ServerVersion.v9_0)) {
       String appName = PGProperty.APPLICATION_NAME.get(info);
       if (appName == null) {
         appName = "";
       }
-      this._clientInfo.put("ApplicationName", appName);
+      this.clientInfo.put("ApplicationName", appName);
     }
 
     fieldMetadataCache = new LruCache<FieldMetadata.Key, FieldMetadata>(
@@ -556,7 +556,7 @@ public class PgConnection implements BaseConnection {
     }
 
     try {
-      Class<? extends PGobject> klass = _typeCache.getPGobject(type);
+      Class<? extends PGobject> klass = typeCache.getPGobject(type);
 
       // If className is not null, then try to instantiate it,
       // It must be basetype PGobject
@@ -596,7 +596,7 @@ public class PgConnection implements BaseConnection {
   }
 
   public TypeInfo getTypeInfo() {
-    return _typeCache;
+    return typeCache;
   }
 
   @Override
@@ -611,7 +611,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void addDataType(String type, Class<? extends PGobject> klass) throws SQLException {
     checkClosed();
-    _typeCache.addDataType(type, klass);
+    typeCache.addDataType(type, klass);
   }
 
   // This initialises the objectTypes hash map
@@ -1189,17 +1189,15 @@ public class PgConnection implements BaseConnection {
 
   // Parse a "dirty" integer surrounded by non-numeric characters
   private static int integerPart(String dirtyString) {
-    int start;
-    int end;
+    int start = 0;
 
-    for (start = 0; start < dirtyString.length()
-        && !Character.isDigit(dirtyString.charAt(start)); ++start) {
-      ;
+    while (start < dirtyString.length() && !Character.isDigit(dirtyString.charAt(start))) {
+      ++start;
     }
 
-    for (end = start; end < dirtyString.length()
-        && Character.isDigit(dirtyString.charAt(end)); ++end) {
-      ;
+    int end = start;
+    while (end < dirtyString.length() && Character.isDigit(dirtyString.charAt(end))) {
+      ++end;
     }
 
     if (start == end) {
@@ -1425,7 +1423,7 @@ public class PgConnection implements BaseConnection {
       if (LOGGER.isLoggable(Level.FINE)) {
         LOGGER.log(Level.FINE, "  setClientInfo = {0} {1}", new Object[]{name, value});
       }
-      _clientInfo.put(name, value);
+      clientInfo.put(name, value);
       return;
     }
 
@@ -1455,7 +1453,7 @@ public class PgConnection implements BaseConnection {
     }
 
     if (!failures.isEmpty()) {
-      throw new SQLClientInfoException(GT.tr("One ore more ClientInfo failed."),
+      throw new SQLClientInfoException(GT.tr("One or more ClientInfo failed."),
           PSQLState.NOT_IMPLEMENTED.getState(), failures);
     }
   }
@@ -1463,15 +1461,15 @@ public class PgConnection implements BaseConnection {
   @Override
   public String getClientInfo(String name) throws SQLException {
     checkClosed();
-    _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
-    return _clientInfo.getProperty(name);
+    clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
+    return clientInfo.getProperty(name);
   }
 
   @Override
   public Properties getClientInfo() throws SQLException {
     checkClosed();
-    _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
-    return _clientInfo;
+    clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
+    return clientInfo;
   }
 
   public <T> T createQueryObject(Class<T> ifc) throws SQLException {
@@ -1538,6 +1536,9 @@ public class PgConnection implements BaseConnection {
   }
 
   public void abort(Executor executor) throws SQLException {
+    if (executor == null) {
+      throw new SQLException("executor is null");
+    }
     if (isClosed()) {
       return;
     }
@@ -1545,11 +1546,7 @@ public class PgConnection implements BaseConnection {
     SQL_PERMISSION_ABORT.checkGuard(this);
 
     AbortCommand command = new AbortCommand();
-    if (executor != null) {
-      executor.execute(command);
-    } else {
-      command.run();
-    }
+    executor.execute(command);
   }
 
   public void setNetworkTimeout(Executor executor /*not used*/, int milliseconds) throws SQLException {

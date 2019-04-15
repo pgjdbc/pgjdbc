@@ -132,9 +132,9 @@ public class PgStatement implements Statement, BaseStatement {
    */
   protected ResultWrapper generatedKeys = null;
 
-  protected int m_prepareThreshold; // Reuse threshold to enable use of PREPARE
+  protected int mPrepareThreshold; // Reuse threshold to enable use of PREPARE
 
-  protected int maxfieldSize = 0;
+  protected int maxFieldSize = 0;
 
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
@@ -220,15 +220,16 @@ public class PgStatement implements Statement, BaseStatement {
 
   }
 
-  public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
-    if (!executeWithFlags(p_sql, 0)) {
+  @Override
+  public ResultSet executeQuery(String sql) throws SQLException {
+    if (!executeWithFlags(sql, 0)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
     return getSingleResultSet();
   }
 
-  protected java.sql.ResultSet getSingleResultSet() throws SQLException {
+  protected ResultSet getSingleResultSet() throws SQLException {
     synchronized (this) {
       checkClosed();
       if (result.getNext() != null) {
@@ -240,8 +241,9 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  public int executeUpdate(String p_sql) throws SQLException {
-    executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS);
+  @Override
+  public int executeUpdate(String sql) throws SQLException {
+    executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
     return getNoResultUpdateCount();
   }
 
@@ -262,10 +264,12 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  public boolean execute(String p_sql) throws SQLException {
-    return executeWithFlags(p_sql, 0);
+  @Override
+  public boolean execute(String sql) throws SQLException {
+    return executeWithFlags(sql, 0);
   }
 
+  @Override
   public boolean executeWithFlags(String sql, int flags) throws SQLException {
     return executeCachedSql(sql, flags, NO_RETURNING_COLUMNS);
   }
@@ -318,6 +322,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void closeForNextExecution() throws SQLException {
+
     // Every statement execution clears any previous warnings.
     clearWarnings();
 
@@ -352,7 +357,7 @@ public class PgStatement implements Statement, BaseStatement {
       return true;
     }
     cachedQuery.increaseExecuteCount();
-    if ((m_prepareThreshold == 0 || cachedQuery.getExecuteCount() < m_prepareThreshold)
+    if ((mPrepareThreshold == 0 || cachedQuery.getExecuteCount() < mPrepareThreshold)
         && !getForceBinaryTransfer()) {
       return true;
     }
@@ -584,10 +589,12 @@ public class PgStatement implements Statement, BaseStatement {
     return warnWrap != null ? warnWrap.getFirstWarning() : null;
   }
 
+  @Override
   public int getMaxFieldSize() throws SQLException {
-    return maxfieldSize;
+    return maxFieldSize;
   }
 
+  @Override
   public void setMaxFieldSize(int max) throws SQLException {
     checkClosed();
     if (max < 0) {
@@ -595,7 +602,7 @@ public class PgStatement implements Statement, BaseStatement {
           GT.tr("The maximum field size must be a value greater than or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    maxfieldSize = max;
+    maxFieldSize = max;
   }
 
   /**
@@ -609,7 +616,7 @@ public class PgStatement implements Statement, BaseStatement {
     warnings = null;
   }
 
-  public java.sql.ResultSet getResultSet() throws SQLException {
+  public ResultSet getResultSet() throws SQLException {
     synchronized (this) {
       checkClosed();
 
@@ -666,6 +673,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public void setPrepareThreshold(int newThreshold) throws SQLException {
     checkClosed();
 
@@ -674,17 +682,20 @@ public class PgStatement implements Statement, BaseStatement {
       newThreshold = 1;
     }
 
-    this.m_prepareThreshold = newThreshold;
+    this.mPrepareThreshold = newThreshold;
   }
 
+  @Override
   public int getPrepareThreshold() {
-    return m_prepareThreshold;
+    return mPrepareThreshold;
   }
 
+  @Override
   public void setUseServerPrepare(boolean flag) throws SQLException {
     setPrepareThreshold(flag ? 1 : 0);
   }
 
+  @Override
   public boolean isUseServerPrepare() {
     return false;
   }
@@ -698,7 +709,8 @@ public class PgStatement implements Statement, BaseStatement {
 
   // ** JDBC 2 Extensions **
 
-  public void addBatch(String p_sql) throws SQLException {
+  @Override
+  public void addBatch(String sql) throws SQLException {
     checkClosed();
 
     if (batchStatements == null) {
@@ -708,11 +720,12 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Simple statements should not replace ?, ? with $1, $2
     boolean shouldUseParameterized = false;
-    CachedQuery cachedQuery = connection.createQuery(p_sql, replaceProcessingEnabled, shouldUseParameterized);
+    CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, shouldUseParameterized);
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }
 
+  @Override
   public void clearBatch() throws SQLException {
     if (batchStatements != null) {
       batchStatements.clear();

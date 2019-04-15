@@ -5,7 +5,10 @@
 
 package org.postgresql.test.jdbc2.optional;
 
+import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
+
+import org.junit.Test;
 
 /**
  * Performs the basic tests defined in the superclass. Just adds the configuration logic.
@@ -23,5 +26,12 @@ public class SimpleDataSourceTest extends BaseDataSourceTest {
       bds = new SimpleDataSource();
       setupDataSource(bds);
     }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testTypoPostgresUrl() {
+    PGSimpleDataSource ds = new PGSimpleDataSource();
+    // this should fail because the protocol is wrong.
+    ds.setUrl("jdbc:postgres://localhost:5432/test");
   }
 }

@@ -181,6 +181,49 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @Test
+  public void testRelative() throws SQLException {
+    Statement stmt =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+
+    assertTrue(!rs.relative(0));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isBeforeFirst());
+
+    assertTrue(rs.relative(2));
+    assertEquals(2, rs.getRow());
+
+    assertTrue(rs.relative(1));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(rs.relative(0));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(!rs.relative(-3));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isBeforeFirst());
+
+    assertTrue(rs.relative(4));
+    assertEquals(4, rs.getRow());
+
+    assertTrue(rs.relative(-1));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(!rs.relative(6));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isAfterLast());
+
+    assertTrue(rs.relative(-4));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(!rs.relative(-6));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isBeforeFirst());
+
+    stmt.close();
+  }
+
+  @Test
   public void testEmptyResult() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);

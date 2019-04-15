@@ -70,8 +70,8 @@ public class StreamWrapper {
            * when doing so. Auto-closing will be done when the first occurs: reaching EOF or Garbage
            * Collection
            */
-          private boolean _closed = false;
-          private int _position = 0;
+          private boolean closed = false;
+          private int position = 0;
 
           /**
            * Check if we should auto-close this stream
@@ -80,15 +80,15 @@ public class StreamWrapper {
             if (readResult == -1) {
               close();
             } else {
-              _position += readResult;
-              if (_position >= length) {
+              position += readResult;
+              if (position >= length) {
                 close();
               }
             }
           }
 
           public int read(byte[] b) throws IOException {
-            if (_closed) {
+            if (closed) {
               return -1;
             }
             int result = super.read(b);
@@ -97,7 +97,7 @@ public class StreamWrapper {
           }
 
           public int read(byte[] b, int off, int len) throws IOException {
-            if (_closed) {
+            if (closed) {
               return -1;
             }
             int result = super.read(b, off, len);
@@ -106,10 +106,10 @@ public class StreamWrapper {
           }
 
           public void close() throws IOException {
-            if (!_closed) {
+            if (!closed) {
               super.close();
               tempFile.delete();
-              _closed = true;
+              closed = true;
             }
           }
 

@@ -35,7 +35,7 @@ import java.util.logging.Logger;
  */
 public class SSPIClient implements ISSPIClient {
 
-  public static String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
+  public static final String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
 
   private static final Logger LOGGER = Logger.getLogger(SSPIClient.class.getName());
   private final PGStream pgStream;
@@ -45,7 +45,6 @@ public class SSPIClient implements ISSPIClient {
   private IWindowsCredentialsHandle clientCredentials;
   private WindowsSecurityContextImpl sspiContext;
   private String targetName;
-
 
   /**
    * <p>Instantiate an SSPIClient for authentication of a connection.</p>
@@ -62,11 +61,7 @@ public class SSPIClient implements ISSPIClient {
   public SSPIClient(PGStream pgStream, String spnServiceClass, boolean enableNegotiate) {
     this.pgStream = pgStream;
 
-    /* If blank or unspecified, SPN service class should be POSTGRES */
-    if (spnServiceClass != null && spnServiceClass.isEmpty()) {
-      spnServiceClass = null;
-    }
-    if (spnServiceClass == null) {
+    if (spnServiceClass == null || spnServiceClass.isEmpty()) {
       spnServiceClass = SSPI_DEFAULT_SPN_SERVICE_CLASS;
     }
     this.spnServiceClass = spnServiceClass;
@@ -81,6 +76,7 @@ public class SSPIClient implements ISSPIClient {
    *
    * @return true if it's safe to attempt SSPI authentication
    */
+  @Override
   public boolean isSSPISupported() {
     try {
       /*
@@ -122,6 +118,7 @@ public class SSPIClient implements ISSPIClient {
    * @throws SQLException on SSPI authentication handshake failure
    * @throws IOException on network I/O issues
    */
+  @Override
   public void startSSPI() throws SQLException, IOException {
 
     /*
@@ -181,6 +178,7 @@ public class SSPIClient implements ISSPIClient {
    * @throws SQLException if something wrong happens
    * @throws IOException if something wrong happens
    */
+  @Override
   public void continueSSPI(int msgLength) throws SQLException, IOException {
 
     if (sspiContext == null) {
@@ -226,6 +224,7 @@ public class SSPIClient implements ISSPIClient {
    * Clean up native win32 resources after completion or failure of SSPI authentication. This
    * SSPIClient instance becomes unusable after disposal.
    */
+  @Override
   public void dispose() {
     if (sspiContext != null) {
       sspiContext.dispose();

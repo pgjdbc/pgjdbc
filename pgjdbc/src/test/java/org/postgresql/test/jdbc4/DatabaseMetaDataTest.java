@@ -30,28 +30,28 @@ import java.util.List;
 
 public class DatabaseMetaDataTest {
 
-  private Connection _conn;
+  private Connection conn;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.dropSequence(_conn, "sercoltest_a_seq");
-    TestUtil.createTable(_conn, "sercoltest", "a serial, b int");
+    conn = TestUtil.openDB();
+    TestUtil.dropSequence(conn, "sercoltest_a_seq");
+    TestUtil.createTable(conn, "sercoltest", "a serial, b int");
   }
 
   @After
   public void tearDown() throws Exception {
-    TestUtil.dropSequence(_conn, "sercoltest_a_seq");
-    TestUtil.dropTable(_conn, "sercoltest");
-    TestUtil.closeDB(_conn);
+    TestUtil.dropSequence(conn, "sercoltest_a_seq");
+    TestUtil.dropTable(conn, "sercoltest");
+    TestUtil.closeDB(conn);
   }
 
   @Test
   public void testGetClientInfoProperties() throws Exception {
-    DatabaseMetaData dbmd = _conn.getMetaData();
+    DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getClientInfoProperties();
-    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
+    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
       assertTrue(!rs.next());
       return;
     }
@@ -62,7 +62,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetColumnsForAutoIncrement() throws Exception {
-    DatabaseMetaData dbmd = _conn.getMetaData();
+    DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "sercoltest", "%");
     assertTrue(rs.next());
@@ -78,7 +78,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetSchemas() throws SQLException {
-    DatabaseMetaData dbmd = _conn.getMetaData();
+    DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getSchemas("", "publ%");
 
@@ -91,7 +91,7 @@ public class DatabaseMetaDataTest {
   @Test
   public void testGetFunctionsWithBlankPatterns() throws SQLException {
     int minFuncCount = 1000;
-    DatabaseMetaData dbmd = _conn.getMetaData();
+    DatabaseMetaData dbmd = conn.getMetaData();
     ResultSet rs = dbmd.getFunctions("", "", "");
     int count = assertGetFunctionRS(rs);
     assertThat(count > minFuncCount, is(true));
@@ -174,9 +174,9 @@ public class DatabaseMetaDataTest {
     // These function creation are borrow from jdbc2/DatabaseMetaDataTest
     // We modify to ensure new function created are returned by getFunctions()
 
-    DatabaseMetaData dbmd = _conn.getMetaData();
-    if (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_4)) {
-      Statement stmt = _conn.createStatement();
+    DatabaseMetaData dbmd = conn.getMetaData();
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_4)) {
+      Statement stmt = conn.createStatement();
       stmt.execute(
               "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
       ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
@@ -210,7 +210,7 @@ public class DatabaseMetaDataTest {
       stmt.execute("DROP FUNCTION getfunc_f5()");
     } else {
       // For PG 8.3 or 8.2 it will resulted in unknown function type
-      Statement stmt = _conn.createStatement();
+      Statement stmt = conn.createStatement();
       stmt.execute(
               "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
       ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");

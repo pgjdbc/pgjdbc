@@ -108,45 +108,45 @@ public class PGbytea {
     if (bufpos == correctSize) {
       return buf;
     }
-    byte[] l_return = new byte[bufpos];
-    System.arraycopy(buf, 0, l_return, 0, bufpos);
-    return l_return;
+    byte[] result = new byte[bufpos];
+    System.arraycopy(buf, 0, result, 0, bufpos);
+    return result;
   }
 
   /*
    * Converts a java byte[] into a PG bytea string (i.e. the text representation of the bytea data
    * type)
    */
-  public static String toPGString(byte[] p_buf) {
-    if (p_buf == null) {
+  public static String toPGString(byte[] buf) {
+    if (buf == null) {
       return null;
     }
-    StringBuilder l_strbuf = new StringBuilder(2 * p_buf.length);
-    for (byte element : p_buf) {
-      int l_int = (int) element;
-      if (l_int < 0) {
-        l_int = 256 + l_int;
+    StringBuilder stringBuilder = new StringBuilder(2 * buf.length);
+    for (byte element : buf) {
+      int elementAsInt = (int) element;
+      if (elementAsInt < 0) {
+        elementAsInt = 256 + elementAsInt;
       }
       // we escape the same non-printable characters as the backend
       // we must escape all 8bit characters otherwise when convering
       // from java unicode to the db character set we may end up with
       // question marks if the character set is SQL_ASCII
-      if (l_int < 040 || l_int > 0176) {
+      if (elementAsInt < 040 || elementAsInt > 0176) {
         // escape charcter with the form \000, but need two \\ because of
         // the Java parser
-        l_strbuf.append("\\");
-        l_strbuf.append((char) (((l_int >> 6) & 0x3) + 48));
-        l_strbuf.append((char) (((l_int >> 3) & 0x7) + 48));
-        l_strbuf.append((char) ((l_int & 0x07) + 48));
+        stringBuilder.append("\\");
+        stringBuilder.append((char) (((elementAsInt >> 6) & 0x3) + 48));
+        stringBuilder.append((char) (((elementAsInt >> 3) & 0x7) + 48));
+        stringBuilder.append((char) ((elementAsInt & 0x07) + 48));
       } else if (element == (byte) '\\') {
         // escape the backslash character as \\, but need four \\\\ because
         // of the Java parser
-        l_strbuf.append("\\\\");
+        stringBuilder.append("\\\\");
       } else {
         // other characters are left alone
-        l_strbuf.append((char) element);
+        stringBuilder.append((char) element);
       }
     }
-    return l_strbuf.toString();
+    return stringBuilder.toString();
   }
 }

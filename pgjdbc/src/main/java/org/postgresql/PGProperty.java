@@ -56,6 +56,12 @@ public enum PGProperty {
       false, "3"),
 
   /**
+   * Specify 'options' connection initialization parameter.
+   * The value of this parameter may contain spaces and other special characters or their URL representation.
+   */
+  OPTIONS("options", null, "Specify 'options' connection initialization parameter."),
+
+  /**
    * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
    *
    * <p>This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
@@ -173,17 +179,18 @@ public enum PGProperty {
       "Enable optimization that disables column name sanitiser"),
 
   /**
-   * Control use of SSL (any non-null value causes SSL to be required).
+   * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
    */
   SSL("ssl", null, "Control use of SSL (any non-null value causes SSL to be required)"),
 
   /**
-   * Parameter governing the use of SSL. The allowed values are {@code require}, {@code verify-ca},
-   * {@code verify-full}, or {@code disable} ({@code allow} and {@code prefer} are not implemented)
-   * If not set, the {@code ssl} property may be checked to enable SSL mode.
+   * Parameter governing the use of SSL. The allowed values are {@code disable}, {@code allow},
+   * {@code prefer}, {@code require}, {@code verify-ca}, {@code verify-full}.
+   * If {@code ssl} property is empty or set to {@code true} it implies {@code verify-full}.
+   * Default mode is "require"
    */
-  SSL_MODE("sslmode", null, "Parameter governing the use of SSL",false,
-      "disable", "require", "verify-ca", "verify-full"),
+  SSL_MODE("sslmode", null, "Parameter governing the use of SSL", false,
+      "disable", "allow", "prefer", "require", "verify-ca", "verify-full"),
 
   /**
    * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
@@ -192,7 +199,9 @@ public enum PGProperty {
 
   /**
    * The String argument to give to the constructor of the SSL Factory.
+   * @deprecated use {@code ..Factory(Properties)} constructor.
    */
+  @Deprecated
   SSL_FACTORY_ARG("sslfactoryarg", null,
       "Argument forwarded to constructor of SSLSocketFactory class."),
 
@@ -279,7 +288,9 @@ public enum PGProperty {
 
   /**
    * The String argument to give to the constructor of the Socket Factory.
+   * @deprecated use {@code ..Factory(Properties)} constructor.
    */
+  @Deprecated
   SOCKET_FACTORY_ARG("socketFactoryArg", null,
       "Argument forwarded to constructor of SocketFactory class."),
 
@@ -397,6 +408,11 @@ public enum PGProperty {
       "always", "never", "conservative"),
 
   /**
+   *
+   */
+  CLEANUP_SAVEPOINTS("cleanupSavepoints", "false","Determine whether SAVEPOINTS used in AUTOSAVE will be released per query or not",
+      false, "true", "false"),
+  /**
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS("reWriteBatchedInserts", "false",
@@ -423,11 +439,11 @@ public enum PGProperty {
           + "from that database. "
           + "(backend >= 9.4)");
 
-  private String _name;
-  private String _defaultValue;
-  private boolean _required;
-  private String _description;
-  private String[] _choices;
+  private final String name;
+  private final String defaultValue;
+  private final boolean required;
+  private final String description;
+  private final String[] choices;
 
   PGProperty(String name, String defaultValue, String description) {
     this(name, defaultValue, description, false);
@@ -439,11 +455,11 @@ public enum PGProperty {
 
   PGProperty(String name, String defaultValue, String description, boolean required,
       String... choices) {
-    _name = name;
-    _defaultValue = defaultValue;
-    _required = required;
-    _description = description;
-    _choices = choices;
+    this.name = name;
+    this.defaultValue = defaultValue;
+    this.required = required;
+    this.description = description;
+    this.choices = choices;
   }
 
   /**
@@ -453,7 +469,7 @@ public enum PGProperty {
    * @return the name of the connection parameter
    */
   public String getName() {
-    return _name;
+    return name;
   }
 
   /**
@@ -462,7 +478,7 @@ public enum PGProperty {
    * @return the default value for this connection parameter or null
    */
   public String getDefaultValue() {
-    return _defaultValue;
+    return defaultValue;
   }
 
   /**
@@ -471,7 +487,7 @@ public enum PGProperty {
    * @return the available values for this connection parameter or null
    */
   public String[] getChoices() {
-    return _choices;
+    return choices;
   }
 
   /**
@@ -482,7 +498,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter
    */
   public String get(Properties properties) {
-    return properties.getProperty(_name, _defaultValue);
+    return properties.getProperty(name, defaultValue);
   }
 
   /**
@@ -493,9 +509,9 @@ public enum PGProperty {
    */
   public void set(Properties properties, String value) {
     if (value == null) {
-      properties.remove(_name);
+      properties.remove(name);
     } else {
-      properties.setProperty(_name, value);
+      properties.setProperty(name, value);
     }
   }
 
@@ -566,7 +582,7 @@ public enum PGProperty {
    * @param value boolean value for this connection parameter
    */
   public void set(Properties properties, boolean value) {
-    properties.setProperty(_name, Boolean.toString(value));
+    properties.setProperty(name, Boolean.toString(value));
   }
 
   /**
@@ -576,7 +592,7 @@ public enum PGProperty {
    * @param value int value for this connection parameter
    */
   public void set(Properties properties, int value) {
-    properties.setProperty(_name, Integer.toString(value));
+    properties.setProperty(name, Integer.toString(value));
   }
 
   /**
@@ -597,10 +613,10 @@ public enum PGProperty {
    * @return a DriverPropertyInfo representing this connection parameter
    */
   public DriverPropertyInfo toDriverPropertyInfo(Properties properties) {
-    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(_name, get(properties));
-    propertyInfo.required = _required;
-    propertyInfo.description = _description;
-    propertyInfo.choices = _choices;
+    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(name, get(properties));
+    propertyInfo.required = required;
+    propertyInfo.description = description;
+    propertyInfo.choices = choices;
     return propertyInfo;
   }
 
@@ -621,7 +637,7 @@ public enum PGProperty {
    * @return the value of a set property
    */
   public String getSetString(Properties properties) {
-    Object o = properties.get(_name);
+    Object o = properties.get(name);
     if (o instanceof String) {
       return (String) o;
     }

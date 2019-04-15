@@ -21,57 +21,57 @@ import java.util.concurrent.TimeUnit;
 public class NetworkTimeoutTest {
   @Test
   public void testSetNetworkTimeout() throws Exception {
-    Connection _conn = TestUtil.openDB();
+    Connection conn = TestUtil.openDB();
     try {
-      _conn.setNetworkTimeout(null, 0);
+      conn.setNetworkTimeout(null, 0);
     } catch (SQLException e) {
       fail("Connection.setNetworkTimeout() throw exception");
     } finally {
-      TestUtil.closeDB(_conn);
+      TestUtil.closeDB(conn);
     }
   }
 
   @Test
   public void testSetNetworkTimeoutInvalid() throws Exception {
-    Connection _conn = TestUtil.openDB();
+    Connection conn = TestUtil.openDB();
     try {
-      _conn.setNetworkTimeout(null, -1);
+      conn.setNetworkTimeout(null, -1);
       fail("Connection.setNetworkTimeout() did not throw expected exception");
     } catch (SQLException e) {
       // Passed
     } finally {
-      TestUtil.closeDB(_conn);
+      TestUtil.closeDB(conn);
     }
   }
 
   @Test
   public void testSetNetworkTimeoutValid() throws Exception {
-    Connection _conn = TestUtil.openDB();
+    Connection conn = TestUtil.openDB();
     try {
-      _conn.setNetworkTimeout(null, (int) TimeUnit.SECONDS.toMillis(5));
-      assertEquals(TimeUnit.SECONDS.toMillis(5), _conn.getNetworkTimeout());
+      conn.setNetworkTimeout(null, (int) TimeUnit.SECONDS.toMillis(5));
+      assertEquals(TimeUnit.SECONDS.toMillis(5), conn.getNetworkTimeout());
     } catch (SQLException e) {
       fail("Connection.setNetworkTimeout() throw exception");
     } finally {
-      TestUtil.closeDB(_conn);
+      TestUtil.closeDB(conn);
     }
   }
 
   @Test
   public void testSetNetworkTimeoutEnforcement() throws Exception {
-    Connection _conn = TestUtil.openDB();
+    Connection conn = TestUtil.openDB();
     Statement stmt = null;
     try {
-      _conn.setNetworkTimeout(null, (int) TimeUnit.SECONDS.toMillis(1));
-      stmt = _conn.createStatement();
+      conn.setNetworkTimeout(null, (int) TimeUnit.SECONDS.toMillis(1));
+      stmt = conn.createStatement();
       stmt.execute("SELECT pg_sleep(2)");
       fail("Connection.setNetworkTimeout() did not throw expected exception");
     } catch (SQLException e) {
       // assertTrue(stmt.isClosed());
-      assertTrue(_conn.isClosed());
+      assertTrue(conn.isClosed());
     } finally {
       TestUtil.closeQuietly(stmt);
-      TestUtil.closeDB(_conn);
+      TestUtil.closeDB(conn);
     }
   }
 }

@@ -5,12 +5,15 @@
 
 package org.postgresql.replication.fluent;
 
+import org.postgresql.replication.ReplicationSlotInfo;
+
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 
 /**
  * Fluent interface for specify common parameters for create Logical and Physical replication slot.
  */
-public interface ChainedCommonCreateSlotBuilder<T extends ChainedCommonCreateSlotBuilder<T>>  {
+public interface ChainedCommonCreateSlotBuilder<T extends ChainedCommonCreateSlotBuilder<T>> {
 
   /**
    * Replication slots provide an automated way to ensure that the master does not remove WAL
@@ -23,8 +26,21 @@ public interface ChainedCommonCreateSlotBuilder<T extends ChainedCommonCreateSlo
   T withSlotName(String slotName);
 
   /**
+   * <p>Temporary slots are not saved to disk and are automatically dropped on error or when
+   * the session has finished.</p>
+   *
+   * <p>This feature is only supported by PostgreSQL versions &gt;= 10.</p>
+   *
+   * @return T a slot builder
+   * @throws SQLFeatureNotSupportedException thrown if PostgreSQL version is less than 10.
+   */
+  T withTemporaryOption() throws SQLFeatureNotSupportedException;
+
+  /**
    * Create slot with specified parameters in database.
+   *
+   * @return ReplicationSlotInfo with the information of the created slot.
    * @throws SQLException on error
    */
-  void make() throws SQLException;
+  ReplicationSlotInfo make() throws SQLException;
 }

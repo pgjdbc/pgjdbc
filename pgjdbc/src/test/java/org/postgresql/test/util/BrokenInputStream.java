@@ -10,21 +10,22 @@ import java.io.InputStream;
 
 public class BrokenInputStream extends InputStream {
 
-  private InputStream _is;
-  private long _numRead;
-  private long _breakOn;
+  private final InputStream is;
+  private final long breakOn;
+  private long numRead;
 
   public BrokenInputStream(InputStream is, long breakOn) {
-    _is = is;
-    _breakOn = breakOn;
-    _numRead = 0;
+    this.is = is;
+    this.breakOn = breakOn;
+    this.numRead = 0;
   }
 
+  @Override
   public int read() throws IOException {
-    if (_breakOn > _numRead++) {
-      throw new IOException("I was told to break on " + _breakOn);
+    if (breakOn > numRead++) {
+      throw new IOException("I was told to break on " + breakOn);
     }
 
-    return _is.read();
+    return is.read();
   }
 }

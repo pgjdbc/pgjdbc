@@ -33,7 +33,7 @@ public interface CopyIn extends CopyOperation {
   void flushCopy() throws SQLException;
 
   /**
-   * Finishes copy operation succesfully.
+   * Finishes copy operation successfully.
    *
    * @return number of updated rows for server 8.2 or newer (see getHandledRowCount())
    * @throws SQLException if the operation fails.

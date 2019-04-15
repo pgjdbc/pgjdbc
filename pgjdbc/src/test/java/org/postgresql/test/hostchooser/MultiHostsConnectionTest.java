@@ -46,7 +46,7 @@ public class MultiHostsConnectionTest {
   private static final String user = TestUtil.getUser();
   private static final String password = TestUtil.getPassword();
   private static final String master1 = TestUtil.getServer() + ":" + TestUtil.getPort();
-  private static final String secondary1 = getSecondaryServer() + ":" + getSecondaryPort();
+  private static final String secondary1 = getSecondaryServer1() + ":" + getSecondaryPort1();
   private static final String secondary2 = getSecondaryServer2() + ":" + getSecondaryPort2();
   private static final String fake1 = "127.127.217.217:1";
 
@@ -95,7 +95,7 @@ public class MultiHostsConnectionTest {
 
     Properties props = userAndPassword();
 
-    return DriverManager.getConnection(TestUtil.getURL(getSecondaryServer(), getSecondaryPort()), props);
+    return DriverManager.getConnection(TestUtil.getURL(getSecondaryServer1(), getSecondaryPort1()), props);
   }
 
   private static Properties userAndPassword() {
@@ -106,12 +106,12 @@ public class MultiHostsConnectionTest {
     return props;
   }
 
-  private static String getSecondaryServer() {
-    return System.getProperty("secondaryServer", TestUtil.getServer());
+  private static String getSecondaryServer1() {
+    return System.getProperty("secondaryServer1", TestUtil.getServer());
   }
 
-  private static int getSecondaryPort() {
-    return Integer.parseInt(System.getProperty("secondaryPort", String.valueOf(TestUtil.getPort() + 1)));
+  private static int getSecondaryPort1() {
+    return Integer.parseInt(System.getProperty("secondaryPort1", String.valueOf(TestUtil.getPort() + 1)));
   }
 
   private static Connection openSecondaryDB2() throws Exception {

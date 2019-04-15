@@ -176,6 +176,8 @@ public class Parser {
                 bindPositions.clear();
               }
               nativeSql.setLength(0);
+              isValuesFound = false;
+              isCurrentReWriteCompatible = false;
               valuesBraceOpenPosition = -1;
               valuesBraceClosePosition = -1;
               valuesBraceCloseFound = false;
@@ -444,7 +446,7 @@ public class Parser {
    */
   public static int parseDoubleQuotes(final char[] query, int offset) {
     while (++offset < query.length && query[offset] != '"') {
-      ;
+      // do nothing
     }
     return offset;
   }
@@ -819,10 +821,9 @@ public class Parser {
    * PostgreSQL 9.4 allows column names like _, ‿, ⁀, ⁔, ︳, ︴, ﹍, ﹎, ﹏, ＿, so
    * it is assumed isJavaIdentifierPart is good enough for PostgreSQL.
    *
-   * @see <a href="https://www.postgresql.org/docs/9.6/static/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS">Identifiers and Key Words</a>
-   *
    * @param c the character to check
    * @return true if valid as first character of an identifier; false if not
+   * @see <a href="https://www.postgresql.org/docs/9.6/static/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS">Identifiers and Key Words</a>
    */
   public static boolean isIdentifierStartChar(char c) {
     /*
@@ -1128,19 +1129,19 @@ public class Parser {
    * part. So, something like "select * from x where d={d '2001-10-09'}" would return "select * from
    * x where d= '2001-10-09'".</p>
    *
-   * @param p_sql                     the original query text
+   * @param sql                       the original query text
    * @param replaceProcessingEnabled  whether replace_processing_enabled is on
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
    * @throws SQLException if given SQL is wrong
    */
-  public static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
+  public static String replaceProcessing(String sql, boolean replaceProcessingEnabled,
       boolean standardConformingStrings) throws SQLException {
     if (replaceProcessingEnabled) {
       // Since escape codes can only appear in SQL CODE, we keep track
       // of if we enter a string or not.
-      int len = p_sql.length();
-      char[] chars = p_sql.toCharArray();
+      int len = sql.length();
+      char[] chars = sql.toCharArray();
       StringBuilder newsql = new StringBuilder(len);
       int i = 0;
       while (i < len) {
@@ -1157,7 +1158,7 @@ public class Parser {
       }
       return newsql.toString();
     } else {
-      return p_sql;
+      return sql;
     }
   }
 
@@ -1166,7 +1167,7 @@ public class Parser {
    * right parentheses or end of string. When the stopOnComma flag is set we also stop processing
    * when a comma is found in sql text that isn't inside nested parenthesis.
    *
-   * @param p_sql the original query text
+   * @param sql the original query text
    * @param i starting position for replacing
    * @param newsql where to write the replaced output
    * @param stopOnComma should we stop after hitting the first comma in sql text?
@@ -1174,55 +1175,55 @@ public class Parser {
    * @return the position we stopped processing at
    * @throws SQLException if given SQL is wrong
    */
-  private static int parseSql(char[] p_sql, int i, StringBuilder newsql, boolean stopOnComma,
+  private static int parseSql(char[] sql, int i, StringBuilder newsql, boolean stopOnComma,
       boolean stdStrings) throws SQLException {
     SqlParseState state = SqlParseState.IN_SQLCODE;
-    int len = p_sql.length;
+    int len = sql.length;
     int nestedParenthesis = 0;
     boolean endOfNested = false;
 
     // because of the ++i loop
     i--;
     while (!endOfNested && ++i < len) {
-      char c = p_sql[i];
+      char c = sql[i];
 
       state_switch:
       switch (state) {
         case IN_SQLCODE:
           if (c == '$') {
             int i0 = i;
-            i = parseDollarQuotes(p_sql, i);
-            checkParsePosition(i, len, i0, p_sql,
+            i = parseDollarQuotes(sql, i);
+            checkParsePosition(i, len, i0, sql,
                 "Unterminated dollar quote started at position {0} in SQL {1}. Expected terminating $$");
-            newsql.append(p_sql, i0, i - i0 + 1);
+            newsql.append(sql, i0, i - i0 + 1);
             break;
           } else if (c == '\'') {
             // start of a string?
             int i0 = i;
-            i = parseSingleQuotes(p_sql, i, stdStrings);
-            checkParsePosition(i, len, i0, p_sql,
+            i = parseSingleQuotes(sql, i, stdStrings);
+            checkParsePosition(i, len, i0, sql,
                 "Unterminated string literal started at position {0} in SQL {1}. Expected ' char");
-            newsql.append(p_sql, i0, i - i0 + 1);
+            newsql.append(sql, i0, i - i0 + 1);
             break;
           } else if (c == '"') {
             // start of a identifier?
             int i0 = i;
-            i = parseDoubleQuotes(p_sql, i);
-            checkParsePosition(i, len, i0, p_sql,
+            i = parseDoubleQuotes(sql, i);
+            checkParsePosition(i, len, i0, sql,
                 "Unterminated identifier started at position {0} in SQL {1}. Expected \" char");
-            newsql.append(p_sql, i0, i - i0 + 1);
+            newsql.append(sql, i0, i - i0 + 1);
             break;
           } else if (c == '/') {
             int i0 = i;
-            i = parseBlockComment(p_sql, i);
-            checkParsePosition(i, len, i0, p_sql,
+            i = parseBlockComment(sql, i);
+            checkParsePosition(i, len, i0, sql,
                 "Unterminated block comment started at position {0} in SQL {1}. Expected */ sequence");
-            newsql.append(p_sql, i0, i - i0 + 1);
+            newsql.append(sql, i0, i - i0 + 1);
             break;
           } else if (c == '-') {
             int i0 = i;
-            i = parseLineComment(p_sql, i);
-            newsql.append(p_sql, i0, i - i0 + 1);
+            i = parseLineComment(sql, i);
+            newsql.append(sql, i0, i - i0 + 1);
             break;
           } else if (c == '(') { // begin nested sql
             nestedParenthesis++;
@@ -1241,7 +1242,7 @@ public class Parser {
               // skip first state, it's not a escape code state
               for (int j = 1; j < availableStates.length; j++) {
                 SqlParseState availableState = availableStates[j];
-                int matchedPosition = availableState.getMatchedPosition(p_sql, i + 1);
+                int matchedPosition = availableState.getMatchedPosition(sql, i + 1);
                 if (matchedPosition == 0) {
                   continue;
                 }
@@ -1259,7 +1260,7 @@ public class Parser {
 
         case ESC_FUNCTION:
           // extract function name
-          i = escapeFunction(p_sql, i, newsql, stdStrings);
+          i = escapeFunction(sql, i, newsql, stdStrings);
           state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
           break;
         case ESC_DATE:
@@ -1278,38 +1279,39 @@ public class Parser {
     return i;
   }
 
-  private static int findOpenBrace(char[] p_sql, int i) {
-    int posArgs;
-    for (posArgs = i; posArgs < p_sql.length && p_sql[posArgs] != '('; posArgs++) {
-      ;
+
+  private static int findOpenBrace(char[] sql, int i) {
+    int posArgs = i;
+    while (posArgs < sql.length && sql[posArgs] != '(') {
+      posArgs++;
     }
     return posArgs;
   }
 
-  private static void checkParsePosition(int i, int len, int i0, char[] p_sql,
+  private static void checkParsePosition(int i, int len, int i0, char[] sql,
       String message)
       throws PSQLException {
     if (i < len) {
       return;
     }
     throw new PSQLException(
-        GT.tr(message, i0, new String(p_sql)),
+        GT.tr(message, i0, new String(sql)),
         PSQLState.SYNTAX_ERROR);
   }
 
-  private static int escapeFunction(char[] p_sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
+  private static int escapeFunction(char[] sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
     String functionName;
-    int argPos = findOpenBrace(p_sql, i);
-    if (argPos < p_sql.length) {
-      functionName = new String(p_sql, i, argPos - i).trim();
+    int argPos = findOpenBrace(sql, i);
+    if (argPos < sql.length) {
+      functionName = new String(sql, i, argPos - i).trim();
       // extract arguments
       i = argPos + 1;// we start the scan after the first (
-      i = escapeFunctionArguments(newsql, functionName, p_sql, i, stdStrings);
+      i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
     }
     // go to the end of the function copying anything found
     i++;
-    while (i < p_sql.length && p_sql[i] != '}') {
-      newsql.append(p_sql[i++]);
+    while (i < sql.length && sql[i] != '}') {
+      newsql.append(sql[i++]);
     }
     return i;
   }
@@ -1319,13 +1321,13 @@ public class Parser {
    *
    * @param newsql destination StringBuilder
    * @param functionName the escaped function name
-   * @param p_sql input SQL text (containing arguments of a function call with possible JDBC escapes)
+   * @param sql input SQL text (containing arguments of a function call with possible JDBC escapes)
    * @param i position in the input SQL
    * @param stdStrings whether standard_conforming_strings is on
    * @return the right PostgreSQL sql
    * @throws SQLException if something goes wrong
    */
-  private static int escapeFunctionArguments(StringBuilder newsql, String functionName, char[] p_sql, int i,
+  private static int escapeFunctionArguments(StringBuilder newsql, String functionName, char[] sql, int i,
       boolean stdStrings)
       throws SQLException {
     // Maximum arity of functions in EscapedFunctions is 3
@@ -1333,12 +1335,12 @@ public class Parser {
     while (true) {
       StringBuilder arg = new StringBuilder();
       int lastPos = i;
-      i = parseSql(p_sql, i, arg, true, stdStrings);
+      i = parseSql(sql, i, arg, true, stdStrings);
       if (i != lastPos) {
         parsedArgs.add(arg);
       }
-      if (i >= p_sql.length // should not happen
-          || p_sql[i] != ',') {
+      if (i >= sql.length // should not happen
+          || sql[i] != ',') {
         break;
       }
       i++;
@@ -1395,37 +1397,37 @@ public class Parser {
       this.replacementKeyword = replacementKeyword;
     }
 
-    private boolean startMatches(char[] p_sql, int pos) {
+    private boolean startMatches(char[] sql, int pos) {
       // check for the keyword
       for (char c : escapeKeyword) {
-        if (pos >= p_sql.length) {
+        if (pos >= sql.length) {
           return false;
         }
-        char curr = p_sql[pos++];
+        char curr = sql[pos++];
         if (curr != c && curr != Character.toUpperCase(c)) {
           return false;
         }
       }
-      return pos < p_sql.length;
+      return pos < sql.length;
     }
 
-    private int getMatchedPosition(char[] p_sql, int pos) {
+    private int getMatchedPosition(char[] sql, int pos) {
       // check for the keyword
-      if (!startMatches(p_sql, pos)) {
+      if (!startMatches(sql, pos)) {
         return 0;
       }
 
       int newPos = pos + escapeKeyword.length;
 
       // check for the beginning of the value
-      char curr = p_sql[newPos];
+      char curr = sql[newPos];
       // ignore any in-between whitespace
       while (curr == ' ') {
         newPos++;
-        if (newPos >= p_sql.length) {
+        if (newPos >= sql.length) {
           return 0;
         }
-        curr = p_sql[newPos];
+        curr = sql[newPos];
       }
       for (char c : allowedValues) {
         if (curr == c || (c == '0' && Character.isLetter(curr))) {

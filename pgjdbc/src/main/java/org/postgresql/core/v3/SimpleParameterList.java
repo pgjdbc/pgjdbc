@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-
 /**
  * Parameter list for a single-statement V3 query.
  *
@@ -188,10 +187,16 @@ class SimpleParameterList implements V3ParameterList {
 
         case Oid.FLOAT4:
           float f = ByteConverter.float4((byte[]) paramValues[index], 0);
+          if (Float.isNaN(f)) {
+            return "'NaN'::real";
+          }
           return Float.toString(f);
 
         case Oid.FLOAT8:
           double d = ByteConverter.float8((byte[]) paramValues[index], 0);
+          if (Double.isNaN(d)) {
+            return "'NaN'::double precision";
+          }
           return Double.toString(d);
 
         case Oid.UUID:
@@ -245,6 +250,8 @@ class SimpleParameterList implements V3ParameterList {
         p.append("::date");
       } else if (paramType == Oid.INTERVAL) {
         p.append("::interval");
+      } else if (paramType == Oid.NUMERIC) {
+        p.append("::numeric");
       }
       return p.toString();
     }

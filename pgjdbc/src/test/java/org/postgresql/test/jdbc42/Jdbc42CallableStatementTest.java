@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
 /**
  * Tests for JDBC 4.2 features in {@link org.postgresql.jdbc.PgCallableStatement}.
  */

@@ -89,7 +89,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }
 
-  public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
+  @Override
+  public ResultSet executeQuery(String sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
@@ -102,7 +103,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    *
    * @exception SQLException if a database access error occurs
    */
-  public java.sql.ResultSet executeQuery() throws SQLException {
+  @Override
+  public ResultSet executeQuery() throws SQLException {
     if (!executeWithFlags(0)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
@@ -110,24 +112,28 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return getSingleResultSet();
   }
 
-  public int executeUpdate(String p_sql) throws SQLException {
+  @Override
+  public int executeUpdate(String sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public int executeUpdate() throws SQLException {
     executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
 
     return getNoResultUpdateCount();
   }
 
-  public boolean execute(String p_sql) throws SQLException {
+  @Override
+  public boolean execute(String sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public boolean execute() throws SQLException {
     return executeWithFlags(0);
   }
@@ -372,29 +378,29 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
     try {
-      InputStreamReader l_inStream = new InputStreamReader(x, encoding);
-      char[] l_chars = new char[length];
-      int l_charsRead = 0;
+      InputStreamReader inStream = new InputStreamReader(x, encoding);
+      char[] chars = new char[length];
+      int charsRead = 0;
       while (true) {
-        int n = l_inStream.read(l_chars, l_charsRead, length - l_charsRead);
+        int n = inStream.read(chars, charsRead, length - charsRead);
         if (n == -1) {
           break;
         }
 
-        l_charsRead += n;
+        charsRead += n;
 
-        if (l_charsRead == length) {
+        if (charsRead == length) {
           break;
         }
       }
 
-      setString(parameterIndex, new String(l_chars, 0, l_charsRead), Oid.VARCHAR);
-    } catch (UnsupportedEncodingException l_uee) {
+      setString(parameterIndex, new String(chars, 0, charsRead), Oid.VARCHAR);
+    } catch (UnsupportedEncodingException uee) {
       throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
-    } catch (IOException l_ioe) {
+          PSQLState.UNEXPECTED_ERROR, uee);
+    } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
-          l_ioe);
+          ioe);
     }
   }
 
@@ -996,12 +1002,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     preparedParameters.setStringParameter(paramIndex, s, oid);
   }
 
+  @Override
   public boolean isUseServerPrepare() {
-    return (preparedQuery != null && m_prepareThreshold != 0
-        && preparedQuery.getExecuteCount() + 1 >= m_prepareThreshold);
+    return (preparedQuery != null && mPrepareThreshold != 0
+        && preparedQuery.getExecuteCount() + 1 >= mPrepareThreshold);
   }
 
-  public void addBatch(String p_sql) throws SQLException {
+  @Override
+  public void addBatch(String sql) throws SQLException {
     checkClosed();
 
     throw new PSQLException(
@@ -1009,6 +1017,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public void addBatch() throws SQLException {
     checkClosed();
     if (batchStatements == null) {
@@ -1174,6 +1183,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setString(i, readerToString(x, length));
   }
 
+  @Override
   public void setClob(int i, Clob x) throws SQLException {
     checkClosed();
 
@@ -1182,8 +1192,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    Reader l_inStream = x.getCharacterStream();
-    int l_length = (int) x.length();
+    Reader inStream = x.getCharacterStream();
+    int length = (int) x.length();
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
@@ -1194,11 +1204,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // could be buffered, but then the OutputStream returned by LargeObject
       // is buffered internally anyhow, so there would be no performance
       // boost gained, if anything it would be worse!
-      int c = l_inStream.read();
+      int c = inStream.read();
       int p = 0;
-      while (c > -1 && p < l_length) {
+      while (c > -1 && p < length) {
         lw.write(c);
-        c = l_inStream.read();
+        c = inStream.read();
         p++;
       }
       lw.close();
@@ -1379,7 +1389,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return new PgParameterMetaData(conn, oids);
   }
 
-
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
@@ -1528,12 +1537,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // Note: in batch prepared statements batchStatements == 1, and batchParameters is equal
       // to the number of addBatch calls
       // batchParameters might be empty in case of empty batch
-      if (batchParameters != null && batchParameters.size() > 1 && m_prepareThreshold > 0) {
+      if (batchParameters != null && batchParameters.size() > 1 && mPrepareThreshold > 0) {
         // Use server-prepared statements when there's more than one statement in a batch
         // Technically speaking, it might cause to create a server-prepared statement
         // just for 2 executions even for prepareThreshold=5. That however should be
         // acceptable since prepareThreshold is a optimization kind of parameter.
-        this.preparedQuery.increaseExecuteCount(m_prepareThreshold);
+        this.preparedQuery.increaseExecuteCount(mPrepareThreshold);
       }
       return super.executeBatch();
     } finally {

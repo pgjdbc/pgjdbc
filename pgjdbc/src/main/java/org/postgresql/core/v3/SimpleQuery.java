@@ -119,7 +119,7 @@ class SimpleQuery implements Query {
   }
 
   void setPrepareTypes(int[] paramTypes) {
-    // Remember which parameters were unspecified since the parameters will be overriden later by
+    // Remember which parameters were unspecified since the parameters will be overridden later by
     // ParameterDescription message
     for (int i = 0; i < paramTypes.length; i++) {
       int paramType = paramTypes[i];
