@@ -45,7 +45,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   // this does too much as it can change buf.
   private boolean isBufAvailable() throws IOException {
-    if (curPosition >= len) {
+    if (curPosition >= 0 && curPosition >= len) {
       try {
         buf = op.readFromCopy();
       } catch (SQLException sqle) {
