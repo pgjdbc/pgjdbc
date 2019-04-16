@@ -5,6 +5,7 @@
 
 package org.postgresql.replication;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 /**
@@ -74,7 +75,7 @@ public final class LogSequenceNumber {
   public String asString() {
     ByteBuffer buf = ByteBuffer.allocate(8);
     buf.putLong(value);
-    buf.position(0);
+    ((Buffer)buf).position(0);
 
     int logicalXlog = buf.getInt();
     int segment = buf.getInt();

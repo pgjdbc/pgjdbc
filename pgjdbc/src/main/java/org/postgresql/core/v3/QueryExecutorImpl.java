@@ -1192,9 +1192,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'd': // CopyData
 
-          LOGGER.log(Level.FINEST, " <=BE CopyData");
-
           len = pgStream.receiveInteger4() - 4;
+
+          LOGGER.log(Level.FINEST, " <=BE CopyData length {0}", len );
+
           byte[] buf = pgStream.receive(len);
           if (op == null) {
             error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),

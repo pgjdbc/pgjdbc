@@ -126,18 +126,20 @@ public class VisibleBufferedInputStream extends InputStream {
       index = 0;
       endIndex = 0;
     }
-    int canFit = buffer.length - endIndex;
-    if (canFit < wanted) {
+    int roomLeft = buffer.length - endIndex;
+
+    if (roomLeft < wanted) {
+      // won't fit so lets see what we have to do to make it fit
       // would the wanted bytes fit if we compacted the buffer
       // and still leave some slack
-      if (index + canFit > wanted + MINIMUM_READ) {
+      if (index + roomLeft > wanted + MINIMUM_READ) {
         compact();
       } else {
-        doubleBuffer();
+        doubleBuffer(wanted);
       }
-      canFit = buffer.length - endIndex;
+      roomLeft = buffer.length - endIndex;
     }
-    int read = wrapped.read(buffer, endIndex, canFit);
+    int read = wrapped.read(buffer, endIndex, roomLeft);
     if (read < 0) {
       return false;
     }
@@ -146,10 +148,15 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Doubles the size of the buffer.
+   * Doubles the size of the buffer, guarantees it will be big enough to fit at least wanted bytes
+   * @param wanted minimum size required
    */
-  private void doubleBuffer() {
-    byte[] buf = new byte[buffer.length * 2];
+  private void doubleBuffer(int wanted) {
+    int bufferLength=buffer.length;
+    while(bufferLength < wanted){
+      bufferLength *= 2;
+    }
+    byte[] buf = new byte[bufferLength];
     moveBufferTo(buf);
     buffer = buf;
   }
