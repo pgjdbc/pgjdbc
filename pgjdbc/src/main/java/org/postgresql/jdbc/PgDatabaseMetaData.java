@@ -2431,7 +2431,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-
   /* lots of unsupported stuff... */
   public boolean ownUpdatesAreVisible(int type) throws SQLException {
     return true;

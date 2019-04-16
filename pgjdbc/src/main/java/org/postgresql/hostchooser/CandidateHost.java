@@ -7,7 +7,6 @@ package org.postgresql.hostchooser;
 
 import org.postgresql.util.HostSpec;
 
-
 /**
  * Candidate host to be connected.
  */

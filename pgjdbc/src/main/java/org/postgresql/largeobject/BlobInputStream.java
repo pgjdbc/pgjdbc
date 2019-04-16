@@ -111,7 +111,6 @@ public class BlobInputStream extends InputStream {
     }
   }
 
-
   /**
    * <p>Closes this input stream and releases any system resources associated with the stream.</p>
    *

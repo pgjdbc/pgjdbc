@@ -489,7 +489,6 @@ public class PGStream implements Closeable, Flushable {
     }
   }
 
-
   /**
    * Copy data from an input stream to the connection.
    *

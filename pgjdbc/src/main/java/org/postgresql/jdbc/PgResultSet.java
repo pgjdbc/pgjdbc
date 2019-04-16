@@ -667,7 +667,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getObjectImpl(findColumn(columnName), map);
   }
 
-
   /*
    * This checks against map for the type of column i, and if found returns an object based on that
    * mapping. The class must implement the SQLData interface.
@@ -709,7 +708,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     return rowOffset + currentRow + 1;
   }
-
 
   // This one needs some thought, as not all ResultSets come from a statement
   public Statement getStatement() throws SQLException {
@@ -875,7 +873,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     // have to add 1 since absolute expects a 1-based index
-    return absolute(currentRow + 1 + rows);
+    int index = currentRow + 1 + rows;
+    if (index < 0) {
+      beforeFirst();
+      return false;
+    }
+    return absolute(index);
   }
 
 

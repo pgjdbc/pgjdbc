@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-
 /**
  * Parameter list for a single-statement V3 query.
  *
@@ -251,6 +250,8 @@ class SimpleParameterList implements V3ParameterList {
         p.append("::date");
       } else if (paramType == Oid.INTERVAL) {
         p.append("::interval");
+      } else if (paramType == Oid.NUMERIC) {
+        p.append("::numeric");
       }
       return p.toString();
     }
