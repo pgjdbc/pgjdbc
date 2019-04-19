@@ -117,22 +117,22 @@ The following is an example of setting that you can make in the `logging.propert
 
 ```properties
 # Specify the handler, the handlers will be installed during VM startup.
-handlers= java.util.logging.FileHandler
+handlers = java.util.logging.FileHandler
 
 # Default global logging level.
-.level= OFF
+.level = OFF
 
-# default file output is in user's home directory.
+# Default file output is in user's home directory.
 java.util.logging.FileHandler.pattern = %h/pgjdbc%u.log
 java.util.logging.FileHandler.limit = 5000000
 java.util.logging.FileHandler.count = 20
 java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter
 java.util.logging.FileHandler.level = FINEST
 
-java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$s %2$s %5$s%6$s%n
+java.util.logging.SimpleFormatter.format = %1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$s %2$s %5$s%6$s%n
 
 # Facility specific properties.
-org.postgresql.level=FINEST
+org.postgresql.level = FINEST
 ```
 
 And when you run your application you pass the system property:
