@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
@@ -63,7 +64,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     try {
       Class.forName("org.postgresql.Driver");
     } catch (ClassNotFoundException e) {
-      throw new IllegalStateException("BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath", e);
+      throw new IllegalStateException(
+        "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
+        e);
     }
   }
 
@@ -84,7 +87,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * properties serverName, databaseName, and portNumber. The user to connect as is identified by
    * the arguments user and password, which override the DataSource properties by the same name.
    *
-   * @param user user
+   * @param user     user
    * @param password password
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
@@ -93,12 +96,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     try {
       Connection con = DriverManager.getConnection(getUrl(), user, password);
       if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
+        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}",
+            new Object[] {getDescription(), user, getUrl()});
       }
       return con;
     } catch (SQLException e) {
       LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[]{getDescription(), user, getUrl(), e});
+          new Object[] {getDescription(), user, getUrl(), e});
       throw e;
     }
   }
@@ -113,6 +117,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * This implementation don't use a LogWriter.
+   *
    * @param printWriter Not used
    */
   @Override
@@ -241,6 +246,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Set command line options for this connection
+   *
    * @param options string to set options to
    */
   public void setOptions(String options) {
@@ -1086,7 +1092,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     url.append("/").append(URLCoder.encode(databaseName));
 
     StringBuilder query = new StringBuilder(100);
-    for (PGProperty property: PGProperty.values()) {
+    for (PGProperty property : PGProperty.values()) {
       if (property.isPresent(properties)) {
         if (query.length() != 0) {
           query.append("&");
@@ -1123,7 +1129,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
     Properties p = org.postgresql.Driver.parseURL(url, null);
 
-    if (p == null ) {
+    if (p == null) {
       throw new IllegalArgumentException("URL invalid " + url);
     }
     for (PGProperty property : PGProperty.values()) {
@@ -1149,7 +1155,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       return getProperty(pgProperty);
     } else {
       throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -1159,7 +1165,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       setProperty(pgProperty, value);
     } else {
       throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -1313,6 +1319,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * see PGProperty#CLEANUP_SAVEPOINTS
+   *
    * @return boolean indicating property set
    */
   public boolean getCleanupSavepoints() {
@@ -1321,6 +1328,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * see PGProperty#CLEANUP_SAVEPOINTS
+   *
    * @param cleanupSavepoints will cleanup savepoints after a successful transaction
    */
   public void setCleanupSavepoints(boolean cleanupSavepoints) {
@@ -1348,4 +1356,121 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return Logger.getLogger("org.postgresql");
   }
   //#endif
+
+  /*
+   * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
+   * which expect normal java bean getters / setters to exist for the property names.
+   */
+
+  public boolean isSsl() {
+    return getSsl();
+  }
+
+  public String getSslfactoryarg() {
+    return getSslFactoryArg();
+  }
+
+  public void setSslfactoryarg(final String arg) {
+    setSslFactoryArg(arg);
+  }
+
+  public String getSslcert() {
+    return getSslCert();
+  }
+
+  public void setSslcert(final String file) {
+    setSslCert(file);
+  }
+
+  public String getSslmode() {
+    return getSslMode();
+  }
+
+  public void setSslmode(final String mode) {
+    setSslMode(mode);
+  }
+
+  public String getSslhostnameverifier() {
+    return getSslHostnameVerifier();
+  }
+
+  public void setSslhostnameverifier(final String className) {
+    setSslHostnameVerifier(className);
+  }
+
+  public String getSslkey() {
+    return getSslKey();
+  }
+
+  public void setSslkey(final String file) {
+    setSslKey(file);
+  }
+
+  public String getSslrootcert() {
+    return getSslRootCert();
+  }
+
+  public void setSslrootcert(final String file) {
+    setSslRootCert(file);
+  }
+
+  public String getSslpasswordcallback() {
+    return getSslPasswordCallback();
+  }
+
+  public void setSslpasswordcallback(final String className) {
+    setSslPasswordCallback(className);
+  }
+
+  public String getSslpassword() {
+    return getSslPassword();
+  }
+
+  public void setSslpassword(final String sslpassword) {
+    setSslPassword(sslpassword);
+  }
+
+  public int getRecvBufferSize() {
+    return getReceiveBufferSize();
+  }
+
+  public void setRecvBufferSize(final int nbytes) {
+    setReceiveBufferSize(nbytes);
+  }
+
+  public boolean isAllowEncodingChanges() {
+    return getAllowEncodingChanges();
+  }
+
+  public boolean isLogUnclosedConnections() {
+    return getLogUnclosedConnections();
+  }
+
+  public boolean isTcpKeepAlive() {
+    return getTcpKeepAlive();
+  }
+
+  public boolean isReadOnly() {
+    return getReadOnly();
+  }
+
+  public boolean isDisableColumnSanitiser() {
+    return getDisableColumnSanitiser();
+  }
+
+  public boolean isLoadBalanceHosts() {
+    return getLoadBalanceHosts();
+  }
+
+  public boolean isCleanupSavePoints() {
+    return getCleanupSavepoints();
+  }
+
+  public void setCleanupSavePoints(final boolean cleanupSavepoints) {
+    setCleanupSavepoints(cleanupSavepoints);
+  }
+
+  public boolean isReWriteBatchedInserts() {
+    return getReWriteBatchedInserts();
+  }
 }
