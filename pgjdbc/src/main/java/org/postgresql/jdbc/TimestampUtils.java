@@ -789,7 +789,6 @@ public class TimestampUtils {
     return sbuf.toString();
   }
 
-
   public synchronized String toString(OffsetDateTime offsetDateTime) {
     if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
       return "infinity";

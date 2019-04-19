@@ -74,7 +74,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
 
   // needed for updateable result set support
@@ -164,7 +163,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getURL(int)");
   }
-
 
   public java.net.URL getURL(String columnName) throws SQLException {
     return getURL(findColumn(columnName));
@@ -324,7 +322,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return true;
   }
 
-
   @Override
   public void afterLast() throws SQLException {
     checkScrollable();
@@ -339,7 +336,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     rowBuffer = null;
   }
 
-
   @Override
   public void beforeFirst() throws SQLException {
     checkScrollable();
@@ -352,7 +348,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     thisRow = null;
     rowBuffer = null;
   }
-
 
   @Override
   public boolean first() throws SQLException {
@@ -368,7 +363,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     return true;
   }
-
 
   @Override
   public Array getArray(String colName) throws SQLException {
@@ -397,16 +391,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return makeArray(oid, getFixedString(i));
   }
 
-
   public java.math.BigDecimal getBigDecimal(int columnIndex) throws SQLException {
     return getBigDecimal(columnIndex, -1);
   }
 
-
   public java.math.BigDecimal getBigDecimal(String columnName) throws SQLException {
     return getBigDecimal(findColumn(columnName));
   }
-
 
   public Blob getBlob(String columnName) throws SQLException {
     return getBlob(findColumn(columnName));
@@ -425,11 +416,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return makeBlob(getLong(i));
   }
 
-
   public java.io.Reader getCharacterStream(String columnName) throws SQLException {
     return getCharacterStream(findColumn(columnName));
   }
-
 
   public java.io.Reader getCharacterStream(int i) throws SQLException {
     checkResultSet(i);
@@ -446,11 +435,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return new CharArrayReader(getString(i).toCharArray());
   }
 
-
   public Clob getClob(String columnName) throws SQLException {
     return getClob(findColumn(columnName));
   }
-
 
   protected Clob makeClob(long oid) throws SQLException {
     return new PgClob(connection, oid);
@@ -469,7 +456,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     checkClosed();
     return resultsetconcurrency;
   }
-
 
   @Override
   public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException {
@@ -503,7 +489,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     return connection.getTimestampUtils().toDate(cal, getString(i));
   }
-
 
   @Override
   public Time getTime(int i, java.util.Calendar cal) throws SQLException {
@@ -569,7 +554,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return connection.getTimestampUtils().toLocalTime(string);
   }
   //#endif
-
 
   @Override
   public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException {
@@ -641,27 +625,22 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
   //#endif
 
-
   public java.sql.Date getDate(String c, java.util.Calendar cal) throws SQLException {
     return getDate(findColumn(c), cal);
   }
-
 
   public Time getTime(String c, java.util.Calendar cal) throws SQLException {
     return getTime(findColumn(c), cal);
   }
 
-
   public Timestamp getTimestamp(String c, java.util.Calendar cal) throws SQLException {
     return getTimestamp(findColumn(c), cal);
   }
-
 
   public int getFetchDirection() throws SQLException {
     checkClosed();
     return fetchdirection;
   }
-
 
   public Object getObjectImpl(String columnName, Map<String, Class<?>> map) throws SQLException {
     return getObjectImpl(findColumn(columnName), map);
@@ -679,18 +658,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
   }
 
-
   public Ref getRef(String columnName) throws SQLException {
     return getRef(findColumn(columnName));
   }
-
 
   public Ref getRef(int i) throws SQLException {
     checkClosed();
     // The backend doesn't yet have SQL3 REF types
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getRef(int)");
   }
-
 
   @Override
   public int getRow() throws SQLException {
@@ -715,12 +691,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return statement;
   }
 
-
   public int getType() throws SQLException {
     checkClosed();
     return resultsettype;
   }
-
 
   @Override
   public boolean isAfterLast() throws SQLException {
@@ -736,7 +710,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return (currentRow >= rows_size);
   }
 
-
   @Override
   public boolean isBeforeFirst() throws SQLException {
     checkClosed();
@@ -746,7 +719,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     return ((rowOffset + currentRow) < 0 && !rows.isEmpty());
   }
-
 
   @Override
   public boolean isFirst() throws SQLException {
@@ -762,7 +734,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     return ((rowOffset + currentRow) == 0);
   }
-
 
   @Override
   public boolean isLast() throws SQLException {
@@ -840,7 +811,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return true;
   }
 
-
   @Override
   public boolean previous() throws SQLException {
     checkScrollable();
@@ -862,7 +832,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return true;
   }
 
-
   @Override
   public boolean relative(int rows) throws SQLException {
     checkScrollable();
@@ -881,7 +850,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return absolute(index);
   }
 
-
   public void setFetchDirection(int direction) throws SQLException {
     checkClosed();
     switch (direction) {
@@ -899,7 +867,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.fetchdirection = direction;
   }
 
-
   public synchronized void cancelRowUpdates() throws SQLException {
     checkClosed();
     if (onInsertRow) {
@@ -913,7 +880,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       clearRowBuffer(true);
     }
   }
-
 
   public synchronized void deleteRow() throws SQLException {
     checkUpdateable();
@@ -971,7 +937,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     currentRow--;
     moveToCurrentRow();
   }
-
 
   @Override
   public synchronized void insertRow() throws SQLException {
@@ -1043,7 +1008,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-
   @Override
   public synchronized void moveToCurrentRow() throws SQLException {
     checkUpdateable();
@@ -1058,7 +1022,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     onInsertRow = false;
     doingUpdates = false;
   }
-
 
   @Override
   public synchronized void moveToInsertRow() throws SQLException {
@@ -1077,7 +1040,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   }
 
-
   private synchronized void clearRowBuffer(boolean copyCurrentRow) throws SQLException {
     // rowBuffer is the temporary storage for the row
     rowBuffer = new byte[fields.length][];
@@ -1092,24 +1054,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   }
 
-
   public boolean rowDeleted() throws SQLException {
     checkClosed();
     return false;
   }
-
 
   public boolean rowInserted() throws SQLException {
     checkClosed();
     return false;
   }
 
-
   public boolean rowUpdated() throws SQLException {
     checkClosed();
     return false;
   }
-
 
   public synchronized void updateAsciiStream(int columnIndex, java.io.InputStream x, int length)
       throws SQLException {
@@ -1143,12 +1101,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-
   public synchronized void updateBigDecimal(int columnIndex, java.math.BigDecimal x)
       throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateBinaryStream(int columnIndex, java.io.InputStream x, int length)
       throws SQLException {
@@ -1187,21 +1143,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-
   public synchronized void updateBoolean(int columnIndex, boolean x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateByte(int columnIndex, byte x) throws SQLException {
     updateValue(columnIndex, String.valueOf(x));
   }
 
-
   public synchronized void updateBytes(int columnIndex, byte[] x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateCharacterStream(int columnIndex, java.io.Reader x, int length)
       throws SQLException {
@@ -1231,31 +1183,25 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-
   public synchronized void updateDate(int columnIndex, java.sql.Date x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateDouble(int columnIndex, double x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
-
   public synchronized void updateFloat(int columnIndex, float x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateInt(int columnIndex, int x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
-
   public synchronized void updateLong(int columnIndex, long x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateNull(int columnIndex) throws SQLException {
     checkColumnIndex(columnIndex);
@@ -1263,17 +1209,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     updateValue(columnIndex, new NullObject(columnTypeName));
   }
 
-
   public synchronized void updateObject(int columnIndex, Object x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateObject(int columnIndex, Object x, int scale) throws SQLException {
     this.updateObject(columnIndex, x);
 
   }
-
 
   @Override
   public void refreshRow() throws SQLException {
@@ -1340,7 +1283,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     selectStatement = null;
 
   }
-
 
   @Override
   public synchronized void updateRow() throws SQLException {
@@ -1423,122 +1365,99 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     doingUpdates = false;
   }
 
-
   public synchronized void updateShort(int columnIndex, short x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateString(int columnIndex, String x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
-
   public synchronized void updateTime(int columnIndex, Time x) throws SQLException {
     updateValue(columnIndex, x);
   }
-
 
   public synchronized void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
     updateValue(columnIndex, x);
 
   }
 
-
   public synchronized void updateNull(String columnName) throws SQLException {
     updateNull(findColumn(columnName));
   }
-
 
   public synchronized void updateBoolean(String columnName, boolean x) throws SQLException {
     updateBoolean(findColumn(columnName), x);
   }
 
-
   public synchronized void updateByte(String columnName, byte x) throws SQLException {
     updateByte(findColumn(columnName), x);
   }
-
 
   public synchronized void updateShort(String columnName, short x) throws SQLException {
     updateShort(findColumn(columnName), x);
   }
 
-
   public synchronized void updateInt(String columnName, int x) throws SQLException {
     updateInt(findColumn(columnName), x);
   }
-
 
   public synchronized void updateLong(String columnName, long x) throws SQLException {
     updateLong(findColumn(columnName), x);
   }
 
-
   public synchronized void updateFloat(String columnName, float x) throws SQLException {
     updateFloat(findColumn(columnName), x);
   }
-
 
   public synchronized void updateDouble(String columnName, double x) throws SQLException {
     updateDouble(findColumn(columnName), x);
   }
 
-
   public synchronized void updateBigDecimal(String columnName, BigDecimal x) throws SQLException {
     updateBigDecimal(findColumn(columnName), x);
   }
-
 
   public synchronized void updateString(String columnName, String x) throws SQLException {
     updateString(findColumn(columnName), x);
   }
 
-
   public synchronized void updateBytes(String columnName, byte[] x) throws SQLException {
     updateBytes(findColumn(columnName), x);
   }
-
 
   public synchronized void updateDate(String columnName, java.sql.Date x) throws SQLException {
     updateDate(findColumn(columnName), x);
   }
 
-
   public synchronized void updateTime(String columnName, java.sql.Time x) throws SQLException {
     updateTime(findColumn(columnName), x);
   }
-
 
   public synchronized void updateTimestamp(String columnName, java.sql.Timestamp x)
       throws SQLException {
     updateTimestamp(findColumn(columnName), x);
   }
 
-
   public synchronized void updateAsciiStream(String columnName, java.io.InputStream x, int length)
       throws SQLException {
     updateAsciiStream(findColumn(columnName), x, length);
   }
-
 
   public synchronized void updateBinaryStream(String columnName, java.io.InputStream x, int length)
       throws SQLException {
     updateBinaryStream(findColumn(columnName), x, length);
   }
 
-
   public synchronized void updateCharacterStream(String columnName, java.io.Reader reader,
       int length) throws SQLException {
     updateCharacterStream(findColumn(columnName), reader, length);
   }
 
-
   public synchronized void updateObject(String columnName, Object x, int scale)
       throws SQLException {
     updateObject(findColumn(columnName), x);
   }
-
 
   public synchronized void updateObject(String columnName, Object x) throws SQLException {
     updateObject(findColumn(columnName), x);
@@ -1720,7 +1639,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-
   private void updateRowBuffer() throws SQLException {
 
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
@@ -1809,7 +1727,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       super.handleCompletion();
     }
   }
-
 
   public BaseStatement getPGStatement() {
     return statement;

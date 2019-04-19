@@ -94,7 +94,6 @@ public class CallableStmtTest extends BaseTest4 {
     super.tearDown();
   }
 
-
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
 

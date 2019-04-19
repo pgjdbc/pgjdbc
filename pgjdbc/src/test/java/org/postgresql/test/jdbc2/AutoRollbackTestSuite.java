@@ -176,7 +176,6 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     PGProperty.PREPARE_THRESHOLD.set(props, 1);
   }
 
-
   @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
@@ -220,7 +219,6 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     }
     return ids;
   }
-
 
   @Test
   public void run() throws SQLException {

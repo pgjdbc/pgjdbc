@@ -145,7 +145,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return getColumnLabel(column);
   }
 
-
   public String getBaseColumnName(int column) throws SQLException {
     Field field = getField(column);
     if (field.getTableOid() == 0) {
@@ -310,7 +309,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return getSQLType(column);
   }
 
-
   public int getFormat(int column) throws SQLException {
     return getField(column).getFormat();
   }
@@ -402,7 +400,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   protected int getSQLType(int columnIndex) throws SQLException {
     return connection.getTypeInfo().getSQLType(getField(columnIndex).getOID());
   }
-
 
   // ** JDBC 2 Extensions **
 

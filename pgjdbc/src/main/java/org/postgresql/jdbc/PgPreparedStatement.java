@@ -1401,7 +1401,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
   //#endif
 
-
   public void setRowId(int parameterIndex, RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRowId(int, RowId)");
   }

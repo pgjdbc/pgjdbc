@@ -1027,7 +1027,6 @@ public class DatabaseMetaDataTest {
     }
   }
 
-
   @Test
   public void testGetUDT2() throws Exception {
     try {

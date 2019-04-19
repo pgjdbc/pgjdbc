@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-
 @RunWith(Parameterized.class)
 public class GetObject310InfinityTests extends BaseTest4 {
   private final String expression;

@@ -871,7 +871,6 @@ public class TimestampTest extends BaseTest4 {
       getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, "GMT");
   private static final String TS4WTZ_PGFORMAT = "2000-07-07 15:00:00.123456+00";
 
-
   private static final Timestamp TS1WOTZ =
       getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, null);
   private static final String TS1WOTZ_PGFORMAT = "1950-02-07 15:00:00.1";

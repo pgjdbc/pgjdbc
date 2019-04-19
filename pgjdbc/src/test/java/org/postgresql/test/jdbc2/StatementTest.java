@@ -210,7 +210,6 @@ public class StatementTest {
     assertEquals("%found", rs.getString(1));
   }
 
-
   @Test
   public void testPreparedFunction() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT {fn concat('a', ?)}");
