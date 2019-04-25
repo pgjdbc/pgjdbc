@@ -9,12 +9,13 @@ import org.postgresql.util.GT;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 
 /**
- * UTF-8 encoder implementation which is faster than {@link String#String(byte[], int, int, Charset)}
- * particularly for short values on JDKs prior to 11.
+ * UTF-8 encoder implementation which validates values during decoding which is
+ * significantly faster than using a {@link CharsetDecoder}.
  */
-final class OptimizedUTF8Encoder extends Encoding {
+abstract class OptimizedUTF8Encoder extends Encoding {
 
   static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
 
@@ -23,26 +24,27 @@ final class OptimizedUTF8Encoder extends Encoding {
   private static final int MIN_4_BYTES = 0x10000;
   private static final int MAX_CODE_POINT = 0x10ffff;
 
-  final char[] decoderArray;
+  private final int thresholdSize = 8 * 1024;
+  private char[] decoderArray;
 
-  OptimizedUTF8Encoder(final int thresholdSize) {
+  OptimizedUTF8Encoder() {
     super(UTF_8_CHARSET, true);
-    decoderArray = new char[thresholdSize];
+    decoderArray = new char[1024];
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public final String decode(byte[] encodedString, int offset, int length) throws IOException {
-    if (length > decoderArray.length) {
-      return new String(encodedString, offset, length, UTF_8_CHARSET);
+  char[] getCharArray(int size) {
+    if (size <= decoderArray.length) {
+      return decoderArray;
     }
-    return _decode(encodedString, offset, length);
+    final char[] chars = new char[size];
+    if (size <= thresholdSize) {
+      decoderArray = new char[size];
+    }
+    return chars;
   }
 
-  private synchronized String _decode(byte[] encodedString, int offset, int length) throws IOException {
-    final char[] chars = decoderArray;
+  synchronized String charDecode(byte[] encodedString, int offset, int length) throws IOException {
+    final char[] chars = getCharArray(length);
     int out = 0;
     for (int i = offset, j = offset + length; i < j; ++i) {
       // bytes are signed values. all ascii values are positive

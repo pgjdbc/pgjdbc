@@ -85,31 +85,18 @@ public class Encoding {
     //for java 1.8 and older, use implementation optimized for char[]
     final JavaVersion runtimeVersion = JavaVersion.getRuntimeVersion();
     if (JavaVersion.v1_8.compareTo(runtimeVersion) >= 0) {
-      final int size;
-      switch(runtimeVersion) {
-        case v1_6:
-          size = 128;
-          break;
-        case v1_7:
-          size = 4096;
-          break;
-        default:
-          size = 512;
-      }
-
       UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
         @Override
         public Encoding getEncoding() {
-          return new OptimizedUTF8Encoder(size);
+          return new CharOptimizedUTF8Encoder();
         }
       };
     } else {
       //for newer versions, use default java behavior
       UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
-        final Encoding encoder = new Encoding(Charset.forName("UTF-8"), true);
         @Override
         public Encoding getEncoding() {
-          return encoder;
+          return new ByteOptimizedUTF8Encoder();
         }
       };
     }
@@ -132,7 +119,7 @@ public class Encoding {
    * @param encoding charset to use
    * @param fastASCIINumbers whether this encoding is compatible with ASCII numbers.
    */
-  Encoding(Charset encoding, boolean fastASCIINumbers) {
+  protected Encoding(Charset encoding, boolean fastASCIINumbers) {
     if (encoding == null) {
       throw new NullPointerException("Null encoding charset not supported");
     }
@@ -296,6 +283,7 @@ public class Encoding {
     return DEFAULT_ENCODING;
   }
 
+  @Override
   public String toString() {
     return encoding.name();
   }
