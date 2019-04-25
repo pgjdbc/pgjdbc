@@ -83,42 +83,56 @@ public class Encoding {
 
   static {
     //for java 1.8 and older, use implementation optimized for char[]
-    if (JavaVersion.v1_8.compareTo(JavaVersion.getRuntimeVersion()) >= 0) {
+    final JavaVersion runtimeVersion = JavaVersion.getRuntimeVersion();
+    if (JavaVersion.v1_8.compareTo(runtimeVersion) >= 0) {
+      final int size;
+      switch(runtimeVersion) {
+        case v1_6:
+          size = 128;
+          break;
+        case v1_7:
+          size = 4096;
+          break;
+        default:
+          size = 512;
+      }
+
       UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
         @Override
         public Encoding getEncoding() {
-          return new CharOptimizedUTF8Encoding();
+          return new OptimizedUTF8Encoder(size);
         }
       };
     } else {
-      //for newer versions, use implementation optimized for byte[]
+      //for newer versions, use default java behavior
       UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
+        final Encoding encoder = new Encoding(Charset.forName("UTF-8"), true);
         @Override
         public Encoding getEncoding() {
-          return new ByteOptimizedUTF8Encoding();
+          return encoder;
         }
       };
     }
   }
 
-  private final String encoding;
+  private final Charset encoding;
   private final boolean fastASCIINumbers;
 
   /**
    * Uses the default charset of the JVM.
    */
   private Encoding() {
-    this(Charset.defaultCharset().name());
+    this(Charset.defaultCharset());
   }
 
   /**
    * Subclasses may use this constructor if they know in advance of their ASCII number
    * compatibility.
    *
-   * @param encoding charset name to use
+   * @param encoding charset to use
    * @param fastASCIINumbers whether this encoding is compatible with ASCII numbers.
    */
-  protected Encoding(String encoding, boolean fastASCIINumbers) {
+  Encoding(Charset encoding, boolean fastASCIINumbers) {
     if (encoding == null) {
       throw new NullPointerException("Null encoding charset not supported");
     }
@@ -134,9 +148,9 @@ public class Encoding {
    * Use the charset passed as parameter and tests at creation time whether the specified encoding
    * is compatible with ASCII numbers.
    *
-   * @param encoding charset name to use
+   * @param encoding charset to use
    */
-  protected Encoding(String encoding) {
+  protected Encoding(Charset encoding) {
     this(encoding, testAsciiNumbers(encoding));
   }
 
@@ -162,7 +176,7 @@ public class Encoding {
       return UTF_ENCODING_PROVIDER.getEncoding();
     }
     if (Charset.isSupported(jvmEncoding)) {
-      return new Encoding(jvmEncoding);
+      return new Encoding(Charset.forName(jvmEncoding));
     }
     return DEFAULT_ENCODING;
   }
@@ -186,7 +200,7 @@ public class Encoding {
       for (String candidate : candidates) {
         LOGGER.log(Level.FINEST, "Search encoding candidate {0}", candidate);
         if (Charset.isSupported(candidate)) {
-          return new Encoding(candidate);
+          return new Encoding(Charset.forName(candidate));
         }
       }
     }
@@ -194,7 +208,7 @@ public class Encoding {
     // Try the encoding name directly -- maybe the charset has been
     // provided by the user.
     if (Charset.isSupported(databaseEncoding)) {
-      return new Encoding(databaseEncoding);
+      return new Encoding(Charset.forName(databaseEncoding));
     }
 
     // Fall back to default JVM encoding.
@@ -208,7 +222,7 @@ public class Encoding {
    * @return the JVM encoding name used by this instance.
    */
   public String name() {
-    return Charset.isSupported(encoding) ? Charset.forName(encoding).name() : encoding;
+    return encoding.name();
   }
 
   /**
@@ -283,7 +297,7 @@ public class Encoding {
   }
 
   public String toString() {
-    return encoding;
+    return encoding.name();
   }
 
   /**
@@ -292,7 +306,7 @@ public class Encoding {
    *
    * @return If faster ASCII number parsing can be used with this encoding.
    */
-  private static boolean testAsciiNumbers(String encoding) {
+  private static boolean testAsciiNumbers(Charset encoding) {
     // TODO: test all postgres supported encoding to see if there are
     // any which do _not_ have ascii numbers in same location
     // at least all the encoding listed in the encodings hashmap have

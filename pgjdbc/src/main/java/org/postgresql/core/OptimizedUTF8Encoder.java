@@ -8,42 +8,51 @@ package org.postgresql.core;
 import org.postgresql.util.GT;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
-abstract class OptimizedUTF8Encoder extends Encoding {
+/**
+ * UTF-8 encoder implementation which is faster than {@link String#String(byte[], int, int, Charset)}
+ * particularly for short values on JDKs prior to 11.
+ */
+final class OptimizedUTF8Encoder extends Encoding {
+
+  static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
 
   private static final int MIN_2_BYTES = 0x80;
   private static final int MIN_3_BYTES = 0x800;
   private static final int MIN_4_BYTES = 0x10000;
   private static final int MAX_CODE_POINT = 0x10ffff;
 
-  static final int MAX_CHAR_SIZE = 32 * 1024;
+  final char[] decoderArray;
 
-  private char[] decoderArray = new char[1024];
-
-  OptimizedUTF8Encoder() {
-    super("UTF-8", true);
+  OptimizedUTF8Encoder(final int thresholdSize) {
+    super(UTF_8_CHARSET, true);
+    decoderArray = new char[thresholdSize];
   }
 
   /**
-   * Returns a {@code char[]} to use for decoding. Will use member variable if <i>length</i>
-   * is small enough. This method must be called, and {@code char[]} only used, from
-   * {@code synchronized} block.
-   *
-   * @param length
-   *          The needed length of returned {@code char[]}.
-   * @return
-   *          A {@code char[]} at least as long as <i>length</i>.
+   * {@inheritDoc}
    */
-  char[] getChars(int length) {
-    char[] chars = decoderArray;
-    if (chars.length < length) {
-      if (chars.length <= MAX_CHAR_SIZE) {
-        chars = decoderArray = new char[length];
+  @Override
+  public final String decode(byte[] encodedString, int offset, int length) throws IOException {
+    if (length > decoderArray.length) {
+      return new String(encodedString, offset, length, UTF_8_CHARSET);
+    }
+    return _decode(encodedString, offset, length);
+  }
+
+  private synchronized String _decode(byte[] encodedString, int offset, int length) throws IOException {
+    final char[] chars = decoderArray;
+    int out = 0;
+    for (int i = offset, j = offset + length; i < j; ++i) {
+      // bytes are signed values. all ascii values are positive
+      if (encodedString[i] >= 0) {
+        chars[out++] = (char) encodedString[i];
       } else {
-        chars = new char[length];
+        return decodeToChars(encodedString, i, j - i, chars, out);
       }
     }
-    return chars;
+    return new String(chars, 0, out);
   }
 
   /**

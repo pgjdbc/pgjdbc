@@ -76,10 +76,9 @@ public class UTF8EncodingTest {
     }
 
     final List<Object[]> data = new ArrayList<Object[]>(strings.size() * 2);
-    for (Encoding encoding : Arrays.asList(new CharOptimizedUTF8Encoding(), new ByteOptimizedUTF8Encoding())) {
-      for (String string : strings) {
-        data.add(new Object[] {encoding, string});
-      }
+    final Encoding encoding = new OptimizedUTF8Encoder(128 * 1024);
+    for (String string : strings) {
+      data.add(new Object[] { encoding, string });
     }
     return data;
   }
