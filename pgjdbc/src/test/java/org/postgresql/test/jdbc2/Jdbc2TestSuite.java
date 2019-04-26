@@ -123,7 +123,7 @@ import org.junit.runners.Suite;
         ServerErrorTest.class,
         UpsertTest.class,
         OuterJoinSyntaxTest.class,
-        ParameterStatusTest.class
+        ParameterStatusTest.class,
 })
 public class Jdbc2TestSuite {
 }
