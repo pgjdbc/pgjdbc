@@ -10,8 +10,8 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    LibPQFactoryHostNameTest.class,
     CommonNameVerifierTest.class,
+    LibPQFactoryHostNameTest.class,
     SslTest.class,
 })
 public class SslTestSuite {
