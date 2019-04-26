@@ -24,7 +24,8 @@ import org.junit.runners.Suite;
     Jdbc3BlobTest.class,
     DatabaseMetaDataTest.class,
     SendRecvBufferSizeTest.class,
-    StringTypeParameterTest.class})
+    StringTypeParameterTest.class,
+})
 public class Jdbc3TestSuite {
 
 }
