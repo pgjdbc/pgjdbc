@@ -27,7 +27,8 @@ import java.sql.Statement;
     PhysicalReplicationTest.class,
     LogicalReplicationStatusTest.class,
     ReplicationConnectionTest.class,
-    ReplicationSlotTest.class})
+    ReplicationSlotTest.class,
+})
 public class ReplicationTestSuite {
 
   @BeforeClass
