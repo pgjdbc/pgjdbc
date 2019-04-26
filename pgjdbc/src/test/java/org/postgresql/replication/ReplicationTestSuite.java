@@ -22,10 +22,10 @@ import java.sql.Statement;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     CopyBothResponseTest.class,
+    LogicalReplicationStatusTest.class,
     LogicalReplicationTest.class,
     LogSequenceNumberTest.class,
     PhysicalReplicationTest.class,
-    LogicalReplicationStatusTest.class,
     ReplicationConnectionTest.class,
     ReplicationSlotTest.class,
 })
