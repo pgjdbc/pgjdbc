@@ -1055,6 +1055,10 @@ public class Parser {
 
     String prefix = "select * from ";
     String suffix = " as result";
+    if (serverVersion >= 110000) {
+        prefix = "call ";
+        suffix = "";
+    }
 
     String s = jdbcSql.substring(startIndex, endIndex);
     int prefixLength = prefix.length();
@@ -1093,7 +1097,11 @@ public class Parser {
       }
     }
 
-    sql = sb.append(suffix).toString();
+    if (!suffix.isEmpty())
+       sql = sb.append(suffix).toString();
+    else
+       sql = sb.toString();
+
     return new JdbcCallParseInfo(sql, isFunction);
   }
 
