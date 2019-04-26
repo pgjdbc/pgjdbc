@@ -21,6 +21,8 @@ import org.junit.runners.Suite;
     ClientInfoTest.class,
     DatabaseMetaDataTest.class,
     IsValidTest.class,
+    JsonbTest.class,
+    LogTest.class,
     PGCopyInputStreamTest.class,
     UUIDTest.class,
     WrapperTest.class,

@@ -61,6 +61,7 @@ import org.junit.runners.Suite;
     EncodingTest.class,
     ExpressionPropertiesTest.class,
     GeometricTest.class,
+    GetXXXTest.class,
     HostSpecTest.class,
     IntervalTest.class,
     JavaVersionTest.class,

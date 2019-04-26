@@ -14,6 +14,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     CompositeQueryParseTest.class,
+    CompositeTest.class,
     DatabaseMetaDataTest.class,
     GeneratedKeysTest.class,
     Jdbc3BlobTest.class,
