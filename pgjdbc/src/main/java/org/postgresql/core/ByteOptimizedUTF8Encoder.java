@@ -37,12 +37,8 @@ final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
   }
 
   /**
-   * @param encodedString
-   * @param offset
-   * @param length
-   * @param i
-   * @return
-   * @throws IOException
+   * Decodes to {@code char[]} in presence of non-ascii values after first copying all known ascii chars directly
+   * from {@code byte[]} to {@code char[]}.
    */
   private synchronized String slowDecode(byte[] encodedString, int offset, int length, int curIdx) throws IOException {
     final char[] chars = getCharArray(length);

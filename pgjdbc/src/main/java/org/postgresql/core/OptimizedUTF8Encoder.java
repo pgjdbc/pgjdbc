@@ -32,6 +32,16 @@ abstract class OptimizedUTF8Encoder extends Encoding {
     decoderArray = new char[1024];
   }
 
+  /**
+   * Returns a {@code char[]} to use for decoding. Will use member variable if <i>size</i>
+   * is small enough. This method must be called, and returned {@code char[]} only used, from
+   * {@code synchronized} block.
+   *
+   * @param size
+   *          The needed size of returned {@code char[]}.
+   * @return
+   *          A {@code char[]} at least as long as <i>length</i>.
+   */
   char[] getCharArray(int size) {
     if (size <= decoderArray.length) {
       return decoderArray;
@@ -43,6 +53,9 @@ abstract class OptimizedUTF8Encoder extends Encoding {
     return chars;
   }
 
+  /**
+   * Decodes binary content to {@code String} by first converting to {@code char[]}.
+   */
   synchronized String charDecode(byte[] encodedString, int offset, int length) throws IOException {
     final char[] chars = getCharArray(length);
     int out = 0;
