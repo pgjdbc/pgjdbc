@@ -56,7 +56,7 @@ class MultiHostChooser implements HostChooser {
   }
 
   private Iterator<CandidateHost> candidateIterator() {
-    if (targetServerType != HostRequirement.preferSecondary && targetServerType != HostRequirement.preferMaster) {
+    if (targetServerType != HostRequirement.preferSecondary && targetServerType != HostRequirement.preferPrimary) {
       return getCandidateHosts(targetServerType).iterator();
     }
 
@@ -66,7 +66,7 @@ class MultiHostChooser implements HostChooser {
     } else {
       preferredTargetServerType = HostRequirement.master;
     }
-    // preferSecondary and preferMaster try to find secondary/master hosts first
+    // preferSecondary and preferPrimary try to find secondary/master hosts first
     // Note: sort does not work here since there are "unknown" hosts,
     // and that "unknown" might turn out to be unwanted master/secondary, so we should discard that
     // if other secondaries/masters exist

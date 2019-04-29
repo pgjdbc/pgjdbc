@@ -24,7 +24,7 @@ public enum HostRequirement {
       return status == HostStatus.Secondary || status == HostStatus.ConnectOK;
     }
   },
-  preferMaster {
+  preferPrimary {
     public boolean allowConnectingTo(HostStatus status) {
       return status != HostStatus.ConnectFail;
     }
