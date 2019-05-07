@@ -182,6 +182,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   boolean isReWriteBatchedInsertsEnabled();
 
+  boolean isReWriteCallProcedureEnabled();
+
   CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
       String... columnNames)
       throws SQLException;

@@ -1351,6 +1351,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
   }
 
+  public boolean getReWriteCallProcedure() {
+    return PGProperty.REWRITE_CALL_PROCEDURE.getBoolean(properties);
+  }
+
+  public void setReWriteCallProcedure(boolean reWrite) {
+    PGProperty.REWRITE_CALL_PROCEDURE.set(properties, reWrite);
+  }
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");

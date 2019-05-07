@@ -136,17 +136,17 @@ public class ParserTest {
 
   @Test
   public void testModifyJdbcCall() throws SQLException {
-    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from pack_getValue(?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
-    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v9_6.getVersionNum(), 3, false).getSql());
+    assertEquals("select * from pack_getValue(?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v9_6.getVersionNum(), 3, false).getSql());
+    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v9_6.getVersionNum(), 3, false).getSql());
+    assertEquals("select * from pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v9_6.getVersionNum(), 3, false).getSql());
+    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(), 3, false).getSql());
 
-    assertEquals("call pack_getValue(?)", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v11.getVersionNum(), 3).getSql());
-    assertEquals("call pack_getValue(?,?) ", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v11.getVersionNum(), 3).getSql());
-    assertEquals("call pack_getValue(?)", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v11.getVersionNum(), 3).getSql());
-    assertEquals("call pack_getValue(?,?,?,?) ", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v11.getVersionNum(), 3).getSql());
-    assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v11.getVersionNum(), 3).getSql());
+    assertEquals("call pack_getValue(?)", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v11.getVersionNum(), 3, false).getSql());
+    assertEquals("call pack_getValue(?,?) ", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v11.getVersionNum(), 3, false).getSql());
+    assertEquals("call pack_getValue(?)", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v11.getVersionNum(), 3, false).getSql());
+    assertEquals("call pack_getValue(?,?,?,?) ", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v11.getVersionNum(), 3, false).getSql());
+    assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v11.getVersionNum(), 3, false).getSql());
   }
 
   @Test

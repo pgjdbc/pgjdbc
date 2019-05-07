@@ -38,6 +38,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private int serverVersionNum = 0;
   private TransactionState transactionState;
   private final boolean reWriteBatchedInserts;
+  private final boolean reWriteCallProcedure;
   private final boolean columnSanitiserDisabled;
   private final PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
@@ -59,6 +60,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.database = database;
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
+    this.reWriteCallProcedure = PGProperty.REWRITE_CALL_PROCEDURE.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
     String preferMode = PGProperty.PREFER_QUERY_MODE.get(info);
     this.preferQueryMode = PreferQueryMode.of(preferMode);
@@ -264,6 +266,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public boolean isReWriteBatchedInsertsEnabled() {
     return this.reWriteBatchedInserts;
+  }
+
+  @Override
+  public boolean isReWriteCallProcedureEnabled() {
+    return this.reWriteCallProcedure;
   }
 
   @Override

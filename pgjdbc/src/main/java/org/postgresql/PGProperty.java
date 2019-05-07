@@ -437,7 +437,10 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+
+  REWRITE_CALL_PROCEDURE("reWriteCallProcedure", "true",
+      "Enable rewriting CALL statetements written in function-call syntax.");
 
   private final String name;
   private final String defaultValue;

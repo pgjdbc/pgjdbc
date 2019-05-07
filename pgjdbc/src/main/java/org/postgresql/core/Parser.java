@@ -902,7 +902,7 @@ public class Parser {
    * @throws SQLException if given SQL is malformed
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
-      int serverVersion, int protocolVersion) throws SQLException {
+      int serverVersion, int protocolVersion, boolean reWriteCallProcedure) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1056,8 +1056,8 @@ public class Parser {
     String prefix = "select * from ";
     String suffix = " as result";
     if (serverVersion >= 110000) {
-        prefix = "call ";
-        suffix = "";
+      prefix = "call ";
+      suffix = "";
     }
 
     String s = jdbcSql.substring(startIndex, endIndex);
@@ -1097,11 +1097,11 @@ public class Parser {
       }
     }
 
-    if (!suffix.isEmpty())
-       sql = sb.append(suffix).toString();
-    else
-       sql = sb.toString();
-
+    if (!suffix.isEmpty()) {
+      sql = sb.append(suffix).toString();
+    } else {
+      sql = sb.toString();
+    }
     return new JdbcCallParseInfo(sql, isFunction);
   }
 
