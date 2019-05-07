@@ -5,8 +5,10 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.CachedQueryCreateActionTest;
 import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
+
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
@@ -122,7 +124,9 @@ import org.junit.runners.Suite;
         CopyLargeFileTest.class,
         ServerErrorTest.class,
         UpsertTest.class,
-        OuterJoinSyntaxTest.class
+        OuterJoinSyntaxTest.class,
+
+        CachedQueryCreateActionTest.class
 })
 public class Jdbc2TestSuite {
 }
