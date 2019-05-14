@@ -5,10 +5,16 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -215,6 +221,90 @@ public class SchemaTest {
     assertColType(ps, "sptest should point to schema2.sptest, thus column type should be VARCHAR",
         Types.VARCHAR);
     ps.close();
+  }
+
+  @Test
+  public void testCurrentSchemaPropertyVisibilityTableDuringFunctionCreation() throws SQLException {
+    Properties properties = new Properties();
+    properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema1,schema2");
+    Connection connection = TestUtil.openDB(properties);
+
+    TestUtil.execute("create table schema1.check_table (test_col text)", connection);
+    TestUtil.execute("insert into schema1.check_table (test_col) values ('test_value')", connection);
+    TestUtil.execute("create or replace function schema2.check_fun () returns text as $$"
+        + " select test_col from check_table"
+        + "$$ language sql immutable", connection);
+    connection.close();
+  }
+
+  @Test
+  public void testCurrentSchemaPropertyNotVisibilityTableDuringFunctionCreation() throws SQLException {
+    Properties properties = new Properties();
+    properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema2");
+
+    try (Connection connection = TestUtil.openDB(properties)) {
+      TestUtil.execute("create table schema1.check_table (test_col text)", connection);
+      TestUtil.execute("insert into schema1.check_table (test_col) values ('test_value')", connection);
+      TestUtil.execute("create or replace function schema2.check_fun (txt text) returns text as $$"
+          + " select test_col from check_table"
+          + "$$ language sql immutable", connection);
+    } catch (PSQLException e) {
+      String sqlState = e.getSQLState();
+      String message = e.getMessage();
+      assertThat("Test creates function in schema 'schema2' and this function try use table \"check_table\" "
+            + "from schema 'schema1'. We expect here sql error code - "
+            + PSQLState.UNDEFINED_TABLE + ", because search_path does not contains schema 'schema1' and "
+            + "postgres does not see table \"check_table\"",
+            sqlState,
+            equalTo(PSQLState.UNDEFINED_TABLE.getState())
+      );
+      assertThat(
+          "Test creates function in schema 'schema2' and this function try use table \"check_table\" "
+              + "from schema 'schema1'. We expect here that sql error message will be contains \"check_table\", "
+              + "because search_path does not contains schema 'schema1' and postgres does not see "
+              + "table \"check_table\"",
+            message,
+            containsString("\"check_table\"")
+      );
+    }
+  }
+
+  @Test
+  public void testCurrentSchemaPropertyVisibilityFunction() throws SQLException {
+    testCurrentSchemaPropertyVisibilityTableDuringFunctionCreation();
+    Properties properties = new Properties();
+    properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema1,schema2");
+    Connection connection = TestUtil.openDB(properties);
+
+    TestUtil.execute("select check_fun()", connection);
+    connection.close();
+  }
+
+  @Test
+  public void testCurrentSchemaPropertyNotVisibilityTableInsideFunction() throws SQLException {
+    testCurrentSchemaPropertyVisibilityTableDuringFunctionCreation();
+    Properties properties = new Properties();
+    properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema2");
+
+    try (Connection connection = TestUtil.openDB(properties)) {
+      TestUtil.execute("select check_fun()", connection);
+    } catch (PSQLException e) {
+      String sqlState = e.getSQLState();
+      String message = e.getMessage();
+      assertThat("Test call function in schema 'schema2' and this function uses table \"check_table\" "
+            + "from schema 'schema1'. We expect here sql error code - " + PSQLState.UNDEFINED_TABLE + ", "
+            + "because search_path does not contains schema 'schema1' and postgres does not see table \"check_table\".",
+            sqlState,
+            equalTo(PSQLState.UNDEFINED_TABLE.getState())
+      );
+      assertThat(
+          "Test call function in schema 'schema2' and this function uses table \"check_table\" "
+              + "from schema 'schema1'. We expect here that sql error message will be contains \"check_table\", because "
+              + " search_path does not contains schema 'schema1' and postgres does not see table \"check_table\"",
+          message,
+          containsString("\"check_table\"")
+      );
+    }
   }
 
   private void assertColType(PreparedStatement ps, String message, int expected) throws SQLException {

@@ -411,7 +411,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **currentSchema** = String
 
-	Specify the schema to be set in the search-path. 
+	Specify the schema (or several schema separated by commas) to be set in the search-path. 
 	This schema will be used to resolve unqualified object names used in statements over this connection.
 
 * **targetServerType** = String
