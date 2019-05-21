@@ -152,7 +152,9 @@ public class VisibleBufferedInputStream extends InputStream {
    * @param wanted minimum size required
    */
   private void doubleBuffer(int wanted) {
-    int bufferLength = buffer.length;
+
+    int bufferLength = buffer.length*2;
+
     while (bufferLength < wanted) {
       bufferLength *= 2;
     }
