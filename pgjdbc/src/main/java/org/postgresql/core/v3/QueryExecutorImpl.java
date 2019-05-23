@@ -2413,7 +2413,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    int msgSize = pgStream.receiveInteger4();
+    pgStream.receiveInteger4(); // MESSAGE SIZE
     int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
@@ -2440,7 +2440,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int msglen = pgStream.receiveInteger4();
+    pgStream.receiveInteger4(); // MESSAGE SIZE
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveString();
     String param = pgStream.receiveString();
@@ -2611,7 +2611,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    int len = pgStream.receiveInteger4();
+    pgStream.receiveInteger4(); // MESSAGE SIZE
     String name = pgStream.receiveString();
     String value = pgStream.receiveString();
 
