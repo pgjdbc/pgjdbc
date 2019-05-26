@@ -13,6 +13,7 @@ import org.postgresql.util.PSQLState;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * InputStream for reading from a PostgreSQL COPY TO STDOUT operation.
@@ -88,32 +89,36 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public int read(byte[] dest, int off, int siz) throws IOException {
     checkClosed();
-    int bytesRead = 0;
-    boolean didReadSomething = false;
-    while (bytesRead < siz && (didReadSomething = isBufAvailable())) {
-      dest[off + bytesRead++] = this.bytes[curPosition++];
+    if (siz == 0) {
+      return 0;
     }
-    // need to check both. In the loop above on the first iteration
-    // bytesRead==0 and didReadSomething=false indicates -1
-    return bytesRead == 0 && !didReadSomething ? -1 : bytesRead;
+    int bytesRead = 0;
+    while (bytesRead < siz && isBufAvailable()) {
+      //we want to copy lesser of remaining requested or available in the buffer
+      final int toCopy = Math.min(siz - bytesRead, len - curPosition);
+      System.arraycopy(this.bytes, curPosition, bytes, off + bytesRead, toCopy);
+      bytesRead += toCopy;
+      curPosition += toCopy;
+    }
+    //since we check size first, bytesRead being 0 means we have reached end of stream
+    return bytesRead > 0 ? bytesRead : -1;
   }
 
   public byte[] readFromCopy() throws SQLException {
-    byte[] result = bytes;
+    final byte[] result;
     try {
       if (isBufAvailable()) {
-        if (curPosition > 0 || len < bytes.length) {
-          byte[] ba = new byte[len - curPosition];
-          for (int i = curPosition; i < len; i++) {
-            ba[i - curPosition] = bytes[i];
-          }
-          result = ba;
+        // if the entirety of current buffer is available, just hand back reference to it
+        if (curPosition == 0 && len == bytes.length) {
+          result = bytes;
+        } else {
+          result = Arrays.copyOfRange(bytes, curPosition, len);
         }
-        curPosition = len; // either partly or fully returned, buffer is exhausted
+        //either way, we have completely used up the buffer
+        curPosition = len;
       } else {
         result = null;
       }
-
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Read from copy failed."), PSQLState.CONNECTION_FAILURE);
     }
