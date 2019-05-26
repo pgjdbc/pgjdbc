@@ -47,7 +47,7 @@ public class PGStream implements Closeable, Flushable {
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
   // so we perform "1ms reads" once in a while
-  private int minStreamAvailableCheckDelay = 1000000;
+  private int minStreamAvailableCheckDelay = 1000000000;
 
   private Encoding encoding;
   private Writer encodingWriter;
