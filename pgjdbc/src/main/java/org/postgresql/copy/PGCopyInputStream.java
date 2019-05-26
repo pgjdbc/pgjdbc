@@ -13,13 +13,14 @@ import org.postgresql.util.PSQLState;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * InputStream for reading from a PostgreSQL COPY TO STDOUT operation.
  */
 public class PGCopyInputStream extends InputStream implements CopyOut {
   private CopyOut op;
-  private byte[] buf;
+  private byte[] bytes;
   private int curPosition;
   private int len;
 
@@ -43,26 +44,26 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     this.op = op;
   }
 
-  // this does too much as it can change buf.
+  // this does too much as it can change bytes.
   private boolean isBufAvailable() throws IOException {
     if (curPosition >= 0 && curPosition >= len) {
       try {
-        buf = op.readFromCopy();
+        bytes = op.readFromCopy();
       } catch (SQLException sqle) {
         throw new IOException(GT.tr("Copying from database failed: {0}", sqle));
       }
-      if (buf == null) {
+      if (bytes == null) {
         // make sure the test above will be true next time around
         curPosition = -1;
         len = -1;
         return false;
       } else {
         curPosition = 0;
-        len = buf.length;
+        len = bytes.length;
         return true;
       }
     }
-    return buf != null;
+    return curPosition != len ;
   }
 
   private void checkClosed() throws IOException {
@@ -74,24 +75,27 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public int available() throws IOException {
     checkClosed();
-    return (buf != null ? len - curPosition : 0);
+    return (bytes != null ? len - curPosition : 0);
   }
 
   public int read() throws IOException {
     checkClosed();
-    return isBufAvailable() ? (buf[curPosition++] & 0xFF)  : -1;
+    return isBufAvailable() ? (bytes[curPosition++] & 0xFF)  : -1;
   }
 
-  public int read(byte[] buf) throws IOException {
-    return read(buf, 0, buf.length);
+  public int read(byte[] dest) throws IOException {
+    return read(dest, 0, dest.length);
   }
 
-  public int read(byte[] buf, int off, int siz) throws IOException {
+  public int read(byte[] dest, int off, int siz) throws IOException {
     checkClosed();
+    if (siz == 0) {
+      return 0;
+    }
     int bytesRead = 0;
     boolean didReadSomething = false;
     while (bytesRead < siz && (didReadSomething = isBufAvailable())) {
-      buf[off + bytesRead++] = this.buf[curPosition++];
+      dest[off + bytesRead++] = this.bytes[curPosition++];
     }
     // need to check both. In the loop above on the first iteration
     // bytesRead==0 and didReadSomething=false indicates -1
@@ -99,15 +103,11 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   }
 
   public byte[] readFromCopy() throws SQLException {
-    byte[] result = buf;
+    byte[] result = bytes;
     try {
       if (isBufAvailable()) {
-        if (curPosition > 0 || len < buf.length) {
-          byte[] ba = new byte[len - curPosition];
-          for (int i = curPosition; i < len; i++) {
-            ba[i - curPosition] = buf[i];
-          }
-          result = ba;
+        if (curPosition > 0 || len < bytes.length) {
+          result = Arrays.copyOfRange(bytes,curPosition,len);
         }
         curPosition = len; // either partly or fully returned, buffer is exhausted
       } else {
