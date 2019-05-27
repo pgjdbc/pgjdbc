@@ -153,12 +153,9 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   private void doubleBuffer(int wanted) {
 
-    int bufferLength = buffer.length * 2;
-
-    while (bufferLength < wanted) {
-      bufferLength *= 2;
-    }
-    byte[] buf = new byte[bufferLength];
+    //find power of 2 less than wanted (i.e. highest bit) and then shift left 1 bit
+    final int bufferLength = Integer.highestOneBit(wanted) << 1;
+    final byte[] buf = new byte[bufferLength];
     moveBufferTo(buf);
     buffer = buf;
   }

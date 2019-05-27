@@ -96,7 +96,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     while (bytesRead < siz && isBufAvailable()) {
       //we want to copy lesser of remaining requested or available in the buffer
       final int toCopy = Math.min(siz - bytesRead, len - curPosition);
-      System.arraycopy(this.bytes, curPosition, bytes, off + bytesRead, toCopy);
+      System.arraycopy(this.bytes, curPosition, dest, off + bytesRead, toCopy);
       bytesRead += toCopy;
       curPosition += toCopy;
     }
