@@ -13,14 +13,15 @@ import org.postgresql.util.PSQLState;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * InputStream for reading from a PostgreSQL COPY TO STDOUT operation.
  */
 public class PGCopyInputStream extends InputStream implements CopyOut {
   private CopyOut op;
-  private byte[] buf;
-  private int at;
+  private byte[] bytes;
+  private int curPosition;
   private int len;
 
   /**
@@ -43,23 +44,26 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     this.op = op;
   }
 
-  private boolean gotBuf() throws IOException {
-    if (at >= len) {
+  // this does too much as it can change bytes.
+  private boolean isBufAvailable() throws IOException {
+    if (curPosition >= 0 && curPosition >= len) {
       try {
-        buf = op.readFromCopy();
+        bytes = op.readFromCopy();
       } catch (SQLException sqle) {
         throw new IOException(GT.tr("Copying from database failed: {0}", sqle));
       }
-      if (buf == null) {
-        at = -1;
+      if (bytes == null) {
+        // make sure the test above will be true next time around
+        curPosition = -1;
+        len = -1;
         return false;
       } else {
-        at = 0;
-        len = buf.length;
+        curPosition = 0;
+        len = bytes.length;
         return true;
       }
     }
-    return buf != null;
+    return bytes != null;
   }
 
   private void checkClosed() throws IOException {
@@ -70,40 +74,49 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public int available() throws IOException {
     checkClosed();
-    return (buf != null ? len - at : 0);
+    return (bytes != null ? len - curPosition : 0);
   }
 
   public int read() throws IOException {
     checkClosed();
-    return gotBuf() ? (buf[at++] & 0xFF)  : -1;
+    return isBufAvailable() ? (bytes[curPosition++] & 0xFF)  : -1;
   }
 
-  public int read(byte[] buf) throws IOException {
-    return read(buf, 0, buf.length);
+  public int read(byte[] dest) throws IOException {
+    return read(dest, 0, dest.length);
   }
 
-  public int read(byte[] buf, int off, int siz) throws IOException {
+  public int read(byte[] dest, int off, int siz) throws IOException {
     checkClosed();
-    int got = 0;
-    boolean didReadSomething = false;
-    while (got < siz && (didReadSomething = gotBuf())) {
-      buf[off + got++] = this.buf[at++];
+    if (siz == 0) {
+      return 0;
     }
-    return got == 0 && !didReadSomething ? -1 : got;
+    int bytesRead = 0;
+    while (bytesRead < siz && isBufAvailable()) {
+      //we want to copy lesser of remaining requested or available in the buffer
+      final int toCopy = Math.min(siz - bytesRead, len - curPosition);
+      System.arraycopy(this.bytes, curPosition, dest, off + bytesRead, toCopy);
+      bytesRead += toCopy;
+      curPosition += toCopy;
+    }
+    //since we check size first, bytesRead being 0 means we have reached end of stream
+    return bytesRead > 0 ? bytesRead : -1;
   }
 
   public byte[] readFromCopy() throws SQLException {
-    byte[] result = buf;
+    final byte[] result;
     try {
-      if (gotBuf()) {
-        if (at > 0 || len < buf.length) {
-          byte[] ba = new byte[len - at];
-          for (int i = at; i < len; i++) {
-            ba[i - at] = buf[i];
-          }
-          result = ba;
+      if (isBufAvailable()) {
+        // if the entirety of current buffer is available, just hand back reference to it
+        if (curPosition == 0 && len == bytes.length) {
+          result = bytes;
+        } else {
+          result = Arrays.copyOfRange(bytes, curPosition, len);
         }
-        at = len; // either partly or fully returned, buffer is exhausted
+        //either way, we have completely used up the buffer
+        curPosition = len;
+      } else {
+        result = null;
       }
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Read from copy failed."), PSQLState.CONNECTION_FAILURE);

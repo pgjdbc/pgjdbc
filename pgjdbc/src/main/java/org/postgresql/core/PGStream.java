@@ -47,7 +47,7 @@ public class PGStream implements Closeable, Flushable {
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
   // so we perform "1ms reads" once in a while
-  private int minStreamAvailableCheckDelay = 1000;
+  private int minStreamAvailableCheckDelay = 1000000000;
 
   private Encoding encoding;
   private Writer encodingWriter;
@@ -115,11 +115,12 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public boolean hasMessagePending() throws IOException {
+    long now = System.nanoTime();
     if (pgInput.available() > 0) {
+      nextStreamAvailableCheckTime = now + minStreamAvailableCheckDelay;
       return true;
     }
     // In certain cases, available returns 0, yet there are bytes
-    long now = System.currentTimeMillis();
     if (now < nextStreamAvailableCheckTime && minStreamAvailableCheckDelay != 0) {
       // Do not use ".peek" too often
       return false;
