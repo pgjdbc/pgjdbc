@@ -511,7 +511,7 @@ public class TimestampUtils {
     }
 
     // 2) Truncate date part so in given time zone the date would be formatted as 01/01/1970
-    return convertToTime(timeMillis, useCal == null ? null : useCal.getTimeZone());
+    return convertToTime(timeMillis, useCal.getTimeZone());
   }
 
   public synchronized Date toDate(Calendar cal, String s) throws SQLException {
@@ -1362,7 +1362,7 @@ public class TimestampUtils {
         int years = (int) ((secs + 15773356800L) / -3155823050L);
         years++;
         years -= years / 4;
-        secs += years * 86400;
+        secs += years * 86400L;
       }
     }
 

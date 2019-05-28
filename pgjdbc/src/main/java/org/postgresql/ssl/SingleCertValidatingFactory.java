@@ -142,7 +142,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
     }
   }
 
-  public class SingleCertTrustManager implements X509TrustManager {
+  public static class SingleCertTrustManager implements X509TrustManager {
     X509Certificate cert;
     X509TrustManager trustManager;
 
