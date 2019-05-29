@@ -573,7 +573,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       if (state != State.IDLE
           || conn.getTransactionState() != TransactionState.IDLE) {
         throw new PGXAException(
-            GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}", xid, currentXid, state, conn.getTransactionState()),
+            GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}", xid, currentXid, state, conn.getTransactionState()),
             XAException.XAER_RMERR);
       }
 
