@@ -915,9 +915,6 @@ public class PgArray implements java.sql.Array {
       } catch (SQLException e) {
         fieldString = "NULL"; // punt
       }
-    } else {
-      // avoid returning null
-      fieldString = "NULL";
     }
     return fieldString;
   }
