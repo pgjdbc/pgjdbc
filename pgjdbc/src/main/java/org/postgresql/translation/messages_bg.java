@@ -188,8 +188,8 @@ public class messages_bg extends java.util.ResourceBundle {
     t[363] = "Времето за осъществяване на връзката изтече (таймаут).";
     t[364] = "Expected command status BEGIN, got {0}.";
     t[365] = "Очаквана команда BEGIN, получена {0}.";
-    t[366] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[367] = "Невъзможна комбинация: втората фаза на commit задължително трябва да бъде издадена при свободна връзка. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
+    t[366] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[367] = "Невъзможна комбинация: втората фаза на commit задължително трябва да бъде издадена при свободна връзка. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[372] = "This copy stream is closed.";
     t[373] = "Потока за копиране на данните е затворен.";
     t[376] = "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.";

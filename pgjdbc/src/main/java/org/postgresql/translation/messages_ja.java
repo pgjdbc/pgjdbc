@@ -312,8 +312,8 @@ public class messages_ja extends java.util.ResourceBundle {
     t[761] = "不正な server-first-message: {0}";
     t[762] = "No value specified for parameter {0}.";
     t[763] = "パラメータ {0} に値が設定されてません。";
-    t[764] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[765] = "実装されていません: 第二フェーズの COMMIT は、待機接続で使わなくてはなりません。xid={0}, currentXid={1}, state={2], transactionState={3}";
+    t[764] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[765] = "実装されていません: 第二フェーズの COMMIT は、待機接続で使わなくてはなりません。xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[766] = "Fastpath call {0} - No result was returned and we expected an integer.";
     t[767] = "Fastpath 呼び出し {0} - integer を想定していましたが、結果は返却されませんでした。";
     t[774] = "Unable to create StAXResult for SQLXML";
