@@ -186,8 +186,8 @@ public class messages_pt_BR extends java.util.ResourceBundle {
     t[443] = "Zero bytes não podem ocorrer em parâmetros de cadeia de caracteres.";
     t[444] = "A result was returned when none was expected.";
     t[445] = "Um resultado foi retornado quando nenhum era esperado.";
-    t[446] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[447] = "Não está implementado: efetivação da segunda fase deve ser executada utilizado uma conexão ociosa. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
+    t[446] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[447] = "Não está implementado: efetivação da segunda fase deve ser executada utilizado uma conexão ociosa. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[450] = "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details.";
     t[451] = "ResultSet não é atualizável. A consulta que gerou esse conjunto de resultados deve selecionar somente uma tabela, e deve selecionar todas as chaves primárias daquela tabela. Veja a especificação na API do JDBC 2.1, seção 5.6 para obter mais detalhes.";
     t[454] = "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.";

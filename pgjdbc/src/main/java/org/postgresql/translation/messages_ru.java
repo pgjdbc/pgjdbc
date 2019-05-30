@@ -74,8 +74,8 @@ public class messages_ru extends java.util.ResourceBundle {
     t[147] = "Неожиданный статус команды COPY: {0}";
     t[148] = "Connection has been closed.";
     t[149] = "Это соединение уже было закрыто";
-    t[150] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[151] = "Духфазная фиксация работает только, если соединение неактивно (state=idle и транзакцция отсутствует). commit xid={0}, currentXid={1}, state={2], transactionState={3}";
+    t[150] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[151] = "Духфазная фиксация работает только, если соединение неактивно (state=idle и транзакцция отсутствует). commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[160] = "The SSLSocketFactory class provided {0} could not be instantiated.";
     t[161] = "Невозможно создать SSLSocketFactory с помощью указанного класса {0}";
     t[164] = "The SocketFactory class provided {0} could not be instantiated.";

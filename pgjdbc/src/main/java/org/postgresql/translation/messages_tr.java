@@ -188,8 +188,8 @@ public class messages_tr extends java.util.ResourceBundle {
     t[443] = "String parametrelerinde sıfır bayt olamaz.";
     t[444] = "A result was returned when none was expected.";
     t[445] = "Hiçbir sonuç kebklenimezken sonuç getirildi.";
-    t[446] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[447] = "Desteklenmiyor: 2nd phase commit, atıl bir bağlantıdan başlatılmalıdır. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
+    t[446] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[447] = "Desteklenmiyor: 2nd phase commit, atıl bir bağlantıdan başlatılmalıdır. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[450] = "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details.";
     t[451] = "ResultSet değiştirilemez. Bu sonucu üreten sorgu tek bir tablodan sorgulamalı ve tablonun tüm primary key alanları belirtmelidir. Daha fazla bilgi için bk. JDBC 2.1 API Specification, section 5.6.";
     t[454] = "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.";
