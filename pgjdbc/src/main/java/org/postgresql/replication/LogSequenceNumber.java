@@ -105,14 +105,14 @@ public final class LogSequenceNumber implements Comparable<LogSequenceNumber> {
   public String toString() {
     return "LSN{" + asString() + '}';
   }
-  
+
   @Override
   public int compareTo(LogSequenceNumber o) {
     if (value == o.value) {
       return 0;
     }
     //Unsigned comparison
-    return value + Long.MIN_VALUE < o.value+Long.MIN_VALUE ? -1 : 1;
+    return value + Long.MIN_VALUE < o.value + Long.MIN_VALUE ? -1 : 1;
   }
 
 }

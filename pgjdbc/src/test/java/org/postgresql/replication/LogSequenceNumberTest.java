@@ -96,7 +96,7 @@ public class LogSequenceNumberTest {
 
     assertThat(first.hashCode(), equalTo(second.hashCode()));
   }
-  
+
   @Test
   public void testCompareToSameValue() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
@@ -105,7 +105,7 @@ public class LogSequenceNumberTest {
     assertThat(first.compareTo(second), equalTo(0));
     assertThat(second.compareTo(first), equalTo(0));
   }
-  
+
   @Test
   public void testCompareToPositiveValues() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf(1234);
@@ -132,7 +132,7 @@ public class LogSequenceNumberTest {
     assertThat(first.compareTo(second), equalTo(-1));
     assertThat(second.compareTo(first), equalTo(1));
   }
-  
+
   @Test
   public void testCompareToWithInvalid() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.INVALID_LSN;
