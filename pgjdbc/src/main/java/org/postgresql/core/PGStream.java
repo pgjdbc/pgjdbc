@@ -40,7 +40,7 @@ public class PGStream implements Closeable, Flushable {
   private final byte[] int2Buf;
 
   private Socket connection;
-  private VisibleBufferedInputStream pgInput;
+  private NewBufferedInputStream pgInput;
   private OutputStream pgOutput;
   private byte[] streamBuffer;
 
@@ -157,7 +157,7 @@ public class PGStream implements Closeable, Flushable {
     connection.setTcpNoDelay(true);
 
     // Buffer sizes submitted by Sverre H Huseby <sverrehu@online.no>
-    pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
+    pgInput = new NewBufferedInputStream(connection.getInputStream(), 8192);
     pgOutput = new BufferedOutputStream(connection.getOutputStream(), 8192);
 
     if (encoding != null) {
@@ -363,12 +363,11 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public String receiveString(int len) throws IOException {
-    if (!pgInput.ensureBytes(len)) {
+    byte []tempBuf =  new byte[len];
+    if (len != pgInput.read(tempBuf,0,len)){
       throw new EOFException();
     }
-
-    String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
-    pgInput.skip(len);
+    String res = encoding.decode(tempBuf, 0, len);
     return res;
   }
 
@@ -381,24 +380,24 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public EncodingPredictor.DecodeResult receiveErrorString(int len) throws IOException {
-    if (!pgInput.ensureBytes(len)) {
+    byte []tempBuf =  new byte[len];
+    if (len != pgInput.read(tempBuf,0,len)){
       throw new EOFException();
     }
 
     EncodingPredictor.DecodeResult res;
     try {
-      String value = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
+      String value = encoding.decode(tempBuf, 0, len);
       // no autodetect warning as the message was converted on its own
       res = new EncodingPredictor.DecodeResult(value, null);
     } catch (IOException e) {
-      res = EncodingPredictor.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
+      res = EncodingPredictor.decode(tempBuf, 0, len);
       if (res == null) {
         Encoding enc = Encoding.defaultEncoding();
-        String value = enc.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
+        String value = enc.decode(tempBuf, 0, len);
         res = new EncodingPredictor.DecodeResult(value, enc.name());
       }
     }
-    pgInput.skip(len);
     return res;
   }
 
@@ -410,10 +409,24 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs, or end of file
    */
   public String receiveString() throws IOException {
-    int len = pgInput.scanCStringLength();
-    String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
-    pgInput.skip(len);
-    return res;
+    boolean foundEnd = false;
+    byte []tempBuf = new byte[8192];
+    int i;
+    StringBuffer sb = new StringBuffer();
+
+    while( !foundEnd ) {
+      for (i = 0; i < 8192; i++) {
+        tempBuf[i] = (byte) pgInput.read();
+        if (tempBuf[i] == 0) {
+          foundEnd = true;
+          break;
+        }
+
+      }
+      sb.append(encoding.decode(tempBuf, 0, i));
+    }
+
+    return sb.toString();
   }
 
   /**
