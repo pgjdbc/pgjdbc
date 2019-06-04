@@ -364,7 +364,7 @@ public class PGStream implements Closeable, Flushable {
    */
   public String receiveString(int len) throws IOException {
     byte []tempBuf =  new byte[len];
-    if (len != pgInput.read(tempBuf,0,len)){
+    if (len != pgInput.read(tempBuf,0,len)) {
       throw new EOFException();
     }
     String res = encoding.decode(tempBuf, 0, len);
@@ -381,7 +381,7 @@ public class PGStream implements Closeable, Flushable {
    */
   public EncodingPredictor.DecodeResult receiveErrorString(int len) throws IOException {
     byte []tempBuf =  new byte[len];
-    if (len != pgInput.read(tempBuf,0,len)){
+    if (len != pgInput.read(tempBuf,0,len)) {
       throw new EOFException();
     }
 
@@ -414,7 +414,7 @@ public class PGStream implements Closeable, Flushable {
     int i;
     StringBuffer sb = new StringBuffer();
 
-    while( !foundEnd ) {
+    while ( !foundEnd ) {
       for (i = 0; i < 8192; i++) {
         tempBuf[i] = (byte) pgInput.read();
         if (tempBuf[i] == 0) {
