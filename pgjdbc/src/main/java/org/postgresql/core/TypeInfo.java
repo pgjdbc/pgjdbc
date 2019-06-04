@@ -10,15 +10,11 @@ import org.postgresql.util.PGobject;
 import java.sql.SQLException;
 import java.util.Iterator;
 
-// TODO: A "Type" class might be a good way to encapsulate these different
-//       fields and consolidate the maps in the implementation.  Especially for
-//       the methods that all take "oid" as a parameter.
 public interface TypeInfo {
-  // Class<?> here?
-  void addCoreType(TypeName pgTypeName, Integer oid, Integer sqlType, String javaClass,
+  void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass,
       Integer arrayOid);
 
-  void addDataType(TypeName type, Class<? extends PGobject> klass) throws SQLException;
+  void addDataType(String type, Class<? extends PGobject> klass) throws SQLException;
 
   /**
    * Look up the SQL typecode for a given type oid.
@@ -36,7 +32,7 @@ public interface TypeInfo {
    * @return the SQL type code (a constant from {@link java.sql.Types}) for the type
    * @throws SQLException if an error occurs when retrieving sql type
    */
-  int getSQLType(TypeName pgTypeName) throws SQLException;
+  int getSQLType(String pgTypeName) throws SQLException;
 
   /**
    * Look up the oid for a given postgresql type name. This is the inverse of
@@ -46,18 +42,17 @@ public interface TypeInfo {
    * @return the type's OID, or {@link Oid#UNSPECIFIED} if unknown
    * @throws SQLException if an error occurs when retrieving PG type
    */
-  // TODO: Rename getOid
-  int getPGType(TypeName pgTypeName) throws SQLException;
+  int getPGType(String pgTypeName) throws SQLException;
 
   /**
    * Look up the postgresql type name for a given oid. This is the inverse of
-   * {@link #getPGType(org.postgresql.core.TypeName)}.
+   * {@link #getPGType(String)}.
    *
    * @param oid the type's OID
    * @return the server type name for that OID or null if unknown
    * @throws SQLException if an error occurs when retrieving PG type
    */
-  TypeName getPGType(int oid) throws SQLException;
+  String getPGType(int oid) throws SQLException;
 
   /**
    * Look up the oid of an array's base type given the array's type oid.
@@ -75,7 +70,7 @@ public interface TypeInfo {
    * @return the array type's OID, or {@link Oid#UNSPECIFIED} if unknown
    * @throws SQLException if an error occurs when retrieving array type
    */
-  int getPGArrayType(TypeName elementTypeName) throws SQLException;
+  int getPGArrayType(String elementTypeName) throws SQLException;
 
   /**
    * Determine the delimiter for the elements of the given array type oid.
@@ -86,16 +81,13 @@ public interface TypeInfo {
    */
   char getArrayDelimiter(int oid) throws SQLException;
 
-  Iterator<TypeName> getPGTypeNamesWithSQLTypes();
+  Iterator<String> getPGTypeNamesWithSQLTypes();
 
-  Class<? extends PGobject> getPGobject(TypeName type);
+  Class<? extends PGobject> getPGobject(String type);
 
-  // TODO: Return Class<?> here?
   String getJavaClass(int oid) throws SQLException;
 
-  // TODO: How will this affect user-defined data types?
-  //       Is this still relevant with TypeName matching quoted/unquoted?
-  TypeName getTypeForAlias(TypeName alias);
+  String getTypeForAlias(String alias);
 
   int getPrecision(int oid, int typmod);
 

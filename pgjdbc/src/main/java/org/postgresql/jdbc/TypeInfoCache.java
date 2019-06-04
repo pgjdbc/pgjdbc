@@ -24,24 +24,23 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import org.postgresql.core.TypeName;
 
 public class TypeInfoCache implements TypeInfo {
 
-  // pgname (TypeName) -> java.sql.Types (Integer)
-  private Map<TypeName, Integer> _pgNameToSQLType;
+  // pgname (String) -> java.sql.Types (Integer)
+  private Map<String, Integer> _pgNameToSQLType;
 
-  // pgname (TypeName) -> java class name (String)
+  // pgname (String) -> java class name (String)
   // ie "text" -> "java.lang.String"
-  private Map<TypeName, String> _pgNameToJavaClass;
+  private Map<String, String> _pgNameToJavaClass;
 
   // oid (Integer) -> pgname (String)
-  private Map<Integer, TypeName> _oidToPgName;
-  // pgname (TypeName) -> oid (Integer)
-  private Map<TypeName, Integer> _pgNameToOid;
+  private Map<Integer, String> _oidToPgName;
+  // pgname (String) -> oid (Integer)
+  private Map<String, Integer> _pgNameToOid;
 
-  // pgname (TypeName) -> extension pgobject (Class)
-  private Map<TypeName, Class<? extends PGobject>> _pgNameToPgObject;
+  // pgname (String) -> extension pgobject (Class)
+  private Map<String, Class<? extends PGobject>> _pgNameToPgObject;
 
   // type array oid -> base type's oid
   private Map<Integer, Integer> _pgArrayToPgType;
