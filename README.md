@@ -117,8 +117,8 @@ In addition to the standard connection parameters the driver supports a number o
 | sslcert                       | String  | null    | The location of the client's SSL certificate |
 | sslkey                        | String  | null    | The location of the client's PKCS#8 SSL key |
 | sslrootcert                   | String  | null    | The location of the root certificate for authenticating the server. |
-| sslhostnameverifier           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/7/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.net.ssl.HostnameVerifier and can verify the server hostname. |
-| sslpasswordcallback           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/7/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.security.auth.callback.CallbackHandler and can handle PasswordCallback for the ssl password. |
+| sslhostnameverifier           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.net.ssl.HostnameVerifier and can verify the server hostname. |
+| sslpasswordcallback           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.security.auth.callback.CallbackHandler and can handle PasswordCallback for the ssl password. |
 | sslpassword                   | String  | null    | The password for the client's ssl key (ignored if sslpasswordcallback is set) |
 | sendBufferSize                | Integer | -1      | Socket write buffer size |
 | recvBufferSize                | Integer | -1      | Socket read buffer size  |
