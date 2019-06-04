@@ -20,8 +20,14 @@ public class NewBufferedInputStream extends BufferedInputStream {
   }
 
   public int peek() throws SocketTimeoutException, IOException {
+
     if ( super.available() > 0 ) {
-      return super.buf[pos];
+    try {
+      mark(2);
+      return read();
+    } finally {
+      reset();
+    }
     } else {
       return -1;
     }
