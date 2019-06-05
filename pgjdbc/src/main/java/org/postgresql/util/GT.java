@@ -21,10 +21,6 @@ public class GT {
   private static final GT _gt = new GT();
   private static final Object[] noargs = new Object[0];
 
-  public static String tr(String message, Object... args) {
-    return _gt.translate(message, args);
-  }
-
   private ResourceBundle bundle;
 
   private GT() {
@@ -38,6 +34,10 @@ public class GT {
       // translation files have not been installed
       bundle = null;
     }
+  }
+
+  public static String tr(String message, Object... args) {
+    return _gt.translate(message, args);
   }
 
   private String translate(String message, Object[] args) {

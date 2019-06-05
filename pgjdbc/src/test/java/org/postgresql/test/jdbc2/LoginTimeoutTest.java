@@ -86,6 +86,8 @@ public class LoginTimeoutTest {
   }
 
   private static class TimeoutHelper implements Runnable {
+    private final ServerSocket listenSocket;
+
     TimeoutHelper() throws IOException {
       InetAddress localAddr;
       try {
@@ -126,8 +128,6 @@ public class LoginTimeoutTest {
       } catch (IOException e) {
       }
     }
-
-    private final ServerSocket listenSocket;
   }
 
   @Test

@@ -41,14 +41,15 @@ import java.util.TimeZone;
  * TODO: refactor to a property-based testing or paremeterized testing somehow so adding new times
  *  don't require to add constants and setters/getters. JUnit 5 would probably help here.
  */
+@SuppressWarnings("checkstyle:declarationorder")
 @RunWith(Parameterized.class)
 public class TimestampTest extends BaseTest4 {
+
+  private TimeZone currentTZ;
 
   public TimestampTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
-
-  private TimeZone currentTZ;
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {

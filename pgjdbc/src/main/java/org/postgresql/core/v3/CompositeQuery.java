@@ -20,6 +20,9 @@ import java.util.Map;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class CompositeQuery implements Query {
+  private final SimpleQuery[] subqueries;
+  private final int[] offsets;
+
   CompositeQuery(SimpleQuery[] subqueries, int[] offsets) {
     this.subqueries = subqueries;
     this.offsets = offsets;
@@ -61,6 +64,7 @@ class CompositeQuery implements Query {
     return toString(null);
   }
 
+  @Override
   public void close() {
     for (SimpleQuery subquery : subqueries) {
       subquery.close();
@@ -98,6 +102,4 @@ class CompositeQuery implements Query {
     return null; // unsupported
   }
 
-  private final SimpleQuery[] subqueries;
-  private final int[] offsets;
 }

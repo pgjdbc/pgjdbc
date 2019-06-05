@@ -13,6 +13,9 @@ import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.StdCallLibrary;
 
 interface NTDSAPI extends StdCallLibrary {
+  int ERROR_SUCCESS = 0;
+  int ERROR_INVALID_PARAMETER = 87;
+  int ERROR_BUFFER_OVERFLOW = 111;
 
   NTDSAPI instance = (NTDSAPI) Native.loadLibrary("NTDSAPI", NTDSAPI.class);
 
@@ -47,8 +50,4 @@ interface NTDSAPI extends StdCallLibrary {
       IntByReference spnLength, /* in: length of buffer spn; out: chars written */
       char[] spn /* out string */
   ) throws LastErrorException;
-
-  int ERROR_SUCCESS = 0;
-  int ERROR_INVALID_PARAMETER = 87;
-  int ERROR_BUFFER_OVERFLOW = 111;
 }

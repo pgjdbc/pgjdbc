@@ -20,6 +20,11 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 public class BaseTest4 {
+  protected Connection con;
+  protected PreferQueryMode preferQueryMode;
+  private BinaryMode binaryMode;
+  private ReWriteBatchedInserts reWriteBatchedInserts;
+  private StringType stringType;
 
   public enum BinaryMode {
     REGULAR, FORCE
@@ -36,12 +41,6 @@ public class BaseTest4 {
   public enum StringType {
     UNSPECIFIED, VARCHAR;
   }
-
-  protected Connection con;
-  private BinaryMode binaryMode;
-  private ReWriteBatchedInserts reWriteBatchedInserts;
-  protected PreferQueryMode preferQueryMode;
-  private StringType stringType;
 
   protected void updateProperties(Properties props) {
     if (binaryMode == BinaryMode.FORCE) {

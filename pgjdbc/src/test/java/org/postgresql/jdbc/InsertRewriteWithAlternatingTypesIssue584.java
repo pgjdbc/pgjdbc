@@ -38,6 +38,12 @@ import java.util.Properties;
 @RunWith(Parameterized.class)
 public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
 
+  private final boolean insertRewrite;
+
+  public InsertRewriteWithAlternatingTypesIssue584(boolean insertRewrite) {
+    this.insertRewrite = insertRewrite;
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
@@ -62,12 +68,6 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, insertRewrite);
-  }
-
-  private boolean insertRewrite;
-
-  public InsertRewriteWithAlternatingTypesIssue584(boolean insertRewrite) {
-    this.insertRewrite = insertRewrite;
   }
 
   @Parameterized.Parameters(name = "insertRewrite = {0}")
@@ -95,20 +95,17 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
           Types.NUMERIC,
           Types.NUMERIC,
       };
-      Object[] row0 = new Object[]{1, ts, 0.0, true, 0.0, null, 0.0, null};
-      Object[] row1 = new Object[]{1, ts, 0.0, true, null, ts, 0.0, null};
-      Object[] row2 = new Object[]{1, ts, 0.0, true, 0.0, ts, 0.0, 0.0};
-      Object[] row3 = new Object[]{1, ts, 0.0, true, null, ts, 0.0, 0.0};
-      Object[][] tRows = new Object[][]{row0, row1, row2, row3};
+      Object[] row0 = {1, ts, 0.0, true, 0.0, null, 0.0, null};
+      Object[] row1 = {1, ts, 0.0, true, null, ts, 0.0, null};
+      Object[] row2 = {1, ts, 0.0, true, 0.0, ts, 0.0, 0.0};
+      Object[] row3 = {1, ts, 0.0, true, null, ts, 0.0, 0.0};
+      Object[][] tRows = {row0, row1, row2, row3};
       List<Object[]> rowList = new ArrayList<Object[]>();
       for (int rowIndex : ROW_INDEXES) {
         rowList.add(tRows[rowIndex]);
       }
 
-      StringBuilder sb = new StringBuilder();
-      sb.append(
-          "INSERT INTO BugFreezeTable (Col1,Col2,Col3,Col4,Col5,Col6,Col7,Col8) VALUES (?,?,?,?,?,?,?,?)");
-      String insert = sb.toString();
+      String insert = "INSERT INTO BugFreezeTable (Col1,Col2,Col3,Col4,Col5,Col6,Col7,Col8) VALUES (?,?,?,?,?,?,?,?)";
       PgPreparedStatement pst = (PgPreparedStatement) conn.prepareStatement(insert);
       String statementName;
       int count = 0;
@@ -183,6 +180,7 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
     return bqds;
   }
 
+  @SuppressWarnings("checkstyle:declarationorder")
   private static final int[] ROW_INDEXES = new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

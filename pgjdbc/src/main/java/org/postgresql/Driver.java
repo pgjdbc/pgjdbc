@@ -59,9 +59,12 @@ public class Driver implements java.sql.Driver {
   private static Driver registeredDriver;
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
-  private static SharedTimer sharedTimer = new SharedTimer();
+  private static final SharedTimer sharedTimer = new SharedTimer();
   private static final String DEFAULT_PORT =
       /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5431";
+
+  // Used to check if the handler file is the same
+  private static String loggerHandlerFile;
 
   static {
     try {
@@ -284,9 +287,6 @@ public class Driver implements java.sql.Driver {
     }
   }
 
-  // Used to check if the handler file is the same
-  private static String loggerHandlerFile;
-
   /**
    * <p>Setup java.util.logging.Logger using connection properties.</p>
    *
@@ -355,6 +355,12 @@ public class Driver implements java.sql.Driver {
    * while enforcing a login timeout.
    */
   private static class ConnectThread implements Runnable {
+    private final String url;
+    private final Properties props;
+    private Connection result;
+    private Throwable resultException;
+    private boolean abandoned;
+
     ConnectThread(String url, Properties props) {
       this.url = url;
       this.props = props;
@@ -437,12 +443,6 @@ public class Driver implements java.sql.Driver {
         }
       }
     }
-
-    private final String url;
-    private final Properties props;
-    private Connection result;
-    private Throwable resultException;
-    private boolean abandoned;
   }
 
   /**

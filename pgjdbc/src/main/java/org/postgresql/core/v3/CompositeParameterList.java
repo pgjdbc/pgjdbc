@@ -21,6 +21,10 @@ import java.sql.SQLException;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class CompositeParameterList implements V3ParameterList {
+  private final int total;
+  private final SimpleParameterList[] subparams;
+  private final int[] offsets;
+
   CompositeParameterList(SimpleParameterList[] subparams, int[] offsets) {
     this.subparams = subparams;
     this.offsets = offsets;
@@ -176,8 +180,4 @@ class CompositeParameterList implements V3ParameterList {
       subparam.convertFunctionOutParameters();
     }
   }
-
-  private final int total;
-  private final SimpleParameterList[] subparams;
-  private final int[] offsets;
 }

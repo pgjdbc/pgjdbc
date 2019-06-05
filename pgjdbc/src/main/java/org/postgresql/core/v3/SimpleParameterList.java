@@ -38,6 +38,20 @@ class SimpleParameterList implements V3ParameterList {
   private static final byte TEXT = 0;
   private static final byte BINARY = 4;
 
+  /**
+   * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
+   * to null".
+   */
+  private static final Object NULL_OBJECT = new Object();
+
+  private final Object[] paramValues;
+  private final int[] paramTypes;
+  private final byte[] flags;
+  private final byte[][] encoded;
+  private final TypeTransferModeRegistry transferModeRegistry;
+
+  private int pos = 0;
+
   SimpleParameterList(int paramCount, TypeTransferModeRegistry transferModeRegistry) {
     this.paramValues = new Object[paramCount];
     this.paramTypes = new int[paramCount];
@@ -388,6 +402,7 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.send(encoded[index]);
   }
 
+  @Override
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
@@ -397,6 +412,7 @@ class SimpleParameterList implements V3ParameterList {
     return newCopy;
   }
 
+  @Override
   public void clear() {
     Arrays.fill(paramValues, null);
     Arrays.fill(paramTypes, 0);
@@ -462,19 +478,5 @@ class SimpleParameterList implements V3ParameterList {
     ts.append("]>");
     return ts.toString();
   }
-
-  private final Object[] paramValues;
-  private final int[] paramTypes;
-  private final byte[] flags;
-  private final byte[][] encoded;
-  private final TypeTransferModeRegistry transferModeRegistry;
-
-  /**
-   * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
-   * to null".
-   */
-  private static final Object NULL_OBJECT = new Object();
-
-  private int pos = 0;
 }
 

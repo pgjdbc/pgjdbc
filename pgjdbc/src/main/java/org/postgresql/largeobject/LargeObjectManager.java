@@ -57,10 +57,6 @@ import java.util.logging.Level;
  * @see java.sql.PreparedStatement#setUnicodeStream
  */
 public class LargeObjectManager {
-  // the fastpath api for this connection
-  private Fastpath fp;
-  private BaseConnection conn;
-
   /**
    * This mode indicates we want to write to an object.
    */
@@ -75,6 +71,10 @@ public class LargeObjectManager {
    * This mode is the default. It indicates we want read and write access to a large object.
    */
   public static final int READWRITE = READ | WRITE;
+
+  // the fastpath api for this connection
+  private Fastpath fp;
+  private BaseConnection conn;
 
   /**
    * This prevents us being created by mere mortals.

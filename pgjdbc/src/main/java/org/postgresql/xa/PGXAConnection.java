@@ -63,12 +63,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    */
   private boolean localAutoCommitMode = true;
 
-  private void debug(String s) {
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "XAResource {0}: {1}", new Object[]{Integer.toHexString(this.hashCode()), s});
-    }
-  }
-
   public PGXAConnection(BaseConnection conn) throws SQLException {
     super(conn, true, true);
     this.conn = conn;
@@ -239,6 +233,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     currentXid = xid;
     preparedXid = null;
     committedOrRolledBack = false;
+  }
+
+  private void debug(String s) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "XAResource {0}: {1}", new Object[]{Integer.toHexString(this.hashCode()), s});
+    }
   }
 
   /**

@@ -19,6 +19,12 @@ import java.sql.SQLException;
  */
 public class Utils {
   /**
+   * Keep a local copy of the UTF-8 Charset so we can avoid synchronization overhead from looking up
+   * the Charset by name as String.getBytes(String) requires.
+   */
+  private static final Charset utf8Charset = Charset.forName("UTF-8");
+
+  /**
    * Turn a bytearray into a printable form, representing each byte in hex.
    *
    * @param data the bytearray to stringize
@@ -32,12 +38,6 @@ public class Utils {
     }
     return sb.toString();
   }
-
-  /**
-   * Keep a local copy of the UTF-8 Charset so we can avoid synchronization overhead from looking up
-   * the Charset by name as String.getBytes(String) requires.
-   */
-  private static final Charset utf8Charset = Charset.forName("UTF-8");
 
   /**
    * Encode a string as UTF-8.

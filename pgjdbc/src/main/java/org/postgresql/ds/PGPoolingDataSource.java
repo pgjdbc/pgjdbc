@@ -62,10 +62,6 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   protected static ConcurrentMap<String, PGPoolingDataSource> dataSources =
       new ConcurrentHashMap<String, PGPoolingDataSource>();
 
-  public static PGPoolingDataSource getDataSource(String name) {
-    return dataSources.get(name);
-  }
-
   // Additional Data Source properties
   protected String dataSourceName; // Must be protected for subclasses to sync updates to it
   private int initialConnections = 0;
@@ -76,6 +72,16 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   private Stack<PooledConnection> used = new Stack<PooledConnection>();
   private Object lock = new Object();
   private PGConnectionPoolDataSource source;
+
+  /**
+   * Notified when a pooled connection is closed, or a fatal error occurs on a pooled connection.
+   * This is the only way connections are marked as unused.
+   */
+  private ConnectionEventListener connectionEventListener = new PooledConnectionEventListener();
+
+  public static PGPoolingDataSource getDataSource(String name) {
+    return dataSources.get(name);
+  }
 
   /**
    * Gets a description of this DataSource.
@@ -395,45 +401,6 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   }
 
   /**
-   * Notified when a pooled connection is closed, or a fatal error occurs on a pooled connection.
-   * This is the only way connections are marked as unused.
-   */
-  private ConnectionEventListener connectionEventListener = new ConnectionEventListener() {
-    public void connectionClosed(ConnectionEvent event) {
-      ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
-      synchronized (lock) {
-        if (available == null) {
-          return; // DataSource has been closed
-        }
-        boolean removed = used.remove(event.getSource());
-        if (removed) {
-          available.push((PooledConnection) event.getSource());
-          // There's now a new connection available
-          lock.notify();
-        } else {
-          // a connection error occurred
-        }
-      }
-    }
-
-    /**
-     * This is only called for fatal errors, where the physical connection is useless afterward and
-     * should be removed from the pool.
-     */
-    public void connectionErrorOccurred(ConnectionEvent event) {
-      ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
-      synchronized (lock) {
-        if (available == null) {
-          return; // DataSource has been closed
-        }
-        used.remove(event.getSource());
-        // We're now at least 1 connection under the max
-        lock.notify();
-      }
-    }
-  };
-
-  /**
    * Adds custom properties for this DataSource to the properties defined in the superclass.
    */
   public Reference getReference() throws NamingException {
@@ -457,5 +424,42 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
+  }
+
+  private class PooledConnectionEventListener implements ConnectionEventListener {
+    @Override
+    public void connectionClosed(ConnectionEvent event) {
+      ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
+      synchronized (lock) {
+        if (available == null) {
+          return; // DataSource has been closed
+        }
+        boolean removed = used.remove(event.getSource());
+        if (removed) {
+          available.push((PooledConnection) event.getSource());
+          // There's now a new connection available
+          lock.notify();
+        } else {
+          // a connection error occurred
+        }
+      }
+    }
+
+    /**
+     * This is only called for fatal errors, where the physical connection is useless afterward and
+     * should be removed from the pool.
+     */
+    @Override
+    public void connectionErrorOccurred(ConnectionEvent event) {
+      ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
+      synchronized (lock) {
+        if (available == null) {
+          return; // DataSource has been closed
+        }
+        used.remove(event.getSource());
+        // We're now at least 1 connection under the max
+        lock.notify();
+      }
+    }
   }
 }

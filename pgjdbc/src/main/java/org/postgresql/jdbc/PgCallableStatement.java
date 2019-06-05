@@ -32,6 +32,7 @@ import java.util.Calendar;
 import java.util.Map;
 
 class PgCallableStatement extends PgPreparedStatement implements CallableStatement {
+  protected Object[] callResult;
   // Used by the callablestatement style methods
   private boolean isFunction;
   // functionReturnType contains the user supplied value to check
@@ -41,7 +42,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   private int[] testReturn;
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
-  protected Object[] callResult;
   private int lastIndex = 0;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
@@ -56,6 +56,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
   }
 
+  @Override
   public int executeUpdate() throws SQLException {
     if (isFunction) {
       executeWithFlags(0);
@@ -64,10 +65,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return super.executeUpdate();
   }
 
+  @Override
   public Object getObject(int i, Map<String, Class<?>> map) throws SQLException {
     return getObjectImpl(i, map);
   }
 
+  @Override
   public Object getObject(String s, Map<String, Class<?>> map) throws SQLException {
     return getObjectImpl(s, map);
   }

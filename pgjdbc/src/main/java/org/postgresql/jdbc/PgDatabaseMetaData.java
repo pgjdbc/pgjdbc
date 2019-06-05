@@ -31,22 +31,99 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 public class PgDatabaseMetaData implements DatabaseMetaData {
+  private static final Map<String, Map<String, String>> tableTypeClauses;
+
+  static {
+    tableTypeClauses = new HashMap<String, Map<String, String>>();
+    Map<String, String> ht = new HashMap<String, String>();
+    tableTypeClauses.put("TABLE", ht);
+    ht.put("SCHEMAS",
+        "c.relkind IN ('r','p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("VIEW", ht);
+    ht.put("SCHEMAS",
+        "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("INDEX", ht);
+    ht.put("SCHEMAS",
+        "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("SEQUENCE", ht);
+    ht.put("SCHEMAS", "c.relkind = 'S'");
+    ht.put("NOSCHEMAS", "c.relkind = 'S'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("TYPE", ht);
+    ht.put("SCHEMAS",
+        "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'c' AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("SYSTEM TABLE", ht);
+    ht.put("SCHEMAS",
+        "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
+    ht.put("NOSCHEMAS",
+        "c.relkind = 'r' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("SYSTEM TOAST TABLE", ht);
+    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname = 'pg_toast'");
+    ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_toast_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("SYSTEM TOAST INDEX", ht);
+    ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname = 'pg_toast'");
+    ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_toast_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("SYSTEM VIEW", ht);
+    ht.put("SCHEMAS",
+        "c.relkind = 'v' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
+    ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("SYSTEM INDEX", ht);
+    ht.put("SCHEMAS",
+        "c.relkind = 'i' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
+    ht.put("NOSCHEMAS",
+        "c.relkind = 'v' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("TEMPORARY TABLE", ht);
+    ht.put("SCHEMAS", "c.relkind IN ('r','p') AND n.nspname ~ '^pg_temp_' ");
+    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname ~ '^pg_temp_' ");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("TEMPORARY INDEX", ht);
+    ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
+    ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_temp_' ");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("TEMPORARY VIEW", ht);
+    ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
+    ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_temp_' ");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("TEMPORARY SEQUENCE", ht);
+    ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
+    ht.put("NOSCHEMAS", "c.relkind = 'S' AND c.relname ~ '^pg_temp_' ");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("FOREIGN TABLE", ht);
+    ht.put("SCHEMAS", "c.relkind = 'f'");
+    ht.put("NOSCHEMAS", "c.relkind = 'f'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("MATERIALIZED VIEW", ht);
+    ht.put("SCHEMAS", "c.relkind = 'm'");
+    ht.put("NOSCHEMAS", "c.relkind = 'm'");
+  }
+
+  protected final PgConnection connection; // The connection association
+
+  private String keywords;
+
+  private int nameDataLength = 0; // length for name datatype
+  private int indexMaxKeys = 0; // maximum number of keys in an index.
 
   public PgDatabaseMetaData(PgConnection conn) {
     this.connection = conn;
   }
 
-  private String keywords;
-
-  protected final PgConnection connection; // The connection association
-
-  private int nameDataLength = 0; // length for name datatype
-  private int indexMaxKeys = 0; // maximum number of keys in an index.
-
   protected int getMaxIndexKeys() throws SQLException {
     if (indexMaxKeys == 0) {
-      String sql;
-      sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='max_index_keys'";
+      String sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='max_index_keys'";
 
       Statement stmt = connection.createStatement();
       ResultSet rs = null;
@@ -70,8 +147,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   protected int getMaxNameLength() throws SQLException {
     if (nameDataLength == 0) {
-      String sql;
-      sql = "SELECT t.typlen FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n "
+      String sql = "SELECT t.typlen FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n "
             + "WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'";
 
       Statement stmt = connection.createStatement();
@@ -91,38 +167,47 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return nameDataLength - 1;
   }
 
+  @Override
   public boolean allProceduresAreCallable() throws SQLException {
     return true; // For now...
   }
 
+  @Override
   public boolean allTablesAreSelectable() throws SQLException {
     return true; // For now...
   }
 
+  @Override
   public String getURL() throws SQLException {
     return connection.getURL();
   }
 
+  @Override
   public String getUserName() throws SQLException {
     return connection.getUserName();
   }
 
+  @Override
   public boolean isReadOnly() throws SQLException {
     return connection.isReadOnly();
   }
 
+  @Override
   public boolean nullsAreSortedHigh() throws SQLException {
     return true;
   }
 
+  @Override
   public boolean nullsAreSortedLow() throws SQLException {
     return false;
   }
 
+  @Override
   public boolean nullsAreSortedAtStart() throws SQLException {
     return false;
   }
 
+  @Override
   public boolean nullsAreSortedAtEnd() throws SQLException {
     return false;
   }
@@ -1315,85 +1400,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String sql = select + orderby;
 
     return createMetaDataStatement().executeQuery(sql);
-  }
-
-  private static final Map<String, Map<String, String>> tableTypeClauses;
-
-  static {
-    tableTypeClauses = new HashMap<String, Map<String, String>>();
-    Map<String, String> ht = new HashMap<String, String>();
-    tableTypeClauses.put("TABLE", ht);
-    ht.put("SCHEMAS",
-        "c.relkind IN ('r','p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname !~ '^pg_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("VIEW", ht);
-    ht.put("SCHEMAS",
-        "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname !~ '^pg_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("INDEX", ht);
-    ht.put("SCHEMAS",
-        "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname !~ '^pg_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("SEQUENCE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'S'");
-    ht.put("NOSCHEMAS", "c.relkind = 'S'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("TYPE", ht);
-    ht.put("SCHEMAS",
-        "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind = 'c' AND c.relname !~ '^pg_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("SYSTEM TABLE", ht);
-    ht.put("SCHEMAS",
-        "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
-    ht.put("NOSCHEMAS",
-        "c.relkind = 'r' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("SYSTEM TOAST TABLE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname = 'pg_toast'");
-    ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_toast_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("SYSTEM TOAST INDEX", ht);
-    ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname = 'pg_toast'");
-    ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_toast_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("SYSTEM VIEW", ht);
-    ht.put("SCHEMAS",
-        "c.relkind = 'v' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
-    ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("SYSTEM INDEX", ht);
-    ht.put("SCHEMAS",
-        "c.relkind = 'i' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
-    ht.put("NOSCHEMAS",
-        "c.relkind = 'v' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("TEMPORARY TABLE", ht);
-    ht.put("SCHEMAS", "c.relkind IN ('r','p') AND n.nspname ~ '^pg_temp_' ");
-    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname ~ '^pg_temp_' ");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("TEMPORARY INDEX", ht);
-    ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
-    ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_temp_' ");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("TEMPORARY VIEW", ht);
-    ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
-    ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_temp_' ");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("TEMPORARY SEQUENCE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
-    ht.put("NOSCHEMAS", "c.relkind = 'S' AND c.relname ~ '^pg_temp_' ");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("FOREIGN TABLE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'f'");
-    ht.put("NOSCHEMAS", "c.relkind = 'f'");
-    ht = new HashMap<String, String>();
-    tableTypeClauses.put("MATERIALIZED VIEW", ht);
-    ht.put("SCHEMAS", "c.relkind = 'm'");
-    ht.put("NOSCHEMAS", "c.relkind = 'm'");
   }
 
   @Override

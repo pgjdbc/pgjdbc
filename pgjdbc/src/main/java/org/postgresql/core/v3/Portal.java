@@ -18,6 +18,18 @@ import java.lang.ref.PhantomReference;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class Portal implements ResultCursor {
+  /*
+   * Holding on to a reference to the generating query has
+   * the nice side-effect that while this Portal is referenced,
+   * so is the SimpleQuery, so the underlying statement won't
+   * be closed while the portal is open (the backend closes
+   * all open portals when the statement is closed)
+   */
+  private final SimpleQuery query;
+  private final String portalName;
+  private final byte[] encodedName;
+  private PhantomReference<?> cleanupRef;
+
   Portal(SimpleQuery query, String portalName) {
     this.query = query;
     this.portalName = portalName;
@@ -51,15 +63,4 @@ class Portal implements ResultCursor {
   public String toString() {
     return portalName;
   }
-
-  // Holding on to a reference to the generating query has
-  // the nice side-effect that while this Portal is referenced,
-  // so is the SimpleQuery, so the underlying statement won't
-  // be closed while the portal is open (the backend closes
-  // all open portals when the statement is closed)
-
-  private final SimpleQuery query;
-  private final String portalName;
-  private final byte[] encodedName;
-  private PhantomReference<?> cleanupRef;
 }

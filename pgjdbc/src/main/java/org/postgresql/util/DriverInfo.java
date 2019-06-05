@@ -10,9 +10,6 @@ package org.postgresql.util;
  */
 public final class DriverInfo {
 
-  private DriverInfo() {
-  }
-
   // Driver name
   public static final String DRIVER_NAME = "PostgreSQL JDBC Driver";
   public static final String DRIVER_SHORT_NAME = "PgJDBC";
@@ -29,5 +26,8 @@ public final class DriverInfo {
   private static final int JDBC_INTVERSION = /*$mvn.project.property.jdbc.specification.version.nodot+";"$*//*-*/42;
   public static final int JDBC_MAJOR_VERSION = JDBC_INTVERSION / 10;
   public static final int JDBC_MINOR_VERSION = JDBC_INTVERSION % 10;
+
+  private DriverInfo() {
+  }
 
 }

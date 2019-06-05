@@ -27,6 +27,9 @@ import java.util.List;
  */
 public class Jdbc42CallableStatementTest extends BaseTest4 {
 
+  private final String func = "{ ? = call ";
+  private final String pkgName = "testspg__";
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
@@ -39,9 +42,6 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
                       + "begin OPEN ref FOR SELECT 1; RETURN ref; end; ' LANGUAGE plpgsql;");
     }
   }
-
-  final String func = "{ ? = call ";
-  final String pkgName = "testspg__";
 
   @Override
   public void tearDown() throws SQLException {

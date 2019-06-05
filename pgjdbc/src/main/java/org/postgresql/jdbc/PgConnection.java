@@ -81,9 +81,28 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
-  //
+  // Default statement prepare threshold.
+  protected int prepareThreshold;
+
+  /**
+   * Default fetch size for statement.
+   *
+   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+   */
+  protected int defaultFetchSize;
+
+  // Default forcebinary option.
+  protected boolean forcebinary = false;
+
+  /**
+   * The current type mappings.
+   */
+  protected Map<String, Class<?>> typemap;
+
+  // This is a cache of the DatabaseMetaData instance for this connection
+  protected DatabaseMetaData metadata;
+
   // Data initialized on construction:
-  //
   private final Properties clientInfo;
 
   /* URL we were created via */
@@ -102,19 +121,6 @@ public class PgConnection implements BaseConnection {
   private final TypeInfo typeCache;
 
   private boolean disableColumnSanitiser = false;
-
-  // Default statement prepare threshold.
-  protected int prepareThreshold;
-
-  /**
-   * Default fetch size for statement.
-   *
-   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
-   */
-  protected int defaultFetchSize;
-
-  // Default forcebinary option.
-  protected boolean forcebinary = false;
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId = 0;
@@ -140,40 +146,18 @@ public class PgConnection implements BaseConnection {
    */
   private final boolean replicationConnection;
 
+  private final TimestampUtils timestampUtils;
+
+  // This holds a reference to the Fastpath API if already open
+  private Fastpath fastpath = null;
+
+  // This holds a reference to the LargeObject API if already open
+  private LargeObjectManager largeobject = null;
+
+  private CopyManager copyManager = null;
+
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
-  final CachedQuery borrowQuery(String sql) throws SQLException {
-    return queryExecutor.borrowQuery(sql);
-  }
-
-  final CachedQuery borrowCallableQuery(String sql) throws SQLException {
-    return queryExecutor.borrowCallableQuery(sql);
-  }
-
-  private CachedQuery borrowReturningQuery(String sql, String[] columnNames) throws SQLException {
-    return queryExecutor.borrowReturningQuery(sql, columnNames);
-  }
-
-  @Override
-  public CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
-      String... columnNames)
-      throws SQLException {
-    return queryExecutor.createQuery(sql, escapeProcessing, isParameterized, columnNames);
-  }
-
-  void releaseQuery(CachedQuery cachedQuery) {
-    queryExecutor.releaseQuery(cachedQuery);
-  }
-
-  @Override
-  public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
-    queryExecutor.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
-    LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
-  }
-
-  //
-  // Ctor.
-  //
   public PgConnection(HostSpec[] hostSpecs,
                       String user,
                       String database,
@@ -325,6 +309,35 @@ public class PgConnection implements BaseConnection {
     return binaryOids;
   }
 
+  final CachedQuery borrowQuery(String sql) throws SQLException {
+    return queryExecutor.borrowQuery(sql);
+  }
+
+  final CachedQuery borrowCallableQuery(String sql) throws SQLException {
+    return queryExecutor.borrowCallableQuery(sql);
+  }
+
+  private CachedQuery borrowReturningQuery(String sql, String[] columnNames) throws SQLException {
+    return queryExecutor.borrowReturningQuery(sql, columnNames);
+  }
+
+  @Override
+  public CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
+                                 String... columnNames)
+      throws SQLException {
+    return queryExecutor.createQuery(sql, escapeProcessing, isParameterized, columnNames);
+  }
+
+  void releaseQuery(CachedQuery cachedQuery) {
+    queryExecutor.releaseQuery(cachedQuery);
+  }
+
+  @Override
+  public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
+    queryExecutor.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
+    LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
+  }
+
   private static Set<Integer> getOidSet(String oidList) throws PSQLException {
     Set<Integer> oids = new HashSet<Integer>();
     StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
@@ -349,16 +362,9 @@ public class PgConnection implements BaseConnection {
     return sb.toString();
   }
 
-  private final TimestampUtils timestampUtils;
-
   public TimestampUtils getTimestampUtils() {
     return timestampUtils;
   }
-
-  /**
-   * The current type mappings.
-   */
-  protected Map<String, Class<?>> typemap;
 
   @Override
   public Statement createStatement() throws SQLException {
@@ -502,6 +508,7 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getUser();
   }
 
+  @Override
   public Fastpath getFastpathAPI() throws SQLException {
     checkClosed();
     if (fastpath == null) {
@@ -510,9 +517,7 @@ public class PgConnection implements BaseConnection {
     return fastpath;
   }
 
-  // This holds a reference to the Fastpath API if already open
-  private Fastpath fastpath = null;
-
+  @Override
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
     checkClosed();
     if (largeobject == null) {
@@ -520,9 +525,6 @@ public class PgConnection implements BaseConnection {
     }
     return largeobject;
   }
-
-  // This holds a reference to the LargeObject API if already open
-  private LargeObjectManager largeobject = null;
 
   /*
    * This method is used internally to return an object based around org.postgresql's more unique
@@ -973,9 +975,6 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getStandardConformingStrings();
   }
 
-  // This is a cache of the DatabaseMetaData instance for this connection
-  protected java.sql.DatabaseMetaData metadata;
-
   @Override
   public boolean isClosed() throws SQLException {
     return queryExecutor.isClosed();
@@ -1062,8 +1061,7 @@ public class PgConnection implements BaseConnection {
     return bindStringAsVarchar;
   }
 
-  private CopyManager copyManager = null;
-
+  @Override
   public CopyManager getCopyAPI() throws SQLException {
     checkClosed();
     if (copyManager == null) {

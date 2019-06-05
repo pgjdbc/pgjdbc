@@ -6,6 +6,7 @@
 
 package org.postgresql.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +25,11 @@ public class StreamWrapper {
   private static final int MAX_MEMORY_BUFFER_BYTES = 51200;
 
   private static final String TEMP_FILE_PREFIX = "postgres-pgjdbc-stream";
+
+  private final InputStream stream;
+  private final byte[] rawData;
+  private final int offset;
+  private final int length;
 
   public StreamWrapper(byte[] data, int offset, int length) {
     this.stream = null;
@@ -137,7 +143,7 @@ public class StreamWrapper {
       return stream;
     }
 
-    return new java.io.ByteArrayInputStream(rawData, offset, length);
+    return new ByteArrayInputStream(rawData, offset, length);
   }
 
   public int getLength() {
@@ -172,8 +178,4 @@ public class StreamWrapper {
     return totalLength;
   }
 
-  private final InputStream stream;
-  private final byte[] rawData;
-  private final int offset;
-  private final int length;
 }

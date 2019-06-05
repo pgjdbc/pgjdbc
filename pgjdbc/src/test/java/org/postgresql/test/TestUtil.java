@@ -42,6 +42,8 @@ public class TestUtil {
   public static final String SERVER_HOST_PORT_PROP = "_test_hostport";
   public static final String DATABASE_PROP = "_test_database";
 
+  private static boolean initialized = false;
+
   /*
    * Returns the Test database JDBC URL
    */
@@ -225,8 +227,6 @@ public class TestUtil {
       throw new RuntimeException("Unable to initialize driver", e);
     }
   }
-
-  private static boolean initialized = false;
 
   public static Properties loadPropertyFiles(String... names) {
     Properties p = new Properties();

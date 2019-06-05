@@ -29,7 +29,33 @@ import java.util.logging.Logger;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleQuery implements Query {
+  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
+
   private static final Logger LOGGER = Logger.getLogger(SimpleQuery.class.getName());
+
+  private final NativeQuery nativeQuery;
+
+  private final TypeTransferModeRegistry transferModeRegistry;
+  private String statementName;
+  private byte[] encodedStatementName;
+  /**
+   * The stored fields from previous execution or describe of a prepared statement. Always null for
+   * non-prepared statements.
+   */
+  private Field[] fields;
+  private boolean needUpdateFieldFormats;
+  private boolean hasBinaryFields;
+  private boolean portalDescribed;
+  private boolean statementDescribed;
+  private final boolean sanitiserDisabled;
+  private PhantomReference<?> cleanupRef;
+  private int[] preparedTypes;
+  private BitSet unspecifiedParams;
+  private short deallocateEpoch;
+
+  private Integer cachedMaxResultRowSize;
+
+  private Map<String, Integer> resultSetColumnNameIndexMap;
 
   SimpleQuery(SimpleQuery src) {
     this(src.nativeQuery, src.transferModeRegistry, src.sanitiserDisabled);
@@ -58,6 +84,7 @@ class SimpleQuery implements Query {
     return toString(null);
   }
 
+  @Override
   public void close() {
     unprepare();
   }
@@ -323,8 +350,6 @@ class SimpleQuery implements Query {
     return nativeQuery.bindPositions.length * getBatchSize();
   }
 
-  private Map<String, Integer> resultSetColumnNameIndexMap;
-
   @Override
   public Map<String, Integer> getResultSetColumnNameIndexMap() {
     Map<String, Integer> columnPositions = this.resultSetColumnNameIndexMap;
@@ -344,27 +369,4 @@ class SimpleQuery implements Query {
     return nativeQuery.getCommand();
   }
 
-  private final NativeQuery nativeQuery;
-
-  private final TypeTransferModeRegistry transferModeRegistry;
-  private String statementName;
-  private byte[] encodedStatementName;
-  /**
-   * The stored fields from previous execution or describe of a prepared statement. Always null for
-   * non-prepared statements.
-   */
-  private Field[] fields;
-  private boolean needUpdateFieldFormats;
-  private boolean hasBinaryFields;
-  private boolean portalDescribed;
-  private boolean statementDescribed;
-  private final boolean sanitiserDisabled;
-  private PhantomReference<?> cleanupRef;
-  private int[] preparedTypes;
-  private BitSet unspecifiedParams;
-  private short deallocateEpoch;
-
-  private Integer cachedMaxResultRowSize;
-
-  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }

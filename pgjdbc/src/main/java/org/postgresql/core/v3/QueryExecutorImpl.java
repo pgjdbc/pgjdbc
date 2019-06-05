@@ -72,6 +72,60 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
 
+  private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
+
+  // Deadlock avoidance:
+  //
+  // It's possible for the send and receive streams to get "deadlocked" against each other since
+  // we do not have a separate thread. The scenario is this: we have two streams:
+  //
+  // driver -> TCP buffering -> server
+  // server -> TCP buffering -> driver
+  //
+  // The server behaviour is roughly:
+  // while true:
+  // read message
+  // execute message
+  // write results
+  //
+  // If the server -> driver stream has a full buffer, the write will block.
+  // If the driver is still writing when this happens, and the driver -> server
+  // stream also fills up, we deadlock: the driver is blocked on write() waiting
+  // for the server to read some more data, and the server is blocked on write()
+  // waiting for the driver to read some more data.
+  //
+  // To avoid this, we guess at how much response data we can request from the
+  // server before the server -> driver stream's buffer is full (MAX_BUFFERED_RECV_BYTES).
+  // This is the point where the server blocks on write and stops reading data. If we
+  // reach this point, we force a Sync message and read pending data from the server
+  // until ReadyForQuery, then go back to writing more queries unless we saw an error.
+  //
+  // This is not 100% reliable -- it's only done in the batch-query case and only
+  // at a reasonably high level (per query, not per message), and it's only an estimate
+  // -- so it might break. To do it correctly in all cases would seem to require a
+  // separate send or receive thread as we can only do the Sync-and-read-results
+  // operation at particular points, and also as we don't really know how much data
+  // the server is sending.
+  //
+  // Our message size estimation is coarse, and disregards asynchronous
+  // notifications, warnings/info/debug messages, etc, so the response size may be
+  // quite different from the 250 bytes assumed here even for queries that don't
+  // return data.
+  //
+  // See github issue #194 and #195 .
+  //
+  // Assume 64k server->client buffering, which is extremely conservative. A typical
+  // system will have 200kb or more of buffers for its receive buffers, and the sending
+  // system will typically have the same on the send side, giving us 400kb or to work
+  // with. (We could check Java's receive buffer size, but prefer to assume a very
+  // conservative buffer instead, and we don't know how big the server's send
+  // buffer is.)
+  //
+  private static final int MAX_BUFFERED_RECV_BYTES = 64000;
+  private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
+  private final QueryCleaner queryCleaner = new QueryCleaner();
+  private final PortalCleaner portalCleaner = new PortalCleaner();
+
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
    */
@@ -124,20 +178,55 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
 
-  public QueryExecutorImpl(PGStream pgStream, String user, String database,
-      int cancelSignalTimeout, Properties info) throws SQLException, IOException {
-    super(pgStream, user, database, cancelSignalTimeout, info);
+  private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<SimpleQuery>();
+  private final Deque<Portal> pendingBindQueue = new ArrayDeque<Portal>();
+  private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<ExecuteRequest>();
+  private final Deque<DescribeRequest> pendingDescribeStatementQueue =
+      new ArrayDeque<DescribeRequest>();
+  private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<SimpleQuery>();
 
-    this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
-    this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
-    this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
-    readStartupMessages();
-  }
+  private long nextUniqueID = 1;
+  private final boolean allowEncodingChanges;
+  private final boolean cleanupSavePoints;
 
-  @Override
-  public int getProtocolVersion() {
-    return 3;
-  }
+  /**
+   * <p>The estimated server response size since we last consumed the input stream from the server, in
+   * bytes.</p>
+   *
+   * <p>Starts at zero, reset by every Sync message. Mainly used for batches.</p>
+   *
+   * <p>Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.</p>
+   */
+  private int estimatedReceiveBufferBytes = 0;
+
+  private final SimpleQuery beginTransactionQuery =
+      new SimpleQuery(
+          new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  private final SimpleQuery emptyQuery =
+      new SimpleQuery(
+          new NativeQuery("", new int[0], false,
+              SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
+          ), null, false);
+
+  private final SimpleQuery autoSaveQuery =
+      new SimpleQuery(
+          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  private final SimpleQuery releaseAutoSave =
+      new SimpleQuery(
+          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  /*
+  In autosave mode we use this query to roll back errored transactions
+   */
+  private final SimpleQuery restoreToAutoSave =
+      new SimpleQuery(
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
 
   /**
    * <p>Supplement to synchronization of public methods on current QueryExecutor.</p>
@@ -152,6 +241,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * <p>See notes on related methods as well as currentCopy() below.</p>
    */
   private Object lockedFor = null;
+
+  public QueryExecutorImpl(PGStream pgStream, String user, String database,
+      int cancelSignalTimeout, Properties info) throws SQLException, IOException {
+    super(pgStream, user, database, cancelSignalTimeout, info);
+
+    this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
+    this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
+    readStartupMessages();
+  }
+
+  @Override
+  public int getProtocolVersion() {
+    return 3;
+  }
 
   /**
    * Obtain lock over this connection for given object, blocking to wait if necessary.
@@ -408,56 +512,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     throw e;
   }
 
-  // Deadlock avoidance:
-  //
-  // It's possible for the send and receive streams to get "deadlocked" against each other since
-  // we do not have a separate thread. The scenario is this: we have two streams:
-  //
-  // driver -> TCP buffering -> server
-  // server -> TCP buffering -> driver
-  //
-  // The server behaviour is roughly:
-  // while true:
-  // read message
-  // execute message
-  // write results
-  //
-  // If the server -> driver stream has a full buffer, the write will block.
-  // If the driver is still writing when this happens, and the driver -> server
-  // stream also fills up, we deadlock: the driver is blocked on write() waiting
-  // for the server to read some more data, and the server is blocked on write()
-  // waiting for the driver to read some more data.
-  //
-  // To avoid this, we guess at how much response data we can request from the
-  // server before the server -> driver stream's buffer is full (MAX_BUFFERED_RECV_BYTES).
-  // This is the point where the server blocks on write and stops reading data. If we
-  // reach this point, we force a Sync message and read pending data from the server
-  // until ReadyForQuery, then go back to writing more queries unless we saw an error.
-  //
-  // This is not 100% reliable -- it's only done in the batch-query case and only
-  // at a reasonably high level (per query, not per message), and it's only an estimate
-  // -- so it might break. To do it correctly in all cases would seem to require a
-  // separate send or receive thread as we can only do the Sync-and-read-results
-  // operation at particular points, and also as we don't really know how much data
-  // the server is sending.
-  //
-  // Our message size estimation is coarse, and disregards asynchronous
-  // notifications, warnings/info/debug messages, etc, so the response size may be
-  // quite different from the 250 bytes assumed here even for queries that don't
-  // return data.
-  //
-  // See github issue #194 and #195 .
-  //
-  // Assume 64k server->client buffering, which is extremely conservative. A typical
-  // system will have 200kb or more of buffers for its receive buffers, and the sending
-  // system will typically have the same on the send side, giving us 400kb or to work
-  // with. (We could check Java's receive buffer size, but prefer to assume a very
-  // conservative buffer instead, and we don't know how big the server's send
-  // buffer is.)
-  //
-  private static final int MAX_BUFFERED_RECV_BYTES = 64000;
-  private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
-
   public synchronized void execute(Query[] queries, ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
@@ -526,8 +580,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
       throws IOException {
     // First, send CloseStatements for finalized SimpleQueries that had statement names assigned.
-    processDeadParsedQueries();
-    processDeadPortals();
+    queryCleaner.processDeadParsedQueries();
+    portalCleaner.processDeadPortals();
 
     // Send BEGIN on first statement in transaction.
     if ((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) != 0
@@ -1406,7 +1460,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     // Clean up any existing statement, as we can't use it.
     query.unprepare();
-    processDeadParsedQueries();
+    queryCleaner.processDeadParsedQueries();
 
     // Remove any cached Field values. The re-parsed query might report different
     // fields because input parameter types may result in different type inferences
@@ -1424,7 +1478,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // under us.
       query.setStatementName(statementName, deallocateEpoch);
       query.setPrepareTypes(typeOIDs);
-      registerParsedQuery(query, statementName);
+      queryCleaner.registerParsedQuery(query, statementName);
     }
 
     byte[] encodedStatementName = query.getEncodedStatementName();
@@ -1873,91 +1927,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pendingDescribePortalQueue.add(query);
   }
 
-  //
-  // Garbage collection of parsed statements.
-  //
-  // When a statement is successfully parsed, registerParsedQuery is called.
-  // This creates a PhantomReference referring to the "owner" of the statement
-  // (the originating Query object) and inserts that reference as a key in
-  // parsedQueryMap. The values of parsedQueryMap are the corresponding allocated
-  // statement names. The originating Query object also holds a reference to the
-  // PhantomReference.
-  //
-  // When the owning Query object is closed, it enqueues and clears the associated
-  // PhantomReference.
-  //
-  // If the owning Query object becomes unreachable (see java.lang.ref javadoc) before
-  // being closed, the corresponding PhantomReference is enqueued on
-  // parsedQueryCleanupQueue. In the Sun JVM, phantom references are only enqueued
-  // when a GC occurs, so this is not necessarily prompt but should eventually happen.
-  //
-  // Periodically (currently, just before query execution), the parsedQueryCleanupQueue
-  // is polled. For each enqueued PhantomReference we find, we remove the corresponding
-  // entry from parsedQueryMap, obtaining the name of the underlying statement in the
-  // process. Then we send a message to the backend to deallocate that statement.
-  //
-
-  private final HashMap<PhantomReference<SimpleQuery>, String> parsedQueryMap =
-      new HashMap<PhantomReference<SimpleQuery>, String>();
-  private final ReferenceQueue<SimpleQuery> parsedQueryCleanupQueue =
-      new ReferenceQueue<SimpleQuery>();
-
-  private void registerParsedQuery(SimpleQuery query, String statementName) {
-    if (statementName == null) {
-      return;
-    }
-
-    PhantomReference<SimpleQuery> cleanupRef =
-        new PhantomReference<SimpleQuery>(query, parsedQueryCleanupQueue);
-    parsedQueryMap.put(cleanupRef, statementName);
-    query.setCleanupRef(cleanupRef);
-  }
-
-  private void processDeadParsedQueries() throws IOException {
-    Reference<? extends SimpleQuery> deadQuery;
-    while ((deadQuery = parsedQueryCleanupQueue.poll()) != null) {
-      String statementName = parsedQueryMap.remove(deadQuery);
-      sendCloseStatement(statementName);
-      deadQuery.clear();
-    }
-  }
-
-  //
-  // Essentially the same strategy is used for the cleanup of portals.
-  // Note that each Portal holds a reference to the corresponding Query
-  // that generated it, so the Query won't be collected (and the statement
-  // closed) until all the Portals are, too. This is required by the mechanics
-  // of the backend protocol: when a statement is closed, all dependent portals
-  // are also closed.
-  //
-
-  private final HashMap<PhantomReference<Portal>, String> openPortalMap =
-      new HashMap<PhantomReference<Portal>, String>();
-  private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<Portal>();
-
-  private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
-
-  private void registerOpenPortal(Portal portal) {
-    if (portal == UNNAMED_PORTAL) {
-      return; // Using the unnamed portal.
-    }
-
-    String portalName = portal.getPortalName();
-    PhantomReference<Portal> cleanupRef =
-        new PhantomReference<Portal>(portal, openPortalCleanupQueue);
-    openPortalMap.put(cleanupRef, portalName);
-    portal.setCleanupRef(cleanupRef);
-  }
-
-  private void processDeadPortals() throws IOException {
-    Reference<? extends Portal> deadPortal;
-    while ((deadPortal = openPortalCleanupQueue.poll()) != null) {
-      String portalName = openPortalMap.remove(deadPortal);
-      sendClosePortal(portalName);
-      deadPortal.clear();
-    }
-  }
-
   protected void processResults(ResultHandler handler, int flags) throws IOException {
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
@@ -2036,7 +2005,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Portal boundPortal = pendingBindQueue.removeFirst();
           LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
 
-          registerOpenPortal(boundPortal);
+          portalCleaner.registerOpenPortal(boundPortal);
           break;
 
         case '3': // Close Complete (response to Close)
@@ -2391,8 +2360,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Now actually run it.
 
     try {
-      processDeadParsedQueries();
-      processDeadPortals();
+      queryCleaner.processDeadParsedQueries();
+      portalCleaner.processDeadPortals();
 
       sendExecute(portal.getQuery(), portal, fetchSize);
       sendSync();
@@ -2729,60 +2698,92 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     integerDateTimes = state;
   }
 
+  @Override
   public boolean getIntegerDateTimes() {
     return integerDateTimes;
   }
 
-  private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<SimpleQuery>();
-  private final Deque<Portal> pendingBindQueue = new ArrayDeque<Portal>();
-  private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<ExecuteRequest>();
-  private final Deque<DescribeRequest> pendingDescribeStatementQueue =
-      new ArrayDeque<DescribeRequest>();
-  private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<SimpleQuery>();
+  //
+  // Essentially the same strategy is used for the cleanup of portals.
+  // Note that each Portal holds a reference to the corresponding Query
+  // that generated it, so the Query won't be collected (and the statement
+  // closed) until all the Portals are, too. This is required by the mechanics
+  // of the backend protocol: when a statement is closed, all dependent portals
+  // are also closed.
+  //
+  private class PortalCleaner {
+    private final HashMap<PhantomReference<Portal>, String> openPortalMap =
+        new HashMap<PhantomReference<Portal>, String>();
+    private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<Portal>();
 
-  private long nextUniqueID = 1;
-  private final boolean allowEncodingChanges;
-  private final boolean cleanupSavePoints;
+    void registerOpenPortal(Portal portal) {
+      if (portal == QueryExecutorImpl.UNNAMED_PORTAL) {
+        return; // Using the unnamed portal.
+      }
 
-  /**
-   * <p>The estimated server response size since we last consumed the input stream from the server, in
-   * bytes.</p>
-   *
-   * <p>Starts at zero, reset by every Sync message. Mainly used for batches.</p>
-   *
-   * <p>Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.</p>
-   */
-  private int estimatedReceiveBufferBytes = 0;
+      String portalName = portal.getPortalName();
+      PhantomReference<Portal> cleanupRef =
+          new PhantomReference<Portal>(portal, openPortalCleanupQueue);
+      openPortalMap.put(cleanupRef, portalName);
+      portal.setCleanupRef(cleanupRef);
+    }
 
-  private final SimpleQuery beginTransactionQuery =
-      new SimpleQuery(
-          new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
-          null, false);
-
-  private final SimpleQuery emptyQuery =
-      new SimpleQuery(
-          new NativeQuery("", new int[0], false,
-              SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
-          ), null, false);
-
-  private final SimpleQuery autoSaveQuery =
-      new SimpleQuery(
-          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
-          null, false);
-
-  private final SimpleQuery releaseAutoSave =
-      new SimpleQuery(
-          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
-          null, false);
+    void processDeadPortals() throws IOException {
+      Reference<? extends Portal> deadPortal;
+      while ((deadPortal = openPortalCleanupQueue.poll()) != null) {
+        String portalName = openPortalMap.remove(deadPortal);
+        QueryExecutorImpl.this.sendClosePortal(portalName);
+        deadPortal.clear();
+      }
+    }
+  }
 
   /*
-  In autosave mode we use this query to roll back errored transactions
+   * Garbage collection of parsed statements.
+   *
+   * When a statement is successfully parsed, registerParsedQuery is called.
+   * This creates a PhantomReference referring to the "owner" of the statement
+   * (the originating Query object) and inserts that reference as a key in
+   * parsedQueryMap. The values of parsedQueryMap are the corresponding allocated
+   * statement names. The originating Query object also holds a reference to the
+   * PhantomReference.
+   *
+   * When the owning Query object is closed, it enqueues and clears the associated
+   * PhantomReference.
+   *
+   * If the owning Query object becomes unreachable (see java.lang.ref javadoc) before
+   * being closed, the corresponding PhantomReference is enqueued on
+   * parsedQueryCleanupQueue. In the Sun JVM, phantom references are only enqueued
+   * when a GC occurs, so this is not necessarily prompt but should eventually happen.
+   *
+   * Periodically (currently, just before query execution), the parsedQueryCleanupQueue
+   * is polled. For each enqueued PhantomReference we find, we remove the corresponding
+   * entry from parsedQueryMap, obtaining the name of the underlying statement in the
+   * process. Then we send a message to the backend to deallocate that statement.
    */
-  private final SimpleQuery restoreToAutoSave =
-      new SimpleQuery(
-          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
-          null, false);
+  private class QueryCleaner {
+    private final HashMap<PhantomReference<SimpleQuery>, String> parsedQueryMap =
+        new HashMap<PhantomReference<SimpleQuery>, String>();
+    private final ReferenceQueue<SimpleQuery> parsedQueryCleanupQueue = new ReferenceQueue<SimpleQuery>();
 
+    void registerParsedQuery(SimpleQuery query, String statementName) {
+      if (statementName == null) {
+        return;
+      }
 
+      PhantomReference<SimpleQuery> cleanupRef =
+          new PhantomReference<SimpleQuery>(query, parsedQueryCleanupQueue);
+      parsedQueryMap.put(cleanupRef, statementName);
+      query.setCleanupRef(cleanupRef);
+    }
 
+    void processDeadParsedQueries() throws IOException {
+      Reference<? extends SimpleQuery> deadQuery;
+      while ((deadQuery = parsedQueryCleanupQueue.poll()) != null) {
+        String statementName = parsedQueryMap.remove(deadQuery);
+        QueryExecutorImpl.this.sendCloseStatement(statementName);
+        deadQuery.clear();
+      }
+    }
+  }
 }

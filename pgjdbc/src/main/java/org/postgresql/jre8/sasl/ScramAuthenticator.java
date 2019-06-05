@@ -36,6 +36,12 @@ public class ScramAuthenticator {
   private ScramSession.ServerFirstProcessor serverFirstProcessor;
   private ScramSession.ClientFinalProcessor clientFinalProcessor;
 
+  public ScramAuthenticator(String user, String password, PGStream pgStream) {
+    this.user = user;
+    this.password = password;
+    this.pgStream = pgStream;
+  }
+
   @FunctionalInterface
   private interface BodySender {
     void sendBody(PGStream pgStream) throws IOException;
@@ -47,12 +53,6 @@ public class ScramAuthenticator {
     pgStream.sendInteger4(Integer.BYTES + bodyLength);
     bodySender.sendBody(pgStream);
     pgStream.flush();
-  }
-
-  public ScramAuthenticator(String user, String password, PGStream pgStream) {
-    this.user = user;
-    this.password = password;
-    this.pgStream = pgStream;
   }
 
   public void processServerMechanismsAndInit() throws IOException, PSQLException {

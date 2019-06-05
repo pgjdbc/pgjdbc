@@ -15,6 +15,11 @@ import java.sql.ResultSet;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public class ResultWrapper {
+  private final ResultSet rs;
+  private final int updateCount;
+  private final long insertOID;
+  private ResultWrapper next;
+
   public ResultWrapper(ResultSet rs) {
     this.rs = rs;
     this.updateCount = -1;
@@ -51,9 +56,4 @@ public class ResultWrapper {
 
     tail.next = newResult;
   }
-
-  private final ResultSet rs;
-  private final int updateCount;
-  private final long insertOID;
-  private ResultWrapper next;
 }

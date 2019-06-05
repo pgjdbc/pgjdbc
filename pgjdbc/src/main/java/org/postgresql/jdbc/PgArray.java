@@ -14,6 +14,7 @@ import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.Numbers;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -66,22 +67,9 @@ public class PgArray implements java.sql.Array {
   protected BaseConnection connection = null;
 
   /**
-   * The OID of this field.
-   */
-  private int oid;
-
-  /**
    * Field value as String.
    */
   protected String fieldString = null;
-
-  /**
-   * Whether Object[] should be used instead primitive arrays. Object[] can contain null elements.
-   * It should be set to <Code>true</Code> if
-   * {@link BaseConnection#haveMinimumCompatibleVersion(String)} returns <Code>true</Code> for
-   * argument "8.3".
-   */
-  private final boolean useObjects;
 
   /**
    * Value of field as {@link PgArrayList}. Will be initialized only once within
@@ -90,6 +78,19 @@ public class PgArray implements java.sql.Array {
   protected PgArrayList arrayList;
 
   protected byte[] fieldBytes;
+
+  /**
+   * The OID of this field.
+   */
+  private int oid;
+
+  /**
+   * Whether Object[] should be used instead primitive arrays. Object[] can contain null elements.
+   * It should be set to <Code>true</Code> if
+   * {@link BaseConnection#haveMinimumCompatibleVersion(String)} returns <Code>true</Code> for
+   * argument "8.3".
+   */
+  private final boolean useObjects;
 
   private PgArray(BaseConnection connection, int oid) throws SQLException {
     this.connection = connection;
@@ -604,9 +605,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Numbers.toShort((String) o));
         } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
+          pa[length++] = o == null ? 0 : Numbers.toShort((String) o);
         }
       }
     } else if (type == Types.INTEGER) {
@@ -628,9 +629,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toInt((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Numbers.toInt((String) o));
         } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toInt((String) o);
+          pa[length++] = o == null ? 0 : Numbers.toInt((String) o);
         }
       }
     } else if (type == Types.BIGINT) {
@@ -652,9 +653,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toLong((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Numbers.toLong((String) o));
         } else {
-          pa[length++] = o == null ? 0L : PgResultSet.toLong((String) o);
+          pa[length++] = o == null ? 0L : Numbers.toLong((String) o);
         }
       }
     } else if (type == Types.NUMERIC) {
@@ -666,7 +667,7 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : PgResultSet.toBigDecimal((String) v));
+            : (v == null ? null : Numbers.toBigDecimal((String) v));
       }
     } else if (type == Types.REAL) {
       float[] pa = null;
@@ -687,9 +688,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toFloat((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Numbers.toFloat((String) o));
         } else {
-          pa[length++] = o == null ? 0f : PgResultSet.toFloat((String) o);
+          pa[length++] = o == null ? 0f : Numbers.toFloat((String) o);
         }
       }
     } else if (type == Types.DOUBLE) {
@@ -710,9 +711,9 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toDouble((String) o));
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Numbers.toDouble((String) o));
         } else {
-          pa[length++] = o == null ? 0d : PgResultSet.toDouble((String) o);
+          pa[length++] = o == null ? 0d : Numbers.toDouble((String) o);
         }
       }
     } else if (type == Types.CHAR || type == Types.VARCHAR || oid == Oid.JSONB_ARRAY) {

@@ -27,37 +27,6 @@ import java.util.Map;
 
 public class TypeInfoCache implements TypeInfo {
 
-  // pgname (String) -> java.sql.Types (Integer)
-  private Map<String, Integer> pgNameToSQLType;
-
-  // pgname (String) -> java class name (String)
-  // ie "text" -> "java.lang.String"
-  private Map<String, String> pgNameToJavaClass;
-
-  // oid (Integer) -> pgname (String)
-  private Map<Integer, String> oidToPgName;
-  // pgname (String) -> oid (Integer)
-  private Map<String, Integer> pgNameToOid;
-
-  // pgname (String) -> extension pgobject (Class)
-  private Map<String, Class<? extends PGobject>> pgNameToPgObject;
-
-  // type array oid -> base type's oid
-  private Map<Integer, Integer> pgArrayToPgType;
-
-  // array type oid -> base type array element delimiter
-  private Map<Integer, Character> arrayOidToDelimiter;
-
-  private BaseConnection conn;
-  private final int unknownLength;
-  private PreparedStatement getOidStatementSimple;
-  private PreparedStatement getOidStatementComplexNonArray;
-  private PreparedStatement getOidStatementComplexArray;
-  private PreparedStatement getNameStatement;
-  private PreparedStatement getArrayElementOidStatement;
-  private PreparedStatement getArrayDelimiterStatement;
-  private PreparedStatement getTypeInfoStatement;
-
   // basic pg types info:
   // 0 - type name
   // 1 - type oid
@@ -110,6 +79,37 @@ public class TypeInfoCache implements TypeInfo {
     typeAliases.put("boolean", "bool");
     typeAliases.put("decimal", "numeric");
   }
+
+  // pgname (String) -> java.sql.Types (Integer)
+  private final Map<String, Integer> pgNameToSQLType;
+
+  // pgname (String) -> java class name (String)
+  // ie "text" -> "java.lang.String"
+  private final Map<String, String> pgNameToJavaClass;
+
+  // oid (Integer) -> pgname (String)
+  private final Map<Integer, String> oidToPgName;
+  // pgname (String) -> oid (Integer)
+  private final Map<String, Integer> pgNameToOid;
+
+  // pgname (String) -> extension pgobject (Class)
+  private final Map<String, Class<? extends PGobject>> pgNameToPgObject;
+
+  // type array oid -> base type's oid
+  private final Map<Integer, Integer> pgArrayToPgType;
+
+  // array type oid -> base type array element delimiter
+  private final Map<Integer, Character> arrayOidToDelimiter;
+
+  private final BaseConnection conn;
+  private final int unknownLength;
+  private PreparedStatement getOidStatementSimple;
+  private PreparedStatement getOidStatementComplexNonArray;
+  private PreparedStatement getOidStatementComplexArray;
+  private PreparedStatement getNameStatement;
+  private PreparedStatement getArrayElementOidStatement;
+  private PreparedStatement getArrayDelimiterStatement;
+  private PreparedStatement getTypeInfoStatement;
 
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;

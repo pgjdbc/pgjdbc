@@ -32,6 +32,16 @@ import java.util.Properties;
 public class SingleCertValidatingFactoryTestSuite {
   private static final String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
 
+  // The valid and invalid server SSL certfiicates:
+  private static final String GOOD_SERVER_CERT_PATH = "../certdir/goodroot.crt";
+  private static final String BAD_SERVER_CERT_PATH = "../certdir/badroot.crt";
+
+  private String serverJdbcUrl;
+
+  public SingleCertValidatingFactoryTestSuite(String serverJdbcUrl) {
+    this.serverJdbcUrl = serverJdbcUrl;
+  }
+
   /**
    * <p>This method returns the parameters that JUnit will use when constructing this class for
    * testing. It returns a collection of arrays, each containing a single value for the JDBC URL to
@@ -66,16 +76,12 @@ public class SingleCertValidatingFactoryTestSuite {
     });
   }
 
-  // The valid and invalid server SSL certfiicates:
-  private static final String goodServerCertPath = "../certdir/goodroot.crt";
-  private static final String badServerCertPath = "../certdir/badroot.crt";
-
   private String getGoodServerCert() {
-    return loadFile(goodServerCertPath);
+    return loadFile(GOOD_SERVER_CERT_PATH);
   }
 
   private String getBadServerCert() {
-    return loadFile(badServerCertPath);
+    return loadFile(BAD_SERVER_CERT_PATH);
   }
 
   protected String getUsername() {
@@ -84,12 +90,6 @@ public class SingleCertValidatingFactoryTestSuite {
 
   protected String getPassword() {
     return System.getProperty("password");
-  }
-
-  private String serverJdbcUrl;
-
-  public SingleCertValidatingFactoryTestSuite(String serverJdbcUrl) {
-    this.serverJdbcUrl = serverJdbcUrl;
   }
 
   protected String getServerJdbcUrl() {
@@ -202,7 +202,7 @@ public class SingleCertValidatingFactoryTestSuite {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
-    info.setProperty("sslfactoryarg", "file:" + badServerCertPath);
+    info.setProperty("sslfactoryarg", "file:" + BAD_SERVER_CERT_PATH);
     testConnect(info, true, javax.net.ssl.SSLHandshakeException.class);
   }
 
@@ -234,7 +234,7 @@ public class SingleCertValidatingFactoryTestSuite {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
-    info.setProperty("sslfactoryarg", "file:" + goodServerCertPath);
+    info.setProperty("sslfactoryarg", "file:" + GOOD_SERVER_CERT_PATH);
     testConnect(info, true);
   }
 

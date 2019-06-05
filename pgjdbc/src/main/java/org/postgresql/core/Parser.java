@@ -1342,20 +1342,16 @@ public class Parser {
     return i;
   }
 
-  private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
-  private static final char[] QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS = {'\"', '0', '('};
-  private static final char[] SINGLE_QUOTE = {'\''};
-
   // Static variables for parsing SQL when replaceProcessing is true.
   private enum SqlParseState {
     IN_SQLCODE,
-    ESC_DATE("d", SINGLE_QUOTE, "DATE "),
-    ESC_TIME("t", SINGLE_QUOTE, "TIME "),
+    ESC_DATE("d", QuoteConstants.SINGLE_QUOTE, "DATE "),
+    ESC_TIME("t", QuoteConstants.SINGLE_QUOTE, "TIME "),
 
-    ESC_TIMESTAMP("ts", SINGLE_QUOTE, "TIMESTAMP "),
-    ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
-    ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS, null),
-    ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
+    ESC_TIMESTAMP("ts", QuoteConstants.SINGLE_QUOTE, "TIMESTAMP "),
+    ESC_FUNCTION("fn", QuoteConstants.QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_OUTERJOIN("oj", QuoteConstants.QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS, null),
+    ESC_ESCAPECHAR("escape", QuoteConstants.SINGLE_QUOTE, "ESCAPE ");
 
     private static final SqlParseState[] VALUES = values();
 
@@ -1411,6 +1407,12 @@ public class Parser {
         }
       }
       return 0;
+    }
+
+    private static class QuoteConstants {
+      private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
+      private static final char[] QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS = {'\"', '0', '('};
+      private static final char[] SINGLE_QUOTE = {'\''};
     }
   }
 }

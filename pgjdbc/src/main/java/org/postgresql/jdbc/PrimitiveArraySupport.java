@@ -16,18 +16,6 @@ import java.util.Map;
 
 abstract class PrimitiveArraySupport<A> {
 
-  public abstract int getDefaultArrayTypeOid(TypeInfo tiCache);
-
-  public abstract String toArrayString(char delim, A array);
-
-  public abstract void appendArray(StringBuilder sb, char delim, A array);
-
-  public boolean supportBinaryRepresentation() {
-    return true;
-  }
-
-  public abstract byte[] toBinaryRepresentation(Connection connection, A array) throws SQLFeatureNotSupportedException;
-
   private static final PrimitiveArraySupport<long[]> LONG_ARRAY = new PrimitiveArraySupport<long[]>() {
 
     /**
@@ -485,4 +473,16 @@ abstract class PrimitiveArraySupport<A> {
   public static <A> PrimitiveArraySupport<A> getArraySupport(A array) {
     return ARRAY_CLASS_TO_SUPPORT.get(array.getClass());
   }
+
+  public abstract int getDefaultArrayTypeOid(TypeInfo tiCache);
+
+  public abstract String toArrayString(char delim, A array);
+
+  public abstract void appendArray(StringBuilder sb, char delim, A array);
+
+  public boolean supportBinaryRepresentation() {
+    return true;
+  }
+
+  public abstract byte[] toBinaryRepresentation(Connection connection, A array) throws SQLFeatureNotSupportedException;
 }

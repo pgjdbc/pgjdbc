@@ -14,6 +14,41 @@ import java.util.Map;
  * Caches values in simple least-recently-accessed order.
  */
 public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Key, Value> {
+  public static final CreateAction NOOP_CREATE_ACTION = new CreateAction() {
+    @Override
+    public Object create(Object o) throws SQLException {
+      return null;
+    }
+  };
+
+  public static final EvictAction NOOP_EVICT_ACTION = new EvictAction() {
+    @Override
+    public void evict(Object o) throws SQLException {
+      return;
+    }
+  };
+
+  private final EvictAction<Value> onEvict;
+  private final CreateAction<Key, Value> createAction;
+  private final int maxSizeEntries;
+  private final long maxSizeBytes;
+  private long currentSize;
+  private final Map<Key, Value> cache;
+
+  public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder) {
+    this(maxSizeEntries, maxSizeBytes, accessOrder, NOOP_CREATE_ACTION, NOOP_EVICT_ACTION);
+  }
+
+  public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder,
+                  CreateAction<Key, Value> createAction,
+                  EvictAction<Value> onEvict) {
+    this.maxSizeEntries = maxSizeEntries;
+    this.maxSizeBytes = maxSizeBytes;
+    this.createAction = createAction;
+    this.onEvict = onEvict;
+    this.cache = new LimitedMap(16, 0.75f, accessOrder);
+  }
+
   /**
    * Action that is invoked when the entry is removed from the cache.
    *
@@ -31,13 +66,6 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
   public interface CreateAction<Key, Value> {
     Value create(Key key) throws SQLException;
   }
-
-  private final EvictAction<Value> onEvict;
-  private final CreateAction<Key, Value> createAction;
-  private final int maxSizeEntries;
-  private final long maxSizeBytes;
-  private long currentSize;
-  private final Map<Key, Value> cache;
 
   private class LimitedMap extends LinkedHashMap<Key, Value> {
     LimitedMap(int initialCapacity, float loadFactor, boolean accessOrder) {
@@ -76,20 +104,6 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
     } catch (SQLException e) {
       /* ignore */
     }
-  }
-
-  public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder) {
-    this(maxSizeEntries, maxSizeBytes, accessOrder, NOOP_CREATE_ACTION, NOOP_EVICT_ACTION);
-  }
-
-  public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder,
-      CreateAction<Key, Value> createAction,
-      EvictAction<Value> onEvict) {
-    this.maxSizeEntries = maxSizeEntries;
-    this.maxSizeBytes = maxSizeBytes;
-    this.createAction = createAction;
-    this.onEvict = onEvict;
-    this.cache = new LimitedMap(16, 0.75f, accessOrder);
   }
 
   /**
@@ -155,17 +169,4 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
     }
   }
 
-  public static final CreateAction NOOP_CREATE_ACTION = new CreateAction() {
-    @Override
-    public Object create(Object o) throws SQLException {
-      return null;
-    }
-  };
-
-  public static final EvictAction NOOP_EVICT_ACTION = new EvictAction() {
-    @Override
-    public void evict(Object o) throws SQLException {
-      return;
-    }
-  };
 }

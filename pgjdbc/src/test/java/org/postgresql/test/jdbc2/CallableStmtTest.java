@@ -30,6 +30,9 @@ import java.sql.Types;
  */
 public class CallableStmtTest extends BaseTest4 {
 
+  private final String func = "{ ? = call ";
+  private final String pkgName = "testspg__";
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
@@ -93,9 +96,6 @@ public class CallableStmtTest extends BaseTest4 {
     stmt.execute("DROP FUNCTION testspg__insertInt(int);");
     super.tearDown();
   }
-
-  final String func = "{ ? = call ";
-  final String pkgName = "testspg__";
 
   @Test
   public void testGetUpdateCount() throws SQLException {

@@ -39,18 +39,24 @@ public class PgStatement implements Statement, BaseStatement {
    */
   private static final boolean DEFAULT_FORCE_BINARY_TRANSFERS =
       Boolean.getBoolean("org.postgresql.forceBinary");
-  // only for testing purposes. even single shot statements will use binary transfers
-  private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
+
+  /**
+   * Was this PreparedStatement created to return generated keys for every execution? This is set at
+   * creation time and never cleared by execution.
+   */
+  public boolean wantsGeneratedKeysAlways = false;
 
   protected ArrayList<Query> batchStatements = null;
   protected ArrayList<ParameterList> batchParameters = null;
   protected final int resultsettype; // the resultset type to return (ResultSet.TYPE_xxx)
   protected final int concurrency; // is it updateable or not? (ResultSet.CONCUR_xxx)
+  // fetch direction hint (currently ignored)
+  protected int fetchdirection = ResultSet.FETCH_FORWARD;
   private final int rsHoldability;
   private boolean poolable;
   private boolean closeOnCompletion = false;
-  protected int fetchdirection = ResultSet.FETCH_FORWARD;
-  // fetch direction hint (currently ignored)
+  // only for testing purposes. even single shot statements will use binary transfers
+  private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
 
   /**
    * Protects current statement from cancelTask starting, waiting for a bit, and waking up exactly
@@ -85,12 +91,6 @@ public class PgStatement implements Statement, BaseStatement {
    * Statement methods that have generated keys arguments and cleared after execution is complete.
    */
   protected boolean wantsGeneratedKeysOnce = false;
-
-  /**
-   * Was this PreparedStatement created to return generated keys for every execution? This is set at
-   * creation time and never cleared by execution.
-   */
-  public boolean wantsGeneratedKeysAlways = false;
 
   // The connection who created us
   protected final BaseConnection connection;
@@ -136,12 +136,14 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected int maxFieldSize = 0;
 
+  private volatile boolean isClosed = false;
+
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
-    forceBinaryTransfers |= c.getForceBinary();
-    resultsettype = rsType;
-    concurrency = rsConcurrency;
+    this.forceBinaryTransfers |= c.getForceBinary();
+    this.resultsettype = rsType;
+    this.concurrency = rsConcurrency;
     setFetchSize(c.getDefaultFetchSize());
     setPrepareThreshold(c.getPrepareThreshold());
     this.rsHoldability = rsHoldability;
@@ -467,8 +469,6 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     // No-op.
   }
-
-  private volatile boolean isClosed = false;
 
   public int getUpdateCount() throws SQLException {
     synchronized (this) {

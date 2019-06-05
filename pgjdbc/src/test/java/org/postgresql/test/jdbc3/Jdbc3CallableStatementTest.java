@@ -29,6 +29,48 @@ import java.sql.Types;
  * @author davec
  */
 public class Jdbc3CallableStatementTest extends BaseTest4 {
+  private final String createDecimalTab =
+      "create temp table decimal_tab ( max_val float, min_val float, null_val float )";
+  private final String insertDecimalTab = "insert into decimal_tab values (1.0E125,1.0E-130,null)";
+  private final String createFloatProc = "create or replace function "
+      + "float_proc( OUT IMAX float, OUT IMIN float, OUT INUL float)  as "
+      + "'begin "
+      + "select max_val into imax from decimal_tab;"
+      + "select min_val into imin from decimal_tab;"
+      + "select null_val into inul from decimal_tab;"
+      + " end;' "
+      + "language plpgsql;";
+
+  private final String createUpdateFloat = "create or replace function "
+      + "updatefloat_proc ( IN maxparm float, IN minparm float ) returns int as "
+      + "'begin "
+      + "update decimal_tab set max_val=maxparm;"
+      + "update decimal_tab set min_val=minparm;"
+      + "return 0;"
+      + " end;' "
+      + "language plpgsql;";
+
+  private final String createRealTab =
+      "create temp table real_tab ( max_val float(25), min_val float(25), null_val float(25) )";
+  private final String insertRealTab = "insert into real_tab values (1.0E37,1.0E-37, null)";
+
+  private final String dropFloatProc = "drop function float_proc()";
+  private final String createUpdateReal = "create or replace function "
+      + "update_real_proc ( IN maxparm float(25), IN minparm float(25) ) returns int as "
+      + "'begin "
+      + "update real_tab set max_val=maxparm;"
+      + "update real_tab set min_val=minparm;"
+      + "return 0;"
+      + " end;' "
+      + "language plpgsql;";
+  private final String dropUpdateReal = "drop function update_real_proc(float, float)";
+  private final double[] doubleValues = {1.0E125, 1.0E-130};
+  private final float[] realValues = {(float) 1.0E37, (float) 1.0E-37};
+  private final int[] intValues = {2147483647, -2147483648};
+
+  private final String createBitTab =
+      "create temp table bit_tab ( max_val boolean, min_val boolean, null_val boolean )";
+  private final String insertBitTab = "insert into bit_tab values (true,false,null)";
 
   @Override
   public void setUp() throws Exception {
@@ -319,10 +361,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     }
   }
 
-  private final String createBitTab =
-      "create temp table bit_tab ( max_val boolean, min_val boolean, null_val boolean )";
-  private final String insertBitTab = "insert into bit_tab values (true,false,null)";
-
   @Test
   public void testSetObjectBit() throws Throwable {
     try {
@@ -474,45 +512,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       }
     }
   }
-
-  private final String createDecimalTab =
-      "create temp table decimal_tab ( max_val float, min_val float, null_val float )";
-  private final String insertDecimalTab = "insert into decimal_tab values (1.0E125,1.0E-130,null)";
-  private final String createFloatProc = "create or replace function "
-      + "float_proc( OUT IMAX float, OUT IMIN float, OUT INUL float)  as "
-      + "'begin "
-      + "select max_val into imax from decimal_tab;"
-      + "select min_val into imin from decimal_tab;"
-      + "select null_val into inul from decimal_tab;"
-      + " end;' "
-      + "language plpgsql;";
-
-  private final String createUpdateFloat = "create or replace function "
-      + "updatefloat_proc ( IN maxparm float, IN minparm float ) returns int as "
-      + "'begin "
-      + "update decimal_tab set max_val=maxparm;"
-      + "update decimal_tab set min_val=minparm;"
-      + "return 0;"
-      + " end;' "
-      + "language plpgsql;";
-
-  private final String createRealTab =
-      "create temp table real_tab ( max_val float(25), min_val float(25), null_val float(25) )";
-  private final String insertRealTab = "insert into real_tab values (1.0E37,1.0E-37, null)";
-
-  private final String dropFloatProc = "drop function float_proc()";
-  private final String createUpdateReal = "create or replace function "
-      + "update_real_proc ( IN maxparm float(25), IN minparm float(25) ) returns int as "
-      + "'begin "
-      + "update real_tab set max_val=maxparm;"
-      + "update real_tab set min_val=minparm;"
-      + "return 0;"
-      + " end;' "
-      + "language plpgsql;";
-  private final String dropUpdateReal = "drop function update_real_proc(float, float)";
-  private final double[] doubleValues = {1.0E125, 1.0E-130};
-  private final float[] realValues = {(float) 1.0E37, (float) 1.0E-37};
-  private final int[] intValues = {2147483647, -2147483648};
 
   @Test
   public void testUpdateReal() throws Throwable {

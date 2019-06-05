@@ -32,8 +32,11 @@
     <property name="lineSeparator" value="lf"/>
   </module>
 
+  <module name="SuppressWarningsFilter" />
+
   <module name="TreeWalker">
 
+    <module name="SuppressWarningsHolder" />
     <module name="SuppressionCommentFilter">
       <property name="offCommentFormat" value="CHECKSTYLE: OFF"/>
       <property name="onCommentFormat"  value="CHECKSTYLE: ON"/>
@@ -164,6 +167,9 @@
     </module>
     <module name="OverloadMethodsDeclarationOrder"/>
     <module name="VariableDeclarationUsageDistance"/>-->
+    <module name="DeclarationOrder">
+      <property name="ignoreModifiers" value="true"/>
+    </module>
     <module name="CustomImportOrder">
       <property name="specialImportsRegExp" value="org.postgresql"/>
       <property name="sortImportsInGroupAlphabetically" value="true"/>

@@ -36,6 +36,23 @@ import javax.sql.StatementEventListener;
  * @see org.postgresql.ds.PGConnectionPoolDataSource
  */
 public class PGPooledConnection implements PooledConnection {
+  // Classes we consider fatal.
+  private static String[] fatalClasses = {
+      "08", // connection error
+      "53", // insufficient resources
+
+      // nb: not just "57" as that includes query cancel which is nonfatal
+      "57P01", // admin shutdown
+      "57P02", // crash shutdown
+      "57P03", // cannot connect now
+
+      "58", // system error (backend)
+      "60", // system error (driver)
+      "99", // unexpected error
+      "F0", // configuration file error (backend)
+      "XX", // internal error (backend)
+  };
+
   private final List<ConnectionEventListener> listeners = new LinkedList<ConnectionEventListener>();
   private Connection con;
   private ConnectionHandler last;
@@ -191,23 +208,6 @@ public class PGPooledConnection implements PooledConnection {
   protected ConnectionEvent createConnectionEvent(SQLException e) {
     return new ConnectionEvent(this, e);
   }
-
-  // Classes we consider fatal.
-  private static String[] fatalClasses = {
-      "08", // connection error
-      "53", // insufficient resources
-
-      // nb: not just "57" as that includes query cancel which is nonfatal
-      "57P01", // admin shutdown
-      "57P02", // crash shutdown
-      "57P03", // cannot connect now
-
-      "58", // system error (backend)
-      "60", // system error (driver)
-      "99", // unexpected error
-      "F0", // configuration file error (backend)
-      "XX", // internal error (backend)
-  };
 
   private static boolean isFatalState(String state) {
     if (state == null) {
