@@ -1069,6 +1069,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return PGProperty.LOGGER_FILE.get(exprProps);
   }
 
+  public void setStatementTimeout(String statementTimeout) {
+    PGProperty.STATEMENT_TIMEOUT.set(properties, statementTimeout);
+  }
+
+  public String getStatementTimeout() {
+    return PGProperty.STATEMENT_TIMEOUT.get(properties);
+  }
+
   /**
    * @param loggerFile File output of the Logger.
    * @see PGProperty#LOGGER_LEVEL

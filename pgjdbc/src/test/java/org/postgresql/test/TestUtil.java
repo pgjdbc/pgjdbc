@@ -94,6 +94,11 @@ public class TestUtil {
       ssl = "&ssl=" + getSSL();
     }
 
+    String statementTimeout = "";
+    if (getStatementTimeout() != null) {
+      statementTimeout = "&statementTimeout=" + getStatementTimeout();
+    }
+
     return "jdbc:postgresql://"
         + hostport + "/"
         + database
@@ -105,7 +110,8 @@ public class TestUtil {
         + binaryTransfer
         + receiveBufferSize
         + sendBufferSize
-        + ssl;
+        + ssl
+        + statementTimeout;
   }
 
   /*
@@ -214,6 +220,10 @@ public class TestUtil {
 
   public static String getSSL() {
     return System.getProperty("ssl");
+  }
+
+  public static String getStatementTimeout() {
+    return System.getProperty("statementTimeout");
   }
 
   static {

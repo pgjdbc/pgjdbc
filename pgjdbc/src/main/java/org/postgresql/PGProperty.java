@@ -437,7 +437,17 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+
+  /**
+   * Sets the STATEMENT_TIMEOUT property in postgresql to the number of milliseconds a query
+   * can execute before it's terminated by the server. If the query is terminated a SQLException is
+   * thrown with the message 'ERROR: canceling statement due to statement timeout'
+   */
+  STATEMENT_TIMEOUT("statementTimeout", null, "Sets the STATEMENT_TIMEOUT property in "
+    + "postgresql to the number of milliseconds a query can execute before "
+    + "it's terminated by the server. If the query is terminated a SQLException is "
+    + "thrown with the message 'ERROR: canceling statement due to statement timeout'");
 
   private final String name;
   private final String defaultValue;

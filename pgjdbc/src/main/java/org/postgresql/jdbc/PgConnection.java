@@ -253,6 +253,10 @@ public class PgConnection implements BaseConnection {
       }
     });
 
+    if (PGProperty.STATEMENT_TIMEOUT.isPresent(info)) {
+      execSQLUpdate("set statement_timeout=" + PGProperty.STATEMENT_TIMEOUT.getInt(info));
+    }
+
     // Initialize common queries.
     // isParameterized==true so full parse is performed and the engine knows the query
     // is not a compound query with ; inside, so it could use parse/bind/exec messages
