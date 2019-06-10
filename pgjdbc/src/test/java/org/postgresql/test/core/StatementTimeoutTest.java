@@ -5,17 +5,16 @@
 
 package org.postgresql.test.core;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Properties;
+import org.postgresql.test.TestUtil;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.postgresql.PGProperty;
-import org.postgresql.test.TestUtil;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class StatementTimeoutTest {
   private static final String schemaName = "statement_timeout_test";
