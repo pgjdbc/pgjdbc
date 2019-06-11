@@ -710,6 +710,15 @@ public enum PGProperty {
   }
 
   /**
+   * Returns whether this parameter is required.
+   *
+   * @return whether this parameter is required
+   */
+  public boolean isRequired() {
+    return required;
+  }
+
+  /**
    * Returns the description for this connection parameter.
    *
    * @return the description for this connection parameter
