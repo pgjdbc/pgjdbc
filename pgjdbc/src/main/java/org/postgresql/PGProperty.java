@@ -649,6 +649,15 @@ public enum PGProperty {
   }
 
   /**
+   * Returns the description for this connection parameter.
+   *
+   * @return the description for this connection parameter
+   */
+  public String getDescription() {
+    return description;
+  }
+
+  /**
    * Returns the available values for this connection parameter.
    *
    * @return the available values for this connection parameter or null
