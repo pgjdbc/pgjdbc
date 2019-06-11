@@ -11,6 +11,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.sql.DriverPropertyInfo;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -618,6 +620,15 @@ public enum PGProperty {
     this.choices = choices;
   }
 
+  private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<String, PGProperty>();
+  static {
+    for (PGProperty prop : PGProperty.values()) {
+      if (PROPS_BY_NAME.put(prop.getName(), prop) != null) {
+        throw new IllegalStateException("Duplicate PGProperty name: " + prop.getName());
+      }
+    }
+  }
+
   /**
    * Returns the name of the connection parameter. The name is the key that must be used in JDBC URL
    * or in Driver properties
@@ -777,12 +788,7 @@ public enum PGProperty {
   }
 
   public static PGProperty forName(String name) {
-    for (PGProperty property : PGProperty.values()) {
-      if (property.getName().equals(name)) {
-        return property;
-      }
-    }
-    return null;
+    return PROPS_BY_NAME.get(name);
   }
 
   /**
