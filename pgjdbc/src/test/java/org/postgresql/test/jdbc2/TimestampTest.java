@@ -30,7 +30,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -568,7 +567,7 @@ public class TimestampTest extends BaseTest4 {
   @Test
   public void TestTimeStampBefore1970() {
 
-    TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
 
     Date date = tsu.convertToDate(Timestamp.valueOf("1969-01-10 12:00:00").getTime(), TimeZone.getDefault());
