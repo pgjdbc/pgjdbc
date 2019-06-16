@@ -572,7 +572,7 @@ public class TimestampTest extends BaseTest4 {
 
     Date date = tsu.convertToDate(Timestamp.valueOf("1969-01-10 12:00:00").getTime(), TimeZone.getDefault());
 
-    assertEquals(new GregorianCalendar(1969, Calendar.JANUARY, 10).getTime(), date );
+    assertEquals(new GregorianCalendar(1969, Calendar.JANUARY, 10).getTime().getTime(), date.getTime() );
   }
 
   /*
