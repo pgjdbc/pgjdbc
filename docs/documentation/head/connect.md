@@ -301,10 +301,6 @@ Connection conn = DriverManager.getConnection(url);
 
 	Sets SO_RCVBUF on the connection stream
 
-* **recvBufferSize** = int
-
-	Sets SO_RCVBUF on the connection stream
-
 * **replication** = String
 
    Connection parameter passed in the startup message. This parameter accepts two values; "true"
