@@ -230,7 +230,7 @@ TL;DR:
 
     Note: the artifacts will not be visible in Maven Central before you manually release them.
 
-1. Navigate to [Sonatype Nexus Repository Manager](https://oss.sonatype.org/#stagingRepositories), find staging `orgpostgresql` repository there and release it
+1. Navigate to [Sonatype Nexus Repository Manager](https://oss.sonatype.org/#stagingRepositories), find staging `org.postgresql` repository there and release it
 
 ### Manual release procedure
 
