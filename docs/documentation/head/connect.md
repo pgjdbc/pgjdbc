@@ -118,7 +118,7 @@ Connection conn = DriverManager.getConnection(url);
   stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
   The timeout is specified in seconds. Default value is 10 seconds.
 
-* **cleanupSavePoints** = boolean
+* **cleanupSavepoints** = boolean
 
     Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
     done to avoid running out of shared buffers on the server in the case where 1000's of queries are
