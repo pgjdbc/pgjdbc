@@ -47,6 +47,8 @@ public class TimestampTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
+  private TimeZone currentTZ;
+
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
@@ -62,6 +64,7 @@ public class TimestampTest extends BaseTest4 {
     TestUtil.createTable(con, TSWTZ_TABLE, "ts timestamp with time zone");
     TestUtil.createTable(con, TSWOTZ_TABLE, "ts timestamp without time zone");
     TestUtil.createTable(con, DATE_TABLE, "ts date");
+    currentTZ = TimeZone.getDefault();
   }
 
   @Override
@@ -69,6 +72,7 @@ public class TimestampTest extends BaseTest4 {
     TestUtil.dropTable(con, TSWTZ_TABLE);
     TestUtil.dropTable(con, TSWOTZ_TABLE);
     TestUtil.dropTable(con, DATE_TABLE);
+    TimeZone.setDefault(currentTZ);
     super.tearDown();
   }
 
@@ -553,6 +557,22 @@ public class TimestampTest extends BaseTest4 {
 
     pstmt.close();
     stmt.close();
+  }
+
+  /*
+  Times before 1970 are negative in Java.
+  the convert to date does some math that assumes times are positive.
+  This test assures that the convertToDate still works properly with negative times
+   */
+  @Test
+  public void TestTimeStampBefore1970() {
+
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
+
+    Date date = tsu.convertToDate(Timestamp.valueOf("1969-01-10 12:00:00").getTime(), TimeZone.getDefault());
+
+    assertEquals(new GregorianCalendar(1969, Calendar.JANUARY, 10).getTime().getTime(), date.getTime() );
   }
 
   /*

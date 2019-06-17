@@ -1232,7 +1232,12 @@ public class TimestampUtils {
     if (tz == null) {
       tz = getDefaultTz();
     }
-    if (isSimpleTimeZone(tz.getID())) {
+    /*
+    the following math does not work for negative times
+    Punt and use Calendar for negative times.
+    This probably introduces a performance regression for times before 1970
+     */
+    if ( isSimpleTimeZone(tz.getID())) {
       // Truncate to 00:00 of the day.
       // Suppose the input date is 7 Jan 15:40 GMT+02:00 (that is 13:40 UTC)
       // We want it to become 7 Jan 00:00 GMT+02:00
@@ -1241,13 +1246,14 @@ public class TimestampUtils {
       millis += offset;
       // 2) Truncate hours, minutes, etc. Day is always 86400 seconds, no matter what leap seconds
       // are
-      millis = millis / ONEDAY * ONEDAY;
+      millis = floorDiv(millis, ONEDAY) * ONEDAY;
       // 2) Now millis is 7 Jan 00:00 UTC, however we need that in GMT+02:00, so subtract some
       // offset
       millis -= offset;
       // Now we have brand-new 7 Jan 00:00 GMT+02:00
       return new Date(millis);
     }
+
     Calendar cal = calendarWithUserTz;
     cal.setTimeZone(tz);
     cal.setTimeInMillis(millis);
@@ -1255,6 +1261,7 @@ public class TimestampUtils {
     cal.set(Calendar.MINUTE, 0);
     cal.set(Calendar.SECOND, 0);
     cal.set(Calendar.MILLISECOND, 0);
+
     return new Date(cal.getTimeInMillis());
   }
 
@@ -1410,5 +1417,17 @@ public class TimestampUtils {
       }
     }
     return TimeZone.getTimeZone(timeZone);
+  }
+
+  /*
+  provide our own as this is not available until 1.8
+   */
+  public static long floorDiv(long x, long y) {
+    long r = x / y;
+    // if the signs are different and modulo not zero, round down
+    if ((x ^ y) < 0 && (r * y != x)) {
+      r--;
+    }
+    return r;
   }
 }
