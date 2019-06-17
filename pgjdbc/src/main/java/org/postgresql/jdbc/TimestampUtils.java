@@ -1246,7 +1246,7 @@ public class TimestampUtils {
       millis += offset;
       // 2) Truncate hours, minutes, etc. Day is always 86400 seconds, no matter what leap seconds
       // are
-      millis = Math.floorDiv(millis, ONEDAY) * ONEDAY;
+      millis = floorDiv(millis, ONEDAY) * ONEDAY;
       // 2) Now millis is 7 Jan 00:00 UTC, however we need that in GMT+02:00, so subtract some
       // offset
       millis -= offset;
@@ -1417,5 +1417,17 @@ public class TimestampUtils {
       }
     }
     return TimeZone.getTimeZone(timeZone);
+  }
+
+  /*
+  provide our own as this is not available until 1.8
+   */
+  public static long floorDiv(long x, long y) {
+    long r = x / y;
+    // if the signs are different and modulo not zero, round down
+    if ((x ^ y) < 0 && (r * y != x)) {
+      r--;
+    }
+    return r;
   }
 }
