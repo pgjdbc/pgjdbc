@@ -103,6 +103,12 @@ Connection conn = DriverManager.getConnection(url);
 
     The default is `never`
 
+* **binaryTransfer** = boolean
+
+	Use binary format for sending and receiving data if possible.
+
+	Defaults to true.
+
 * **binaryTransferDisable** = String
 
 	A comma separated list of types to disable binary transfer. Either OID numbers or names.
@@ -136,6 +142,20 @@ Connection conn = DriverManager.getConnection(url);
 
 	Specify the schema to be set in the search-path.
 	This schema will be used to resolve unqualified object names used in statements over this connection.
+
+* **databaseMetadataCacheFields** = int
+
+	Specifies the maximum number of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 65536.
+
+* **databaseMetadataCacheFieldsMiB** = int
+
+	Specifies the maximum size (in megabytes) of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 5.
 
 * **defaultRowFetchSize** = int
 
