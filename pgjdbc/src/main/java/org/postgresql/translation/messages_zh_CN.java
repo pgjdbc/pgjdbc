@@ -18,8 +18,6 @@ public class messages_zh_CN extends java.util.ResourceBundle {
     t[19] = "Connection 已经被关闭。";
     t[24] = "Bad value for type {0} : {1}";
     t[25] = "不良的类型值 {0} : {1}";
-    t[34] = "Failed to initialize LargeObject API";
-    t[35] = "初始化 LargeObject API 失败";
     t[36] = "Truncation of large objects is only implemented in 8.3 and later servers.";
     t[37] = "大型对象的截断(Truncation)仅被实作执行在 8.3 和后来的服务器。";
     t[40] = "Cannot retrieve the name of an unnamed savepoint.";
