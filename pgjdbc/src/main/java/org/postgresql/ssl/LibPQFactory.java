@@ -179,7 +179,7 @@ public class LibPQFactory extends WrappedFactory {
    * A CallbackHandler that reads the password from the console or returns the password given to its
    * constructor.
    */
-  static class ConsoleCallbackHandler implements CallbackHandler {
+  public static class ConsoleCallbackHandler implements CallbackHandler {
 
     private char[] password = null;
 
