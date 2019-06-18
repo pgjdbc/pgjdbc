@@ -132,8 +132,6 @@ public class messages_cs extends java.util.ResourceBundle {
     t[219] = "Index pole mimo rozsah: {0}, počet prvků: {1}.";
     t[220] = "Provided InputStream failed.";
     t[221] = "Selhal poskytnutý InputStream.";
-    t[226] = "Failed to initialize LargeObject API";
-    t[227] = "Selhala inicializace LargeObject API";
     t[228] = "Cannot reference a savepoint after it has been released.";
     t[229] = "Nemohu získat odkaz na savepoint, když byl uvolněn.";
     t[232] = "An error occurred while setting up the SSL connection.";

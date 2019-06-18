@@ -56,6 +56,8 @@ public class messages_ru extends java.util.ResourceBundle {
     t[105] = "Операции XA suspend/resume не реализованы";
     t[116] = "Fastpath call {0} - No result was returned and we expected a long.";
     t[117] = "Вызов fastpath {0} ничего не вернул, а ожидалось long";
+    t[128] = "The connection attempt failed.";
+    t[129] = "Ошибка при попытке подсоединения.";
     t[130] = "Transaction isolation level {0} not supported.";
     t[131] = "Уровень изоляции транзакций {0} не поддерживается.";
     t[132] = "Large Objects may not be used in auto-commit mode.";
@@ -74,10 +76,6 @@ public class messages_ru extends java.util.ResourceBundle {
     t[147] = "Неожиданный статус команды COPY: {0}";
     t[148] = "Connection has been closed.";
     t[149] = "Это соединение уже было закрыто";
-    t[150] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
-    t[151] = "Духфазная фиксация работает только, если соединение неактивно (state=idle и транзакцция отсутствует). commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
-    t[160] = "The SSLSocketFactory class provided {0} could not be instantiated.";
-    t[161] = "Невозможно создать SSLSocketFactory с помощью указанного класса {0}";
     t[164] = "The SocketFactory class provided {0} could not be instantiated.";
     t[165] = "Невозможно создать SSLSocketFactory с помощью указанного класса {0}";
     t[166] = "An I/O error occurred while sending to the backend.";
@@ -96,8 +94,6 @@ public class messages_ru extends java.util.ResourceBundle {
     t[215] = "Неожиданный ответ от сервера. Ожидалось окончание потока, получен байт {0}";
     t[220] = "Invalid sslmode value: {0}";
     t[221] = "Неверное значение sslmode: {0}";
-    t[222] = "Failed to initialize LargeObject API";
-    t[223] = "Ошибка при инициализации LargeObject API";
     t[226] = "Connection attempt timed out.";
     t[227] = "Закончилось время ожидания";
     t[232] = "An unexpected result was returned by a query.";
@@ -134,8 +130,8 @@ public class messages_ru extends java.util.ResourceBundle {
     t[327] = "Statement закрыт.";
     t[328] = "Too many update results were returned.";
     t[329] = "Возвращено слишком много результатов обновления.";
-    t[330] = "The connection attempt failed.";
-    t[331] = "Ошибка при попытке подсоединения.";
+    t[330] = "The SSLSocketFactory class provided {0} could not be instantiated.";
+    t[331] = "Невозможно создать SSLSocketFactory с помощью указанного класса {0}";
     t[342] = "Location: File: {0}, Routine: {1}, Line: {2}";
     t[343] = "Местонахождение: Файл {0}, Процедура: {1}, Строка: {2}";
     t[344] = "Expected command status BEGIN, got {0}.";

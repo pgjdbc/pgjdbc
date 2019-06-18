@@ -186,8 +186,6 @@ public class messages_sr extends java.util.ResourceBundle {
     t[443] = "Nula bajtovji se ne smeju pojavljivati u string parametrima.";
     t[444] = "A result was returned when none was expected.";
     t[445] = "Rezultat vraćen ali nikakav rezultat nije očekivan.";
-    t[446] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
-    t[447] = "Nije implementirano: Dvofazni commit mora biti izdat uz korištenje besposlene konekcije. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[450] = "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details.";
     t[451] = "ResultSet nije moguće ažurirati. Upit koji je generisao ovaj razultat mora selektoati jedino tabelu,i mora selektovati sve primrne ključeve iz te tabele. Pogledajte API specifikaciju za JDBC 2.1, sekciju 5.6 za više detalja.";
     t[454] = "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.";
@@ -302,8 +300,6 @@ public class messages_sr extends java.util.ResourceBundle {
     t[719] = "Prekinut pokušaj konektovanja.";
     t[722] = "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to.";
     t[723] = "Sigurnosna podešavanja su sprečila konekciju. Verovatno je potrebno da dozvolite konekciju klasi java.net.SocketPermission na bazu na serveru.";
-    t[728] = "Failed to initialize LargeObject API";
-    t[729] = "Propao pokušaj inicijalizacije LargeObject API-ja.";
     t[734] = "No function outputs were registered.";
     t[735] = "Nije registrovan nikakv izlaz iz funkcije.";
     t[736] = "{0} function takes one and only one argument.";
