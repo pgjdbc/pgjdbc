@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 ## [42.2.6] (2019-06-19)
+### Known issues
+- Microseconds in timestamps might be truncated when transferred in binary mode
+- 24:00 time handling is not consistent [issue 1385](https://github.com/pgjdbc/pgjdbc/issues/1385)
+- Unexpected packet type during stream replication [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466)
+- Driver goes missing after OSGi bundle restart [issue 1476](https://github.com/pgjdbc/pgjdbc/issues/1476)
 ### Changed
 - Change IS_GENERATED to IS_GENERATEDCOLUMN as per spec [PR 1485](https://github.com/pgjdbc/pgjdbc/pull/1485)
 - Fix missing metadata columns, and misspelled columns in PgDatabaseMetaData#getTables [PR 1323](https://github.com/pgjdbc/pgjdbc/pull/1323)
@@ -20,6 +25,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Support temporary replication slots in ReplicationCreateSlotBuilder [PR 1306](https://github.com/pgjdbc/pgjdbc/pull/1306)
 - Support PostgreSQL 11, 12
 - Return function (PostgreSQL 11) columns in PgDatabaseMetaData#getFunctionColumns
+- Return information on create replication slot, now the snapshot_name is exported
+  to allow a consistent snapshot in some uses cases. [PR 1335](https://github.com/pgjdbc/pgjdbc/pull/1335)
 
 ### Fixed
 - Fixed async copy performance (1ms per op) in SSL mode [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
@@ -31,11 +38,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fix execution with big decimal in simple query mode. [PR 1463](https://github.com/pgjdbc/pgjdbc/pull/1463)
 - Fix rounding for timestamps truncated to dates before 1970 [PR 1502](https://github.com/pgjdbc/pgjdbc/pull/1502)
 
-### Known issues
-- Microseconds in timestamps might be truncated when transferred in binary mode
-- 24:00 time handling is not consistent [issue 1385](https://github.com/pgjdbc/pgjdbc/issues/1385)
-- Unexpected packet type during stream replication [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466)
-- Driver goes missing after OSGi bundle restart [issue 1476](https://github.com/pgjdbc/pgjdbc/issues/1476)
 
 ## [42.2.5] (2018-08-27)
 ### Known issues
