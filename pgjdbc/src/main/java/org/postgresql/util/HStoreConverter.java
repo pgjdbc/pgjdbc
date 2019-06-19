@@ -10,13 +10,13 @@ import org.postgresql.core.Encoding;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 public class HStoreConverter {
   public static Map<String, String> fromBytes(byte[] b, Encoding encoding) throws SQLException {
-    Map<String, String> m = new HashMap<String, String>();
+    Map<String, String> m = new LinkedHashMap<String, String>();
     int pos = 0;
     int numElements = ByteConverter.int4(b, pos);
     pos += 4;
@@ -110,7 +110,7 @@ public class HStoreConverter {
   }
 
   public static Map<String, String> fromString(String s) {
-    Map<String, String> m = new HashMap<String, String>();
+    Map<String, String> m = new LinkedHashMap<String, String>();
     int pos = 0;
     StringBuilder sb = new StringBuilder();
     while (pos < s.length()) {
