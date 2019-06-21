@@ -1130,7 +1130,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public String getUrl() {
     StringBuilder url = new StringBuilder(100);
     url.append("jdbc:postgresql://");
-    for (int i = 0; i<serverNames.length; i++) {
+    for (int i = 0; i < serverNames.length; i++) {
       if (i > 0) {
         url.append(",");
       }
@@ -1234,7 +1234,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       case PG_PORT:
         String[] ps = value.split(",");
         portNumbers = new int[ps.length];
-        for (int i =0 ; i < ps.length; i++) {
+        for (int i = 0 ; i < ps.length; i++) {
           try {
             portNumbers[i] = Integer.parseInt(ps[i]);
           } catch (NumberFormatException e) {
@@ -1278,7 +1278,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (portNumbers != null) {
       StringBuilder portString = new StringBuilder();
       for (int i = 0; i < portNumbers.length; i++) {
-        if (i>0) {
+        if (i > 0) {
           portString.append(",");
         }
         int p = portNumbers[i];
