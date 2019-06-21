@@ -163,7 +163,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param serverNames name of the host(s) the PostgreSQL database is running on
    */
   public void setServerNames(String[] serverNames) {
-    if (serverNames == null || serverNames.length==0 || serverNames[0].equals("")) {
+    if (serverNames == null || serverNames.length == 0 || serverNames[0].equals("")) {
       this.serverNames = new String[] {"localhost"};
     } else {
       this.serverNames = serverNames;
@@ -1130,12 +1130,12 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public String getUrl() {
     StringBuilder url = new StringBuilder(100);
     url.append("jdbc:postgresql://");
-    for (int i=0; i<serverNames.length; i++) {
-      if (i>0) {
+    for (int i = 0; i<serverNames.length; i++) {
+      if (i >) {
         url.append(",");
       }
       url.append(serverNames[i]);
-      if (portNumbers.length>=i && portNumbers[i] != 0) {
+      if (portNumbers.length >= i && portNumbers[i] != 0) {
         url.append(":").append(portNumbers[i]);
       }
     }
@@ -1234,7 +1234,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       case PG_PORT:
         String[] ps = value.split(",");
         portNumbers = new int[ps.length];
-        for (int i=0; i<ps.length; i++) {
+        for (int i =0 ; i < ps.length; i++) {
           try {
             portNumbers[i] = Integer.parseInt(ps[i]);
           } catch (NumberFormatException e) {
@@ -1269,15 +1269,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     Reference ref = createReference();
     StringBuilder serverString = new StringBuilder();
     for (String serverName : serverNames) {
-      if (serverString.length()>0) {
+      if (serverString.length() > 0) {
         serverString.append(",");
       }
       serverString.append(serverName);
     }
     ref.add(new StringRefAddr("serverName", serverString.toString()));
-    if (portNumbers!=null) {
+    if (portNumbers != null) {
       StringBuilder portString = new StringBuilder();
-      for (int i=0; i<portNumbers.length; i++) {
+      for (int i = 0; i < portNumbers.length; i++) {
         if (i>0) {
           portString.append(",");
         }
@@ -1309,7 +1309,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (ports != null) {
       String[] ps = ports.split(",");
       portNumbers = new int[ps.length];
-      for (int i=0; i<ps.length; i++) {
+      for (int i = 0; i < ps.length; i++) {
         portNumbers[i] = Integer.parseInt(ps[i]);
       }
     }

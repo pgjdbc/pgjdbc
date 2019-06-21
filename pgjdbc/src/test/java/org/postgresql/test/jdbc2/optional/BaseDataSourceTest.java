@@ -12,9 +12,16 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
+import org.postgresql.PGConnection;
+import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.MiniJndiContextFactory;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,15 +31,6 @@ import java.util.Hashtable;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.postgresql.Driver;
-import org.postgresql.PGConnection;
-import org.postgresql.ds.common.BaseDataSource;
-import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.MiniJndiContextFactory;
 
 /**
  * Common tests for all the BaseDataSource implementations. This is a small variety to make sure
@@ -226,27 +224,27 @@ public abstract class BaseDataSourceTest {
    */
   @Test
   public void testFailoverUrl() throws NamingException, ClassNotFoundException, IOException {
-      initializeDataSource();
-      String[][] tests = new String[][] { 
-    	  new String[] { "jdbc:postgresql://server/database", "jdbc:postgresql://server:5432/database" },
-    	  new String[] { "jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:5432,server2:5432/database"},
-    	  new String[] { "jdbc:postgresql://server1:1234,server2:2345/database", "jdbc:postgresql://server1:1234,server2:2345/database"},
-    	  new String[] { "jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:5432,server2:2345/database"},
-    	  new String[] { "jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:5432/database"},
-      };
-      
-      for (String[] test : tests) {
-	      bds.setUrl(test[0]);
-		  assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
-		  
-		  bds.setFromReference(bds.getReference());
-		  assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
-	
-		  bds.initializeFrom(bds);
-		  assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
-      }
+    initializeDataSource();
+    String[][] tests = new String[][] {
+      new String[] { "jdbc:postgresql://server/database", "jdbc:postgresql://server:5432/database" },
+      new String[] { "jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:5432,server2:5432/database"},
+      new String[] { "jdbc:postgresql://server1:1234,server2:2345/database", "jdbc:postgresql://server1:1234,server2:2345/database"},
+      new String[] { "jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:5432,server2:2345/database"},
+      new String[] { "jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:5432/database"},
+    };
+
+    for (String[] test : tests) {
+      bds.setUrl(test[0]);
+      assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
+
+      bds.setFromReference(bds.getReference());
+      assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
+
+      bds.initializeFrom(bds);
+      assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
+    }
   }
-  
+
   /**
    * Uses the mini-JNDI implementation for testing purposes.
    */
