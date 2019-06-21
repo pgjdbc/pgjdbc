@@ -130,7 +130,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public String getServerName() {
     return serverNames[0];
   }
-  
+
   /**
    * Gets the name of the host(s) the PostgreSQL database is running on.
    *
@@ -155,7 +155,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       this.serverNames = new String[] {serverName};
     }
   }
-  
+
   /**
    * Sets the name of the host(s) the PostgreSQL database is running on. If this is changed, it will
    * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
@@ -163,12 +163,12 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param serverNames name of the host(s) the PostgreSQL database is running on
    */
   public void setServerNames(String[] serverNames) {
-	    if (serverNames == null || serverNames.length==0 || serverNames[0].equals("")) {
-	      this.serverNames = new String[] {"localhost"};
-	    } else {
-	      this.serverNames = serverNames;
-	    }
-	  }
+    if (serverNames == null || serverNames.length==0 || serverNames[0].equals("")) {
+      this.serverNames = new String[] {"localhost"};
+    } else {
+      this.serverNames = serverNames;
+    }
+  }
 
   /**
    * Gets the name of the PostgreSQL database, running on the server identified by the serverName
@@ -249,15 +249,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public int getPortNumber() {
     return portNumbers[0];
   }
-  
+
   /**
    * Gets the port(s) which the PostgreSQL server is listening on for TCP/IP connections.
    *
    * @return The port(s), or 0 if the default port will be used.
    */
   public int[] getPortNumbers() {
-	    return portNumbers;
-	  }
+    return portNumbers;
+  }
 
   /**
    * Sets the port which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
@@ -271,7 +271,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public void setPortNumber(int portNumber) {
     this.portNumbers = new int[] { portNumber };
   }
-  
+
   /**
    * Sets the port(s) which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
    * -i flag is passed to postmaster when PostgreSQL is started. If this is not set, or set to 0,
@@ -280,8 +280,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param portNumbers port(s) which the PostgreSQL server is listening on for TCP/IP
    */
   public void setPortNumbers(int[] portNumbers) {
-	    this.portNumbers = portNumbers;
-	  }
+    this.portNumbers = portNumbers;
+  }
 
   /**
    * @return command line options for this connection
@@ -1131,13 +1131,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     StringBuilder url = new StringBuilder(100);
     url.append("jdbc:postgresql://");
     for (int i=0; i<serverNames.length; i++) {
-    	if (i>0) {
-    		url.append(",");
-    	}
-    	url.append(serverNames[i]);
-	    if (portNumbers.length>=i && portNumbers[i] != 0) {
-	      url.append(":").append(portNumbers[i]);
-	    }
+      if (i>0) {
+        url.append(",");
+      }
+      url.append(serverNames[i]);
+      if (portNumbers.length>=i && portNumbers[i] != 0) {
+        url.append(":").append(portNumbers[i]);
+      }
     }
     url.append("/").append(URLCoder.encode(databaseName));
 
@@ -1232,15 +1232,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         serverNames = value.split(",");
         break;
       case PG_PORT:
-    	String[] ps = value.split(",");
-    	portNumbers = new int[ps.length];
-    	for (int i=0; i<ps.length; i++) {
+        String[] ps = value.split(",");
+        portNumbers = new int[ps.length];
+        for (int i=0; i<ps.length; i++) {
           try {
             portNumbers[i] = Integer.parseInt(ps[i]);
           } catch (NumberFormatException e) {
             portNumbers[i] = 0;
           }
-    	}
+        }
         break;
       case PG_DBNAME:
         databaseName = value;
@@ -1267,14 +1267,24 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
-    ref.add(new StringRefAddr("serverName", String.join(",", serverNames)));
+    StringBuilder serverString = new StringBuilder();
+    for (String serverName : serverNames) {
+      if (serverString.length()>0) {
+        serverString.append(",");
+      }
+      serverString.append(serverName);
+    }
+    ref.add(new StringRefAddr("serverName", serverString.toString()));
     if (portNumbers!=null) {
-    	String[] ps = new String[portNumbers.length];
-    	for (int i=0; i<portNumbers.length; i++) {
-    		int p = portNumbers[i];
-    		ps[i] = Integer.toString(p);
-    	}
-      ref.add(new StringRefAddr("portNumber", String.join(",",  ps)));
+      StringBuilder portString = new StringBuilder();
+      for (int i=0; i<portNumbers.length; i++) {
+        if (i>0) {
+          portString.append(",");
+        }
+        int p = portNumbers[i];
+        portString.append(Integer.toString(p));
+      }
+      ref.add(new StringRefAddr("portNumber", portString.toString()));
     }
     ref.add(new StringRefAddr("databaseName", databaseName));
     if (user != null) {
@@ -1297,11 +1307,11 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     databaseName = getReferenceProperty(ref, "databaseName");
     String ports = getReferenceProperty(ref, "portNumber");
     if (ports != null) {
-    	String[] ps = ports.split(",");
-    	portNumbers = new int[ps.length];
-    	for (int i=0; i<ps.length; i++) {
-          portNumbers[i] = Integer.parseInt(ps[i]);
-    	}
+      String[] ps = ports.split(",");
+      portNumbers = new int[ps.length];
+      for (int i=0; i<ps.length; i++) {
+        portNumbers[i] = Integer.parseInt(ps[i]);
+      }
     }
     serverNames = getReferenceProperty(ref, "serverName").split(",");
 
