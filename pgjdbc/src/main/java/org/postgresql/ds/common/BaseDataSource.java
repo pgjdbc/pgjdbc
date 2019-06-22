@@ -149,11 +149,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   @Deprecated
   public void setServerName(String serverName) {
-    if (serverName == null || serverName.equals("")) {
-      this.serverNames = new String[] {"localhost"};
-    } else {
-      this.serverNames = new String[] {serverName};
-    }
+    this.setServerNames(new String[] { serverName });
   }
 
   /**
@@ -163,9 +159,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param serverNames name of the host(s) the PostgreSQL database is running on
    */
   public void setServerNames(String[] serverNames) {
-    if (serverNames == null || serverNames.length == 0 || serverNames[0].equals("")) {
+    if (serverNames == null || serverNames.length == 0) {
       this.serverNames = new String[] {"localhost"};
     } else {
+      for (int i = 0; i < serverNames.length; i++) {
+        if (serverNames[i] == null || serverNames[i].equals("")) {
+          serverNames[i] = "localhost";
+        }
+      }
       this.serverNames = serverNames;
     }
   }

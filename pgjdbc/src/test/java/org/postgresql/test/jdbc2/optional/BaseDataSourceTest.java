@@ -243,6 +243,7 @@ public abstract class BaseDataSourceTest {
       bds.initializeFrom(bds);
       assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
     }
+    bds = null;
   }
 
   /**
