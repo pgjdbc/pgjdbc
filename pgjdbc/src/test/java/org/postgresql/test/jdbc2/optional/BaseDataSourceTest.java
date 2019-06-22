@@ -31,6 +31,7 @@ import java.util.Hashtable;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.naming.Reference;
 
 /**
  * Common tests for all the BaseDataSource implementations. This is a small variety to make sure
@@ -224,8 +225,7 @@ public abstract class BaseDataSourceTest {
    */
   @Test
   public void testFailoverUrl() throws NamingException, ClassNotFoundException, IOException {
-    BaseDataSource oldbds = bds; // preserve the original one, as we are modifiying.
-    bds = null;
+    Reference oldbdsref = bds != null ? bds.getReference() : null; // preserve the original values, as we are modifiying.
     initializeDataSource();
     String[][] tests = new String[][] {
       new String[] { "jdbc:postgresql://server/database", "jdbc:postgresql://server:5432/database" },
@@ -245,7 +245,11 @@ public abstract class BaseDataSourceTest {
       bds.initializeFrom(bds);
       assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
     }
-    bds = oldbds;
+    if (oldbdsref != null) {
+      bds.setFromReference(oldbdsref);
+    } else {
+      bds = null;
+    }
   }
 
   /**
