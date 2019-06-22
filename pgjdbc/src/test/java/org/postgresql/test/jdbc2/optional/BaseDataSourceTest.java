@@ -224,6 +224,8 @@ public abstract class BaseDataSourceTest {
    */
   @Test
   public void testFailoverUrl() throws NamingException, ClassNotFoundException, IOException {
+    BaseDataSource oldbds = bds; // preserve the original one, as we are modifiying.
+    bds = null;
     initializeDataSource();
     String[][] tests = new String[][] {
       new String[] { "jdbc:postgresql://server/database", "jdbc:postgresql://server:5432/database" },
@@ -243,7 +245,7 @@ public abstract class BaseDataSourceTest {
       bds.initializeFrom(bds);
       assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
     }
-    bds = null;
+    bds = oldbds;
   }
 
   /**
