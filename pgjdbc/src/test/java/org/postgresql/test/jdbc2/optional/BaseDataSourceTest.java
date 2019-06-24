@@ -21,7 +21,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,7 +30,6 @@ import java.util.Hashtable;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.naming.Reference;
 
 /**
  * Common tests for all the BaseDataSource implementations. This is a small variety to make sure
@@ -218,38 +216,6 @@ public abstract class BaseDataSourceTest {
         oldbds , bds);
     assertEquals("Test should not have changed DataSource URL",
         oldurl, url);
-  }
-
-  /**
-   * tests that failover urls survive the parse/rebuild roundtrip with and without specific ports
-   */
-  @Test
-  public void testFailoverUrl() throws NamingException, ClassNotFoundException, IOException {
-    Reference oldbdsref = bds != null ? bds.getReference() : null; // preserve the original values, as we are modifiying.
-    initializeDataSource();
-    String[][] tests = new String[][] {
-      new String[] { "jdbc:postgresql://server/database", "jdbc:postgresql://server:5432/database" },
-      new String[] { "jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:5432,server2:5432/database"},
-      new String[] { "jdbc:postgresql://server1:1234,server2:2345/database", "jdbc:postgresql://server1:1234,server2:2345/database"},
-      new String[] { "jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:5432,server2:2345/database"},
-      new String[] { "jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:5432/database"},
-    };
-
-    for (String[] test : tests) {
-      bds.setUrl(test[0]);
-      assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
-
-      bds.setFromReference(bds.getReference());
-      assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
-
-      bds.initializeFrom(bds);
-      assertEquals(test[0], test[1], bds.getURL().replaceAll("\\?.*$", ""));
-    }
-    if (oldbdsref != null) {
-      bds.setFromReference(oldbdsref);
-    } else {
-      bds = null;
-    }
   }
 
   /**
