@@ -270,7 +270,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   @Deprecated
   public void setPortNumber(int portNumber) {
-    this.portNumbers = new int[] { portNumber };
+    setPortNumbers(new int[] { portNumber });
   }
 
   /**
@@ -281,6 +281,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param portNumbers port(s) which the PostgreSQL server is listening on for TCP/IP
    */
   public void setPortNumbers(int[] portNumbers) {
+    if (portNumbers == null || portNumbers.length == 0) {
+      portNumbers = new int[] { 0 };
+    }
     this.portNumbers = portNumbers;
   }
 
@@ -1230,27 +1233,28 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
     switch (property) {
       case PG_HOST:
-        serverNames = value.split(",");
+        setServerNames(value.split(","));
         break;
       case PG_PORT:
         String[] ps = value.split(",");
-        portNumbers = new int[ps.length];
+        int[] ports = new int[ps.length];
         for (int i = 0 ; i < ps.length; i++) {
           try {
-            portNumbers[i] = Integer.parseInt(ps[i]);
+            ports[i] = Integer.parseInt(ps[i]);
           } catch (NumberFormatException e) {
-            portNumbers[i] = 0;
+            ports[i] = 0;
           }
         }
+        setPortNumbers(ports);
         break;
       case PG_DBNAME:
-        databaseName = value;
+        setDatabaseName(value);
         break;
       case USER:
-        user = value;
+        setUser(value);
         break;
       case PASSWORD:
-        password = value;
+        setPassword(value);
         break;
       default:
         properties.setProperty(property.getName(), value);
@@ -1276,17 +1280,16 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       serverString.append(serverName);
     }
     ref.add(new StringRefAddr("serverName", serverString.toString()));
-    if (portNumbers != null) {
-      StringBuilder portString = new StringBuilder();
-      for (int i = 0; i < portNumbers.length; i++) {
-        if (i > 0) {
-          portString.append(",");
-        }
-        int p = portNumbers[i];
-        portString.append(Integer.toString(p));
+
+    StringBuilder portString = new StringBuilder();
+    for (int i = 0; i < portNumbers.length; i++) {
+      if (i > 0) {
+        portString.append(",");
       }
-      ref.add(new StringRefAddr("portNumber", portString.toString()));
+      int p = portNumbers[i];
+      portString.append(Integer.toString(p));
     }
+    ref.add(new StringRefAddr("portNumber", portString.toString()));
     ref.add(new StringRefAddr("databaseName", databaseName));
     if (user != null) {
       ref.add(new StringRefAddr("user", user));
@@ -1306,13 +1309,18 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public void setFromReference(Reference ref) {
     databaseName = getReferenceProperty(ref, "databaseName");
-    String ports = getReferenceProperty(ref, "portNumber");
-    if (ports != null) {
-      String[] ps = ports.split(",");
-      portNumbers = new int[ps.length];
+    String portNumberString = getReferenceProperty(ref, "portNumber");
+    if (portNumberString != null) {
+      String[] ps = portNumberString.split(",");
+      int[] ports = new int[ps.length];
       for (int i = 0; i < ps.length; i++) {
-        portNumbers[i] = Integer.parseInt(ps[i]);
+        try {
+          ports[i] = Integer.parseInt(ps[i]);
+        } catch (NumberFormatException e) {
+          ports[i] = 0;
+        }
       }
+      setPortNumbers(ports);
     }
     serverNames = getReferenceProperty(ref, "serverName").split(",");
 
