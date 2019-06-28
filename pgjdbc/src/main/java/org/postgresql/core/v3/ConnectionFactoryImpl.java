@@ -495,9 +495,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /* SSPI negotiation state, if used */
     ISSPIClient sspiClient = null;
 
-    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     /* SCRAM authentication state, if used */
-    org.postgresql.jre8.sasl.ScramAuthenticator scramAuthenticator = null;
+    org.postgresql.jre7.sasl.ScramAuthenticator scramAuthenticator = null;
     //#endif
 
     try {
@@ -661,8 +661,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
-                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-                scramAuthenticator = new org.postgresql.jre8.sasl.ScramAuthenticator(user, password, pgStream);
+                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, password, pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
                 // This works as follows:
@@ -674,12 +674,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                           "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" versions)",
                           areq), PSQLState.CONNECTION_REJECTED);
                   //#endif
-                  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+                  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
                 }
                 break;
                 //#endif
 
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               case AUTH_REQ_SASL_CONTINUE:
                 scramAuthenticator.processServerFirstMessage(msgLen - 4 - 4);
                 break;
