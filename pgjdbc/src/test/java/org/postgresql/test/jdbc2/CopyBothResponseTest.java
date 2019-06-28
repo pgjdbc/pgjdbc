@@ -203,6 +203,7 @@ public class CopyBothResponseTest {
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
     PGProperty.PROTOCOL_VERSION.set(properties, "3");
     PGProperty.REPLICATION.set(properties, "database");
+    PGProperty.PREFER_QUERY_MODE.set(properties,"simple");
     return TestUtil.openDB(properties);
   }
 }
