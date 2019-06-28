@@ -13,6 +13,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -299,6 +300,7 @@ public class PhysicalReplicationTest {
     Properties properties = new Properties();
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
     PGProperty.REPLICATION.set(properties, "database");
+    PGProperty.PREFER_QUERY_MODE.set(properties, PreferQueryMode.SIMPLE.value());
     return TestUtil.openDB(properties);
   }
 }
