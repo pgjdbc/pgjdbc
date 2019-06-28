@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.jre8.sasl;
+package org.postgresql.jre7.sasl;
 
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
@@ -36,7 +36,6 @@ public class ScramAuthenticator {
   private ScramSession.ServerFirstProcessor serverFirstProcessor;
   private ScramSession.ClientFinalProcessor clientFinalProcessor;
 
-  @FunctionalInterface
   private interface BodySender {
     void sendBody(PGStream pgStream) throws IOException;
   }
@@ -44,7 +43,7 @@ public class ScramAuthenticator {
   private void sendAuthenticationMessage(int bodyLength, BodySender bodySender)
       throws IOException {
     pgStream.sendChar('p');
-    pgStream.sendInteger4(Integer.BYTES + bodyLength);
+    pgStream.sendInteger4(Integer.SIZE / Byte.SIZE + bodyLength);
     bodySender.sendBody(pgStream);
     pgStream.flush();
   }
@@ -94,15 +93,18 @@ public class ScramAuthenticator {
     LOGGER.log(Level.FINEST, " FE=> SASLInitialResponse( {0} )", clientFirstMessage);
 
     String scramMechanismName = scramClient.getScramMechanism().getName();
-    byte[] scramMechanismNameBytes = scramMechanismName.getBytes(StandardCharsets.UTF_8);
-    byte[] clientFirstMessageBytes = clientFirstMessage.getBytes(StandardCharsets.UTF_8);
+    final byte[] scramMechanismNameBytes = scramMechanismName.getBytes(StandardCharsets.UTF_8);
+    final byte[] clientFirstMessageBytes = clientFirstMessage.getBytes(StandardCharsets.UTF_8);
     sendAuthenticationMessage(
         (scramMechanismNameBytes.length + 1) + 4 + clientFirstMessageBytes.length,
-        s -> {
-          s.send(scramMechanismNameBytes);
-          s.sendChar(0); // List terminated in '\0'
-          s.sendInteger4(clientFirstMessageBytes.length);
-          s.send(clientFirstMessageBytes);
+        new BodySender() {
+          @Override
+          public void sendBody(PGStream pgStream) throws IOException {
+            pgStream.send(scramMechanismNameBytes);
+            pgStream.sendChar(0); // List terminated in '\0'
+            pgStream.sendInteger4(clientFirstMessageBytes.length);
+            pgStream.send(clientFirstMessageBytes);
+          }
         }
     );
   }
@@ -132,10 +134,15 @@ public class ScramAuthenticator {
     String clientFinalMessage = clientFinalProcessor.clientFinalMessage();
     LOGGER.log(Level.FINEST, " FE=> SASLResponse( {0} )", clientFinalMessage);
 
-    byte[] clientFinalMessageBytes = clientFinalMessage.getBytes(StandardCharsets.UTF_8);
+    final byte[] clientFinalMessageBytes = clientFinalMessage.getBytes(StandardCharsets.UTF_8);
     sendAuthenticationMessage(
         clientFinalMessageBytes.length,
-        s -> s.send(clientFinalMessageBytes)
+        new BodySender() {
+          @Override
+          public void sendBody(PGStream pgStream) throws IOException {
+            pgStream.send(clientFinalMessageBytes);
+          }
+        }
     );
   }
 
