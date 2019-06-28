@@ -367,10 +367,10 @@ public enum PGProperty {
   ALLOW_ENCODING_CHANGES("allowEncodingChanges", "false", "Allow for changes in client_encoding"),
 
   /**
-   * Specify the schema to be set in the search-path. This schema will be used to resolve
+   * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
    * unqualified object names used in statements over this connection.
    */
-  CURRENT_SCHEMA("currentSchema", null, "Specify the schema to be set in the search-path"),
+  CURRENT_SCHEMA("currentSchema", null, "Specify the schema (or several schema separated by commas) to be set in the search-path"),
 
   TARGET_SERVER_TYPE("targetServerType", "any", "Specifies what kind of server to connect", false,
       "any", "master", "slave", "secondary",  "preferSlave", "preferSecondary"),
