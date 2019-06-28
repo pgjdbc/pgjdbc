@@ -16,6 +16,7 @@ import org.postgresql.util.PGobject;
 import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DecimalFormat;
 
 /**
  * This interface defines the public PostgreSQL extensions to java.sql.Connection. All Connections
@@ -236,4 +237,10 @@ public interface PGConnection {
    * @return replication API for the current connection
    */
   PGReplicationConnection getReplicationAPI();
+
+  /**
+   *
+   * @return the monetary format appropriate for this connection
+   */
+  DecimalFormat getMonetaryFormatter();
 }

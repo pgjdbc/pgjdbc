@@ -735,6 +735,10 @@ public class GetObjectTest {
 
       money = rs.getObject(1, PGmoney.class);
       assertTrue(money.getValue().endsWith(expected));
+
+      money = (PGmoney)rs.getObject("money_column");
+      assertTrue(money.getValue().endsWith(expected));
+
     } finally {
       rs.close();
     }

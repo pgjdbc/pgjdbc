@@ -30,6 +30,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final String user;
   private final String database;
   private final int cancelSignalTimeout;
+  protected String lcMonetary;
 
   private int cancelPid;
   private int cancelKey;

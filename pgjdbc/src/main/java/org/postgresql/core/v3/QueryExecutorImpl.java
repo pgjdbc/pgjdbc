@@ -2704,6 +2704,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  public void setLcMonetary(String lcMonetary) {
+    this.lcMonetary = lcMonetary;
+  }
+
+  @Override
+  public String getLcMonetary() {
+    return lcMonetary;
+  }
+
+  @Override
   public boolean useBinaryForReceive(int oid) {
     return useBinaryReceiveForOids.contains(oid);
   }

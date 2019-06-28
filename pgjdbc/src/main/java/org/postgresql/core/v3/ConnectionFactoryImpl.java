@@ -263,6 +263,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         runInitialQueries(queryExecutor, info);
+        queryExecutor.setLcMonetary(getMonetaryFormat(queryExecutor));
 
         // And we're done.
         return queryExecutor;
@@ -745,6 +746,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SetupQueryRunner.run(queryExecutor, sql.toString(), false);
     }
 
+  }
+
+  private String getMonetaryFormat(QueryExecutor queryExecutor) throws SQLException, IOException {
+    byte[][] results = SetupQueryRunner.run(queryExecutor, "show lc_monetary", true);
+    String value = queryExecutor.getEncoding().decode(results[0]);
+    return value;
   }
 
   private boolean isMaster(QueryExecutor queryExecutor) throws SQLException, IOException {
