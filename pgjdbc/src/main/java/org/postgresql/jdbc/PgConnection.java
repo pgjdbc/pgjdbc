@@ -1169,7 +1169,12 @@ public class PgConnection implements BaseConnection {
     if (monetaryFormatter == null ) {
       String localeSpec = queryExecutor.getLcMonetary();
       String[] localeIds = localeSpec.split("[_.]");
+
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
       Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+      //#else
+      Locale numLocale = Locale.US;
+      //#endif
       monetaryFormatter = (DecimalFormat)DecimalFormat.getCurrencyInstance(numLocale);
       monetaryFormatter.setParseBigDecimal(true);
       monetaryFormatter.setGroupingUsed(false);
