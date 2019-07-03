@@ -452,4 +452,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setNetworkTimeout(int milliseconds) throws IOException;
 
   int getNetworkTimeout() throws IOException;
+
+  void setLcMonetary(String lcMonetary);
+
+  String getLcMonetary();
 }

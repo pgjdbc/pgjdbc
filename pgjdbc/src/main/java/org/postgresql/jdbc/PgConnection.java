@@ -58,6 +58,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
+import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -105,6 +106,8 @@ public class PgConnection implements BaseConnection {
 
   // Default statement prepare threshold.
   protected int prepareThreshold;
+
+  private DecimalFormat monetaryFormatter = null;
 
   /**
    * Default fetch size for statement.
@@ -564,9 +567,11 @@ public class PgConnection implements BaseConnection {
       // This is used to implement the org.postgresql unique types (like lseg,
       // point, etc).
 
+
       if (klass != null) {
         obj = klass.newInstance();
         obj.setType(type);
+        obj.setConnection(this);
         if (byteValue != null && obj instanceof PGBinaryObject) {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
@@ -578,6 +583,7 @@ public class PgConnection implements BaseConnection {
         // so return a PGobject with the type set, and the value set
         obj = new PGobject();
         obj.setType(type);
+        obj.setConnection(this);
         obj.setValue(value);
       }
 
@@ -1156,6 +1162,24 @@ public class PgConnection implements BaseConnection {
   @Override
   public PGReplicationConnection getReplicationAPI() {
     return new PGReplicationConnectionImpl(this);
+  }
+
+  @Override
+  public synchronized  DecimalFormat getMonetaryFormatter() {
+    if (monetaryFormatter == null ) {
+      String localeSpec = queryExecutor.getLcMonetary();
+      String[] localeIds = localeSpec.split("[_.]");
+
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+      Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+      //#else
+      Locale numLocale = Locale.US;
+      //#endif
+      monetaryFormatter = (DecimalFormat)DecimalFormat.getCurrencyInstance(numLocale);
+      monetaryFormatter.setParseBigDecimal(true);
+      monetaryFormatter.setGroupingUsed(false);
+    }
+    return monetaryFormatter;
   }
 
   private static void appendArray(StringBuilder sb, Object elements, char delim) {

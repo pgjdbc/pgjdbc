@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.postgresql.PGConnection;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -15,6 +17,7 @@ import java.sql.SQLException;
 public class PGobject implements Serializable, Cloneable {
   protected String type;
   protected String value;
+  protected PGConnection connection;
 
   /**
    * This is called by org.postgresql.Connection.getObject() to create the object.
@@ -50,6 +53,24 @@ public class PGobject implements Serializable, Cloneable {
    */
   public final String getType() {
     return type;
+  }
+
+  /**
+   *
+   * @return PGConnection to get session level settings monetary format
+   */
+  public PGConnection getConnection() {
+    return connection;
+  }
+
+  /**
+   * Sets the connection for this object to allow
+   * the object to query session information relevant to
+   * it, such as lc_monetary
+   * @param connection the connection that is associated with this object when it was created.
+   */
+  public void setConnection(PGConnection connection) {
+    this.connection = connection;
   }
 
   /**

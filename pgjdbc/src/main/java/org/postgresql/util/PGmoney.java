@@ -7,6 +7,8 @@ package org.postgresql.util;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.ParseException;
 
 /**
  * This implements a class that handles the PostgreSQL money and cash types.
@@ -38,28 +40,17 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
   }
 
   public void setValue(String s) throws SQLException {
+
+    DecimalFormat decimalFormatter = connection.getMonetaryFormatter();
+
     try {
-      String s1;
-      boolean negative;
-
-      negative = (s.charAt(0) == '(');
-
-      // Remove any () (for negative) & currency symbol
-      s1 = PGtokenizer.removePara(s).substring(1);
-
-      // Strip out any , in currency
-      int pos = s1.indexOf(',');
-      while (pos != -1) {
-        s1 = s1.substring(0, pos) + s1.substring(pos + 1);
-        pos = s1.indexOf(',');
-      }
-
-      val = Double.parseDouble(s1);
-      val = negative ? -val : val;
-
+      val = decimalFormatter.parse(s).doubleValue();
     } catch (NumberFormatException e) {
       throw new PSQLException(GT.tr("Conversion of money failed."),
-          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
+        PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
+    } catch (ParseException pe) {
+      throw new PSQLException(GT.tr("Unable to parse %s as money", s),
+      PSQLState.INVALID_PARAMETER_VALUE, pe);
     }
   }
 
