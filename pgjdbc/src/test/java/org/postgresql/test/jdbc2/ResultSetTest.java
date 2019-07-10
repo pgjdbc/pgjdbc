@@ -22,6 +22,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Locale;
@@ -124,6 +125,10 @@ public class ResultSetTest extends BaseTest4 {
     TestUtil.createTable(con, "testpgobject", "id integer NOT NULL, d date, PRIMARY KEY (id)");
     stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
 
+    /**/
+    TestUtil.createTable(con, "testinetobj", "id integer NOT NULL, ip inet, PRIMARY KEY (id)");
+    stmt.execute("INSERT INTO testinetobj VALUES(1, '74.125.67.100')");
+    /**/
     stmt.close();
   }
 
@@ -138,6 +143,7 @@ public class ResultSetTest extends BaseTest4 {
     TestUtil.dropTable(con, "testboolint");
     TestUtil.dropTable(con, "testnumeric");
     TestUtil.dropTable(con, "testpgobject");
+    TestUtil.dropTable(con, "testinetobj");
     super.tearDown();
   }
 
@@ -157,7 +163,6 @@ public class ResultSetTest extends BaseTest4 {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
-
     assertTrue(!rs.absolute(0));
     assertEquals(0, rs.getRow());
 
@@ -861,6 +866,63 @@ public class ResultSetTest extends BaseTest4 {
 
     stmt.close();
   }
+  
+  /**/
+  @Test
+  public void testInetPGobject() throws SQLException {
+    Statement stmt =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+
+    ResultSet rs = stmt.executeQuery("select * from testinetobj where id = 1");
+    
+    assertTrue(rs.next());
+//    assertEquals("2010-11-03", rs.getDate("d").toString());
+    
+    /*test output*/
+    ResultSetMetaData rsmd = rs.getMetaData();
+    int columnCount = rsmd.getColumnCount() ; // returns the number of columns
+    for(int i = 1; i < columnCount + 1; i++){   
+        System.out.println("col name for inet pgobject   :   " + rsmd.getColumnName(i));
+        System.out.println("col type for inet pgobject   :   " + rsmd.getColumnType(i));
+        Object test = rs.getObject(i);
+    	System.out.println("getObject data for inet pgobject   :   " + test);
+    	System.out.println("getObject type for inet pgobject   :   " + test.getClass().getName());
+    }
+//    do{
+// 
+//    	  int tmp = rs.getInt("id");
+//    	  // ... get uuid and admin level
+//    	  System.out.println("ResultSet in inet   :   " + tmp);
+//    	  String tmp1 = rs.getString("i");
+//    	  // ... get uuid and admin level
+//    	  System.out.println("ResultSet in inet   :   " + tmp1);
+//    	}while(rs.next());
+    
+//    PGobject pgobj = new PGobject();
+//    pgobj.setType("inet");
+//    pgobj.setValue("127.0.0.2");
+//    rs.updateObject("i", pgobj);
+//    rs.updateRow();
+    rs.close();
+
+//    ResultSet rs1 = stmt.executeQuery("select * from testinetobj where id = 1");
+//    assertTrue(rs1.next());
+////    assertEquals("2014-12-23", rs1.getDate("d").toString());
+//    while(rs1 != null){
+//   	 
+//    	  int tmp = rs1.getInt("id");
+//    	  // ... get uuid and admin level
+//    	  System.out.println("ResultSet in inet   :   " + tmp);
+//    	  String tmp1 = rs1.getString("i");
+//    	  // ... get uuid and admin level
+//    	  System.out.println("ResultSet in inet   :   " + tmp1);
+//    	}
+//    rs1.close();
+
+    stmt.close();
+  }
+
+  /**/
 
   /**
    * Test the behavior of the result set column mapping cache for simple statements.

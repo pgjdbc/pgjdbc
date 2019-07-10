@@ -39,6 +39,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -542,15 +544,27 @@ public class PgConnection implements BaseConnection {
   public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
     if (typemap != null) {
       Class<?> c = typemap.get(type);
+      System.out.println("check type c in getOject in PgConnection   :   " + c);
       if (c != null) {
         // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
         throw new PSQLException(GT.tr("Custom type maps are not supported."),
             PSQLState.NOT_IMPLEMENTED);
-      }
+      }      
     }
-
+    /**/
+    if(type.equals("inet")) {
+  	  try {
+  		  System.out.println(InetAddress.getByName(value));
+			return InetAddress.getByName(value);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    /**/
+    
     PGobject obj = null;
-
+    
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "Constructing object from type={0} value=<{1}>", new Object[]{type, value});
     }
@@ -565,8 +579,9 @@ public class PgConnection implements BaseConnection {
       // point, etc).
 
       if (klass != null) {
-        obj = klass.newInstance();
+        obj = klass.newInstance();        
         obj.setType(type);
+        System.out.println("Object type -->" + obj.getType());
         if (byteValue != null && obj instanceof PGBinaryObject) {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
@@ -580,7 +595,7 @@ public class PgConnection implements BaseConnection {
         obj.setType(type);
         obj.setValue(value);
       }
-
+      System.out.println("Object -->" + obj.getValue());
       return obj;
     } catch (SQLException sx) {
       // rethrow the exception. Done because we capture any others next

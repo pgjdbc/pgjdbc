@@ -210,13 +210,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return getClob(columnIndex);
       case Types.BLOB:
         return getBlob(columnIndex);
-
+ 
       default:
         String type = getPGType(columnIndex);
 
         // if the backend doesn't know the type then coerce to String
         if (type.equals("unknown")) {
           return getString(columnIndex);
+        }
+        
+        if(type.equals("inet")) {
+        	return connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
         }
 
         if (type.equals("uuid")) {
@@ -225,6 +229,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           }
           return getUUID(getString(columnIndex));
         }
+     
 
         // Specialized support for ref cursors is neater.
         if (type.equals("refcursor")) {
@@ -2518,6 +2523,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     field = fields[columnIndex - 1];
 
+//    /**/
+//    if(field.getColumnLabel().equals("inet")) {
+//    	System.out.println("it is net");
+//    	System.out.println(field.getMetadata());
+//    	Object result = internalGetObject(columnIndex, field);
+//    	
+//    }
+//    /**/
     // some fields can be null, mainly from those returned by MetaData methods
     if (field == null) {
       wasNullFlag = true;
