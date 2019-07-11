@@ -210,7 +210,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return getClob(columnIndex);
       case Types.BLOB:
         return getBlob(columnIndex);
- 
+
       default:
         String type = getPGType(columnIndex);
 
@@ -229,7 +229,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           }
           return getUUID(getString(columnIndex));
         }
-     
 
         // Specialized support for ref cursors is neater.
         if (type.equals("refcursor")) {
@@ -3054,6 +3053,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       throw new PSQLException(GT.tr("Invalid UUID data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
     }
 
+    System.out.println("something");
     return uuid;
   }
 

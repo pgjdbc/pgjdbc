@@ -793,7 +793,6 @@ public class PgArray implements java.sql.Array {
 
       throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
     }
-    System.out.println("testing get object data in pgarray-->" + ret);
 
     return ret;
   }

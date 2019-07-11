@@ -544,23 +544,21 @@ public class PgConnection implements BaseConnection {
   public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
     if (typemap != null) {
       Class<?> c = typemap.get(type);
-      System.out.println("check type c in getOject in PgConnection   :   " + c);
       if (c != null) {
         // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
         throw new PSQLException(GT.tr("Custom type maps are not supported."),
             PSQLState.NOT_IMPLEMENTED);
-      }      
+      }
     }
-    /**/
+
     if(type.equals("inet")) {
   	  try {
   		  return InetAddress.getByName(value);
   	  } catch (UnknownHostException e) {
-  		throw new PSQLException(GT.tr("Unknown host detected", type),
+  		throw new PSQLException(GT.tr("Return Inet address is not supported.", type),
   	          PSQLState.CONNECTION_FAILURE, e);
   	  }
     }
-    /**/
     
     PGobject obj = null;
     
@@ -578,9 +576,8 @@ public class PgConnection implements BaseConnection {
       // point, etc).
 
       if (klass != null) {
-        obj = klass.newInstance();        
+        obj = klass.newInstance();
         obj.setType(type);
-        System.out.println("Object type -->" + obj.getType());
         if (byteValue != null && obj instanceof PGBinaryObject) {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
