@@ -351,6 +351,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   protected boolean willHealViaReparse(SQLException e) {
+    if (e == null || e.getSQLState() == null) {
+      return false;
+    }
+
     // "prepared statement \"S_2\" does not exist"
     if (PSQLState.INVALID_SQL_STATEMENT_NAME.getState().equals(e.getSQLState())) {
       return true;
