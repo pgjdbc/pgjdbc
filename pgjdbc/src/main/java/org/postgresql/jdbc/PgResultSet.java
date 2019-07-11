@@ -220,7 +220,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         
         if(type.equals("inet")) {
-        	return connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
+          return getInetAddress(getPGType(columnIndex), getString(columnIndex));
         }
 
         if (type.equals("uuid")) {
@@ -2523,14 +2523,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     field = fields[columnIndex - 1];
 
-//    /**/
-//    if(field.getColumnLabel().equals("inet")) {
-//    	System.out.println("it is net");
-//    	System.out.println(field.getMetadata());
-//    	Object result = internalGetObject(columnIndex, field);
-//    	
-//    }
-//    /**/
     // some fields can be null, mainly from those returned by MetaData methods
     if (field == null) {
       wasNullFlag = true;
@@ -3067,6 +3059,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   protected Object getUUID(byte[] data) throws SQLException {
     return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
+  }
+  
+  protected Object getInetAddress(String type, String data) throws SQLException {
+    InetAddress inet;
+    try {
+    	inet = (InetAddress) connection.getObject(type, data, null);
+    } catch (IllegalArgumentException iae) {
+        throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
+    }
+    return inet;
   }
 
   private class PrimaryKey {

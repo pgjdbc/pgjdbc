@@ -554,12 +554,11 @@ public class PgConnection implements BaseConnection {
     /**/
     if(type.equals("inet")) {
   	  try {
-  		  System.out.println(InetAddress.getByName(value));
-			return InetAddress.getByName(value);
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+  		  return InetAddress.getByName(value);
+  	  } catch (UnknownHostException e) {
+  		throw new PSQLException(GT.tr("Unknown host detected", type),
+  	          PSQLState.CONNECTION_FAILURE, e);
+  	  }
     }
     /**/
     
