@@ -3053,7 +3053,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       throw new PSQLException(GT.tr("Invalid UUID data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
     }
 
-    System.out.println("something");
     return uuid;
   }
 

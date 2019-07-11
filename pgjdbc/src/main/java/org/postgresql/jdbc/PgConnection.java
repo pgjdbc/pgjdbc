@@ -561,7 +561,7 @@ public class PgConnection implements BaseConnection {
     }
     
     PGobject obj = null;
-    
+
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "Constructing object from type={0} value=<{1}>", new Object[]{type, value});
     }
@@ -591,7 +591,7 @@ public class PgConnection implements BaseConnection {
         obj.setType(type);
         obj.setValue(value);
       }
-      System.out.println("Object -->" + obj.getValue());
+
       return obj;
     } catch (SQLException sx) {
       // rethrow the exception. Done because we capture any others next

@@ -157,7 +157,7 @@ public class ResultSetTest extends BaseTest4 {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
-    
+
     assertTrue(!rs.absolute(0));
     assertEquals(0, rs.getRow());
 
