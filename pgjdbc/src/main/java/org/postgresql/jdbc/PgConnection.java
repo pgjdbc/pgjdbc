@@ -551,15 +551,15 @@ public class PgConnection implements BaseConnection {
       }
     }
 
-    if(type.equals("inet")) {
-  	  try {
-  		  return InetAddress.getByName(value);
-  	  } catch (UnknownHostException e) {
-  		throw new PSQLException(GT.tr("Return Inet address is not supported.", type),
-  	          PSQLState.CONNECTION_FAILURE, e);
-  	  }
+    if (type.equals("inet")) {
+      try {
+        return InetAddress.getByName(value);
+      } catch (UnknownHostException e) {
+        throw new PSQLException(GT.tr("Return Inet address is not supported.", type),
+          PSQLState.CONNECTION_FAILURE, e);
+      }
     }
-    
+
     PGobject obj = null;
 
     if (LOGGER.isLoggable(Level.FINEST)) {

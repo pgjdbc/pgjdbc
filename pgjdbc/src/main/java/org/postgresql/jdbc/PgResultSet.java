@@ -218,8 +218,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (type.equals("unknown")) {
           return getString(columnIndex);
         }
-        
-        if(type.equals("inet")) {
+
+        if (type.equals("inet")) {
           return getInetAddress(getPGType(columnIndex), getString(columnIndex));
         }
 
@@ -3059,13 +3059,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected Object getUUID(byte[] data) throws SQLException {
     return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
   }
-  
+
   protected Object getInetAddress(String type, String data) throws SQLException {
     InetAddress inet;
     try {
-    	inet = (InetAddress) connection.getObject(type, data, null);
+      inet = (InetAddress) connection.getObject(type, data, null);
     } catch (IllegalArgumentException iae) {
-        throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
+      throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
     }
     return inet;
   }
