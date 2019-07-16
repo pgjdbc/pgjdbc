@@ -3324,11 +3324,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (addressString == null) {
         return null;
       }
-      try {
-        return type.cast(InetAddress.getByName(((PGobject) addressString).getValue()));
-      } catch (UnknownHostException e) {
-        throw new SQLException("could not create inet address from string '" + addressString + "'");
-      }
+        return type.cast(getObject(columnIndex));
       // JSR-310 support
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     } else if (type == LocalDate.class) {
