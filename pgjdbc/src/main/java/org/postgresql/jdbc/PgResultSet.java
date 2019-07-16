@@ -36,7 +36,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -3324,7 +3323,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (addressString == null) {
         return null;
       }
-        return type.cast(getObject(columnIndex));
+      return type.cast(getObject(columnIndex));
       // JSR-310 support
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     } else if (type == LocalDate.class) {
