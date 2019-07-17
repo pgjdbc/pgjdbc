@@ -31,6 +31,11 @@ public class ParameterStatusTest extends BaseTest4 {
   private final TimeZone tzPlus0800 = TimeZone.getTimeZone("GMT+8:00");
   private final Logger logger = Logger.getLogger(ParameterStatusTest.class.getName());
 
+  @Override
+  public void tearDown() {
+    TimeZone.setDefault(null);
+  }
+
   @Test
   public void expectedInitialParameters() throws Exception {
     TimeZone.setDefault(tzPlus0800);
