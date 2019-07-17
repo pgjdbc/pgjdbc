@@ -21,6 +21,8 @@ The following must be considered when using the `ResultSet` interface:
 	five query executions (this default is set by the `prepareThreshold` 
 	connection property, see [Server Prepared Statements](server-prepare.md)). 
 	This may cause unexpected behavior when some methods are called. For example, 
-	methods such as `getString()` on double type may yield a slightly different 
-	representation after query execution exceeds the set `prepareThreshold`. 
+	results on method calls such as `getString()` on non-string data types, 	
+	while logically　equivalent, may be inconsistently formatted after query 
+	execution exceeds the set `prepareThreshold` (due to differing conversion 
+	method matched to the incoming data type). 
 	
