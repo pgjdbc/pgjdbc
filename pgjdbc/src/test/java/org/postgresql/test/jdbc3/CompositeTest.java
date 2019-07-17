@@ -9,11 +9,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.Array;
@@ -25,6 +28,16 @@ import java.sql.SQLException;
 public class CompositeTest {
 
   private Connection conn;
+
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    Connection conn = TestUtil.openDB();
+    try {
+      Assume.assumeTrue("uuid requires PostgreSQL 8.3+", TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
+    } finally {
+      conn.close();
+    }
+  }
 
   @Before
   public void setUp() throws Exception {
