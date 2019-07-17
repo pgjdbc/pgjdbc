@@ -2325,8 +2325,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public byte[] getBytes(int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBytes columnIndex: {0}", columnIndex);
     checkResultSet(columnIndex);
+    byte[] arr = new byte[0];
     if (wasNullFlag) {
-      return null;
+      return arr;
     }
 
     if (isBinary(columnIndex)) {
