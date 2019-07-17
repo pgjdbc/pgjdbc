@@ -9,6 +9,7 @@
 
 1. [ ] Does your submission pass tests?
 2. [ ] Does mvn checkstyle:check pass ?
+3. [ ] Have you added your new test classes to an existing test suite?
 
 ### Changes to Existing Features:
 
