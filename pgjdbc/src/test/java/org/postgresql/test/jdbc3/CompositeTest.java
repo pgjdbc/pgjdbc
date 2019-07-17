@@ -9,7 +9,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
@@ -87,6 +89,7 @@ public class CompositeTest {
 
   @Test
   public void testSimpleArgumentSelect() throws SQLException {
+    Assume.assumeTrue("Skip if running in simple query mode", conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE);
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
     PGobject pgo = new PGobject();
     pgo.setType("simplecompositetest");
@@ -100,6 +103,7 @@ public class CompositeTest {
 
   @Test
   public void testComplexArgumentSelect() throws SQLException {
+    Assume.assumeTrue("Skip if running in simple query mode", conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE);
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
     PGobject pgo = new PGobject();
     pgo.setType("\"Composites\".\"ComplexCompositeTest\"");
