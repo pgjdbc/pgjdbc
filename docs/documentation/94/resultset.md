@@ -26,3 +26,4 @@ The following must be considered when using the `ResultSet` interface:
 	the set `prepareThreshold` when conversion to object method switches to one 
 	matching the return mode. 
 	
+	
