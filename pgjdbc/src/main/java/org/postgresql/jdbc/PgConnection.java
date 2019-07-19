@@ -555,7 +555,7 @@ public class PgConnection implements BaseConnection {
       try {
         return InetAddress.getByName(value);
       } catch (UnknownHostException e) {
-        throw new PSQLException(GT.tr("IP address of a host could not be determined", type),
+        throw new PSQLException(GT.tr("IP address " + value + " of a host could not be determined", type),
           PSQLState.CONNECTION_FAILURE, e);
       }
     }
