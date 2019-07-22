@@ -79,12 +79,16 @@ public class BaseDataSourceFailoverUrlsTest {
     BaseDataSource bds = newDS();
 
     bds.setUrl(in);
-    assertEquals(expected, bds.getURL().replaceAll("\\?.*$", ""));
+    assertEquals(expected, jdbcUrlStripParams(bds.getURL()));
 
     bds.setFromReference(bds.getReference());
-    assertEquals(expected, bds.getURL().replaceAll("\\?.*$", ""));
+    assertEquals(expected, jdbcUrlStripParams(bds.getURL()));
 
     bds.initializeFrom(bds);
-    assertEquals(expected, bds.getURL().replaceAll("\\?.*$", ""));
+    assertEquals(expected, jdbcUrlStripParams(bds.getURL()));
+  }
+  
+  private static String jdbcUrlStripParams(String in) {
+	return in.replaceAll("\\?.*$", "");
   }
 }
