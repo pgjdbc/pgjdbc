@@ -19,14 +19,16 @@ import javax.naming.NamingException;
 */
 public class BaseDataSourceFailoverUrlsTest {
 
+  private static final String DEFAULT_PORT = "5432";
+
   @Test
   public void testFullDefault() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server/database", "jdbc:postgresql://server:5432/database");
+    doTestFailoverUrl("jdbc:postgresql://server/database", "jdbc:postgresql://server:"+DEFAULT_PORT+"/database");
   }
 
   @Test
   public void testTwoNoPorts() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:5432,server2:5432/database");
+    doTestFailoverUrl("jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:"+DEFAULT_PORT+",server2:"+DEFAULT_PORT+"/database");
   }
 
   @Test
@@ -36,26 +38,32 @@ public class BaseDataSourceFailoverUrlsTest {
 
   @Test
   public void testTwoFirstPort() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:5432,server2:2345/database");
+    doTestFailoverUrl("jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:"+DEFAULT_PORT+",server2:2345/database");
   }
 
   @Test
   public void testTwoLastPort() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:5432/database");
+    doTestFailoverUrl("jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:"+DEFAULT_PORT+"/database");
   }
 
   @Test
   public void testNullPorts() {
     BaseDataSource bds = newDS();
+    bds.setDatabaseName("database");
     bds.setPortNumbers(null);
-    assertEquals("jdbc:postgresql://server:5432/database", bds.getURL().replaceAll("\\?.*$", ""));
+    assertEquals("jdbc:postgresql://localhost/database", bds.getURL().replaceAll("\\?.*$", ""));
+    assertEquals(0, bds.getPortNumber());
+    assertEquals(0, bds.getPortNumbers()[0]);
   }
 
   @Test
   public void testEmptyPorts() {
     BaseDataSource bds = newDS();
+    bds.setDatabaseName("database");
     bds.setPortNumbers(new int[0]);
-    assertEquals("jdbc:postgresql://server:5432/database", bds.getURL().replaceAll("\\?.*$", ""));
+    assertEquals("jdbc:postgresql://localhost/database", bds.getURL().replaceAll("\\?.*$", ""));
+    assertEquals(0, bds.getPortNumber());
+    assertEquals(0, bds.getPortNumbers()[0]);
   }
 
   private BaseDataSource newDS() {
