@@ -143,74 +143,89 @@ public class ServerErrorMessage implements Serializable {
     return Integer.parseInt(s);
   }
 
+  public String toString(String SQLtext) {
+	    // Now construct the message from what the server sent
+	    // The general format is:
+	    // SEVERITY: Message \n
+	    // Detail: \n
+	    // Hint: \n
+	    // Position: \n
+	    // Where: \n
+	    // Internal Query: \n
+	    // Internal Position: \n
+	    // Location: File:Line:Routine \n
+	    // SQLState: \n
+	    //
+	    // Normally only the message and detail is included.
+	    // If INFO level logging is enabled then detail, hint, position and where are
+	    // included. If DEBUG level logging is enabled then all information
+	    // is included.
+
+	    StringBuilder totalMessage = new StringBuilder();
+	    String message = mesgParts.get(SEVERITY);
+	    if (message != null) {
+	      totalMessage.append(message).append(": ");
+	    }
+	    message = mesgParts.get(MESSAGE);
+	    if (message != null) {
+	      totalMessage.append(message);
+	    }
+	    message = mesgParts.get(DETAIL);
+	    if (message != null) {
+	      totalMessage.append("\n  ").append(GT.tr("Detail: {0}", message));
+	    }
+
+	    message = mesgParts.get(HINT);
+	    if (message != null) {
+	    	totalMessage.append("\n  ").append(GT.tr("Hint: {0}", message));
+	    }
+	    
+	    message = mesgParts.get(POSITION);
+	    if (message != null) {
+	    	if (SQLtext.equals("")) {
+	    		totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
+	    	} else {
+	    		totalMessage.append("\n  ").append(SQLtext); 
+	    		totalMessage.append("\n  ");
+	    		int pos = Integer.parseInt(message);
+	    		while (pos-- != 0) {
+	    			totalMessage.append(" ");
+	    		}
+	    		totalMessage.append("^");
+	    	}
+	    }
+	    
+	    message = mesgParts.get(WHERE);
+	    if (message != null) {
+	      totalMessage.append("\n  ").append(GT.tr("Where: {0}", message));
+	    }
+
+	    if (LOGGER.isLoggable(Level.FINEST)) {
+	      String internalQuery = mesgParts.get(INTERNAL_QUERY);
+	      if (internalQuery != null) {
+	        totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", internalQuery));
+	      }
+	      String internalPosition = mesgParts.get(INTERNAL_POSITION);
+	      if (internalPosition != null) {
+	        totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", internalPosition));
+	      }
+
+	      String file = mesgParts.get(FILE);
+	      String line = mesgParts.get(LINE);
+	      String routine = mesgParts.get(ROUTINE);
+	      if (file != null || line != null || routine != null) {
+	        totalMessage.append("\n  ").append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}",
+	            file, routine, line));
+	      }
+	      message = mesgParts.get(SQLSTATE);
+	      if (message != null) {
+	        totalMessage.append("\n  ").append(GT.tr("Server SQLState: {0}", message));
+	      }
+	    }
+
+	    return totalMessage.toString();
+  }
   public String toString() {
-    // Now construct the message from what the server sent
-    // The general format is:
-    // SEVERITY: Message \n
-    // Detail: \n
-    // Hint: \n
-    // Position: \n
-    // Where: \n
-    // Internal Query: \n
-    // Internal Position: \n
-    // Location: File:Line:Routine \n
-    // SQLState: \n
-    //
-    // Normally only the message and detail is included.
-    // If INFO level logging is enabled then detail, hint, position and where are
-    // included. If DEBUG level logging is enabled then all information
-    // is included.
-
-    StringBuilder totalMessage = new StringBuilder();
-    String message = mesgParts.get(SEVERITY);
-    if (message != null) {
-      totalMessage.append(message).append(": ");
-    }
-    message = mesgParts.get(MESSAGE);
-    if (message != null) {
-      totalMessage.append(message);
-    }
-    message = mesgParts.get(DETAIL);
-    if (message != null) {
-      totalMessage.append("\n  ").append(GT.tr("Detail: {0}", message));
-    }
-
-    message = mesgParts.get(HINT);
-    if (message != null) {
-      totalMessage.append("\n  ").append(GT.tr("Hint: {0}", message));
-    }
-    message = mesgParts.get(POSITION);
-    if (message != null) {
-      totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
-    }
-    message = mesgParts.get(WHERE);
-    if (message != null) {
-      totalMessage.append("\n  ").append(GT.tr("Where: {0}", message));
-    }
-
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      String internalQuery = mesgParts.get(INTERNAL_QUERY);
-      if (internalQuery != null) {
-        totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", internalQuery));
-      }
-      String internalPosition = mesgParts.get(INTERNAL_POSITION);
-      if (internalPosition != null) {
-        totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", internalPosition));
-      }
-
-      String file = mesgParts.get(FILE);
-      String line = mesgParts.get(LINE);
-      String routine = mesgParts.get(ROUTINE);
-      if (file != null || line != null || routine != null) {
-        totalMessage.append("\n  ").append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}",
-            file, routine, line));
-      }
-      message = mesgParts.get(SQLSTATE);
-      if (message != null) {
-        totalMessage.append("\n  ").append(GT.tr("Server SQLState: {0}", message));
-      }
-    }
-
-    return totalMessage.toString();
+	  	return toString("");
   }
 }
