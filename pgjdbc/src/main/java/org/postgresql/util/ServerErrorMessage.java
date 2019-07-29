@@ -182,14 +182,14 @@ public class ServerErrorMessage implements Serializable {
 	    
 	    message = mesgParts.get(POSITION);
 	    if (message != null) {
-	    	if (!SQLtext.equals("")) {
-	    		totalMessage.append("\n  ").append(SQLtext); 
-	    		totalMessage.append("\n  ");
-	    		int pos = Integer.parseInt(message);
-	    		while (pos-- != 0) {
-	    			totalMessage.append(" ");
-	    		}
-	    		totalMessage.append("^");
+	      if (!SQLtext.equals("")) {
+            totalMessage.append("\n  ").append(SQLtext); 
+	    	totalMessage.append("\n  ");
+	    	int pos = Integer.parseInt(message);
+	    	while (pos-- != 0) {
+	    	  totalMessage.append(" ");
+	    	}
+	    	  totalMessage.append("^");
 	    	}
 	    	totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
 	    }
@@ -204,6 +204,7 @@ public class ServerErrorMessage implements Serializable {
 	      if (internalQuery != null) {
 	        totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", internalQuery));
 	      }
+	      
 	      String internalPosition = mesgParts.get(INTERNAL_POSITION);
 	      if (internalPosition != null) {
 	        totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", internalPosition));
