@@ -216,7 +216,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   /**
    * Stores the original SQL text for display in error message. 
    */
-  private String SQLtext; 
+  private String sqlText; 
   
   public Query createSimpleQuery(String sql) throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
@@ -278,7 +278,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
 	
-	SQLtext = query.getNativeSql();
+	sqlText = query.getNativeSql();
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -2472,7 +2472,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg.toString());
     }
 
-    PSQLException error = new PSQLException(errorMsg, SQLtext);
+    PSQLException error = new PSQLException(errorMsg, sqlText);
     if (transactionFailCause == null) {
       transactionFailCause = error;
     } else {
