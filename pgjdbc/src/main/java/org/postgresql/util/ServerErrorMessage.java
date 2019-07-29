@@ -186,7 +186,7 @@ public class ServerErrorMessage implements Serializable {
             totalMessage.append("\n  ").append(SQLtext); 
 	    	totalMessage.append("\n  ");
 	    	int pos = Integer.parseInt(message);
-	    	while (pos-- != 0) {
+	    	while (--pos != 0) {
 	    	  totalMessage.append(" ");
 	    	}
 	    	  totalMessage.append("^");
