@@ -182,9 +182,7 @@ public class ServerErrorMessage implements Serializable {
 	    
 	    message = mesgParts.get(POSITION);
 	    if (message != null) {
-	    	if (SQLtext.equals("")) {
-	    		totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
-	    	} else {
+	    	if (!SQLtext.equals("")) {
 	    		totalMessage.append("\n  ").append(SQLtext); 
 	    		totalMessage.append("\n  ");
 	    		int pos = Integer.parseInt(message);
@@ -193,6 +191,7 @@ public class ServerErrorMessage implements Serializable {
 	    		}
 	    		totalMessage.append("^");
 	    	}
+	    	totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
 	    }
 	    
 	    message = mesgParts.get(WHERE);
@@ -225,7 +224,9 @@ public class ServerErrorMessage implements Serializable {
 
 	    return totalMessage.toString();
   }
+  
   public String toString() {
 	  	return toString("");
   }
+  
 }
