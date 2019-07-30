@@ -177,21 +177,21 @@ public class ServerErrorMessage implements Serializable {
 
     message = mesgParts.get(HINT);
     if (message != null) {
-    	totalMessage.append("\n  ").append(GT.tr("Hint: {0}", message));
+      totalMessage.append("\n  ").append(GT.tr("Hint: {0}", message));
     }
-    
+
     message = mesgParts.get(POSITION);
     if (message != null) {
       if (!sqlText.equals("")) {
-        totalMessage.append("\n  ").append(sqlText); 
-    	totalMessage.append("\n  ");
-    	int pos = Integer.parseInt(message);
-    	while (--pos != 0) {
-    	  totalMessage.append(" ");
-    	}
-    	  totalMessage.append("^");
-    	}
-    	totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
+        totalMessage.append("\n  ").append(sqlText);
+        totalMessage.append("\n  ");
+        int pos = Integer.parseInt(message);
+        while (--pos != 0) {
+          totalMessage.append(" ");
+        }
+        totalMessage.append("^");
+      }
+      totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
     }
     
     message = mesgParts.get(WHERE);
@@ -204,7 +204,7 @@ public class ServerErrorMessage implements Serializable {
       if (internalQuery != null) {
         totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", internalQuery));
       }
-      
+
       String internalPosition = mesgParts.get(INTERNAL_POSITION);
       if (internalPosition != null) {
         totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", internalPosition));
@@ -225,9 +225,9 @@ public class ServerErrorMessage implements Serializable {
 
     return totalMessage.toString();
   }
-  
+
   public String toString() {
     return toString("");
   }
-  
+
 }

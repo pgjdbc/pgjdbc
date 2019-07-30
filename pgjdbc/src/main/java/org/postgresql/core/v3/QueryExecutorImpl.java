@@ -214,10 +214,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   /**
-   * Stores the original SQL text for display in error message. 
+   * Stores the original SQL text for display in error message.
    */
-  private String sqlText; 
-  
+  private String sqlText;
+
   public Query createSimpleQuery(String sql) throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
         getStandardConformingStrings(), false, true,
@@ -277,8 +277,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
-	
-	sqlText = query.getNativeSql();
+
+    sqlText = query.getNativeSql();
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -313,7 +313,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         } else {
           sendSync();
         }
-        processResults(handler, flags); 
+        processResults(handler, flags);
         estimatedReceiveBufferBytes = 0;
       } catch (PGBindException se) {
         // There are three causes of this error, an
