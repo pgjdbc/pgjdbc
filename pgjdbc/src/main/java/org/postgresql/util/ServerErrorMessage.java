@@ -193,7 +193,7 @@ public class ServerErrorMessage implements Serializable {
       }
       totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
     }
-    
+
     message = mesgParts.get(WHERE);
     if (message != null) {
       totalMessage.append("\n  ").append(GT.tr("Where: {0}", message));
