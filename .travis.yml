@@ -61,6 +61,7 @@ script:
   - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
   - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
   - if [[ $TRAVIS_BRANCH == release/* ]]; then .travis/travis_release.sh; else ./.travis/travis_build.sh; fi
+  - grep  Automatic  pgjdbc/target/classes/META-INF/MANIFEST.MF
   - ./.travis/travis_check_postgres_health.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
   #- mkdir /tmp/cache-trick
