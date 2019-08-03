@@ -260,6 +260,9 @@ public class SetObject310Test extends BaseTest4 {
             // This is a pre-1970 date, so check if it is rounded properly
             "1950-07-20T02:00:00",
 
+            // Ensure the calendar is proleptic
+            "1582-09-30T00:00:00", "1582-10-16T00:00:00",
+
             // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
             "2000-10-29T01:59:59", "2000-10-29T02:00:00", "2000-10-29T02:00:01", "2000-10-29T02:59:59",
             "2000-10-29T03:00:00", "2000-10-29T03:00:01", "2000-10-29T03:59:59", "2000-10-29T04:00:00",
@@ -311,7 +314,7 @@ public class SetObject310Test extends BaseTest4 {
               "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
                   + storeZone + ", setObject(int, Object)", data.toInstant(),
               noTypeRes.toInstant());
-          String withType = rs.getString(1);
+          String withType = rs.getString(2);
           OffsetDateTime withTypeRes = OffsetDateTime.parse(withType.replace(' ', 'T') + ":00");
           assertEquals(
               "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
