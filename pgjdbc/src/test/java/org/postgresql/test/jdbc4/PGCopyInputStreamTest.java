@@ -104,6 +104,28 @@ public class PGCopyInputStreamTest {
     }
   }
 
+
+  @Test
+  public void testStreamCanBeReusedAfterPartialRead() throws SQLException, IOException {
+    insertSomeData();
+    sut = new PGCopyInputStream((PGConnection) conn,
+        "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH " + copyParams);
+
+    byte[] buff = new byte[5];
+    sut.read(buff);
+    sut.close();
+
+    sut = new PGCopyInputStream((PGConnection) conn,
+        "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH " + copyParams);
+
+    byte[] buff2 = new byte[100];
+    while (sut.read(buff) > 0) {
+      ;
+    }
+
+    sut.close();
+  }
+
   private void insertSomeData() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("insert into cpinstreamtest (i) values (?)");
     for (int i = 0; i < 4; ++i) {

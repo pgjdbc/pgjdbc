@@ -36,6 +36,7 @@ import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1023,7 +1024,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger4(siz + 4);
       pgStream.send(data, off, siz);
 
-      processCopyResults(op, false); // collect any pending notifications without blocking
+      //processCopyResults(op, false); // collect any pending notifications without blocking
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
           PSQLState.CONNECTION_FAILURE, ioe);
@@ -1192,9 +1193,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'd': // CopyData
 
-          len = pgStream.receiveInteger4() - 4;
-
-          LOGGER.log(Level.FINEST, " <=BE CopyData length {0}", len );
+          LOGGER.log(Level.FINEST, " <=BE CopyData");
+          len = pgStream.receiveInteger4();
+          assert (len < 4 );
+          len -= 4;
+          LOGGER.log(Level.FINEST, " CopyData Length {0}", len);
 
           byte[] buf = pgStream.receive(len);
           if (op == null) {
@@ -1259,6 +1262,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           skipMessage();
           break;
+        case 'w': // is this a wal status message
+          int startHi = pgStream.receiveInteger4();
+          int startLo = pgStream.receiveInteger4();
+          int endHi = pgStream.receiveInteger4();
+          int endLo = pgStream.receiveInteger4();
+          int timeHi = pgStream.receiveInteger4();
+          int timeLo = pgStream.receiveInteger4();
+
+          LogSequenceNumber startLSN = LogSequenceNumber.valueOf((startHi<<32) + startLo);
+          LogSequenceNumber  endLSN = LogSequenceNumber.valueOf((endHi << 32) + endLo);
+          throw new IOException(
+            GT.tr("Unexpected wal status message during copy: {0}, {1}", startLSN, endLSN));
 
         default:
           throw new IOException(
@@ -2371,6 +2386,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void skipMessage() throws IOException {
     int len = pgStream.receiveInteger4();
+    assert (len<4);
     // skip len-4 (length includes the 4 bytes for message length itself
     pgStream.skip(len - 4);
   }
@@ -2441,7 +2457,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int msglen = pgStream.receiveInteger4();
+    assert (pgStream.receiveInteger4() < 4); // MESSAGE SIZE
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveString();
     String param = pgStream.receiveString();
@@ -2459,6 +2475,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // check at the bottom to see if we need to throw an exception
 
     int elen = pgStream.receiveInteger4();
+    assert (elen < 4);
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
 
@@ -2489,6 +2506,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private String receiveCommandStatus() throws IOException {
     // TODO: better handle the msg len
     int len = pgStream.receiveInteger4();
+    assert (len < 4);
     // read len -5 bytes (-4 for len and -1 for trailing \0)
     String status = pgStream.receiveString(len - 5);
     // now read and discard the trailing \0

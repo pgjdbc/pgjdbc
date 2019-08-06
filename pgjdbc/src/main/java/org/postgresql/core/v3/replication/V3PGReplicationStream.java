@@ -56,7 +56,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   ) {
     this.copyDual = copyDual;
     this.updateInterval = updateIntervalMs;
-    this.lastStatusUpdate = System.currentTimeMillis() - updateIntervalMs;
+    this.lastStatusUpdate = (System.nanoTime()/1000_000) - updateIntervalMs;
     this.lastReceiveLSN = startLSN;
     this.replicationType = replicationType;
   }
@@ -116,12 +116,14 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private ByteBuffer readInternal(boolean block) throws SQLException {
     boolean updateStatusRequired = false;
+
     while (copyDual.isActive()) {
+
+      ByteBuffer buffer = receiveNextData(block);
+
       if (updateStatusRequired || isTimeUpdate()) {
         timeUpdateStatus();
       }
-
-      ByteBuffer buffer = receiveNextData(block);
 
       if (buffer == null) {
         return null;
@@ -173,7 +175,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if ( updateInterval == 0 ) {
       return false;
     }
-    long diff = System.currentTimeMillis() - lastStatusUpdate;
+    long diff = (System.nanoTime()/1000000) - lastStatusUpdate;
     return diff >= updateInterval;
   }
 
@@ -189,7 +191,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     copyDual.writeToCopy(reply, 0, reply.length);
     copyDual.flushCopy();
 
-    lastStatusUpdate = System.currentTimeMillis();
+    lastStatusUpdate = System.nanoTime()/1000_000;
   }
 
   private byte[] prepareUpdateStatus(LogSequenceNumber received, LogSequenceNumber flushed,
