@@ -10,6 +10,8 @@ public class messages_ja extends java.util.ResourceBundle {
     t[3] = "{0} メソッドはまだ実装されていません。";
     t[10] = "Got {0} error responses to single copy cancel request";
     t[11] = "一つのコピー中断要求にたいして {0} 個のエラー応答が返されました";
+    t[20] = "The array index is out of range: {0}, number of elements: {1}.";
+    t[21] = "配列インデックスが範囲外です: {0} 、要素の数: {1}";
     t[26] = "Tried to obtain lock while already holding it";
     t[27] = "すでに取得中のロックを取得しようとしました";
     t[28] = "Invalid protocol state requested. Attempted transaction interleaving is not supported. xid={0}, currentXid={1}, state={2}, flags={3}";
@@ -78,6 +80,8 @@ public class messages_ja extends java.util.ResourceBundle {
     t[179] = "{0} を実行中のサーバから CopyOutResponse を受け取りました";
     t[186] = "Unknown ResultSet holdability setting: {0}.";
     t[187] = "ResultSet の holdability に対する未知の設定値です: {0}";
+    t[188] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[189] = "実装されていません: 第二フェーズの COMMIT は、待機接続で使わなくてはなりません。xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[190] = "Invalid server SCRAM signature";
     t[191] = "不正なサーバSCRAM署名です";
     t[192] = "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.";
@@ -160,8 +164,8 @@ public class messages_ja extends java.util.ResourceBundle {
     t[383] = "行挿入には、最低でも１つの列の値が必要です。";
     t[388] = "Query timeout must be a value greater than or equals to 0.";
     t[389] = "クエリタイムアウトは、0またはより大きな値でなくてはなりません。";
-    t[394] = "The array index is out of range: {0}, number of elements: {1}.";
-    t[395] = "配列インデックスが範囲外です: {0} 、要素の数: {1}";
+    t[394] = "The SSLSocketFactory class provided {0} could not be instantiated.";
+    t[395] = "渡された SSLSocketFactoryクラス {0} はインスタンス化できませんでした。";
     t[396] = "The parameter index is out of range: {0}, number of parameters: {1}.";
     t[397] = "パラメータのインデックスが範囲外です: {0} , パラメータ数: {1}";
     t[400] = "This ResultSet is closed.";
@@ -208,8 +212,6 @@ public class messages_ja extends java.util.ResourceBundle {
     t[505] = "与えれた HostnameVerifier クラス {0} はインスタンス化できませんした。";
     t[506] = "Unable to create SAXResult for SQLXML.";
     t[507] = "SQLXMLに対するSAXResultを生成できません。";
-    t[508] = "The SSLSocketFactory class provided {0} could not be instantiated.";
-    t[509] = "渡された SSLSocketFactoryクラス {0} はインスタンス化できませんでした。";
     t[510] = "The server does not support SSL.";
     t[511] = "サーバはSSLをサポートしていません。";
     t[516] = "Got CopyData without an active copy operation";
@@ -312,8 +314,6 @@ public class messages_ja extends java.util.ResourceBundle {
     t[761] = "不正な server-first-message: {0}";
     t[762] = "No value specified for parameter {0}.";
     t[763] = "パラメータ {0} に値が設定されてません。";
-    t[764] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[765] = "実装されていません: 第二フェーズの COMMIT は、待機接続で使わなくてはなりません。xid={0}, currentXid={1}, state={2], transactionState={3}";
     t[766] = "Fastpath call {0} - No result was returned and we expected an integer.";
     t[767] = "Fastpath 呼び出し {0} - integer を想定していましたが、結果は返却されませんでした。";
     t[774] = "Unable to create StAXResult for SQLXML";
@@ -332,8 +332,6 @@ public class messages_ja extends java.util.ResourceBundle {
     t[823] = "不正なUTF-8シーケンス: 変換後の値がサロゲート値です: {0}";
     t[824] = "The SocketFactory class provided {0} could not be instantiated.";
     t[825] = "渡された SocketFactoryクラス {0} はインスタンス化できませんでした。";
-    t[830] = "The hostname {0} could not be verified.";
-    t[831] = "ホスト名 {0} は検証できませんでした。";
     t[832] = "Large Objects may not be used in auto-commit mode.";
     t[833] = "ラージオブジェクトは、自動コミットモードで使うことができません。";
     t[834] = "Fastpath call {0} - No result was returned or wrong size while expecting a long.";
@@ -348,8 +346,6 @@ public class messages_ja extends java.util.ResourceBundle {
     t[857] = "名前付き savepoint の id は取得できません。";
     t[860] = "Could not read password for SSL key file by callbackhandler {0}.";
     t[861] = "callbackhandler {0} で、SSL keyファイルを読めませんでした。";
-    t[864] = "Failed to initialize LargeObject API";
-    t[865] = "ラージオブジェクトAPIの初期化に失敗しました。";
     t[874] = "Tried to break lock on database connection";
     t[875] = "データベース接続のロックを破壊しようとしました";
     t[878] = "Unexpected error writing large object to database.";

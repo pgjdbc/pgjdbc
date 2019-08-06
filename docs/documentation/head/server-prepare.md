@@ -5,8 +5,8 @@ header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
 resource: media
 previoustitle: Listen / Notify
 previous: listennotify.html
-nexttitle: Physical and Logical replication API
-next: replication.html
+nexttitle: Parameter Status Messages
+next: parameterstatus.html
 ---
 
 ### Motivation

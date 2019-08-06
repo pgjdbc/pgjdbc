@@ -36,7 +36,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -217,6 +216,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         // if the backend doesn't know the type then coerce to String
         if (type.equals("unknown")) {
           return getString(columnIndex);
+        }
+
+        if (type.equals("inet")) {
+          return getInetAddress(getPGType(columnIndex), getString(columnIndex));
         }
 
         if (type.equals("uuid")) {
@@ -3056,6 +3059,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
   }
 
+  protected Object getInetAddress(String type, String data) throws SQLException {
+    InetAddress inet;
+    try {
+      inet = (InetAddress) connection.getObject(type, data, null);
+    } catch (IllegalArgumentException iae) {
+      throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
+    }
+    return inet;
+  }
+
   private class PrimaryKey {
     int index; // where in the result set is this primaryKey
     String name; // what is the columnName of this primary Key
@@ -3310,11 +3323,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (addressString == null) {
         return null;
       }
-      try {
-        return type.cast(InetAddress.getByName(((PGobject) addressString).getValue()));
-      } catch (UnknownHostException e) {
-        throw new SQLException("could not create inet address from string '" + addressString + "'");
-      }
+      return type.cast(getObject(columnIndex));
       // JSR-310 support
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     } else if (type == LocalDate.class) {

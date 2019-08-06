@@ -511,7 +511,7 @@ public class TimestampUtils {
     }
 
     // 2) Truncate date part so in given time zone the date would be formatted as 01/01/1970
-    return convertToTime(timeMillis, useCal == null ? null : useCal.getTimeZone());
+    return convertToTime(timeMillis, useCal.getTimeZone());
   }
 
   public synchronized Date toDate(Calendar cal, String s) throws SQLException {
@@ -1241,13 +1241,14 @@ public class TimestampUtils {
       millis += offset;
       // 2) Truncate hours, minutes, etc. Day is always 86400 seconds, no matter what leap seconds
       // are
-      millis = millis / ONEDAY * ONEDAY;
+      millis = floorDiv(millis, ONEDAY) * ONEDAY;
       // 2) Now millis is 7 Jan 00:00 UTC, however we need that in GMT+02:00, so subtract some
       // offset
       millis -= offset;
       // Now we have brand-new 7 Jan 00:00 GMT+02:00
       return new Date(millis);
     }
+
     Calendar cal = calendarWithUserTz;
     cal.setTimeZone(tz);
     cal.setTimeInMillis(millis);
@@ -1255,6 +1256,7 @@ public class TimestampUtils {
     cal.set(Calendar.MINUTE, 0);
     cal.set(Calendar.SECOND, 0);
     cal.set(Calendar.MILLISECOND, 0);
+
     return new Date(cal.getTimeInMillis());
   }
 
@@ -1278,7 +1280,7 @@ public class TimestampUtils {
       int offset = tz.getRawOffset();
       millis += offset;
       // 2) Truncate year, month, day. Day is always 86400 seconds, no matter what leap seconds are
-      millis = millis % ONEDAY;
+      millis = floorMod(millis, ONEDAY);
       // 2) Now millis is 1970 1 Jan 15:40 UTC, however we need that in GMT+02:00, so subtract some
       // offset
       millis -= offset;
@@ -1362,7 +1364,7 @@ public class TimestampUtils {
         int years = (int) ((secs + 15773356800L) / -3155823050L);
         years++;
         years -= years / 4;
-        secs += years * 86400;
+        secs += years * 86400L;
       }
     }
 
@@ -1410,5 +1412,18 @@ public class TimestampUtils {
       }
     }
     return TimeZone.getTimeZone(timeZone);
+  }
+
+  private static long floorDiv(long x, long y) {
+    long r = x / y;
+    // if the signs are different and modulo not zero, round down
+    if ((x ^ y) < 0 && (r * y != x)) {
+      r--;
+    }
+    return r;
+  }
+
+  private static long floorMod(long x, long y) {
+    return x - floorDiv(x, y) * y;
   }
 }

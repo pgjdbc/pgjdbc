@@ -19,7 +19,10 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -51,6 +54,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   private final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
+
+  // For getParameterStatuses(), GUC_REPORT tracking
+  private final TreeMap<String,String> parameterStatuses
+      = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
 
   protected QueryExecutorBase(PGStream pgStream, String user,
       String database, int cancelSignalTimeout, Properties info) throws SQLException {
@@ -344,6 +351,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   protected boolean willHealViaReparse(SQLException e) {
+    if (e == null || e.getSQLState() == null) {
+      return false;
+    }
+
     // "prepared statement \"S_2\" does not exist"
     if (PSQLState.INVALID_SQL_STATEMENT_NAME.getState().equals(e.getSQLState())) {
       return true;
@@ -388,5 +399,43 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   protected boolean hasNotifications() {
     return notifications.size() > 0;
+  }
+
+  @Override
+  public final Map<String,String> getParameterStatuses() {
+    return Collections.unmodifiableMap(parameterStatuses);
+  }
+
+  @Override
+  public final String getParameterStatus(String parameterName) {
+    return parameterStatuses.get(parameterName);
+  }
+
+  /**
+   * Update the parameter status map in response to a new ParameterStatus
+   * wire protocol message.
+   *
+   * <p>The server sends ParameterStatus messages when GUC_REPORT settings are
+   * initially assigned and whenever they change.</p>
+   *
+   * <p>A future version may invoke a client-defined listener class at this point,
+   * so this should be the only access path.</p>
+   *
+   * <p>Keys are case-insensitive and case-preserving.</p>
+   *
+   * <p>The server doesn't provide a way to report deletion of a reportable
+   * parameter so we don't expose one here.</p>
+   *
+   * @param parameterName case-insensitive case-preserving name of parameter to create or update
+   * @param parameterStatus new value of parameter
+   * @see org.postgresql.PGConnection#getParameterStatuses
+   * @see org.postgresql.PGConnection#getParameterStatus
+   */
+  protected void onParameterStatus(String parameterName, String parameterStatus) {
+    if (parameterName == null || parameterName.equals("")) {
+      throw new IllegalStateException("attempt to set GUC_REPORT parameter with null or empty-string name");
+    }
+
+    parameterStatuses.put(parameterName, parameterStatus);
   }
 }

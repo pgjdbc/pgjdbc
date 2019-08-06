@@ -256,8 +256,6 @@ public class messages_de extends java.util.ResourceBundle {
     t[719] = "Beim Verbindungsversuch trat eine Unterbrechung auf.";
     t[722] = "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to.";
     t[723] = "Ihre Sicherheitsrichtlinie hat den Versuch des Verbindungsaufbaus verhindert. Sie müssen wahrscheinlich der Verbindung zum Datenbankrechner java.net.SocketPermission gewähren, um den Rechner auf dem gewählten Port zu erreichen.";
-    t[728] = "Failed to initialize LargeObject API";
-    t[729] = "Die LargeObject-API konnte nicht initialisiert werden.";
     t[736] = "{0} function takes one and only one argument.";
     t[737] = "Die {0}-Funktion erwartet nur genau ein Argument.";
     t[744] = "This ResultSet is closed.";

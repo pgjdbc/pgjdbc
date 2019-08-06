@@ -2430,7 +2430,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    int msgSize = pgStream.receiveInteger4();
+    pgStream.receiveInteger4(); // MESSAGE SIZE
     int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
@@ -2630,12 +2630,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    int len = pgStream.receiveInteger4();
+    pgStream.receiveInteger4(); // MESSAGE SIZE
     String name = pgStream.receiveString();
     String value = pgStream.receiveString();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+    }
+
+    /* Update client-visible parameter status map for getParameterStatuses() */
+    if (name != null && !name.equals("")) {
+      onParameterStatus(name, value);
     }
 
     if (name.equals("client_encoding")) {

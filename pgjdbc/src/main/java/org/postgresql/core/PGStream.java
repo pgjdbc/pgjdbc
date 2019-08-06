@@ -437,8 +437,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if a data I/O error occurs
    */
   public byte[][] receiveTupleV3() throws IOException, OutOfMemoryError {
-    // TODO: use msgSize
-    int msgSize = receiveInteger4();
+    receiveInteger4(); // MESSAGE SIZE
     int nf = receiveInteger2();
     byte[][] answer = new byte[nf][];
 
