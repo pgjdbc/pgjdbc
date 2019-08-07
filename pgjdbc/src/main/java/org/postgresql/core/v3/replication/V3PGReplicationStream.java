@@ -117,11 +117,12 @@ public class V3PGReplicationStream implements PGReplicationStream {
   private ByteBuffer readInternal(boolean block) throws SQLException {
     boolean updateStatusRequired = false;
     while (copyDual.isActive()) {
+
+      ByteBuffer buffer = receiveNextData(block);
+
       if (updateStatusRequired || isTimeUpdate()) {
         timeUpdateStatus();
       }
-
-      ByteBuffer buffer = receiveNextData(block);
 
       if (buffer == null) {
         return null;
