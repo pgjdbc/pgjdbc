@@ -1194,7 +1194,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           len = pgStream.receiveInteger4() - 4;
 
-          assert( len > 0 );
+          assert  len > 0 : "Copy Data length must be greater than 4";
+
           byte[] buf = pgStream.receive(len);
           if (op == null) {
             error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
@@ -2371,7 +2372,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void skipMessage() throws IOException {
     int len = pgStream.receiveInteger4();
 
-    assert( len < 4);
+    assert len >= 4 : "Length from skip message must be at least 4 ";
 
     // skip len-4 (length includes the 4 bytes for message length itself
     pgStream.skip(len - 4);
@@ -2444,7 +2445,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void receiveAsyncNotify() throws IOException {
     int len = pgStream.receiveInteger4(); // MESSAGE SIZE
-    assert (len < 4);
+    assert len > 4 : "Length for AsyncNotify must be at least 4";
 
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveString();
@@ -2463,7 +2464,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // check at the bottom to see if we need to throw an exception
 
     int elen = pgStream.receiveInteger4();
-    assert (elen < 4);
+    assert elen > 4 : "Error response length must be greater than 4";
 
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
@@ -2483,7 +2484,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private SQLWarning receiveNoticeResponse() throws IOException {
     int nlen = pgStream.receiveInteger4();
-    assert (nlen < 4);
+    assert nlen > 4 : "Notice Response length must be greater than 4";
+
     ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
 
     if (LOGGER.isLoggable(Level.FINEST)) {
