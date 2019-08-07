@@ -25,7 +25,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private static final Logger LOGGER = Logger.getLogger(V3PGReplicationStream.class.getName());
   public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
-  private static final long NANOS_PER_MILLISECOND = 1_000_000;
+  private static final long NANOS_PER_MILLISECOND = 1000000L;
 
   private final CopyDual copyDual;
   private final long updateInterval;
