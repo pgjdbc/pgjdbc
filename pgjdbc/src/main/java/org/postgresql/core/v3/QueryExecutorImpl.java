@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1065,6 +1066,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  AtomicBoolean processingCopyResults = new AtomicBoolean(false);
+
   /**
    * Handles copy sub protocol responses from server. Unlocks at end of sub protocol, so operations
    * on pgStream or QueryExecutor are not allowed in a method after calling this!
@@ -1077,6 +1080,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   CopyOperationImpl processCopyResults(CopyOperationImpl op, boolean block)
       throws SQLException, IOException {
+
+    if ( processingCopyResults.compareAndSet(false,true) == false ) {
+      throw new PSQLException("Debug should not be here", PSQLState.UNKNOWN_STATE);
+    }
 
     boolean endReceiving = false;
     SQLException error = null;
@@ -1261,8 +1268,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         default:
+          processingCopyResults.set(false);
           throw new IOException(
-              GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
+              GT.tr("Unexpected packet type during copy: {0} driver built Aug 26/2019", Integer.toString(c)));
       }
 
       // Collect errors into a neat chain for completeness
@@ -1276,9 +1284,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     if (errors != null) {
+      processingCopyResults.set(false);
       throw errors;
     }
 
+    processingCopyResults.set(false);
     return op;
   }
 
