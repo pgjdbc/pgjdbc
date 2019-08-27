@@ -1081,8 +1081,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   CopyOperationImpl processCopyResults(CopyOperationImpl op, boolean block)
       throws SQLException, IOException {
 
+    /*
+    *  This is a hack as we should not end up here, but sometimes do with large copy operations.
+     */
     if ( processingCopyResults.compareAndSet(false,true) == false ) {
-      throw new PSQLException("Debug should not be here", PSQLState.UNKNOWN_STATE);
+      LOGGER.log(Level.INFO, "Ignoring request to process copy results, already processing");
+      return null;
     }
 
     boolean endReceiving = false;
