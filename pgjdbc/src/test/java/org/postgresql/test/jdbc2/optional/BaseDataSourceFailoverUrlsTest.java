@@ -87,8 +87,8 @@ public class BaseDataSourceFailoverUrlsTest {
     bds.initializeFrom(bds);
     assertEquals(expected, jdbcUrlStripParams(bds.getURL()));
   }
-  
+
   private static String jdbcUrlStripParams(String in) {
-	return in.replaceAll("\\?.*$", "");
+    return in.replaceAll("\\?.*$", "");
   }
 }
