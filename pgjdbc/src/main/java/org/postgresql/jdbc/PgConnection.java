@@ -808,7 +808,7 @@ public class PgConnection implements BaseConnection {
       executeTransactionCommand(rollbackQuery);
     } else {
       // just log for debugging
-      LOGGER.log(Level.WARNING, "Rollback requested but no transaction in progress");
+      LOGGER.log(Level.FINE, "Rollback requested but no transaction in progress");
     }
   }
 
