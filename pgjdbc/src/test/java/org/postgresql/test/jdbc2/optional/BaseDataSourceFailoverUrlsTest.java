@@ -23,12 +23,12 @@ public class BaseDataSourceFailoverUrlsTest {
 
   @Test
   public void testFullDefault() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server/database", "jdbc:postgresql://server:"+DEFAULT_PORT+"/database");
+    doTestFailoverUrl("jdbc:postgresql://server/database", "jdbc:postgresql://server:" + DEFAULT_PORT + "/database");
   }
 
   @Test
   public void testTwoNoPorts() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:"+DEFAULT_PORT+",server2:"+DEFAULT_PORT+"/database");
+    doTestFailoverUrl("jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:" + DEFAULT_PORT + ",server2:" + DEFAULT_PORT + "/database");
   }
 
   @Test
@@ -38,12 +38,12 @@ public class BaseDataSourceFailoverUrlsTest {
 
   @Test
   public void testTwoFirstPort() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:"+DEFAULT_PORT+",server2:2345/database");
+    doTestFailoverUrl("jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:" + DEFAULT_PORT + ",server2:2345/database");
   }
 
   @Test
   public void testTwoLastPort() throws ClassNotFoundException, NamingException, IOException {
-    doTestFailoverUrl("jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:"+DEFAULT_PORT+"/database");
+    doTestFailoverUrl("jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:" + DEFAULT_PORT + "/database");
   }
 
   @Test
