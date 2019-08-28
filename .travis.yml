@@ -190,7 +190,6 @@ matrix:
         - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: precise
       env:
         - PG_VERSION=8.3
         - XA=true
@@ -199,7 +198,6 @@ matrix:
         - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: precise
       env:
         - PG_VERSION=8.2
         - XA=true
