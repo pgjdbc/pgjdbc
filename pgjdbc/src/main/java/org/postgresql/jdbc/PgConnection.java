@@ -806,6 +806,9 @@ public class PgConnection implements BaseConnection {
 
     if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       executeTransactionCommand(rollbackQuery);
+    } else {
+      // just log for debugging
+      LOGGER.log(Level.WARNING, "Rollback requested but no transaction in progress");
     }
   }
 
