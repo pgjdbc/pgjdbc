@@ -23,6 +23,7 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -162,6 +163,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (serverNames == null || serverNames.length == 0) {
       this.serverNames = new String[] {"localhost"};
     } else {
+      serverNames = Arrays.copyOf(serverNames, serverNames.length);
       for (int i = 0; i < serverNames.length; i++) {
         if (serverNames[i] == null || serverNames[i].equals("")) {
           serverNames[i] = "localhost";
@@ -284,7 +286,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (portNumbers == null || portNumbers.length == 0) {
       portNumbers = new int[] { 0 };
     }
-    this.portNumbers = portNumbers;
+    this.portNumbers = Arrays.copyOf(portNumbers, portNumbers.length);
   }
 
   /**
