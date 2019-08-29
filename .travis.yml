@@ -103,6 +103,26 @@ matrix:
       - PG_VERSION=10
       - JDK=12
       - TZ=America/New_York # flips between −05:00 and −04:00
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
     - jdk: oraclejdk11
       sudo: required
       addons:
@@ -189,26 +209,6 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "11"
-      env:
-        - PG_VERSION=11
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - PLPGSQL_EXTENSION=Y
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "11"
-      env:
-        - PG_VERSION=11
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - PLPGSQL_EXTENSION=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.6"
