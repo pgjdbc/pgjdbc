@@ -190,16 +190,20 @@ matrix:
         - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
       sudo: required
+      addons:
+        postgresql: "11"
       env:
-        - PG_VERSION=8.3
+        - PG_VERSION=11
         - XA=true
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
       sudo: required
+      addons:
+        postgresql: "11"
       env:
-        - PG_VERSION=8.2
+        - PG_VERSION=11
         - XA=true
         - COVERAGE=Y
         - NO_HSTORE=Y
