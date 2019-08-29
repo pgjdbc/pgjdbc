@@ -39,6 +39,7 @@ before_script:
   - if [[ $TRAVIS_BRANCH == release/* ]]; then echo "MAVEN_OPTS='-Xmx1g'" > ~/.mavenrc; else echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc; fi
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
+  - test "x$PG_VERSION" == 'x' || test "x$PLPGSQL_EXTENSION" == 'x' || psql test -c 'CREATE EXTENSION plpgsql;' -U postgres
 
 env:
   global:
@@ -197,7 +198,7 @@ matrix:
         - XA=true
         - COVERAGE=Y
         - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
+        - PLPGSQL_EXTENSION=Y
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -207,7 +208,7 @@ matrix:
         - XA=true
         - COVERAGE=Y
         - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
+        - PLPGSQL_EXTENSION=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.6"
