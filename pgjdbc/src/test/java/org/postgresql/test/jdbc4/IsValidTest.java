@@ -81,7 +81,7 @@ public class IsValidTest extends BaseTest4 {
 
     try {
 
-      assertTrue("First Connection should be valid", con.isValid(0));
+      assertTrue("First connection should be valid", con.isValid(0));
 
       String pid;
       Statement s = con.createStatement();
@@ -97,7 +97,7 @@ public class IsValidTest extends BaseTest4 {
 
       TestUtil.execute("select pg_terminate_backend(" + pid + ")", con2);
 
-      assertFalse("The Second connection should now be invalid", con.isValid(0));
+      assertFalse("The first connection should now be invalid", con.isValid(0));
 
     } finally {
       TestUtil.closeQuietly(con2);
