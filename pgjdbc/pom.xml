@@ -301,6 +301,27 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.karaf.tooling</groupId>
+        <artifactId>karaf-maven-plugin</artifactId>
+        <version>4.2.5</version>
+        <extensions>true</extensions>
+        <configuration>
+          <startLevel>80</startLevel>
+          <includeTransitiveDependency>false</includeTransitiveDependency>
+          <aggregateFeatures>false</aggregateFeatures>
+          <includeProjectArtifact>true</includeProjectArtifact>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-features-file</id>
+            <phase>package</phase>
+            <goals>
+              <goal>features-generate-descriptor</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
 
     <pluginManagement>
