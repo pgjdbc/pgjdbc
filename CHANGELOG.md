@@ -10,6 +10,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.2.7] (2019-09-03)
+### Changed
+
+
+### Added
+- Expose parameter status messages (GUC_REPORT) to the user [PR 1435](https://github.com/pgjdbc/pgjdbc/pull/1435)
+- Add automatic module name to manifest for jdk9+ [PR 1538](https://github.com/pgjdbc/pgjdbc/pull/1538)
+- Log ignoring rollback when no transaction in progress [PR 1549](https://github.com/pgjdbc/pgjdbc/pull/1549)
+- Map inet type to InetAddress [PR 1527](https://github.com/pgjdbc/pgjdbc/pull/1527) [issue 1134](https://github.com/pgjdbc/pgjdbc/issues/1134)
+
+### Fixed
+- fix [issue 1547](https://github.com/pgjdbc/pgjdbc/issues/1547) As long as peek returns some bytes do not reset the timeout, this allows us to continue checking until any async notifies are consumed [PR 1548](https://github.com/pgjdbc/pgjdbc/pull/1548)
+- fix: [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466) In logical decoding the if the backend was requesting a reply we… [PR 1467](https://github.com/pgjdbc/pgjdbc/pull/1467) 
+- fix: [issue 1534](https://github.com/pgjdbc/pgjdbc/issues/1534) Proleptic java.time support [PR 1539](https://github.com/pgjdbc/pgjdbc/pull/1539)
+
 ## [42.2.6] (2019-06-19)
 ### Known issues
 - Waffle has [dropped support](https://github.com/Waffle/waffle/releases/tag/waffle-1.9.0) for 1.6, 1.7 as such the new waffle 1.9.x is only available in jre8
@@ -220,4 +235,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...REL42.2.4
 [42.2.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.4...REL42.2.5
 [42.2.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...REL42.2.6
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.6...HEAD
+[42.2.7]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.6...REL42.2.7
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.7...HEAD
