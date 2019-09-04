@@ -1378,9 +1378,9 @@ public class PgConnection implements BaseConnection {
     if (isClosed()) {
       return false;
     }
-    int savedNetworkTimeOut = getNetworkTimeout();    
+    int savedNetworkTimeOut = getNetworkTimeout();
     try {
-      setNetworkTimeout(null, timeout*1000);    	
+      setNetworkTimeout(null, timeout * 1000);
       if (replicationConnection) {
         Statement statement = createStatement();
         statement.execute("IDENTIFY_SYSTEM");
@@ -1399,8 +1399,7 @@ public class PgConnection implements BaseConnection {
         return true;
       }
       LOGGER.log(Level.FINE, GT.tr("Validating connection."), e);
-    }
-    finally {
+    } finally {
       setNetworkTimeout(null, savedNetworkTimeOut);
     }
     return false;
