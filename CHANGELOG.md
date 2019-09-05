@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - fix [issue 1547](https://github.com/pgjdbc/pgjdbc/issues/1547) As long as peek returns some bytes do not reset the timeout, this allows us to continue checking until any async notifies are consumed [PR 1548](https://github.com/pgjdbc/pgjdbc/pull/1548)
 - fix: [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466) In logical decoding the if the backend was requesting a reply we… [PR 1467](https://github.com/pgjdbc/pgjdbc/pull/1467) 
 - fix: [issue 1534](https://github.com/pgjdbc/pgjdbc/issues/1534) Proleptic java.time support [PR 1539](https://github.com/pgjdbc/pgjdbc/pull/1539)
-
+- fix Ensure isValid() will not last more than timeout seconds [PR 1557](https://github.com/pgjdbc/pgjdbc/pull/1557)
 ## [42.2.6] (2019-06-19)
 ### Known issues
 - Waffle has [dropped support](https://github.com/Waffle/waffle/releases/tag/waffle-1.9.0) for 1.6, 1.7 as such the new waffle 1.9.x is only available in jre8
