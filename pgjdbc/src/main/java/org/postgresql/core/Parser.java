@@ -1040,6 +1040,21 @@ public class Parser {
     if (i == len && !syntaxError) {
       if (state == 1) {
         // Not an escaped syntax.
+
+        // Detect PostgreSQL native CALL.
+        // (OUT parameter registration, needed for stored procedures with INOUT arguments, will fail without this)
+        i = 0;
+        while (i < len && Character.isWhitespace(jdbcSql.charAt(i))) {
+          i++; // skip any preceding whitespace
+        }
+        if (i < len - 5) { // 5 == length of "call" + 1 whitespace
+          //Check for CALL followed by whitespace
+          char ch = jdbcSql.charAt(i);
+          if ((ch == 'c' || ch == 'C') && jdbcSql.substring(i, i + 4).equalsIgnoreCase("call")
+               && Character.isWhitespace(jdbcSql.charAt(i + 4))) {
+            isFunction = true;
+          }
+        }
         return new JdbcCallParseInfo(sql, isFunction);
       }
       if (state != 8) {
