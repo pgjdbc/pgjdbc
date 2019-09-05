@@ -1379,18 +1379,24 @@ public class PgConnection implements BaseConnection {
       return false;
     }
     try {
-      if (replicationConnection) {
-        Statement statement = createStatement();
-        statement.execute("IDENTIFY_SYSTEM");
-        statement.close();
-      } else {
-        if (checkConnectionQuery == null) {
-          checkConnectionQuery = prepareStatement("");
+      int savedNetworkTimeOut = getNetworkTimeout();
+      try {
+        setNetworkTimeout(null, timeout * 1000);
+        if (replicationConnection) {
+          Statement statement = createStatement();
+          statement.execute("IDENTIFY_SYSTEM");
+          statement.close();
+        } else {
+          if (checkConnectionQuery == null) {
+            checkConnectionQuery = prepareStatement("");
+          }
+          checkConnectionQuery.setQueryTimeout(timeout);
+          checkConnectionQuery.executeUpdate();
         }
-        checkConnectionQuery.setQueryTimeout(timeout);
-        checkConnectionQuery.executeUpdate();
+        return true;
+      } finally {
+        setNetworkTimeout(null, savedNetworkTimeOut);
       }
-      return true;
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
         // "current transaction aborted", assume the connection is up and running
