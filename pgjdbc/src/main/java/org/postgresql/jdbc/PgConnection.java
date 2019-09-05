@@ -1400,7 +1400,11 @@ public class PgConnection implements BaseConnection {
       }
       LOGGER.log(Level.FINE, GT.tr("Validating connection."), e);
     } finally {
-      setNetworkTimeout(null, savedNetworkTimeOut);
+      try {
+        setNetworkTimeout(null, savedNetworkTimeOut);
+      } catch (SQLException e) {
+        return false;
+      }
     }
     return false;
   }
