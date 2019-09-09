@@ -1278,10 +1278,11 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
     StringBuilder serverString = new StringBuilder();
-    for (String serverName : serverNames) {
-      if (serverString.length() > 0) {
+    for (int i = 0; i < serverNames.length; i++) {
+      if (i > 0) {
         serverString.append(",");
       }
+      String serverName = serverNames[i];
       serverString.append(serverName);
     }
     ref.add(new StringRefAddr("serverName", serverString.toString()));
@@ -1326,8 +1327,10 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         }
       }
       setPortNumbers(ports);
+    } else {
+      setPortNumbers(null);
     }
-    serverNames = getReferenceProperty(ref, "serverName").split(",");
+    setServerNames(getReferenceProperty(ref, "serverName").split(","));
 
     for (PGProperty property : PGProperty.values()) {
       setProperty(property, getReferenceProperty(ref, property.getName()));
