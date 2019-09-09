@@ -250,6 +250,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   @Deprecated
   public int getPortNumber() {
+    if (portNumbers == null || portNumbers.length == 0) {
+      return 0;
+    }
     return portNumbers[0];
   }
 
@@ -1141,7 +1144,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         url.append(",");
       }
       url.append(serverNames[i]);
-      if (portNumbers.length >= i && portNumbers[i] != 0) {
+      if (portNumbers != null && portNumbers.length >= i && portNumbers[i] != 0) {
         url.append(":").append(portNumbers[i]);
       }
     }
