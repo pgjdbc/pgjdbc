@@ -10,7 +10,7 @@
   <artifactId>postgresql</artifactId>
   <packaging>bundle</packaging>
   <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-  <version>42.2.8-SNAPSHOT</version>
+  <version>42.2.7-SNAPSHOT</version>
   <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 
@@ -40,7 +40,7 @@
     <dependency>
       <groupId>com.ongres.scram</groupId>
       <artifactId>client</artifactId>
-      <version>2.0</version>
+      <version>2.1</version>
     </dependency>
   </dependencies>
 
