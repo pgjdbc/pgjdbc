@@ -39,8 +39,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -548,15 +546,6 @@ public class PgConnection implements BaseConnection {
         // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
         throw new PSQLException(GT.tr("Custom type maps are not supported."),
             PSQLState.NOT_IMPLEMENTED);
-      }
-    }
-
-    if (type.equals("inet")) {
-      try {
-        return InetAddress.getByName(value);
-      } catch (UnknownHostException e) {
-        throw new PSQLException(GT.tr("IP address {0} of a host could not be determined", value),
-          PSQLState.CONNECTION_FAILURE, e);
       }
     }
 
