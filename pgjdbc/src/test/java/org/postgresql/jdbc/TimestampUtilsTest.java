@@ -1,12 +1,17 @@
+/*
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
+
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import java.sql.SQLException;
 import java.time.LocalTime;
 import java.util.TimeZone;
-
-import static org.junit.Assert.assertEquals;
 
 public class TimestampUtilsTest {
 
@@ -53,6 +58,9 @@ public class TimestampUtilsTest {
     assertEquals(LocalTime.parse("23:59:59.99999999"), timestampUtils.toLocalTime("23:59:59.99999999")); // 990 NanoSeconds
     assertEquals(LocalTime.parse("23:59:59.999999998"), timestampUtils.toLocalTime("23:59:59.999999998")); // 998 NanoSeconds
     assertEquals(LocalTime.parse("23:59:59.999999999"), timestampUtils.toLocalTime("24:00:00"));
+
+    assertEquals(LocalTime.parse("23:59:59.999999999"), timestampUtils.toLocalTime(timestampUtils.toString(LocalTime.parse("23:59:59.999999500"))));
+
   }
 
 }
