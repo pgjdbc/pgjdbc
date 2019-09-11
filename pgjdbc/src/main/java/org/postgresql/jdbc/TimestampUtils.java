@@ -54,7 +54,7 @@ public class TimestampUtils {
   private static final Duration ONE_MICROSECOND = Duration.ofNanos(1000);
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
   // since PostgreSQL has microsecond resolution only
-  private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofMillis(500));
+  private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofNanos(500));
   private static final OffsetDateTime MAX_OFFSET_DATETIME = OffsetDateTime.MAX.minus(Duration.ofMillis(500));
   private static final LocalDateTime MAX_LOCAL_DATETIME = LocalDateTime.MAX.minus(Duration.ofMillis(500));
   // low value for dates is   4713 BC
