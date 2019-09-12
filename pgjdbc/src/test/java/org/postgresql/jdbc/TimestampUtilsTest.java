@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import static org.junit.Assert.assertEquals;
 
+import org.postgresql.core.Provider;
+
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -17,7 +19,7 @@ public class TimestampUtilsTest {
 
   @Test
   public void testToStringOfLocalTime() {
-    TimestampUtils timestampUtils = new TimestampUtils(true, TimeZone::getDefault);
+    TimestampUtils timestampUtils = createTimestampUtils();
 
     assertEquals("00:00:00", timestampUtils.toString(LocalTime.parse("00:00:00")));
     assertEquals("00:00:00.1", timestampUtils.toString(LocalTime.parse("00:00:00.1")));
@@ -40,7 +42,7 @@ public class TimestampUtilsTest {
 
   @Test
   public void testToLocalTime() throws SQLException {
-    TimestampUtils timestampUtils = new TimestampUtils(true, TimeZone::getDefault);
+    TimestampUtils timestampUtils = createTimestampUtils();
 
     assertEquals(LocalTime.parse("00:00:00"), timestampUtils.toLocalTime("00:00:00"));
 
@@ -58,9 +60,15 @@ public class TimestampUtilsTest {
     assertEquals(LocalTime.parse("23:59:59.99999999"), timestampUtils.toLocalTime("23:59:59.99999999")); // 990 NanoSeconds
     assertEquals(LocalTime.parse("23:59:59.999999998"), timestampUtils.toLocalTime("23:59:59.999999998")); // 998 NanoSeconds
     assertEquals(LocalTime.parse("23:59:59.999999999"), timestampUtils.toLocalTime("24:00:00"));
+  }
 
-    assertEquals(LocalTime.parse("23:59:59.999999999"), timestampUtils.toLocalTime(timestampUtils.toString(LocalTime.parse("23:59:59.999999500"))));
-
+  private TimestampUtils createTimestampUtils() {
+    return  new TimestampUtils(true, new Provider<TimeZone>() {
+      @Override
+      public TimeZone get() {
+        return TimeZone.getDefault();
+      }
+    });
   }
 
 }
