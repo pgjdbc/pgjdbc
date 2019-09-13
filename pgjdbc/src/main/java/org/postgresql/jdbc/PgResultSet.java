@@ -36,6 +36,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -215,10 +216,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         // if the backend doesn't know the type then coerce to String
         if (type.equals("unknown")) {
           return getString(columnIndex);
-        }
-
-        if (type.equals("inet")) {
-          return getInetAddress(getPGType(columnIndex), getString(columnIndex));
         }
 
         if (type.equals("uuid")) {
@@ -3095,16 +3092,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
   }
 
-  protected Object getInetAddress(String type, String data) throws SQLException {
-    InetAddress inet;
-    try {
-      inet = (InetAddress) connection.getObject(type, data, null);
-    } catch (IllegalArgumentException iae) {
-      throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, iae);
-    }
-    return inet;
-  }
-
   private class PrimaryKey {
     int index; // where in the result set is this primaryKey
     String name; // what is the columnName of this primary Key
@@ -3355,11 +3342,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     } else if (type == UUID.class) {
       return type.cast(getObject(columnIndex));
     } else if (type == InetAddress.class) {
-      Object addressString = getObject(columnIndex);
-      if (addressString == null) {
+      String inetText = getString(columnIndex);
+      if (inetText == null) {
         return null;
       }
-      return type.cast(getObject(columnIndex));
+      int slash = inetText.indexOf("/");
+      try {
+        return type.cast(InetAddress.getByName(slash < 0 ? inetText : inetText.substring(0, slash)));
+      } catch (UnknownHostException ex) {
+        throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, ex);
+      }
       // JSR-310 support
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     } else if (type == LocalDate.class) {
