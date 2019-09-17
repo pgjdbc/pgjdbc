@@ -12,7 +12,9 @@ import org.postgresql.core.Provider;
 import org.junit.Test;
 
 import java.sql.SQLException;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
 import java.time.LocalTime;
+//#endif
 import java.util.TimeZone;
 
 public class TimestampUtilsTest {
