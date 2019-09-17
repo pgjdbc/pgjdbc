@@ -17,6 +17,7 @@ import java.util.TimeZone;
 
 public class TimestampUtilsTest {
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Test
   public void testToStringOfLocalTime() {
     TimestampUtils timestampUtils = createTimestampUtils();
@@ -70,5 +71,6 @@ public class TimestampUtilsTest {
       }
     });
   }
+  //#endif
 
 }
