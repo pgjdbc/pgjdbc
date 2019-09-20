@@ -61,7 +61,6 @@ BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
 BuildRequires:	java-comment-preprocessor
-BuildRequires:	properties-maven-plugin
 BuildRequires:	maven-enforcer-plugin
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	maven-plugin-build-helper
@@ -108,6 +107,8 @@ find -name "*.jar" -or -name "*.class" | xargs rm -f
 %pom_xpath_set pom:relativePath ../pgjdbc-parent-poms/pgjdbc-core-parent pgjdbc
 %pom_xpath_remove "pom:plugin[pom:artifactId = 'maven-shade-plugin']" pgjdbc
 %pom_remove_plugin :karaf-maven-plugin pgjdbc
+%pom_remove_plugin :properties-maven-plugin pgjdbc-parent-poms/pgjdbc-core-parent
+%pom_remove_plugin :properties-maven-plugin pgjdbc-parent-poms/pgjdbc-versions
 
 # compat symlink: requested by dtardon (libreoffice), reverts part of
 # 0af97ce32de877 commit.
