@@ -114,6 +114,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   public void flush() throws IOException {
+    checkClosed();
     try {
       op.writeToCopy(copyBuffer, 0, at);
       at = 0;
@@ -156,7 +157,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   public boolean isActive() {
-    return op.isActive();
+    return op != null && op.isActive();
   }
 
   public void flushCopy() throws SQLException {
