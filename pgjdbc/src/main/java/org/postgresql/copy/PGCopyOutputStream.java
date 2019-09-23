@@ -101,12 +101,14 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
       return;
     }
 
-    try {
-      endCopy();
-    } catch (SQLException se) {
-      IOException ioe = new IOException("Ending write to copy failed.");
-      ioe.initCause(se);
-      throw ioe;
+    if (op.isActive()) {
+      try {
+        endCopy();
+      } catch (SQLException se) {
+        IOException ioe = new IOException("Ending write to copy failed.");
+        ioe.initCause(se);
+        throw ioe;
+      }
     }
     op = null;
   }
