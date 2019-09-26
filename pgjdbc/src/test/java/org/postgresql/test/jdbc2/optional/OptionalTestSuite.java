@@ -20,7 +20,8 @@ import org.junit.runners.Suite;
         SimpleDataSourceWithSetURLTest.class,
         ConnectionPoolTest.class,
         PoolingDataSourceTest.class,
-        CaseOptimiserDataSourceTest.class})
+        CaseOptimiserDataSourceTest.class,
+        BaseDataSourceFailoverUrlsTest.class})
 public class OptionalTestSuite {
 
 }
