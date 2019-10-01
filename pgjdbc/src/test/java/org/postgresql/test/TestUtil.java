@@ -437,6 +437,26 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a unlogged table for use by a test.
+   * Unlogged tables works from PostgreSQL 9.1+
+   */
+  public static void createUnloggedTable(Connection con, String table, String columns)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the table
+      dropTable(con, table);
+
+      String unlogged = haveMinimumServerVersion(con, ServerVersion.v9_1) ? "UNLOGGED" : "";
+
+      // Now create the table
+      st.executeUpdate("CREATE " + unlogged + " TABLE " + table + " (" + columns + ")");
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
   /**
    * Helper creates an enum type.
    *
