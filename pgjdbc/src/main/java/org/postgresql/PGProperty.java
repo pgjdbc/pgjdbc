@@ -173,6 +173,12 @@ public enum PGProperty {
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
 
   /**
+   * Whether to include full server error detail in exception messages.
+   */
+  LOG_SERVER_ERROR_DETAIL("logServerErrorDetail", "true",
+      "Include full server error detail in exception messages. If disabled then only the error itself will be included."),
+
+  /**
    * Enable optimization that disables column name sanitiser.
    */
   DISABLE_COLUMN_SANITISER("disableColumnSanitiser", "false",

@@ -28,7 +28,8 @@ public class MakeGSS {
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
 
   public static void authenticate(PGStream pgStream, String host, String user, String password,
-      String jaasApplicationName, String kerberosServerName, boolean useSpnego, boolean jaasLogin)
+      String jaasApplicationName, String kerberosServerName, boolean useSpnego, boolean jaasLogin,
+      boolean logServerErrorDetail)
           throws IOException, SQLException {
     LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
 
@@ -58,7 +59,7 @@ public class MakeGSS {
         sub = lc.getSubject();
       }
       PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user,
-          kerberosServerName, useSpnego);
+          kerberosServerName, useSpnego, logServerErrorDetail);
 
       result = Subject.doAs(sub, action);
     } catch (Exception e) {
