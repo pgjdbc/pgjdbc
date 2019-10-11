@@ -80,7 +80,11 @@ public class ServerErrorMessage implements Serializable {
   }
 
   public String getDetail() {
-    return mesgParts.get(DETAIL);
+    if (org.postgresql.Driver.logDetail == true) {
+      return mesgParts.get(DETAIL);
+    } else {
+      return "";
+    }
   }
 
   public String getHint() {

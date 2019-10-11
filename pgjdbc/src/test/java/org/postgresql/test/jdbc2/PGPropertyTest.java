@@ -27,6 +27,7 @@ import org.junit.Test;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
 import java.util.ArrayList;
 import java.util.Map;
@@ -290,5 +291,21 @@ public class PGPropertyTest {
     assertFalse("user", PGProperty.USER.isPresent(parsed));
     assertFalse("password", PGProperty.PASSWORD.isPresent(parsed));
     assertEquals("APPLICATION_NAME", applicationName, PGProperty.APPLICATION_NAME.get(parsed));
+  }
+
+  @Test
+  public void testLogDetailFalse() throws Exception {
+    Properties props = new Properties();
+    PGProperty.USER.set(props,TestUtil.getUser());
+    PGProperty.PASSWORD.set(props, TestUtil.getPassword());
+    PGProperty.PG_DBNAME.set(props, TestUtil.getDatabase());
+    PGProperty.PG_HOST.set(props, TestUtil.getServer());
+    PGProperty.PG_PORT.set(props, TestUtil.getPort());
+    PGProperty.LOG_DETAIL.set(props,"false");
+
+    Connection con = TestUtil.openDB(props);
+
+    assertFalse(Driver.logDetail);
+
   }
 }

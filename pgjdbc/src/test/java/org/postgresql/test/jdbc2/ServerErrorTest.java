@@ -95,4 +95,43 @@ public class ServerErrorTest extends BaseTest4 {
     stmt.close();
   }
 
+  @Test
+  public void testLogDetail() throws Exception {
+    Statement stmt = con.createStatement();
+    stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
+    try {
+      stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
+      fail("Should have thrown a duplicate key exception.");
+    } catch (SQLException sqle) {
+      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
+      assertEquals("public", err.getSchema());
+      assertEquals("testerr", err.getTable());
+      assertEquals("testerr_pk", err.getConstraint());
+      assertEquals("Key (id)=(1) already exists.", err.getDetail());
+      assertNull(err.getDatatype());
+      assertNull(err.getColumn());
+    }
+    stmt.close();
+  }
+
+  @Test
+  public void testLogDetailFalse() throws Exception {
+    org.postgresql.Driver.logDetail = false;
+    Statement stmt = con.createStatement();
+    stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
+    try {
+      stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
+      fail("Should have thrown a duplicate key exception.");
+    } catch (SQLException sqle) {
+      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
+      assertEquals("public", err.getSchema());
+      assertEquals("testerr", err.getTable());
+      assertEquals("testerr_pk", err.getConstraint());
+      assertEquals("", err.getDetail());
+      assertNull(err.getDatatype());
+      assertNull(err.getColumn());
+    }
+    stmt.close();
+  }
+
 }

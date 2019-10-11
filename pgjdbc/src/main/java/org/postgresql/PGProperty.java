@@ -437,7 +437,10 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+
+  LOG_DETAIL("log_detail", "true", "If set then the DETAIL information provided by the server is"
+    +       "included in the logs, if false the DETAIL information will be omitted");
 
   private final String name;
   private final String defaultValue;

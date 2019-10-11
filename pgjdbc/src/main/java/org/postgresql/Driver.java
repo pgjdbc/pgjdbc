@@ -56,6 +56,7 @@ import java.util.logging.StreamHandler;
  */
 public class Driver implements java.sql.Driver {
 
+  public static boolean logDetail = true;
   private static Driver registeredDriver;
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
@@ -244,6 +245,10 @@ public class Driver implements java.sql.Driver {
     try {
       // Setup java.util.logging.Logger using connection properties.
       setupLoggerFromProperties(props);
+
+      if ( PGProperty.LOG_DETAIL.get(info).equalsIgnoreCase("false") ) {
+        logDetail = false;
+      }
 
       LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
 
