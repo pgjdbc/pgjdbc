@@ -970,7 +970,7 @@ public class TestUtil {
    * attempt to terminate the specified backend process.
    */
   public static boolean terminateBackend(int backendPid) throws SQLException {
-    Connection conn = TestUtil.openDB();
+    Connection conn = TestUtil.openPrivilegedDB();
     try {
       return terminateBackend(conn, backendPid);
     } finally {
