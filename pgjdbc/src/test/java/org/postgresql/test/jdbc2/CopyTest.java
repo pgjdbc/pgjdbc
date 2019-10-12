@@ -31,7 +31,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -353,17 +352,14 @@ public class CopyTest {
     // on the Connection object fails to deadlock.
     con.setAutoCommit(false);
 
-    Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("select pg_backend_pid()");
-    rs.next();
-    int pid = rs.getInt(1);
-    rs.close();
-    stmt.close();
+    // We get the process id before the COPY as we cannot run other commands
+    // on the connection during the COPY operation.
+    int pid = TestUtil.getBackendPid(con);
 
     CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
     CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with " + copyParams);
     try {
-      killConnection(pid);
+      TestUtil.terminateBackend(pid);
       byte[] bunchOfNulls = ",,\n".getBytes();
       while (true) {
         copyIn.writeToCopy(bunchOfNulls, 0, bunchOfNulls.length);
@@ -417,23 +413,6 @@ public class CopyTest {
 
     public SQLException exception() {
       return rollbackException;
-    }
-  }
-
-  private void killConnection(int pid) throws SQLException {
-    Connection killerCon;
-    try {
-      killerCon = TestUtil.openPrivilegedDB();
-    } catch (Exception e) {
-      fail("Unable to open secondary connection to terminate copy");
-      return; // persuade Java killerCon will not be used uninitialized
-    }
-    try {
-      PreparedStatement stmt = killerCon.prepareStatement("select pg_terminate_backend(?)");
-      stmt.setInt(1, pid);
-      stmt.execute();
-    } finally {
-      killerCon.close();
     }
   }
 
