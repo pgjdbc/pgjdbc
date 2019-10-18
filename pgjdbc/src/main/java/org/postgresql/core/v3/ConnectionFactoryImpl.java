@@ -90,9 +90,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
-    // Construct and send an ssl startup packet if requested.
-    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
-
     // Set the socket timeout if the "socketTimeout" property has been set.
     int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
     if (socketTimeout > 0) {
@@ -133,6 +130,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
       LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
     }
+
+    // Construct and send an ssl startup packet if requested.
+    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
 
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
