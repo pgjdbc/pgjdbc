@@ -93,6 +93,8 @@ Connection conn = DriverManager.getConnection(url);
 	of it specifies a SSL connection. However, for compatibility with future
 	versions, the value "true" is preferred. For more information see [Chapter
 	4, *Using SSL*](ssl.html).
+
+    Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
  
 * **sslfactory** = String
 
@@ -120,19 +122,23 @@ Connection conn = DriverManager.getConnection(url);
 
 	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
 
+    It can be a PEM encoded X509v3 certificate
+
 	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
 
 * **sslkey** = String
 
 	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
 	
-	*Note:* The key file **must** be in [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
 	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
 
 * **sslrootcert** = String
 
 	File name of the SSL root certificate. Defaults to defaultdir/root.crt
+
+    It can be a PEM encoded X509v3 certificate
 
 * **sslhostnameverifier** = String
 
