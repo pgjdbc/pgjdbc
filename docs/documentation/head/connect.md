@@ -208,7 +208,7 @@ Connection conn = DriverManager.getConnection(url);
 
     The default is `never` 
 
-* **cleanupSavePoints** = boolean
+* **cleanupSavepoints** = boolean
 
     Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
     done to avoid running out of shared buffers on the server in the case where 1000's of queries are
