@@ -13,6 +13,7 @@ import org.junit.runners.Suite;
     CommonNameVerifierTest.class,
     LibPQFactoryHostNameTest.class,
     SslTest.class,
+    LazyKeyManagerTest.class,
 })
 public class SslTestSuite {
 }
