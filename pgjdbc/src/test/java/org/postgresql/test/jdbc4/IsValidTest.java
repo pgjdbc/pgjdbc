@@ -5,102 +5,62 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.Properties;
+import java.sql.SQLException;
 
 public class IsValidTest extends BaseTest4 {
-
-  private TransactionState getTransactionState(Connection conn) {
-    return ((BaseConnection) conn).getTransactionState();
+  @Test
+  public void testIsValidShouldNotModifyTransactionStateOutsideTransaction() throws SQLException {
+    TransactionState initialTransactionState = TestUtil.getTransactionState(con);
+    assertTrue("Connection should be valid", con.isValid(0));
+    TestUtil.assertTransactionState("Transaction state should not be modified by non-transactional Connection.isValid(...)", con, initialTransactionState);
   }
 
   @Test
-  public void testIsValid() throws Exception {
-    try {
-      assertTrue(con.isValid(0));
-    } finally {
-      TestUtil.closeDB(con);
-    }
-    assertFalse(con.isValid(0));
-  }
-
-  /**
-   * Test that the transaction state is left unchanged.
-   */
-  @Test
-  public void testTransactionState() throws Exception {
-    TransactionState transactionState = getTransactionState(con);
-    con.isValid(0);
-    assertEquals("Transaction state has been changed", transactionState,
-        getTransactionState(con));
-
+  public void testIsValidShouldNotModifyTransactionStateInEmptyTransaction() throws SQLException {
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
     con.setAutoCommit(false);
-    try {
-      transactionState = getTransactionState(con);
-      con.isValid(0);
-      assertEquals("Transaction state has been changed", transactionState,
-          getTransactionState(con));
-
-      Statement stmt = con.createStatement();
-      stmt.execute("SELECT 1");
-      transactionState = getTransactionState(con);
-      con.isValid(0);
-      assertEquals("Transaction state has been changed", transactionState,
-          getTransactionState(con));
-    } finally {
-      try {
-        con.setAutoCommit(true);
-      } catch (final Exception e) {
-      }
-    }
+    TransactionState transactionState = TestUtil.getTransactionState(con);
+    assertTrue("Connection should be valid", con.isValid(0));
+    TestUtil.assertTransactionState("Transaction state should not be modified by Connection.isValid(...) within an empty transaction", con, transactionState);
   }
 
   @Test
-  public void testIsValidRemoteClose() throws Exception {
+  public void testIsValidShouldNotModifyTransactionStateInNonEmptyTransaction() throws SQLException {
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+    con.setAutoCommit(false);
+    TestUtil.executeQuery(con, "SELECT 1");
+    TransactionState transactionState = TestUtil.getTransactionState(con);
+    assertTrue("Connection should be valid", con.isValid(0));
+    TestUtil.assertTransactionState("Transaction state should not be modified by Connection.isValid(...) within a non-empty transaction", con, transactionState);
+  }
 
-    assumeMinimumServerVersion("Unable to use pg_terminate_backend before version 8.4", ServerVersion.v8_4);
+  @Test
+  public void testIsValidRemoteClose() throws SQLException, InterruptedException {
+    Assume.assumeTrue("Unable to use pg_terminate_backend(...) before version 8.4", TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
 
-    Properties props = new Properties();
-    updateProperties(props);
-    Connection con2 = TestUtil.openPrivilegedDB();
+    boolean wasTerminated = TestUtil.terminateBackend(con);
+    assertTrue("The backend should be terminated", wasTerminated);
 
-    try {
-
-      assertTrue("First connection should be valid", con.isValid(0));
-
-      String pid;
-      Statement s = con.createStatement();
-
-      try {
-        s.execute("select pg_backend_pid()");
-        ResultSet rs = s.getResultSet();
-        rs.next();
-        pid = rs.getString(1);
-      } finally {
-        TestUtil.closeQuietly(s);
+    // Keeps checking for up to 5-seconds that the connection is marked invalid
+    for (int i = 0;i < 500;i++) {
+      if (!con.isValid(0)) {
+        break;
       }
-
-      TestUtil.execute("select pg_terminate_backend(" + pid + ")", con2);
-
-      assertFalse("The first connection should now be invalid", con.isValid(0));
-
-    } finally {
-      TestUtil.closeQuietly(con2);
+      // Wait a bit to give the connection a chance to gracefully handle the termination
+      Thread.sleep(10);
     }
+    assertFalse("The terminated connection should not be valid", con.isValid(0));
   }
 }
