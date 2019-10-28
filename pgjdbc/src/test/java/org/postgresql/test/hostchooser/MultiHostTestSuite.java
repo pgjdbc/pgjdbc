@@ -12,6 +12,8 @@ import org.junit.runners.Suite;
  * Executes multi host tests (aka master/slave connectivity selection).
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses(MultiHostsConnectionTest.class)
+@Suite.SuiteClasses({
+    MultiHostsConnectionTest.class,
+})
 public class MultiHostTestSuite {
 }
