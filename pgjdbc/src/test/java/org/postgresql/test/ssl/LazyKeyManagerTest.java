@@ -6,6 +6,7 @@
 package org.postgresql.test.ssl;
 
 import org.postgresql.ssl.LazyKeyManager;
+import org.postgresql.ssl.PKCS12KeyManager;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -13,6 +14,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -20,6 +22,16 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
 public class LazyKeyManagerTest {
+
+  @Test
+  public void testLoadP12Key() throws Exception {
+    String certdir = "../certdir/";
+    PKCS12KeyManager pkcs12KeyManager = new PKCS12KeyManager(certdir + "goodclient.p12", new TestCallbackHandler("sslpwd"));
+    PrivateKey pk = pkcs12KeyManager.getPrivateKey("user");
+    Assert.assertNotNull(pk);
+    X509Certificate[] chain = pkcs12KeyManager.getCertificateChain("user");
+    Assert.assertNotNull(chain);
+  }
 
   @Test
   public void testLoadKey() throws Exception {
