@@ -88,7 +88,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **ssl** = boolean
 
-	Connect using SSL. The driver must have been compiled with SSL support.
+	Connect using SSL. The server must have been compiled with SSL support.
 	This property does not need a value associated with it. The mere presence
 	of it specifies a SSL connection. However, for compatibility with future
 	versions, the value "true" is preferred. For more information see [Chapter
@@ -97,10 +97,10 @@ Connection conn = DriverManager.getConnection(url);
     Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
  
 * **sslfactory** = String
-
+    
 	The provided value is a class name to use as the `SSLSocketFactory` when
 	establishing a SSL connection. For more information see the section
-	called [“Custom SSLSocketFactory”](ssl-factory.html). 
+	called [“Custom SSLSocketFactory”](ssl-factory.html).  defaults to LibPQFactory
 
 * **sslfactoryarg** (deprecated) = String
 
