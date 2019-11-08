@@ -8,6 +8,7 @@ package org.postgresql.core;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
 
 /**
  * A faster version of BufferedInputStream. Does no synchronisation and allows direct access to the
@@ -138,7 +139,7 @@ public class VisibleBufferedInputStream extends InputStream {
       canFit = buffer.length - endIndex;
     }
     int read = wrapped.read(buffer, endIndex, canFit);
-    if (read < 0) {
+    if (read <= 0) {
       return false;
     }
     endIndex += read;
@@ -211,7 +212,13 @@ public class VisibleBufferedInputStream extends InputStream {
 
     // then directly from wrapped stream
     do {
-      int r = wrapped.read(to, off, len);
+      int r;
+      try {
+        r = wrapped.read(to, off, len);
+      } catch ( SocketTimeoutException ex ) {
+        return read;
+      }
+
       if (r <= 0) {
         return (read == 0) ? r : read;
       }
