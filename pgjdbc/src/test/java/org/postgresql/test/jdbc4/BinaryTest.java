@@ -11,6 +11,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.PGStatement;
 import org.postgresql.core.Field;
+import org.postgresql.core.ParserTest;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
 
@@ -34,6 +35,8 @@ public class BinaryTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
+    //clear the cache so that counts get reset between test runs
+    ParserTest.clearQueryCache();
     Assume.assumeTrue("Server-prepared statements are not supported in 'simple protocol only'",
         preferQueryMode != PreferQueryMode.SIMPLE);
     statement = con.prepareStatement("select 1");

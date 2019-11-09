@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
+import org.postgresql.core.ParserTest;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -1355,6 +1356,7 @@ Server SQLState: 25001)
 
   @Test
   public void testNoServerPrepareOneRow() throws SQLException {
+    ParserTest.clearQueryCache();
     PreparedStatement ps = null;
     try {
       ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");

@@ -7,40 +7,40 @@ package org.postgresql.core;
 
 import org.postgresql.util.CanEstimateSize;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Stores information on the parsed JDBC query. It is used to cut parsing overhead when executing
  * the same query through {@link java.sql.Connection#prepareStatement(String)}.
  */
 public class CachedQuery implements CanEstimateSize {
   /**
-   * Cache key. {@link String} or {@code org.postgresql.util.CanEstimateSize}.
+   * Cache key. {@link String} or {@code org.postgresql.jdbc.CallableQueryKey}. It is assumed that
+   * {@code String.valueOf(key)*2} would give reasonable estimate of the number of retained bytes by
+   * given key (see {@link #getSize}).
    */
   public final Object key;
   public final Query query;
   public final boolean isFunction;
 
-  private int executeCount;
+  private final AtomicLong executeCount;
 
-  public CachedQuery(Object key, Query query, boolean isFunction) {
+  public CachedQuery(Object key, Query query, boolean isFunction, AtomicLong counter) {
     assert key instanceof String || key instanceof CanEstimateSize
         : "CachedQuery.key should either be String or implement CanEstimateSize."
         + " Actual class is " + key.getClass();
     this.key = key;
     this.query = query;
     this.isFunction = isFunction;
+    this.executeCount = counter;
   }
 
   public void increaseExecuteCount() {
-    if (executeCount < Integer.MAX_VALUE) {
-      executeCount++;
-    }
+    executeCount.incrementAndGet();
   }
 
   public void increaseExecuteCount(int inc) {
-    int newValue = executeCount + inc;
-    if (newValue > 0) { // if overflows, just ignore the update
-      executeCount = newValue;
-    }
+    executeCount.addAndGet(inc);
   }
 
   /**
@@ -49,7 +49,7 @@ public class CachedQuery implements CanEstimateSize {
    * @return number of times this statement has been used
    */
   public int getExecuteCount() {
-    return executeCount;
+    return (int) Math.min(executeCount.get(), Integer.MAX_VALUE);
   }
 
   @Override

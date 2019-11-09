@@ -10,12 +10,22 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Basic query parser infrastructure.
@@ -23,13 +33,217 @@ import java.util.List;
  *
  * @author Michael Paesold (mpaesold@gmx.at)
  * @author Christopher Deckers (chrriis@gmail.com)
+ * @author Brett Okken (bokken@cerner.com)
  */
 public class Parser {
+
+  /**
+   * Key for parsed queries.
+   */
+  private static final class QueryKey {
+
+    private static final String[] EMPTY_STRINGS = new String[] {};
+
+    private final String query;
+    private final boolean standardConformingStrings;
+    private final boolean withParameters;
+    private final boolean splitStatements;
+    private final boolean isBatchedReWriteConfigured;
+    private final String[] returningColumnNames;
+    private final int hashCode;
+
+    /**
+     * @param query                     jdbc query to parse
+     * @param standardConformingStrings whether to allow backslashes to be used as escape characters
+     *                                  in single quote literals
+     * @param withParameters            whether to replace ?, ? with $1, $2, etc
+     * @param splitStatements           whether to split statements by semicolon
+     * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+     * @param returningColumnNames      for simple insert, update, delete add returning with given column names
+     */
+    QueryKey(String query, boolean standardConformingStrings, boolean withParameters,
+        boolean splitStatements, boolean isBatchedReWriteConfigured,
+        String[] returningColumnNames) {
+
+      assert query != null;
+      this.query = query;
+      this.standardConformingStrings = standardConformingStrings;
+      this.withParameters = withParameters;
+      this.splitStatements = splitStatements;
+      this.isBatchedReWriteConfigured = isBatchedReWriteConfigured;
+      this.returningColumnNames = returningColumnNames == null || returningColumnNames.length == 0 ? EMPTY_STRINGS : returningColumnNames;
+
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + (isBatchedReWriteConfigured ? 263 : 1237);
+      result = prime * result + query.hashCode();
+      result = prime * result + Arrays.hashCode(returningColumnNames);
+      result = prime * result + (splitStatements ? 263 : 1237);
+      result = prime * result + (standardConformingStrings ? 263 : 1237);
+      result = prime * result + (withParameters ? 263 : 1237);
+      this.hashCode = result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+      return hashCode;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object obj) {
+
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof QueryKey)) {
+        return false;
+      }
+      final QueryKey other = (QueryKey) obj;
+
+      return this.query.equals(other.query)
+          && Arrays.equals(this.returningColumnNames, other.returningColumnNames)
+          && this.splitStatements == other.splitStatements
+          && this.standardConformingStrings == other.standardConformingStrings
+          && this.withParameters == other.withParameters
+          && this.isBatchedReWriteConfigured == other.isBatchedReWriteConfigured;
+    }
+  }
+
+  /**
+   * Wraps a {@code List} of {@code NativeQuery} instances and an {@code AtomicLong} to use
+   * as a shared execution counter.
+   */
+  public static final class QueriesAndCounter {
+
+    private final AtomicLong counter = new AtomicLong();
+    private final List<NativeQuery> nativeQueries;
+
+    /**
+     * @param nativeQueries List of parsed native queries.
+     */
+    QueriesAndCounter(List<NativeQuery> nativeQueries) {
+      super();
+      this.nativeQueries = nativeQueries;
+    }
+
+    /**
+     * @return the counter
+     */
+    public AtomicLong getCounter() {
+      return this.counter;
+    }
+
+    /**
+     * @return the nativeQueries
+     */
+    public List<NativeQuery> getNativeQueries() {
+      return this.nativeQueries;
+    }
+  }
+
+  /**
+   * <p>
+   * Extending {@link WeakReference} to also keep key to use to remove from the cache when this object is
+   * found in the reference queue.
+   * </p>
+   *
+   * <p>
+   * Using a {@link WeakReference} allows the garbage collector to reclaim at any point after the last strong
+   * reference to the {@link QueriesAndCounter} instance is released. In practice, this means that as long as
+   * at least 1 caller maintains a reference to a returned {@link NativeQuery} the entry will remain in the
+   * {@link Parser#PARSED_CACHE}.
+   * </p>
+   */
+  private static final class ReferenceWithKey extends WeakReference<Parser.QueriesAndCounter> {
+    final QueryKey queryKey;
+
+    ReferenceWithKey(QueryKey queryKey, QueriesAndCounter referent,
+        ReferenceQueue<? super QueriesAndCounter> q) {
+      super(referent, q);
+      this.queryKey = queryKey;
+    }
+  }
+
+  /**
+   * Caches parsed queries by the attributes used for parsing. Uses a {@code WeakReference} around the
+   * {@code List<NativeQuery>} to be sensitive memory utilization within the jvm. By setting each
+   * {@link NativeQuery#reference} to the {@code List} in the cache, as long as a {@code Statement}
+   * maintains a reference to at least one {@code NativeQuery} instance, the entry will remain in the
+   * cache.
+   */
+  static final ConcurrentHashMap<QueryKey, ReferenceWithKey> PARSED_CACHE
+       = new ConcurrentHashMap<QueryKey, ReferenceWithKey>();
+
+  /**
+   * {@link ReferenceQueue} for expired {@link ReferenceWithKey} instances to facilitate removal from {@link #PARSED_CACHE}.
+   */
+  static final ReferenceQueue<QueriesAndCounter> REFERENCE_QUEUE = new ReferenceQueue<QueriesAndCounter>();
+
+  private static final ThreadFactory DAEMON_THREAD_FACTORY = new ThreadFactory() {
+    private final AtomicInteger count = new AtomicInteger();
+    private final String prefix = Parser.class.getName() + "-thread-";
+    @Override
+    public Thread newThread(Runnable r) {
+      final Thread t = new Thread(r, prefix + count.incrementAndGet());
+      t.setDaemon(true);
+      if (t.getPriority() != Thread.NORM_PRIORITY) {
+          t.setPriority(Thread.NORM_PRIORITY);
+      }
+      return t;
+    }
+  };
+
+  static final AtomicBoolean CLEAR_THREAD_SCHEDULED = new AtomicBoolean(false);
+
+  private static final Runnable CLEAR_EMPTY_REFS_FOR_AT_LEAST_60 = new Runnable() {
+    @Override
+    public void run() {
+      try {
+        Reference<? extends QueriesAndCounter> goneRef;
+        do {
+          while ((goneRef = REFERENCE_QUEUE.remove(60000)) != null) {
+            assert goneRef instanceof ReferenceWithKey;
+            PARSED_CACHE.remove(((ReferenceWithKey)goneRef).queryKey, goneRef);
+          }
+        } while (!PARSED_CACHE.isEmpty());
+      } catch (InterruptedException e) {
+        // this is our queue to hit the exits
+      } finally {
+        CLEAR_THREAD_SCHEDULED.set(false);
+      }
+    }
+  };
+
   private static final int[] NO_BINDS = new int[0];
+
+  /**
+   * Utility method used by tests to clear the cache.
+   */
+  static void clearCache() {
+    for (Iterator<ReferenceWithKey> refIter = PARSED_CACHE.values().iterator(); refIter.hasNext(); ) {
+      final ReferenceWithKey ref = refIter.next();
+      //remove from the map
+      refIter.remove();
+      //encourage enqueing to ref queue
+      ref.enqueue();
+    }
+    clearEmtpyRefs();
+  }
 
   /**
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
    * by semicolon.
+   *
+   * <p>
+   * The results may be cached such that subsequent calls with equivalent args may result in the identical
+   * result as long as strong references to the returned {@link NativeQuery} instances are maintained.
+   * </p>
    *
    * @param query                     jdbc query to parse
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
@@ -38,10 +252,120 @@ public class Parser {
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
-   * @return list of native queries
+   * @return list of native queries. The {@code List} will never be {@code null}, but might be immutable.
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
+      boolean withParameters, boolean splitStatements,
+      boolean isBatchedReWriteConfigured,
+      String... returningColumnNames) throws SQLException {
+    return parseJdbcSqlAndCounter(query,
+                                  standardConformingStrings,
+                                  withParameters,
+                                  splitStatements,
+                                  isBatchedReWriteConfigured,
+                                  returningColumnNames).getNativeQueries();
+  }
+
+  /**
+   * Parses JDBC query into PostgreSQL's native format and a shared counter for executions. Several queries
+   * might be given if separated by semicolon.
+   *
+   * <p>
+   * The results may be cached such that subsequent calls with equivalent args may result in the identical
+   * result as long as strong references to the returned {@link NativeQuery} instances are maintained.
+   * </p>
+   *
+   * @param query                     jdbc query to parse
+   * @param standardConformingStrings whether to allow backslashes to be used as escape characters
+   *                                  in single quote literals
+   * @param withParameters            whether to replace ?, ? with $1, $2, etc
+   * @param splitStatements           whether to split statements by semicolon
+   * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+   * @param returningColumnNames      for simple insert, update, delete add returning with given column names
+   * @return                          list of native queries and a shared counter for executions. The {@code List}
+   *                                  will never be {@code null}, but might be immutable.
+   * @throws SQLException if unable to add returning clause (invalid column names)
+   */
+  public static QueriesAndCounter parseJdbcSqlAndCounter(String query, boolean standardConformingStrings,
+      boolean withParameters, boolean splitStatements,
+      boolean isBatchedReWriteConfigured,
+      String... returningColumnNames) throws SQLException {
+
+    final QueryKey queryKey = new QueryKey(query, standardConformingStrings, withParameters,
+        splitStatements, isBatchedReWriteConfigured, returningColumnNames);
+    ReferenceWithKey ref = PARSED_CACHE.get(queryKey);
+    if (ref != null) {
+      final QueriesAndCounter queryAndCounter = ref.get();
+      //could be null if GC has reclaimed in background
+      if (queryAndCounter != null) {
+        return queryAndCounter;
+      }
+      PARSED_CACHE.remove(queryKey, ref);
+    }
+
+    // make sure background cleaning is scheduled
+    clearEmtpyRefs();
+
+    final List<NativeQuery> parsedQueries = _parseJdbcSql(query, standardConformingStrings,
+        withParameters, splitStatements, isBatchedReWriteConfigured, returningColumnNames);
+
+    //make an immutable copy of the native queries
+    final List<NativeQuery> nativeQueries;
+    if (parsedQueries.size() == 1) {
+      //optimize for a single query
+      nativeQueries = Collections.singletonList(parsedQueries.get(0));
+    } else {
+      //since we are caching these, might as well minimize the size of backing array
+      if (parsedQueries instanceof ArrayList) {
+        ((ArrayList<NativeQuery>)parsedQueries).trimToSize();
+      }
+      nativeQueries = Collections.unmodifiableList(parsedQueries);
+    }
+
+    final QueriesAndCounter queryAndCounter = new QueriesAndCounter(nativeQueries);
+
+    for (NativeQuery nativeQuery : nativeQueries) {
+      nativeQuery.reference = queryAndCounter;
+    }
+
+    ref = new ReferenceWithKey(queryKey, queryAndCounter, REFERENCE_QUEUE);
+    final ReferenceWithKey concurrent = PARSED_CACHE.putIfAbsent(queryKey, ref);
+    if (concurrent == null) {
+      return queryAndCounter;
+    }
+    //the map was populated concurrently
+    //get a strong reference to the concurrently created instance
+    final QueriesAndCounter concurrentQueryAndCounter = concurrent.get();
+    //enqueue the created ref and clear de-referenced items
+    if (ref.enqueue()) {
+      ref = null;
+    }
+    //if the strong reference was good, then return it
+    if (concurrentQueryAndCounter != null) {
+      return concurrentQueryAndCounter;
+    }
+    //if strong reference was not good, start over (this is quite unlikely and indicates significant memory pressure)
+    PARSED_CACHE.remove(queryKey, concurrent);
+    return parseJdbcSqlAndCounter(query,
+                                  standardConformingStrings,
+                                  withParameters,
+                                  splitStatements,
+                                  isBatchedReWriteConfigured,
+                                  returningColumnNames);
+  }
+
+  /**
+   * {@link ReferenceQueue#poll() Polls} {@link #REFERENCE_QUEUE} and removes any entries found from {@link #PARSED_CACHE}.
+   */
+  private static void clearEmtpyRefs() {
+    // scheduled daemon thread to poll and clear references
+    if (CLEAR_THREAD_SCHEDULED.compareAndSet(false, true)) {
+      DAEMON_THREAD_FACTORY.newThread(CLEAR_EMPTY_REFS_FOR_AT_LEAST_60).start();
+    }
+  }
+
+  private static List<NativeQuery> _parseJdbcSql(String query, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
       boolean isBatchedReWriteConfigured,
       String... returningColumnNames) throws SQLException {

@@ -216,4 +216,40 @@ public class ParserTest {
     Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
   }
+
+  @Test
+  public void testSameListReturned() throws SQLException {
+    List<NativeQuery> qry = Parser.parseJdbcSql(
+            "insert test(id, name) select 1, 'value' from test2 RETURNING id", true, true, true, true);
+
+    List<NativeQuery> qry2 = Parser.parseJdbcSql(
+        "insert test(id, name) select 1, 'value' from test2 RETURNING id", true, true, true, true);
+
+    Assert.assertSame(qry, qry2);
+
+    List<NativeQuery> qry3 = Parser.parseJdbcSql(
+        "insert test(id, name) select 1, 'value' from test2 RETURNING id", true, true, true, false);
+
+    Assert.assertNotSame(qry2, qry3);
+
+    List<NativeQuery> qry4 = Parser.parseJdbcSql(
+        "insert test(id, name) select 1, 'value' from test2 RETURNING id", true, true, false, true);
+
+    Assert.assertNotSame(qry2, qry4);
+    Assert.assertNotSame(qry3, qry4);
+
+    List<NativeQuery> qry5 = Parser.parseJdbcSql(
+        "insert test(id, name) select 1, 'value' from test2 RETURNING id", true, false, true, true);
+
+    Assert.assertNotSame(qry2, qry5);
+    Assert.assertNotSame(qry3, qry5);
+    Assert.assertNotSame(qry4, qry5);
+  }
+
+  /**
+   * Utility method to allow clearing of cached queries and execution counts.
+   */
+  public static void clearQueryCache() {
+    Parser.clearCache();
+  }
 }

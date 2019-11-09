@@ -9,7 +9,6 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.LruCache;
 
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Creates an instance of {@link CachedQuery} for a given connection.
@@ -53,18 +52,18 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     boolean isParameterized = key instanceof String || queryKey.isParameterized;
     boolean splitStatements = isParameterized || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
 
-    String[] returningColumns;
+    final String[] returningColumns;
     if (key instanceof QueryWithReturningColumnsKey) {
       returningColumns = ((QueryWithReturningColumnsKey) key).columnNames;
     } else {
       returningColumns = EMPTY_RETURNING;
     }
 
-    List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
+    final Parser.QueriesAndCounter queriesAndCounter = Parser.parseJdbcSqlAndCounter(parsedSql,
         queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
         queryExecutor.isReWriteBatchedInsertsEnabled(), returningColumns);
 
-    Query query = queryExecutor.wrap(queries);
-    return new CachedQuery(key, query, isFunction);
+    final Query query = queryExecutor.wrap(queriesAndCounter.getNativeQueries());
+    return new CachedQuery(key, query, isFunction, queriesAndCounter.getCounter());
   }
 }
