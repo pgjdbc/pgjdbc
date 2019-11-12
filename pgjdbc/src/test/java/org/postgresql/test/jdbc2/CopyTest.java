@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -132,6 +133,47 @@ public class CopyTest {
     os.close();
     int rowCount = getCount();
     assertEquals(dataRows, rowCount);
+  }
+
+  @Test
+  public void testCopyInAsOutputStreamClosesAfterEndCopy() throws SQLException, IOException {
+    String sql = "COPY copytest FROM STDIN";
+    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    try {
+      for (String anOrigData : origData) {
+        byte[] buf = anOrigData.getBytes();
+        os.write(buf);
+      }
+      os.endCopy();
+    } finally {
+      os.close();
+    }
+    assertFalse(os.isActive());
+    int rowCount = getCount();
+    assertEquals(dataRows, rowCount);
+  }
+
+  @Test
+  public void testCopyInAsOutputStreamFailsOnFlushAfterEndCopy() throws SQLException, IOException {
+    String sql = "COPY copytest FROM STDIN";
+    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    try {
+      for (String anOrigData : origData) {
+        byte[] buf = anOrigData.getBytes();
+        os.write(buf);
+      }
+      os.endCopy();
+    } finally {
+      os.close();
+    }
+    try {
+      os.flush();
+      fail("should have failed flushing an inactive copy stream.");
+    } catch (IOException e) {
+      if (!e.toString().contains("This copy stream is closed.")) {
+        fail("has failed not due to checkClosed(): " + e);
+      }
+    }
   }
 
   @Test
