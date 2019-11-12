@@ -1497,7 +1497,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,";
+           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
@@ -1580,12 +1580,37 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
       String identity = rs.getString("attidentity");
 
-      int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
-      int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-      if (columnSize == 0) {
-        columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
-      }
+      int baseTypeOid = (int) rs.getLong("typbasetype");
 
+      int decimalDigits;
+      int columnSize;
+
+      /* this is really a DOMAIN type not sure where DISTINCT came from */
+      if ( sqlType == Types.DISTINCT ) {
+        /*
+        From the docs if typtypmod is -1
+         */
+        int domainLength = rs.getInt("typtypmod");
+        decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typeMod);
+        /*
+        From the postgres docs:
+        Domains use typtypmod to record the typmod to be applied to their
+        base type (-1 if base type does not use a typmod). -1 if this type is not a domain.
+        if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
+        a domain, but for actual types this will return the correct value.
+         */
+        if ( domainLength == -1 ) {
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typeMod);
+        } else {
+          columnSize = domainLength;
+        }
+      } else {
+        decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
+        columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
+        if (columnSize == 0) {
+          columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
+        }
+      }
       tuple[6] = connection.encodeString(Integer.toString(columnSize));
       tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
 
@@ -1606,8 +1631,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
       // Is nullable
       tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
-
-      int baseTypeOid = (int) rs.getLong("typbasetype");
 
       tuple[18] = null; // SCOPE_CATLOG
       tuple[19] = null; // SCOPE_SCHEMA
