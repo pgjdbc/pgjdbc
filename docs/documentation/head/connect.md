@@ -134,6 +134,12 @@ Connection conn = DriverManager.getConnection(url);
 	
 	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
 
+    *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
+    by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
+    We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at
+    the time of writing. If you have stricter security needs, please see https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1
+    for a discussion of the problem and information on choosing a better cipher suite.
+
 * **sslrootcert** = String
 
 	File name of the SSL root certificate. Defaults to defaultdir/root.crt
