@@ -9,11 +9,13 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,6 +26,9 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -2247,7 +2252,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
               connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
     while (rs.next()) {
-      byte[][] tuple = new byte[18][];
+      byte[][] tuple = new byte[19][];
       String typname = rs.getString(1);
       int typeOid = (int) rs.getLong(2);
 
@@ -2255,6 +2260,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int sqlType = connection.getTypeInfo().getSQLType(typname);
       tuple[1] =
           connection.encodeString(Integer.toString(sqlType));
+
+      /* this is just for sorting below, the result set never sees this */
+      tuple[18] = BigInteger.valueOf(sqlType).toByteArray();
+
       tuple[2] = connection
           .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
 
@@ -2300,6 +2309,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
+    Collections.sort(v, new Comparator<byte[][]>() {
+      @Override
+      public int compare(byte[][] o1, byte[][] o2) {
+        int i1 = ByteConverter.bytesToInt(o1[18]);
+        int i2 = ByteConverter.bytesToInt(o2[18]);
+        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+      }
+    });
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
