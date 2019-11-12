@@ -62,6 +62,19 @@ public class ByteConverter {
   }
 
   /**
+   * Parses a boolean value from the byte array.
+   *
+   * @param bytes
+   *          The byte array to parse.
+   * @param idx
+   *          The starting index to read from bytes.
+   * @return parsed boolean value.
+   */
+  public static boolean bool(byte[] bytes, int idx) {
+    return bytes[idx] == 1;
+  }
+
+  /**
    * Parses a float value from the byte array.
    *
    * @param bytes The byte array to parse.
@@ -125,6 +138,20 @@ public class ByteConverter {
   public static void int2(byte[] target, int idx, int value) {
     target[idx + 0] = (byte) (value >>> 8);
     target[idx + 1] = (byte) value;
+  }
+
+  /**
+   * Encodes a boolean value to the byte array.
+   *
+   * @param target
+   *          The byte array to encode to.
+   * @param idx
+   *          The starting index in the byte array.
+   * @param value
+   *          The value to encode.
+   */
+  public static void bool(byte[] target, int idx, boolean value) {
+    target[idx] = value ? (byte) 1 : (byte) 0;
   }
 
   /**

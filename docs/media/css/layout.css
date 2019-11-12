@@ -167,7 +167,7 @@
 #pgFrontFeature #pgFrontFeatureContent {
     /* This padding controls the size of the text in the front blurb, and needs to be
      * adjusted whenever the image is changed. */
-  padding: 6px 132px 16px 10px; 
+  padding: 6px 16px 16px 10px;
 }
 
 #pgFrontRightContainer {

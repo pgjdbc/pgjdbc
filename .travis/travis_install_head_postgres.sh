@@ -2,9 +2,9 @@
 set -x -e
 
 sudo service postgresql stop
+sudo apt-get update -qq
 sudo apt-get remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common -qq --purge
-sudo apt-get -y install libxml2
-sudo apt-get -y install gdb
+sudo apt-get -y install libxml2 gdb
 
 if [[ -z ${POSTGRES_SOURCE_SHA} ]]
 then

@@ -12,6 +12,7 @@ import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.URLCoder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -63,7 +64,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     try {
       Class.forName("org.postgresql.Driver");
     } catch (ClassNotFoundException e) {
-      throw new IllegalStateException("BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath", e);
+      throw new IllegalStateException(
+        "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
+        e);
     }
   }
 
@@ -84,7 +87,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * properties serverName, databaseName, and portNumber. The user to connect as is identified by
    * the arguments user and password, which override the DataSource properties by the same name.
    *
-   * @param user user
+   * @param user     user
    * @param password password
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
@@ -93,12 +96,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     try {
       Connection con = DriverManager.getConnection(getUrl(), user, password);
       if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
+        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}",
+            new Object[] {getDescription(), user, getUrl()});
       }
       return con;
     } catch (SQLException e) {
-      LOGGER.log(Level.SEVERE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[]{getDescription(), user, getUrl(), e});
+      LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
+          new Object[] {getDescription(), user, getUrl(), e});
       throw e;
     }
   }
@@ -113,6 +117,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * This implementation don't use a LogWriter.
+   *
    * @param printWriter Not used
    */
   @Override
@@ -230,6 +235,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setPortNumber(int portNumber) {
     this.portNumber = portNumber;
+  }
+
+  /**
+   * @return command line options for this connection
+   */
+  public String getOptions() {
+    return PGProperty.OPTIONS.get(properties);
+  }
+
+  /**
+   * Set command line options for this connection
+   *
+   * @param options string to set options to
+   */
+  public void setOptions(String options) {
+    PGProperty.OPTIONS.set(properties, options);
   }
 
   /**
@@ -465,7 +486,6 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public int getCancelSignalTimeout() {
     return PGProperty.CANCEL_SIGNAL_TIMEOUT.getIntNoCheck(properties);
   }
-
 
   /**
    * @param enabled if SSL is enabled
@@ -881,6 +901,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if perform JAAS login before GSS authentication
+   * @see PGProperty#JAAS_LOGIN
+   */
+  public boolean getJaasLogin() {
+    return PGProperty.JAAS_LOGIN.getBoolean(properties);
+  }
+
+  /**
+   * @param doLogin true if perform JAAS login before GSS authentication
+   * @see PGProperty#JAAS_LOGIN
+   */
+  public void setJaasLogin(boolean doLogin) {
+    PGProperty.JAAS_LOGIN.set(properties, doLogin);
+  }
+
+  /**
    * @return Kerberos server name
    * @see PGProperty#KERBEROS_SERVER_NAME
    */
@@ -1053,7 +1089,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (portNumber != 0) {
       url.append(":").append(portNumber);
     }
-    url.append("/").append(databaseName);
+    url.append("/").append(URLCoder.encode(databaseName));
 
     StringBuilder query = new StringBuilder(100);
     for (PGProperty property : PGProperty.values()) {
@@ -1063,7 +1099,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         }
         query.append(property.getName());
         query.append("=");
-        query.append(property.get(properties));
+        query.append(URLCoder.encode(property.get(properties)));
       }
     }
 
@@ -1076,6 +1112,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * Generates a {@link DriverManager} URL from the other properties supplied.
+   *
+   * @return {@link DriverManager} URL from the other properties supplied
+   */
+  public String getURL() {
+    return getUrl();
+  }
+
+  /**
    * Sets properties from a {@link DriverManager} URL.
    *
    * @param url properties to set
@@ -1084,9 +1129,24 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
     Properties p = org.postgresql.Driver.parseURL(url, null);
 
-    for (PGProperty property : PGProperty.values()) {
-      setProperty(property, property.get(p));
+    if (p == null) {
+      throw new IllegalArgumentException("URL invalid " + url);
     }
+    for (PGProperty property : PGProperty.values()) {
+      if (!this.properties.containsKey(property.getName())) {
+        setProperty(property, property.get(p));
+      }
+    }
+  }
+
+  /**
+   * Sets properties from a {@link DriverManager} URL.
+   * Added to follow convention used in other DBMS.
+   *
+   * @param url properties to set
+   */
+  public void setURL(String url) {
+    setUrl(url);
   }
 
   public String getProperty(String name) throws SQLException {
@@ -1095,7 +1155,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       return getProperty(pgProperty);
     } else {
       throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -1105,7 +1165,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       setProperty(pgProperty, value);
     } else {
       throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -1181,11 +1241,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       portNumber = Integer.parseInt(port);
     }
     serverName = getReferenceProperty(ref, "serverName");
-    user = getReferenceProperty(ref, "user");
-    password = getReferenceProperty(ref, "password");
 
     for (PGProperty property : PGProperty.values()) {
-      property.set(properties, getReferenceProperty(ref, property.getName()));
+      setProperty(property, getReferenceProperty(ref, property.getName()));
     }
   }
 
@@ -1228,48 +1286,66 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @see PGProperty#PREFER_QUERY_MODE
    * @return preferred query execution mode
+   * @see PGProperty#PREFER_QUERY_MODE
    */
   public PreferQueryMode getPreferQueryMode() {
     return PreferQueryMode.of(PGProperty.PREFER_QUERY_MODE.get(properties));
   }
 
   /**
-   * @see PGProperty#PREFER_QUERY_MODE
    * @param preferQueryMode extended, simple, extendedForPrepared, or extendedCacheEverything
+   * @see PGProperty#PREFER_QUERY_MODE
    */
   public void setPreferQueryMode(PreferQueryMode preferQueryMode) {
     PGProperty.PREFER_QUERY_MODE.set(properties, preferQueryMode.value());
   }
 
   /**
-   * @see PGProperty#AUTOSAVE
    * @return connection configuration regarding automatic per-query savepoints
+   * @see PGProperty#AUTOSAVE
    */
   public AutoSave getAutosave() {
     return AutoSave.of(PGProperty.AUTOSAVE.get(properties));
   }
 
   /**
-   * @see PGProperty#AUTOSAVE
    * @param autoSave connection configuration regarding automatic per-query savepoints
+   * @see PGProperty#AUTOSAVE
    */
   public void setAutosave(AutoSave autoSave) {
     PGProperty.AUTOSAVE.set(properties, autoSave.value());
   }
 
   /**
-   * @see PGProperty#REWRITE_BATCHED_INSERTS
+   * see PGProperty#CLEANUP_SAVEPOINTS
+   *
+   * @return boolean indicating property set
+   */
+  public boolean getCleanupSavepoints() {
+    return PGProperty.CLEANUP_SAVEPOINTS.getBoolean(properties);
+  }
+
+  /**
+   * see PGProperty#CLEANUP_SAVEPOINTS
+   *
+   * @param cleanupSavepoints will cleanup savepoints after a successful transaction
+   */
+  public void setCleanupSavepoints(boolean cleanupSavepoints) {
+    PGProperty.CLEANUP_SAVEPOINTS.set(properties, cleanupSavepoints);
+  }
+
+  /**
    * @return boolean indicating property is enabled or not.
+   * @see PGProperty#REWRITE_BATCHED_INSERTS
    */
   public boolean getReWriteBatchedInserts() {
     return PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(properties);
   }
 
   /**
-   * @see PGProperty#REWRITE_BATCHED_INSERTS
    * @param reWrite boolean value to set the property in the properties collection
+   * @see PGProperty#REWRITE_BATCHED_INSERTS
    */
   public void setReWriteBatchedInserts(boolean reWrite) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
@@ -1280,4 +1356,121 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return Logger.getLogger("org.postgresql");
   }
   //#endif
+
+  /*
+   * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
+   * which expect normal java bean getters / setters to exist for the property names.
+   */
+
+  public boolean isSsl() {
+    return getSsl();
+  }
+
+  public String getSslfactoryarg() {
+    return getSslFactoryArg();
+  }
+
+  public void setSslfactoryarg(final String arg) {
+    setSslFactoryArg(arg);
+  }
+
+  public String getSslcert() {
+    return getSslCert();
+  }
+
+  public void setSslcert(final String file) {
+    setSslCert(file);
+  }
+
+  public String getSslmode() {
+    return getSslMode();
+  }
+
+  public void setSslmode(final String mode) {
+    setSslMode(mode);
+  }
+
+  public String getSslhostnameverifier() {
+    return getSslHostnameVerifier();
+  }
+
+  public void setSslhostnameverifier(final String className) {
+    setSslHostnameVerifier(className);
+  }
+
+  public String getSslkey() {
+    return getSslKey();
+  }
+
+  public void setSslkey(final String file) {
+    setSslKey(file);
+  }
+
+  public String getSslrootcert() {
+    return getSslRootCert();
+  }
+
+  public void setSslrootcert(final String file) {
+    setSslRootCert(file);
+  }
+
+  public String getSslpasswordcallback() {
+    return getSslPasswordCallback();
+  }
+
+  public void setSslpasswordcallback(final String className) {
+    setSslPasswordCallback(className);
+  }
+
+  public String getSslpassword() {
+    return getSslPassword();
+  }
+
+  public void setSslpassword(final String sslpassword) {
+    setSslPassword(sslpassword);
+  }
+
+  public int getRecvBufferSize() {
+    return getReceiveBufferSize();
+  }
+
+  public void setRecvBufferSize(final int nbytes) {
+    setReceiveBufferSize(nbytes);
+  }
+
+  public boolean isAllowEncodingChanges() {
+    return getAllowEncodingChanges();
+  }
+
+  public boolean isLogUnclosedConnections() {
+    return getLogUnclosedConnections();
+  }
+
+  public boolean isTcpKeepAlive() {
+    return getTcpKeepAlive();
+  }
+
+  public boolean isReadOnly() {
+    return getReadOnly();
+  }
+
+  public boolean isDisableColumnSanitiser() {
+    return getDisableColumnSanitiser();
+  }
+
+  public boolean isLoadBalanceHosts() {
+    return getLoadBalanceHosts();
+  }
+
+  public boolean isCleanupSavePoints() {
+    return getCleanupSavepoints();
+  }
+
+  public void setCleanupSavePoints(final boolean cleanupSavepoints) {
+    setCleanupSavepoints(cleanupSavepoints);
+  }
+
+  public boolean isReWriteBatchedInserts() {
+    return getReWriteBatchedInserts();
+  }
 }

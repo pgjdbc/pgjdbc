@@ -43,6 +43,7 @@ public interface PGStatement {
    * @since 7.3
    * @deprecated As of build 302, replaced by {@link #setPrepareThreshold(int)}
    */
+  @Deprecated
   void setUseServerPrepare(boolean flag) throws SQLException;
 
   /**
@@ -55,15 +56,15 @@ public interface PGStatement {
   boolean isUseServerPrepare();
 
   /**
-   * Sets the reuse threshold for using server-prepared statements.
-   * <p>
-   * If <code>threshold</code> is a non-zero value N, the Nth and subsequent reuses of a
-   * PreparedStatement will use server-side prepare.
-   * <p>
-   * If <code>threshold</code> is zero, server-side prepare will not be used.
-   * <p>
-   * The reuse threshold is only used by PreparedStatement and CallableStatement objects; it is
-   * ignored for plain Statements.
+   * <p>Sets the reuse threshold for using server-prepared statements.</p>
+   *
+   * <p>If <code>threshold</code> is a non-zero value N, the Nth and subsequent reuses of a
+   * PreparedStatement will use server-side prepare.</p>
+   *
+   * <p>If <code>threshold</code> is zero, server-side prepare will not be used.</p>
+   *
+   * <p>The reuse threshold is only used by PreparedStatement and CallableStatement objects; it is
+   * ignored for plain Statements.</p>
    *
    * @param threshold the new threshold for this statement
    * @throws SQLException if an exception occurs while changing the threshold

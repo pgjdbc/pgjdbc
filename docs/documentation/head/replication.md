@@ -3,10 +3,10 @@ layout: default_docs
 title: Physical and Logical replication API
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
 resource: media
-previoustitle: Server Prepared Statements
-previous: server-prepare.html
-nexttitle: Chapter 10. Using the Driver in a Multithreaded or a Servlet Environment
-next: thread.html
+previoustitle: Parameter Status Messages
+previous: parameterstatus.html
+nexttitle: Arrays
+next: arrays.html
 ---
 
 **Table of Contents**
@@ -32,7 +32,7 @@ do not appear in the stream. Thus, if you apply the change events in the same or
 transactionally consistent copy of the database. It's looks like the Event Sourcing pattern that you previously implemented
 in your application, but now it's available out of the box from the PostgreSQL database.
 
-For access to real-time changes PostgreSQL provides the streaming replication protocol. Replication protocol can be physical or logical. Physical replication protocol is used for Master/Slave replication. Logical replication protocol can be used
+For access to real-time changes PostgreSQL provides the streaming replication protocol. Replication protocol can be physical or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
 to stream changes to an external system. 
 
 

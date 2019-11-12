@@ -1,11 +1,11 @@
-<img height="90" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Wave.svg/133px-Wave.svg.png" />
-<img height="90" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Postgresql_elephant.svg/200px-Postgresql_elephant.svg.png" />
+<img height="90" alt="Slonik Duke" align="right" src="docs/media/img/slonik_duke.png" />
 
 # PostgreSQL JDBC Driver
 
 PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a PostgreSQL database using standard, database independent Java code. Is an open source JDBC driver written in Pure Java (Type 4), and communicates in the PostgreSQL native network protocol.
 
 ### Status
+[![Build status](https://ci.appveyor.com/api/projects/status/d8ucmegnmourohwu/branch/master?svg=true)](https://ci.appveyor.com/project/davecramer/pgjdbc/branch/master)
 [![Build Status](https://travis-ci.org/pgjdbc/pgjdbc.svg?branch=master)](https://travis-ci.org/pgjdbc/pgjdbc)
 [![codecov.io](http://codecov.io/github/pgjdbc/pgjdbc/coverage.svg?branch=master)](http://codecov.io/github/pgjdbc/pgjdbc?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
@@ -24,36 +24,36 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.1.3-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.2.7-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.3</version>
+    <version>42.2.7</version>
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-42.1.3.jre7-blue.svg)][mvn-jre7]
+[![Java 7](https://img.shields.io/badge/Java_7-42.2.7.jre7-blue.svg)][mvn-jre7]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.3.jre7</version>
+    <version>42.2.7.jre7</version>
 </dependency>
 ```
 
-[![Java 6](https://img.shields.io/badge/Java_6-42.1.3.jre6-blue.svg)][mvn-jre6]
+[![Java 6](https://img.shields.io/badge/Java_6-42.2.7.jre6-blue.svg)][mvn-jre6]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.1.3.jre6</version>
+    <version>42.2.7.jre6</version>
 </dependency>
 ```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.3.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.3.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.1.3|bundle
+[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.7.jre6|bundle
+[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.7.jre7|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.7|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -61,80 +61,13 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.2.0-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.2.0.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.2.0.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.2.8-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.2.8.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.2.8.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
 There are also available (snapshot) binary RPMs in [Fedora's Copr repository](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/).
-
-
-
-## Changelog
-Notable changes for:
-
-**NEXT**:
-* Statements with non-zero fetchSize no longer require server-side named handle. This might cause issues when using old PostgreSQL versions (pre-8.4)+fetchSize+interleaved ResultSet processing combo. see [issue 869](https://github.com/pgjdbc/pgjdbc/issues/869)
-
-**[42.1.3]** (2017-07-14):
-* fixed NPE in PreparedStatement.executeBatch in case of empty batch (regression since 42.1.2) PR#867
-
-**[42.1.2]** (2017-07-12):
-* Better logic for *returning* keyword detection. Previously, pgjdbc could be defeated by column names that contain *returning*, so pgjdbc failed to "return generated keys" as it considered statement as already having *returning* keyword [PR#824](https://github.com/pgjdbc/pgjdbc/pull/824) [201daf1d](https://github.com/pgjdbc/pgjdbc/commit/201daf1dc916bbc35e2bbec961aebfd1b1e30bfc) 
-* Replication API: fix issue #834 setting statusIntervalUpdate causes high CPU load [PR#835](https://github.com/pgjdbc/pgjdbc/pull/835) [59236b74](https://github.com/pgjdbc/pgjdbc/commit/59236b74acdd400d9d91d3eb2bb07d70b15392e5)
-* perf: use server-prepared statements for batch inserts when prepareThreshold>0. Note: this enables batch to use server-prepared from the first *executeBatch()* execution (previously it waited for *prepareThreshold* *executeBatch()* calls)  [abc3d9d7](https://github.com/pgjdbc/pgjdbc/commit/abc3d9d7f34a001322fbbe53f25d5e77a33a667f)
-
-**[42.1.1]** (2017-05-05):
-* fix: infinite dates might be corrupted when transferred in binary for certain JREs. For instance, 5881610-07-11 instead of infinity.
-
-**[42.1.0]** (2017-05-04):
-* fix: data being truncated in setCharacterStream (the bug introduced in 42.0.0) [PR#802](https://github.com/pgjdbc/pgjdbc/pull/802)
-* fix: calculation of lastReceiveLSN for logical replication [PR#801](https://github.com/pgjdbc/pgjdbc/pull/801)
-* fix: make sure org.postgresql.Driver is loaded when accessing though DataSource interface [#768](https://github.com/pgjdbc/pgjdbc/issues/768)
-* feat: support fetching a REF_CURSOR using getObject [PR#809](https://github.com/pgjdbc/pgjdbc/pull/809)
-* note: there's no 42.1.0.jre6 due to infinity handling bug. Fixed in 42.1.1.jre6
-
-**[42.0.0]** (2017-02-20):
-* Support for PostgreSQL versions below 8.2 was dropped
-* java.util.logging is now used for logging: [logging documentation](https://jdbc.postgresql.org//documentation/head/logging.html)
-* Ensure executeBatch() can be used with pgbouncer. Previously pgjdbc could use server-prepared statements for batch execution even with prepareThreshold=0 (see [issue 742](https://github.com/pgjdbc/pgjdbc/issues/742))
-* Replication protocol API was added: [replication API documentation](https://jdbc.postgresql.org//documentation/head/replication.html), [GitHub PR 550](https://github.com/pgjdbc/pgjdbc/pull/550)
-* Version bumped to 42.0.0 to avoid version clash with PostgreSQL version
-* Error position is displayed when SQL has unterminated literals, comments, etc (see [issue 688](https://github.com/pgjdbc/pgjdbc/issues/688))
-
-**[9.4.1212]** (2016-11-02):
-* ? can now be used in non-prepared statements (fixed regression of 9.4.1210)
-
-**[9.4.1211]** (2016-09-18):
-* json type is returned as PGObject like in pre-9.4.1210 (fixed regression of 9.4.1210)
-* 'current transaction is aborted' exception includes the original exception via caused-by chain
-
-**[9.4.1210]** (2016-09-07):
-* BUG: json datatype is returned as java.lang.String object, not as PGObject (fixed in 9.4.1211)
-* Better support for RETURN_GENERATED_KEYS, statements with RETURNING clause
-* Avoid user-visible prepared-statement errors if client uses DEALLOCATE/DISCARD statements (invalidate cache when those statements detected)
-* Avoid user-visible prepared-statement errors if client changes search_path (invalidate cache when set search_path detected)
-* Support comments when replacing {fn ...} JDBC syntax
-* Support for Types.REF_CURSOR
-
-**[9.4.1209]** (2016-07-15):
-* Many improvements to `insert into .. values(?,?)` => `insert .. values(?,?), (?,?)...` rewriter. Give it a try by using `reWriteBatchedInserts=true` connection property. 2-3x improvements for insert batch can be expected
-* Full test suite passes against PostgreSQL 9.6, and OpenJDK 9
-* Performance optimization for timestamps (~`TimeZone.getDefault` optimization)
-* Allow build-from-source on GNU/Linux without maven repositories, and add Fedora Copr test to the regression suite
-
-[42.1.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.2...REL42.1.3
-[42.1.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.1...REL42.1.2
-[42.1.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.1.0...REL42.1.1
-[42.1.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.0.0...REL42.1.0
-[42.0.0]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1212...REL42.0.0
-[9.4.1212]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1211...REL9.4.1212
-[9.4.1211]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1210...REL9.4.1211
-[9.4.1210]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1209...REL9.4.1210
-[9.4.1209]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1208...REL9.4.1209
-
-Read the [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html#introduction) for reference of previous versions.
 
 ----------------------------------------------------
 ## Documentation
@@ -153,7 +86,7 @@ For more information you can read [the PgJDBC driver documentation](https://jdbc
 The driver recognises JDBC URLs of the form:
 ```
 jdbc:postgresql:database
-jdbc:postgresql:/
+jdbc:postgresql:
 jdbc:postgresql://host/database
 jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
@@ -161,14 +94,14 @@ jdbc:postgresql://host:port/
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
-jdbc:postgresql://[host][:port][/[database]][?property1=value1[&property2=value2]...]
+jdbc:postgresql:[//host[:port]/][database][?property1=value1[&property2=value2]...]
 ```
 where:
  * **jdbc:postgresql:** (Required) is known as the sub-protocol and is constant.
  * **host** (Optional) is the server address to connect. This could be a DNS or IP address, or it could be *localhost* or *127.0.0.1* for the local computer. To specify an IPv6 address your must enclose the host parameter with square brackets (jdbc:postgresql://[::1]:5740/accounting). Defaults to `localhost`.
  * **port** (Optional) is the port number listening on the host. Defaults to `5432`.
  * **database** (Optional) is the database name. Defaults to the same name as the *user name* used in the connection.
- * **propertyX** (Optional) is one or more option connection properties. For more information see *Connection properties*. 
+ * **propertyX** (Optional) is one or more option connection properties. For more information see *Connection properties*.
 
 #### Connection Properties
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL™. These properties may be specified in either the connection URL or an additional Properties object parameter to DriverManager.getConnection.
@@ -177,9 +110,10 @@ In addition to the standard connection parameters the driver supports a number o
 | ----------------------------- | ------- | :-----: | ------------- |
 | user                          | String  | null    | The database user on whose behalf the connection is being made. |
 | password                      | String  | null    | The database user's password. |
+| options                       | String  | null    | Specify 'options' connection initialization parameter. |
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
-| sslfactoryarg                 | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
+| sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
 | sslmode                       | String  | null    | Parameter governing the use of SSL. |
 | sslcert                       | String  | null    | The location of the client's SSL certificate |
 | sslkey                        | String  | null    | The location of the client's PKCS#8 SSL key |
@@ -207,17 +141,18 @@ In addition to the standard connection parameters the driver supports a number o
 | readOnly                      | Boolean | true    | Puts this connection in read-only mode |
 | disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
 | assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
-| currentSchema                 | String  | null    | Specify the schema to be set in the search-path |
-| targetServerType              | String  | any     | Specifies what kind of server to connect, possible values: any, master, slave, preferSlave |
-| hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after host statuses are checked again in case they have changed |
+| currentSchema                 | String  | null    | Specify the schema (or several schema separated by commas) to be set in the search-path |
+| targetServerType              | String  | any     | Specifies what kind of server to connect, possible values: any, master, slave (deprecated), secondary, preferSlave (deprecated), preferSecondary |
+| hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after which the host status is checked again in case it has changed |
 | loadBalanceHosts              | Boolean | false   | If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates |
 | socketFactory                 | String  | null    | Specify a socket factory for socket creation |
-| socketFactoryArg              | String  | null    | Argument forwarded to constructor of SocketFactory class. |
+| socketFactoryArg (deprecated) | String  | null    | Argument forwarded to constructor of SocketFactory class. |
 | autosave                      | String  | never   | Specifies what the driver should do if a query fails, possible values: always, never, conservative |
+| cleanupSavePoints             | Boolean | false   | In Autosave mode the driver sets a SAVEPOINT for every query. It is possible to exhaust the server shared buffers. Setting this to true will release each SAVEPOINT at the cost of an additional round trip. |
 | preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, possible values: extended, extendedForPrepared, extendedCacheEverything, simple |
 | reWriteBatchedInserts         | Boolean | false  | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
 
-## Contributing 
+## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
 
 ----------------------------------------------------

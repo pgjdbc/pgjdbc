@@ -12,11 +12,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,11 +36,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 @RunWith(Parameterized.class)
 public class PreparedStatementTest extends BaseTest4 {
@@ -248,6 +256,25 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testBinds() throws SQLException {
+    // braces around (42) are required to puzzle the parser
+    String query = "INSERT INTO inttable(a) VALUES (?);SELECT (42)";
+    PreparedStatement ps = con.prepareStatement(query);
+    ps.setInt(1, 100500);
+    ps.execute();
+    ResultSet rs = ps.getResultSet();
+    Assert.assertNull("insert produces no results ==> getResultSet should be null", rs);
+    Assert.assertTrue("There are two statements => getMoreResults should be true", ps.getMoreResults());
+    rs = ps.getResultSet();
+    Assert.assertNotNull("select produces results ==> getResultSet should be not null", rs);
+    Assert.assertTrue("select produces 1 row ==> rs.next should be true", rs.next());
+    Assert.assertEquals("second result of query " + query, 42, rs.getInt(1));
+
+    TestUtil.closeQuietly(rs);
+    TestUtil.closeQuietly(ps);
+  }
+
+  @Test
   public void testSetNull() throws SQLException {
     // valid: fully qualified type to setNull()
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
@@ -278,6 +305,20 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.executeUpdate();
 
     pstmt.close();
+
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+    pstmt = con.prepareStatement("select 'ok' where ?=? or (? is null) ");
+    pstmt.setObject(1, UUID.randomUUID(), Types.OTHER);
+    pstmt.setNull(2, Types.OTHER, "uuid");
+    pstmt.setNull(3, Types.OTHER, "uuid");
+    ResultSet rs = pstmt.executeQuery();
+
+    assertTrue(rs.next());
+    assertEquals("ok",rs.getObject(1));
+
+    rs.close();
+    pstmt.close();
+
   }
 
   @Test
@@ -527,6 +568,62 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testNaNLiteralsSimpleStatement() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select 'NaN'::numeric, 'NaN'::real, 'NaN'::double precision");
+    checkNaNLiterals(stmt, rs);
+  }
+
+  @Test
+  public void testNaNLiteralsPreparedStatement() throws SQLException {
+    PreparedStatement stmt = con.prepareStatement("select 'NaN'::numeric, 'NaN'::real, 'NaN'::double precision");
+    checkNaNLiterals(stmt, stmt.executeQuery());
+  }
+
+  private void checkNaNLiterals(Statement stmt, ResultSet rs) throws SQLException {
+    rs.next();
+    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(3)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(3)));
+    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(2)));
+    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(2)));
+    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(1)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(1)));
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testNaNSetDoubleFloat() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?");
+    ps.setFloat(1, Float.NaN);
+    ps.setDouble(2, Double.NaN);
+
+    checkNaNParams(ps);
+  }
+
+  @Test
+  public void testNaNSetObject() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?");
+    ps.setObject(1, Float.NaN);
+    ps.setObject(2, Double.NaN);
+
+    checkNaNParams(ps);
+  }
+
+  private void checkNaNParams(PreparedStatement ps) throws SQLException {
+    ResultSet rs = ps.executeQuery();
+    rs.next();
+
+    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(1)));
+    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(1)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
+    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
+
+    TestUtil.closeQuietly(rs);
+    TestUtil.closeQuietly(ps);
+  }
+
+  @Test
   public void testBoolean() throws SQLException {
     testBoolean(0);
     testBoolean(1);
@@ -771,8 +868,8 @@ public class PreparedStatementTest extends BaseTest4 {
     assertTrue(rs.wasNull());
 
     assertTrue(rs.next());
-    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1) == true);
-    assertTrue("expected false,received " + rs.getBoolean(2), rs.getBoolean(2) == false);
+    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1));
+    assertFalse("expected false,received " + rs.getBoolean(2), rs.getBoolean(2));
 
     rs.close();
     pstmt.close();
@@ -1205,7 +1302,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
   /**
    * When we have parameters of unknown type and it's not using the unnamed statement, we issue a
-   * protocol level statment describe message for the V3 protocol. This test just makes sure that
+   * protocol level statement describe message for the V3 protocol. This test just makes sure that
    * works.
    */
   @Test
@@ -1306,4 +1403,117 @@ public class PreparedStatementTest extends BaseTest4 {
         getNumberOfServerPreparedStatements("SELECT 42"));
   }
 
+  @Test
+  public void testInappropriateStatementSharing() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
+    try {
+      Timestamp ts = new Timestamp(1474997614836L);
+      // Since PreparedStatement isn't cached immediately, we need to some warm up
+      for (int i = 0; i < 3; ++i) {
+        ResultSet rs;
+
+        // Flip statement to use Oid.DATE
+        ps.setNull(1, Types.DATE);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertNull("NULL DATE converted to TIMESTAMP should return NULL value on getObject",
+              rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+
+        // Flop statement to use Oid.UNSPECIFIED
+        ps.setTimestamp(1, ts);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertEquals(
+              "Looks like we got a narrowing of the data (TIMESTAMP -> DATE). It might caused by inappropriate caching of the statement.",
+              ts, rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+      }
+    } finally {
+      ps.close();
+    }
+  }
+
+  @Test
+  public void testAlternatingBindType() throws SQLException {
+    assumeBinaryModeForce();
+    PreparedStatement ps = con.prepareStatement("SELECT /*testAlternatingBindType*/ ?");
+    ResultSet rs;
+    Logger log = Logger.getLogger("org.postgresql.core.v3.SimpleQuery");
+    Level prevLevel = log.getLevel();
+    if (prevLevel == null || prevLevel.intValue() > Level.FINER.intValue()) {
+      log.setLevel(Level.FINER);
+    }
+    final AtomicInteger numOfReParses = new AtomicInteger();
+    Handler handler = new Handler() {
+      @Override
+      public void publish(LogRecord record) {
+        if (record.getMessage().contains("un-prepare it and parse")) {
+          numOfReParses.incrementAndGet();
+        }
+      }
+
+      @Override
+      public void flush() {
+      }
+
+      @Override
+      public void close() throws SecurityException {
+      }
+    };
+    log.addHandler(handler);
+    try {
+      ps.setString(1, "42");
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
+      rs.close();
+
+      // The bind type is flipped from VARCHAR to INTEGER, and it causes the driver to prepare statement again
+      ps.setNull(1, Types.INTEGER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("A re-parse was expected, so the number of parses should be 1",
+          1, numOfReParses.get());
+      rs.close();
+
+      // The bind type is flipped from INTEGER to VARCHAR, and it causes the driver to prepare statement again
+      ps.setString(1, "42");
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
+      Assert.assertEquals("One more re-parse is expected, so the number of parses should be 2",
+          2, numOfReParses.get());
+      rs.close();
+
+      // Types.OTHER null is sent as UNSPECIFIED, and pgjdbc does not re-parse on UNSPECIFIED nulls
+      // Note: do not rely on absence of re-parse on using Types.OTHER. Try using consistent data types
+      ps.setNull(1, Types.OTHER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.OTHER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("setNull(, Types.OTHER) should not cause re-parse",
+          2, numOfReParses.get());
+
+      // Types.INTEGER null is sent as int4 null, and it leads to re-parse
+      ps.setNull(1, Types.INTEGER);
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
+      Assert.assertEquals("setNull(, Types.INTEGER) causes re-parse",
+          3, numOfReParses.get());
+      rs.close();
+    } finally {
+      TestUtil.closeQuietly(ps);
+      log.removeHandler(handler);
+      log.setLevel(prevLevel);
+    }
+  }
 }

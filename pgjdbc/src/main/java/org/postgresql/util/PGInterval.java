@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.StringTokenizer;
 
 /**
- * This implements a class that handles the PostgreSQL interval type
+ * This implements a class that handles the PostgreSQL interval type.
  */
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
@@ -35,14 +35,14 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * required by the driver
+   * required by the driver.
    */
   public PGInterval() {
     setType("interval");
   }
 
   /**
-   * Initialize a interval with a given interval string representation
+   * Initialize a interval with a given interval string representation.
    *
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
@@ -54,7 +54,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Initializes all values of this interval to the specified values
+   * Initializes all values of this interval to the specified values.
    *
    * @param years years
    * @param months months
@@ -71,7 +71,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
 
   /**
    * Sets a interval string represented value to this instance. This method only recognize the
-   * format, that Postgres returns - not all input formats are supported (e.g. '1 yr 2 m 3 s')!
+   * format, that Postgres returns - not all input formats are supported (e.g. '1 yr 2 m 3 s').
    *
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
@@ -162,7 +162,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set all values of this interval to the specified values
+   * Set all values of this interval to the specified values.
    *
    * @param years years
    * @param months months
@@ -181,7 +181,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the stored interval information as a string
+   * Returns the stored interval information as a string.
    *
    * @return String represented interval
    */
@@ -195,7 +195,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the years represented by this interval
+   * Returns the years represented by this interval.
    *
    * @return years represented by this interval
    */
@@ -204,7 +204,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the years of this interval to the specified value
+   * Set the years of this interval to the specified value.
    *
    * @param years years to set
    */
@@ -213,7 +213,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the months represented by this interval
+   * Returns the months represented by this interval.
    *
    * @return months represented by this interval
    */
@@ -222,7 +222,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the months of this interval to the specified value
+   * Set the months of this interval to the specified value.
    *
    * @param months months to set
    */
@@ -231,7 +231,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the days represented by this interval
+   * Returns the days represented by this interval.
    *
    * @return days represented by this interval
    */
@@ -240,7 +240,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the days of this interval to the specified value
+   * Set the days of this interval to the specified value.
    *
    * @param days days to set
    */
@@ -249,7 +249,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the hours represented by this interval
+   * Returns the hours represented by this interval.
    *
    * @return hours represented by this interval
    */
@@ -258,7 +258,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the hours of this interval to the specified value
+   * Set the hours of this interval to the specified value.
    *
    * @param hours hours to set
    */
@@ -267,7 +267,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the minutes represented by this interval
+   * Returns the minutes represented by this interval.
    *
    * @return minutes represented by this interval
    */
@@ -276,7 +276,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the minutes of this interval to the specified value
+   * Set the minutes of this interval to the specified value.
    *
    * @param minutes minutes to set
    */
@@ -285,7 +285,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the seconds represented by this interval
+   * Returns the seconds represented by this interval.
    *
    * @return seconds represented by this interval
    */
@@ -294,7 +294,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the seconds of this interval to the specified value
+   * Set the seconds of this interval to the specified value.
    *
    * @param seconds seconds to set
    */
@@ -303,7 +303,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Rolls this interval on a given calendar
+   * Rolls this interval on a given calendar.
    *
    * @param cal Calendar instance to add to
    */
@@ -322,7 +322,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Rolls this interval on a given date
+   * Rolls this interval on a given date.
    *
    * @param date Date instance to add to
    */
@@ -366,7 +366,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns integer value of value or 0 if value is null
+   * Returns integer value of value or 0 if value is null.
    *
    * @param value integer as string value
    * @return integer parsed from string value
@@ -377,7 +377,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns double value of value or 0 if value is null
+   * Returns double value of value or 0 if value is null.
    *
    * @param value double as string value
    * @return double parsed from string value
@@ -388,7 +388,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns whether an object is equal to this one or not
+   * Returns whether an object is equal to this one or not.
    *
    * @param obj Object to compare with
    * @return true if the two intervals are identical
@@ -417,7 +417,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns a hashCode for this object
+   * Returns a hashCode for this object.
    *
    * @return hashCode
    */

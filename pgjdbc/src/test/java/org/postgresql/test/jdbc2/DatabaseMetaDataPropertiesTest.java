@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -109,10 +110,10 @@ public class DatabaseMetaDataPropertiesTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(!dbmd.nullsAreSortedAtStart());
-    assertTrue(dbmd.nullsAreSortedAtEnd() != true);
-    assertTrue(dbmd.nullsAreSortedHigh() == true);
-    assertTrue(!dbmd.nullsAreSortedLow());
+    assertFalse(dbmd.nullsAreSortedAtStart());
+    assertFalse(dbmd.nullsAreSortedAtEnd());
+    assertTrue(dbmd.nullsAreSortedHigh());
+    assertFalse(dbmd.nullsAreSortedLow());
 
     assertTrue(dbmd.nullPlusNonNullIsNull());
 
@@ -133,16 +134,16 @@ public class DatabaseMetaDataPropertiesTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(!dbmd.supportsMixedCaseIdentifiers()); // always false
-    assertTrue(dbmd.supportsMixedCaseQuotedIdentifiers()); // always true
+    assertFalse(dbmd.supportsMixedCaseIdentifiers());
+    assertTrue(dbmd.supportsMixedCaseQuotedIdentifiers());
 
-    assertTrue(!dbmd.storesUpperCaseIdentifiers()); // always false
-    assertTrue(dbmd.storesLowerCaseIdentifiers()); // always true
-    assertTrue(!dbmd.storesUpperCaseQuotedIdentifiers()); // always false
-    assertTrue(!dbmd.storesLowerCaseQuotedIdentifiers()); // always false
-    assertTrue(!dbmd.storesMixedCaseQuotedIdentifiers()); // always false
+    assertFalse(dbmd.storesUpperCaseIdentifiers());
+    assertTrue(dbmd.storesLowerCaseIdentifiers());
+    assertFalse(dbmd.storesUpperCaseQuotedIdentifiers());
+    assertFalse(dbmd.storesLowerCaseQuotedIdentifiers());
+    assertFalse(dbmd.storesMixedCaseQuotedIdentifiers());
 
-    assertTrue(dbmd.getIdentifierQuoteString().equals("\""));
+    assertEquals( "\"", dbmd.getIdentifierQuoteString());
 
   }
 
@@ -183,8 +184,8 @@ public class DatabaseMetaDataPropertiesTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(dbmd.getURL().equals(TestUtil.getURL()));
-    assertTrue(dbmd.getUserName().equals(TestUtil.getUser()));
+    assertEquals(TestUtil.getURL(), dbmd.getURL());
+    assertEquals(TestUtil.getUser(), dbmd.getUserName());
   }
 
   @Test
@@ -194,7 +195,7 @@ public class DatabaseMetaDataPropertiesTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(dbmd.getDatabaseProductName().equals("PostgreSQL"));
+    assertEquals("PostgreSQL", dbmd.getDatabaseProductName());
     assertTrue(dbmd.getDatabaseMajorVersion() >= 8);
     assertTrue(dbmd.getDatabaseMinorVersion() >= 0);
     assertTrue(dbmd.getDatabaseProductVersion().startsWith(String.valueOf(dbmd.getDatabaseMajorVersion())));
@@ -205,10 +206,10 @@ public class DatabaseMetaDataPropertiesTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(dbmd.getDriverName().equals("PostgreSQL JDBC Driver"));
-    assertTrue(dbmd.getDriverVersion().equals(org.postgresql.util.DriverInfo.DRIVER_VERSION));
-    assertTrue(dbmd.getDriverMajorVersion() == new org.postgresql.Driver().getMajorVersion());
-    assertTrue(dbmd.getDriverMinorVersion() == new org.postgresql.Driver().getMinorVersion());
+    assertEquals("PostgreSQL JDBC Driver", dbmd.getDriverName());
+    assertEquals(org.postgresql.util.DriverInfo.DRIVER_VERSION, dbmd.getDriverVersion());
+    assertEquals(new org.postgresql.Driver().getMajorVersion(), dbmd.getDriverMajorVersion());
+    assertEquals(new org.postgresql.Driver().getMinorVersion(), dbmd.getDriverMinorVersion());
     assertTrue(dbmd.getJDBCMajorVersion() >= 4);
     assertTrue(dbmd.getJDBCMinorVersion() >= 0);
   }

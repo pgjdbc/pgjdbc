@@ -31,9 +31,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(Parameterized.class)
 public class AutoRollbackTestSuite extends BaseTest4 {
+  private static final AtomicInteger counter = new AtomicInteger();
+
+  private enum CleanSavePoint {
+    TRUE,
+    FALSE
+  }
 
   private enum FailMode {
     /**
@@ -42,12 +49,12 @@ public class AutoRollbackTestSuite extends BaseTest4 {
      */
     SELECT,
     /**
-     * Executes "alter table rollbacktest", thus it breaks a prepared select over that table
+     * Executes "alter table rollbacktest", thus it breaks a prepared select over that table.
      * Mitigation: "autosave in (always, conservative)"
      */
     ALTER,
     /**
-     * Executes DEALLOCATE ALL
+     * Executes DEALLOCATE ALL.
      * Mitigation:
      *  1) QueryExecutor tracks "DEALLOCATE ALL" responses ({@see org.postgresql.core.QueryExecutor#setFlushCacheOnDeallocate(boolean)}
      *  2) QueryExecutor tracks "prepared statement name is invalid" and unprepares relevant statements ({@link org.postgresql.core.v3.QueryExecutorImpl#processResults(ResultHandler, int)}
@@ -56,7 +63,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
      */
     DEALLOCATE,
     /**
-     * Executes DISCARD ALL
+     * Executes DISCARD ALL.
      * Mitigation: the same as for {@link #DEALLOCATE}
      */
     DISCARD,
@@ -64,6 +71,36 @@ public class AutoRollbackTestSuite extends BaseTest4 {
      * Executes "insert ... select 1/0" in a batch statement, thus causing the transaction to fail.
      */
     INSERT_BATCH,
+  }
+
+  private enum ReturnColumns {
+    EXACT("a, str"),
+    STAR("*");
+
+    public final String cols;
+
+    ReturnColumns(String cols) {
+      this.cols = cols;
+    }
+  }
+
+  private enum TestStatement {
+    SELECT("select ${cols} from rollbacktest", 0),
+    WITH_INSERT_SELECT(
+        "with x as (insert into rollbacktest(a, str) values(43, 'abc') returning ${cols})"
+            + "select * from x", 1);
+
+    private final String sql;
+    private final int rowsInserted;
+
+    TestStatement(String sql, int rowsInserted) {
+      this.sql = sql;
+      this.rowsInserted = rowsInserted;
+    }
+
+    public String getSql(ReturnColumns cols) {
+      return sql.replace("${cols}", cols.cols);
+    }
   }
 
   private static final EnumSet<FailMode> DEALLOCATES =
@@ -79,23 +116,36 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   }
 
   private final AutoSave autoSave;
+  private final CleanSavePoint cleanSavePoint;
   private final AutoCommit autoCommit;
   private final FailMode failMode;
   private final ContinueMode continueMode;
   private final boolean flushCacheOnDeallocate;
+  private final boolean trans;
+  private final TestStatement testSql;
+  private final ReturnColumns cols;
 
-  public AutoRollbackTestSuite(AutoSave autoSave, AutoCommit autoCommit,
-      FailMode failMode, ContinueMode continueMode, boolean flushCacheOnDeallocate) {
+  public AutoRollbackTestSuite(AutoSave autoSave, CleanSavePoint cleanSavePoint, AutoCommit autoCommit,
+      FailMode failMode, ContinueMode continueMode, boolean flushCacheOnDeallocate,
+      boolean trans, TestStatement testSql, ReturnColumns cols) {
     this.autoSave = autoSave;
+    this.cleanSavePoint = cleanSavePoint;
     this.autoCommit = autoCommit;
     this.failMode = failMode;
     this.continueMode = continueMode;
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
+    this.trans = trans;
+    this.testSql = testSql;
+    this.cols = cols;
   }
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
+    if (testSql == TestStatement.WITH_INSERT_SELECT) {
+      assumeMinimumServerVersion(ServerVersion.v9_1);
+    }
+
     TestUtil.createTable(con, "rollbacktest", "a int, str text");
     con.setAutoCommit(autoCommit == AutoCommit.YES);
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
@@ -126,28 +176,42 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     PGProperty.PREPARE_THRESHOLD.set(props, 1);
   }
 
-
-  @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, autoCommit={1}, failMode={2}, continueMode={3}, flushOnDeallocate={4})")
+  @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     boolean[] booleans = new boolean[] {true, false};
     for (AutoSave autoSave : AutoSave.values()) {
-      for (AutoCommit autoCommit : AutoCommit.values()) {
-        for (FailMode failMode : FailMode.values()) {
-          // ERROR: DISCARD ALL cannot run inside a transaction block
-          if (failMode == FailMode.DISCARD && autoCommit == AutoCommit.NO) {
-            continue;
-          }
-          for (ContinueMode continueMode : ContinueMode.values()) {
-            if (failMode == FailMode.ALTER && continueMode != ContinueMode.SELECT) {
+      for (CleanSavePoint cleanSavePoint:CleanSavePoint.values()) {
+        for (AutoCommit autoCommit : AutoCommit.values()) {
+          for (FailMode failMode : FailMode.values()) {
+            // ERROR: DISCARD ALL cannot run inside a transaction block
+            if (failMode == FailMode.DISCARD && autoCommit == AutoCommit.NO) {
               continue;
             }
-            for (boolean flushCacheOnDeallocate : booleans) {
-              if (!(flushCacheOnDeallocate || DEALLOCATES.contains(failMode))) {
+            for (ContinueMode continueMode : ContinueMode.values()) {
+              if (failMode == FailMode.ALTER && continueMode != ContinueMode.SELECT) {
                 continue;
               }
+              for (boolean flushCacheOnDeallocate : booleans) {
+                if (!(flushCacheOnDeallocate || DEALLOCATES.contains(failMode))) {
+                  continue;
+                }
 
-              ids.add(new Object[]{autoSave, autoCommit, failMode, continueMode, flushCacheOnDeallocate});
+                for (boolean trans : new boolean[]{true, false}) {
+                  // continueMode would commit, and autoCommit=YES would commit,
+                  // so it does not make sense to test trans=true for those cases
+                  if (trans && (continueMode == ContinueMode.COMMIT
+                      || autoCommit != AutoCommit.NO)) {
+                    continue;
+                  }
+                  for (TestStatement statement : TestStatement.values()) {
+                    for (ReturnColumns columns : ReturnColumns.values()) {
+                      ids.add(new Object[]{autoSave, cleanSavePoint, autoCommit, failMode, continueMode,
+                          flushCacheOnDeallocate, trans, statement, columns});
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -155,7 +219,6 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     }
     return ids;
   }
-
 
   @Test
   public void run() throws SQLException {
@@ -170,10 +233,16 @@ public class AutoRollbackTestSuite extends BaseTest4 {
 
     Statement statement = con.createStatement();
     statement.executeUpdate("insert into rollbacktest(a, str) values (0, 'test')");
+    int rowsExpected = 1;
 
-    PreparedStatement ps = con.prepareStatement("select * from rollbacktest");
-    // Server-prepare the statement
+    PreparedStatement ps = con.prepareStatement(testSql.getSql(cols));
+    // Server-prepare the testSql
     ps.executeQuery().close();
+    rowsExpected += testSql.rowsInserted;
+
+    if (trans) {
+      statement.executeUpdate("update rollbacktest set a=a");
+    }
 
     switch (failMode) {
       case SELECT:
@@ -255,6 +324,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     try {
       // Try execute server-prepared statement again
       ps.executeQuery().close();
+      rowsExpected += testSql.rowsInserted;
       executeSqlSuccess();
     } catch (SQLException e) {
       if (autoSave != AutoSave.ALWAYS && TRANS_KILLERS.contains(failMode) && autoCommit == AutoCommit.NO) {
@@ -287,7 +357,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
 
 
     try {
-      assertRows("rollbacktest", 1);
+      assertRows("rollbacktest", rowsExpected);
       executeSqlSuccess();
     } catch (SQLException e) {
       if (autoSave == AutoSave.NEVER && autoCommit == AutoCommit.NO) {
@@ -321,7 +391,8 @@ public class AutoRollbackTestSuite extends BaseTest4 {
       }
     } else if (failMode == FailMode.ALTER) {
       if (autoSave == AutoSave.NEVER
-          && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+          && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE
+          && cols == ReturnColumns.STAR) {
         Assert.fail("autosave=NEVER, thus the transaction should be killed");
       }
     } else {
@@ -343,7 +414,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
       con.setAutoCommit(false);
       Statement st = con.createStatement();
       st.executeUpdate(
-          "insert into rollbacktest(a, str) values (42, '" + System.currentTimeMillis() + "')");
+          "insert into rollbacktest(a, str) values (42, '" + System.currentTimeMillis() + "," + counter.getAndIncrement() + "')");
       st.close();
     }
     con.commit();

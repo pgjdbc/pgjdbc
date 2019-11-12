@@ -87,20 +87,32 @@ public class Encoding {
   }
 
   /**
-   * Use the charset passed as parameter.
+   * Subclasses may use this constructor if they know in advance of their ASCII number
+   * compatibility.
    *
    * @param encoding charset name to use
+   * @param fastASCIINumbers whether this encoding is compatible with ASCII numbers.
    */
-  protected Encoding(String encoding) {
+  protected Encoding(String encoding, boolean fastASCIINumbers) {
     if (encoding == null) {
       throw new NullPointerException("Null encoding charset not supported");
     }
     this.encoding = encoding;
-    fastASCIINumbers = testAsciiNumbers();
+    this.fastASCIINumbers = fastASCIINumbers;
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "Creating new Encoding {0} with fastASCIINumbers {1}",
           new Object[]{encoding, fastASCIINumbers});
     }
+  }
+
+  /**
+   * Use the charset passed as parameter and tests at creation time whether the specified encoding
+   * is compatible with ASCII numbers.
+   *
+   * @param encoding charset name to use
+   */
+  protected Encoding(String encoding) {
+    this(encoding, testAsciiNumbers(encoding));
   }
 
   /**
@@ -118,11 +130,11 @@ public class Encoding {
    *
    * @param jvmEncoding the name of the JVM encoding
    * @return an Encoding instance for the specified encoding, or an Encoding instance for the
-   * default JVM encoding if the specified encoding is unavailable.
+   *     default JVM encoding if the specified encoding is unavailable.
    */
   public static Encoding getJVMEncoding(String jvmEncoding) {
     if ("UTF-8".equals(jvmEncoding)) {
-      return new UTF8Encoding(jvmEncoding);
+      return new UTF8Encoding();
     }
     if (Charset.isSupported(jvmEncoding)) {
       return new Encoding(jvmEncoding);
@@ -136,7 +148,7 @@ public class Encoding {
    *
    * @param databaseEncoding the name of the database encoding
    * @return an Encoding instance for the specified encoding, or an Encoding instance for the
-   * default JVM encoding if the specified encoding is unavailable.
+   *     default JVM encoding if the specified encoding is unavailable.
    */
   public static Encoding getDatabaseEncoding(String databaseEncoding) {
     if ("UTF8".equals(databaseEncoding)) {
@@ -251,24 +263,22 @@ public class Encoding {
   }
 
   /**
-   * Checks weather this encoding is compatible with ASCII for the number characters '-' and
+   * Checks whether this encoding is compatible with ASCII for the number characters '-' and
    * '0'..'9'. Where compatible means that they are encoded with exactly same values.
    *
    * @return If faster ASCII number parsing can be used with this encoding.
    */
-  private boolean testAsciiNumbers() {
+  private static boolean testAsciiNumbers(String encoding) {
     // TODO: test all postgres supported encoding to see if there are
     // any which do _not_ have ascii numbers in same location
     // at least all the encoding listed in the encodings hashmap have
     // working ascii numbers
     try {
       String test = "-0123456789";
-      byte[] bytes = encode(test);
+      byte[] bytes = test.getBytes(encoding);
       String res = new String(bytes, "US-ASCII");
       return test.equals(res);
     } catch (java.io.UnsupportedEncodingException e) {
-      return false;
-    } catch (IOException e) {
       return false;
     }
   }

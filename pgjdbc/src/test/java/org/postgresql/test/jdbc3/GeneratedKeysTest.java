@@ -12,9 +12,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PSQLState;
 
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,16 +70,19 @@ public class GeneratedKeysTest extends BaseTest4 {
   private final ReturningInQuery returningInQuery;
   private final String returningClause;
 
-  public GeneratedKeysTest(ReturningInQuery returningInQuery) throws Exception {
+  public GeneratedKeysTest(ReturningInQuery returningInQuery, BinaryMode binaryMode) throws Exception {
     this.returningInQuery = returningInQuery;
     this.returningClause = returningInQuery.getClause();
+    setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "returningInQuery = {0}")
+  @Parameterized.Parameters(name = "returningInQuery = {0}, binary = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (ReturningInQuery returningInQuery : ReturningInQuery.values()) {
-      ids.add(new Object[]{returningInQuery});
+      for (BinaryMode binaryMode : BinaryMode.values()) {
+        ids.add(new Object[]{returningInQuery, binaryMode});
+      }
     }
     return ids;
   }
@@ -83,7 +90,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTempTable(con, "genkeys", "a serial, b text, c int");
+    TestUtil.createTempTable(con, "genkeys", "a serial, b varchar(5), c int");
   }
 
   @Override
@@ -193,7 +200,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   public void testSerialWorks() throws SQLException {
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "INSERT INTO genkeys (b,c) VALUES ('a', 2), ('b', 4)" + returningClause + "; ",
+        "INSERT/*fool parser*/ INTO genkeys (b,c) VALUES ('a', 2), ('b', 4)" + returningClause + "; ",
         new String[]{"a"});
     assertEquals(2, count);
     ResultSet rs = stmt.getGeneratedKeys();
@@ -212,6 +219,37 @@ public class GeneratedKeysTest extends BaseTest4 {
     stmt.executeUpdate("UPDATE genkeys SET c=2 WHERE a = 1" + returningClause,
         new String[]{"c", "b"});
     ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertCB1(rs);
+    assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testWithInsertInsert() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v9_1);
+    Statement stmt = con.createStatement();
+    int count = stmt.executeUpdate(
+        "WITH x as (INSERT INTO genkeys (b,c) VALUES ('a', 2) returning c) insert into genkeys(a,b,c) VALUES (1, 'a', 2)" + returningClause + "",
+        new String[]{"c", "b"});
+    assertEquals(1, count);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertCB1(rs);
+    assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testWithInsertSelect() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v9_1);
+    Assume.assumeTrue(returningInQuery != ReturningInQuery.NO);
+    Statement stmt = con.createStatement();
+    int count = stmt.executeUpdate(
+        "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) " + returningClause
+            + ") select * from x",
+        new String[]{"c", "b"});
+    assertEquals("rowcount", -1, count);
+    // TODO: should SELECT produce rows through getResultSet or getGeneratedKeys?
+    ResultSet rs = stmt.getResultSet();
     assertTrue(rs.next());
     assertCB1(rs);
     assertTrue(!rs.next());
@@ -445,6 +483,37 @@ public class GeneratedKeysTest extends BaseTest4 {
     assertNotNull("SELECT statement should return results via getResultSet, not getGeneratedKeys", rs);
     assertFalse("genkeys table is empty, thus rs.next() should return false", rs.next());
     s.close();
+  }
+
+  @Test
+  public void breakDescribeOnFirstServerPreparedExecution() throws SQLException {
+    // Test code is adapted from https://github.com/pgjdbc/pgjdbc/issues/811#issuecomment-352468388
+
+    PreparedStatement ps =
+        con.prepareStatement("insert into genkeys(b) values(?)" + returningClause,
+            Statement.RETURN_GENERATED_KEYS);
+    ps.setString(1, "TEST");
+
+    // The below "prepareThreshold - 1" executions ensure that bind failure would happen
+    // exactly on prepareThreshold execution (the first one when server flips to server-prepared)
+    int prepareThreshold = ps.unwrap(PGStatement.class).getPrepareThreshold();
+    for (int i = 0; i < prepareThreshold - 1; i++) {
+      ps.executeUpdate();
+    }
+    try {
+      // Send a value that's too long on the 5th request
+      ps.setString(1, "TESTTESTTEST");
+      ps.executeUpdate();
+    } catch (SQLException e) {
+      // Expected error: org.postgresql.util.PSQLException: ERROR: value
+      // too long for type character varying(10)
+      if (!PSQLState.STRING_DATA_RIGHT_TRUNCATION.getState().equals(e.getSQLState())) {
+        throw e;
+      }
+    }
+    // Send a valid value on the next request
+    ps.setString(1, "TEST");
+    ps.executeUpdate();
   }
 
 }

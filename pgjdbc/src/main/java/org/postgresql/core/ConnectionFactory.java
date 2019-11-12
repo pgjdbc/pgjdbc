@@ -24,12 +24,12 @@ import java.util.Properties;
  */
 public abstract class ConnectionFactory {
   /**
-   * Establishes and initializes a new connection.
-   * <p>
-   * If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
-   * all protocols are tried in order, falling back to older protocols as necessary.
-   * <p>
-   * Currently, protocol versions 3 (7.4+) is supported.
+   * <p>Establishes and initializes a new connection.</p>
+   *
+   * <p>If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
+   * all protocols are tried in order, falling back to older protocols as necessary.</p>
+   *
+   * <p>Currently, protocol versions 3 (7.4+) is supported.</p>
    *
    * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin
    *        failover

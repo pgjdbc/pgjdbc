@@ -31,20 +31,20 @@ import java.sql.Statement;
  */
 public class BlobTest {
 
-  private Connection _conn;
+  private Connection conn;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.createTable(_conn, "testblob", "id name,lo oid");
-    _conn.setAutoCommit(false);
+    conn = TestUtil.openDB();
+    TestUtil.createTable(conn, "testblob", "id name,lo oid");
+    conn.setAutoCommit(false);
   }
 
   @After
   public void tearDown() throws Exception {
-    _conn.setAutoCommit(true);
+    conn.setAutoCommit(true);
     try {
-      Statement stmt = _conn.createStatement();
+      Statement stmt = conn.createStatement();
       try {
         stmt.execute("SELECT lo_unlink(lo) FROM testblob");
       } finally {
@@ -54,8 +54,8 @@ public class BlobTest {
         }
       }
     } finally {
-      TestUtil.dropTable(_conn, "testblob");
-      TestUtil.closeDB(_conn);
+      TestUtil.dropTable(conn, "testblob");
+      TestUtil.closeDB(conn);
     }
   }
 
@@ -63,7 +63,7 @@ public class BlobTest {
   public void testSetBlobWithStream() throws Exception {
     byte[] data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque bibendum dapibus varius."
         .getBytes("UTF-8");
-    PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
+    PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(data));
       insertPS.executeUpdate();
@@ -71,7 +71,7 @@ public class BlobTest {
       insertPS.close();
     }
 
-    Statement selectStmt = _conn.createStatement();
+    Statement selectStmt = conn.createStatement();
     try {
       ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
       assertTrue(rs.next());
@@ -91,7 +91,7 @@ public class BlobTest {
             .getBytes("UTF-8");
     byte[] data =
        "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".getBytes("UTF-8");
-    PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
+    PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(fullData), data.length);
       insertPS.executeUpdate();
@@ -99,7 +99,7 @@ public class BlobTest {
       insertPS.close();
     }
 
-    Statement selectStmt = _conn.createStatement();
+    Statement selectStmt = conn.createStatement();
     try {
       ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
       assertTrue(rs.next());
@@ -117,7 +117,7 @@ public class BlobTest {
   public void testGetBinaryStreamWithBoundaries() throws Exception {
     byte[] data =
         "Cras vestibulum tellus eu sapien imperdiet ornare.".getBytes("UTF-8");
-    PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
+    PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(data), data.length);
       insertPS.executeUpdate();
@@ -125,7 +125,7 @@ public class BlobTest {
       insertPS.close();
     }
 
-    Statement selectStmt = _conn.createStatement();
+    Statement selectStmt = conn.createStatement();
     try {
       ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
       assertTrue(rs.next());
@@ -147,7 +147,7 @@ public class BlobTest {
 
   @Test
   public void testFree() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.execute("INSERT INTO testblob(lo) VALUES(lo_creat(-1))");
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
     assertTrue(rs.next());

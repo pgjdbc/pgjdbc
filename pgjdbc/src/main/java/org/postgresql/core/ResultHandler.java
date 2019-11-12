@@ -11,16 +11,16 @@ import java.sql.SQLWarning;
 import java.util.List;
 
 /**
- * Callback interface for passing query results from the protocol-specific layer to the
- * protocol-independent JDBC implementation code.
- * <p>
- * In general, a single query execution will consist of a number of calls to handleResultRows,
+ * <p>Callback interface for passing query results from the protocol-specific layer to the
+ * protocol-independent JDBC implementation code.</p>
+ *
+ * <p>In general, a single query execution will consist of a number of calls to handleResultRows,
  * handleCommandStatus, handleWarning, and handleError, followed by a single call to
  * handleCompletion when query execution is complete. If the caller wants to throw SQLException,
- * this can be done in handleCompletion.
- * <p>
- * Each executed query ends with a call to handleResultRows, handleCommandStatus, or handleError. If
- * an error occurs, subsequent queries won't generate callbacks.
+ * this can be done in handleCompletion.</p>
+ *
+ * <p>Each executed query ends with a call to handleResultRows, handleCommandStatus, or handleError. If
+ * an error occurs, subsequent queries won't generate callbacks.</p>
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */

@@ -12,5 +12,5 @@ public enum HostStatus {
   ConnectFail,
   ConnectOK,
   Master,
-  Slave
+  Secondary
 }

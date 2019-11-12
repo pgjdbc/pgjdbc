@@ -44,7 +44,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   private ArrayList<PooledConnection> connections = new ArrayList<PooledConnection>();
 
   /**
-   * Creates and configures a ConnectionPool
+   * Creates and configures a ConnectionPool.
    */
   @Override
   protected void initializeDataSource() {
@@ -157,7 +157,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   /**
    * Makes sure that if you get two connection wrappers from the same PooledConnection, they are
    * different, even though the represent the same physical connection. See JDBC 2.0 Optional
-   * Pacakge spec section 6.2.2
+   * Package spec section 6.2.2
    */
   @Test
   public void testPoolNewWrapper() {
@@ -186,21 +186,21 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       CountClose cc = new CountClose();
       pc.addConnectionEventListener(cc);
       con = pc.getConnection();
-      assertTrue(cc.getCount() == 0);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(0, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con.close();
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con = pc.getConnection();
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con.close();
-      assertTrue(cc.getCount() == 2);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(2, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       // a double close shouldn't fire additional events
       con.close();
-      assertTrue(cc.getCount() == 2);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(2, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       pc.close();
     } catch (SQLException e) {
       fail(e.getMessage());
@@ -217,18 +217,18 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       CountClose cc = new CountClose();
       pc.addConnectionEventListener(cc);
       con = pc.getConnection();
-      assertTrue(cc.getCount() == 0);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(0, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con.close();
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       pc.removeConnectionEventListener(cc);
       con = pc.getConnection();
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con.close();
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
     } catch (SQLException e) {
       fail(e.getMessage());
     }
@@ -269,22 +269,22 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       CountClose cc = new CountClose();
       pc.addConnectionEventListener(cc);
       con = pc.getConnection();
-      assertTrue(cc.getCount() == 0);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(0, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con.close();
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con = pc.getConnection();
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       // Open a 2nd connection, causing the first to be closed. No even should be generated.
       Connection con2 = pc.getConnection();
       assertTrue("Connection handle was not closed when new handle was opened", con.isClosed());
-      assertTrue(cc.getCount() == 1);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(1, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       con2.close();
-      assertTrue(cc.getCount() == 2);
-      assertTrue(cc.getErrorCount() == 0);
+      assertEquals(2, cc.getCount());
+      assertEquals(0, cc.getErrorCount());
       pc.close();
     } catch (SQLException e) {
       fail(e.getMessage());
@@ -363,8 +363,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       Statement s = con.createStatement();
       Connection conRetrieved = s.getConnection();
 
-      assertTrue(con.getClass().equals(conRetrieved.getClass()));
-      assertTrue(con.equals(conRetrieved));
+      assertEquals(con.getClass(), conRetrieved.getClass());
+      assertEquals(con, conRetrieved);
     } catch (SQLException e) {
       fail(e.getMessage());
     }
@@ -406,8 +406,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       PreparedStatement s = con.prepareStatement("select 'x'");
       Connection conRetrieved = s.getConnection();
 
-      assertTrue(con.getClass().equals(conRetrieved.getClass()));
-      assertTrue(con.equals(conRetrieved));
+      assertEquals(con.getClass(), conRetrieved.getClass());
+      assertEquals(con, conRetrieved);
     } catch (SQLException e) {
       fail(e.getMessage());
     }
@@ -425,8 +425,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       CallableStatement s = con.prepareCall("select 'x'");
       Connection conRetrieved = s.getConnection();
 
-      assertTrue(con.getClass().equals(conRetrieved.getClass()));
-      assertTrue(con.equals(conRetrieved));
+      assertEquals(con.getClass(), conRetrieved.getClass());
+      assertEquals(con, conRetrieved);
     } catch (SQLException e) {
       fail(e.getMessage());
     }

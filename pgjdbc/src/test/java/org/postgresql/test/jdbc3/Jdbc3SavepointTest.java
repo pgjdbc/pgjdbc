@@ -23,20 +23,20 @@ import java.sql.Statement;
 
 public class Jdbc3SavepointTest {
 
-  private Connection _conn;
+  private Connection conn;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.createTable(_conn, "savepointtable", "id int primary key");
-    _conn.setAutoCommit(false);
+    conn = TestUtil.openDB();
+    TestUtil.createTable(conn, "savepointtable", "id int primary key");
+    conn.setAutoCommit(false);
   }
 
   @After
   public void tearDown() throws SQLException {
-    _conn.setAutoCommit(true);
-    TestUtil.dropTable(_conn, "savepointtable");
-    TestUtil.closeDB(_conn);
+    conn.setAutoCommit(true);
+    TestUtil.dropTable(conn, "savepointtable");
+    TestUtil.closeDB(conn);
   }
 
   private boolean hasSavepoints() throws SQLException {
@@ -44,14 +44,14 @@ public class Jdbc3SavepointTest {
   }
 
   private void addRow(int id) throws SQLException {
-    PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO savepointtable VALUES (?)");
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO savepointtable VALUES (?)");
     pstmt.setInt(1, id);
     pstmt.executeUpdate();
     pstmt.close();
   }
 
   private int countRows() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM savepointtable");
     rs.next();
     int count = rs.getInt(1);
@@ -65,16 +65,16 @@ public class Jdbc3SavepointTest {
       return;
     }
 
-    _conn.setAutoCommit(true);
+    conn.setAutoCommit(true);
 
     try {
-      _conn.setSavepoint();
+      conn.setSavepoint();
       fail("Can't create a savepoint with autocommit.");
     } catch (SQLException sqle) {
     }
 
     try {
-      _conn.setSavepoint("spname");
+      conn.setSavepoint("spname");
       fail("Can't create a savepoint with autocommit.");
     } catch (SQLException sqle) {
     }
@@ -86,8 +86,8 @@ public class Jdbc3SavepointTest {
       return;
     }
 
-    Savepoint namedSavepoint = _conn.setSavepoint("named");
-    Savepoint unNamedSavepoint = _conn.setSavepoint();
+    Savepoint namedSavepoint = conn.setSavepoint("named");
+    Savepoint unNamedSavepoint = conn.setSavepoint();
 
     try {
       namedSavepoint.getSavepointId();
@@ -109,15 +109,15 @@ public class Jdbc3SavepointTest {
       return;
     }
 
-    Savepoint empty = _conn.setSavepoint();
+    Savepoint empty = conn.setSavepoint();
     addRow(1);
-    Savepoint onerow = _conn.setSavepoint("onerow");
+    Savepoint onerow = conn.setSavepoint("onerow");
     addRow(2);
 
     assertEquals(2, countRows());
-    _conn.rollback(onerow);
+    conn.rollback(onerow);
     assertEquals(1, countRows());
-    _conn.rollback(empty);
+    conn.rollback(empty);
     assertEquals(0, countRows());
   }
 
@@ -127,13 +127,13 @@ public class Jdbc3SavepointTest {
       return;
     }
 
-    _conn.setSavepoint();
+    conn.setSavepoint();
     addRow(1);
-    _conn.setSavepoint("onerow");
+    conn.setSavepoint("onerow");
     addRow(2);
 
     assertEquals(2, countRows());
-    _conn.rollback();
+    conn.rollback();
     assertEquals(0, countRows());
   }
 
@@ -144,12 +144,12 @@ public class Jdbc3SavepointTest {
     }
 
     addRow(1);
-    Savepoint savepoint = _conn.setSavepoint();
+    Savepoint savepoint = conn.setSavepoint();
     try {
       addRow(1);
       fail("Should have thrown duplicate key exception");
     } catch (SQLException sqle) {
-      _conn.rollback(savepoint);
+      conn.rollback(savepoint);
     }
 
     assertEquals(1, countRows());
@@ -163,16 +163,16 @@ public class Jdbc3SavepointTest {
       return;
     }
 
-    Savepoint savepoint = _conn.setSavepoint("mysavepoint");
-    _conn.releaseSavepoint(savepoint);
+    Savepoint savepoint = conn.setSavepoint("mysavepoint");
+    conn.releaseSavepoint(savepoint);
     try {
       savepoint.getSavepointName();
       fail("Can't use savepoint after release.");
     } catch (SQLException sqle) {
     }
 
-    savepoint = _conn.setSavepoint();
-    _conn.releaseSavepoint(savepoint);
+    savepoint = conn.setSavepoint();
+    conn.releaseSavepoint(savepoint);
     try {
       savepoint.getSavepointId();
       fail("Can't use savepoint after release.");
@@ -186,9 +186,9 @@ public class Jdbc3SavepointTest {
       return;
     }
 
-    Savepoint savepoint = _conn.setSavepoint("name with spaces + \"quotes\"");
-    _conn.rollback(savepoint);
-    _conn.releaseSavepoint(savepoint);
+    Savepoint savepoint = conn.setSavepoint("name with spaces + \"quotes\"");
+    conn.rollback(savepoint);
+    conn.releaseSavepoint(savepoint);
   }
 
   @Test
@@ -197,12 +197,12 @@ public class Jdbc3SavepointTest {
       return;
     }
 
-    Savepoint sp1 = _conn.setSavepoint();
-    Savepoint sp2 = _conn.setSavepoint();
+    Savepoint sp1 = conn.setSavepoint();
+    Savepoint sp2 = conn.setSavepoint();
 
-    _conn.rollback(sp1);
+    conn.rollback(sp1);
     try {
-      _conn.rollback(sp2);
+      conn.rollback(sp2);
       fail("Can't rollback to a savepoint that's invalid.");
     } catch (SQLException sqle) {
     }
@@ -215,20 +215,20 @@ public class Jdbc3SavepointTest {
     }
 
     addRow(1);
-    Savepoint savepoint = _conn.setSavepoint();
+    Savepoint savepoint = conn.setSavepoint();
 
     addRow(2);
-    _conn.rollback(savepoint);
+    conn.rollback(savepoint);
     assertEquals(1, countRows());
 
-    _conn.rollback(savepoint);
+    conn.rollback(savepoint);
     assertEquals(1, countRows());
 
     addRow(2);
-    _conn.rollback(savepoint);
+    conn.rollback(savepoint);
     assertEquals(1, countRows());
 
-    _conn.releaseSavepoint(savepoint);
+    conn.releaseSavepoint(savepoint);
     assertEquals(1, countRows());
   }
 

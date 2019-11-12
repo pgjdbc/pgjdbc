@@ -16,6 +16,7 @@ import java.util.Arrays;
  */
 class QueryWithReturningColumnsKey extends BaseQueryKey {
   public final String[] columnNames;
+  private int size; // query length cannot exceed MAX_INT
 
   QueryWithReturningColumnsKey(String sql, boolean isParameterized, boolean escapeProcessing,
       String[] columnNames) {
@@ -25,6 +26,23 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
       columnNames = new String[]{"*"};
     }
     this.columnNames = columnNames;
+  }
+
+  @Override
+  public long getSize() {
+    int size = this.size;
+    if (size != 0) {
+      return size;
+    }
+    size = (int) super.getSize();
+    if (columnNames != null) {
+      size += 16L; // array itself
+      for (String columnName: columnNames) {
+        size += columnName.length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
+      }
+    }
+    this.size = size;
+    return size;
   }
 
   @Override

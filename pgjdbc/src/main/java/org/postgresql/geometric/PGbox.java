@@ -56,7 +56,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   }
 
   /**
-   * Required constructor
+   * Required constructor.
    */
   public PGbox() {
     setType("box");

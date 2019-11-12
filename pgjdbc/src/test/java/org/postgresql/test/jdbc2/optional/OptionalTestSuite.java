@@ -17,6 +17,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({SimpleDataSourceTest.class,
         SimpleDataSourceWithUrlTest.class,
+        SimpleDataSourceWithSetURLTest.class,
         ConnectionPoolTest.class,
         PoolingDataSourceTest.class,
         CaseOptimiserDataSourceTest.class})

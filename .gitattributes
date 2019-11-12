@@ -6,3 +6,5 @@
 *.xml text
 *.yaml text
 *.yml text
+/CHANGELOG.md merge=union
+/contributors.json merge=union

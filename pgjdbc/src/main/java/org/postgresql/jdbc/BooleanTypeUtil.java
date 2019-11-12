@@ -13,10 +13,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Helper class to handle boolean type of PostgreSQL.
- * <p>
- * Based on values accepted by the PostgreSQL server:
- * https://www.postgresql.org/docs/current/static/datatype-boolean.html
+ * <p>Helper class to handle boolean type of PostgreSQL.</p>
+ *
+ * <p>Based on values accepted by the PostgreSQL server:
+ * https://www.postgresql.org/docs/current/static/datatype-boolean.html</p>
  */
 class BooleanTypeUtil {
 

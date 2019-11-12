@@ -26,15 +26,19 @@ import java.util.Properties;
 public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   private final AutoCommit autoCommit;
 
-  public BatchedInsertReWriteEnabledTest(AutoCommit autoCommit) {
+  public BatchedInsertReWriteEnabledTest(AutoCommit autoCommit,
+      BinaryMode binaryMode) {
     this.autoCommit = autoCommit;
+    setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "{index}: autoCommit={0}")
+  @Parameterized.Parameters(name = "{index}: autoCommit={0}, binary={1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (AutoCommit autoCommit : AutoCommit.values()) {
-      ids.add(new Object[]{autoCommit});
+      for (BinaryMode binaryMode : BinaryMode.values()) {
+        ids.add(new Object[]{autoCommit, binaryMode});
+      }
     }
     return ids;
   }
@@ -181,7 +185,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   /**
-   * Test to make sure a statement with a semicolon is not broken
+   * Test to make sure a statement with a semicolon is not broken.
    */
   private void simpleRewriteBatch(String values, String suffix)
       throws SQLException {
@@ -212,7 +216,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   /**
-   * Test to make sure a statement with a semicolon is not broken
+   * Test to make sure a statement with a semicolon is not broken.
    */
   @Test
   public void testBatchWithReWrittenBatchStatementWithSemiColon()
@@ -221,7 +225,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   /**
-   * Test to make sure a statement with a semicolon is not broken
+   * Test to make sure a statement with a semicolon is not broken.
    */
   @Test
   public void testBatchWithReWrittenSpaceAfterValues()
@@ -243,7 +247,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   /**
-   * Test to make sure a statement with a semicolon is not broken
+   * Test to make sure a statement with a semicolon is not broken.
    */
   @Test
   public void testBindsInNestedParens()
@@ -270,7 +274,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   /**
-   * Test to make sure a statement with a semicolon is not broken
+   * Test to make sure a statement with a semicolon is not broken.
    */
   @Test
   public void testMultiValues1bind()

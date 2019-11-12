@@ -135,6 +135,15 @@ public class ParserTest {
   }
 
   @Test
+  public void testModifyJdbcCall() throws SQLException {
+    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(), 3).getSql());
+  }
+
+  @Test
   public void testUnterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
   }
@@ -146,7 +155,7 @@ public class ParserTest {
         "insert test(id, name) select 1, 'value' as RETURNING from test2";
     List<NativeQuery> qry =
         Parser.parseJdbcSql(
-            query, true, true, true, true, new String[0]);
+            query, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertFalse("Query does not have returning clause " + query, returningKeywordPresent);
   }
@@ -157,8 +166,54 @@ public class ParserTest {
         "insert test(id, name) select 1, 'value' from test2 RETURNING id";
     List<NativeQuery> qry =
         Parser.parseJdbcSql(
-            query, true, true, true, true, new String[0]);
+            query, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
     Assert.assertTrue("Query has a returning clause " + query, returningKeywordPresent);
+  }
+
+  @Test
+  public void insertReturningInWith() throws SQLException {
+    String query =
+        "with x as (insert into mytab(x) values(1) returning x) insert test(id, name) select 1, 'value' from test2";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(
+            query, true, true, true, true);
+    boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
+    Assert.assertFalse("There's no top-level <<returning>> clause " + query, returningKeywordPresent);
+  }
+
+  @Test
+  public void insertBatchedReWriteOnConflict() throws SQLException {
+    String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
+  }
+
+  @Test
+  public void insertBatchedReWriteOnConflictUpdateBind() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("update set name=? is NOT compatible with insert rewrite", command.isBatchedReWriteCompatible());
+  }
+
+  @Test
+  public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertTrue("update set name='default' is compatible with insert rewrite", command.isBatchedReWriteCompatible());
+  }
+
+  @Test
+  public void insertMultiInsert() throws SQLException {
+    String query =
+        "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
   }
 }
