@@ -24,6 +24,11 @@ public class PSQLException extends SQLException {
     this.serverError = serverError;
   }
 
+  public PSQLException(ServerErrorMessage serverError, String sqlText) {
+    super(serverError.toString(sqlText), serverError.getSQLState());
+    this.serverError = serverError;
+  }
+
   public ServerErrorMessage getServerErrorMessage() {
     return serverError;
   }

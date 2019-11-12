@@ -143,7 +143,7 @@ public class ServerErrorMessage implements Serializable {
     return Integer.parseInt(s);
   }
 
-  public String toString() {
+  public String toString(String sqlText) {
     // Now construct the message from what the server sent
     // The general format is:
     // SEVERITY: Message \n
@@ -179,10 +179,21 @@ public class ServerErrorMessage implements Serializable {
     if (message != null) {
       totalMessage.append("\n  ").append(GT.tr("Hint: {0}", message));
     }
+
     message = mesgParts.get(POSITION);
     if (message != null) {
+      if (!sqlText.equals("")) {
+        totalMessage.append("\n  ").append(sqlText);
+        totalMessage.append("\n  ");
+        int pos = Integer.parseInt(message);
+        while (--pos != 0) {
+          totalMessage.append(" ");
+        }
+        totalMessage.append("^");
+      }
       totalMessage.append("\n  ").append(GT.tr("Position: {0}", message));
     }
+
     message = mesgParts.get(WHERE);
     if (message != null) {
       totalMessage.append("\n  ").append(GT.tr("Where: {0}", message));
@@ -193,6 +204,7 @@ public class ServerErrorMessage implements Serializable {
       if (internalQuery != null) {
         totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", internalQuery));
       }
+
       String internalPosition = mesgParts.get(INTERNAL_POSITION);
       if (internalPosition != null) {
         totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", internalPosition));
@@ -213,4 +225,9 @@ public class ServerErrorMessage implements Serializable {
 
     return totalMessage.toString();
   }
+
+  public String toString() {
+    return toString("");
+  }
+
 }
