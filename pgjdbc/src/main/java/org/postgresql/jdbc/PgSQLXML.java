@@ -175,6 +175,7 @@ public class PgSQLXML implements SQLXML {
   public synchronized Writer setCharacterStream() throws SQLException {
     checkFreed();
     initialize();
+    active = true;
     stringWriter = new StringWriter();
     return stringWriter;
   }
