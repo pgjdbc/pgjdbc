@@ -477,9 +477,10 @@ Connection conn = DriverManager.getConnection(url);
 ## Unix sockets
 
 Aleksander Blomskøld has forked junixsocket and added a [Unix SocketFactory](https://github.com/fiken/junixsocket/blob/master/junixsocket-common/src/main/java/org/newsclub/net/unix/socketfactory/PostgresqlAFUNIXSocketFactory.java) that works with the driver.
-His code can be found at https://github.com/fiken/junixsocket.
+His code can be found at [https://github.com/fiken/junixsocket](https://github.com/fiken/junixsocket).
 
 Dependencies for junixsocket are :
+
 ```xml
 <dependency>
   <groupId>no.fiken.oss.junixsocket</groupId>
