@@ -517,7 +517,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-            throw new PSQLException(errorMsg);
+            throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
 
           case 'R':
             // Authentication request.
@@ -647,7 +647,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
                       PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
-                      PGProperty.JAAS_LOGIN.getBoolean(info));
+                      PGProperty.JAAS_LOGIN.getBoolean(info),
+                      PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                 }
                 break;
 

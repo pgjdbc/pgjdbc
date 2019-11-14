@@ -143,6 +143,19 @@ public class ServerErrorMessage implements Serializable {
     return Integer.parseInt(s);
   }
 
+  String getNonSensitiveErrorMessage() {
+    StringBuilder totalMessage = new StringBuilder();
+    String message = mesgParts.get(SEVERITY);
+    if (message != null) {
+      totalMessage.append(message).append(": ");
+    }
+    message = mesgParts.get(MESSAGE);
+    if (message != null) {
+      totalMessage.append(message);
+    }
+    return totalMessage.toString();
+  }
+
   public String toString() {
     // Now construct the message from what the server sent
     // The general format is:

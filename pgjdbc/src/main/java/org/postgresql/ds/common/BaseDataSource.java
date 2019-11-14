@@ -929,6 +929,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if driver should log include detail in server error messages
+   * @see PGProperty#LOG_SERVER_ERROR_DETAIL
+   */
+  public boolean getLogServerErrorDetail() {
+    return PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(properties);
+  }
+
+  /**
+   * @param enabled true if driver should include detail in server error messages
+   * @see PGProperty#LOG_SERVER_ERROR_DETAIL
+   */
+  public void setLogServerErrorDetail(boolean enabled) {
+    PGProperty.LOG_SERVER_ERROR_DETAIL.set(properties, enabled);
+  }
+
+  /**
    * @return assumed minimal server version
    * @see PGProperty#ASSUME_MIN_SERVER_VERSION
    */

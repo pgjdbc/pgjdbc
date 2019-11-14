@@ -2500,7 +2500,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg.toString());
     }
 
-    PSQLException error = new PSQLException(errorMsg);
+    PSQLException error = new PSQLException(errorMsg, this.logServerErrorDetail);
     if (transactionFailCause == null) {
       transactionFailCause = error;
     } else {
