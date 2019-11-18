@@ -46,7 +46,7 @@ public class MakeSSL extends ObjectFactory {
     return SSLContext.getInstance(sslProtocol);
   }
 
-  public static void convert(PGStream stream, Properties info, Logger logger)
+  public static void convert(PGStream stream, Properties info)
       throws PSQLException, IOException {
     
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
