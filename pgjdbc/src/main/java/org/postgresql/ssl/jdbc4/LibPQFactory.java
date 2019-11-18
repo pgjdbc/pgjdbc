@@ -31,7 +31,6 @@ public class LibPQFactory extends org.postgresql.ssl.LibPQFactory implements Hos
   public LibPQFactory(Properties info) throws PSQLException {
 
     super(info);
-    
     sslMode = SslMode.of(info);
   }
 
