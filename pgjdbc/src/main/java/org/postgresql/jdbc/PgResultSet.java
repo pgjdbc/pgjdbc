@@ -1852,14 +1852,24 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void close() throws SQLException {
     try {
-      // release resources held (memory for tuples)
-      rows = null;
-      if (cursor != null) {
-        cursor.close();
-        cursor = null;
-      }
+      closeInternally();
     } finally {
       ((PgStatement) statement).checkCompletion();
+    }
+  }
+
+  /*
+  used by PgStatement.closeForNextExecution to avoid
+  closing the firstUnclosedResult twice.
+  checkCompletion above modifies firstUnclosedResult
+  fixes issue #684
+   */
+  protected void closeInternally() throws SQLException {
+    // release resources held (memory for tuples)
+    rows = null;
+    if (cursor != null) {
+      cursor.close();
+      cursor = null;
     }
   }
 

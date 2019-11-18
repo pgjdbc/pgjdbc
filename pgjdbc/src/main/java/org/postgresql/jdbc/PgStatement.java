@@ -125,7 +125,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The first unclosed result.
    */
-  protected ResultWrapper firstUnclosedResult = null;
+  protected volatile ResultWrapper firstUnclosedResult = null;
 
   /**
    * Results returned by a statement that wants generated keys.
@@ -327,9 +327,9 @@ public class PgStatement implements Statement, BaseStatement {
     // Close any existing resultsets associated with this statement.
     synchronized (this) {
       while (firstUnclosedResult != null) {
-        ResultSet rs = firstUnclosedResult.getResultSet();
+        PgResultSet rs = (PgResultSet)firstUnclosedResult.getResultSet();
         if (rs != null) {
-          rs.close();
+          rs.closeInternally();
         }
         firstUnclosedResult = firstUnclosedResult.getNext();
       }
