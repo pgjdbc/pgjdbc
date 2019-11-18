@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Array assistants register here
+ * Array assistants register here.
  *
  * @author Minglei Tu
  */

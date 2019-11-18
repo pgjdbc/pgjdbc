@@ -5,7 +5,6 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import junit.framework.TestSuite;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -16,11 +15,15 @@ import org.junit.runners.Suite;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({SimpleDataSourceTest.class,
-        SimpleDataSourceWithUrlTest.class,
+@Suite.SuiteClasses({
+        BaseDataSourceFailoverUrlsTest.class,
+        CaseOptimiserDataSourceTest.class,
         ConnectionPoolTest.class,
         PoolingDataSourceTest.class,
-        CaseOptimiserDataSourceTest.class})
-public class OptionalTestSuite extends TestSuite {
+        SimpleDataSourceTest.class,
+        SimpleDataSourceWithSetURLTest.class,
+        SimpleDataSourceWithUrlTest.class,
+})
+public class OptionalTestSuite {
 
 }

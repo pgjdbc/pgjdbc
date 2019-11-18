@@ -1,21 +1,18 @@
-FROM index.docker.io/fedora:24
+FROM index.docker.io/fedora:27
 MAINTAINER pgjdbc team
 
 ENV HOME=/rpm
 ENV container="docker"
 
-RUN dnf -y --setopt=tsflags=nodocs install \
+RUN dnf -y --setopt=tsflags=nodocs install dnf-plugins-core \
+    && dnf -y copr enable praiskup/srpm-tools \
+    && dnf -y --setopt=tsflags=nodocs install \
+        srpm-tools \
         copr-cli \
-        git \
-        perl \
-        perl-YAML \
-        rpm-build \
-        rpmdevtools \
-    && dnf -y --setopt=tsflags=nodocs clean all --enablerepo='*' \
-    && dnf -y update copr-cli python-copr --enablerepo updates-testing
+    && dnf -y --setopt=tsflags=nodocs clean all --enablerepo='*'
 
-ADD build_local copr-ci-git srpmgen /usr/bin/
-RUN chmod +rx /usr/bin/{build_local,copr-ci-git,srpmgen}
+ADD copr-ci-git /usr/bin/
+RUN chmod +rx /usr/bin/copr-ci-git
 
 WORKDIR /rpm
 

@@ -24,12 +24,14 @@ public enum ServerVersion implements Version {
   v9_4("9.4.0"),
   v9_5("9.5.0"),
   v9_6("9.6.0"),
-  v10("10")
+  v10("10"),
+  v11("11"),
+  v12("12")
   ;
 
   private final int version;
 
-  private ServerVersion(String version) {
+  ServerVersion(String version) {
     this.version = parseServerVersionStr(version);
   }
 
@@ -44,10 +46,10 @@ public enum ServerVersion implements Version {
   }
 
   /**
-   * Attempt to parse the server version string into an XXYYZZ form version number into a
-   * {@link Version}.
+   * <p>Attempt to parse the server version string into an XXYYZZ form version number into a
+   * {@link Version}.</p>
    *
-   * If the specified version cannot be parsed, the {@link Version#getVersionNum()} will return 0.
+   * <p>If the specified version cannot be parsed, the {@link Version#getVersionNum()} will return 0.</p>
    *
    * @param version version in numeric XXYYZZ form, e.g. "090401" for 9.4.1
    * @return a {@link Version} representing the specified version string.
@@ -81,18 +83,18 @@ public enum ServerVersion implements Version {
   }
 
   /**
-   * Attempt to parse the server version string into an XXYYZZ form version number.
+   * <p>Attempt to parse the server version string into an XXYYZZ form version number.</p>
    *
-   * Returns 0 if the version could not be parsed.
+   * <p>Returns 0 if the version could not be parsed.</p>
    *
-   * Returns minor version 0 if the minor version could not be determined, e.g. devel or beta
-   * releases.
+   * <p>Returns minor version 0 if the minor version could not be determined, e.g. devel or beta
+   * releases.</p>
    *
-   * If a single major part like 90400 is passed, it's assumed to be a pre-parsed version and
-   * returned verbatim. (Anything equal to or greater than 10000 is presumed to be this form).
+   * <p>If a single major part like 90400 is passed, it's assumed to be a pre-parsed version and
+   * returned verbatim. (Anything equal to or greater than 10000 is presumed to be this form).</p>
    *
-   * The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
-   * version part is out of range.
+   * <p>The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
+   * version part is out of range.</p>
    *
    * @param serverVersion server vertion in a XXYYZZ form
    * @return server version in number form
@@ -138,7 +140,13 @@ public enum ServerVersion implements Version {
       }
     }
 
-    if (versionParts == 3) {
+    /* #667 - Allow for versions with greater than 3 parts.
+      For versions with more than 3 parts, still return 3 parts (4th part ignored for now
+      as no functionality is dependent on the 4th part .
+      Allows for future versions of the server to utilize more than 3 part version numbers
+      without upgrading the jdbc driver */
+
+    if (versionParts >= 3) {
       if (parts[1] > 99) {
         throw new NumberFormatException(
             "Unsupported second part of major version > 99 in invalid version string: "

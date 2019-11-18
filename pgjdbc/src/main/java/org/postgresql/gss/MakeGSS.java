@@ -5,7 +5,6 @@
 
 package org.postgresql.gss;
 
-import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -18,19 +17,21 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 
-
 public class MakeGSS {
 
+  private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
+
   public static void authenticate(PGStream pgStream, String host, String user, String password,
-      String jaasApplicationName, String kerberosServerName, Logger logger, boolean useSpnego)
+      String jaasApplicationName, String kerberosServerName, boolean useSpnego, boolean jaasLogin,
+      boolean logServerErrorDetail)
           throws IOException, SQLException {
-    if (logger.logDebug()) {
-      logger.debug(" <=BE AuthenticationReqGSS");
-    }
+    LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
 
     if (jaasApplicationName == null) {
       jaasApplicationName = "pgjdbc";
@@ -41,7 +42,7 @@ public class MakeGSS {
 
     Exception result;
     try {
-      boolean performAuthentication = true;
+      boolean performAuthentication = jaasLogin;
       GSSCredential gssCredential = null;
       Subject sub = Subject.getSubject(AccessController.getContext());
       if (sub != null) {
@@ -58,7 +59,7 @@ public class MakeGSS {
         sub = lc.getSubject();
       }
       PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user,
-          kerberosServerName, logger, useSpnego);
+          kerberosServerName, useSpnego, logServerErrorDetail);
 
       result = Subject.doAs(sub, action);
     } catch (Exception e) {

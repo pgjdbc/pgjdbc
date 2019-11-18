@@ -12,6 +12,7 @@ package org.postgresql;
  *             code should call getString() on the ResultSet that contains the refcursor to obtain
  *             the underlying cursor name.
  */
+@Deprecated
 public interface PGRefCursorResultSet {
 
   /**
@@ -19,5 +20,6 @@ public interface PGRefCursorResultSet {
    * @deprecated As of 8.0, replaced with calling getString() on the ResultSet that this ResultSet
    *             was obtained from.
    */
+  @Deprecated
   String getRefCursor();
 }

@@ -25,18 +25,17 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
- * Array is used collect one column of query result data.
+ * <p>Array is used collect one column of query result data.</p>
  *
- * <p>
- * Read a field of type Array into either a natively-typed Java array object or a ResultSet.
- * Accessor methods provide the ability to capture array slices.
+ * <p>Read a field of type Array into either a natively-typed Java array object or a ResultSet.
+ * Accessor methods provide the ability to capture array slices.</p>
  *
- * <p>
- * Other than the constructor all methods are direct implementations of those specified for
+ * <p>Other than the constructor all methods are direct implementations of those specified for
  * java.sql.Array. Please refer to the javadoc for java.sql.Array for detailed descriptions of the
- * functionality and parameters of the methods of this class.
+ * functionality and parameters of the methods of this class.</p>
  *
  * @see ResultSet#getArray
  */
@@ -249,6 +248,9 @@ public class PgArray implements java.sql.Array {
             Encoding encoding = connection.getEncoding();
             arr[i] = encoding.decode(fieldBytes, pos, len);
             break;
+          case Oid.BOOL:
+            arr[i] = ByteConverter.bool(fieldBytes, pos);
+            break;
           default:
             ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
             if (arrAssistant != null) {
@@ -264,7 +266,6 @@ public class PgArray implements java.sql.Array {
     }
     return pos;
   }
-
 
   private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
@@ -391,6 +392,8 @@ public class PgArray implements java.sql.Array {
       case Oid.TEXT:
       case Oid.VARCHAR:
         return String.class;
+      case Oid.BOOL:
+        return Boolean.class;
       default:
         ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
         if (arrElemBuilder != null) {
@@ -577,12 +580,36 @@ public class PgArray implements java.sql.Array {
 
         if (dims > 1 || useObjects) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toBoolean((String) o));
+            : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : BooleanTypeUtil.castToBoolean((String) o));
         } else {
-          pa[length++] = o == null ? false : PgResultSet.toBoolean((String) o);
+          pa[length++] = o == null ? false : BooleanTypeUtil.castToBoolean((String) o);
         }
       }
-    } else if (type == Types.SMALLINT || type == Types.INTEGER) {
+    } else if (type == Types.SMALLINT) {
+      short[] pa = null;
+      Object[] oa = null;
+
+      if (dims > 1 || useObjects) {
+        ret =
+            oa = (dims > 1
+                ? (Object[]) java.lang.reflect.Array
+                    .newInstance(useObjects ? Short.class : short.class, dimsLength)
+                : new Short[count]);
+      } else {
+        ret = pa = new short[count];
+      }
+
+      for (; count > 0; count--) {
+        Object o = input.get(index++);
+
+        if (dims > 1 || useObjects) {
+          oa[length++] = o == null ? null
+              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
+        } else {
+          pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
+        }
+      }
+    } else if (type == Types.INTEGER) {
       int[] pa = null;
       Object[] oa = null;
 
@@ -762,9 +789,7 @@ public class PgArray implements java.sql.Array {
       ret = oa;
     } else {
       // other datatypes not currently supported
-      if (connection.getLogger().logDebug()) {
-        connection.getLogger().debug("getArrayImpl(long,int,Map) with " + getBaseTypeName());
-      }
+      connection.getLogger().log(Level.FINEST, "getArrayImpl(long,int,Map) with {0}", getBaseTypeName());
 
       throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
     }
@@ -877,11 +902,18 @@ public class PgArray implements java.sql.Array {
   public String toString() {
     if (fieldString == null && fieldBytes != null) {
       try {
-        Object array = readBinaryArray(1,0);
-        java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
-        fieldString = tmpArray.toString();
+        Object array = readBinaryArray(1, 0);
+
+        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
+        if (arraySupport != null) {
+          fieldString =
+            arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+        } else {
+          java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
+          fieldString = tmpArray.toString();
+        }
       } catch (SQLException e) {
-        fieldString = "NULL"; //punt
+        fieldString = "NULL"; // punt
       }
     }
     return fieldString;

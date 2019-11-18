@@ -17,7 +17,13 @@ import java.sql.SQLException;
 /**
  * Each fastpath call requires an array of arguments, the number and type dependent on the function
  * being called.
+ *
+ * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+ *         and greater functionality by setting up a prepared statement to define
+ *         the function call. Then, executing the statement with binary transmission of parameters
+ *         and results substitutes for a fast-path function call.
  */
+@Deprecated
 public class FastpathArg {
   /**
    * Encoded byte value of argument.
@@ -27,7 +33,7 @@ public class FastpathArg {
   private final int bytesLength;
 
   /**
-   * Constructs an argument that consists of an integer value
+   * Constructs an argument that consists of an integer value.
    *
    * @param value int value to set
    */
@@ -42,7 +48,7 @@ public class FastpathArg {
   }
 
   /**
-   * Constructs an argument that consists of an integer value
+   * Constructs an argument that consists of an integer value.
    *
    * @param value int value to set
    */
@@ -61,22 +67,22 @@ public class FastpathArg {
   }
 
   /**
-   * Constructs an argument that consists of an array of bytes
+   * Constructs an argument that consists of an array of bytes.
    *
    * @param bytes array to store
    */
-  public FastpathArg(byte bytes[]) {
+  public FastpathArg(byte[] bytes) {
     this(bytes, 0, bytes.length);
   }
 
   /**
-   * Constructs an argument that consists of part of a byte array
+   * Constructs an argument that consists of part of a byte array.
    *
    * @param buf source array
    * @param off offset within array
    * @param len length of data to include
    */
-  public FastpathArg(byte buf[], int off, int len) {
+  public FastpathArg(byte[] buf, int off, int len) {
     this.bytes = buf;
     this.bytesStart = off;
     this.bytesLength = len;

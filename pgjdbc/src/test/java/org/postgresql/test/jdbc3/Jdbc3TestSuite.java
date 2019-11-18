@@ -5,39 +5,28 @@
 
 package org.postgresql.test.jdbc3;
 
-import org.postgresql.test.TestUtil;
-
-import junit.framework.JUnit4TestAdapter;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for JDBC3
  */
-public class Jdbc3TestSuite extends TestSuite {
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+    CompositeQueryParseTest.class,
+    CompositeTest.class,
+    DatabaseMetaDataTest.class,
+    GeneratedKeysTest.class,
+    Jdbc3BlobTest.class,
+    Jdbc3CallableStatementTest.class,
+    Jdbc3SavepointTest.class,
+    ParameterMetaDataTest.class,
+    ResultSetTest.class,
+    SendRecvBufferSizeTest.class,
+    SqlCommandParseTest.class,
+    StringTypeParameterTest.class,
+    TypesTest.class,
+})
+public class Jdbc3TestSuite {
 
-  /*
-   * The main entry point for JUnit
-   */
-  public static TestSuite suite() throws Exception {
-    TestSuite suite = new TestSuite();
-    try {
-      java.sql.Connection con = TestUtil.openDB();
-
-      suite.addTest(new JUnit4TestAdapter(Jdbc3CallableStatementTest.class));
-      suite.addTest(new JUnit4TestAdapter(GeneratedKeysTest.class));
-      con.close();
-    } catch (Exception ex) {
-      ex.printStackTrace();
-    }
-    suite.addTestSuite(CompositeQueryParseTest.class);
-    suite.addTestSuite(Jdbc3SavepointTest.class);
-    suite.addTest(new JUnit4TestAdapter(TypesTest.class));
-    suite.addTestSuite(ResultSetTest.class);
-    suite.addTest(new JUnit4TestAdapter(ParameterMetaDataTest.class));
-    suite.addTestSuite(Jdbc3BlobTest.class);
-    suite.addTestSuite(DatabaseMetaDataTest.class);
-    suite.addTestSuite(SendRecvBufferSizeTest.class);
-    suite.addTestSuite(StringTypeParameterTest.class);
-    return suite;
-  }
 }

@@ -14,17 +14,19 @@ import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * Abstracts the protocol-specific details of executing a query.
- * <p>
- * Every connection has a single QueryExecutor implementation associated with it. This object
- * provides:
+ * <p>Abstracts the protocol-specific details of executing a query.</p>
+ *
+ * <p>Every connection has a single QueryExecutor implementation associated with it. This object
+ * provides:</p>
  *
  * <ul>
  * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
@@ -35,18 +37,16 @@ import java.util.TimeZone;
  * <li>a fastpath call interface ({@link #createFastpathParameters} and {@link #fastpathCall}).
  * </ul>
  *
- * <p>
- * Query objects may represent a query that has parameter placeholders. To provide actual values for
+ * <p>Query objects may represent a query that has parameter placeholders. To provide actual values for
  * these parameters, a {@link ParameterList} object is created via a factory method (
  * {@link Query#createParameterList}). The parameters are filled in by the caller and passed along
  * with the query to the query execution methods. Several ParameterLists for a given query might
  * exist at one time (or over time); this allows the underlying Query to be reused for several
- * executions, or for batch execution of the same Query.
+ * executions, or for batch execution of the same Query.</p>
  *
- * <p>
- * In general, a Query created by a particular QueryExecutor may only be executed by that
+ * <p>In general, a Query created by a particular QueryExecutor may only be executed by that
  * QueryExecutor, and a ParameterList created by a particular Query may only be used as parameters
- * to that Query. Unpredictable things will happen if this isn't done.
+ * to that Query. Unpredictable things will happen if this isn't done.</p>
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
@@ -118,6 +118,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * separated with ';' as a single command.
    */
   int QUERY_EXECUTE_AS_SIMPLE = 1024;
+
+  int MAX_SAVE_POINTS = 1000;
 
   /**
    * Execute a Query, passing results to a provided ResultHandler.
@@ -201,7 +203,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void releaseQuery(CachedQuery cachedQuery);
 
   /**
-   * Wrap given native query into a ready for execution format
+   * Wrap given native query into a ready for execution format.
    * @param queries list of queries in native to database syntax
    * @return query object ready for execution by this query executor
    */
@@ -217,6 +219,17 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    */
   void processNotifies() throws SQLException;
 
+  /**
+   * Prior to attempting to retrieve notifications, we need to pull any recently received
+   * notifications off of the network buffers. The notification retrieval in ProtocolConnection
+   * cannot do this as it is prone to deadlock, so the higher level caller must be responsible which
+   * requires exposing this method. This variant supports blocking for the given time in millis.
+   *
+   * @param timeoutMillis number of milliseconds to block for
+   * @throws SQLException if and error occurs while fetching notifications
+   */
+  void processNotifies(int timeoutMillis) throws SQLException;
+
   //
   // Fastpath interface.
   //
@@ -227,7 +240,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    *
    * @param count the number of parameters the fastpath call will take
    * @return a ParameterList suitable for passing to {@link #fastpathCall}.
+   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+   *         and greater functionality by setting up a prepared statement to define
+   *         the function call. Then, executing the statement with binary transmission of parameters
+   *         and results substitutes for a fast-path function call.
    */
+  @Deprecated
   ParameterList createFastpathParameters(int count);
 
   /**
@@ -240,7 +258,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @return the binary-format result of the fastpath call, or <code>null</code> if a void result
    *         was returned
    * @throws SQLException if an error occurs while executing the fastpath call
+   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+   *         and greater functionality by setting up a prepared statement to define
+   *         the function call. Then, executing the statement with binary transmission of parameters
+   *         and results substitutes for a fast-path function call.
    */
+  @Deprecated
   byte[] fastpathCall(int fnid, ParameterList params, boolean suppressBegin) throws SQLException;
 
   /**
@@ -328,14 +351,14 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   boolean isClosed();
 
   /**
-   * Return the server version from the server_version GUC.
+   * <p>Return the server version from the server_version GUC.</p>
    *
-   * Note that there's no requirement for this to be numeric or of the form x.y.z. PostgreSQL
+   * <p>Note that there's no requirement for this to be numeric or of the form x.y.z. PostgreSQL
    * development releases usually have the format x.ydevel e.g. 9.4devel; betas usually x.ybetan
-   * e.g. 9.4beta1. The --with-extra-version configure option may add an arbitrary string to this.
+   * e.g. 9.4beta1. The --with-extra-version configure option may add an arbitrary string to this.</p>
    *
-   * Don't use this string for logic, only use it when displaying the server version to the user.
-   * Prefer getServerVersionNum() for all logic purposes.
+   * <p>Don't use this string for logic, only use it when displaying the server version to the user.
+   * Prefer getServerVersionNum() for all logic purposes.</p>
    *
    * @return the server version string from the server_version guc
    */
@@ -358,12 +381,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   SQLWarning getWarnings();
 
   /**
-   * Get a machine-readable server version.
+   * <p>Get a machine-readable server version.</p>
    *
-   * This returns the value of the server_version_num GUC. If no such GUC exists, it falls back on
+   * <p>This returns the value of the server_version_num GUC. If no such GUC exists, it falls back on
    * attempting to parse the text server version for the major version. If there's no minor version
    * (e.g. a devel or beta release) then the minor version is set to zero. If the version could not
-   * be parsed, zero is returned.
+   * be parsed, zero is returned.</p>
    *
    * @return the server version in numeric XXYYZZ form, eg 090401, from server_version_num
    */
@@ -426,4 +449,13 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @return the ReplicationProtocol instance for this connection.
    */
   ReplicationProtocol getReplicationProtocol();
+
+  void setNetworkTimeout(int milliseconds) throws IOException;
+
+  int getNetworkTimeout() throws IOException;
+
+  // Expose parameter status to PGConnection
+  Map<String,String> getParameterStatuses();
+
+  String getParameterStatus(String parameterName);
 }

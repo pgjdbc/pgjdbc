@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -195,7 +196,7 @@ public class ConnectionTest {
 
     // Finally test clearWarnings() this time there must be something to delete
     con.clearWarnings();
-    assertTrue(con.getWarnings() == null);
+    assertNull(con.getWarnings());
 
     TestUtil.closeDB(con);
   }

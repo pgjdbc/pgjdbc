@@ -7,6 +7,8 @@ copr_be_link=https://copr-be.cloud.fedoraproject.org/results/@pgjdbc/pgjdbc-trav
 status_file=copr_build_id
 
 test -z "$PARENT_VERSION" && exit 1
+test -z "$PROJECT_VERSION" && exit 1
+PROJECT_VERSION=${PROJECT_VERSION//-/_}
 
 copr_wrapper ()
 (
@@ -32,11 +34,15 @@ git_rev=$(git rev-parse --short=7 HEAD)
 date_rev=$(date +%Y%m%d_%H%M%S)
 release=${date_rev}.git$git_rev
 sed -e "s!^Release:.*\$!Release: 1.$release%{?dist}!" \
+    -e "s!^Version:.*\$!Version: $PROJECT_VERSION!" \
     -e "s!%global parent_ver.*!%global parent_ver $PARENT_VERSION!" \
     "$2".spec.tpl > "$2".spec
-srpmgen
-build_local -bs "$2".spec --define "dist %nil"
-copr_wrapper --config "$1"/copr-token build --nowait @pgjdbc/pgjdbc-travis "$2-$3-1.$release.src.rpm"
+
+# See https://github.com/praiskup/srpm-tools
+srpm-generator | tee stdout
+srpm=$(grep Wrote: stdout | sed 's/^Wrote: //')
+
+copr_wrapper --config "$1"/copr-token build --nowait @pgjdbc/pgjdbc-travis "$srpm"
 copr_build_id=$(cat "$status_file")
 
 concrete_copr_be_link=$copr_be_link$(printf "%08d" "$copr_build_id")-postgresql-jdbc/
@@ -70,6 +76,6 @@ do
 done
 
 echo " * getting the build log for rawhide chroot"
-curl $concrete_copr_be_link/build.log.gz | gunzip || :
+curl -L $concrete_copr_be_link/build.log.gz | gunzip || :
 
 $exit_cmd

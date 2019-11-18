@@ -162,7 +162,7 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Moves bytes from the buffer to the begining of the destination buffer. Also sets the index and
+   * Moves bytes from the buffer to the beginning of the destination buffer. Also sets the index and
    * endIndex variables.
    *
    * @param dest The destination buffer.
@@ -177,7 +177,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * {@inheritDoc}
    */
-  public int read(byte to[], int off, int len) throws IOException {
+  public int read(byte[] to, int off, int len) throws IOException {
     if ((off | len | (off + len) | (to.length - (off + len))) < 0) {
       throw new IndexOutOfBoundsException();
     } else if (len == 0) {

@@ -5,13 +5,12 @@
 
 package org.postgresql.core.v3.replication;
 
-
 import org.postgresql.copy.CopyDual;
-import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.replication.PGReplicationStream;
+import org.postgresql.replication.ReplicationType;
 import org.postgresql.replication.fluent.CommonOptions;
 import org.postgresql.replication.fluent.logical.LogicalReplicationOptions;
 import org.postgresql.replication.fluent.physical.PhysicalReplicationOptions;
@@ -22,47 +21,52 @@ import org.postgresql.util.PSQLState;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class V3ReplicationProtocol implements ReplicationProtocol {
+
+  private static final Logger LOGGER = Logger.getLogger(V3ReplicationProtocol.class.getName());
   private final QueryExecutor queryExecutor;
   private final PGStream pgStream;
-  private final Logger logger;
 
-  public V3ReplicationProtocol(QueryExecutor queryExecutor, PGStream pgStream, Logger logger) {
+  public V3ReplicationProtocol(QueryExecutor queryExecutor, PGStream pgStream) {
     this.queryExecutor = queryExecutor;
     this.pgStream = pgStream;
-    this.logger = logger;
   }
 
   public PGReplicationStream startLogical(LogicalReplicationOptions options)
       throws SQLException {
 
     String query = createStartLogicalQuery(options);
-    return initializeReplication(query, options);
+    return initializeReplication(query, options, ReplicationType.LOGICAL);
   }
 
   public PGReplicationStream startPhysical(PhysicalReplicationOptions options)
       throws SQLException {
 
     String query = createStartPhysicalQuery(options);
-    return initializeReplication(query, options);
+    return initializeReplication(query, options, ReplicationType.PHYSICAL);
   }
 
-  private PGReplicationStream initializeReplication(String query, CommonOptions options)
+  private PGReplicationStream initializeReplication(String query, CommonOptions options,
+      ReplicationType replicationType)
       throws SQLException {
-    if (logger.logDebug()) {
-      logger.debug(" FE=> StartReplication(query: " + query + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
 
     configureSocketTimeout(options);
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
 
-    return new V3PGReplicationStream(copyDual, options.getStartLSNPosition(),
-        options.getStatusInterval(), logger);
+    return new V3PGReplicationStream(
+        copyDual,
+        options.getStartLSNPosition(),
+        options.getStatusInterval(),
+        replicationType
+    );
   }
 
   /**
-   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX
+   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX.
    */
   private String createStartPhysicalQuery(PhysicalReplicationOptions options) {
     StringBuilder builder = new StringBuilder();
@@ -125,11 +129,12 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
       }
 
       pgStream.getSocket().setSoTimeout(minimalTimeOut);
+      // Use blocking 1ms reads for `available()` checks
+      pgStream.setMinStreamAvailableCheckDelay(0);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("The connection attempt failed."),
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
     }
   }
-
 
 }

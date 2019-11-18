@@ -5,61 +5,91 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
-import junit.framework.TestCase;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
 /*
  * Test for getObject
  */
+public class StatementTest {
+  private Connection con;
 
-public class StatementTest extends TestCase {
-  Connection con = null;
-
-  public StatementTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    super.setUp();
-
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "test_statement", "i int");
     TestUtil.createTempTable(con, "escapetest",
         "ts timestamp, d date, t time, \")\" varchar(5), \"\"\"){a}'\" text ");
     TestUtil.createTempTable(con, "comparisontest", "str1 varchar(5), str2 varchar(15)");
+    TestUtil.createTable(con, "test_lock", "name text");
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'_abcd','_found'"));
     stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'%abcd','%found'"));
     stmt.close();
   }
 
-  protected void tearDown() throws Exception {
-    super.tearDown();
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropTable(con, "test_statement");
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
+    TestUtil.dropTable(con, "test_lock");
+    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_loop()");
+    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
   }
 
+  private void assumeLongTest() {
+    // Run the test:
+    //   Travis: in PG_VERSION=HEAD
+    //   Other: always
+    if ("true".equals(System.getenv("TRAVIS"))) {
+      Assume.assumeTrue("HEAD".equals(System.getenv("PG_VERSION")));
+    }
+  }
+
+  @Test
   public void testClose() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.close();
 
     try {
       stmt.getResultSet();
-      this.fail("statements should not be re-used after close");
+      fail("statements should not be re-used after close");
     } catch (SQLException ex) {
     }
   }
@@ -67,12 +97,14 @@ public class StatementTest extends TestCase {
   /**
    * Closing a Statement twice is not an error.
    */
+  @Test
   public void testDoubleClose() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.close();
     stmt.close();
   }
 
+  @Test
   public void testMultiExecute() throws SQLException {
     Statement stmt = con.createStatement();
     assertTrue(stmt.execute("SELECT 1 as a; UPDATE test_statement SET i=1; SELECT 2 as b, 3 as c"));
@@ -96,6 +128,7 @@ public class StatementTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testEmptyQuery() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("");
@@ -103,6 +136,7 @@ public class StatementTest extends TestCase {
     assertTrue(!stmt.getMoreResults());
   }
 
+  @Test
   public void testUpdateCount() throws SQLException {
     Statement stmt = con.createStatement();
     int count;
@@ -117,8 +151,14 @@ public class StatementTest extends TestCase {
 
     count = stmt.executeUpdate("CREATE TEMP TABLE another_table (a int)");
     assertEquals(0, count);
+
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
+      count = stmt.executeUpdate("CREATE TEMP TABLE yet_another_table AS SELECT x FROM generate_series(1,10) x");
+      assertEquals(10, count);
+    }
   }
 
+  @Test
   public void testEscapeProcessing() throws SQLException {
     Statement stmt = con.createStatement();
     int count;
@@ -170,7 +210,7 @@ public class StatementTest extends TestCase {
     assertEquals("%found", rs.getString(1));
   }
 
-
+  @Test
   public void testPreparedFunction() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT {fn concat('a', ?)}");
     pstmt.setInt(1, 5);
@@ -179,6 +219,7 @@ public class StatementTest extends TestCase {
     assertEquals("a5", rs.getString(1));
   }
 
+  @Test
   public void testDollarInComment() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT /* $ */ {fn curdate()}");
     ResultSet rs = pstmt.executeQuery();
@@ -186,6 +227,7 @@ public class StatementTest extends TestCase {
     assertNotNull("{fn curdate()} should be not null", rs.getString(1));
   }
 
+  @Test
   public void testDollarInCommentTwoComments() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT /* $ *//* $ */ {fn curdate()}");
     ResultSet rs = pstmt.executeQuery();
@@ -193,6 +235,7 @@ public class StatementTest extends TestCase {
     assertNotNull("{fn curdate()} should be not null", rs.getString(1));
   }
 
+  @Test
   public void testNumericFunctions() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -256,6 +299,7 @@ public class StatementTest extends TestCase {
     assertEquals(3.12, rs.getDouble(5), 0.00001);
   }
 
+  @Test
   public void testStringFunctions() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery(
@@ -295,6 +339,7 @@ public class StatementTest extends TestCase {
     assertEquals("ABCD", rs.getString(7));
   }
 
+  @Test
   public void testDateFuncWithParam() throws SQLException {
     // Prior to 8.0 there is not an interval + timestamp operator,
     // so timestampadd does not work.
@@ -309,6 +354,7 @@ public class StatementTest extends TestCase {
     assertEquals(rs.getTimestamp(1), rs.getTimestamp(2));
   }
 
+  @Test
   public void testDateFunctions() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select {fn curdate()},{fn curtime()}"
@@ -339,14 +385,32 @@ public class StatementTest extends TestCase {
     assertEquals(3, rs.getInt(1));
     // HOUR
     rs = stmt.executeQuery(
-        "select {fn timestampdiff(SQL_TSI_HOUR,{fn now()},{fn timestampadd(SQL_TSI_HOUR,3,{fn now()})})} ");
+        "select {fn timestampdiff(SQL_tsi_HOUR,{fn now()},{fn timestampadd(SQL_TSI_HOUR,3,{fn now()})})} ");
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
     // day
     rs = stmt.executeQuery(
         "select {fn timestampdiff(SQL_TSI_DAY,{fn now()},{fn timestampadd(SQL_TSI_DAY,-3,{fn now()})})} ");
     assertTrue(rs.next());
-    assertEquals(-3, rs.getInt(1));
+    int res = rs.getInt(1);
+    if (res != -3 && res != -2) {
+      // set TimeZone='America/New_York';
+      // select CAST(-3 || ' day' as interval);
+      // interval
+      //----------
+      // -3 days
+      //
+      // select CAST(-3 || ' day' as interval)+now();
+      //           ?column?
+      //-------------------------------
+      // 2018-03-08 07:59:13.586895-05
+      //
+      // select CAST(-3 || ' day' as interval)+now()-now();
+      //     ?column?
+      //-------------------
+      // -2 days -23:00:00
+      fail("CAST(-3 || ' day' as interval)+now()-now() is expected to return -3 or -2. Actual value is " + res);
+    }
     // WEEK => extract week from interval is not supported by backend
     // rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_WEEK,{fn now()},{fn
     // timestampadd(SQL_TSI_WEEK,3,{fn now()})})} ");
@@ -369,6 +433,7 @@ public class StatementTest extends TestCase {
     // assertEquals(3,rs.getInt(1));
   }
 
+  @Test
   public void testSystemFunctions() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery(
@@ -383,6 +448,7 @@ public class StatementTest extends TestCase {
     assertEquals(TestUtil.getDatabase(), rs.getString(1));
   }
 
+  @Test
   public void testWarningsAreCleared() throws SQLException {
     Statement stmt = con.createStatement();
     // Will generate a NOTICE: for primary key index creation
@@ -393,11 +459,142 @@ public class StatementTest extends TestCase {
     stmt.close();
   }
 
+  @Test
+  public void testWarningsAreAvailableAsap()
+      throws Exception {
+    final Connection outerLockCon = TestUtil.openDB();
+    outerLockCon.setAutoCommit(false);
+    //Acquire an exclusive lock so we can block the notice generating statement
+    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
+    con.createStatement()
+            .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+                + "$BODY$ "
+                + "BEGIN "
+                + "RAISE NOTICE 'Test 1'; "
+                + "RAISE NOTICE 'Test 2'; "
+                + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE; "
+                + "END "
+                + "$BODY$ "
+                + "LANGUAGE plpgsql;");
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    //If we never receive the two warnings the statement will just hang, so set a low timeout
+    con.createStatement().execute("SET SESSION statement_timeout = 1000");
+    final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
+    final Callable<Void> warningReader = new Callable<Void>() {
+      @Override
+      public Void call() throws SQLException, InterruptedException {
+        while (true) {
+          SQLWarning warning = preparedStatement.getWarnings();
+          if (warning != null) {
+            assertEquals("First warning received not first notice raised",
+                "Test 1", warning.getMessage());
+            SQLWarning next = warning.getNextWarning();
+            if (next != null) {
+              assertEquals("Second warning received not second notice raised",
+                  "Test 2", next.getMessage());
+              //Release the lock so that the notice generating statement can end.
+              outerLockCon.commit();
+              return null;
+            }
+          }
+          //Break the loop on InterruptedException
+          Thread.sleep(0);
+        }
+      }
+    };
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    try {
+      Future<Void> future = executorService.submit(warningReader);
+      //Statement should only finish executing once we have
+      //received the two notices and released the outer lock.
+      preparedStatement.execute();
+
+      //If test takes longer than 2 seconds its a failure.
+      future.get(2, TimeUnit.SECONDS);
+    } finally {
+      executorService.shutdownNow();
+    }
+  }
+
+
+  /**
+   * <p>Demonstrates a safe approach to concurrently reading the latest
+   * warnings while periodically clearing them.</p>
+   *
+   * <p>One drawback of this approach is that it requires the reader to make it to the end of the
+   * warning chain before clearing it, so long as your warning processing step is not very slow,
+   * this should happen more or less instantaneously even if you receive a lot of warnings.</p>
+   */
+  @Test
+  public void testConcurrentWarningReadAndClear()
+      throws SQLException, InterruptedException, ExecutionException, TimeoutException {
+    final int iterations = 1000;
+    con.createStatement()
+        .execute("CREATE OR REPLACE FUNCTION notify_loop() RETURNS VOID AS "
+            + "$BODY$ "
+            + "BEGIN "
+            + "FOR i IN 1.. " + iterations + " LOOP "
+            + "  RAISE NOTICE 'Warning %', i; "
+            + "END LOOP; "
+            + "END "
+            + "$BODY$ "
+            + "LANGUAGE plpgsql;");
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    final PreparedStatement statement = con.prepareStatement("SELECT notify_loop()");
+    final Callable<Void> warningReader = new Callable<Void>() {
+      @Override
+      public Void call() throws SQLException, InterruptedException {
+        SQLWarning lastProcessed = null;
+        int warnings = 0;
+        //For production code replace this with some condition that
+        //ends after the statement finishes execution
+        while (warnings < iterations) {
+          SQLWarning warn = statement.getWarnings();
+          //if next linked warning has value use that, otherwise keep using latest head
+          if (lastProcessed != null && lastProcessed.getNextWarning() != null) {
+            warn = lastProcessed.getNextWarning();
+          }
+          if (warn != null) {
+            warnings++;
+            //System.out.println("Processing " + warn.getMessage());
+            assertEquals("Received warning out of expected order",
+                "Warning " + warnings, warn.getMessage());
+            lastProcessed = warn;
+            //If the processed warning was the head of the chain clear
+            if (warn == statement.getWarnings()) {
+              //System.out.println("Clearing warnings");
+              statement.clearWarnings();
+            }
+          } else {
+            //Not required for this test, but a good idea adding some delay for production code
+            //to avoid high cpu usage while the query is running and no warnings are coming in.
+            //Alternatively use JDK9's Thread.onSpinWait()
+            Thread.sleep(10);
+          }
+        }
+        assertEquals("Didn't receive expected last warning",
+            "Warning " + iterations, lastProcessed.getMessage());
+        return null;
+      }
+    };
+
+    final ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      final Future warningReaderThread = executor.submit(warningReader);
+      statement.execute();
+      //If the reader doesn't return after 2 seconds, it failed.
+      warningReaderThread.get(2, TimeUnit.SECONDS);
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
   /**
    * The parser tries to break multiple statements into individual queries as required by the V3
    * extended query protocol. It can be a little overzealous sometimes and this test ensures we keep
    * multiple rule actions together in one statement.
    */
+  @Test
   public void testParsingSemiColons() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute(
@@ -411,6 +608,7 @@ public class StatementTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testParsingDollarQuotes() throws SQLException {
     // dollar-quotes are supported in the backend since version 8.0
     Statement st = con.createStatement();
@@ -454,6 +652,7 @@ public class StatementTest extends TestCase {
     st.close();
   }
 
+  @Test
   public void testUnbalancedParensParseError() throws SQLException {
     Statement stmt = con.createStatement();
     try {
@@ -463,6 +662,7 @@ public class StatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testExecuteUpdateFailsOnSelect() throws SQLException {
     Statement stmt = con.createStatement();
     try {
@@ -472,6 +672,7 @@ public class StatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testExecuteUpdateFailsOnMultiStatementSelect() throws SQLException {
     Statement stmt = con.createStatement();
     try {
@@ -481,6 +682,7 @@ public class StatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testSetQueryTimeout() throws SQLException {
     Statement stmt = con.createStatement();
     long start = 0;
@@ -502,25 +704,50 @@ public class StatementTest extends TestCase {
     }
   }
 
+  @Test
+  public void testLongQueryTimeout() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.setQueryTimeout(Integer.MAX_VALUE);
+    Assert.assertEquals("setQueryTimeout(Integer.MAX_VALUE)", Integer.MAX_VALUE,
+        stmt.getQueryTimeout());
+    stmt.setQueryTimeout(Integer.MAX_VALUE - 1);
+    Assert.assertEquals("setQueryTimeout(Integer.MAX_VALUE-1)", Integer.MAX_VALUE - 1,
+        stmt.getQueryTimeout());
+  }
+
   /**
    * Test executes two queries one after another. The first one has timeout of 1ms, and the second
    * one does not. The timeout of the first query should not impact the second one.
    */
+  @Test
   public void testShortQueryTimeout() throws SQLException {
+    assumeLongTest();
+
     long deadLine = System.currentTimeMillis() + 10000;
     Statement stmt = con.createStatement();
     ((PgStatement) stmt).setQueryTimeoutMs(1);
     Statement stmt2 = con.createStatement();
     while (System.currentTimeMillis() < deadLine) {
       try {
-        stmt.execute("select 1");
+        // This usually won't time out but scheduler jitter, server load
+        // etc can cause a timeout.
+        stmt.executeQuery("select 1;");
       } catch (SQLException e) {
-        // ignore "statement cancelled"
+        // Expect "57014 query_canceled" (en-msg is "canceling statement due to statement timeout")
+        // but anything else is fatal. We can't differentiate other causes of statement cancel like
+        // "canceling statement due to user request" without error message matching though, and we
+        // don't want to do that.
+        Assert.assertEquals(
+            "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+            PSQLState.QUERY_CANCELED.getState(),
+            e.getSQLState());
       }
-      stmt2.executeQuery("select 1");
+      // Must never time out.
+      stmt2.executeQuery("select 1;");
     }
   }
 
+  @Test
   public void testSetQueryTimeoutWithSleep() throws SQLException, InterruptedException {
     // check that the timeout starts ticking at execute, not at the
     // setQueryTimeout call.
@@ -529,7 +756,7 @@ public class StatementTest extends TestCase {
       stmt.setQueryTimeout(1);
       Thread.sleep(3000);
       stmt.execute("select pg_sleep(5)");
-      this.fail("statement should have been canceled by query timeout");
+      fail("statement should have been canceled by query timeout");
     } catch (SQLException sqle) {
       // state for cancel
       if (sqle.getSQLState().compareTo("57014") != 0) {
@@ -538,6 +765,7 @@ public class StatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testSetQueryTimeoutOnPrepared() throws SQLException, InterruptedException {
     // check that a timeout set on a prepared statement works on every
     // execution.
@@ -556,6 +784,7 @@ public class StatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testSetQueryTimeoutWithoutExecute() throws SQLException, InterruptedException {
     // check that a timeout set on one statement doesn't affect another
     Statement stmt1 = con.createStatement();
@@ -565,6 +794,7 @@ public class StatementTest extends TestCase {
     ResultSet rs = stmt2.executeQuery("SELECT pg_sleep(2)");
   }
 
+  @Test
   public void testResultSetTwice() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -575,6 +805,7 @@ public class StatementTest extends TestCase {
     assertNotNull(rsOther);
   }
 
+  @Test
   public void testMultipleCancels() throws Exception {
     org.postgresql.util.SharedTimer sharedTimer = org.postgresql.Driver.getSharedTimer();
 
@@ -614,10 +845,124 @@ public class StatementTest extends TestCase {
     assertEquals(0, sharedTimer.getRefCount());
   }
 
+  @Test(timeout = 10000)
+  public void testCloseInProgressStatement() throws Exception {
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    final Connection outerLockCon = TestUtil.openDB();
+    outerLockCon.setAutoCommit(false);
+    //Acquire an exclusive lock so we can block the notice generating statement
+    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
+
+    try {
+      con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+      con.createStatement()
+          .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+              + "$BODY$ "
+              + "BEGIN "
+              + "RAISE NOTICE 'start';"
+              + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;"
+              + "END "
+              + "$BODY$ "
+              + "LANGUAGE plpgsql;");
+      int cancels = 0;
+      for (int i = 0; i < 100; i++) {
+        final Statement st = con.createStatement();
+        executor.submit(new Callable<Void>() {
+          @Override
+          public Void call() throws Exception {
+            long start = System.currentTimeMillis();
+            while (st.getWarnings() == null) {
+              long dt = System.currentTimeMillis() - start;
+              if (dt > 10000) {
+                throw new IllegalStateException("Expected to receive a notice within 10 seconds");
+              }
+            }
+            st.close();
+            return null;
+          }
+        });
+        st.setQueryTimeout(120);
+        try {
+          st.execute("select notify_then_sleep()");
+        } catch (SQLException e) {
+          Assert.assertEquals(
+              "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+              PSQLState.QUERY_CANCELED.getState(),
+              e.getSQLState()
+          );
+          cancels++;
+          break;
+        } finally {
+          TestUtil.closeQuietly(st);
+        }
+      }
+      Assert.assertNotEquals("At least one QUERY_CANCELED state is expected", 0, cancels);
+    } finally {
+      executor.shutdown();
+      TestUtil.closeQuietly(outerLockCon);
+    }
+  }
+
+  @Test(timeout = 20000)
+  public void testFastCloses() throws SQLException {
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+    con.createStatement()
+        .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+            + "$BODY$ "
+            + "BEGIN "
+            + "RAISE NOTICE 'start';"
+            + "EXECUTE pg_sleep(1);" // Note: timeout value does not matter here, we just test if test crashes or locks somehow
+            + "END "
+            + "$BODY$ "
+            + "LANGUAGE plpgsql;");
+    Map<String, Integer> cnt = new HashMap<String, Integer>();
+    final Random rnd = new Random();
+    for (int i = 0; i < 1000; i++) {
+      final Statement st = con.createStatement();
+      executor.submit(new Callable<Void>() {
+        @Override
+        public Void call() throws Exception {
+          int s = rnd.nextInt(10);
+          if (s > 8) {
+            Thread.sleep(s - 9);
+          }
+          st.close();
+          return null;
+        }
+      });
+      ResultSet rs = null;
+      String sqlState = "0";
+      try {
+        rs = st.executeQuery("select 1");
+        // Acceptable
+      } catch (SQLException e) {
+        sqlState = e.getSQLState();
+        if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(sqlState)
+            && !PSQLState.QUERY_CANCELED.getState().equals(sqlState)) {
+          Assert.assertEquals(
+              "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+              PSQLState.QUERY_CANCELED.getState(),
+              e.getSQLState()
+          );
+        }
+      } finally {
+        TestUtil.closeQuietly(rs);
+        TestUtil.closeQuietly(st);
+      }
+      Integer val = cnt.get(sqlState);
+      val = (val == null ? 0 : val) + 1;
+      cnt.put(sqlState, val);
+    }
+    System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
+    executor.shutdown();
+  }
+
   /**
    * Tests that calling {@code java.sql.Statement#close()} from a concurrent thread does not result
-   * in {@link java.util.ConcurrentModificationException}
+   * in {@link java.util.ConcurrentModificationException}.
    */
+  @Test
   public void testSideStatementFinalizers() throws SQLException {
     long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(2);
 
@@ -654,6 +999,7 @@ public class StatementTest extends TestCase {
    * Test that $JAVASCRIPT$ protects curly braces from JDBC {fn now()} kind of syntax.
    * @throws SQLException if something goes wrong
    */
+  @Test
   public void testJavascriptFunction() throws SQLException {
     String str = "  var _modules = {};\n"
         + "  var _current_stack = [];\n"
@@ -676,26 +1022,31 @@ public class StatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testUnterminatedDollarQuotes() throws SQLException {
     ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $$\n"
         + "BEGIN");
   }
 
+  @Test
   public void testUnterminatedNamedDollarQuotes() throws SQLException {
     ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $ABC$\n"
         + "BEGIN");
   }
 
+  @Test
   public void testUnterminatedComment() throws SQLException {
     ensureSyntaxException("block comment", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS /* $$\n"
         + "BEGIN $$");
   }
 
+  @Test
   public void testUnterminatedLiteral() throws SQLException {
     ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION update_on_change() 'RETURNS TRIGGER AS $$\n"
         + "BEGIN $$");
   }
 
+  @Test
   public void testUnterminatedIdentifier() throws SQLException {
     ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION \"update_on_change() RETURNS TRIGGER AS $$\n"
         + "BEGIN $$");
@@ -706,9 +1057,9 @@ public class StatementTest extends TestCase {
     try {
       ps = con.prepareStatement(sql);
       ps.executeUpdate();
-      Assert.fail("Query with unterminated " + errorType + " should fail");
+      fail("Query with unterminated " + errorType + " should fail");
     } catch (SQLException e) {
-      Assert.assertEquals("Query should fail with unterminated " + errorType,
+      assertEquals("Query should fail with unterminated " + errorType,
           PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
     } finally {
       TestUtil.closeQuietly(ps);

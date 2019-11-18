@@ -94,7 +94,6 @@ public class CallableStmtTest extends BaseTest4 {
     super.tearDown();
   }
 
-
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
 
@@ -159,13 +158,11 @@ public class CallableStmtTest extends BaseTest4 {
   @Test
   public void testGetShort() throws Throwable {
     assumeCallableStatementsSupported();
-    if (TestUtil.isProtocolVersion(con, 3)) {
-      CallableStatement call = con.prepareCall(func + pkgName + "getShort (?) }");
-      call.setShort(2, (short) 4);
-      call.registerOutParameter(1, Types.SMALLINT);
-      call.execute();
-      assertEquals(42, call.getShort(1));
-    }
+    CallableStatement call = con.prepareCall(func + pkgName + "getShort (?) }");
+    call.setShort(2, (short) 4);
+    call.registerOutParameter(1, Types.SMALLINT);
+    call.execute();
+    assertEquals(42, call.getShort(1));
   }
 
   @Test

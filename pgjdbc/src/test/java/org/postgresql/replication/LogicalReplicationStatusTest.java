@@ -5,13 +5,14 @@
 
 package org.postgresql.replication;
 
-
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -86,23 +87,16 @@ public class LogicalReplicationStatusTest {
     LogSequenceNumber lastReceivedLSN = stream.getLastReceiveLSN();
     stream.forceUpdateStatus();
 
-    int lastPayloadSize =
-        received
-            .get(countMessage - 1)
-            .getBytes()
-            .length;
-
-    LogSequenceNumber waitLsn = LogSequenceNumber.valueOf(lastReceivedLSN.asLong() - lastPayloadSize);
     LogSequenceNumber sentByServer = getSentLocationOnView();
 
     assertThat("When changes absent on server last receive by stream LSN "
             + "should be equal to last sent by server LSN",
-        sentByServer, equalTo(waitLsn)
+        sentByServer, equalTo(lastReceivedLSN)
     );
   }
 
   /**
-   * Test fail on PG version 9.4.5 because postgresql have bug
+   * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
   @HaveMinimalServerVersion("9.4.8")
@@ -310,7 +304,7 @@ public class LogicalReplicationStatusTest {
   }
 
   /**
-   * Test fail on PG version 9.4.5 because postgresql have bug
+   * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
   @HaveMinimalServerVersion("9.4.8")
@@ -430,19 +424,23 @@ public class LogicalReplicationStatusTest {
   }
 
   private LogSequenceNumber getSentLocationOnView() throws Exception {
-    return getLSNFromView("sent_location");
+    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "sent_lsn" : "sent_location"));
   }
 
   private LogSequenceNumber getWriteLocationOnView() throws Exception {
-    return getLSNFromView("write_location");
+    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "write_lsn" : "write_location"));
   }
 
   private LogSequenceNumber getFlushLocationOnView() throws Exception {
-    return getLSNFromView("flush_location");
+    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "flush_lsn" : "flush_location"));
   }
 
   private LogSequenceNumber getReplayLocationOnView() throws Exception {
-    return getLSNFromView("replay_location");
+    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "replay_lsn" : "replay_location"));
   }
 
   private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
@@ -510,7 +508,9 @@ public class LogicalReplicationStatusTest {
     Statement st = sqlConnection.createStatement();
     ResultSet rs = null;
     try {
-      rs = st.executeQuery("select pg_current_xlog_location()");
+      rs = st.executeQuery("select "
+          + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+          ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
 
       if (rs.next()) {
         String lsn = rs.getString(1);

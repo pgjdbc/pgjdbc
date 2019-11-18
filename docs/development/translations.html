@@ -1,0 +1,132 @@
+---
+layout: default
+title: PostgreSQL JDBC Translations
+resource: ../media
+nav: ../
+---
+
+{% include submenu_development.html %}
+
+				<div id="pgContentWrap">
+					<h1>Translations</h1>
+					<hr />
+					<div>
+						<ul>
+							<li><a href="#overview">Overview</a></li>
+							<li><a href="#devlopers">Developers</a></li>
+							<li><a href="#translators">Translators</a></li>
+							<li><a href="#maintainers">Maintainers</a></li>
+						</ul>
+					</div>
+					<hr />
+
+					<a name="overview"></a>
+					<h2 class="underlined_10">Overview</h2>
+					<div>
+						<p>
+							Translations of driver specific error messages are available in a
+							number of languages.  The following information is about how to
+							update an existing translation or to provide a translation to a new
+							language.
+						</p>
+						<p>
+							The translations are done using the
+							<a href="http://www.gnu.org/software/gettext/gettext.html" target="_blank">GNU gettext</a>
+							tools.  These are not required to build or use the driver, only
+							translators and maintainers need them.
+						</p>
+					</div>
+					<hr />
+
+					<a name="devlopers"></a>
+					<h2 class="underlined_10">Developers</h2>
+					<div>
+						<p>
+							When writing code for the driver you need to specially mark strings
+							for translation so they are picked up by the tools.  In general any
+							user visible message should be made available for translation.
+							Strings are marked using the <a href="privateapi/org/postgresql/util/GT.html">GT.tr</a>
+							method.  The name means "gettext translate", but
+							a shorter name was wanted because this shows up in a lot of places.
+						</p>
+						<p>
+							To provide context sensitive information the standard Java
+							<a href="http://java.sun.com/j2se/1.4.2/docs/api/java/text/MessageFormat.html" target="_blank">MessageFormat</a>
+							syntax is used in the error messages.  Consider, for example,
+							the error message for calling ResultSet.getInt() with an invalid
+							column number, we want to helpfully report the column asked for and
+							the number of columns in the ResultSet.
+						</p>
+						<pre style="font-family: serif;">
+if (column &lt; 1 || column &gt; fields.length) {
+	String err = GT.tr(
+		"The column index requested: {0} is out of range.",
+		new Integer(column)
+		);
+	throw new PSQLException(err, PSQLState.INVALID_PARAMETER_VALID);
+}
+						</pre>
+					</div>
+					<hr />
+
+					<a name="translators"></a>
+					<h2 class="underlined_10">Translators</h2>
+					<div>
+						<p>
+							Check the current <a href="status.html">translation status</a>
+							page to see if an existing translation exists for your language,
+							so you can update that instead of starting from
+							scratch.  To start a new translation you can download the template
+							file and work on that instead.
+						</p>
+						<p>
+							Editing the .po file is a pretty straightforward process and a number
+							of tools exist to aid you in the process:
+						</p>
+						<ul>
+							<li>GNU Emacs and XEmacs have PO editing modes.</li>
+							<li>
+								<a href="http://freecode.com/projects/kbabel" target="_blank">KBabel</a>
+								is a KDE-based editing tool.
+							</li>
+							<li>
+								<a href="http://poedit.sourceforge.net/" target="_blank">poEdit</a>
+								is another tool which can run on Windows.
+							</li>
+						</ul>
+						<p>
+							Once you feel the translation is accurate and complete (or you get
+							tired), verify that the file by running <span class="codefrag">msgfmt</span>.
+						</p>
+						<pre style="font-family: serif;">
+msgfmt -c -v -o /dev/null pofile
+						</pre>
+						<p>
+							If everything checks out send the po file on over to the
+							<a href="mailto:pgsql-jdbc@postgresql.org">pgsql-jdbc@postgresql.org</a>
+							mailing list.  This list does have a size limit of 30k, so you will
+							need to compress the po file before sending it.
+						</p>
+					</div>
+					<hr />
+
+					<a name="maintainers"></a>
+					<h2 class="underlined_10">Maintainers</h2>
+					<div>
+						<p>
+							To avoid requiring the gettext tools to compile the driver the
+							decision has been made to directly check in the compiled message
+							catalogs to the git repository.  When you get a new or updated
+							translation, first ensure that it is valid by running the
+							<span style="font-family: Courier New,Courier,monospace;">msgfmt</span> command mentioned in the translators section.
+							If this looks correct drop it into the
+							<span style="font-family: Courier New,Courier,monospace;">src/org/postgresql/translation</span>
+							directory and run the <span class="codefrag">update-translations.sh</span> script
+							in the top level directory.  This will produce the compiled class
+							file that contains the translated messages.  Then simply check in
+							both the .po and .class files. Be sure to only commit changes to the
+							translations you've modified because the <span style="font-family: Courier New,Courier,monospace;">update-translations.sh</span>
+							script modifies all the translations.
+						</p>
+					</div>
+				</div> <!-- pgContentWrap -->

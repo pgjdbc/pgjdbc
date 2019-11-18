@@ -1,0 +1,4 @@
+spec: postgresql-jdbc.spec
+
+source0:
+  method: git_archive

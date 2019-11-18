@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en" dir="ltr">
+<head>
+	<title>{{ page.title }}</title>
+	<meta http-equiv="Content-Type" content="text/xhtml; charset=utf-8" />
+	<meta name="description" content="The official site for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("{{ page.resource }}/css/base.css");</style>
+
+	<link rel="shortcut icon" href="{{ page.resource }}/favicon.ico" />
+
+	<!--
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-1345454-1']);
+		_gaq.push(['_trackPageview']);
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+	</script>
+	-->
+</head>
+
+<body>
+	<div id="pgContainerWrap">
+		<div id="pgContainer">
+
+			<span class="txtOffScreen"><a href="#pgContent" title="Skip site navigation" accesskey="1">Skip site navigation</a> (1)</span>
+			<span class="txtOffScreen"><a href="#pgContentWrap" title="Skip section navigation" accesskey="2">Skip section navigation</a> (2)</span>
+
+			<div id="pgHeaderContainer">
+
+				<div id="pgSearch">
+
+					<!-- Old pgjdbc form -->
+					<form action="https://www.google.com/search" method="get">
+						<input value="jdbc.postgresql.org" name="sitesearch" type="hidden" />
+						<input id="q" name="q" type="text" size="20" maxlength="255" onfocus="if( this.value==this.defaultValue ) this.value='';" value="Google Search" accesskey="s" />
+						<!-- <input onFocus="getBlank (this, 'Search the site with google');" size="25" name="q" id="query" type="text" value="Search the site with google">&nbsp; -->
+                    				<input name="Search" value="Search" type="submit" />
+					</form>
+
+					<!-- New PostgreSQL form
+					<form method="get" action="search/">
+					<div>
+						<h2 class="pgBlockHide"><label for="q">Search</label></h2>
+						<input id="q" name="q" type="text" size="20" maxlength="255" onfocus="if( this.value==this.defaultValue ) this.value='';" value="Search" accesskey="s" />
+						<input name="a" type="hidden" value="1"/>
+						<input id="submit" name="submit" type="submit" value="Search" />
+					</div>
+					</form>
+					-->
+
+				</div> <!-- pgSearch -->
+				<br />
+
+				<div id="pgHeader">
+					<div id="pgHeaderLogoLeft">
+						<img alt="PostgreSQL" height="80" width="390" src="{{ page.resource }}/img/layout/hdr_left3.png" usemap="#maplinks" />
+						<map name="maplinks">
+							<area shape="rect" coords="0,0,231,80" alt="PostgreSQL" href="https://postgresql.org" />
+							<area shape="rect" coords="232,0,390,80" alt="PostgreSQL JDBC Driver" href="https://jdbc.postgresql.org" />
+						</map>
+					</div>
+					<div id="pgHeaderLogoRight">
+						<a href="https://postgresql.org">
+							<img width="210" height="80" alt="The world's most advanced open source database." src="{{ page.resource }}/img/layout/hdr_right.png" />
+						</a>
+					</div>
+				</div> <!-- pgHeader -->
+
+				<div id="pgTopNav">
+					<div id="pgTopNavLeft">
+						<img width="7" style="height: 100%;" alt="" src="{{ page.resource }}/img/layout/nav_lft.png" />
+					</div>
+					<div id="pgTopNavRight">
+						<img width="7" style="height: 100%;" alt="" src="{{ page.resource }}/img/layout/nav_rgt.png" />
+					</div>
+					<ul id="pgTopNavList">
+						<li><a href="{{ page.nav }}index.html" title="Home">Home</a></li>
+						<li><a href="{{ page.nav }}about/about.html" title="About">About</a></li>
+						<li><a href="{{ page.nav }}download.html" title="Download">Download</a></li>
+						<li><a href="{{ page.nav }}documentation/documentation.html" title="Documentation">Documentation</a></li>
+						<li><a href="{{ page.nav }}community/community.html" title="Community">Community</a></li>
+						<li><a href="{{ page.nav }}development/development.html" title="Development">Development</a></li>
+					</ul>
+				</div> <!-- pgTopNav -->
+			</div> <!-- pgHeaderContainer -->
+
+			<div id="pgContent">
+				{{ content }}
+
+				<br class="pgClearBoth" />
+			</div> <!-- pgContent -->
+			<hr />
+
+			<div id="pgFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-{{ site.time | date: "%Y" }} The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- pgContainer -->
+	</div> <!-- pgContainerWrap -->
+</body>
+</html>

@@ -5,14 +5,25 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.postgresql.test.TestUtil;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
-import junit.framework.TestCase;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.test.jdbc2.BaseTest4;
+
+import org.junit.Test;
+
 import org.w3c.dom.Node;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,6 +31,9 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Result;
@@ -36,49 +50,63 @@ import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
+public class XmlTest extends BaseTest4 {
+  private static final String _xsl =
+          "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"><xsl:output method=\"text\" indent=\"no\" /><xsl:template match=\"/a\"><xsl:for-each select=\"/a/b\">B<xsl:value-of select=\".\" /></xsl:for-each></xsl:template></xsl:stylesheet>";
+  private static final String _xmlDocument = "<a><b>1</b><b>2</b></a>";
+  private static final String _xmlFragment = "<a>f</a><b>g</b>";
 
-public class XmlTest extends TestCase {
+  private final Transformer xslTransformer;
+  private final Transformer identityTransformer;
 
-  private Connection _conn;
-  private final Transformer _xslTransformer;
-  private final Transformer _identityTransformer;
-  private final static String _xsl =
-      "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"><xsl:output method=\"text\" indent=\"no\" /><xsl:template match=\"/a\"><xsl:for-each select=\"/a/b\">B<xsl:value-of select=\".\" /></xsl:for-each></xsl:template></xsl:stylesheet>";
-  private final static String _xmlDocument = "<a><b>1</b><b>2</b></a>";
-  private final static String _xmlFragment = "<a>f</a><b>g</b>";
-
-
-  public XmlTest(String name) throws Exception {
-    super(name);
+  public XmlTest() throws Exception {
     TransformerFactory factory = TransformerFactory.newInstance();
-    _xslTransformer = factory.newTransformer(new StreamSource(new StringReader(_xsl)));
-    _xslTransformer.setErrorListener(new Ignorer());
-    _identityTransformer = factory.newTransformer();
+    xslTransformer = factory.newTransformer(new StreamSource(new StringReader(_xsl)));
+    xslTransformer.setErrorListener(new Ignorer());
+    identityTransformer = factory.newTransformer();
   }
 
-  protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    Statement stmt = _conn.createStatement();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+    assumeTrue("Server has been compiled --with-libxml", isXmlEnabled(con));
+
+    Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE xmltest(id int primary key, val xml)");
     stmt.execute("INSERT INTO xmltest VALUES (1, '" + _xmlDocument + "')");
     stmt.execute("INSERT INTO xmltest VALUES (2, '" + _xmlFragment + "')");
     stmt.close();
   }
 
-  protected void tearDown() throws SQLException {
-    Statement stmt = _conn.createStatement();
-    stmt.execute("DROP TABLE xmltest");
+  private static boolean isXmlEnabled(Connection conn) {
+    try {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT '<a>b</a>'::xml");
+      rs.close();
+      stmt.close();
+      return true;
+    } catch (SQLException sqle) {
+      return false;
+    }
+  }
+
+  @Override
+  public void tearDown() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS xmltest");
     stmt.close();
-    TestUtil.closeDB(_conn);
+    super.tearDown();
   }
 
   private ResultSet getRS() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = con.createStatement();
     return stmt.executeQuery("SELECT val FROM xmltest");
   }
 
+  @Test
   public void testUpdateRS() throws SQLException {
-    Statement stmt = _conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = stmt.executeQuery("SELECT id, val FROM xmltest");
     assertTrue(rs.next());
     SQLXML xml = rs.getSQLXML(2);
@@ -86,6 +114,7 @@ public class XmlTest extends TestCase {
     rs.updateRow();
   }
 
+  @Test
   public void testDOMParse() throws SQLException {
     ResultSet rs = getRS();
 
@@ -114,7 +143,7 @@ public class XmlTest extends TestCase {
   private void transform(Source source) throws Exception {
     StringWriter writer = new StringWriter();
     StreamResult result = new StreamResult(writer);
-    _xslTransformer.transform(source, result);
+    xslTransformer.transform(source, result);
     assertEquals("B1B2", writer.toString());
   }
 
@@ -136,33 +165,37 @@ public class XmlTest extends TestCase {
     }
   }
 
+  @Test
   public void testDOMRead() throws Exception {
     testRead(DOMSource.class);
   }
 
+  @Test
   public void testSAXRead() throws Exception {
     testRead(SAXSource.class);
   }
 
+  @Test
   public void testStAXRead() throws Exception {
     testRead(StAXSource.class);
   }
 
+  @Test
   public void testStreamRead() throws Exception {
     testRead(StreamSource.class);
   }
 
   private <T extends Result> void testWrite(Class<T> resultClass) throws Exception {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = con.createStatement();
     stmt.execute("DELETE FROM xmltest");
     stmt.close();
 
-    PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
-    SQLXML xml = _conn.createSQLXML();
+    PreparedStatement ps = con.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
+    SQLXML xml = con.createSQLXML();
     Result result = xml.setResult(resultClass);
 
     Source source = new StreamSource(new StringReader(_xmlDocument));
-    _identityTransformer.transform(source, result);
+    identityTransformer.transform(source, result);
 
     ps.setInt(1, 1);
     ps.setSQLXML(2, xml);
@@ -186,22 +219,27 @@ public class XmlTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testDomWrite() throws Exception {
     testWrite(DOMResult.class);
   }
 
+  @Test
   public void testStAXWrite() throws Exception {
     testWrite(StAXResult.class);
   }
 
+  @Test
   public void testStreamWrite() throws Exception {
     testWrite(StreamResult.class);
   }
 
+  @Test
   public void testSAXWrite() throws Exception {
     testWrite(SAXResult.class);
   }
 
+  @Test
   public void testFree() throws SQLException {
     ResultSet rs = getRS();
     assertTrue(rs.next());
@@ -215,25 +253,76 @@ public class XmlTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetObject() throws SQLException {
     ResultSet rs = getRS();
     assertTrue(rs.next());
     SQLXML xml = (SQLXML) rs.getObject(1);
   }
 
-  public void testSetNull() throws SQLException {
-    Statement stmt = _conn.createStatement();
+  private SQLXML newConsumableSQLXML(String content) throws Exception {
+    SQLXML xml = (SQLXML) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { SQLXML.class }, new InvocationHandler() {
+      SQLXML xml = con.createSQLXML();
+      boolean consumed = false;
+      Set<Method> consumingMethods = new HashSet<Method>(Arrays.asList(
+          SQLXML.class.getMethod("getBinaryStream"),
+          SQLXML.class.getMethod("getCharacterStream"),
+          SQLXML.class.getMethod("getString")
+      ));
+
+      @Override
+      public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (consumingMethods.contains(method)) {
+          if (consumed) {
+            fail("SQLXML-object already consumed");
+          } else {
+            consumed = true;
+          }
+        }
+        return method.invoke(xml, args);
+      }
+    });
+    xml.setString(content);
+    return xml;
+  }
+
+  @Test
+  public void testSet() throws Exception {
+    Statement stmt = con.createStatement();
     stmt.execute("DELETE FROM xmltest");
     stmt.close();
 
-    PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
+    PreparedStatement ps = con.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
+    ps.setInt(1, 1);
+    ps.setSQLXML(2, newConsumableSQLXML(_xmlDocument));
+    assertEquals(1, ps.executeUpdate());
+    ps.setInt(1, 2);
+    ps.setObject(2, newConsumableSQLXML(_xmlDocument));
+    assertEquals(1, ps.executeUpdate());
+    ResultSet rs = getRS();
+    assertTrue(rs.next());
+    Object o = rs.getObject(1);
+    assertTrue(o instanceof SQLXML);
+    assertEquals(_xmlDocument, ((SQLXML) o).getString());
+    assertTrue(rs.next());
+    assertEquals(_xmlDocument, rs.getSQLXML(1).getString());
+    assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testSetNull() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("DELETE FROM xmltest");
+    stmt.close();
+
+    PreparedStatement ps = con.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
     ps.setInt(1, 1);
     ps.setNull(2, Types.SQLXML);
     ps.executeUpdate();
     ps.setInt(1, 2);
     ps.setObject(2, null, Types.SQLXML);
     ps.executeUpdate();
-    SQLXML xml = _conn.createSQLXML();
+    SQLXML xml = con.createSQLXML();
     xml.setString(null);
     ps.setInt(1, 3);
     ps.setObject(2, xml);
@@ -250,8 +339,9 @@ public class XmlTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testEmpty() throws SQLException, IOException {
-    SQLXML xml = _conn.createSQLXML();
+    SQLXML xml = con.createSQLXML();
 
     try {
       xml.getString();
@@ -266,8 +356,9 @@ public class XmlTest extends TestCase {
     }
   }
 
+  @Test
   public void testDoubleSet() throws SQLException {
-    SQLXML xml = _conn.createSQLXML();
+    SQLXML xml = con.createSQLXML();
 
     xml.setString("");
 
@@ -290,12 +381,15 @@ public class XmlTest extends TestCase {
   // Don't print warning and errors to System.err, it just
   // clutters the display.
   static class Ignorer implements ErrorListener {
+    @Override
     public void error(TransformerException t) {
     }
 
+    @Override
     public void fatalError(TransformerException t) {
     }
 
+    @Override
     public void warning(TransformerException t) {
     }
   }

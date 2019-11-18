@@ -1,0 +1,100 @@
+---
+layout: default
+title: PostgreSQL JDBC Development
+resource: ../media
+nav: ../
+---
+
+{% include submenu_development.html %}
+
+				<div id="pgContentWrap">
+					<h1>Development</h1>
+					<hr />
+					<div>
+						<ul>
+							<li><a href="#About_the_Driver">About the Driver</a></li>
+							<li><a href="#Tools">Tools</a></li>
+							<li><a href="#Build_Process">Build Process</a></li>
+							<li><a href="#Test_Suite">Test Suite</a></li>
+						</ul>
+					</div>
+					<hr /> 
+
+					<a name="About_the_Driver"></a>
+					<h2 class="underlined_10">About the Driver</h2>
+					<div>
+						<p>
+							The PostgreSQL JDBC driver has some unique properties that you
+							should be aware of before starting to develop any code for it.
+							The current development driver supports eleven server versions and
+							three java environments. This doesn't mean that every feature must
+							work in every combination, but a reasonable behaviour must be
+							provided for non-supported versions.  While this extra compatibility
+							sounds like a lot of work, the actual goal is to reduce the amount
+							of work by maintaining only one code base.
+						</p>
+					</div>
+					<hr />
+
+					<a name="Tools"></a>
+					<h2 class="underlined_10">Tools</h2>
+					<div>
+						<p>
+							The following tools are required to build and test the driver:
+						</p>
+						<ul>
+							<li><a href="https://java.oracle.com" target="_blank">Java 6 Standard Edition Development Kit</a> At least JDK 1.6</li>
+							<li><a href="https://maven.apache.org" target="_blank">Apache Maven</a> At least 3.1.1</li>
+							<li><a href="https://git-scm.com" target="_blank">Git SCM</a></li>
+							<li><a href="https://www.postgresql.org" target="_blank">A PostgreSQL instance</a> to run the tests.</li>
+						</ul>
+					</div>
+					<hr />
+
+					<a name="Build_Process"></a>
+					<h2 class="underlined_10">Build Process</h2>
+					<div>
+						<p>
+							After retrieving the source from the <a href="../development/git.html">git repository</a>.
+							Move into the top level <span style="font-family: Courier New,Courier,monospace;">pgjdbc</span> directory and simply
+							type <span style="font-family: Courier New,Courier,monospace;">mvn package -DskipTests</span>.  This will build the appropriate driver for
+							your current Java version and place it into <span style="font-family: Courier New,Courier,monospace;">target/postgresql-${version}.jar</span>.
+						</p>
+					</div>
+					<hr />
+
+					<a name="Test_Suite"></a>
+					<h2 class="underlined_10">Test Suite</h2>
+					<div>
+						<p>
+							To make sure the driver is working as expected there are a set of
+							JUnit tests that should be run.  These require a database to run
+							against that has the plpgsql procedural language installed.  The
+							default parameters for username and database are "test", and for
+							password it's "test".
+							so a sample interaction to set this up would look the following, if
+							you enter "password" when asked for it:
+						</p>
+						<pre style="font-family: serif;">
+postgres@host:~$ createuser -d -A test -P
+Enter password for user "test": 
+Enter it again: 
+CREATE USER
+
+postgres@host:~$ createdb -U test test
+CREATE DATABASE
+
+postgres@host:~$ createlang plpgsql test
+						</pre>
+						<p>
+							Now we're ready to run the tests, we simply type <span style="font-family: Courier New,Courier,monospace;">mvn clean package</span>,
+							and it should be off and running.  To use non default values to run
+							the regression tests, you can create a <span style="font-family: Courier New,Courier,monospace;">build.local.properties</span>
+							in the top level directory. This properties file allows you to set
+							values for host, database, user, password, and port with the standard
+							properties "key = value" usage.  The ability to set the port value
+							makes it easy to run the tests against a number of different server
+							versions on the same machine.
+						</p>
+					</div>
+				</div> <!-- pgContentWrap -->

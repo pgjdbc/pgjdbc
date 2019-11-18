@@ -5,32 +5,56 @@
 
 package org.postgresql.test.jdbc42;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest;
+import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalTime;
+import java.util.Properties;
 
-
-public class PreparedStatementTest extends BaseTest {
-
-  public PreparedStatementTest(String name) {
-    super(name);
+public class PreparedStatementTest extends BaseTest4 {
+  protected void updateProperties(Properties props) {
+    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
   }
 
-  protected void setUp() throws Exception {
+  @Override
+  public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "timestamptztable", "tstz timestamptz");
     TestUtil.createTable(con, "timetztable", "ttz timetz");
+    TestUtil.createTable(con, "timetable", "id serial, tt time");
   }
 
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "timestamptztable");
     TestUtil.dropTable(con, "timetztable");
+    TestUtil.dropTable(con, "timetable");
     super.tearDown();
   }
 
+  @Test
+  public void testSetNumber() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("SELECT ? * 2");
+
+    pstmt.setBigDecimal(1, new BigDecimal("1.6"));
+    ResultSet rs = pstmt.executeQuery();
+    rs.next();
+    BigDecimal d = rs.getBigDecimal(1);
+    pstmt.close();
+
+    Assert.assertEquals(new BigDecimal("3.2"), d);
+  }
+
+  @Test
   public void testTimestampTzSetNull() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO timestamptztable (tstz) VALUES (?)");
 
@@ -45,6 +69,7 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testTimeTzSetNull() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO timetztable (ttz) VALUES (?)");
 
@@ -57,5 +82,31 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
 
     pstmt.close();
+  }
+
+  @Test
+  public void testLocalTimeMax() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("INSERT INTO timetable (tt) VALUES (?)");
+
+    pstmt.setObject(1, LocalTime.MAX);
+    pstmt.executeUpdate();
+
+    pstmt.setObject(1, LocalTime.MIN);
+    pstmt.executeUpdate();
+
+    ResultSet rs = con.createStatement().executeQuery("select tt from timetable order by id asc");
+    Assert.assertTrue(rs.next());
+
+    LocalTime localTime = (LocalTime)rs.getObject(1,LocalTime.class);
+
+
+    Assert.assertEquals( LocalTime.MAX, localTime);
+
+    Assert.assertTrue(rs.next());
+
+    localTime = (LocalTime)rs.getObject(1, LocalTime.class);
+
+    Assert.assertEquals( LocalTime.MIN, localTime);
+
   }
 }

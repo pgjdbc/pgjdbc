@@ -44,7 +44,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
    * Gets a description of this DataSource.
    */
   public String getDescription() {
-    return "ConnectionPoolDataSource from " + org.postgresql.Driver.getVersion();
+    return "ConnectionPoolDataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**
@@ -71,7 +71,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
 
   /**
    * Gets whether connections supplied by this pool will have autoCommit turned on by default. The
-   * default value is <tt>false</tt>, so that autoCommit will be turned off by default.
+   * default value is <tt>true</tt>, so that autoCommit will be turned on by default.
    *
    * @return true if connections supplied by this pool will have autoCommit
    */
@@ -81,7 +81,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
 
   /**
    * Sets whether connections supplied by this pool will have autoCommit turned on by default. The
-   * default value is <tt>false</tt>, so that autoCommit will be turned off by default.
+   * default value is <tt>true</tt>, so that autoCommit will be turned on by default.
    *
    * @param defaultAutoCommit whether connections supplied by this pool will have autoCommit
    */
@@ -98,10 +98,4 @@ public class PGConnectionPoolDataSource extends BaseDataSource
     readBaseObject(in);
     defaultAutoCommit = in.readBoolean();
   }
-
-  public java.util.logging.Logger getParentLogger()
-      throws java.sql.SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
-  }
-
 }

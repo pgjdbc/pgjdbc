@@ -12,7 +12,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 
 import javax.sql.DataSource;
 
@@ -28,7 +27,7 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
    * Gets a description of this DataSource.
    */
   public String getDescription() {
-    return "Non-Pooling DataSource from " + org.postgresql.Driver.getVersion();
+    return "Non-Pooling DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   private void writeObject(ObjectOutputStream out) throws IOException {
@@ -48,9 +47,5 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
-  }
-
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
   }
 }

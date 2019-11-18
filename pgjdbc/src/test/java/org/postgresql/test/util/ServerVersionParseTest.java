@@ -31,6 +31,11 @@ public class ServerVersionParseTest {
   @Parameterized.Parameters(name = "str = {0}, expected = {1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
+        /* 4 part version tests */
+        {"7.4.0.0", 70400, null},
+        {"9.0.0.0", 90000, null},
+        {"9.0.1.0", 90001, null},
+        {"9.2.1.0", 90201, null},
         {"7.4.0", 70400, null},
         {"9.0.0", 90000, null},
         {"9.0.1", 90001, null},
@@ -42,6 +47,7 @@ public class ServerVersionParseTest {
         {"9.6", 90600, null},
         {"10", 100000, null},
         {"11", 110000, null},
+        {"12", 120000, null},
         /* Multidigit */
         {"9.4.10", 90410, null},
         {"9.20.10", 92010, null},

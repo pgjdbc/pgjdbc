@@ -9,9 +9,11 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.MalformedInputException;
@@ -23,10 +25,10 @@ public class ReaderInputStreamTest {
   // see http://www.i18nguy.com/unicode/supplementary-test.html for further explanation
 
   // Character.highSurrogate(132878) = 0xd841
-  static final private char LEADING_SURROGATE = 0xd841;
+  private static final char LEADING_SURROGATE = 0xd841;
 
   // Character.lowSurrogate(132878) = 0xdf0e
-  static final private char TRAILING_SURROGATE = 0xdf0e;
+  private static final char TRAILING_SURROGATE = 0xdf0e;
 
   @Test(expected = IllegalArgumentException.class)
   public void NullReaderTest() {
@@ -38,7 +40,7 @@ public class ReaderInputStreamTest {
     new ReaderInputStream(new StringReader("abc"), 1);
   }
 
-  static private void read(InputStream is, int... expected) throws IOException {
+  private static void read(InputStream is, int... expected) throws IOException {
     byte[] actual = new byte[4];
     Arrays.fill(actual, (byte) 0x00);
     int nActual = is.read(actual);
@@ -58,7 +60,7 @@ public class ReaderInputStreamTest {
 
   @Test
   public void SimpleTest() throws IOException {
-    char[] chars = new char[]{'a', 'b', 'c'};
+    char[] chars = {'a', 'b', 'c'};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader);
     read(is, 0x61, 0x62, 0x63);
@@ -67,7 +69,7 @@ public class ReaderInputStreamTest {
 
   @Test
   public void inputSmallerThanCbufsizeTest() throws IOException {
-    char[] chars = new char[]{'a'};
+    char[] chars = {'a'};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
     read(is, 0x61);
@@ -76,7 +78,7 @@ public class ReaderInputStreamTest {
 
   @Test
   public void tooManyReadsTest() throws IOException {
-    char[] chars = new char[]{'a'};
+    char[] chars = {'a'};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
     read(is, 0x61);
@@ -88,7 +90,7 @@ public class ReaderInputStreamTest {
 
   @Test
   public void surrogatePairSpansCharBufBoundaryTest() throws IOException {
-    char[] chars = new char[]{'a', LEADING_SURROGATE, TRAILING_SURROGATE};
+    char[] chars = {'a', LEADING_SURROGATE, TRAILING_SURROGATE};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
     read(is, 0x61, 0xF0, 0xA0, 0x9C);
@@ -98,7 +100,7 @@ public class ReaderInputStreamTest {
 
   @Test(expected = MalformedInputException.class)
   public void invalidInputTest() throws IOException {
-    char[] chars = new char[]{'a', LEADING_SURROGATE, LEADING_SURROGATE};
+    char[] chars = {'a', LEADING_SURROGATE, LEADING_SURROGATE};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
     read(is);
@@ -106,7 +108,7 @@ public class ReaderInputStreamTest {
 
   @Test(expected = MalformedInputException.class)
   public void unmatchedLeadingSurrogateInputTest() throws IOException {
-    char[] chars = new char[]{LEADING_SURROGATE};
+    char[] chars = {LEADING_SURROGATE};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
     read(is, 0x00);
@@ -114,7 +116,7 @@ public class ReaderInputStreamTest {
 
   @Test(expected = MalformedInputException.class)
   public void unmatchedTrailingSurrogateInputTest() throws IOException {
-    char[] chars = new char[]{TRAILING_SURROGATE};
+    char[] chars = {TRAILING_SURROGATE};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
     read(is);
@@ -180,6 +182,24 @@ public class ReaderInputStreamTest {
     Reader reader = new SingleCharPerReadReader(LEADING_SURROGATE, LEADING_SURROGATE);
     InputStream is = new ReaderInputStream(reader);
     read(is, 0xF0, 0xA0, 0x9C, 0x8E);
+  }
+
+  @Test
+  public void readsEqualToBlockSizeTest() throws Exception {
+    final int blockSize = 8 * 1024;
+    final int dataSize = blockSize + 57;
+    final byte[] data = new byte[dataSize];
+    final byte[] buffer = new byte[blockSize];
+
+    InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(data), "UTF-8");
+    ReaderInputStream r = new ReaderInputStream(isr, blockSize);
+
+    int total = 0;
+
+    total += r.read(buffer, 0, blockSize);
+    total += r.read(buffer, 0, blockSize);
+
+    assertEquals("Data not read completely: missing " + (dataSize - total) + " bytes", dataSize, total);
   }
 
   private static class SingleCharPerReadReader extends Reader {

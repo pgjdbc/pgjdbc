@@ -5,10 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.core.Encoding;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -23,18 +29,15 @@ import java.util.Arrays;
  * Ensure that we can do a round-trip of all server-supported unicode values without trashing them,
  * and that bad encodings are detected.
  */
-public class DatabaseEncodingTest extends TestCase {
-  private Connection con;
-
-  public DatabaseEncodingTest(String name) {
-    super(name);
-  }
-
+public class DatabaseEncodingTest {
   private static final int STEP = 100;
+
+  private Connection con;
 
   // Set up the fixture for this testcase: a connection to a database with
   // a table for this test.
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "testdbencoding",
         "unicode_ordinal integer primary key not null, unicode_string varchar(" + STEP + ")");
@@ -44,7 +47,8 @@ public class DatabaseEncodingTest extends TestCase {
   }
 
   // Tear down the fixture for this test case.
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     con.setAutoCommit(true);
     TestUtil.dropTable(con, "testdbencoding");
     TestUtil.closeDB(con);
@@ -63,6 +67,7 @@ public class DatabaseEncodingTest extends TestCase {
     return sb.toString();
   }
 
+  @Test
   public void testEncoding() throws Exception {
     // Check that we have a UTF8 server encoding, or we must skip this test.
     Statement stmt = con.createStatement();
@@ -192,6 +197,7 @@ public class DatabaseEncodingTest extends TestCase {
     }
   }
 
+  @Test
   public void testUTF8Decode() throws Exception {
     // Tests for our custom UTF-8 decoder.
 
@@ -221,6 +227,7 @@ public class DatabaseEncodingTest extends TestCase {
     }
   }
 
+  @Test
   public void testBadUTF8Decode() throws Exception {
     Encoding utf8Encoding = Encoding.getJVMEncoding("UTF-8");
 
@@ -253,7 +260,7 @@ public class DatabaseEncodingTest extends TestCase {
         // Seven-byte illegal sequences
         {(byte) 0xfe}, // Can't have a seven-byte sequence.
 
-        // Eigth-byte illegal sequences
+        // Eighth-byte illegal sequences
         {(byte) 0xff}, // Can't have an eight-byte sequence.
     };
 
@@ -281,6 +288,7 @@ public class DatabaseEncodingTest extends TestCase {
     }
   }
 
+  @Test
   public void testTruncatedUTF8Decode() throws Exception {
     Encoding utf8Encoding = Encoding.getJVMEncoding("UTF-8");
 

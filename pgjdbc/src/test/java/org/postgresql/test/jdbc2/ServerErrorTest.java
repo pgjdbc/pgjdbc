@@ -5,29 +5,29 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 /*
  * Test that enhanced error reports return the correct origin for constraint violation errors.
  */
-public class ServerErrorTest extends TestCase {
+public class ServerErrorTest extends BaseTest4 {
 
-  private Connection con;
-
-  public ServerErrorTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    assumeMinimumServerVersion(ServerVersion.v9_3);
     Statement stmt = con.createStatement();
 
     stmt.execute("CREATE DOMAIN testdom AS int4 CHECK (value < 10)");
@@ -36,14 +36,16 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testerr");
     Statement stmt = con.createStatement();
-    stmt.execute("DROP DOMAIN testdom");
+    stmt.execute("DROP DOMAIN IF EXISTS testdom");
     stmt.close();
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
+  @Test
   public void testPrimaryKey() throws Exception {
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
@@ -61,6 +63,7 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testColumn() throws Exception {
     Statement stmt = con.createStatement();
     try {
@@ -77,6 +80,7 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testDatatype() throws Exception {
     Statement stmt = con.createStatement();
     try {

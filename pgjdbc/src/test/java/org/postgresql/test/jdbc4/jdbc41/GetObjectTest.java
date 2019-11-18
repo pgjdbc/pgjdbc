@@ -22,6 +22,7 @@ import org.postgresql.geometric.PGpolygon;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGmoney;
+import org.postgresql.util.PGobject;
 
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Array;
@@ -58,12 +60,12 @@ public class GetObjectTest {
   private static final TimeZone GMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
   private static final TimeZone GMT13 = TimeZone.getTimeZone("GMT+13"); // +1300 always
 
-  private Connection _conn;
+  private Connection conn;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.createTable(_conn, "table1", "varchar_column varchar(16), "
+    conn = TestUtil.openDB();
+    TestUtil.createTable(conn, "table1", "varchar_column varchar(16), "
             + "char_column char(10), "
             + "boolean_column boolean,"
             + "smallint_column smallint,"
@@ -72,7 +74,7 @@ public class GetObjectTest {
             + "decimal_column decimal,"
             + "numeric_column numeric,"
             // smallserial requires 9.2 or later
-            + (((BaseConnection) _conn).haveMinimumServerVersion(ServerVersion.v9_2) ? "smallserial_column smallserial," : "")
+            + (((BaseConnection) conn).haveMinimumServerVersion(ServerVersion.v9_2) ? "smallserial_column smallserial," : "")
             + "serial_column serial,"
             + "bigserial_column bigserial,"
             + "real_column real,"
@@ -94,18 +96,18 @@ public class GetObjectTest {
             + "circle_column circle,"
             + "money_column money,"
             + "interval_column interval,"
-            + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? "uuid_column uuid," : "")
+            + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? "uuid_column uuid," : "")
             + "inet_column inet,"
             + "cidr_column cidr,"
             + "macaddr_column macaddr"
-            + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? ",xml_column xml" : "")
+            + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? ",xml_column xml" : "")
     );
   }
 
   @After
   public void tearDown() throws SQLException {
-    TestUtil.dropTable(_conn, "table1");
-    TestUtil.closeDB( _conn );
+    TestUtil.dropTable(conn, "table1");
+    TestUtil.closeDB(conn);
   }
 
   /**
@@ -113,7 +115,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetString() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","varchar_column,char_column","'varchar_value','char_value'"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "varchar_column, char_column"));
@@ -133,11 +135,11 @@ public class GetObjectTest {
    */
   @Test
   public void testGetClob() throws SQLException {
-    Statement stmt = _conn.createStatement();
-    _conn.setAutoCommit(false);
+    Statement stmt = conn.createStatement();
+    conn.setAutoCommit(false);
     try {
       char[] data = new char[]{'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
-      PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("table1", "lob_column", "?"));
+      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "lob_column", "?"));
       try {
         insertPS.setObject(1, new SerialClob(data), Types.CLOB);
         insertPS.executeUpdate();
@@ -161,7 +163,7 @@ public class GetObjectTest {
         rs.close();
       }
     } finally {
-      _conn.setAutoCommit(true);
+      conn.setAutoCommit(true);
     }
   }
 
@@ -170,7 +172,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetBigDecimal() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","decimal_column,numeric_column","0.1,0.1"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "decimal_column, numeric_column"));
@@ -190,7 +192,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetTimestamp() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column","TIMESTAMP '2004-10-19 10:23:54'"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
@@ -216,6 +218,33 @@ public class GetObjectTest {
    * Test the behavior getObject for timestamp columns.
    */
   @Test
+  public void testGetJavaUtilDate() throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp as timestamp_without_time_zone_column"
+        + ", null::timestamp as null_timestamp");
+    try {
+      assertTrue(rs.next());
+      Calendar calendar = GregorianCalendar.getInstance();
+      calendar.clear();
+      calendar.set(Calendar.YEAR, 2004);
+      calendar.set(Calendar.MONTH, Calendar.OCTOBER);
+      calendar.set(Calendar.DAY_OF_MONTH, 19);
+      calendar.set(Calendar.HOUR_OF_DAY, 10);
+      calendar.set(Calendar.MINUTE, 23);
+      calendar.set(Calendar.SECOND, 54);
+      java.util.Date expected = new java.util.Date(calendar.getTimeInMillis());
+      assertEquals(expected, rs.getObject("timestamp_without_time_zone_column", java.util.Date.class));
+      assertEquals(expected, rs.getObject(1, java.util.Date.class));
+      assertNull(rs.getObject(2, java.util.Date.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
+   * Test the behavior getObject for timestamp columns.
+   */
+  @Test
   public void testGetTimestampWithTimeZone() throws SQLException {
     runGetTimestampWithTimeZone(UTC, "Z");
     runGetTimestampWithTimeZone(GMT03, "+03:00");
@@ -224,7 +253,7 @@ public class GetObjectTest {
   }
 
   private void runGetTimestampWithTimeZone(TimeZone timeZone, String zoneString) throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     try {
       stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_with_time_zone_column","TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54" + zoneString + "'"));
 
@@ -257,10 +286,10 @@ public class GetObjectTest {
    */
   @Test
   public void testGetCalendar() throws SQLException {
-    Statement stmt = _conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column,timestamp_with_time_zone_column","TIMESTAMP '2004-10-19 10:23:54', TIMESTAMP '2004-10-19 10:23:54+02'"));
+    Statement stmt = conn.createStatement();
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column, timestamp_with_time_zone_column"));
+    ResultSet rs = stmt.executeQuery("select TIMESTAMP '2004-10-19 10:23:54'::timestamp as timestamp_without_time_zone_column"
+        + ", TIMESTAMP '2004-10-19 10:23:54+02'::timestamp as timestamp_with_time_zone_column, null::timestamp as null_timestamp");
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
@@ -274,10 +303,12 @@ public class GetObjectTest {
       long expected = calendar.getTimeInMillis();
       assertEquals(expected, rs.getObject("timestamp_without_time_zone_column", Calendar.class).getTimeInMillis());
       assertEquals(expected, rs.getObject(1, Calendar.class).getTimeInMillis());
+      assertNull(rs.getObject(3, Calendar.class));
       calendar.setTimeZone(TimeZone.getTimeZone("GMT+2:00"));
       expected = calendar.getTimeInMillis();
       assertEquals(expected, rs.getObject("timestamp_with_time_zone_column", Calendar.class).getTimeInMillis());
       assertEquals(expected, rs.getObject(2, Calendar.class).getTimeInMillis());
+      assertNull(rs.getObject(3, Calendar.class));
     } finally {
       rs.close();
     }
@@ -288,7 +319,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetDate() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","DATE '1999-01-08'"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
@@ -312,7 +343,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetTime() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","time_without_time_zone_column","TIME '04:05:06'"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"));
@@ -335,11 +366,47 @@ public class GetObjectTest {
   }
 
   /**
+   * Test the behavior getObject for small integer columns.
+   */
+  @Test
+  public void testGetShort() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","smallint_column","1"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column"));
+    try {
+      assertTrue(rs.next());
+      assertEquals(Short.valueOf((short) 1), rs.getObject("smallint_column", Short.class));
+      assertEquals(Short.valueOf((short) 1), rs.getObject(1, Short.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
+   * Test the behavior getObject for small integer columns.
+   */
+  @Test
+  public void testGetShortNull() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","smallint_column","NULL"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column"));
+    try {
+      assertTrue(rs.next());
+      assertNull(rs.getObject("smallint_column", Short.class));
+      assertNull(rs.getObject(1, Short.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
    * Test the behavior getObject for integer columns.
    */
   @Test
   public void testGetInteger() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","smallint_column, integer_column","1, 2"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column, integer_column"));
@@ -359,7 +426,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetIntegerNull() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","smallint_column, integer_column","NULL, NULL"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column, integer_column"));
@@ -378,8 +445,26 @@ public class GetObjectTest {
    * Test the behavior getObject for long columns.
    */
   @Test
+  public void testGetBigInteger() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","bigint_column","2147483648"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bigint_column"));
+    try {
+      assertTrue(rs.next());
+      assertEquals(BigInteger.valueOf(2147483648L), rs.getObject("bigint_column", BigInteger.class));
+      assertEquals(BigInteger.valueOf(2147483648L), rs.getObject(1, BigInteger.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
+   * Test the behavior getObject for long columns.
+   */
+  @Test
   public void testGetLong() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","bigint_column","2147483648"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bigint_column"));
@@ -397,7 +482,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetLongNull() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","bigint_column","NULL"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bigint_column"));
@@ -415,7 +500,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetDouble() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","double_column","1.0"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "double_column"));
@@ -433,7 +518,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetDoubleNull() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","double_column","NULL"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "double_column"));
@@ -451,7 +536,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetFloat() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","real_column","1.0"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "real_column"));
@@ -469,7 +554,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetFloatNull() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","real_column","NULL"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "real_column"));
@@ -487,11 +572,11 @@ public class GetObjectTest {
    */
   @Test
   public void testGetSerial() throws SQLException {
-    if (!((BaseConnection) _conn).haveMinimumServerVersion(ServerVersion.v9_2)) {
+    if (!((BaseConnection) conn).haveMinimumServerVersion(ServerVersion.v9_2)) {
       // smallserial requires 9.2 or later
       return;
     }
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","smallserial_column, serial_column","1, 2"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallserial_column, serial_column"));
@@ -511,7 +596,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetBoolean() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","boolean_column","TRUE"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "boolean_column"));
@@ -529,7 +614,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetBooleanNull() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","boolean_column","NULL"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "boolean_column"));
@@ -547,11 +632,11 @@ public class GetObjectTest {
    */
   @Test
   public void testGetBlob() throws SQLException {
-    Statement stmt = _conn.createStatement();
-    _conn.setAutoCommit(false);
+    Statement stmt = conn.createStatement();
+    conn.setAutoCommit(false);
     try {
       byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
-      PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("table1", "lob_column", "?"));
+      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "lob_column", "?"));
       try {
         insertPS.setObject(1, new SerialBlob(data), Types.BLOB);
         insertPS.executeUpdate();
@@ -575,7 +660,7 @@ public class GetObjectTest {
         rs.close();
       }
     } finally {
-      _conn.setAutoCommit(true);
+      conn.setAutoCommit(true);
     }
   }
 
@@ -584,7 +669,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetArray() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     String[] data = new String[]{"java", "jdbc"};
     stmt.executeUpdate(TestUtil.insertSQL("table1","array_column","'{\"java\", \"jdbc\"}'"));
 
@@ -608,11 +693,11 @@ public class GetObjectTest {
    */
   @Test
   public void testGetXml() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
+    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3)) {
       // XML column requires PostgreSQL 8.3+
       return;
     }
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     String content = "<book><title>Manual</title></book>";
     stmt.executeUpdate(TestUtil.insertSQL("table1","xml_column","XMLPARSE (DOCUMENT '<?xml version=\"1.0\"?><book><title>Manual</title></book>')"));
 
@@ -632,14 +717,14 @@ public class GetObjectTest {
   }
 
   /**
-   * Test the behavior getObject for money columns.
+   * <p>Test the behavior getObject for money columns.</p>
    *
-   * The test is ignored as it is locale-dependent.
+   * <p>The test is ignored as it is locale-dependent.</p>
    */
   @Ignore
   @Test
   public void testGetMoney() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     String expected = "12.34";
     stmt.executeUpdate(TestUtil.insertSQL("table1","money_column","'12.34'::float8::numeric::money"));
 
@@ -661,7 +746,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetPoint() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGpoint expected = new PGpoint(1.0d, 2.0d);
     stmt.executeUpdate(TestUtil.insertSQL("table1","point_column","point '(1, 2)'"));
 
@@ -680,12 +765,12 @@ public class GetObjectTest {
    */
   @Test
   public void testGetLine() throws SQLException {
-    if (!((BaseConnection) _conn).haveMinimumServerVersion(ServerVersion.v9_4)) {
+    if (!((BaseConnection) conn).haveMinimumServerVersion(ServerVersion.v9_4)) {
       // only 9.4 and later ship with full line support by default
       return;
     }
 
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGline expected = new PGline(1.0d, 2.0d, 3.0d);
     stmt.executeUpdate(TestUtil.insertSQL("table1","line_column","line '{1, 2, 3}'"));
 
@@ -704,7 +789,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetLineseg() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGlseg expected = new PGlseg(1.0d, 2.0d, 3.0d, 4.0d);
     stmt.executeUpdate(TestUtil.insertSQL("table1","lseg_column","lseg '[(1, 2), (3, 4)]'"));
 
@@ -723,7 +808,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetBox() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGbox expected = new PGbox(1.0d, 2.0d, 3.0d, 4.0d);
     stmt.executeUpdate(TestUtil.insertSQL("table1","box_column","box '((1, 2), (3, 4))'"));
 
@@ -742,7 +827,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetPath() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGpath expected = new PGpath(new PGpoint[]{new PGpoint(1.0d, 2.0d), new PGpoint(3.0d, 4.0d)}, true);
     stmt.executeUpdate(TestUtil.insertSQL("table1","path_column","path '[(1, 2), (3, 4)]'"));
 
@@ -761,7 +846,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetPolygon() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGpolygon expected = new PGpolygon(new PGpoint[]{new PGpoint(1.0d, 2.0d), new PGpoint(3.0d, 4.0d)});
     stmt.executeUpdate(TestUtil.insertSQL("table1","polygon_column","polygon '((1, 2), (3, 4))'"));
 
@@ -780,7 +865,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetCircle() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGcircle expected = new PGcircle(1.0d, 2.0d, 3.0d);
     stmt.executeUpdate(TestUtil.insertSQL("table1","circle_column","circle '<(1, 2), 3>'"));
 
@@ -799,7 +884,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetInterval() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     PGInterval expected = new PGInterval(0, 0, 3, 4, 5, 6.0d);
     stmt.executeUpdate(TestUtil.insertSQL("table1","interval_column","interval '3 4:05:06'"));
 
@@ -818,11 +903,11 @@ public class GetObjectTest {
    */
   @Test
   public void testGetUuid() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
+    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3)) {
       // UUID requires PostgreSQL 8.3+
       return;
     }
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     String expected = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
     stmt.executeUpdate(TestUtil.insertSQL("table1","uuid_column","'" + expected + "'"));
 
@@ -841,7 +926,7 @@ public class GetObjectTest {
    */
   @Test
   public void testGetInetAddressNull() throws SQLException, UnknownHostException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","inet_column","NULL"));
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "inet_column"));
@@ -854,42 +939,48 @@ public class GetObjectTest {
     }
   }
 
-  /**
-   * Test the behavior getObject for inet columns.
-   */
-  @Test
-  public void testGetInet4Address() throws SQLException, UnknownHostException {
-    Statement stmt = _conn.createStatement();
-    String expected = "192.168.100.128";
-    stmt.executeUpdate(TestUtil.insertSQL("table1","inet_column","'" + expected + "'"));
-
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "inet_column"));
+  private void testInet(String inet, InetAddress expectedAddr, String expectedText) throws SQLException, UnknownHostException {
+    PGobject expectedObj = new PGobject();
+    expectedObj.setType("inet");
+    expectedObj.setValue(expectedText);
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT '" + inet + "'::inet AS inet_column");
     try {
       assertTrue(rs.next());
-      assertEquals(InetAddress.getByName(expected), rs.getObject("inet_column", InetAddress.class));
-      assertEquals(InetAddress.getByName(expected), rs.getObject(1, InetAddress.class));
+      assertEquals("The string value of the inet should match when fetched via getString(...)", expectedText, rs.getString(1));
+      assertEquals("The string value of the inet should match when fetched via getString(...)", expectedText, rs.getString("inet_column"));
+      assertEquals("The object value of the inet should match when fetched via getObject(...)", expectedObj, rs.getObject(1));
+      assertEquals("The object value of the inet should match when fetched via getObject(...)", expectedObj, rs.getObject("inet_column"));
+      assertEquals("The InetAddress value should match when fetched via getObject(..., InetAddress.class)", expectedAddr, rs.getObject("inet_column", InetAddress.class));
+      assertEquals("The InetAddress value should match when fetched via getObject(..., InetAddress.class)", expectedAddr, rs.getObject(1, InetAddress.class));
     } finally {
       rs.close();
+      stmt.close();
     }
   }
 
   /**
-   * Test the behavior getObject for inet columns.
+   * Test the behavior getObject for ipv4 inet columns.
+   */
+  @Test
+  public void testGetInet4Address() throws SQLException, UnknownHostException {
+    String inet = "192.168.100.128";
+    InetAddress addr = InetAddress.getByName(inet);
+    testInet(inet, addr, inet);
+    testInet(inet + "/16", addr, inet + "/16");
+    testInet(inet + "/32", addr, inet);
+  }
+
+  /**
+   * Test the behavior getObject for ipv6 inet columns.
    */
   @Test
   public void testGetInet6Address() throws SQLException, UnknownHostException {
-    Statement stmt = _conn.createStatement();
-    String expected = "2001:4f8:3:ba:2e0:81ff:fe22:d1f1";
-    stmt.executeUpdate(TestUtil.insertSQL("table1","inet_column","'" + expected + "'"));
-
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "inet_column"));
-    try {
-      assertTrue(rs.next());
-      assertEquals(InetAddress.getByName(expected), rs.getObject("inet_column", InetAddress.class));
-      assertEquals(InetAddress.getByName(expected), rs.getObject(1, InetAddress.class));
-    } finally {
-      rs.close();
-    }
+    String inet = "2001:4f8:3:ba:2e0:81ff:fe22:d1f1";
+    InetAddress addr = InetAddress.getByName(inet);
+    testInet(inet, addr, inet);
+    testInet(inet + "/16", addr, inet + "/16");
+    testInet(inet + "/128", addr, inet);
   }
 
 }

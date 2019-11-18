@@ -7,5 +7,9 @@ package org.postgresql.jdbc3;
 
 import org.postgresql.ds.PGConnectionPoolDataSource;
 
+/**
+ * @deprecated Please use {@link PGConnectionPoolDataSource}
+ */
+@Deprecated
 public class Jdbc3ConnectionPool extends PGConnectionPoolDataSource {
 }

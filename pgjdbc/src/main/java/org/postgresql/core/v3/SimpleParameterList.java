@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-
 /**
  * Parameter list for a single-statement V3 query.
  *
@@ -32,12 +31,12 @@ import java.util.Arrays;
  */
 class SimpleParameterList implements V3ParameterList {
 
-  private final static byte IN = 1;
-  private final static byte OUT = 2;
-  private final static byte INOUT = IN | OUT;
+  private static final byte IN = 1;
+  private static final byte OUT = 2;
+  private static final byte INOUT = IN | OUT;
 
-  private final static byte TEXT = 0;
-  private final static byte BINARY = 4;
+  private static final byte TEXT = 0;
+  private static final byte BINARY = 4;
 
   SimpleParameterList(int paramCount, TypeTransferModeRegistry transferModeRegistry) {
     this.paramValues = new Object[paramCount];
@@ -188,10 +187,16 @@ class SimpleParameterList implements V3ParameterList {
 
         case Oid.FLOAT4:
           float f = ByteConverter.float4((byte[]) paramValues[index], 0);
+          if (Float.isNaN(f)) {
+            return "'NaN'::real";
+          }
           return Float.toString(f);
 
         case Oid.FLOAT8:
           double d = ByteConverter.float8((byte[]) paramValues[index], 0);
+          if (Double.isNaN(d)) {
+            return "'NaN'::double precision";
+          }
           return Double.toString(d);
 
         case Oid.UUID:
@@ -214,7 +219,7 @@ class SimpleParameterList implements V3ParameterList {
       String param = paramValues[index].toString();
 
       // add room for quotes + potential escaping.
-      StringBuilder p = new StringBuilder(3 + param.length() * 11 / 10);
+      StringBuilder p = new StringBuilder(3 + (param.length() + 10) / 10 * 11);
 
       // No E'..' here since escapeLiteral escapes all things and it does not use \123 kind of
       // escape codes
@@ -245,6 +250,8 @@ class SimpleParameterList implements V3ParameterList {
         p.append("::date");
       } else if (paramType == Oid.INTERVAL) {
         p.append("::interval");
+      } else if (paramType == Oid.NUMERIC) {
+        p.append("::numeric");
       }
       return p.toString();
     }
@@ -381,7 +388,6 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.send(encoded[index]);
   }
 
-
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
@@ -467,7 +473,7 @@ class SimpleParameterList implements V3ParameterList {
    * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
    * to null".
    */
-  private final static Object NULL_OBJECT = new Object();
+  private static final Object NULL_OBJECT = new Object();
 
   private int pos = 0;
 }

@@ -5,6 +5,10 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
@@ -17,38 +21,46 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-
 
 /*
  * Test case for geometric type I/O
  */
-public class GeometricTest extends TestCase {
-  private Connection con;
+@RunWith(Parameterized.class)
+public class GeometricTest extends BaseTest4 {
 
-  public GeometricTest(String name) {
-    super(name);
+  public GeometricTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
   }
 
-  // Set up the fixture for this testcase: a connection to a database with
-  // a table for this test.
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
+
+  public void setUp() throws Exception {
+    super.setUp();
     TestUtil.createTable(con, "testgeometric",
         "boxval box, circleval circle, lsegval lseg, pathval path, polygonval polygon, pointval point, lineval line");
   }
 
-  // Tear down the fixture for this test case.
-  protected void tearDown() throws Exception {
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testgeometric");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   private void checkReadWrite(PGobject obj, String column) throws Exception {
@@ -61,13 +73,17 @@ public class GeometricTest extends TestCase {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT " + column + " FROM testgeometric");
     assertTrue(rs.next());
-    assertEquals(obj, rs.getObject(1));
+    assertEquals("PGObject#equals(rs.getObject)", obj, rs.getObject(1));
+    PGobject obj2 = (PGobject) obj.clone();
+    obj2.setValue(rs.getString(1));
+    assertEquals("PGobject.toString vs rs.getString", obj, obj2);
     rs.close();
 
     stmt.executeUpdate("DELETE FROM testgeometric");
     stmt.close();
   }
 
+  @Test
   public void testPGbox() throws Exception {
     checkReadWrite(new PGbox(1.0, 2.0, 3.0, 4.0), "boxval");
     checkReadWrite(new PGbox(-1.0, 2.0, 3.0, 4.0), "boxval");
@@ -76,12 +92,14 @@ public class GeometricTest extends TestCase {
     checkReadWrite(new PGbox(1.0, 2.0, 3.0, -4.0), "boxval");
   }
 
+  @Test
   public void testPGcircle() throws Exception {
     checkReadWrite(new PGcircle(1.0, 2.0, 3.0), "circleval");
     checkReadWrite(new PGcircle(-1.0, 2.0, 3.0), "circleval");
     checkReadWrite(new PGcircle(1.0, -2.0, 3.0), "circleval");
   }
 
+  @Test
   public void testPGlseg() throws Exception {
     checkReadWrite(new PGlseg(1.0, 2.0, 3.0, 4.0), "lsegval");
     checkReadWrite(new PGlseg(-1.0, 2.0, 3.0, 4.0), "lsegval");
@@ -90,6 +108,7 @@ public class GeometricTest extends TestCase {
     checkReadWrite(new PGlseg(1.0, 2.0, 3.0, -4.0), "lsegval");
   }
 
+  @Test
   public void testPGpath() throws Exception {
     PGpoint[] points =
         new PGpoint[]{new PGpoint(0.0, 0.0), new PGpoint(0.0, 5.0), new PGpoint(5.0, 5.0),
@@ -99,6 +118,7 @@ public class GeometricTest extends TestCase {
     checkReadWrite(new PGpath(points, false), "pathval");
   }
 
+  @Test
   public void testPGpolygon() throws Exception {
     PGpoint[] points =
         new PGpoint[]{new PGpoint(0.0, 0.0), new PGpoint(0.0, 5.0), new PGpoint(5.0, 5.0),
@@ -107,6 +127,7 @@ public class GeometricTest extends TestCase {
     checkReadWrite(new PGpolygon(points), "polygonval");
   }
 
+  @Test
   public void testPGline() throws Exception {
     final String columnName = "lineval";
 
@@ -161,6 +182,7 @@ public class GeometricTest extends TestCase {
     }
   }
 
+  @Test
   public void testPGpoint() throws Exception {
     checkReadWrite(new PGpoint(1.0, 2.0), "pointval");
   }

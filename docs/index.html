@@ -1,0 +1,67 @@
+---
+layout: default
+title: PostgreSQL JDBC Driver
+resource: media
+nav:
+---
+
+<br />
+<div id="pgFrontContainer">
+  <div id="pgFrontMain">
+    <div id="pgFrontFeature">
+      <div id="pgFrontFeatureContent">
+        {% for post in site.posts offset: 0 limit: 3 %}
+        <p class="txtDate"><strong>{{ post.date | date_to_long_string }}</strong></p>
+        <h1 id="txtFrontFeatureHeading">{{ post.title }}</h1>
+        <div>{{ post.excerpt | prepend: "<!--start-->" | split: "<!--start-->" | last }}</div>
+        <br/>
+        <p>See full <a href="documentation/changelog.html#version_{{ post.version}}">changelog for {{ post.version}}</a>
+        <hr />
+        {% endfor %}
+        <p><br/><br/>
+          The PostgreSQL JDBC group would like to thank YourKit<br/>for graciously providing licenses to the project.<br/>
+          <img src="https://www.yourkit.com/images/yklogo.png" />
+        </p>
+      </div> <!-- pgFrontFeatureContent -->
+    </div> <!-- pgFrontFeature -->
+  </div> <!-- pgFrontMain -->
+</div> <!-- pgFrontContainer -->
+<div id="pgFrontRightContainer">
+  <div id="pgFrontLatestReleases">
+    <h2><img src="media/img/hdr/hdr_latestreleases.png" alt="Latest Releases" width="120" height="10"></h2>
+    <div id="pgFrontLatestReleasesWrap">
+      {% for post in site.posts offset: 0 limit: 5 %}
+      <b>{{ post.version}}</b> · {{ post.date | date_to_string }} · <a href="documentation/changelog.html#version_{{ post.version}}">Notes</a>
+      <br/>
+      {% endfor %}
+    </div>
+    <div id="pgFrontLatestReleasesNote">
+      <b><a href="download.html">Downloads</a></b>
+       |
+      <a href="https://oss.sonatype.org/content/repositories/snapshots/org/postgresql/postgresql/">Snapshots</a>
+    </div>
+  </div> <!-- pgFrontLatestreleases -->
+  <div id="pgFrontShortcuts">
+    <h2><img src="media/img/hdr/hdr_shortcuts.png" alt="Shortcuts" width="85" height="10"></h2>
+    <div id="pgFrontShortcutsWrap">
+      <ul id="pgFrontShortcutsList">
+        <li><a href="https://github.com/pgjdbc/pgjdbc">GitHub project</a></li>
+        <li><a href="documentation/head/index.html">Documentation</a></li>
+        <li><a href="https://www.postgresql.org/list/pgsql-jdbc/">Mailing list</a></li>
+        <li><a href="https://github.com/pgjdbc/pgjdbc/issues/new">Report a bug</a></li>
+        <li><a href="documentation/faq.html">FAQ</a></li>
+      </ul>
+    </div> <!-- pgFrontShortcutsWrap -->
+  </div> <!-- pgFrontShortcuts -->
+  <div id="pgFrontSupportUs">
+    <h2><img src="media/img/hdr/hdr_supportus.png" alt="Support Us" width="81" height="10"></h2>
+    <div id="pgFrontSupportUsWrap">
+      <div id="txtFrontSupportUsText">
+        PostgreSQL is free. Please support our work by making a <a href="https://www.postgresql.org/about/donate">donation</a>.
+      </div>
+    </div>
+  </div>
+  <div>
+    <img height="90" alt="" style="display: block; margin: 0 auto; padding-top: 30px;" src="/media/img/slonik_duke.png" />
+  </div>
+</div> <!-- pgFrontRightContainer -->

@@ -31,7 +31,6 @@ public abstract class AbstractBlobClob {
   private boolean currentLoIsWriteable;
   private boolean support64bit;
 
-
   /**
    * We create separate LargeObjects for methods that use streams so they won't interfere with each
    * other.
@@ -110,7 +109,6 @@ public abstract class AbstractBlobClob {
     return getLo(false).read(length);
   }
 
-
   public synchronized InputStream getBinaryStream() throws SQLException {
     checkFreed();
     LargeObject subLO = getLo(false).copy();
@@ -128,7 +126,7 @@ public abstract class AbstractBlobClob {
   }
 
   /**
-   * Iterate over the buffer looking for the specified pattern
+   * Iterate over the buffer looking for the specified pattern.
    *
    * @param pattern A pattern of bytes to search the blob for
    * @param start The position to start reading from
@@ -165,13 +163,13 @@ public abstract class AbstractBlobClob {
   /**
    * Iterates over a large object returning byte values. Will buffer the data from the large object.
    */
-  private class LOIterator {
+  private class LOIterator  {
     private static final int BUFFER_SIZE = 8096;
-    private byte buffer[] = new byte[BUFFER_SIZE];
+    private byte[] buffer = new byte[BUFFER_SIZE];
     private int idx = BUFFER_SIZE;
     private int numBytes = BUFFER_SIZE;
 
-    public LOIterator(long start) throws SQLException {
+    LOIterator(long start) throws SQLException {
       getLo(false).seek((int) start);
     }
 
@@ -192,9 +190,8 @@ public abstract class AbstractBlobClob {
     }
   }
 
-
   /**
-   * This is simply passing the byte value of the pattern Blob
+   * This is simply passing the byte value of the pattern Blob.
    *
    * @param pattern search pattern
    * @param start start position

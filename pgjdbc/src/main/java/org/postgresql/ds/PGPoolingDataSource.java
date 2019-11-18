@@ -12,7 +12,6 @@ import org.postgresql.util.PSQLState;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,7 +53,11 @@ import javax.sql.PooledConnection;
  * </p>
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
+ *
+ * @deprecated Since 42.0.0, instead of this class you should use a fully featured connection pool
+ *     like HikariCP, vibur-dbcp, commons-dbcp, c3p0, etc.
  */
+@Deprecated
 public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   protected static ConcurrentMap<String, PGPoolingDataSource> dataSources =
       new ConcurrentHashMap<String, PGPoolingDataSource>();
@@ -78,7 +81,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * Gets a description of this DataSource.
    */
   public String getDescription() {
-    return "Pooling DataSource '" + dataSourceName + " from " + org.postgresql.Driver.getVersion();
+    return "Pooling DataSource '" + dataSourceName + " from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**
@@ -454,9 +457,5 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
-  }
-
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
   }
 }

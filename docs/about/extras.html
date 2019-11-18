@@ -1,0 +1,43 @@
+---
+layout: default
+title: PostgreSQL JDBC Extras
+resource: ../media
+nav: ../
+---
+
+{% include submenu_about.html %}
+
+				<div id="pgContentWrap">
+					<h1>Extras</h1>
+					<hr />
+					<div>
+						<ul class="minitoc">
+							<li><a href="#intro">Introduction</a></li>
+							<li><a href="#jdbccache">Statement Caching Wrapper</a></li>
+						</ul>
+					</div>
+					<hr />
+
+					<a name="intro"></a>
+					<h2 class="underlined_10">Introduction</h2>
+					<div>
+						<p>
+							Here is a collection of things that may be useful to you that
+							are not part of the core driver.  For assistance or support you
+							should contact the channels specified in each item, instead of
+							the core driver lists/team.
+						</p>
+					</div>
+					<hr />
+
+					<a name="jdbccache"></a>
+					<h2 class="underlined_10"><a href="http://jdbccache.projects.postgresql.org">Statement Caching Wrapper</a></h2>
+					<div>
+						<p>
+							Wraps the core driver to enable caching of PreparedStatement
+							objects.  Not all application servers support this functionality
+							in their connection pools and not all applications are deployed
+							onto application servers.
+						</p>
+					</div>
+				</div> <!-- pgContentWrap -->

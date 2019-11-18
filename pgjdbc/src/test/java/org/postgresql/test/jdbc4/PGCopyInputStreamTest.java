@@ -5,47 +5,51 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.PGConnection;
 import org.postgresql.copy.PGCopyInputStream;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class PGCopyInputStreamTest extends TestCase {
-  private Connection _conn;
+public class PGCopyInputStreamTest {
+  private Connection conn;
   private PGCopyInputStream sut;
   private String copyParams;
 
-  public PGCopyInputStreamTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.createTable(_conn, "cpinstreamtest", "i int");
-    if (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
+  @Before
+  public void setUp() throws Exception {
+    conn = TestUtil.openDB();
+    TestUtil.createTable(conn, "cpinstreamtest", "i int");
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
       copyParams = "(FORMAT CSV, HEADER false)";
     } else {
       copyParams = "CSV";
     }
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     silentlyCloseStream(sut);
-    TestUtil.dropTable(_conn, "cpinstreamtest");
-    TestUtil.closeDB(_conn);
+    TestUtil.dropTable(conn, "cpinstreamtest");
+    TestUtil.closeDB(conn);
   }
 
+  @Test
   public void testReadBytesCorrectlyHandlesEof() throws SQLException, IOException {
     insertSomeData();
 
-    sut = new PGCopyInputStream((PGConnection) _conn,
+    sut = new PGCopyInputStream((PGConnection) conn,
         "COPY cpinstreamtest (i) TO STDOUT WITH " + copyParams);
 
     byte[] buf = new byte[100]; // large enough to read everything on the next step
@@ -54,10 +58,11 @@ public class PGCopyInputStreamTest extends TestCase {
     assertEquals(-1, sut.read(buf));
   }
 
+  @Test
   public void testReadBytesCorrectlyReadsDataInChunks() throws SQLException, IOException {
     insertSomeData();
 
-    sut = new PGCopyInputStream((PGConnection) _conn,
+    sut = new PGCopyInputStream((PGConnection) conn,
         "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH " + copyParams);
 
     byte[] buf = new byte[2]; // small enough to read in multiple chunks
@@ -72,15 +77,16 @@ public class PGCopyInputStreamTest extends TestCase {
     assertEquals("0\n1\n2\n3\n", result.toString());
   }
 
+  @Test
   public void testStreamCanBeClosedAfterReadUp() throws SQLException, IOException {
     insertSomeData();
 
-    sut = new PGCopyInputStream((PGConnection) _conn,
+    sut = new PGCopyInputStream((PGConnection) conn,
         "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH " + copyParams);
 
     byte[] buff = new byte[100];
     while (sut.read(buff) > 0) {
-      ;
+      // do nothing
     }
 
     sut.close();
@@ -99,7 +105,7 @@ public class PGCopyInputStreamTest extends TestCase {
   }
 
   private void insertSomeData() throws SQLException {
-    PreparedStatement pstmt = _conn.prepareStatement("insert into cpinstreamtest (i) values (?)");
+    PreparedStatement pstmt = conn.prepareStatement("insert into cpinstreamtest (i) values (?)");
     for (int i = 0; i < 4; ++i) {
       pstmt.setInt(1, i);
       pstmt.addBatch();

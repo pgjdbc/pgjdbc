@@ -10,10 +10,8 @@ import org.postgresql.ds.common.BaseDataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 
 import javax.naming.Reference;
-import javax.naming.Referenceable;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 
@@ -22,7 +20,7 @@ import javax.sql.XADataSource;
  *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  */
-public class PGXADataSource extends BaseDataSource implements XADataSource, Referenceable {
+public class PGXADataSource extends BaseDataSource implements XADataSource {
   /**
    * Gets a connection to the PostgreSQL database. The database is identified by the DataSource
    * properties serverName, databaseName, and portNumber. The user to connect as is identified by
@@ -50,7 +48,7 @@ public class PGXADataSource extends BaseDataSource implements XADataSource, Refe
   }
 
   public String getDescription() {
-    return "JDBC3 XA-enabled DataSource from " + org.postgresql.Driver.getVersion();
+    return "XA-enabled DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**
@@ -60,7 +58,4 @@ public class PGXADataSource extends BaseDataSource implements XADataSource, Refe
     return new Reference(getClass().getName(), PGXADataSourceFactory.class.getName(), null);
   }
 
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
-  }
 }

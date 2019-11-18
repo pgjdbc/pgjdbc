@@ -12,6 +12,8 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyDual;
 import org.postgresql.copy.CopyManager;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
@@ -34,7 +36,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
- * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol
+ * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol.
  */
 @HaveMinimalServerVersion("9.4")
 public class CopyBothResponseTest {
@@ -178,7 +180,9 @@ public class CopyBothResponseTest {
     Statement st = sqlConnection.createStatement();
     ResultSet rs = null;
     try {
-      rs = st.executeQuery("select pg_current_xlog_location()");
+      rs = st.executeQuery("select "
+          + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+          ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
 
       if (rs.next()) {
         String lsn = rs.getString(1);

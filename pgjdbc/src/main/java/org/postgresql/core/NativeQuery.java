@@ -11,8 +11,8 @@ package org.postgresql.core;
  * replaced with $1, $2, etc.
  */
 public class NativeQuery {
-  private final static String[] BIND_NAMES = new String[128 * 10];
-  private final static int[] NO_BINDS = new int[0];
+  private static final String[] BIND_NAMES = new String[128 * 10];
+  private static final int[] NO_BINDS = new int[0];
 
   public final String nativeSql;
   public final int[] bindPositions;
@@ -42,7 +42,7 @@ public class NativeQuery {
    * parameter placeholders.
    *
    * @param parameters a ParameterList returned by this Query's {@link Query#createParameterList}
-   *        method, or <code>null</code> to leave the parameter placeholders unsubstituted.
+   *        method, or {@code null} to leave the parameter placeholders unsubstituted.
    * @return a human-readable representation of this query
    */
   public String toString(ParameterList parameters) {

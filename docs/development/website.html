@@ -1,0 +1,66 @@
+---
+layout: default
+title: PostgreSQL JDBC Website
+resource: ../media
+nav: ../
+---
+
+{% include submenu_development.html %}
+
+				<div id="pgContentWrap">
+					<h1>Website</h1>
+					<hr />
+					<div>
+						<div>
+							<ul>
+								<li><a href="#website">Building the Website</a></li>
+								<li><a href="#addingpages">Adding a Page</a></li>
+							</ul>
+						</div>
+					</div>
+					<hr />
+
+					<a name="website"></a>
+					<h2 class="underlined_10">Building the Website</h2>
+					<div>
+						<p>
+							The website is produced with <a href="http://jekyllrb.com" target="_blank">Jekyll</a>.
+							It allows you to build a reasonably good looking website that is
+							easy to maintain and modular in nature. Templates are used from the _layout
+							and _includes directories which are then used in conjunction with content that
+							is created with <a href="http://daringfireball.net/projects/markdown/" target="_blank">Markdown</a>,
+							<a href="http://textile.sitemonks.com/" target="_blank">Textile</a>, or
+							just standard HTML for input. Using Markdown or Textile allows the content
+							to be generated with simple rules that allow a more free flowing process of
+							writing without worrying about coding for the HTML. 
+						</p>
+						<p>
+							To get started please read the <a href="http://jekyllrb.com" target="_blank">Jekyll website</a>
+							for installation instructions for that tool. After installing Jekyll you need to get
+							the website project.  This is available from the same <a href="../development/git.html">git repository</a>
+							that the main source code is, it's just a different module, <span style="font-family: Courier New,Courier,monospace;">www</span>.
+							Checkout this module and then within the top level directory of the module simply
+							run <span style="font-family: Courier New,Courier,monospace;">jekyll build</span>.
+							This should produce the website in the <span style="font-family: Courier New,Courier,monospace;">_site</span>
+							subdirectory.
+						</p>
+					</div>
+					<hr />
+
+					<a name="addingpages"></a>
+					<h2 class="underlined_10">Adding a Page</h2>
+					<div>
+						<p>
+							To add a page the easiest thing to do is copy an existing one from the site like
+							<span style="font-family: Courier New,Courier,monospace;">about/about.html</span>
+							and then rip out its contents.  Once new content is created and you have saved
+							the new page you will need to add the new file to the menu system
+							of the appropriate <span style="font-family: Courier New,Courier,monospace;">_includes</span>
+							subdirectory submenu.<br><br>
+
+							A good place to look for example content is <a href="https://github.com/mojombo/jekyll/wiki/sites">Jekyll's wiki</a>
+							site where there is a listing of real sites that use Jekyll. Many of these sites will
+							have their repositories available for review.
+						</p>
+					</div>
+				</div> <!-- pgContentWrap -->

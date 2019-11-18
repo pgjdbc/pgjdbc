@@ -18,7 +18,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
@@ -63,6 +62,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * Adds a listener for close or fatal error events on the connection handed out to a client.
    */
+  @Override
   public void addConnectionEventListener(ConnectionEventListener connectionEventListener) {
     listeners.add(connectionEventListener);
   }
@@ -70,6 +70,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * Removes a listener for close or fatal error events on the connection handed out to a client.
    */
+  @Override
   public void removeConnectionEventListener(ConnectionEventListener connectionEventListener) {
     listeners.remove(connectionEventListener);
   }
@@ -78,6 +79,7 @@ public class PGPooledConnection implements PooledConnection {
    * Closes the physical database connection represented by this PooledConnection. If any client has
    * a connection based on this PooledConnection, it is forcibly closed as well.
    */
+  @Override
   public void close() throws SQLException {
     if (last != null) {
       last.close();
@@ -108,6 +110,7 @@ public class PGPooledConnection implements PooledConnection {
    * called, the previous one is forcibly closed and its work rolled back.
    * </p>
    */
+  @Override
   public Connection getConnection() throws SQLException {
     if (con == null) {
       // Before throwing the exception, let's notify the registered listeners about the error
@@ -160,7 +163,7 @@ public class PGPooledConnection implements PooledConnection {
     ConnectionEvent evt = null;
     // Copy the listener list so the listener can remove itself during this method call
     ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        listeners.toArray(new ConnectionEventListener[0]);
     for (ConnectionEventListener listener : local) {
       if (evt == null) {
         evt = createConnectionEvent(null);
@@ -176,7 +179,7 @@ public class PGPooledConnection implements PooledConnection {
     ConnectionEvent evt = null;
     // Copy the listener list so the listener can remove itself during this method call
     ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        listeners.toArray(new ConnectionEventListener[0]);
     for (ConnectionEventListener listener : local) {
       if (evt == null) {
         evt = createConnectionEvent(e);
@@ -249,10 +252,11 @@ public class PGPooledConnection implements PooledConnection {
     private Connection proxy; // the Connection the client is currently using, which is a proxy
     private boolean automatic = false;
 
-    public ConnectionHandler(Connection con) {
+    ConnectionHandler(Connection con) {
       this.con = con;
     }
 
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
@@ -364,23 +368,24 @@ public class PGPooledConnection implements PooledConnection {
   }
 
   /**
-   * Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
+   * <p>Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
    * which would have to be updated for every JDK rev, use a dynamic proxy to handle all calls
    * through the Statement interfaces. This is the part that requires JDK 1.3 or higher, though JDK
-   * 1.2 could be supported with a 3rd-party proxy package.
+   * 1.2 could be supported with a 3rd-party proxy package.</p>
    *
-   * The StatementHandler is required in order to return the proper Connection proxy for the
-   * getConnection method.
+   * <p>The StatementHandler is required in order to return the proper Connection proxy for the
+   * getConnection method.</p>
    */
   private class StatementHandler implements InvocationHandler {
     private ConnectionHandler con;
     private Statement st;
 
-    public StatementHandler(ConnectionHandler con, Statement st) {
+    StatementHandler(ConnectionHandler con, Statement st) {
       this.con = con;
       this.st = st;
     }
 
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
@@ -431,13 +436,12 @@ public class PGPooledConnection implements PooledConnection {
     }
   }
 
+  @Override
   public void removeStatementEventListener(StatementEventListener listener) {
   }
 
+  @Override
   public void addStatementEventListener(StatementEventListener listener) {
   }
 
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
-  }
 }

@@ -5,9 +5,13 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -17,14 +21,11 @@ import java.sql.Statement;
  * Some simple tests to check that the required components needed for JBuilder stay working
  *
  */
-public class JBuilderTest extends TestCase {
-
-  public JBuilderTest(String name) {
-    super(name);
-  }
+public class JBuilderTest {
 
   // Set up the fixture for this testcase: the tables for this test.
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     Connection con = TestUtil.openDB();
 
     TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
@@ -33,7 +34,8 @@ public class JBuilderTest extends TestCase {
   }
 
   // Tear down the fixture for this test case.
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     Connection con = TestUtil.openDB();
     TestUtil.dropTable(con, "test_c");
     TestUtil.closeDB(con);
@@ -42,6 +44,7 @@ public class JBuilderTest extends TestCase {
   /*
    * This tests that Money types work. JDBCExplorer barfs if this fails.
    */
+  @Test
   public void testMoney() throws Exception {
     Connection con = TestUtil.openDB();
 

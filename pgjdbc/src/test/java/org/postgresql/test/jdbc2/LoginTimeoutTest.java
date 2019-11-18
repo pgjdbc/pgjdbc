@@ -5,9 +5,13 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -19,15 +23,14 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public class LoginTimeoutTest extends TestCase {
-  public LoginTimeoutTest(String name) {
-    super(name);
-  }
+public class LoginTimeoutTest {
 
+  @Before
   public void setUp() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
   }
 
+  @Test
   public void testIntTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
@@ -38,6 +41,7 @@ public class LoginTimeoutTest extends TestCase {
     conn.close();
   }
 
+  @Test
   public void testFloatTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
@@ -48,6 +52,7 @@ public class LoginTimeoutTest extends TestCase {
     conn.close();
   }
 
+  @Test
   public void testZeroTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
@@ -58,6 +63,7 @@ public class LoginTimeoutTest extends TestCase {
     conn.close();
   }
 
+  @Test
   public void testNegativeTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
@@ -68,6 +74,7 @@ public class LoginTimeoutTest extends TestCase {
     conn.close();
   }
 
+  @Test
   public void testBadTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
@@ -98,6 +105,7 @@ public class LoginTimeoutTest extends TestCase {
       return listenSocket.getLocalPort();
     }
 
+    @Override
     public void run() {
       try {
         Socket newSocket = listenSocket.accept();
@@ -122,7 +130,7 @@ public class LoginTimeoutTest extends TestCase {
     private final ServerSocket listenSocket;
   }
 
-
+  @Test
   public void testTimeoutOccurs() throws Exception {
     // Spawn a helper thread to accept a connection and do nothing with it;
     // this should trigger a timeout.

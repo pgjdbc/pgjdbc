@@ -10,12 +10,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -50,20 +51,46 @@ public class ResultSetTest extends BaseTest4 {
     TestUtil.createTable(con, "testint", "a int");
     stmt.executeUpdate("INSERT INTO testint VALUES (12345)");
 
-    TestUtil.createTable(con, "testbool", "a boolean");
+    // Boolean Tests
+    TestUtil.createTable(con, "testboolstring", "a varchar(30), b boolean");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('1 ', true)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('0', false)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES(' t', true)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('f', false)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('True', true)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('      False   ', false)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('yes', true)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('  no  ', false)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('y', true)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('n', false)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('oN', true)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('oFf', false)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('OK', null)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('NOT', null)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('not a boolean', null)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0', null)");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0', null)");
+
+    TestUtil.createTable(con, "testboolfloat", "a float4, b boolean");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.0'::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('0.0'::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.000::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(0.000::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('-1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(123.4::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.234e2::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(100.00e-2::real, true)");
+
+    TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
+    stmt.executeUpdate("INSERT INTO testboolint VALUES(1, true)");
+    stmt.executeUpdate("INSERT INTO testboolint VALUES(0, false)");
+    stmt.executeUpdate("INSERT INTO testboolint VALUES(-1, null)");
+    stmt.executeUpdate("INSERT INTO testboolint VALUES(9223372036854775807, null)");
+    stmt.executeUpdate("INSERT INTO testboolint VALUES(-9223372036854775808, null)");
+    // End Boolean Tests
 
     // TestUtil.createTable(con, "testbit", "a bit");
-
-    TestUtil.createTable(con, "testboolstring", "a varchar(30)");
-
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('true')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('false')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('t')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('f')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('TRUE')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('this is not true')");
 
     TestUtil.createTable(con, "testnumeric", "a numeric");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.0')");
@@ -105,9 +132,10 @@ public class ResultSetTest extends BaseTest4 {
     TestUtil.dropTable(con, "testrs");
     TestUtil.dropTable(con, "teststring");
     TestUtil.dropTable(con, "testint");
-    TestUtil.dropTable(con, "testbool");
     // TestUtil.dropTable(con, "testbit");
     TestUtil.dropTable(con, "testboolstring");
+    TestUtil.dropTable(con, "testboolfloat");
+    TestUtil.dropTable(con, "testboolint");
     TestUtil.dropTable(con, "testnumeric");
     TestUtil.dropTable(con, "testpgobject");
     super.tearDown();
@@ -153,6 +181,49 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @Test
+  public void testRelative() throws SQLException {
+    Statement stmt =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+
+    assertTrue(!rs.relative(0));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isBeforeFirst());
+
+    assertTrue(rs.relative(2));
+    assertEquals(2, rs.getRow());
+
+    assertTrue(rs.relative(1));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(rs.relative(0));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(!rs.relative(-3));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isBeforeFirst());
+
+    assertTrue(rs.relative(4));
+    assertEquals(4, rs.getRow());
+
+    assertTrue(rs.relative(-1));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(!rs.relative(6));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isAfterLast());
+
+    assertTrue(rs.relative(-4));
+    assertEquals(3, rs.getRow());
+
+    assertTrue(!rs.relative(-6));
+    assertEquals(0, rs.getRow());
+    assertTrue(rs.isBeforeFirst());
+
+    stmt.close();
+  }
+
+  @Test
   public void testEmptyResult() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -186,63 +257,118 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals("12", new String(rs.getBytes(1)));
   }
 
-  public void booleanTests(boolean useServerPrepare) throws SQLException {
-    java.sql.PreparedStatement pstmt = con.prepareStatement("insert into testbool values (?)");
-    if (useServerPrepare) {
-      ((org.postgresql.PGStatement) pstmt).setUseServerPrepare(true);
-    }
-
-    pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
-    pstmt.executeUpdate();
-
-    pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
-    pstmt.executeUpdate();
-
-    pstmt.setObject(1, "False", java.sql.Types.BIT);
-    pstmt.executeUpdate();
-
-    pstmt.setObject(1, "True", java.sql.Types.BIT);
-    pstmt.executeUpdate();
-
-    ResultSet rs = con.createStatement().executeQuery("select * from testbool");
-    for (int i = 0; i < 2; i++) {
-      assertTrue(rs.next());
-      assertEquals(false, rs.getBoolean(1));
-      assertTrue(rs.next());
-      assertEquals(true, rs.getBoolean(1));
-    }
-
-    /*
-     * pstmt = con.prepareStatement("insert into testbit values (?)");
-     *
-     * pstmt.setObject(1, new Float(0), java.sql.Types.BIT); pstmt.executeUpdate();
-     *
-     * pstmt.setObject(1, new Float(1), java.sql.Types.BIT); pstmt.executeUpdate();
-     *
-     * pstmt.setObject(1, "false", java.sql.Types.BIT); pstmt.executeUpdate();
-     *
-     * pstmt.setObject(1, "true", java.sql.Types.BIT); pstmt.executeUpdate();
-     *
-     * rs = con.createStatement().executeQuery("select * from testbit");
-     *
-     * for (int i = 0;i<2; i++) { assertTrue(rs.next()); assertEquals(false, rs.getBoolean(1));
-     * assertTrue(rs.next()); assertEquals(true, rs.getBoolean(1)); }
-     */
-
-    rs = con.createStatement().executeQuery("select * from testboolstring");
-
-    for (int i = 0; i < 4; i++) {
-      assertTrue(rs.next());
-      assertEquals(true, rs.getBoolean(1));
-      assertTrue(rs.next());
-      assertEquals(false, rs.getBoolean(1));
-    }
+  @Test
+  public void testBooleanString() throws SQLException {
+    testBoolean("testboolstring", 0);
+    testBoolean("testboolstring", 1);
+    testBoolean("testboolstring", 5);
+    testBoolean("testboolstring", -1);
   }
 
   @Test
-  public void testBoolean() throws SQLException {
-    booleanTests(true);
-    booleanTests(false);
+  public void testBooleanFloat() throws SQLException {
+    testBoolean("testboolfloat", 0);
+    testBoolean("testboolfloat", 1);
+    testBoolean("testboolfloat", 5);
+    testBoolean("testboolfloat", -1);
+  }
+
+  @Test
+  public void testBooleanInt() throws SQLException {
+    testBoolean("testboolint", 0);
+    testBoolean("testboolint", 1);
+    testBoolean("testboolint", 5);
+    testBoolean("testboolint", -1);
+  }
+
+  public void testBoolean(String table, int prepareThreshold) throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("select a, b from " + table);
+    ((org.postgresql.PGStatement) pstmt).setPrepareThreshold(prepareThreshold);
+    ResultSet rs = pstmt.executeQuery();
+    while (rs.next()) {
+      rs.getBoolean(2);
+      Boolean expected = rs.wasNull() ? null : rs.getBoolean(2); // Hack to get SQL NULL
+      if (expected != null) {
+        assertEquals(expected, rs.getBoolean(1));
+      } else {
+        // expected value with null are bad values
+        try {
+          rs.getBoolean(1);
+          fail();
+        } catch (SQLException e) {
+          assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+        }
+      }
+    }
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testgetBooleanJDBCCompliance() throws SQLException {
+    // The JDBC specification in Table B-6 "Use of ResultSet getter Methods to Retrieve JDBC Data Types"
+    // the getBoolean have this Supported JDBC Type: TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT,
+    // DOUBLE, DECIAML, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
+
+    // There is no TINYINT in PostgreSQL
+    testgetBoolean("int2"); // SMALLINT
+    testgetBoolean("int4"); // INTEGER
+    testgetBoolean("int8"); // BIGINT
+    testgetBoolean("float4"); // REAL
+    testgetBoolean("float8"); // FLOAT, DOUBLE
+    testgetBoolean("numeric"); // DECIMAL, NUMERIC
+    testgetBoolean("bpchar"); // CHAR
+    testgetBoolean("varchar"); // VARCHAR
+    testgetBoolean("text"); // LONGVARCHAR?
+  }
+
+  public void testgetBoolean(String dataType) throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select 1::" + dataType + ", 0::" + dataType + ", 2::" + dataType);
+    assertTrue(rs.next());
+    assertEquals(true, rs.getBoolean(1));
+    assertEquals(false, rs.getBoolean(2));
+
+    try {
+      // The JDBC ResultSet JavaDoc states that only 1 and 0 are valid values, so 2 should return error.
+      rs.getBoolean(3);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals("Cannot cast to boolean: \"2\"", e.getMessage());
+    }
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testgetBadBoolean() throws SQLException {
+    testBadBoolean("'2017-03-13 14:25:48.130861'::timestamp", "2017-03-13 14:25:48.130861");
+    testBadBoolean("'2017-03-13'::date", "2017-03-13");
+    testBadBoolean("'2017-03-13 14:25:48.130861'::time", "14:25:48.130861");
+    testBadBoolean("ARRAY[[1,0],[0,1]]", "{{1,0},{0,1}}");
+    testBadBoolean("29::bit(4)", "1101");
+  }
+
+  @Test
+  public void testGetBadUuidBoolean() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    testBadBoolean("'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
+  }
+
+  public void testBadBoolean(String select, String value) throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select " + select);
+    assertTrue(rs.next());
+    try {
+      rs.getBoolean(1);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals("Cannot cast to boolean: \"" + value + "\"", e.getMessage());
+    }
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -800,7 +926,7 @@ public class ResultSetTest extends BaseTest4 {
    */
   @Test
   public void testNamedPreparedStatementResultSetColumnMappingCache() throws SQLException {
-    Assume.assumeTrue("Simple protocol only mode does not support server-prepared statements",
+    assumeTrue("Simple protocol only mode does not support server-prepared statements",
         preferQueryMode != PreferQueryMode.SIMPLE);
     PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
     ResultSet rs;

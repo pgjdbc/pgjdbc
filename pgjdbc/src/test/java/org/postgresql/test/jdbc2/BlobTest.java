@@ -5,12 +5,19 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,24 +34,21 @@ import java.sql.Types;
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
  * problems from re-occurring ;-)
  */
-public class BlobTest extends TestCase {
-
-  private Connection con;
-
+public class BlobTest {
   private static final int LOOP = 0; // LargeObject API using loop
   private static final int NATIVE_STREAM = 1; // LargeObject API using OutputStream
 
-  public BlobTest(String name) {
-    super(name);
-  }
+  private Connection con;
 
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "testblob", "id name,lo oid");
     con.setAutoCommit(false);
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     con.setAutoCommit(true);
     try {
       Statement stmt = con.createStatement();
@@ -62,6 +66,7 @@ public class BlobTest extends TestCase {
     }
   }
 
+  @Test
   public void testSetNull() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(lo) VALUES (?)");
 
@@ -84,6 +89,7 @@ public class BlobTest extends TestCase {
     pstmt.executeUpdate();
   }
 
+  @Test
   public void testSet() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
@@ -126,6 +132,7 @@ public class BlobTest extends TestCase {
   /*
    * Tests one method of uploading a blob to the database
    */
+  @Test
   public void testUploadBlob_LOOP() throws Exception {
     assertTrue(uploadFile("/test-file.xml", LOOP) > 0);
 
@@ -139,6 +146,7 @@ public class BlobTest extends TestCase {
   /*
    * Tests one method of uploading a blob to the database
    */
+  @Test
   public void testUploadBlob_NATIVE() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -147,6 +155,31 @@ public class BlobTest extends TestCase {
     assertTrue(compareBlobs());
   }
 
+  @Test
+  public void testMarkResetStream() throws Exception {
+    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    assertTrue(rs.next());
+
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+
+    long oid = rs.getLong(1);
+    LargeObject blob = lom.open(oid);
+    InputStream bis = blob.getInputStream();
+
+    assertEquals('<', bis.read());
+    bis.mark(4);
+    assertEquals('?', bis.read());
+    assertEquals('x', bis.read());
+    assertEquals('m', bis.read());
+    assertEquals('l', bis.read());
+    bis.reset();
+    assertEquals('?', bis.read());
+  }
+
+  @Test
   public void testGetBytesOffset() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -155,7 +188,7 @@ public class BlobTest extends TestCase {
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
-    byte data[] = lob.getBytes(2, 4);
+    byte[] data = lob.getBytes(2, 4);
     assertEquals(data.length, 4);
     assertEquals(data[0], '?');
     assertEquals(data[1], 'x');
@@ -163,6 +196,7 @@ public class BlobTest extends TestCase {
     assertEquals(data[3], 'l');
   }
 
+  @Test
   public void testMultipleStreams() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -171,7 +205,7 @@ public class BlobTest extends TestCase {
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
-    byte data[] = new byte[2];
+    byte[] data = new byte[2];
 
     InputStream is = lob.getBinaryStream();
     assertEquals(data.length, is.read(data));
@@ -186,6 +220,7 @@ public class BlobTest extends TestCase {
     is.close();
   }
 
+  @Test
   public void testParallelStreams() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -210,6 +245,7 @@ public class BlobTest extends TestCase {
     is2.close();
   }
 
+  @Test
   public void testLargeLargeObject() throws Exception {
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3)) {
       return;
@@ -240,7 +276,7 @@ public class BlobTest extends TestCase {
 
     int s;
     int t;
-    byte buf[];
+    byte[] buf;
     OutputStream os;
 
     switch (method) {
@@ -264,7 +300,7 @@ public class BlobTest extends TestCase {
         break;
 
       default:
-        assertTrue("Unknown method in uploadFile", false);
+        fail("Unknown method in uploadFile");
     }
 
     blob.close();
@@ -312,7 +348,7 @@ public class BlobTest extends TestCase {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("Large Object API Blob compare failed at " + c + " of " + blob.size(), false);
+        fail("Large Object API Blob compare failed at " + c + " of " + blob.size());
       }
 
       blob.close();
@@ -353,7 +389,7 @@ public class BlobTest extends TestCase {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("JDBC API Blob compare failed at " + c + " of " + blob.length(), false);
+        fail("JDBC API Blob compare failed at " + c + " of " + blob.length());
       }
 
       bis.close();
@@ -394,7 +430,7 @@ public class BlobTest extends TestCase {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("Clob compare failed at " + c + " of " + clob.length(), false);
+        fail("Clob compare failed at " + c + " of " + clob.length());
       }
 
       bis.close();

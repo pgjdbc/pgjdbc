@@ -5,14 +5,13 @@
 
 package org.postgresql.replication.fluent.logical;
 
-
 import org.postgresql.replication.fluent.CommonOptions;
 
 import java.util.Properties;
 
 public interface LogicalReplicationOptions extends CommonOptions {
   /**
-   * Required parameter for logical replication
+   * Required parameter for logical replication.
    *
    * @return not null logical replication slot name that already exists on server and free.
    */

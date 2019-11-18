@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
+import org.postgresql.PGStatement;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -140,6 +141,34 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   @Test
+  public void testExecuteEmptyPreparedBatch() throws Exception {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+      int[] updateCount = ps.executeBatch();
+      Assert.assertEquals("Empty batch should update empty result", 0, updateCount.length);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testPreparedNoParameters() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
+      ps.addBatch();
+      ps.addBatch();
+      ps.addBatch();
+      ps.addBatch();
+      int[] actual = ps.executeBatch();
+      assertBatchResult("4 rows inserted via batch", new int[]{1, 1, 1, 1}, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
   public void testClearBatch() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -157,6 +186,31 @@ public class BatchExecuteTest extends BaseTest4 {
     assertCol1HasValue(4);
 
     stmt.close();
+  }
+
+  @Test
+  public void testClearPreparedNoArgBatch() throws Exception {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
+      ps.addBatch();
+      ps.clearBatch();
+      int[] updateCount = ps.executeBatch();
+      Assert.assertEquals("Empty batch should update empty result", 0, updateCount.length);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testClearPreparedEmptyBatch() throws Exception {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
+      ps.clearBatch();
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
   }
 
   @Test
@@ -535,15 +589,16 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   /**
-   * This one is reproduced in regular (non-force binary) mode
-   * As of 9.4.1208 the following tests fail:
+   * <p>This one is reproduced in regular (non-force binary) mode.</p>
+   *
+   * <p>As of 9.4.1208 the following tests fail:
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes3
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes4
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes5
-   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes6
-   * @throws SQLException in case of failure
+   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes6</p>
    * @param numPreliminaryInserts number of preliminary inserts to make so the statement gets
    *                              prepared
+   * @throws SQLException in case of failure
    */
   public void testBatchWithAlternatingAndUnknownTypesN(int numPreliminaryInserts)
       throws SQLException {
@@ -1276,5 +1331,51 @@ Server SQLState: 25001)
         message,
         Arrays.toString(clone),
         Arrays.toString(actual));
+  }
+
+  @Test
+  public void testServerPrepareMultipleRows() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+      // 2 is not enough for insertRewrite=true case since it would get executed as a single multi-insert statement
+      for (int i = 0; i < 3; i++) {
+        ps.setInt(1, i);
+        ps.addBatch();
+      }
+      int[] actual = ps.executeBatch();
+      Assert.assertTrue(
+          "More than 1 row is inserted via executeBatch, it should lead to multiple server statements, thus the statements should be server-prepared",
+          ((PGStatement) ps).isUseServerPrepare());
+      assertBatchResult("3 rows inserted via batch", new int[]{1, 1, 1}, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testNoServerPrepareOneRow() throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+      ps.setInt(1, 1);
+      ps.addBatch();
+      int[] actual = ps.executeBatch();
+      int prepareThreshold = ((PGStatement) ps).getPrepareThreshold();
+      if (prepareThreshold == 1) {
+        Assert.assertTrue(
+            "prepareThreshold=" + prepareThreshold
+                + " thus the statement should be server-prepared",
+            ((PGStatement) ps).isUseServerPrepare());
+      } else {
+        Assert.assertFalse(
+            "Just one row inserted via executeBatch, prepareThreshold=" + prepareThreshold
+                + " thus the statement should not be server-prepared",
+            ((PGStatement) ps).isUseServerPrepare());
+      }
+      assertBatchResult("1 rows inserted via batch", new int[]{1}, actual);
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
   }
 }

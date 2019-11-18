@@ -16,11 +16,11 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 
 /**
- * ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
- * converts it to a UTF-8 byte stream (InputStream) as output.
+ * <p>ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
+ * converts it to a UTF-8 byte stream (InputStream) as output.</p>
  *
- * This is the inverse of java.io.InputStreamReader which converts a
- * binary stream to a character stream.
+ * <p>This is the inverse of java.io.InputStreamReader which converts a
+ * binary stream to a character stream.</p>
  */
 public class ReaderInputStream extends InputStream {
   private static final int DEFAULT_CHAR_BUFFER_SIZE = 8 * 1024;
@@ -33,7 +33,7 @@ public class ReaderInputStream extends InputStream {
   private final CharBuffer cbuf;
 
   /**
-   * true when all of the characters have been read from the reader into inbuf
+   * true when all of the characters have been read from the reader into inbuf.
    */
   private boolean endOfInput;
   private final byte[] oneByte = new byte[1];
@@ -112,8 +112,8 @@ public class ReaderInputStream extends InputStream {
     int res = 0;
     while (res != -1) {
       res = read(oneByte);
-      if (res != 0) {
-        return oneByte[0];
+      if (res > 0) {
+        return (oneByte[0] & 0xFF);
       }
     }
     return -1;
@@ -122,7 +122,7 @@ public class ReaderInputStream extends InputStream {
   // The implementation of InputStream.read(byte[], int, int) silently ignores
   // an IOException thrown by overrides of the read() method.
   @Override
-  public int read(byte b[], int off, int len) throws IOException {
+  public int read(byte[] b, int off, int len) throws IOException {
     if (b == null) {
       throw new NullPointerException();
     } else if (off < 0 || len < 0 || len > b.length - off) {
@@ -147,6 +147,9 @@ public class ReaderInputStream extends InputStream {
         }
       }
       advance();
+    }
+    if (endOfInput && !bbuf.hasRemaining() && totalRead == 0) {
+      return -1;
     }
     return totalRead;
   }
