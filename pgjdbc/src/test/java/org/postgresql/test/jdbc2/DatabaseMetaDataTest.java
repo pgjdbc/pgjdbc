@@ -83,7 +83,8 @@ public class DatabaseMetaDataTest {
     }
 
     TestUtil.createDomain(con, "nndom", "int not null");
-    TestUtil.createTable(con, "domaintable", "id nndom");
+    TestUtil.createDomain(con, "varbit2", "varbit(3)");
+    TestUtil.createTable(con, "domaintable", "id nndom, v varbit2");
     stmt.close();
   }
 
@@ -670,7 +671,20 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
+    assertTrue(rs.next());
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testDomainColumnSize() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    assertTrue(rs.next());
+    assertEquals("id", rs.getString("COLUMN_NAME"));
+    assertEquals(10, rs.getInt("COLUMN_SIZE"));
+    assertTrue(rs.next());
+    assertEquals("v", rs.getString("COLUMN_NAME"));
+    assertEquals(3, rs.getInt("COLUMN_SIZE"));
   }
 
   @Test
