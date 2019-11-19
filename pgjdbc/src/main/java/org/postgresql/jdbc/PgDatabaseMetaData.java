@@ -1595,7 +1595,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         /*
         From the docs if typtypmod is -1
          */
-        int domainLength = rs.getInt("typtypmod");
+        int typtypmod = rs.getInt("typtypmod");
         decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typeMod);
         /*
         From the postgres docs:
@@ -1604,10 +1604,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
         a domain, but for actual types this will return the correct value.
          */
-        if ( domainLength == -1 ) {
+        if ( typtypmod == -1 ) {
           columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typeMod);
+        } else if (baseTypeOid == Oid.NUMERIC ) {
+          decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typtypmod);
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typtypmod);
         } else {
-          columnSize = domainLength;
+          columnSize = typtypmod;
         }
       } else {
         decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
