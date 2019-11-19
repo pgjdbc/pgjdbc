@@ -677,6 +677,7 @@ public class DatabaseMetaDataTest {
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
     assertTrue(rs.next());
+    assertTrue(rs.next());
     assertTrue(!rs.next());
   }
 
