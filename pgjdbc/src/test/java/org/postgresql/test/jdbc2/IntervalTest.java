@@ -256,7 +256,7 @@ public class IntervalTest {
   }
 
   @Test
-  public void testISODate() throws Exception {
+  public void testPostgresDate() throws Exception {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();
 
@@ -268,7 +268,32 @@ public class IntervalTest {
 
     assertEquals(date2, date);
   }
+  @Test
+  public void testISO8601() throws Exception {
+    PGInterval pgi = new PGInterval("P1Y2M3DT4H5M6S");
+    assertEquals(1, pgi.getYears() );
+    assertEquals(2, pgi.getMonths() );
+    assertEquals(3, pgi.getDays() );
+    assertEquals(4, pgi.getHours() );
+    assertEquals( 5, pgi.getMinutes() );
+    assertEquals( 6, pgi.getSeconds(), .1 );
 
+    pgi = new PGInterval("P-1Y2M3DT4H5M6S");
+    assertEquals(-1, pgi.getYears());
+
+    pgi = new PGInterval("P1Y2M");
+    assertEquals(1,pgi.getYears());
+    assertEquals(2, pgi.getMonths());
+    assertEquals(0, pgi.getDays());
+
+    pgi = new PGInterval("P3DT4H5M6S");
+    assertEquals(0,pgi.getYears());
+
+    pgi = new PGInterval("P-1Y-2M3DT-4H-5M-6S");
+    assertEquals(-1, pgi.getYears());
+    assertEquals(-2, pgi.getMonths());
+    assertEquals(-4, pgi.getHours());
+  }
   private java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }
