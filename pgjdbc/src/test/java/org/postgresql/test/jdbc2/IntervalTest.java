@@ -107,7 +107,7 @@ public class IntervalTest {
     PGInterval interval = new PGInterval("1 year 3 months");
     String coercedStringValue = interval.toString();
 
-    assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.00 secs", coercedStringValue);
+    assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.0 secs", coercedStringValue);
   }
 
   @Test
@@ -268,6 +268,7 @@ public class IntervalTest {
 
     assertEquals(date2, date);
   }
+
   @Test
   public void testISO8601() throws Exception {
     PGInterval pgi = new PGInterval("P1Y2M3DT4H5M6S");
@@ -294,6 +295,7 @@ public class IntervalTest {
     assertEquals(-2, pgi.getMonths());
     assertEquals(-4, pgi.getHours());
   }
+
   private java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }
