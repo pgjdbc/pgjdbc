@@ -51,7 +51,6 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1185,8 +1184,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
             if (op != null) {
-                error =
-                  new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
+              error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
                   op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
@@ -1200,9 +1198,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
 
             if (op != null) {
-                error =
-                  new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
-                      op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+                error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
+                    op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
             op = new CopyDualImpl();
@@ -1759,8 +1756,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.send(encodedStatementName); // statement to close
     pgStream.sendChar(0); // statement name terminator
   }
-
-
 
   // sendOneQuery sends a single statement via the extended query protocol.
   // Per the FE/BE docs this is essentially the same as how a simple query runs
@@ -2779,7 +2774,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
-
 
   /**
    * <p>The estimated server response size since we last consumed the input stream from the server, in
