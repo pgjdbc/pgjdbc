@@ -9,7 +9,6 @@ import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Objects;
 import java.util.StringTokenizer;
 
 /**
@@ -500,19 +499,14 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         && pgi.microSeconds == microSeconds;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), years, months, days, hours, minutes, wholeSeconds,
-      microSeconds);
-  }
-
   /**
    * Returns a hashCode for this object.
    *
    * @return hashCode
    */
-  public int hashmCode() {
-    return ((((((7 * 31 + wholeSeconds) * 31 + minutes) * 31 + hours) * 31
+  @Override
+  public int hashCode() {
+    return (((((((8 * 31 + microSeconds) * 31 + wholeSeconds) * 31 + minutes) * 31 + hours) * 31
         + days) * 31 + months) * 31 + years) * 31;
   }
 
