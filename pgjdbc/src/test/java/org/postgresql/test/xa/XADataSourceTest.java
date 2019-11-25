@@ -32,7 +32,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-
 public class XADataSourceTest {
 
   private XADataSource xaDs;
@@ -43,7 +42,6 @@ public class XADataSourceTest {
   private XAConnection xaconn;
   private XAResource xaRes;
   private Connection conn;
-
 
   public XADataSourceTest() {
     xaDs = new PGXADataSource();
@@ -141,7 +139,6 @@ public class XADataSourceTest {
     public int getFormatId() {
       return 0;
     }
-
 
     @Override
     public byte[] getGlobalTransactionId() {

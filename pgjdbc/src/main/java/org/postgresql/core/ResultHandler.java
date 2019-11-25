@@ -48,7 +48,7 @@ public interface ResultHandler {
    * @param insertOID for a single-row INSERT query, the OID of the newly inserted row; 0 if not
    *        available.
    */
-  void handleCommandStatus(String status, int updateCount, long insertOID);
+  void handleCommandStatus(String status, long updateCount, long insertOID);
 
   /**
    * Called when a warning is emitted.

@@ -173,6 +173,12 @@ public enum PGProperty {
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
 
   /**
+   * Whether to include full server error detail in exception messages.
+   */
+  LOG_SERVER_ERROR_DETAIL("logServerErrorDetail", "true",
+      "Include full server error detail in exception messages. If disabled then only the error itself will be included."),
+
+  /**
    * Enable optimization that disables column name sanitiser.
    */
   DISABLE_COLUMN_SANITISER("disableColumnSanitiser", "false",
@@ -367,10 +373,10 @@ public enum PGProperty {
   ALLOW_ENCODING_CHANGES("allowEncodingChanges", "false", "Allow for changes in client_encoding"),
 
   /**
-   * Specify the schema to be set in the search-path. This schema will be used to resolve
+   * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
    * unqualified object names used in statements over this connection.
    */
-  CURRENT_SCHEMA("currentSchema", null, "Specify the schema to be set in the search-path"),
+  CURRENT_SCHEMA("currentSchema", null, "Specify the schema (or several schema separated by commas) to be set in the search-path"),
 
   TARGET_SERVER_TYPE("targetServerType", "any", "Specifies what kind of server to connect", false,
       "any", "master", "slave", "secondary",  "preferSlave", "preferSecondary"),

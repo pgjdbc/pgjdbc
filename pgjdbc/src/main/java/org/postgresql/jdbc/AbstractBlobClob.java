@@ -109,7 +109,6 @@ public abstract class AbstractBlobClob {
     return getLo(false).read(length);
   }
 
-
   public synchronized InputStream getBinaryStream() throws SQLException {
     checkFreed();
     LargeObject subLO = getLo(false).copy();

@@ -83,7 +83,10 @@ public class DatabaseMetaDataTest {
     }
 
     TestUtil.createDomain(con, "nndom", "int not null");
-    TestUtil.createTable(con, "domaintable", "id nndom");
+    TestUtil.createDomain(con, "varbit2", "varbit(3)");
+    TestUtil.createDomain(con, "float83", "numeric(8,3)");
+
+    TestUtil.createTable(con, "domaintable", "id nndom, v varbit2, f float83");
     stmt.close();
   }
 
@@ -111,6 +114,9 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f3(int, varchar)");
     TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
+    TestUtil.dropDomain(con, "varbit2");
+    TestUtil.dropDomain(con, "float83");
+
 
     TestUtil.closeDB(con);
   }
@@ -476,7 +482,7 @@ public class DatabaseMetaDataTest {
                                  "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
                                  "COLUMN_DEF","SQL_DATA_TYPE","SQL_DATETIME_SUB","CHAR_OCTET_LENGTH",
                                  "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA",
-                                 "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATED"};
+                                 "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN"};
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -670,7 +676,26 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
+    assertTrue(rs.next());
+    assertTrue(rs.next());
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testDomainColumnSize() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    assertTrue(rs.next());
+    assertEquals("id", rs.getString("COLUMN_NAME"));
+    assertEquals(10, rs.getInt("COLUMN_SIZE"));
+    assertTrue(rs.next());
+    assertEquals("v", rs.getString("COLUMN_NAME"));
+    assertEquals(3, rs.getInt("COLUMN_SIZE"));
+    assertTrue(rs.next());
+    assertEquals("f", rs.getString("COLUMN_NAME"));
+    assertEquals(8, rs.getInt("COLUMN_SIZE"));
+    assertEquals( 3, rs.getInt("DECIMAL_DIGITS"));
+
   }
 
   @Test
@@ -1026,7 +1051,6 @@ public class DatabaseMetaDataTest {
       }
     }
   }
-
 
   @Test
   public void testGetUDT2() throws Exception {

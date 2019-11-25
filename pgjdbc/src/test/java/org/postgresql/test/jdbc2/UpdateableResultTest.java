@@ -85,7 +85,6 @@ public class UpdateableResultTest extends BaseTest4 {
     st.close();
   }
 
-
   @Test
   public void testCancelRowUpdates() throws Exception {
     Statement st =

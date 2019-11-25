@@ -9,7 +9,60 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
-- Fixed async copy performance regression [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
+
+## [42.2.8] (2019-09-13)
+### Changed
+
+### Added
+
+### Fixed
+
+* fix: Revert inet default Java type to PGObject and handle values with net masks [PR 1568](https://github.com/pgjdbc/pgjdbc/pull/1568) 
+
+## [42.2.7] (2019-09-03)
+### Changed
+
+
+### Added
+- Expose parameter status messages (GUC_REPORT) to the user [PR 1435](https://github.com/pgjdbc/pgjdbc/pull/1435)
+- Add automatic module name to manifest for jdk9+ [PR 1538](https://github.com/pgjdbc/pgjdbc/pull/1538)
+- Log ignoring rollback when no transaction in progress [PR 1549](https://github.com/pgjdbc/pgjdbc/pull/1549)
+- Map inet type to InetAddress [PR 1527](https://github.com/pgjdbc/pgjdbc/pull/1527) [issue 1134](https://github.com/pgjdbc/pgjdbc/issues/1134)
+
+### Fixed
+- fix [issue 1547](https://github.com/pgjdbc/pgjdbc/issues/1547) As long as peek returns some bytes do not reset the timeout, this allows us to continue checking until any async notifies are consumed [PR 1548](https://github.com/pgjdbc/pgjdbc/pull/1548)
+- fix: [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466) In logical decoding the if the backend was requesting a reply we… [PR 1467](https://github.com/pgjdbc/pgjdbc/pull/1467) 
+- fix: [issue 1534](https://github.com/pgjdbc/pgjdbc/issues/1534) Proleptic java.time support [PR 1539](https://github.com/pgjdbc/pgjdbc/pull/1539)
+- fix Ensure isValid() will not last more than timeout seconds [PR 1557](https://github.com/pgjdbc/pgjdbc/pull/1557)
+## [42.2.6] (2019-06-19)
+### Known issues
+- Waffle has [dropped support](https://github.com/Waffle/waffle/releases/tag/waffle-1.9.0) for 1.6, 1.7 as such the new waffle 1.9.x is only available in jre8
+- Microseconds in timestamps might be truncated when transferred in binary mode
+- 24:00 time handling is not consistent [issue 1385](https://github.com/pgjdbc/pgjdbc/issues/1385)
+- Unexpected packet type during stream replication [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466)
+- Driver goes missing after OSGi bundle restart [issue 1476](https://github.com/pgjdbc/pgjdbc/issues/1476)
+### Changed
+- Change IS_GENERATED to IS_GENERATEDCOLUMN as per spec [PR 1485](https://github.com/pgjdbc/pgjdbc/pull/1485)
+- Fix missing metadata columns, and misspelled columns in PgDatabaseMetaData#getTables [PR 1323](https://github.com/pgjdbc/pgjdbc/pull/1323)
+
+### Added
+- CI tests with Java 11, and Java EA
+- Support temporary replication slots in ReplicationCreateSlotBuilder [PR 1306](https://github.com/pgjdbc/pgjdbc/pull/1306)
+- Support PostgreSQL 11, 12
+- Return function (PostgreSQL 11) columns in PgDatabaseMetaData#getFunctionColumns
+- Return information on create replication slot, now the snapshot_name is exported
+  to allow a consistent snapshot in some uses cases. [PR 1335](https://github.com/pgjdbc/pgjdbc/pull/1335)
+
+### Fixed
+- Fixed async copy performance (1ms per op) in SSL mode [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
+- Return Double.NaN for 'NaN'::numeric [PR 1304](https://github.com/pgjdbc/pgjdbc/pull/1304)
+- Performance issue in PgDatabaseMetaData#getTypeInfo with lots of types in DB [PR 1302](https://github.com/pgjdbc/pgjdbc/pull/1302)
+- PGCopyInputStream#read should cap values to [0, 255], -1 [PR 1349](https://github.com/pgjdbc/pgjdbc/pull/1349)
+- Fixes LocalDateTime handling of BC dates [PR 1388](https://github.com/pgjdbc/pgjdbc/pull/1388)
+- Release savepoints in autosave mode to prevent out of shared memory errors at the server side [PR 1409](https://github.com/pgjdbc/pgjdbc/pull/1409)
+- Fix execution with big decimal in simple query mode. [PR 1463](https://github.com/pgjdbc/pgjdbc/pull/1463)
+- Fix rounding for timestamps truncated to dates before 1970 [PR 1502](https://github.com/pgjdbc/pgjdbc/pull/1502)
+
 
 ## [42.2.5] (2018-08-27)
 ### Known issues
@@ -190,4 +243,7 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...REL42.2.3
 [42.2.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...REL42.2.4
 [42.2.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.4...REL42.2.5
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...HEAD
+[42.2.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...REL42.2.6
+[42.2.7]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.6...REL42.2.7
+[42.2.8]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.7...REL42.2.8
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.8...HEAD

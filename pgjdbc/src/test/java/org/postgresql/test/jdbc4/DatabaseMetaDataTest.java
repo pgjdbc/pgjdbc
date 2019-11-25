@@ -232,4 +232,17 @@ public class DatabaseMetaDataTest {
       stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
     }
   }
+
+  @Test
+  public void testSortedDataTypes() throws SQLException {
+    // https://github.com/pgjdbc/pgjdbc/issues/716
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getTypeInfo();
+    int lastType = Integer.MIN_VALUE;
+    while (rs.next()) {
+      int type = rs.getInt("DATA_TYPE");
+      assertTrue(lastType <= type);
+      lastType = type;
+    }
+  }
 }

@@ -16,6 +16,7 @@ next: geometric.html
 * [Large Objects](largeobjects.html)
 * [Listen / Notify](listennotify.html)
 * [Server Prepared Statements](server-prepare.html)
+* [Parameter Status Messages](parameterstatus.html)
 * [Physical and Logical replication API](replication.html)
 * [Arrays](arrays.html)
 

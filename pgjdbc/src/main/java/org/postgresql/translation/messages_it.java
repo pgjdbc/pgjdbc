@@ -244,8 +244,6 @@ public class messages_it extends java.util.ResourceBundle {
     t[719] = "Si è verificata una interruzione durante il tentativo di connessione.";
     t[722] = "Illegal UTF-8 sequence: final value is out of range: {0}";
     t[723] = "Sequenza UTF-8 illegale: il valore finale è fuori dall''intervallo permesso: {0}";
-    t[728] = "Failed to initialize LargeObject API";
-    t[729] = "Inizializzazione di LargeObject API fallita.";
     t[736] = "{0} function takes one and only one argument.";
     t[737] = "Il metodo «{0}» accetta un ed un solo argomento.";
     t[744] = "This ResultSet is closed.";

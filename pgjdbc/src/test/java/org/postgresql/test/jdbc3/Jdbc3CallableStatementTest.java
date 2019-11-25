@@ -648,7 +648,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     }
   }
 
-
   @Test
   public void testGetObjectFloat() throws Throwable {
     assumeCallableStatementsSupported();

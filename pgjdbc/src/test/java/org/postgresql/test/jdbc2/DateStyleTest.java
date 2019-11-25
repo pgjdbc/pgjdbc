@@ -26,7 +26,6 @@ public class DateStyleTest extends BaseTest4 {
   @Parameterized.Parameter(1)
   public boolean shouldPass;
 
-
   @Parameterized.Parameters(name = "dateStyle={0}, shouldPass={1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{

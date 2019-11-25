@@ -16,17 +16,17 @@ msgstr ""
 "X-Poedit-Language: Bulgarian\n"
 "X-Poedit-Country: BULGARIA\n"
 
-#: org/postgresql/Driver.java:217
+#: org/postgresql/Driver.java:221
 msgid "Error loading default settings from driverconfig.properties"
 msgstr ""
 "Грешка при зареждане на настройките по подразбиране от файла driverconfig."
 "properties"
 
-#: org/postgresql/Driver.java:229
+#: org/postgresql/Driver.java:233
 msgid "Properties for the driver contains a non-string value for the key "
 msgstr ""
 
-#: org/postgresql/Driver.java:272
+#: org/postgresql/Driver.java:276
 msgid ""
 "Your security policy has prevented the connection from being attempted.  You "
 "probably need to grant the connect java.net.SocketPermission to the database "
@@ -36,27 +36,27 @@ msgstr ""
 "трябва да предоставите java.net.SocketPermission права на сървъра и порта с "
 "базата данни, към който искате да се свържете."
 
-#: org/postgresql/Driver.java:278 org/postgresql/Driver.java:410
+#: org/postgresql/Driver.java:282 org/postgresql/Driver.java:414
 msgid ""
 "Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
 "Възникна неочаквана грешка с драйвъра. Моля докадвайте това изключение. "
 
-#: org/postgresql/Driver.java:418
+#: org/postgresql/Driver.java:422
 msgid "Connection attempt timed out."
 msgstr "Времето за осъществяване на връзката изтече (таймаут)."
 
-#: org/postgresql/Driver.java:431
+#: org/postgresql/Driver.java:435
 msgid "Interrupted while attempting to connect."
 msgstr "Опита за осъществяване на връзка бе своевременно прекъснат. "
 
-#: org/postgresql/Driver.java:687
+#: org/postgresql/Driver.java:691
 #, java-format
 msgid "Method {0} is not yet implemented."
 msgstr "Методът {0} все още не е функционален."
 
-#: org/postgresql/PGProperty.java:537 org/postgresql/PGProperty.java:557
+#: org/postgresql/PGProperty.java:553 org/postgresql/PGProperty.java:573
 #, fuzzy, java-format
 msgid "{0} parameter value must be an integer but was: {1}"
 msgstr "Стойността на параметъра unknownLength трябва да бъде цяло число"
@@ -86,7 +86,7 @@ msgstr "Копирането от базата данни бе неуспешн�
 msgid "This copy stream is closed."
 msgstr "Потока за копиране на данните е затворен."
 
-#: org/postgresql/copy/PGCopyInputStream.java:110
+#: org/postgresql/copy/PGCopyInputStream.java:109
 msgid "Read from copy failed."
 msgstr "Четене от копието неуспешно."
 
@@ -111,19 +111,19 @@ msgstr "Не може да осъществи връзка, ползвайки �
 msgid "oid type {0} not known and not a number"
 msgstr ""
 
-#: org/postgresql/core/PGStream.java:486
+#: org/postgresql/core/PGStream.java:512
 #, java-format
 msgid "Premature end of input stream, expected {0} bytes, but only read {1}."
 msgstr ""
 "Преждевременен край на входящ поток на данни, очаквани {0} байта, но "
 "прочетени само {1}."
 
-#: org/postgresql/core/PGStream.java:528
+#: org/postgresql/core/PGStream.java:554
 #, java-format
 msgid "Expected an EOF from server, got: {0}"
 msgstr "Очакван край на файла от сървъра, но получено: {0}"
 
-#: org/postgresql/core/Parser.java:1051
+#: org/postgresql/core/Parser.java:1052
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
 msgstr "Непозволен синтаксис на функция или процедура при офсет {0}."
@@ -132,9 +132,14 @@ msgstr "Непозволен синтаксис на функция или пр�
 msgid "An unexpected result was returned by a query."
 msgstr "Заявката върна неочакван резултат."
 
-#: org/postgresql/core/SocketFactoryFactory.java:41
+#: org/postgresql/core/SocketFactoryFactory.java:43
 #, fuzzy, java-format
 msgid "The SocketFactory class provided {0} could not be instantiated."
+msgstr "Класът SSLSocketFactory връща {0} и не може да бъде инстанцииран."
+
+#: org/postgresql/core/SocketFactoryFactory.java:68
+#, java-format
+msgid "The SSLSocketFactory class provided {0} could not be instantiated."
 msgstr "Класът SSLSocketFactory връща {0} и не може да бъде инстанцииран."
 
 #: org/postgresql/core/UTF8Encoding.java:28
@@ -185,25 +190,20 @@ msgid "Zero bytes may not occur in identifiers."
 msgstr "Не може да има нула байта в идентификаторите."
 
 #: org/postgresql/core/v3/CompositeParameterList.java:33
-#: org/postgresql/core/v3/SimpleParameterList.java:54
-#: org/postgresql/core/v3/SimpleParameterList.java:65
-#: org/postgresql/jdbc/PgResultSet.java:2755
-#: org/postgresql/jdbc/PgResultSetMetaData.java:388
+#: org/postgresql/core/v3/SimpleParameterList.java:53
+#: org/postgresql/core/v3/SimpleParameterList.java:64
+#: org/postgresql/jdbc/PgResultSet.java:2710
+#: org/postgresql/jdbc/PgResultSetMetaData.java:389
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
 msgstr "Индексът на колоната е извън стойностен обхват: {0}, брой колони: {1}."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:103
-#, fuzzy, java-format
-msgid "Invalid sslmode value: {0}"
-msgstr "Невалидна дължина {0} на потока данни."
-
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:118
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:157
 #, fuzzy, java-format
 msgid "Invalid targetServerType value: {0}"
 msgstr "Невалидна дължина {0} на потока данни."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:239
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:281
 #, fuzzy, java-format
 msgid ""
 "Connection to {0} refused. Check that the hostname and port are correct and "
@@ -212,39 +212,39 @@ msgstr ""
 "Връзката отказана. Проверете дали името на хоста и порта са верни и дали "
 "postmaster приема ТСР / IP връзки."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:250
-#: org/postgresql/core/v3/replication/V3ReplicationProtocol.java:133
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:292
+#: org/postgresql/core/v3/replication/V3ReplicationProtocol.java:135
 msgid "The connection attempt failed."
 msgstr "Опита за връзка бе неуспешен."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:265
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:307
 #, java-format
 msgid "Could not find a server with specified targetServerType: {0}"
 msgstr ""
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:361
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:374
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:418
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:431
 msgid "The server does not support SSL."
 msgstr "Сървърът не поддържа SSL."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:388
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:445
 msgid "An error occurred while setting up the SSL connection."
 msgstr "Възникна грешка при осъществяване на SSL връзката."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:484
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:511
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:541
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:568
 msgid ""
 "The server requested password-based authentication, but no password was "
 "provided."
 msgstr "Сървърът изисква идентифициране с парола, но парола не бе въведена."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:614
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:674
 msgid ""
 "SCRAM authentication is not supported by this driver. You need JDK >= 8 and "
 "pgjdbc >= 42.2.0 (not \".jre\" versions)"
 msgstr ""
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:638
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:700
 #, java-format
 msgid ""
 "The authentication type {0} is not supported. Check that you have configured "
@@ -255,12 +255,12 @@ msgstr ""
 "pg_hba.conf файла, да включва IP адреса на клиента или подмрежата, и че се "
 "използва схема за удостоверяване, поддържана от драйвъра."
 
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:645
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2543
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2576
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2580
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2648
-#: org/postgresql/gss/GssAction.java:126
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:707
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2571
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2604
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2608
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2676
+#: org/postgresql/gss/GssAction.java:124
 msgid "Protocol error.  Session setup failed."
 msgstr "Грешка в протокола. Неуспешна настройка на сесията."
 
@@ -272,148 +272,152 @@ msgstr ""
 msgid "CommandComplete expected COPY but got: "
 msgstr "Очаквано командно допълнение COPY но получено: "
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:163
+#: org/postgresql/core/v3/QueryExecutorImpl.java:164
 msgid "Tried to obtain lock while already holding it"
 msgstr "Опит за получаване на заключване/резервация докато вече е получено"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:179
+#: org/postgresql/core/v3/QueryExecutorImpl.java:180
 msgid "Tried to break lock on database connection"
 msgstr ""
 "Опит за премахване на заключването/резервацията при връзка към базата данни"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:197
+#: org/postgresql/core/v3/QueryExecutorImpl.java:198
 msgid "Interrupted while waiting to obtain lock on database connection"
 msgstr ""
 "Прекъсване при чакане да получи заключване/резервация при връзка към базата "
 "данни"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:329
+#: org/postgresql/core/v3/QueryExecutorImpl.java:330
 msgid "Unable to bind parameter values for statement."
 msgstr "Не може да подготви параметрите на командата."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:335
-#: org/postgresql/core/v3/QueryExecutorImpl.java:487
-#: org/postgresql/core/v3/QueryExecutorImpl.java:561
-#: org/postgresql/core/v3/QueryExecutorImpl.java:604
-#: org/postgresql/core/v3/QueryExecutorImpl.java:731
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2377
+#: org/postgresql/core/v3/QueryExecutorImpl.java:336
+#: org/postgresql/core/v3/QueryExecutorImpl.java:515
+#: org/postgresql/core/v3/QueryExecutorImpl.java:589
+#: org/postgresql/core/v3/QueryExecutorImpl.java:632
+#: org/postgresql/core/v3/QueryExecutorImpl.java:759
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2405
 #: org/postgresql/util/StreamWrapper.java:130
 #, fuzzy
 msgid "An I/O error occurred while sending to the backend."
 msgstr "Входно/изходна грешка при изпращане към backend."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:536
-#: org/postgresql/core/v3/QueryExecutorImpl.java:578
+#: org/postgresql/core/v3/QueryExecutorImpl.java:390
+msgid "Error releasing savepoint"
+msgstr ""
+
+#: org/postgresql/core/v3/QueryExecutorImpl.java:564
+#: org/postgresql/core/v3/QueryExecutorImpl.java:606
 #, java-format
 msgid "Expected command status BEGIN, got {0}."
 msgstr "Очаквана команда BEGIN, получена {0}."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:583
-#: org/postgresql/jdbc/PgResultSet.java:1778
+#: org/postgresql/core/v3/QueryExecutorImpl.java:611
+#: org/postgresql/jdbc/PgResultSet.java:1718
 #, java-format
 msgid "Unexpected command status: {0}."
 msgstr "Неочакван статус на команда: {0}."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:689
+#: org/postgresql/core/v3/QueryExecutorImpl.java:717
 #, fuzzy
 msgid "An error occurred while trying to get the socket timeout."
 msgstr "Входно/изходна грешка при изпращане към backend."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:724
-#: org/postgresql/core/v3/QueryExecutorImpl.java:800
+#: org/postgresql/core/v3/QueryExecutorImpl.java:752
+#: org/postgresql/core/v3/QueryExecutorImpl.java:828
 #, java-format
 msgid "Unknown Response Type {0}."
 msgstr "Неизвестен тип на отговор {0}."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:747
+#: org/postgresql/core/v3/QueryExecutorImpl.java:775
 #, fuzzy
 msgid "An error occurred while trying to reset the socket timeout."
 msgstr "Входно/изходна грешка при изпращане към backend."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:845
+#: org/postgresql/core/v3/QueryExecutorImpl.java:873
 msgid "Database connection failed when starting copy"
 msgstr "Неосъществена връзка към базата данни при започване на копирането"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:880
+#: org/postgresql/core/v3/QueryExecutorImpl.java:908
 msgid "Tried to cancel an inactive copy operation"
 msgstr "Опит за прекъсване на неактивно копиране"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:919
+#: org/postgresql/core/v3/QueryExecutorImpl.java:947
 msgid "Database connection failed when canceling copy operation"
 msgstr "Неосъществена връзка към базата данни при прекъсване на копирането"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:935
+#: org/postgresql/core/v3/QueryExecutorImpl.java:963
 msgid "Missing expected error response to copy cancel request"
 msgstr "Липсва очакван отговор при грешка да прекъсне копирането"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:939
+#: org/postgresql/core/v3/QueryExecutorImpl.java:967
 #, java-format
 msgid "Got {0} error responses to single copy cancel request"
 msgstr ""
 "Получени {0} отговори за грешка при единствено искане да се прекъсне "
 "копирането"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:954
+#: org/postgresql/core/v3/QueryExecutorImpl.java:982
 msgid "Tried to end inactive copy"
 msgstr "Опит за прекъсване на неактивно копиране"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:969
+#: org/postgresql/core/v3/QueryExecutorImpl.java:997
 msgid "Database connection failed when ending copy"
 msgstr "Неосъществена връзка към базата данни при завършване на копирането"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:987
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1007
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1015
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1035
 msgid "Tried to write to an inactive copy operation"
 msgstr "Опит за писане при неактивна операция за копиране"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1000
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1015
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1028
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1043
 msgid "Database connection failed when writing to copy"
 msgstr "Неосъществена връзка към базата данни при опит за копиране"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1030
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1058
 msgid "Tried to read from inactive copy"
 msgstr "Опит за четене при неактивно копиране"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1037
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1065
 msgid "Database connection failed when reading from copy"
 msgstr "Неосъществена връзка към базата данни при четене от копие"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1103
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1131
 #, java-format
 msgid "Received CommandComplete ''{0}'' without an active copy operation"
 msgstr "Получено командно допълнение ''{0}'' без активна команда за копиране"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1128
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1156
 #, java-format
 msgid "Got CopyInResponse from server during an active {0}"
 msgstr "Получен CopyInResponse отговор от сървъра при активно {0}"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1142
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1170
 #, java-format
 msgid "Got CopyOutResponse from server during an active {0}"
 msgstr "Получен CopyOutResponse отговор от сървъра при активно {0}"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1156
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1184
 #, fuzzy, java-format
 msgid "Got CopyBothResponse from server during an active {0}"
 msgstr "Получен CopyOutResponse отговор от сървъра при активно {0}"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1172
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1200
 msgid "Got CopyData without an active copy operation"
 msgstr "Получено CopyData без наличие на активна операция за копиране"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1176
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1204
 #, java-format
 msgid "Unexpected copydata from server for {0}"
 msgstr "Неочаквано CopyData от сървъра за {0}"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1236
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1264
 #, java-format
 msgid "Unexpected packet type during copy: {0}"
 msgstr "Неочакван тип пакет при копиране: {0}"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1526
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1554
 #, java-format
 msgid ""
 "Bind message length {0} too long.  This can be caused by very large or "
@@ -422,15 +426,15 @@ msgstr ""
 "Прекалено голяма дължина {0} на съобщението. Това може да е причинено от "
 "прекалено голяма или неправилно зададена дължина на InputStream параметри."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2150
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2178
 msgid "Ran out of memory retrieving query results."
 msgstr "Недостатъчна памет при представяна на резултатите от заявката."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2318
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2346
 msgid "The driver currently does not support COPY operations."
 msgstr "За момента драйвъра не поддържа COPY команди."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2605
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2633
 #, fuzzy, java-format
 msgid ""
 "The server''s client_encoding parameter was changed to {0}. The JDBC driver "
@@ -439,7 +443,7 @@ msgstr ""
 "Параметърът client_encoding при сървъра бе променен на {0}. JDBC драйвъра "
 "изисква client_encoding да бъде UNICODE за да функционира правилно."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2615
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2643
 #, java-format
 msgid ""
 "The server''s DateStyle parameter was changed to {0}. The JDBC driver "
@@ -448,7 +452,7 @@ msgstr ""
 "Параметърът DateStyle при сървъра бе променен на {0}. JDBC драйвъра изисква "
 "DateStyle започва с ISO за да функционира правилно."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2628
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2656
 #, java-format
 msgid ""
 "The server''s standard_conforming_strings parameter was reported as {0}. The "
@@ -457,12 +461,12 @@ msgstr ""
 "Параметърът standard_conforming_strings при сървъра бе докладван като {0}. "
 "JDBC драйвъра очаква този параметър да бъде on или off."
 
-#: org/postgresql/core/v3/SimpleParameterList.java:257
+#: org/postgresql/core/v3/SimpleParameterList.java:264
 #, java-format
 msgid "No value specified for parameter {0}."
 msgstr "Няма стойност, определена за параметър {0}."
 
-#: org/postgresql/core/v3/SimpleParameterList.java:431
+#: org/postgresql/core/v3/SimpleParameterList.java:437
 #, fuzzy, java-format
 msgid "Added parameters index out of range: {0}, number of columns: {1}."
 msgstr "Параметърният индекс е извън обхват: {0}, брой параметри: {1}."
@@ -505,8 +509,8 @@ msgstr ""
 msgid "DataSource has been closed."
 msgstr "Източникът на данни е прекъснат."
 
-#: org/postgresql/ds/common/BaseDataSource.java:1132
-#: org/postgresql/ds/common/BaseDataSource.java:1142
+#: org/postgresql/ds/common/BaseDataSource.java:1157
+#: org/postgresql/ds/common/BaseDataSource.java:1167
 #, fuzzy, java-format
 msgid "Unsupported property name: {0}"
 msgstr "Неподдържана стойност за тип: {0}"
@@ -561,31 +565,31 @@ msgstr "Неуспешно преобразуване към тип {0}: {1}."
 msgid "Cannot tell if path is open or closed: {0}."
 msgstr "Не може да определи дали адреса е отворен или затворен: {0}."
 
-#: org/postgresql/gss/GssAction.java:137 org/postgresql/gss/MakeGSS.java:66
-#: org/postgresql/gss/MakeGSS.java:74
+#: org/postgresql/gss/GssAction.java:135 org/postgresql/gss/MakeGSS.java:65
+#: org/postgresql/gss/MakeGSS.java:73
 msgid "GSS Authentication failed"
 msgstr "GSS удостоверяването бе неуспешно"
 
-#: org/postgresql/jdbc/AbstractBlobClob.java:78
+#: org/postgresql/jdbc/AbstractBlobClob.java:77
 msgid ""
 "Truncation of large objects is only implemented in 8.3 and later servers."
 msgstr "Скъсяване на големи обекти LOB е осъществено само във версии след 8.3."
 
-#: org/postgresql/jdbc/AbstractBlobClob.java:83
+#: org/postgresql/jdbc/AbstractBlobClob.java:82
 msgid "Cannot truncate LOB to a negative length."
 msgstr ""
 
-#: org/postgresql/jdbc/AbstractBlobClob.java:90
-#: org/postgresql/jdbc/AbstractBlobClob.java:234
+#: org/postgresql/jdbc/AbstractBlobClob.java:89
+#: org/postgresql/jdbc/AbstractBlobClob.java:231
 #, java-format
 msgid "PostgreSQL LOBs can only index to: {0}"
 msgstr "PostgreSQL индексира големи обекти LOB само до: {0}"
 
-#: org/postgresql/jdbc/AbstractBlobClob.java:230
+#: org/postgresql/jdbc/AbstractBlobClob.java:227
 msgid "LOB positioning offsets start at 1."
 msgstr "Позиционалният офсет при големи обекти LOB започва от 1."
 
-#: org/postgresql/jdbc/AbstractBlobClob.java:246
+#: org/postgresql/jdbc/AbstractBlobClob.java:243
 msgid "free() was called on this LOB previously"
 msgstr "Функцията free() бе вече извикана за този голям обект LOB"
 
@@ -607,101 +611,101 @@ msgstr ""
 msgid "Cannot cast to boolean: \"{0}\""
 msgstr ""
 
-#: org/postgresql/jdbc/EscapedFunctions.java:240
-#: org/postgresql/jdbc/EscapedFunctions2.java:167
+#: org/postgresql/jdbc/EscapedFunctions.java:238
+#: org/postgresql/jdbc/EscapedFunctions2.java:168
 #, java-format
 msgid "{0} function takes four and only four argument."
 msgstr "Функцията {0} може да приеме четири и само четири аргумента."
 
-#: org/postgresql/jdbc/EscapedFunctions.java:270
-#: org/postgresql/jdbc/EscapedFunctions.java:337
-#: org/postgresql/jdbc/EscapedFunctions.java:740
-#: org/postgresql/jdbc/EscapedFunctions2.java:196
-#: org/postgresql/jdbc/EscapedFunctions2.java:263
+#: org/postgresql/jdbc/EscapedFunctions.java:268
+#: org/postgresql/jdbc/EscapedFunctions.java:335
+#: org/postgresql/jdbc/EscapedFunctions.java:737
+#: org/postgresql/jdbc/EscapedFunctions2.java:197
+#: org/postgresql/jdbc/EscapedFunctions2.java:264
 #: org/postgresql/jdbc/EscapedFunctions2.java:665
 #, java-format
 msgid "{0} function takes two and only two arguments."
 msgstr "Функцията {0} може да приеме два и само два аргумента."
 
-#: org/postgresql/jdbc/EscapedFunctions.java:288
-#: org/postgresql/jdbc/EscapedFunctions.java:441
-#: org/postgresql/jdbc/EscapedFunctions.java:467
-#: org/postgresql/jdbc/EscapedFunctions.java:526
-#: org/postgresql/jdbc/EscapedFunctions.java:728
-#: org/postgresql/jdbc/EscapedFunctions2.java:211
-#: org/postgresql/jdbc/EscapedFunctions2.java:355
-#: org/postgresql/jdbc/EscapedFunctions2.java:381
-#: org/postgresql/jdbc/EscapedFunctions2.java:440
+#: org/postgresql/jdbc/EscapedFunctions.java:286
+#: org/postgresql/jdbc/EscapedFunctions.java:439
+#: org/postgresql/jdbc/EscapedFunctions.java:465
+#: org/postgresql/jdbc/EscapedFunctions.java:524
+#: org/postgresql/jdbc/EscapedFunctions.java:725
+#: org/postgresql/jdbc/EscapedFunctions2.java:212
+#: org/postgresql/jdbc/EscapedFunctions2.java:356
+#: org/postgresql/jdbc/EscapedFunctions2.java:382
+#: org/postgresql/jdbc/EscapedFunctions2.java:441
 #: org/postgresql/jdbc/EscapedFunctions2.java:654
 #, java-format
 msgid "{0} function takes one and only one argument."
 msgstr "Функцията {0} може да приеме само един единствен аргумент."
 
-#: org/postgresql/jdbc/EscapedFunctions.java:312
-#: org/postgresql/jdbc/EscapedFunctions.java:386
-#: org/postgresql/jdbc/EscapedFunctions2.java:238
-#: org/postgresql/jdbc/EscapedFunctions2.java:307
+#: org/postgresql/jdbc/EscapedFunctions.java:310
+#: org/postgresql/jdbc/EscapedFunctions.java:384
+#: org/postgresql/jdbc/EscapedFunctions2.java:239
+#: org/postgresql/jdbc/EscapedFunctions2.java:308
 #, java-format
 msgid "{0} function takes two or three arguments."
 msgstr "Функцията {0} може да приеме два или три аргумента."
 
-#: org/postgresql/jdbc/EscapedFunctions.java:411
-#: org/postgresql/jdbc/EscapedFunctions.java:426
-#: org/postgresql/jdbc/EscapedFunctions.java:693
-#: org/postgresql/jdbc/EscapedFunctions.java:719
+#: org/postgresql/jdbc/EscapedFunctions.java:409
+#: org/postgresql/jdbc/EscapedFunctions.java:424
+#: org/postgresql/jdbc/EscapedFunctions.java:690
+#: org/postgresql/jdbc/EscapedFunctions.java:716
 #: org/postgresql/jdbc/EscapedFunctions2.java:645
 #, java-format
 msgid "{0} function doesn''t take any argument."
 msgstr "Функцията {0} не може да приема аргументи."
 
-#: org/postgresql/jdbc/EscapedFunctions.java:586
-#: org/postgresql/jdbc/EscapedFunctions.java:639
-#: org/postgresql/jdbc/EscapedFunctions2.java:500
+#: org/postgresql/jdbc/EscapedFunctions.java:584
+#: org/postgresql/jdbc/EscapedFunctions.java:636
+#: org/postgresql/jdbc/EscapedFunctions2.java:501
 #: org/postgresql/jdbc/EscapedFunctions2.java:571
 #, java-format
 msgid "{0} function takes three and only three arguments."
 msgstr "Функцията {0} може да приеме три и само три аргумента."
 
-#: org/postgresql/jdbc/EscapedFunctions.java:599
-#: org/postgresql/jdbc/EscapedFunctions.java:620
-#: org/postgresql/jdbc/EscapedFunctions.java:623
-#: org/postgresql/jdbc/EscapedFunctions.java:656
+#: org/postgresql/jdbc/EscapedFunctions.java:597
+#: org/postgresql/jdbc/EscapedFunctions.java:618
+#: org/postgresql/jdbc/EscapedFunctions.java:621
+#: org/postgresql/jdbc/EscapedFunctions.java:653
+#: org/postgresql/jdbc/EscapedFunctions.java:666
 #: org/postgresql/jdbc/EscapedFunctions.java:669
-#: org/postgresql/jdbc/EscapedFunctions.java:672
-#: org/postgresql/jdbc/EscapedFunctions2.java:510
-#: org/postgresql/jdbc/EscapedFunctions2.java:527
+#: org/postgresql/jdbc/EscapedFunctions2.java:511
+#: org/postgresql/jdbc/EscapedFunctions2.java:528
 #: org/postgresql/jdbc/EscapedFunctions2.java:585
 #: org/postgresql/jdbc/EscapedFunctions2.java:597
 #, java-format
 msgid "Interval {0} not yet implemented"
 msgstr "Интервалът {0} не е валиден все още."
 
-#: org/postgresql/jdbc/PSQLSavepoint.java:37
-#: org/postgresql/jdbc/PSQLSavepoint.java:51
-#: org/postgresql/jdbc/PSQLSavepoint.java:69
+#: org/postgresql/jdbc/PSQLSavepoint.java:38
+#: org/postgresql/jdbc/PSQLSavepoint.java:53
+#: org/postgresql/jdbc/PSQLSavepoint.java:71
 msgid "Cannot reference a savepoint after it has been released."
 msgstr "Не може да референцира savepoint, след като е била освободена."
 
-#: org/postgresql/jdbc/PSQLSavepoint.java:42
+#: org/postgresql/jdbc/PSQLSavepoint.java:43
 msgid "Cannot retrieve the id of a named savepoint."
 msgstr "Не може да определи ID на спомената savepoint."
 
-#: org/postgresql/jdbc/PSQLSavepoint.java:56
+#: org/postgresql/jdbc/PSQLSavepoint.java:58
 msgid "Cannot retrieve the name of an unnamed savepoint."
 msgstr "Не може да определи името на неупомената savepoint."
 
-#: org/postgresql/jdbc/PgArray.java:155 org/postgresql/jdbc/PgArray.java:842
+#: org/postgresql/jdbc/PgArray.java:155 org/postgresql/jdbc/PgArray.java:841
 #, java-format
 msgid "The array index is out of range: {0}"
 msgstr "Индексът на масив е извън обхвата: {0}"
 
-#: org/postgresql/jdbc/PgArray.java:176 org/postgresql/jdbc/PgArray.java:859
+#: org/postgresql/jdbc/PgArray.java:176 org/postgresql/jdbc/PgArray.java:858
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
 msgstr "Индексът на масив е извън обхвата: {0}, брой елементи: {1}."
 
 #: org/postgresql/jdbc/PgArray.java:208
-#: org/postgresql/jdbc/PgResultSet.java:1930
+#: org/postgresql/jdbc/PgResultSet.java:1871
 #: org/postgresql/util/HStoreConverter.java:43
 #: org/postgresql/util/HStoreConverter.java:74
 msgid ""
@@ -785,8 +789,8 @@ msgid "Unsupported value for stringtype parameter: {0}"
 msgstr "Непозволена стойност за StringType параметър: {0}"
 
 #: org/postgresql/jdbc/PgConnection.java:424
-#: org/postgresql/jdbc/PgPreparedStatement.java:107
-#: org/postgresql/jdbc/PgStatement.java:225
+#: org/postgresql/jdbc/PgPreparedStatement.java:109
+#: org/postgresql/jdbc/PgStatement.java:226
 #: org/postgresql/jdbc/TypeInfoCache.java:226
 #: org/postgresql/jdbc/TypeInfoCache.java:371
 #: org/postgresql/jdbc/TypeInfoCache.java:411
@@ -798,7 +802,7 @@ msgid "No results were returned by the query."
 msgstr "Няма намерени резултати за заявката."
 
 #: org/postgresql/jdbc/PgConnection.java:442
-#: org/postgresql/jdbc/PgStatement.java:254
+#: org/postgresql/jdbc/PgStatement.java:256
 msgid "A result was returned when none was expected."
 msgstr "Бе получен резултат, когато такъв не бе очакван."
 
@@ -816,112 +820,112 @@ msgstr "Неуспешно създаване на обект за: {0}."
 msgid "Unable to load the class {0} responsible for the datatype {1}"
 msgstr "Невъзможно е зареждането на клас {0}, отговарящ за типа данни {1}"
 
-#: org/postgresql/jdbc/PgConnection.java:705
+#: org/postgresql/jdbc/PgConnection.java:704
 msgid ""
 "Cannot change transaction read-only property in the middle of a transaction."
 msgstr ""
 "Не може да променяте правата на транзакцията по време на нейното извършване."
 
-#: org/postgresql/jdbc/PgConnection.java:772
+#: org/postgresql/jdbc/PgConnection.java:771
 msgid "Cannot commit when autoCommit is enabled."
 msgstr ""
 
-#: org/postgresql/jdbc/PgConnection.java:783
-#: org/postgresql/jdbc/PgConnection.java:1401
-#: org/postgresql/jdbc/PgConnection.java:1445
+#: org/postgresql/jdbc/PgConnection.java:782
+#: org/postgresql/jdbc/PgConnection.java:1397
+#: org/postgresql/jdbc/PgConnection.java:1441
 #, fuzzy
 msgid "This connection has been closed."
 msgstr "Връзката бе прекъсната."
 
-#: org/postgresql/jdbc/PgConnection.java:794
+#: org/postgresql/jdbc/PgConnection.java:792
 msgid "Cannot rollback when autoCommit is enabled."
 msgstr ""
 
-#: org/postgresql/jdbc/PgConnection.java:844
+#: org/postgresql/jdbc/PgConnection.java:842
 msgid ""
 "Cannot change transaction isolation level in the middle of a transaction."
 msgstr ""
 "Не може да променяте изолационното ниво на транзакцията по време на нейното "
 "извършване."
 
-#: org/postgresql/jdbc/PgConnection.java:850
+#: org/postgresql/jdbc/PgConnection.java:848
 #, java-format
 msgid "Transaction isolation level {0} not supported."
 msgstr "Изолационно ниво на транзакциите {0} не се поддържа."
 
-#: org/postgresql/jdbc/PgConnection.java:895
+#: org/postgresql/jdbc/PgConnection.java:893
 msgid "Finalizing a Connection that was never closed:"
 msgstr "Приключване на връзка, която не бе прекъсната:"
 
-#: org/postgresql/jdbc/PgConnection.java:962
+#: org/postgresql/jdbc/PgConnection.java:960
 msgid "Unable to translate data into the desired encoding."
 msgstr "Невъзможно преобразуване на данни в желаното кодиране."
 
-#: org/postgresql/jdbc/PgConnection.java:1025
-#: org/postgresql/jdbc/PgResultSet.java:1817
-#: org/postgresql/jdbc/PgStatement.java:908
+#: org/postgresql/jdbc/PgConnection.java:1023
+#: org/postgresql/jdbc/PgResultSet.java:1756
+#: org/postgresql/jdbc/PgStatement.java:921
 msgid "Fetch size must be a value greater to or equal to 0."
 msgstr "Размера за fetch size трябва да бъде по-голям или равен на 0."
 
-#: org/postgresql/jdbc/PgConnection.java:1306
-#: org/postgresql/jdbc/PgConnection.java:1347
+#: org/postgresql/jdbc/PgConnection.java:1302
+#: org/postgresql/jdbc/PgConnection.java:1343
 #, java-format
 msgid "Unable to find server array type for provided name {0}."
 msgstr "Не може да се намери типа на сървърен масив за зададеното име {0}."
 
-#: org/postgresql/jdbc/PgConnection.java:1329
+#: org/postgresql/jdbc/PgConnection.java:1325
 #, fuzzy, java-format
 msgid "Invalid elements {0}"
 msgstr "Невалидни флагове {0}"
 
-#: org/postgresql/jdbc/PgConnection.java:1365
+#: org/postgresql/jdbc/PgConnection.java:1361
 #, fuzzy, java-format
 msgid "Invalid timeout ({0}<0)."
 msgstr "Невалидна дължина {0} на потока данни."
 
-#: org/postgresql/jdbc/PgConnection.java:1389
+#: org/postgresql/jdbc/PgConnection.java:1385
 msgid "Validating connection."
 msgstr ""
 
-#: org/postgresql/jdbc/PgConnection.java:1422
+#: org/postgresql/jdbc/PgConnection.java:1418
 #, fuzzy, java-format
 msgid "Failed to set ClientInfo property: {0}"
 msgstr "Неуспешно създаване на обект за: {0}."
 
-#: org/postgresql/jdbc/PgConnection.java:1432
+#: org/postgresql/jdbc/PgConnection.java:1428
 msgid "ClientInfo property not supported."
 msgstr "Информацията за ClientInfo не се поддържа."
 
-#: org/postgresql/jdbc/PgConnection.java:1458
+#: org/postgresql/jdbc/PgConnection.java:1454
 msgid "One or more ClientInfo failed."
 msgstr ""
 
-#: org/postgresql/jdbc/PgConnection.java:1559
+#: org/postgresql/jdbc/PgConnection.java:1554
 #, fuzzy
 msgid "Network timeout must be a value greater than or equal to 0."
 msgstr ""
 "Времето за изпълнение на заявката трябва да бъде стойност по-голяма или "
 "равна на 0."
 
-#: org/postgresql/jdbc/PgConnection.java:1571
+#: org/postgresql/jdbc/PgConnection.java:1566
 msgid "Unable to set network timeout."
 msgstr ""
 
-#: org/postgresql/jdbc/PgConnection.java:1582
+#: org/postgresql/jdbc/PgConnection.java:1577
 msgid "Unable to get network timeout."
 msgstr ""
 
-#: org/postgresql/jdbc/PgConnection.java:1599
+#: org/postgresql/jdbc/PgConnection.java:1594
 #, java-format
 msgid "Unknown ResultSet holdability setting: {0}."
 msgstr "Неизвестна ResultSet holdability настройка: {0}."
 
-#: org/postgresql/jdbc/PgConnection.java:1617
-#: org/postgresql/jdbc/PgConnection.java:1638
+#: org/postgresql/jdbc/PgConnection.java:1612
+#: org/postgresql/jdbc/PgConnection.java:1633
 msgid "Cannot establish a savepoint in auto-commit mode."
 msgstr "Не може да се установи savepoint в auto-commit модус."
 
-#: org/postgresql/jdbc/PgConnection.java:1707
+#: org/postgresql/jdbc/PgConnection.java:1702
 msgid "Returning autogenerated keys is not supported."
 msgstr "Автоматично генерирани ключове не се поддържат."
 
@@ -937,117 +941,121 @@ msgstr ""
 msgid "Unable to find name datatype in the system catalogs."
 msgstr "Не може да се намери името на типа данни в системните каталози."
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:322
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:321
 #, fuzzy
 msgid "Unable to find keywords in the system catalogs."
 msgstr "Не може да се намери името на типа данни в системните каталози."
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1095
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1094
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:2698
 msgid "oid"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1095
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1094
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:2698
 msgid "proname"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1097
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1548
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1096
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1550
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:2700
 msgid "typtype"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1100
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1099
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:2703
 msgid "proargtypes"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1566
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1568
 msgid "adsrc"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1579
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1581
 msgid "attidentity"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1675
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1751
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1679
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1755
 msgid "rolname"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1676
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1752
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1680
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1756
 msgid "relacl"
 msgstr ""
 
-#: org/postgresql/jdbc/PgDatabaseMetaData.java:1682
+#: org/postgresql/jdbc/PgDatabaseMetaData.java:1686
 msgid "attacl"
 msgstr ""
 
-#: org/postgresql/jdbc/PgParameterMetaData.java:83
+#: org/postgresql/jdbc/PgParameterMetaData.java:88
 #, java-format
 msgid "The parameter index is out of range: {0}, number of parameters: {1}."
 msgstr "Параметърният индекс е извън обхват: {0}, брой параметри: {1}."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:94
-#: org/postgresql/jdbc/PgPreparedStatement.java:115
-#: org/postgresql/jdbc/PgPreparedStatement.java:127
-#: org/postgresql/jdbc/PgPreparedStatement.java:1008
+#: org/postgresql/jdbc/PgPreparedStatement.java:95
+#: org/postgresql/jdbc/PgPreparedStatement.java:118
+#: org/postgresql/jdbc/PgPreparedStatement.java:132
+#: org/postgresql/jdbc/PgPreparedStatement.java:1016
 msgid ""
 "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr ""
 "Не може да се употребяват методи за заявка, които ползват низове на "
 "PreparedStatement."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:237
+#: org/postgresql/jdbc/PgPreparedStatement.java:243
 msgid "Unknown Types value."
 msgstr "Стойност от неизвестен тип."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:364
-#: org/postgresql/jdbc/PgPreparedStatement.java:421
-#: org/postgresql/jdbc/PgPreparedStatement.java:1164
-#: org/postgresql/jdbc/PgPreparedStatement.java:1472
+#: org/postgresql/jdbc/PgPreparedStatement.java:370
+#: org/postgresql/jdbc/PgPreparedStatement.java:427
+#: org/postgresql/jdbc/PgPreparedStatement.java:1173
+#: org/postgresql/jdbc/PgPreparedStatement.java:1480
 #, java-format
 msgid "Invalid stream length {0}."
 msgstr "Невалидна дължина {0} на потока данни."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:393
+#: org/postgresql/jdbc/PgPreparedStatement.java:399
 #, java-format
 msgid "The JVM claims not to support the {0} encoding."
 msgstr "JVM не поддържа за момента {0} кодовата таблица."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:396
-#: org/postgresql/jdbc/PgResultSet.java:1122
-#: org/postgresql/jdbc/PgResultSet.java:1156
+#: org/postgresql/jdbc/PgPreparedStatement.java:402
+#: org/postgresql/jdbc/PgResultSet.java:1100
+#: org/postgresql/jdbc/PgResultSet.java:1132
 msgid "Provided InputStream failed."
 msgstr "Зададения InputStream поток е неуспешен."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:442
-#: org/postgresql/jdbc/PgPreparedStatement.java:1069
+#: org/postgresql/jdbc/PgPreparedStatement.java:448
+#: org/postgresql/jdbc/PgPreparedStatement.java:1078
 #, java-format
 msgid "Unknown type {0}."
 msgstr "Неизвестен тип {0}."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:459
+#: org/postgresql/jdbc/PgPreparedStatement.java:465
 msgid "No hstore extension installed."
 msgstr ""
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:601
-#: org/postgresql/jdbc/PgPreparedStatement.java:624
-#: org/postgresql/jdbc/PgPreparedStatement.java:634
-#: org/postgresql/jdbc/PgPreparedStatement.java:646
+#: org/postgresql/jdbc/PgPreparedStatement.java:607
+#: org/postgresql/jdbc/PgPreparedStatement.java:630
+#: org/postgresql/jdbc/PgPreparedStatement.java:640
+#: org/postgresql/jdbc/PgPreparedStatement.java:652
 #, java-format
 msgid "Cannot cast an instance of {0} to type {1}"
 msgstr "Не може да преобразува инстанция на {0} към тип {1}"
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:664
+#: org/postgresql/jdbc/PgPreparedStatement.java:670
 #, java-format
 msgid "Unsupported Types value: {0}"
 msgstr "Неподдържана стойност за тип: {0}"
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:876
+#: org/postgresql/jdbc/PgPreparedStatement.java:882
 #, java-format
 msgid "Cannot convert an instance of {0} to type {1}"
 msgstr "Не може да преобразува инстанцията на {0} във вида {1}"
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:950
+#: org/postgresql/jdbc/PgPreparedStatement.java:956
 #, java-format
 msgid ""
 "Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
@@ -1056,22 +1064,22 @@ msgstr ""
 "Не може да се определи SQL тип, който да се използва за инстанцията на {0}. "
 "Ползвайте метода setObject() с точни стойности, за да определите типа."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:1106
-#: org/postgresql/jdbc/PgPreparedStatement.java:1206
+#: org/postgresql/jdbc/PgPreparedStatement.java:1115
+#: org/postgresql/jdbc/PgPreparedStatement.java:1216
 msgid "Unexpected error writing large object to database."
 msgstr "Неочаквана грешка при записване на голям обект LOB в базата данни."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:1151
-#: org/postgresql/jdbc/PgResultSet.java:1210
+#: org/postgresql/jdbc/PgPreparedStatement.java:1160
+#: org/postgresql/jdbc/PgResultSet.java:1182
 msgid "Provided Reader failed."
 msgstr "Грешка с ползвания четец."
 
-#: org/postgresql/jdbc/PgPreparedStatement.java:1431
+#: org/postgresql/jdbc/PgPreparedStatement.java:1439
 #: org/postgresql/util/StreamWrapper.java:56
 msgid "Object is too large to send over the protocol."
 msgstr ""
 
-#: org/postgresql/jdbc/PgResultSet.java:280
+#: org/postgresql/jdbc/PgResultSet.java:278
 msgid ""
 "Operation requires a scrollable ResultSet, but this ResultSet is "
 "FORWARD_ONLY."
@@ -1079,44 +1087,44 @@ msgstr ""
 "Операцията изисква резултатите да са scrollable, но този ResultSet е "
 "FORWARD_ONLY."
 
-#: org/postgresql/jdbc/PgResultSet.java:492
-#: org/postgresql/jdbc/PgResultSet.java:532
-#: org/postgresql/jdbc/PgResultSet.java:556
-#: org/postgresql/jdbc/PgResultSet.java:594
-#: org/postgresql/jdbc/PgResultSet.java:624
+#: org/postgresql/jdbc/PgResultSet.java:484
+#: org/postgresql/jdbc/PgResultSet.java:523
+#: org/postgresql/jdbc/PgResultSet.java:547
+#: org/postgresql/jdbc/PgResultSet.java:584
+#: org/postgresql/jdbc/PgResultSet.java:614
+#: org/postgresql/jdbc/PgResultSet.java:2967
 #: org/postgresql/jdbc/PgResultSet.java:3012
-#: org/postgresql/jdbc/PgResultSet.java:3057
 #, fuzzy, java-format
 msgid "Cannot convert the column of type {0} to requested type {1}."
 msgstr "Не може да преобразува инстанцията на {0} във вида {1}"
 
-#: org/postgresql/jdbc/PgResultSet.java:838
-#: org/postgresql/jdbc/PgResultSet.java:859
-#: org/postgresql/jdbc/PgResultSet.java:1832
+#: org/postgresql/jdbc/PgResultSet.java:819
+#: org/postgresql/jdbc/PgResultSet.java:840
+#: org/postgresql/jdbc/PgResultSet.java:1772
 msgid "Can''t use relative move methods while on the insert row."
 msgstr ""
 "Не може да се използват относителни методи за движение, когато се намираме "
 "при редицата на въвеждане."
 
-#: org/postgresql/jdbc/PgResultSet.java:878
-#: org/postgresql/jdbc/PgStatement.java:900
+#: org/postgresql/jdbc/PgResultSet.java:863
+#: org/postgresql/jdbc/PgStatement.java:913
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
 msgstr "Невалидна константа за fetch посоката: {0}."
 
-#: org/postgresql/jdbc/PgResultSet.java:889
+#: org/postgresql/jdbc/PgResultSet.java:873
 msgid "Cannot call cancelRowUpdates() when on the insert row."
 msgstr ""
 "Не може да се изпълни cancelRowUpdates() метода, когато се намираме при "
 "редицата на въвеждане."
 
-#: org/postgresql/jdbc/PgResultSet.java:905
+#: org/postgresql/jdbc/PgResultSet.java:888
 msgid "Cannot call deleteRow() when on the insert row."
 msgstr ""
 "Не може да се изпълни deleteRow() метода, когато се намираме при редицата на "
 "въвеждане."
 
-#: org/postgresql/jdbc/PgResultSet.java:912
+#: org/postgresql/jdbc/PgResultSet.java:895
 msgid ""
 "Currently positioned before the start of the ResultSet.  You cannot call "
 "deleteRow() here."
@@ -1124,7 +1132,7 @@ msgstr ""
 "В момента се намираме в началото на ResultSet. Тук не може да се изпълни "
 "deleteRow() метода."
 
-#: org/postgresql/jdbc/PgResultSet.java:918
+#: org/postgresql/jdbc/PgResultSet.java:901
 msgid ""
 "Currently positioned after the end of the ResultSet.  You cannot call "
 "deleteRow() here."
@@ -1132,38 +1140,38 @@ msgstr ""
 "В момента се намираме преди края на ResultSet. Тук не може да се изпълни "
 "deleteRow() метода."
 
-#: org/postgresql/jdbc/PgResultSet.java:922
+#: org/postgresql/jdbc/PgResultSet.java:905
 msgid "There are no rows in this ResultSet."
 msgstr "В този ResultSet няма редове."
 
-#: org/postgresql/jdbc/PgResultSet.java:963
+#: org/postgresql/jdbc/PgResultSet.java:946
 msgid "Not on the insert row."
 msgstr "Не сме в редицата на въвеждане."
 
-#: org/postgresql/jdbc/PgResultSet.java:965
+#: org/postgresql/jdbc/PgResultSet.java:948
 msgid "You must specify at least one column value to insert a row."
 msgstr "Трябва да посочите поне една стойност за колона, за да вмъкнете ред."
 
-#: org/postgresql/jdbc/PgResultSet.java:1119
-#: org/postgresql/jdbc/PgResultSet.java:1754
-#: org/postgresql/jdbc/PgResultSet.java:2420
-#: org/postgresql/jdbc/PgResultSet.java:2441
+#: org/postgresql/jdbc/PgResultSet.java:1097
+#: org/postgresql/jdbc/PgResultSet.java:1694
+#: org/postgresql/jdbc/PgResultSet.java:2374
+#: org/postgresql/jdbc/PgResultSet.java:2395
 #, java-format
 msgid "The JVM claims not to support the encoding: {0}"
 msgstr "JVM не поддържа тази кодова таблица за момента: {0}"
 
-#: org/postgresql/jdbc/PgResultSet.java:1261
+#: org/postgresql/jdbc/PgResultSet.java:1225
 msgid "Can''t refresh the insert row."
 msgstr "Не може да обнови въведения ред."
 
-#: org/postgresql/jdbc/PgResultSet.java:1328
+#: org/postgresql/jdbc/PgResultSet.java:1292
 msgid "Cannot call updateRow() when on the insert row."
 msgstr ""
 "Не може да се изпълни updateRow() метода, когато се намираме при редицата на "
 "въвеждане."
 
-#: org/postgresql/jdbc/PgResultSet.java:1335
-#: org/postgresql/jdbc/PgResultSet.java:3074
+#: org/postgresql/jdbc/PgResultSet.java:1299
+#: org/postgresql/jdbc/PgResultSet.java:3029
 msgid ""
 "Cannot update the ResultSet because it is either before the start or after "
 "the end of the results."
@@ -1171,39 +1179,39 @@ msgstr ""
 "Не може да се обнови ResultSet, когато се намираме преди началото или след "
 "края на резултатите."
 
-#: org/postgresql/jdbc/PgResultSet.java:1535
+#: org/postgresql/jdbc/PgResultSet.java:1476
 msgid "ResultSets with concurrency CONCUR_READ_ONLY cannot be updated."
 msgstr ""
 "ResultSets с concurrency CONCUR_READ_ONLY не могат да бъдат актуализирани."
 
-#: org/postgresql/jdbc/PgResultSet.java:1603
+#: org/postgresql/jdbc/PgResultSet.java:1544
 #, java-format
 msgid "No primary key found for table {0}."
 msgstr "Няма първичен ключ за таблица {0}."
 
-#: org/postgresql/jdbc/PgResultSet.java:2017
-#: org/postgresql/jdbc/PgResultSet.java:2022
-#: org/postgresql/jdbc/PgResultSet.java:2807
-#: org/postgresql/jdbc/PgResultSet.java:2813
-#: org/postgresql/jdbc/PgResultSet.java:2838
+#: org/postgresql/jdbc/PgResultSet.java:1958
+#: org/postgresql/jdbc/PgResultSet.java:1963
+#: org/postgresql/jdbc/PgResultSet.java:2762
+#: org/postgresql/jdbc/PgResultSet.java:2768
+#: org/postgresql/jdbc/PgResultSet.java:2793
+#: org/postgresql/jdbc/PgResultSet.java:2799
+#: org/postgresql/jdbc/PgResultSet.java:2823
+#: org/postgresql/jdbc/PgResultSet.java:2828
 #: org/postgresql/jdbc/PgResultSet.java:2844
-#: org/postgresql/jdbc/PgResultSet.java:2868
-#: org/postgresql/jdbc/PgResultSet.java:2873
+#: org/postgresql/jdbc/PgResultSet.java:2865
+#: org/postgresql/jdbc/PgResultSet.java:2876
 #: org/postgresql/jdbc/PgResultSet.java:2889
-#: org/postgresql/jdbc/PgResultSet.java:2910
-#: org/postgresql/jdbc/PgResultSet.java:2921
-#: org/postgresql/jdbc/PgResultSet.java:2934
-#: org/postgresql/jdbc/PgResultSet.java:3062
+#: org/postgresql/jdbc/PgResultSet.java:3017
 #, java-format
 msgid "Bad value for type {0} : {1}"
 msgstr "Невалидна стойност за тип {0} : {1}"
 
-#: org/postgresql/jdbc/PgResultSet.java:2593
+#: org/postgresql/jdbc/PgResultSet.java:2548
 #, java-format
 msgid "The column name {0} was not found in this ResultSet."
 msgstr "Името на колоната {0} не бе намерено в този ResultSet."
 
-#: org/postgresql/jdbc/PgResultSet.java:2729
+#: org/postgresql/jdbc/PgResultSet.java:2684
 msgid ""
 "ResultSet is not updateable.  The query that generated this result set must "
 "select only one table, and must select all primary keys from that table. See "
@@ -1213,74 +1221,74 @@ msgstr ""
 "да селектира само една таблица, както и всички първични ключове в нея. За "
 "повече информация, вижте раздел 5.6 на JDBC 2.1 API Specification."
 
-#: org/postgresql/jdbc/PgResultSet.java:2741
+#: org/postgresql/jdbc/PgResultSet.java:2696
 msgid "This ResultSet is closed."
 msgstr "Операциите по този ResultSet са били прекратени."
 
-#: org/postgresql/jdbc/PgResultSet.java:2772
+#: org/postgresql/jdbc/PgResultSet.java:2727
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr ""
 "ResultSet не е референциран правилно. Вероятно трябва да придвижите курсора "
 "посредством next."
 
-#: org/postgresql/jdbc/PgResultSet.java:3094
+#: org/postgresql/jdbc/PgResultSet.java:3049
 msgid "Invalid UUID data."
 msgstr "Невалидни UUID данни."
 
-#: org/postgresql/jdbc/PgResultSet.java:3183
-#: org/postgresql/jdbc/PgResultSet.java:3190
-#: org/postgresql/jdbc/PgResultSet.java:3201
-#: org/postgresql/jdbc/PgResultSet.java:3212
-#: org/postgresql/jdbc/PgResultSet.java:3223
-#: org/postgresql/jdbc/PgResultSet.java:3234
-#: org/postgresql/jdbc/PgResultSet.java:3245
-#: org/postgresql/jdbc/PgResultSet.java:3256
-#: org/postgresql/jdbc/PgResultSet.java:3267
-#: org/postgresql/jdbc/PgResultSet.java:3274
-#: org/postgresql/jdbc/PgResultSet.java:3281
-#: org/postgresql/jdbc/PgResultSet.java:3292
-#: org/postgresql/jdbc/PgResultSet.java:3309
-#: org/postgresql/jdbc/PgResultSet.java:3316
-#: org/postgresql/jdbc/PgResultSet.java:3323
-#: org/postgresql/jdbc/PgResultSet.java:3334
+#: org/postgresql/jdbc/PgResultSet.java:3138
+#: org/postgresql/jdbc/PgResultSet.java:3145
+#: org/postgresql/jdbc/PgResultSet.java:3156
+#: org/postgresql/jdbc/PgResultSet.java:3167
+#: org/postgresql/jdbc/PgResultSet.java:3178
+#: org/postgresql/jdbc/PgResultSet.java:3189
+#: org/postgresql/jdbc/PgResultSet.java:3200
+#: org/postgresql/jdbc/PgResultSet.java:3211
+#: org/postgresql/jdbc/PgResultSet.java:3222
+#: org/postgresql/jdbc/PgResultSet.java:3229
+#: org/postgresql/jdbc/PgResultSet.java:3236
+#: org/postgresql/jdbc/PgResultSet.java:3247
+#: org/postgresql/jdbc/PgResultSet.java:3264
+#: org/postgresql/jdbc/PgResultSet.java:3271
+#: org/postgresql/jdbc/PgResultSet.java:3278
+#: org/postgresql/jdbc/PgResultSet.java:3289
+#: org/postgresql/jdbc/PgResultSet.java:3296
+#: org/postgresql/jdbc/PgResultSet.java:3303
 #: org/postgresql/jdbc/PgResultSet.java:3341
 #: org/postgresql/jdbc/PgResultSet.java:3348
-#: org/postgresql/jdbc/PgResultSet.java:3386
-#: org/postgresql/jdbc/PgResultSet.java:3393
-#: org/postgresql/jdbc/PgResultSet.java:3400
-#: org/postgresql/jdbc/PgResultSet.java:3420
-#: org/postgresql/jdbc/PgResultSet.java:3433
+#: org/postgresql/jdbc/PgResultSet.java:3355
+#: org/postgresql/jdbc/PgResultSet.java:3375
+#: org/postgresql/jdbc/PgResultSet.java:3388
 #, fuzzy, java-format
 msgid "conversion to {0} from {1} not supported"
 msgstr "Изолационно ниво на транзакциите {0} не се поддържа."
 
-#: org/postgresql/jdbc/PgSQLXML.java:147
+#: org/postgresql/jdbc/PgSQLXML.java:151
 msgid "Unable to decode xml data."
 msgstr "Не може да декодира XML данните."
 
-#: org/postgresql/jdbc/PgSQLXML.java:150
+#: org/postgresql/jdbc/PgSQLXML.java:154
 #, java-format
 msgid "Unknown XML Source class: {0}"
 msgstr "Неизвестен XML входящ клас: {0}"
 
-#: org/postgresql/jdbc/PgSQLXML.java:193
+#: org/postgresql/jdbc/PgSQLXML.java:201
 msgid "Unable to create SAXResult for SQLXML."
 msgstr "Не може да се създаде SAXResult за SQLXML."
 
-#: org/postgresql/jdbc/PgSQLXML.java:208
+#: org/postgresql/jdbc/PgSQLXML.java:216
 msgid "Unable to create StAXResult for SQLXML"
 msgstr "Не може да се създаде StAXResult за SQLXML."
 
-#: org/postgresql/jdbc/PgSQLXML.java:213
+#: org/postgresql/jdbc/PgSQLXML.java:221
 #, java-format
 msgid "Unknown XML Result class: {0}"
 msgstr "Неизвестен XML изходящ клас: {0}"
 
-#: org/postgresql/jdbc/PgSQLXML.java:225
+#: org/postgresql/jdbc/PgSQLXML.java:234
 msgid "This SQLXML object has already been freed."
 msgstr "Този SQLXML обект вече е освободен."
 
-#: org/postgresql/jdbc/PgSQLXML.java:234
+#: org/postgresql/jdbc/PgSQLXML.java:243
 msgid ""
 "This SQLXML object has not been initialized, so you cannot retrieve data "
 "from it."
@@ -1288,104 +1296,105 @@ msgstr ""
 "Този SQLXML обект не е инициализиран, така че не могат да се извличат данни "
 "от него."
 
-#: org/postgresql/jdbc/PgSQLXML.java:247
+#: org/postgresql/jdbc/PgSQLXML.java:256
 #, java-format
 msgid "Failed to convert binary xml data to encoding: {0}."
 msgstr ""
 "Неуспешно преобразуване на двоични XML данни за кодиране съгласно: {0}."
 
-#: org/postgresql/jdbc/PgSQLXML.java:273
+#: org/postgresql/jdbc/PgSQLXML.java:282
 msgid "Unable to convert DOMResult SQLXML data to a string."
 msgstr "Не може да преобразува DOMResult SQLXML данни в низ."
 
-#: org/postgresql/jdbc/PgSQLXML.java:287
+#: org/postgresql/jdbc/PgSQLXML.java:295
 msgid ""
 "This SQLXML object has already been initialized, so you cannot manipulate it "
 "further."
 msgstr "Този SQLXML обект вече е инициализиран и не може да бъде променен."
 
-#: org/postgresql/jdbc/PgStatement.java:235
+#: org/postgresql/jdbc/PgStatement.java:236
 msgid "Multiple ResultSets were returned by the query."
 msgstr "Заявката върна няколко ResultSets."
 
-#: org/postgresql/jdbc/PgStatement.java:316
+#: org/postgresql/jdbc/PgStatement.java:320
 msgid "Can''t use executeWithFlags(int) on a Statement."
 msgstr ""
 
-#: org/postgresql/jdbc/PgStatement.java:509
+#: org/postgresql/jdbc/PgStatement.java:514
 msgid "Maximum number of rows must be a value grater than or equal to 0."
 msgstr ""
 "Максималният брой редове трябва да бъде стойност по-голяма или равна на 0."
 
-#: org/postgresql/jdbc/PgStatement.java:555
+#: org/postgresql/jdbc/PgStatement.java:560
 msgid "Query timeout must be a value greater than or equals to 0."
 msgstr ""
 "Времето за изпълнение на заявката трябва да бъде стойност по-голяма или "
 "равна на 0."
 
-#: org/postgresql/jdbc/PgStatement.java:595
+#: org/postgresql/jdbc/PgStatement.java:602
 msgid "The maximum field size must be a value greater than or equal to 0."
 msgstr ""
 "Максималният размер на полето трябва да бъде стойност по-голяма или равна на "
 "0."
 
-#: org/postgresql/jdbc/PgStatement.java:694
+#: org/postgresql/jdbc/PgStatement.java:705
 msgid "This statement has been closed."
 msgstr "Командата е извършена."
 
-#: org/postgresql/jdbc/PgStatement.java:1150
-#: org/postgresql/jdbc/PgStatement.java:1178
+#: org/postgresql/jdbc/PgStatement.java:1163
+#: org/postgresql/jdbc/PgStatement.java:1191
 msgid "Returning autogenerated keys by column index is not supported."
 msgstr ""
 "Автоматично генерирани ключове спрямо индекс на колона не се поддържат."
 
-#: org/postgresql/jdbc/TimestampUtils.java:365
-#: org/postgresql/jdbc/TimestampUtils.java:433
+#: org/postgresql/jdbc/SslMode.java:78
+#, fuzzy, java-format
+msgid "Invalid sslmode value: {0}"
+msgstr "Невалидна дължина {0} на потока данни."
+
+#: org/postgresql/jdbc/TimestampUtils.java:364
+#: org/postgresql/jdbc/TimestampUtils.java:432
 #, fuzzy, java-format
 msgid "Bad value for type timestamp/date/time: {1}"
 msgstr "Невалидна стойност за тип {0} : {1}"
 
-#: org/postgresql/jdbc/TimestampUtils.java:914
-#: org/postgresql/jdbc/TimestampUtils.java:971
-#: org/postgresql/jdbc/TimestampUtils.java:1017
-#: org/postgresql/jdbc/TimestampUtils.java:1066
+#: org/postgresql/jdbc/TimestampUtils.java:912
+#: org/postgresql/jdbc/TimestampUtils.java:969
+#: org/postgresql/jdbc/TimestampUtils.java:1014
+#: org/postgresql/jdbc/TimestampUtils.java:1063
 #, fuzzy, java-format
 msgid "Unsupported binary encoding of {0}."
 msgstr "Неподдържана стойност за тип: {0}"
 
-#: org/postgresql/jre8/sasl/ScramAuthenticator.java:68
+#: org/postgresql/jre8/sasl/ScramAuthenticator.java:67
 msgid "No SCRAM mechanism(s) advertised by the server"
 msgstr ""
 
-#: org/postgresql/jre8/sasl/ScramAuthenticator.java:81
+#: org/postgresql/jre8/sasl/ScramAuthenticator.java:80
 msgid "Invalid or unsupported by client SCRAM mechanisms"
 msgstr ""
 
-#: org/postgresql/jre8/sasl/ScramAuthenticator.java:119
+#: org/postgresql/jre8/sasl/ScramAuthenticator.java:118
 #, fuzzy, java-format
 msgid "Invalid server-first-message: {0}"
 msgstr "Невалидна дължина {0} на потока данни."
 
-#: org/postgresql/jre8/sasl/ScramAuthenticator.java:151
+#: org/postgresql/jre8/sasl/ScramAuthenticator.java:150
 #, fuzzy, java-format
 msgid "Invalid server-final-message: {0}"
 msgstr "Невалидна дължина {0} на потока данни."
 
-#: org/postgresql/jre8/sasl/ScramAuthenticator.java:157
+#: org/postgresql/jre8/sasl/ScramAuthenticator.java:156
 #, java-format
 msgid "SCRAM authentication failed, server returned error: {0}"
 msgstr ""
 
-#: org/postgresql/jre8/sasl/ScramAuthenticator.java:164
+#: org/postgresql/jre8/sasl/ScramAuthenticator.java:163
 msgid "Invalid server SCRAM signature"
 msgstr ""
 
-#: org/postgresql/largeobject/LargeObjectManager.java:136
-msgid "Failed to initialize LargeObject API"
-msgstr "Не може да инициализира LargeObject API"
-
-#: org/postgresql/largeobject/LargeObjectManager.java:254
-#: org/postgresql/largeobject/LargeObjectManager.java:295
+#: org/postgresql/largeobject/LargeObjectManager.java:249
+#: org/postgresql/largeobject/LargeObjectManager.java:290
 msgid "Large Objects may not be used in auto-commit mode."
 msgstr "Големи обекти LOB не могат да се използват в auto-commit модус."
 
@@ -1394,29 +1403,165 @@ msgstr "Големи обекти LOB не могат да се използва
 msgid "Unsupported properties: {0}"
 msgstr "Неподдържана стойност за тип: {0}"
 
-#: org/postgresql/ssl/MakeSSL.java:52
+#: org/postgresql/replication/fluent/AbstractCreateSlotBuilder.java:38
+msgid "Server does not support temporary replication slots"
+msgstr ""
+
+#: org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:63
+#: org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:49
+msgid "slot_name"
+msgstr ""
+
+#: org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:65
+#: org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:51
+msgid "consistent_point"
+msgstr ""
+
+#: org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:66
+#: org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:52
+msgid "snapshot_name"
+msgstr ""
+
+#: org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:67
+#: org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:53
+msgid "output_plugin"
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:132
+msgid ""
+"Could not find a java cryptographic algorithm: X.509 CertificateFactory not "
+"available."
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:142
 #, java-format
-msgid "The SSLSocketFactory class provided {0} could not be instantiated."
+msgid "Could not open SSL certificate file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:147
+#, java-format
+msgid "Loading the SSL certificate {0} into a KeyManager failed."
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:211
+msgid "Enter SSL password: "
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:218
+msgid "Could not read password for SSL key file, console is not available."
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:223
+#, java-format
+msgid "Could not read password for SSL key file by callbackhandler {0}."
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:243
+#, java-format
+msgid "Could not decrypt SSL key file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:250
+#, java-format
+msgid "Could not read SSL key file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/LazyKeyManager.java:253
+#: org/postgresql/ssl/LibPQFactory.java:162
+#, java-format
+msgid "Could not find a java cryptographic algorithm: {0}."
+msgstr ""
+
+#: org/postgresql/ssl/LibPQFactory.java:83
+#, fuzzy, java-format
+msgid "The password callback class provided {0} could not be instantiated."
 msgstr "Класът SSLSocketFactory връща {0} и не може да бъде инстанцииран."
 
-#: org/postgresql/ssl/MakeSSL.java:67
+#: org/postgresql/ssl/LibPQFactory.java:120
+#, java-format
+msgid "Could not open SSL root certificate file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/LibPQFactory.java:135
+#, java-format
+msgid "Could not read SSL root certificate file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/LibPQFactory.java:139
+#, java-format
+msgid "Loading the SSL root certificate {0} into a TrustManager failed."
+msgstr ""
+
+#: org/postgresql/ssl/LibPQFactory.java:156
+msgid "Could not initialize SSL context."
+msgstr ""
+
+#: org/postgresql/ssl/MakeSSL.java:42
 #, java-format
 msgid "SSL error: {0}"
 msgstr ""
 
-#: org/postgresql/ssl/MakeSSL.java:78
+#: org/postgresql/ssl/MakeSSL.java:69
 #, fuzzy, java-format
 msgid "The HostnameVerifier class provided {0} could not be instantiated."
 msgstr "Класът SSLSocketFactory връща {0} и не може да бъде инстанцииран."
 
-#: org/postgresql/ssl/MakeSSL.java:84
+#: org/postgresql/ssl/MakeSSL.java:80
 #, java-format
 msgid "The hostname {0} could not be verified by hostnameverifier {1}."
 msgstr ""
 
-#: org/postgresql/ssl/MakeSSL.java:93
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:84
+#, fuzzy, java-format
+msgid "Unable to parse X509Certificate for hostname {0}"
+msgstr "Не може да се намери типа на сървърен масив за зададеното име {0}."
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:89
+#, fuzzy, java-format
+msgid "No certificates found for hostname {0}"
+msgstr "Няма първичен ключ за таблица {0}."
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:108
 #, java-format
-msgid "The hostname {0} could not be verified."
+msgid "Hostname {0} is invalid"
+msgstr ""
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:125
+#, fuzzy, java-format
+msgid "Unable to parse certificates for hostname {0}"
+msgstr "Не може да подготви параметрите на командата."
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:156
+#, java-format
+msgid "Server name validation pass for {0}, subjectAltName {1}"
+msgstr ""
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:172
+#, java-format
+msgid ""
+"Server name validation failed: certificate for host {0} dNSName entries "
+"subjectAltName, but none of them match. Assuming server name validation "
+"failed"
+msgstr ""
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:183
+#, java-format
+msgid ""
+"Server name validation failed: unable to extract common name from "
+"X509Certificate for hostname {0}"
+msgstr ""
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:196
+#, java-format
+msgid ""
+"Server name validation failed: certificate for hostname {0} has no DNS "
+"subjectAltNames, and it CommonName is missing as well"
+msgstr ""
+
+#: org/postgresql/ssl/PGjdbcHostnameVerifier.java:216
+#, java-format
+msgid ""
+"Server name validation failed: hostname {0} does not match common name {1}"
 msgstr ""
 
 #: org/postgresql/ssl/SingleCertValidatingFactory.java:90
@@ -1450,84 +1595,15 @@ msgstr "Възникна грешка при осъществяване на SSL
 msgid "No X509TrustManager found"
 msgstr ""
 
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:133
-msgid ""
-"Could not find a java cryptographic algorithm: X.509 CertificateFactory not "
-"available."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:143
-#, java-format
-msgid "Could not open SSL certificate file {0}."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:148
-#, java-format
-msgid "Loading the SSL certificate {0} into a KeyManager failed."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:205
-msgid "Enter SSL password: "
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:212
-msgid "Could not read password for SSL key file, console is not available."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:217
-#, java-format
-msgid "Could not read password for SSL key file by callbackhandler {0}."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:236
-#, java-format
-msgid "Could not decrypt SSL key file {0}."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:250
-#, java-format
-msgid "Could not read SSL key file {0}."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:253
-#: org/postgresql/ssl/jdbc4/LibPQFactory.java:176
-#, java-format
-msgid "Could not find a java cryptographic algorithm: {0}."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LibPQFactory.java:99
-#, fuzzy, java-format
-msgid "The password callback class provided {0} could not be instantiated."
-msgstr "Класът SSLSocketFactory връща {0} и не може да бъде инстанцииран."
-
-#: org/postgresql/ssl/jdbc4/LibPQFactory.java:132
-#, java-format
-msgid "Could not open SSL root certificate file {0}."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LibPQFactory.java:147
-#, java-format
-msgid "Could not read SSL root certificate file {0}."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LibPQFactory.java:151
-#, java-format
-msgid "Loading the SSL root certificate {0} into a TrustManager failed."
-msgstr ""
-
-#: org/postgresql/ssl/jdbc4/LibPQFactory.java:170
-msgid "Could not initialize SSL context."
-msgstr ""
-
 #: org/postgresql/util/PGInterval.java:152
 msgid "Conversion of interval failed"
 msgstr "Неуспешно преобразуване на интервал"
 
-#: org/postgresql/util/PGmoney.java:62
+#: org/postgresql/util/PGmoney.java:61
 msgid "Conversion of money failed."
 msgstr "Неуспешно валутно преобразуване."
 
-#: org/postgresql/util/ServerErrorMessage.java:45
+#: org/postgresql/util/ServerErrorMessage.java:44
 #, java-format
 msgid ""
 " (pgjdbc: autodetected server-encoding to be {0}, if the message is not "
@@ -1535,42 +1611,42 @@ msgid ""
 "password, pg_hba.conf)"
 msgstr ""
 
-#: org/postgresql/util/ServerErrorMessage.java:176
+#: org/postgresql/util/ServerErrorMessage.java:175
 #, java-format
 msgid "Detail: {0}"
 msgstr "Подробност: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:181
+#: org/postgresql/util/ServerErrorMessage.java:180
 #, java-format
 msgid "Hint: {0}"
 msgstr "Забележка: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:185
+#: org/postgresql/util/ServerErrorMessage.java:184
 #, java-format
 msgid "Position: {0}"
 msgstr "Позиция: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:189
+#: org/postgresql/util/ServerErrorMessage.java:188
 #, java-format
 msgid "Where: {0}"
 msgstr "Където: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:195
+#: org/postgresql/util/ServerErrorMessage.java:194
 #, java-format
 msgid "Internal Query: {0}"
 msgstr "Вътрешна заявка: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:199
+#: org/postgresql/util/ServerErrorMessage.java:198
 #, java-format
 msgid "Internal Position: {0}"
 msgstr "Вътрешна позиция: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:206
+#: org/postgresql/util/ServerErrorMessage.java:205
 #, java-format
 msgid "Location: File: {0}, Routine: {1}, Line: {2}"
 msgstr "Местоположение: Файл: {0}, Функция: {1}, Ред: {2}"
 
-#: org/postgresql/util/ServerErrorMessage.java:211
+#: org/postgresql/util/ServerErrorMessage.java:210
 #, java-format
 msgid "Server SQLState: {0}"
 msgstr "SQL статус на сървъра: {0}"
@@ -1703,12 +1779,13 @@ msgid "Error during one-phase commit. commit xid={0}"
 msgstr "Грешка при едно-фазов commit. commit xid={0}"
 
 #: org/postgresql/xa/PGXAConnection.java:576
+#, java-format
 msgid ""
 "Not implemented: 2nd phase commit must be issued using an idle connection. "
-"commit xid={0}, currentXid={1}, state={2], transactionState={3}"
+"commit xid={0}, currentXid={1}, state={2}, transactionState={3}"
 msgstr ""
 "Невъзможна комбинация: втората фаза на commit задължително трябва да бъде "
-"издадена при свободна връзка. commit xid={0}, currentXid={1}, state={2], "
+"издадена при свободна връзка. commit xid={0}, currentXid={1}, state={2}, "
 "transactionState={3}"
 
 #: org/postgresql/xa/PGXAConnection.java:609
