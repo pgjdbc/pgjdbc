@@ -3,7 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 /**
@@ -84,6 +83,7 @@ public enum PSQLState {
   INVALID_NAME("42602"),
   DATATYPE_MISMATCH("42804"),
   CANNOT_COERCE("42846"),
+  UNDEFINED_TABLE("42P01"),
 
   OUT_OF_MEMORY("53200"),
   OBJECT_NOT_IN_STATE("55000"),

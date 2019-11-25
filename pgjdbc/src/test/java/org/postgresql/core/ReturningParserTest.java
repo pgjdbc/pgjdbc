@@ -29,7 +29,6 @@ public class ReturningParserTest {
     this.suffix = suffix;
   }
 
-
   @Parameterized.Parameters(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();

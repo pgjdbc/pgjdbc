@@ -21,7 +21,7 @@ public class ResultWrapper {
     this.insertOID = -1;
   }
 
-  public ResultWrapper(int updateCount, long insertOID) {
+  public ResultWrapper(long updateCount, long insertOID) {
     this.rs = null;
     this.updateCount = updateCount;
     this.insertOID = insertOID;
@@ -31,7 +31,7 @@ public class ResultWrapper {
     return rs;
   }
 
-  public int getUpdateCount() {
+  public long getUpdateCount() {
     return updateCount;
   }
 
@@ -53,7 +53,7 @@ public class ResultWrapper {
   }
 
   private final ResultSet rs;
-  private final int updateCount;
+  private final long updateCount;
   private final long insertOID;
   private ResultWrapper next;
 }

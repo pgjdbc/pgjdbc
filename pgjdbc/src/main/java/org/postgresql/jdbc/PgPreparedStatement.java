@@ -122,9 +122,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public int executeUpdate() throws SQLException {
     executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
-
-    return getNoResultUpdateCount();
+    checkNoResultUpdate();
+    return getUpdateCount();
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getLargeUpdateCount();
+  }
+  //#endif
 
   @Override
   public boolean execute(String sql) throws SQLException {
@@ -1400,7 +1409,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
   //#endif
-
 
   public void setRowId(int parameterIndex, RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRowId(int, RowId)");

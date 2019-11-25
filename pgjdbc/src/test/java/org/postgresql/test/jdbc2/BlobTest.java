@@ -179,7 +179,6 @@ public class BlobTest {
     assertEquals('?', bis.read());
   }
 
-
   @Test
   public void testGetBytesOffset() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);

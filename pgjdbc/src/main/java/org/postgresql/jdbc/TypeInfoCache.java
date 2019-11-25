@@ -167,7 +167,6 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-
   public synchronized void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
     pgNameToPgObject.put(type, klass);

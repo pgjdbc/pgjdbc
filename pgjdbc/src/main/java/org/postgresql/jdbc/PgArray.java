@@ -267,7 +267,6 @@ public class PgArray implements java.sql.Array {
     return pos;
   }
 
-
   private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
@@ -907,7 +906,8 @@ public class PgArray implements java.sql.Array {
 
         final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
         if (arraySupport != null) {
-          fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+          fieldString =
+            arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
         } else {
           java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
           fieldString = tmpArray.toString();

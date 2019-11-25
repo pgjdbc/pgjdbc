@@ -102,7 +102,6 @@ public class IntervalTest {
     pstmt.close();
   }
 
-
   @Test
   public void testIntervalToStringCoercion() throws SQLException {
     PGInterval interval = new PGInterval("1 year 3 months");
@@ -110,7 +109,6 @@ public class IntervalTest {
 
     assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.00 secs", coercedStringValue);
   }
-
 
   @Test
   public void testDaysHours() throws SQLException {

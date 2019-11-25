@@ -1,6 +1,6 @@
 # PostgreSQL backend protocol: wanted features
 
-Current protocol is documented here: http://www.postgresql.org/docs/9.4/static/protocol.html
+Current protocol is documented here: https://www.postgresql.org/docs/current/protocol.html
 
 It turns out it lacks certain features, thus it makes clients more complex, slower, etc.
 

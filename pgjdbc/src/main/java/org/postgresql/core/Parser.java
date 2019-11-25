@@ -1256,7 +1256,6 @@ public class Parser {
     return i;
   }
 
-
   private static int findOpenBrace(char[] sql, int i) {
     int posArgs = i;
     while (posArgs < sql.length && sql[posArgs] != '(') {

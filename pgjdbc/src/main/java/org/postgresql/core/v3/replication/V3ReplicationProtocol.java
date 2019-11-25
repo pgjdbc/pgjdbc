@@ -137,5 +137,4 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     }
   }
 
-
 }

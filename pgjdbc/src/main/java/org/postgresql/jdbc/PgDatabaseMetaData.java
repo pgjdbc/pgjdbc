@@ -9,11 +9,13 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,6 +26,9 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -90,7 +95,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     return nameDataLength - 1;
   }
-
 
   public boolean allProceduresAreCallable() throws SQLException {
     return true; // For now...
@@ -1480,7 +1484,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[20] = new Field("SCOPE_TABLE", Oid.VARCHAR);
     f[21] = new Field("SOURCE_DATA_TYPE", Oid.INT2);
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
-    f[23] = new Field( "IS_GENERATED", Oid.VARCHAR);
+    f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
     String sql;
     // a.attnum isn't decremented when preceding columns are dropped,
@@ -1498,7 +1502,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,";
+           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
@@ -1581,12 +1585,40 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
       String identity = rs.getString("attidentity");
 
-      int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
-      int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-      if (columnSize == 0) {
-        columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
-      }
+      int baseTypeOid = (int) rs.getLong("typbasetype");
 
+      int decimalDigits;
+      int columnSize;
+
+      /* this is really a DOMAIN type not sure where DISTINCT came from */
+      if ( sqlType == Types.DISTINCT ) {
+        /*
+        From the docs if typtypmod is -1
+         */
+        int typtypmod = rs.getInt("typtypmod");
+        decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typeMod);
+        /*
+        From the postgres docs:
+        Domains use typtypmod to record the typmod to be applied to their
+        base type (-1 if base type does not use a typmod). -1 if this type is not a domain.
+        if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
+        a domain, but for actual types this will return the correct value.
+         */
+        if ( typtypmod == -1 ) {
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typeMod);
+        } else if (baseTypeOid == Oid.NUMERIC ) {
+          decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typtypmod);
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typtypmod);
+        } else {
+          columnSize = typtypmod;
+        }
+      } else {
+        decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
+        columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
+        if (columnSize == 0) {
+          columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
+        }
+      }
       tuple[6] = connection.encodeString(Integer.toString(columnSize));
       tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
 
@@ -1607,8 +1639,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
       // Is nullable
       tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
-
-      int baseTypeOid = (int) rs.getLong("typbasetype");
 
       tuple[18] = null; // SCOPE_CATLOG
       tuple[19] = null; // SCOPE_SCHEMA
@@ -2248,7 +2278,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
               connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
     while (rs.next()) {
-      byte[][] tuple = new byte[18][];
+      byte[][] tuple = new byte[19][];
       String typname = rs.getString(1);
       int typeOid = (int) rs.getLong(2);
 
@@ -2256,6 +2286,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int sqlType = connection.getTypeInfo().getSQLType(typname);
       tuple[1] =
           connection.encodeString(Integer.toString(sqlType));
+
+      /* this is just for sorting below, the result set never sees this */
+      tuple[18] = BigInteger.valueOf(sqlType).toByteArray();
+
       tuple[2] = connection
           .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
 
@@ -2301,6 +2335,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
+    Collections.sort(v, new Comparator<byte[][]>() {
+      @Override
+      public int compare(byte[][] o1, byte[][] o2) {
+        int i1 = ByteConverter.bytesToInt(o1[18]);
+        int i2 = ByteConverter.bytesToInt(o2[18]);
+        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+      }
+    });
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
@@ -2414,7 +2456,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     // The only type we don't support
     return type != ResultSet.TYPE_SCROLL_SENSITIVE;
   }
-
 
   public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
     // These combinations are not supported!
@@ -2543,7 +2584,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }
-
 
   @Override
   public Connection getConnection() throws SQLException {

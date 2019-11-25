@@ -31,7 +31,6 @@ public class LruCacheTest {
       this.id = id;
     }
 
-
     @Override
     public long getSize() {
       return id;

@@ -125,7 +125,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The first unclosed result.
    */
-  protected ResultWrapper firstUnclosedResult = null;
+  protected volatile ResultWrapper firstUnclosedResult = null;
 
   /**
    * Results returned by a statement that wants generated keys.
@@ -209,7 +209,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     @Override
-    public void handleCommandStatus(String status, int updateCount, long insertOID) {
+    public void handleCommandStatus(String status, long updateCount, long insertOID) {
       append(new ResultWrapper(updateCount, insertOID));
     }
 
@@ -244,10 +244,11 @@ public class PgStatement implements Statement, BaseStatement {
   @Override
   public int executeUpdate(String sql) throws SQLException {
     executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
-    return getNoResultUpdateCount();
+    checkNoResultUpdate();
+    return getUpdateCount();
   }
 
-  protected int getNoResultUpdateCount() throws SQLException {
+  protected final void checkNoResultUpdate() throws SQLException {
     synchronized (this) {
       checkClosed();
       ResultWrapper iter = result;
@@ -255,12 +256,9 @@ public class PgStatement implements Statement, BaseStatement {
         if (iter.getResultSet() != null) {
           throw new PSQLException(GT.tr("A result was returned when none was expected."),
               PSQLState.TOO_MANY_RESULTS);
-
         }
         iter = iter.getNext();
       }
-
-      return getUpdateCount();
     }
   }
 
@@ -329,9 +327,9 @@ public class PgStatement implements Statement, BaseStatement {
     // Close any existing resultsets associated with this statement.
     synchronized (this) {
       while (firstUnclosedResult != null) {
-        ResultSet rs = firstUnclosedResult.getResultSet();
+        PgResultSet rs = (PgResultSet)firstUnclosedResult.getResultSet();
         if (rs != null) {
-          rs.close();
+          rs.closeInternally();
         }
         firstUnclosedResult = firstUnclosedResult.getNext();
       }
@@ -473,6 +471,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   private volatile boolean isClosed = false;
 
+  @Override
   public int getUpdateCount() throws SQLException {
     synchronized (this) {
       checkClosed();
@@ -480,7 +479,8 @@ public class PgStatement implements Statement, BaseStatement {
         return -1;
       }
 
-      return result.getUpdateCount();
+      long count = result.getUpdateCount();
+      return count > Integer.MAX_VALUE ? Statement.SUCCESS_NO_INFO : (int) count;
     }
   }
 
@@ -742,26 +742,17 @@ public class PgStatement implements Statement, BaseStatement {
         wantsGeneratedKeysAlways);
   }
 
-  public int[] executeBatch() throws SQLException {
-    checkClosed();
-
-    closeForNextExecution();
-
-    if (batchStatements == null || batchStatements.isEmpty()) {
-      return new int[0];
-    }
-
+  private BatchResultHandler internalExecuteBatch() throws SQLException {
     // Construct query/parameter arrays.
     transformQueriesAndParameters();
     // Empty arrays should be passed to toArray
     // see http://shipilev.net/blog/2016/arrays-wisdom-ancients/
     Query[] queries = batchStatements.toArray(new Query[0]);
-    ParameterList[] parameterLists =
-        batchParameters.toArray(new ParameterList[0]);
+    ParameterList[] parameterLists = batchParameters.toArray(new ParameterList[0]);
     batchStatements.clear();
     batchParameters.clear();
 
-    int flags = 0;
+    int flags;
 
     // Force a Describe before any execution? We need to do this if we're going
     // to send anything dependent on the Describe results, e.g. binary parameters.
@@ -868,8 +859,18 @@ public class PgStatement implements Statement, BaseStatement {
         }
       }
     }
+    return handler;
+  }
 
-    return handler.getUpdateCount();
+  public int[] executeBatch() throws SQLException {
+    checkClosed();
+    closeForNextExecution();
+
+    if (batchStatements == null || batchStatements.isEmpty()) {
+      return new int[0];
+    }
+
+    return internalExecuteBatch().getUpdateCount();
   }
 
   public void cancel() throws SQLException {
@@ -1018,8 +1019,17 @@ public class PgStatement implements Statement, BaseStatement {
     return forceBinaryTransfers;
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  @Override
   public long getLargeUpdateCount() throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getLargeUpdateCount");
+    synchronized (this) {
+      checkClosed();
+      if (result == null || result.getResultSet() != null) {
+        return -1;
+      }
+
+      return result.getUpdateCount();
+    }
   }
 
   public void setLargeMaxRows(long max) throws SQLException {
@@ -1030,29 +1040,57 @@ public class PgStatement implements Statement, BaseStatement {
     throw Driver.notImplemented(this.getClass(), "getLargeMaxRows");
   }
 
+  @Override
   public long[] executeLargeBatch() throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeBatch");
+    checkClosed();
+    closeForNextExecution();
+
+    if (batchStatements == null || batchStatements.isEmpty()) {
+      return new long[0];
+    }
+
+    return internalExecuteBatch().getLargeUpdateCount();
   }
 
+  @Override
   public long executeLargeUpdate(String sql) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getLargeUpdateCount();
   }
 
+  @Override
   public long executeLargeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
+      return executeLargeUpdate(sql);
+    }
+
+    return executeLargeUpdate(sql, (String[]) null);
   }
 
+  @Override
   public long executeLargeUpdate(String sql, int[] columnIndexes) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    if (columnIndexes == null || columnIndexes.length == 0) {
+      return executeLargeUpdate(sql);
+    }
+
+    throw new PSQLException(GT.tr("Returning autogenerated keys by column index is not supported."),
+        PSQLState.NOT_IMPLEMENTED);
   }
 
+  @Override
   public long executeLargeUpdate(String sql, String[] columnNames) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
-  }
+    if (columnNames != null && columnNames.length == 0) {
+      return executeLargeUpdate(sql);
+    }
 
-  public long executeLargeUpdate() throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    wantsGeneratedKeysOnce = true;
+    if (!executeCachedSql(sql, 0, columnNames)) {
+      // no resultset returned. What's a pity!
+    }
+    return getLargeUpdateCount();
   }
+  //#endif
 
   public boolean isClosed() throws SQLException {
     return isClosed;

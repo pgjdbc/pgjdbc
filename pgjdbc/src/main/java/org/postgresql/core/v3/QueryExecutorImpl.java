@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,6 +72,7 @@ import java.util.logging.Logger;
 public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
+  private static final String COPY_ERROR_MESSAGE = "COPY commands are only supported using the CopyManager API.";
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -516,6 +518,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try {
       handler.handleCompletion();
+      if (cleanupSavePoints) {
+        releaseSavePoint(autosave, flags);
+      }
     } catch (SQLException e) {
       rollbackIfRequired(autosave, e);
     }
@@ -557,7 +562,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       }
 
-      public void handleCommandStatus(String status, int updateCount, long insertOID) {
+      @Override
+      public void handleCommandStatus(String status, long updateCount, long insertOID) {
         if (!sawBegin) {
           sawBegin = true;
           if (!status.equals("BEGIN")) {
@@ -599,7 +605,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       ResultHandler handler = new ResultHandlerBase() {
         private boolean sawBegin = false;
 
-        public void handleCommandStatus(String status, int updateCount, long insertOID) {
+        @Override
+        public void handleCommandStatus(String status, long updateCount, long insertOID) {
           if (!sawBegin) {
             if (!status.equals("BEGIN")) {
               handleError(
@@ -613,6 +620,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
 
+        @Override
         public void handleWarning(SQLWarning warning) {
           // we don't want to ignore warnings and it would be tricky
           // to chain them back to the connection, so since we don't
@@ -1023,7 +1031,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger4(siz + 4);
       pgStream.send(data, off, siz);
 
-      processCopyResults(op, false); // collect any pending notifications without blocking
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
           PSQLState.CONNECTION_FAILURE, ioe);
@@ -1038,7 +1045,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try {
       pgStream.flush();
-      processCopyResults(op, false); // collect any pending notifications without blocking
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
           PSQLState.CONNECTION_FAILURE, ioe);
@@ -1067,6 +1073,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  AtomicBoolean processingCopyResults = new AtomicBoolean(false);
+
   /**
    * Handles copy sub protocol responses from server. Unlocks at end of sub protocol, so operations
    * on pgStream or QueryExecutor are not allowed in a method after calling this!
@@ -1080,205 +1088,226 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   CopyOperationImpl processCopyResults(CopyOperationImpl op, boolean block)
       throws SQLException, IOException {
 
-    boolean endReceiving = false;
-    SQLException error = null;
-    SQLException errors = null;
-    int len;
+    /*
+    *  This is a hack as we should not end up here, but sometimes do with large copy operations.
+     */
+    if ( processingCopyResults.compareAndSet(false,true) == false ) {
+      LOGGER.log(Level.INFO, "Ignoring request to process copy results, already processing");
+      return null;
+    }
 
-    while (!endReceiving && (block || pgStream.hasMessagePending())) {
+    // put this all in a try, finally block and reset the processingCopyResults in the finally clause
+    try {
+      boolean endReceiving = false;
+      SQLException error = null;
+      SQLException errors = null;
+      int len;
 
-      // There is a bug in the server's implementation of the copy
-      // protocol. It returns command complete immediately upon
-      // receiving the EOF marker in the binary protocol,
-      // potentially before we've issued CopyDone. When we are not
-      // blocking, we don't think we are done, so we hold off on
-      // processing command complete and any subsequent messages
-      // until we actually are done with the copy.
-      //
-      if (!block) {
-        int c = pgStream.peekChar();
-        if (c == 'C') {
-          // CommandComplete
-          LOGGER.log(Level.FINEST, " <=BE CommandStatus, Ignored until CopyDone");
-          break;
+      while (!endReceiving && (block || pgStream.hasMessagePending())) {
+
+        // There is a bug in the server's implementation of the copy
+        // protocol. It returns command complete immediately upon
+        // receiving the EOF marker in the binary protocol,
+        // potentially before we've issued CopyDone. When we are not
+        // blocking, we don't think we are done, so we hold off on
+        // processing command complete and any subsequent messages
+        // until we actually are done with the copy.
+        //
+        if (!block) {
+          int c = pgStream.peekChar();
+          if (c == 'C') {
+            // CommandComplete
+            LOGGER.log(Level.FINEST, " <=BE CommandStatus, Ignored until CopyDone");
+            break;
+          }
         }
-      }
 
-      int c = pgStream.receiveChar();
-      switch (c) {
+        int c = pgStream.receiveChar();
+        switch (c) {
 
-        case 'A': // Asynchronous Notify
+          case 'A': // Asynchronous Notify
 
-          LOGGER.log(Level.FINEST, " <=BE Asynchronous Notification while copying");
+            LOGGER.log(Level.FINEST, " <=BE Asynchronous Notification while copying");
 
-          receiveAsyncNotify();
-          break;
+            receiveAsyncNotify();
+            break;
 
-        case 'N': // Notice Response
+          case 'N': // Notice Response
 
-          LOGGER.log(Level.FINEST, " <=BE Notification while copying");
+            LOGGER.log(Level.FINEST, " <=BE Notification while copying");
 
-          addWarning(receiveNoticeResponse());
-          break;
+            addWarning(receiveNoticeResponse());
+            break;
 
-        case 'C': // Command Complete
+          case 'C': // Command Complete
 
-          String status = receiveCommandStatus();
+            String status = receiveCommandStatus();
 
-          try {
+            try {
+              if (op == null) {
+                throw new PSQLException(GT
+                    .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
+                    PSQLState.OBJECT_NOT_IN_STATE);
+              }
+              op.handleCommandStatus(status);
+            } catch (SQLException se) {
+              error = se;
+            }
+
+            block = true;
+            break;
+
+          case 'E': // ErrorMessage (expected response to CopyFail)
+
+            error = receiveErrorResponse();
+            // We've received the error and we now expect to receive
+            // Ready for query, but we must block because it might still be
+            // on the wire and not here yet.
+            block = true;
+            break;
+
+          case 'G': // CopyInResponse
+
+            LOGGER.log(Level.FINEST, " <=BE CopyInResponse");
+
+            if (op != null) {
+              error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}",
+                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+            }
+
+            op = new CopyInImpl();
+            initCopy(op);
+            endReceiving = true;
+            break;
+
+          case 'H': // CopyOutResponse
+
+            LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
+
+            if (op != null) {
+                error =
+                  new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
+                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+            }
+
+            op = new CopyOutImpl();
+            initCopy(op);
+            endReceiving = true;
+            break;
+
+          case 'W': // CopyBothResponse
+
+            LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
+
+            if (op != null) {
+                error =
+                  new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
+                      op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+            }
+
+            op = new CopyDualImpl();
+            initCopy(op);
+            endReceiving = true;
+            break;
+
+          case 'd': // CopyData
+
+            LOGGER.log(Level.FINEST, " <=BE CopyData");
+
+            len = pgStream.receiveInteger4() - 4;
+
+            assert len > 0 : "Copy Data length must be greater than 4";
+
+            byte[] buf = pgStream.receive(len);
             if (op == null) {
-              throw new PSQLException(GT
-                  .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
+              error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
+                  PSQLState.OBJECT_NOT_IN_STATE);
+            } else if (!(op instanceof CopyOut)) {
+              error = new PSQLException(
+                  GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
+                  PSQLState.COMMUNICATION_ERROR);
+            } else {
+              op.handleCopydata(buf);
+            }
+            endReceiving = true;
+            break;
+
+          case 'c': // CopyDone (expected after all copydata received)
+
+            LOGGER.log(Level.FINEST, " <=BE CopyDone");
+
+            len = pgStream.receiveInteger4() - 4;
+            if (len > 0) {
+              pgStream.receive(len); // not in specification; should never appear
+            }
+
+            if (!(op instanceof CopyOut)) {
+              error = new PSQLException("Got CopyDone while not copying from server",
                   PSQLState.OBJECT_NOT_IN_STATE);
             }
-            op.handleCommandStatus(status);
-          } catch (SQLException se) {
-            error = se;
-          }
 
-          block = true;
-          break;
+            // keep receiving since we expect a CommandComplete
+            block = true;
+            break;
+          case 'S': // Parameter Status
+            try {
+              receiveParameterStatus();
+            } catch (SQLException e) {
+              error = e;
+              endReceiving = true;
+            }
+            break;
 
-        case 'E': // ErrorMessage (expected response to CopyFail)
+          case 'Z': // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
 
-          error = receiveErrorResponse();
-          // We've received the error and we now expect to receive
-          // Ready for query, but we must block because it might still be
-          // on the wire and not here yet.
-          block = true;
-          break;
-
-        case 'G': // CopyInResponse
-
-          LOGGER.log(Level.FINEST, " <=BE CopyInResponse");
-
-          if (op != null) {
-            error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}",
-                op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
-          }
-
-          op = new CopyInImpl();
-          initCopy(op);
-          endReceiving = true;
-          break;
-
-        case 'H': // CopyOutResponse
-
-          LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
-
-          if (op != null) {
-            error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
-                op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
-          }
-
-          op = new CopyOutImpl();
-          initCopy(op);
-          endReceiving = true;
-          break;
-
-        case 'W': // CopyBothResponse
-
-          LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
-
-          if (op != null) {
-            error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
-                    op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
-          }
-
-          op = new CopyDualImpl();
-          initCopy(op);
-          endReceiving = true;
-          break;
-
-        case 'd': // CopyData
-
-          LOGGER.log(Level.FINEST, " <=BE CopyData");
-
-          len = pgStream.receiveInteger4() - 4;
-          byte[] buf = pgStream.receive(len);
-          if (op == null) {
-            error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
-                PSQLState.OBJECT_NOT_IN_STATE);
-          } else if (!(op instanceof CopyOut)) {
-            error = new PSQLException(
-                GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
-                PSQLState.COMMUNICATION_ERROR);
-          } else {
-            op.handleCopydata(buf);
-          }
-          endReceiving = true;
-          break;
-
-        case 'c': // CopyDone (expected after all copydata received)
-
-          LOGGER.log(Level.FINEST, " <=BE CopyDone");
-
-          len = pgStream.receiveInteger4() - 4;
-          if (len > 0) {
-            pgStream.receive(len); // not in specification; should never appear
-          }
-
-          if (!(op instanceof CopyOut)) {
-            error = new PSQLException("Got CopyDone while not copying from server",
-                PSQLState.OBJECT_NOT_IN_STATE);
-          }
-
-          // keep receiving since we expect a CommandComplete
-          block = true;
-          break;
-        case 'S': // Parameter Status
-          try {
-            receiveParameterStatus();
-          } catch (SQLException e) {
-            error = e;
+            receiveRFQ();
+            if (hasLock(op)) {
+              unlock(op);
+            }
+            op = null;
             endReceiving = true;
-          }
-          break;
+            break;
 
-        case 'Z': // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
+          // If the user sends a non-copy query, we've got to handle some additional things.
+          //
+          case 'T': // Row Description (response to Describe)
+            LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
 
-          receiveRFQ();
-          if (hasLock(op)) {
-            unlock(op);
-          }
-          op = null;
-          endReceiving = true;
-          break;
+            skipMessage();
+            break;
 
-        // If the user sends a non-copy query, we've got to handle some additional things.
-        //
-        case 'T': // Row Description (response to Describe)
-          LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
+          case 'D': // DataRow
+            LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
 
-          skipMessage();
-          break;
+            skipMessage();
+            break;
 
-        case 'D': // DataRow
-          LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
-
-          skipMessage();
-          break;
-
-        default:
-          throw new IOException(
-              GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
-      }
-
-      // Collect errors into a neat chain for completeness
-      if (error != null) {
-        if (errors != null) {
-          error.setNextException(errors);
+          default:
+            throw new IOException(
+                GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
         }
-        errors = error;
-        error = null;
+
+        // Collect errors into a neat chain for completeness
+        if (error != null) {
+          if (errors != null) {
+            error.setNextException(errors);
+          }
+          errors = error;
+          error = null;
+        }
       }
-    }
 
-    if (errors != null) {
-      throw errors;
-    }
+      if (errors != null) {
+        throw errors;
+      }
+      return op;
 
-    return op;
+    } finally {
+      /*
+      reset here in the finally block to make sure it really is cleared
+       */
+      processingCopyResults.set(false);
+    }
   }
 
   /*
@@ -2327,8 +2356,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // We'll send a CopyFail message for COPY FROM STDIN so that
           // server does not wait for the data.
 
-          byte[] buf =
-              Utils.encodeUTF8("The JDBC driver currently does not support COPY operations.");
+          byte[] buf = Utils.encodeUTF8(COPY_ERROR_MESSAGE);
           pgStream.sendChar('f');
           pgStream.sendInteger4(buf.length + 4 + 1);
           pgStream.send(buf);
@@ -2345,7 +2373,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // In case of CopyOutResponse, we cannot abort data transfer,
           // so just throw an error and ignore CopyData messages
           handler.handleError(
-              new PSQLException(GT.tr("The driver currently does not support COPY operations."),
+              new PSQLException(GT.tr(COPY_ERROR_MESSAGE),
                   PSQLState.NOT_IMPLEMENTED));
           break;
 
@@ -2372,6 +2400,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void skipMessage() throws IOException {
     int len = pgStream.receiveInteger4();
+
+    assert len >= 4 : "Length from skip message must be at least 4 ";
+
     // skip len-4 (length includes the 4 bytes for message length itself
     pgStream.skip(len - 4);
   }
@@ -2385,7 +2416,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // (if the fetch returns no rows, we see just a CommandStatus..)
     final ResultHandler delegateHandler = handler;
     handler = new ResultHandlerDelegate(delegateHandler) {
-      public void handleCommandStatus(String status, int updateCount, long insertOID) {
+      @Override
+      public void handleCommandStatus(String status, long updateCount, long insertOID) {
         handleResultRows(portal.getQuery(), null, new ArrayList<byte[][]>(), null);
       }
     };
@@ -2415,7 +2447,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    int msgSize = pgStream.receiveInteger4();
+    pgStream.receiveInteger4(); // MESSAGE SIZE
     int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
@@ -2442,7 +2474,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int msglen = pgStream.receiveInteger4();
+    int len = pgStream.receiveInteger4(); // MESSAGE SIZE
+    assert len > 4 : "Length for AsyncNotify must be at least 4";
+
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveString();
     String param = pgStream.receiveString();
@@ -2460,6 +2494,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // check at the bottom to see if we need to throw an exception
 
     int elen = pgStream.receiveInteger4();
+    assert elen > 4 : "Error response length must be greater than 4";
+
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
 
@@ -2467,7 +2503,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg.toString());
     }
 
-    PSQLException error = new PSQLException(errorMsg);
+    PSQLException error = new PSQLException(errorMsg, this.logServerErrorDetail);
     if (transactionFailCause == null) {
       transactionFailCause = error;
     } else {
@@ -2478,6 +2514,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private SQLWarning receiveNoticeResponse() throws IOException {
     int nlen = pgStream.receiveInteger4();
+    assert nlen > 4 : "Notice Response length must be greater than 4";
+
     ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -2510,16 +2548,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     long oid = commandCompleteParser.getOid();
     long count = commandCompleteParser.getRows();
 
-    int countAsInt = 0;
-    if (count > Integer.MAX_VALUE) {
-      // If command status indicates that we've modified more than Integer.MAX_VALUE rows
-      // then we set the result count to reflect that we cannot provide the actual number
-      // due to the JDBC field being an int rather than a long.
-      countAsInt = Statement.SUCCESS_NO_INFO;
-    } else if (count > 0) {
-      countAsInt = (int) count;
-    }
-    handler.handleCommandStatus(status, countAsInt, oid);
+    handler.handleCommandStatus(status, count, oid);
   }
 
   private void receiveRFQ() throws IOException {
@@ -2613,12 +2642,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    int len = pgStream.receiveInteger4();
+    pgStream.receiveInteger4(); // MESSAGE SIZE
     String name = pgStream.receiveString();
     String value = pgStream.receiveString();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+    }
+
+    /* Update client-visible parameter status map for getParameterStatuses() */
+    if (name != null && !name.equals("")) {
+      onParameterStatus(name, value);
     }
 
     if (name.equals("client_encoding")) {
@@ -2778,14 +2812,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 
-  private final SimpleQuery restoreToAutoSave =
-      new SimpleQuery(
-          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
-          null, false);
-
-
   private final SimpleQuery releaseAutoSave =
       new SimpleQuery(
           new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  /*
+  In autosave mode we use this query to roll back errored transactions
+   */
+  private final SimpleQuery restoreToAutoSave =
+      new SimpleQuery(
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
 }

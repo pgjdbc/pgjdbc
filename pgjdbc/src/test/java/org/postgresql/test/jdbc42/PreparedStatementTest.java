@@ -20,7 +20,6 @@ import java.sql.Types;
 import java.time.LocalTime;
 import java.util.Properties;
 
-
 public class PreparedStatementTest extends BaseTest4 {
   protected void updateProperties(Properties props) {
     PGProperty.PREFER_QUERY_MODE.set(props, "simple");
