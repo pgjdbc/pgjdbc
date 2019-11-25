@@ -371,9 +371,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
               | QUERY_EXECUTE_AS_SIMPLE);
-
       return true;
-
     }
     return false;
   }
@@ -548,7 +546,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     beginFlags = updateQueryMode(beginFlags);
 
-    sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+    final SimpleQuery beginQuery = ((flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0) ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+
+    sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
     // Insert a handler that intercepts the BEGIN.
     return new ResultHandlerDelegate(delegateHandler) {
@@ -1145,8 +1145,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             try {
               if (op == null) {
                 throw new PSQLException(GT
-                  .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
-                  PSQLState.OBJECT_NOT_IN_STATE);
+                    .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
+                    PSQLState.OBJECT_NOT_IN_STATE);
               }
               op.handleCommandStatus(status);
             } catch (SQLException se) {
@@ -1171,7 +1171,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             if (op != null) {
               error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}",
-                op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
             op = new CopyInImpl();
@@ -1184,8 +1184,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
             if (op != null) {
-              error =
-                new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
+              error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
                   op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
@@ -1199,8 +1198,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
 
             if (op != null) {
-              error =
-                new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
+              error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
                   op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
@@ -1220,11 +1218,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             byte[] buf = pgStream.receive(len);
             if (op == null) {
               error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
-                PSQLState.OBJECT_NOT_IN_STATE);
+                  PSQLState.OBJECT_NOT_IN_STATE);
             } else if (!(op instanceof CopyOut)) {
               error = new PSQLException(
-                GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
-                PSQLState.COMMUNICATION_ERROR);
+                  GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
+                  PSQLState.COMMUNICATION_ERROR);
             } else {
               op.handleCopydata(buf);
             }
@@ -1242,7 +1240,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             if (!(op instanceof CopyOut)) {
               error = new PSQLException("Got CopyDone while not copying from server",
-                PSQLState.OBJECT_NOT_IN_STATE);
+                  PSQLState.OBJECT_NOT_IN_STATE);
             }
 
             // keep receiving since we expect a CommandComplete
@@ -1283,7 +1281,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           default:
             throw new IOException(
-              GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
+                GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
         }
 
         // Collect errors into a neat chain for completeness
@@ -2792,6 +2790,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
           null, false);
 
+  private final SimpleQuery beginReadOnlyTransactionQuery =
+      new SimpleQuery(
+          new NativeQuery("BEGIN READ ONLY", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
   private final SimpleQuery emptyQuery =
       new SimpleQuery(
           new NativeQuery("", new int[0], false,
@@ -2815,7 +2818,4 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
-
-
-
 }

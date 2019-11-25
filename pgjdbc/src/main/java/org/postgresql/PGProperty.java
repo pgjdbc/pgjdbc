@@ -10,6 +10,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
 import java.util.Properties;
 
@@ -443,7 +444,19 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+
+  /**
+   * Connection parameter to control behavior when
+   * {@link Connection#setReadOnly(boolean)} is set to {@code true}.
+   */
+  READ_ONLY_MODE("readOnlyMode", "transaction",
+      "Controls the behavior when a connection is set to be read only, one of 'ignore', 'transaction', or 'always' "
+          + "When 'ignore', setting readOnly has no effect. "
+          + "When 'transaction' setting readOnly to 'true' will cause transactions to BEGIN READ ONLY if autocommit is 'false'. "
+          + "When 'always' setting readOnly to 'true' will set the session to READ ONLY if autoCommit is 'true' "
+          + "and the transaction to BEGIN READ ONLY if autocommit is 'false'.",
+      false, "ignore", "transaction", "always");
 
   private final String name;
   private final String defaultValue;

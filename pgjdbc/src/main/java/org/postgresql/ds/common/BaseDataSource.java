@@ -913,6 +913,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return The behavior when set read only
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  public String getReadOnlyMode() {
+    return PGProperty.READ_ONLY_MODE.get(properties);
+  }
+
+  /**
+   * @param mode the behavior when set read only
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  public void setReadOnlyMode(String mode) {
+    PGProperty.READ_ONLY_MODE.set(properties, mode);
+  }
+
+  /**
    * @return true if driver should log unclosed connections
    * @see PGProperty#LOG_UNCLOSED_CONNECTIONS
    */
