@@ -1198,8 +1198,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
 
             if (op != null) {
-                error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
-                    op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+              error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
+                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
             op = new CopyDualImpl();
