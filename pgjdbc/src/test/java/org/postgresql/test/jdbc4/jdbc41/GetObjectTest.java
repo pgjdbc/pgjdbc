@@ -338,6 +338,36 @@ public class GetObjectTest {
     }
   }
 
+  @Test
+  public void testGetNullDate() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","NULL"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
+    try {
+      assertTrue(rs.next());
+      Date date = rs.getObject(1,Date.class);
+      assertTrue(rs.wasNull());
+    } finally {
+      rs.close();
+    }
+  }
+
+  @Test
+  public void testGetNullTimestamp() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column","NULL"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
+    try {
+      assertTrue(rs.next());
+      java.util.Date ts = rs.getObject(1, java.util.Date.class);
+      assertTrue(rs.wasNull());
+    } finally {
+      rs.close();
+    }
+  }
+
   /**
    * Test the behavior getObject for time columns.
    */
