@@ -25,7 +25,6 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   private int wholeSeconds;
   private int microSeconds;
 
-
   /**
    * required by the driver.
    */
