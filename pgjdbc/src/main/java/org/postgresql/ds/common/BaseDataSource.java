@@ -1129,6 +1129,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return 'select', "callIfNoReturn', or 'call'
+   * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
+   */
+  public String getEscapeSyntaxCallMode() {
+    return PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(properties);
+  }
+
+  /**
+   * @param callMode the call mode to use for JDBC escape call syntax
+   * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
+   */
+  public void setEscapeSyntaxCallMode(String callMode) {
+    PGProperty.ESCAPE_SYNTAX_CALL_MODE.set(properties, callMode);
+  }
+
+  /**
    * @return null, 'database', or 'true
    * @see PGProperty#REPLICATION
    */
