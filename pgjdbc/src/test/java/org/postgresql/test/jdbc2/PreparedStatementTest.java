@@ -1516,4 +1516,16 @@ public class PreparedStatementTest extends BaseTest4 {
       log.setLevel(prevLevel);
     }
   }
+
+  @Test
+  public void testNoParametersNPE() throws SQLException {
+    try {
+      PreparedStatement ps = con.prepareStatement("select 1");
+      ps.setString(1, "null");
+    } catch ( NullPointerException ex ) {
+      fail("Should throw a SQLException");
+    } catch (SQLException ex) {
+      // ignore
+    }
+  }
 }
