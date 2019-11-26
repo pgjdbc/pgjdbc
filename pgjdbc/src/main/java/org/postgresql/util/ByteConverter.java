@@ -17,6 +17,25 @@ public class ByteConverter {
   }
 
   /**
+   * Convert a variable length array of bytes to an integer
+   * @param bytes array of bytes that can be decoded as an integer
+   * @return integer
+   */
+  public static int bytesToInt(byte []bytes) {
+    if ( bytes.length == 1 ) {
+      return (int)bytes[0];
+    }
+    if ( bytes.length == 2 ) {
+      return int2(bytes, 0);
+    }
+    if ( bytes.length == 4 ) {
+      return int4(bytes, 0);
+    } else {
+      throw new IllegalArgumentException("Argument bytes is empty");
+    }
+  }
+
+  /**
    * Parses a long value from the byte array.
    *
    * @param bytes The byte array to parse.

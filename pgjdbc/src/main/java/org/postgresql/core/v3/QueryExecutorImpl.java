@@ -51,7 +51,6 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,6 +71,7 @@ import java.util.logging.Logger;
 public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
+  private static final String COPY_ERROR_MESSAGE = "COPY commands are only supported using the CopyManager API.";
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -371,9 +371,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               // PostgreSQL does not support bind, exec, simple, sync message flow,
               // so we force autosavepoint to use simple if the main query is using simple
               | QUERY_EXECUTE_AS_SIMPLE);
-
       return true;
-
     }
     return false;
   }
@@ -519,6 +517,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try {
       handler.handleCompletion();
+      if (cleanupSavePoints) {
+        releaseSavePoint(autosave, flags);
+      }
     } catch (SQLException e) {
       rollbackIfRequired(autosave, e);
     }
@@ -545,7 +546,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     beginFlags = updateQueryMode(beginFlags);
 
-    sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+    final SimpleQuery beginQuery = ((flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0) ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+
+    sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
     // Insert a handler that intercepts the BEGIN.
     return new ResultHandlerDelegate(delegateHandler) {
@@ -558,7 +561,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       }
 
-      public void handleCommandStatus(String status, int updateCount, long insertOID) {
+      @Override
+      public void handleCommandStatus(String status, long updateCount, long insertOID) {
         if (!sawBegin) {
           sawBegin = true;
           if (!status.equals("BEGIN")) {
@@ -600,7 +604,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       ResultHandler handler = new ResultHandlerBase() {
         private boolean sawBegin = false;
 
-        public void handleCommandStatus(String status, int updateCount, long insertOID) {
+        @Override
+        public void handleCommandStatus(String status, long updateCount, long insertOID) {
           if (!sawBegin) {
             if (!status.equals("BEGIN")) {
               handleError(
@@ -614,6 +619,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
 
+        @Override
         public void handleWarning(SQLWarning warning) {
           // we don't want to ignore warnings and it would be tricky
           // to chain them back to the connection, so since we don't
@@ -1139,8 +1145,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             try {
               if (op == null) {
                 throw new PSQLException(GT
-                  .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
-                  PSQLState.OBJECT_NOT_IN_STATE);
+                    .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
+                    PSQLState.OBJECT_NOT_IN_STATE);
               }
               op.handleCommandStatus(status);
             } catch (SQLException se) {
@@ -1165,7 +1171,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             if (op != null) {
               error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}",
-                op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
             op = new CopyInImpl();
@@ -1178,8 +1184,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
             if (op != null) {
-              error =
-                new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
+              error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
                   op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
@@ -1193,8 +1198,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
 
             if (op != null) {
-              error =
-                new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
+              error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
                   op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
             }
 
@@ -1214,11 +1218,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             byte[] buf = pgStream.receive(len);
             if (op == null) {
               error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
-                PSQLState.OBJECT_NOT_IN_STATE);
+                  PSQLState.OBJECT_NOT_IN_STATE);
             } else if (!(op instanceof CopyOut)) {
               error = new PSQLException(
-                GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
-                PSQLState.COMMUNICATION_ERROR);
+                  GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
+                  PSQLState.COMMUNICATION_ERROR);
             } else {
               op.handleCopydata(buf);
             }
@@ -1236,7 +1240,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             if (!(op instanceof CopyOut)) {
               error = new PSQLException("Got CopyDone while not copying from server",
-                PSQLState.OBJECT_NOT_IN_STATE);
+                  PSQLState.OBJECT_NOT_IN_STATE);
             }
 
             // keep receiving since we expect a CommandComplete
@@ -1277,7 +1281,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           default:
             throw new IOException(
-              GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
+                GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
         }
 
         // Collect errors into a neat chain for completeness
@@ -2347,8 +2351,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // We'll send a CopyFail message for COPY FROM STDIN so that
           // server does not wait for the data.
 
-          byte[] buf =
-              Utils.encodeUTF8("The JDBC driver currently does not support COPY operations.");
+          byte[] buf = Utils.encodeUTF8(COPY_ERROR_MESSAGE);
           pgStream.sendChar('f');
           pgStream.sendInteger4(buf.length + 4 + 1);
           pgStream.send(buf);
@@ -2365,7 +2368,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // In case of CopyOutResponse, we cannot abort data transfer,
           // so just throw an error and ignore CopyData messages
           handler.handleError(
-              new PSQLException(GT.tr("The driver currently does not support COPY operations."),
+              new PSQLException(GT.tr(COPY_ERROR_MESSAGE),
                   PSQLState.NOT_IMPLEMENTED));
           break;
 
@@ -2408,7 +2411,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // (if the fetch returns no rows, we see just a CommandStatus..)
     final ResultHandler delegateHandler = handler;
     handler = new ResultHandlerDelegate(delegateHandler) {
-      public void handleCommandStatus(String status, int updateCount, long insertOID) {
+      @Override
+      public void handleCommandStatus(String status, long updateCount, long insertOID) {
         handleResultRows(portal.getQuery(), null, new ArrayList<byte[][]>(), null);
       }
     };
@@ -2494,7 +2498,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg.toString());
     }
 
-    PSQLException error = new PSQLException(errorMsg);
+    PSQLException error = new PSQLException(errorMsg, this.logServerErrorDetail);
     if (transactionFailCause == null) {
       transactionFailCause = error;
     } else {
@@ -2539,16 +2543,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     long oid = commandCompleteParser.getOid();
     long count = commandCompleteParser.getRows();
 
-    int countAsInt = 0;
-    if (count > Integer.MAX_VALUE) {
-      // If command status indicates that we've modified more than Integer.MAX_VALUE rows
-      // then we set the result count to reflect that we cannot provide the actual number
-      // due to the JDBC field being an int rather than a long.
-      countAsInt = Statement.SUCCESS_NO_INFO;
-    } else if (count > 0) {
-      countAsInt = (int) count;
-    }
-    handler.handleCommandStatus(status, countAsInt, oid);
+    handler.handleCommandStatus(status, count, oid);
   }
 
   private void receiveRFQ() throws IOException {
@@ -2795,6 +2790,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
           null, false);
 
+  private final SimpleQuery beginReadOnlyTransactionQuery =
+      new SimpleQuery(
+          new NativeQuery("BEGIN READ ONLY", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
   private final SimpleQuery emptyQuery =
       new SimpleQuery(
           new NativeQuery("", new int[0], false,
@@ -2818,7 +2818,4 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
           null, false);
-
-
-
 }

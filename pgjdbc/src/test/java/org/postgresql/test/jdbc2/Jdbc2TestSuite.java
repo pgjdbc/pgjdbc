@@ -13,8 +13,10 @@ import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
+import org.postgresql.jdbc.PgSQLXMLTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.JavaVersionTest;
+import org.postgresql.test.core.LogServerMessagePropertyTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
 import org.postgresql.test.core.OptionsPropertyTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
@@ -67,6 +69,7 @@ import org.junit.runners.Suite;
     JavaVersionTest.class,
     JBuilderTest.class,
     LoginTimeoutTest.class,
+    LogServerMessagePropertyTest.class,
     LruCacheTest.class,
     MiscTest.class,
     NativeQueryBindLengthTest.class,
@@ -80,6 +83,7 @@ import org.junit.runners.Suite;
     PGPropertyTest.class,
     PGTimestampTest.class,
     PGTimeTest.class,
+    PgSQLXMLTest.class,
     PreparedStatementTest.class,
     PrimitiveArraySupportTest.class,
     QuotationTest.class,

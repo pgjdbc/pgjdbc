@@ -115,14 +115,14 @@ matrix:
         - PLPGSQL_EXTENSION=Y
     - jdk: oraclejdk9
       sudo: required
-        addons:
-          postgresql: "11"
-        env:
-          - PG_VERSION=11
-          - XA=true
-          - COVERAGE=Y
-          - NO_HSTORE=Y
-          - PLPGSQL_EXTENSION=Y
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
     - jdk: oraclejdk8
       sudo: required
       addons:

@@ -22,6 +22,7 @@ import org.postgresql.geometric.PGpolygon;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGmoney;
+import org.postgresql.util.PGobject;
 
 import org.junit.After;
 import org.junit.Before;
@@ -332,6 +333,36 @@ public class GetObjectTest {
       Date expectedNoZone = new Date(calendar.getTimeInMillis());
       assertEquals(expectedNoZone, rs.getObject("date_column", Date.class));
       assertEquals(expectedNoZone, rs.getObject(1, Date.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  @Test
+  public void testGetNullDate() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","NULL"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
+    try {
+      assertTrue(rs.next());
+      Date date = rs.getObject(1,Date.class);
+      assertTrue(rs.wasNull());
+    } finally {
+      rs.close();
+    }
+  }
+
+  @Test
+  public void testGetNullTimestamp() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column","NULL"));
+
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
+    try {
+      assertTrue(rs.next());
+      java.util.Date ts = rs.getObject(1, java.util.Date.class);
+      assertTrue(rs.wasNull());
     } finally {
       rs.close();
     }
@@ -938,42 +969,48 @@ public class GetObjectTest {
     }
   }
 
-  /**
-   * Test the behavior getObject for inet columns.
-   */
-  @Test
-  public void testGetInet4Address() throws SQLException, UnknownHostException {
+  private void testInet(String inet, InetAddress expectedAddr, String expectedText) throws SQLException, UnknownHostException {
+    PGobject expectedObj = new PGobject();
+    expectedObj.setType("inet");
+    expectedObj.setValue(expectedText);
     Statement stmt = conn.createStatement();
-    String expected = "192.168.100.128";
-    stmt.executeUpdate(TestUtil.insertSQL("table1","inet_column","'" + expected + "'"));
-
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "inet_column"));
+    ResultSet rs = stmt.executeQuery("SELECT '" + inet + "'::inet AS inet_column");
     try {
       assertTrue(rs.next());
-      assertEquals(InetAddress.getByName(expected), rs.getObject("inet_column", InetAddress.class));
-      assertEquals(InetAddress.getByName(expected), rs.getObject(1, InetAddress.class));
+      assertEquals("The string value of the inet should match when fetched via getString(...)", expectedText, rs.getString(1));
+      assertEquals("The string value of the inet should match when fetched via getString(...)", expectedText, rs.getString("inet_column"));
+      assertEquals("The object value of the inet should match when fetched via getObject(...)", expectedObj, rs.getObject(1));
+      assertEquals("The object value of the inet should match when fetched via getObject(...)", expectedObj, rs.getObject("inet_column"));
+      assertEquals("The InetAddress value should match when fetched via getObject(..., InetAddress.class)", expectedAddr, rs.getObject("inet_column", InetAddress.class));
+      assertEquals("The InetAddress value should match when fetched via getObject(..., InetAddress.class)", expectedAddr, rs.getObject(1, InetAddress.class));
     } finally {
       rs.close();
+      stmt.close();
     }
   }
 
   /**
-   * Test the behavior getObject for inet columns.
+   * Test the behavior getObject for ipv4 inet columns.
+   */
+  @Test
+  public void testGetInet4Address() throws SQLException, UnknownHostException {
+    String inet = "192.168.100.128";
+    InetAddress addr = InetAddress.getByName(inet);
+    testInet(inet, addr, inet);
+    testInet(inet + "/16", addr, inet + "/16");
+    testInet(inet + "/32", addr, inet);
+  }
+
+  /**
+   * Test the behavior getObject for ipv6 inet columns.
    */
   @Test
   public void testGetInet6Address() throws SQLException, UnknownHostException {
-    Statement stmt = conn.createStatement();
-    String expected = "2001:4f8:3:ba:2e0:81ff:fe22:d1f1";
-    stmt.executeUpdate(TestUtil.insertSQL("table1","inet_column","'" + expected + "'"));
-
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "inet_column"));
-    try {
-      assertTrue(rs.next());
-      assertEquals(InetAddress.getByName(expected), rs.getObject("inet_column", InetAddress.class));
-      assertEquals(InetAddress.getByName(expected), rs.getObject(1, InetAddress.class));
-    } finally {
-      rs.close();
-    }
+    String inet = "2001:4f8:3:ba:2e0:81ff:fe22:d1f1";
+    InetAddress addr = InetAddress.getByName(inet);
+    testInet(inet, addr, inet);
+    testInet(inet + "/16", addr, inet + "/16");
+    testInet(inet + "/128", addr, inet);
   }
 
 }

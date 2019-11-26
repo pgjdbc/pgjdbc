@@ -122,6 +122,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int MAX_SAVE_POINTS = 1000;
 
   /**
+   * Flag indicating that when beginning a transaction, it should be read only.
+   */
+  int QUERY_READ_ONLY_HINT = 2048;
+
+  /**
    * Execute a Query, passing results to a provided ResultHandler.
    *
    * @param query the query to execute; must be a query returned from calling

@@ -13,6 +13,8 @@ import org.junit.runners.Suite;
  *         Twitter: @codefinger
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({SocksProxyTest.class})
+@Suite.SuiteClasses({
+    SocksProxyTest.class,
+})
 public class Jre8TestSuite {
 }

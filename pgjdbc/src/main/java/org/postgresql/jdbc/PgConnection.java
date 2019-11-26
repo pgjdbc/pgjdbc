@@ -39,8 +39,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -83,6 +81,12 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
+  private enum ReadOnlyBehavior {
+    ignore,
+    transaction,
+    always;
+  }
+
   //
   // Data initialized on construction:
   //
@@ -90,6 +94,8 @@ public class PgConnection implements BaseConnection {
 
   /* URL we were created via */
   private final String creatingURL;
+
+  private final ReadOnlyBehavior readOnlyBehavior;
 
   private Throwable openStackTrace;
 
@@ -100,6 +106,10 @@ public class PgConnection implements BaseConnection {
   private final Query commitQuery;
   /* Query that runs ROLLBACK */
   private final Query rollbackQuery;
+
+  private final CachedQuery setSessionReadOnly;
+
+  private final CachedQuery setSessionNotReadOnly;
 
   private final TypeInfo typeCache;
 
@@ -186,6 +196,8 @@ public class PgConnection implements BaseConnection {
 
     this.creatingURL = url;
 
+    this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.get(info));
+
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
     setPrepareThreshold(PGProperty.PREPARE_THRESHOLD.getInt(info));
@@ -200,6 +212,9 @@ public class PgConnection implements BaseConnection {
     if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v8_2)) {
       LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
     }
+
+    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, true);
+    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, true);
 
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
@@ -292,6 +307,18 @@ public class PgConnection implements BaseConnection {
         false);
 
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
+  }
+
+  private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
+    try {
+      return ReadOnlyBehavior.valueOf(property);
+    } catch (IllegalArgumentException e) {
+      try {
+        return ReadOnlyBehavior.valueOf(property.toLowerCase(Locale.US));
+      } catch (IllegalArgumentException e2) {
+        return ReadOnlyBehavior.transaction;
+      }
+    }
   }
 
   private static Set<Integer> getBinaryOids(Properties info) throws PSQLException {
@@ -455,6 +482,24 @@ public class PgConnection implements BaseConnection {
     stmt.close();
   }
 
+  void execSQLUpdate(CachedQuery query) throws SQLException {
+    BaseStatement stmt = (BaseStatement) createStatement();
+    if (stmt.executeWithFlags(query, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      throw new PSQLException(GT.tr("A result was returned when none was expected."),
+          PSQLState.TOO_MANY_RESULTS);
+    }
+
+    // Transfer warnings to the connection, since the user never
+    // has a chance to see the statement itself.
+    SQLWarning warnings = stmt.getWarnings();
+    if (warnings != null) {
+      addWarning(warnings);
+    }
+
+    stmt.close();
+  }
+
   /**
    * <p>In SQL, a result table can be retrieved through a cursor that is named. The current row of a
    * result can be updated or deleted using a positioned update/delete statement that references the
@@ -548,15 +593,6 @@ public class PgConnection implements BaseConnection {
         // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
         throw new PSQLException(GT.tr("Custom type maps are not supported."),
             PSQLState.NOT_IMPLEMENTED);
-      }
-    }
-
-    if (type.equals("inet")) {
-      try {
-        return InetAddress.getByName(value);
-      } catch (UnknownHostException e) {
-        throw new PSQLException(GT.tr("IP address {0} of a host could not be determined", value),
-          PSQLState.CONNECTION_FAILURE, e);
       }
     }
 
@@ -716,10 +752,8 @@ public class PgConnection implements BaseConnection {
           PSQLState.ACTIVE_SQL_TRANSACTION);
     }
 
-    if (readOnly != this.readOnly) {
-      String readOnlySql
-             = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
-      execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
+    if (readOnly != this.readOnly && autoCommit && this.readOnlyBehavior == ReadOnlyBehavior.always) {
+      execSQLUpdate(readOnly ? setSessionReadOnly : setSessionNotReadOnly);
     }
 
     this.readOnly = readOnly;
@@ -733,6 +767,11 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  public boolean hintReadOnly() {
+    return readOnly && readOnlyBehavior != ReadOnlyBehavior.ignore;
+  }
+
+  @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     checkClosed();
 
@@ -742,6 +781,21 @@ public class PgConnection implements BaseConnection {
 
     if (!this.autoCommit) {
       commit();
+    }
+
+    // if the connection is read only, we need to make sure session settings are
+    // correct when autocommit status changed
+    if (this.readOnly && readOnlyBehavior == ReadOnlyBehavior.always) {
+      // if we are turning on autocommit, we need to set session
+      // to read only
+      if (autoCommit) {
+        this.autoCommit = true;
+        execSQLUpdate(setSessionReadOnly);
+      } else {
+        // if we are turning auto commit off, we need to
+        // disable session
+        execSQLUpdate(setSessionNotReadOnly);
+      }
     }
 
     this.autoCommit = autoCommit;
@@ -1379,18 +1433,24 @@ public class PgConnection implements BaseConnection {
       return false;
     }
     try {
-      if (replicationConnection) {
-        Statement statement = createStatement();
-        statement.execute("IDENTIFY_SYSTEM");
-        statement.close();
-      } else {
-        if (checkConnectionQuery == null) {
-          checkConnectionQuery = prepareStatement("");
+      int savedNetworkTimeOut = getNetworkTimeout();
+      try {
+        setNetworkTimeout(null, timeout * 1000);
+        if (replicationConnection) {
+          Statement statement = createStatement();
+          statement.execute("IDENTIFY_SYSTEM");
+          statement.close();
+        } else {
+          if (checkConnectionQuery == null) {
+            checkConnectionQuery = prepareStatement("");
+          }
+          checkConnectionQuery.setQueryTimeout(timeout);
+          checkConnectionQuery.executeUpdate();
         }
-        checkConnectionQuery.setQueryTimeout(timeout);
-        checkConnectionQuery.executeUpdate();
+        return true;
+      } finally {
+        setNetworkTimeout(null, savedNetworkTimeOut);
       }
-      return true;
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
         // "current transaction aborted", assume the connection is up and running
