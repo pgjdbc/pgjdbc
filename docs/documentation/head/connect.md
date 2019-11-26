@@ -472,6 +472,16 @@ Connection conn = DriverManager.getConnection(url);
    for logical replication from that database. <p>Parameter should be use together with 
    `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
     
+* **escapeSyntaxCallMode** = String
+
+	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
+	In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
+	In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there is no 
+	return parameter specified, otherwise the driver uses a SELECT statement.
+	In `escapeSyntaxCallMode=call` mode, the driver always uses a CALL statement (allowing procedure invocation only).
+
+	The default is `select` 
+
     
 <a name="unix sockets"></a>
 ## Unix sockets

@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.EscapedFunctions2;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -894,15 +895,16 @@ public class Parser {
    * [?,..])] }} into the PostgreSQL format which is {@code select <some_function> (?, [?, ...]) as
    * result} or {@code select * from <some_function> (?, [?, ...]) as result} (7.3)
    *
-   * @param jdbcSql         sql text with JDBC escapes
-   * @param stdStrings      if backslash in single quotes should be regular character or escape one
-   * @param serverVersion   server version
-   * @param protocolVersion protocol version
+   * @param jdbcSql              sql text with JDBC escapes
+   * @param stdStrings           if backslash in single quotes should be regular character or escape one
+   * @param serverVersion        server version
+   * @param protocolVersion      protocol version
+   * @param escapeSyntaxCallMode mode specifying whether JDBC escape call syntax is transformed into a CALL/SELECT statement
    * @return SQL in appropriate for given server format
    * @throws SQLException if given SQL is malformed
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
-      int serverVersion, int protocolVersion) throws SQLException {
+      int serverVersion, int protocolVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1053,8 +1055,16 @@ public class Parser {
           PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
     }
 
-    String prefix = "select * from ";
-    String suffix = " as result";
+    String prefix;
+    String suffix;
+    if (escapeSyntaxCallMode == EscapeSyntaxCallMode.SELECT || serverVersion < 110000
+        || (outParamBeforeFunc && escapeSyntaxCallMode == EscapeSyntaxCallMode.CALL_IF_NO_RETURN)) {
+      prefix = "select * from ";
+      suffix = " as result";
+    } else {
+      prefix = "call ";
+      suffix = "";
+    }
 
     String s = jdbcSql.substring(startIndex, endIndex);
     int prefixLength = prefix.length();
@@ -1093,7 +1103,11 @@ public class Parser {
       }
     }
 
-    sql = sb.append(suffix).toString();
+    if (!suffix.isEmpty()) {
+      sql = sb.append(suffix).toString();
+    } else {
+      sql = sb.toString();
+    }
     return new JdbcCallParseInfo(sql, isFunction);
   }
 

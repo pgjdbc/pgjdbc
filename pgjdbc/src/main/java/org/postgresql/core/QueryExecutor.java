@@ -11,6 +11,7 @@ import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
@@ -432,6 +433,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   String getApplicationName();
 
   boolean isColumnSanitiserDisabled();
+
+  EscapeSyntaxCallMode getEscapeSyntaxCallMode();
 
   PreferQueryMode getPreferQueryMode();
 
