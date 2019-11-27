@@ -185,6 +185,11 @@ public interface PGConnection {
   int getBackendPID();
 
   /**
+   * Sends a query cancellation for this connection.
+   */
+  void cancelQuery() throws SQLException;
+
+  /**
    * Return the given string suitably quoted to be used as an identifier in an SQL statement string.
    * Quotes are added only if necessary (i.e., if the string contains non-identifier characters or
    * would be case-folded). Embedded quotes are properly doubled.
