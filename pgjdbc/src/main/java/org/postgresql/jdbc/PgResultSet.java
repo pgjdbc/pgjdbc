@@ -1536,6 +1536,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     // this is not strictly jdbc spec, but it will make things much faster if used
     // the user has to select oid, * from table and then we will just use oid
+    // with oids has been removed in version 12
+    // FIXME: with oids does not automatically create an index, should check for primary keys first
 
 
     usingOID = false;
