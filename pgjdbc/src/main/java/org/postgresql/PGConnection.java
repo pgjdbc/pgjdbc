@@ -186,6 +186,7 @@ public interface PGConnection {
 
   /**
    * Sends a query cancellation for this connection.
+   * @throws SQLException if there are problems cancelling the query
    */
   void cancelQuery() throws SQLException;
 
