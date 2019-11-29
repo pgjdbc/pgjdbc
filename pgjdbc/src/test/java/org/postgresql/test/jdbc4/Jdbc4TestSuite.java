@@ -31,4 +31,3 @@ import org.junit.runners.Suite;
 })
 public class Jdbc4TestSuite {
 }
-
