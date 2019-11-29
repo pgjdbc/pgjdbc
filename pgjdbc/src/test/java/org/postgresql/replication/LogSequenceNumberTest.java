@@ -10,8 +10,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
+import org.postgresql.test.Replication;
 
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+
+@Category(Replication.class)
 public class LogSequenceNumberTest {
   @Test
   public void testNotNullWhenCreateFromStr() throws Exception {

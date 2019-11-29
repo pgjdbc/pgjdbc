@@ -13,6 +13,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -23,6 +24,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -32,6 +34,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Properties;
 
+@Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
 public class PhysicalReplicationTest {
 

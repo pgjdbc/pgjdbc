@@ -43,6 +43,12 @@ We recommend that this version 42.2.11 not be used.
  - fix: Always use `.` as decimal separator in PGInterval [PR 1705](https://github.com/pgjdbc/pgjdbc/pull/1705)
  - fix: allow DatabaseMetaData.getColumns to describe an unset scale [PR 1716](https://github.com/pgjdbc/pgjdbc/pull/1716)
 
+### Changed
+ - Build system update from Maven to Gradle [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627)
+
+### Added
+ - docker-compose image for creating test databases (see `docker` folder)
+
 ## [42.2.10] (2020-01-30)
 ### Changed
  - (!) Regression: remove receiving EOF from backend after cancel [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The regression is that the subsequent query might receive the cancel signal.

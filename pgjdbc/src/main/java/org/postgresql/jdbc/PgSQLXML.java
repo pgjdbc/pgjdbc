@@ -313,4 +313,3 @@ public class PgSQLXML implements SQLXML {
   }
 
 }
-

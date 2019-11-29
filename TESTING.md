@@ -10,7 +10,7 @@ guidelines and an example for developers to add new test cases.
 
 ## 2 - Installation
 
-Of course, you need to have a [Java 8 JDK](https://www.oracle.com/technetwork/java/javase/downloads/index.html). Also install [Apache Maven](https://maven.apache.org/).
+Of course, you need to have a [Java 8 JDK](https://www.oracle.com/technetwork/java/javase/downloads/index.html).
 
 You need to install and build the PostgreSQL JDBC driver source
 tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See
@@ -35,13 +35,24 @@ create a file named `$JDBC_SRC/build.local.properties` and add your
 customized values of the properties `database`, `username` and
 `password`.
 
-An easy way to set up the test PostgreSQL database is to use [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm). Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
+If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
+
+    cd docker
+
+    # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
+    docker-compose down && docker-compose up
+
+    # Launch PostgreSQL 9.6, with XA, without SSL
+    docker-compose down && SSL=no XA=yes docker-compose up
+
+An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
+Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
 
 ## 4 - Running the test suite
 
 ```sh
-% cd $JDBC_SRC
-% mvn test
+$ cd $JDBC_SRC
+$ ./gradlew test
 ```
 
 This will run the command line version of JUnit. If you'd like
@@ -54,6 +65,8 @@ explain, please post the relevant parts of the output to the
 mailing list pgsql-jdbc@postgresql.org.
 
 ## 5 - Extending the test suite with new tests
+
+Most of the tests are written with JUnit4, however it is recommended to create new tests with JUnit5.
 
 If you're not familiar with JUnit, we recommend that you
 first read the introductory article [JUnit Test Infected:
@@ -79,7 +92,7 @@ If you decide to add a new test case, you should do two things:
 
 1. Add a test class. It should
    contain `setUp()` and `tearDown()` methods that create and destroy
-   the fixture respectively. 
+   the fixture respectively.
 2. Add your test class in `$JDBC_SRC/src/test/java/org/postgresql/test`. This will make the test case
    part of the test suite.
 
@@ -132,7 +145,7 @@ See [BlobTest.java](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test
 
 ## 9 - Running the JDBC 2 test suite against PostgreSQL
 
-Download the [JDBC test suite](http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html). 
+Download the [JDBC test suite](http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html).
 This is the JDBC 2 test suite that includes J2EE requirements.
 
 1. Configure PostgreSQL so that it accepts TCP/IP connections and
@@ -146,58 +159,58 @@ This is the JDBC 2 test suite that includes J2EE requirements.
 
 3. The following environment variables should be set:
 
-      CTS_HOME=<path where JDBC test suite installed (eg: /usr/local/jdbccts)>
-      J2EE_HOME=<path where J2EE installed (eg: /usr/local/j2sdkee1.2.1)>
-      JAVA_HOME=<path where J2SE installed (eg: /usr/local/jdk1.3.1)>
-      NO_JAVATEST=Y
-      LOCAL_CLASSES=<path to PostgreSQL JDBC driver jar>
+       CTS_HOME=<path where JDBC test suite installed (eg: /usr/local/jdbccts)>
+       J2EE_HOME=<path where J2EE installed (eg: /usr/local/j2sdkee1.2.1)>
+       JAVA_HOME=<path where J2SE installed (eg: /usr/local/jdk1.3.1)>
+       NO_JAVATEST=Y
+       LOCAL_CLASSES=<path to PostgreSQL JDBC driver jar>
 
 4. In $J2EE_HOME/config/default.properties:
 
-      jdbc.drivers=org.postgresql.Driver
-      jdbc.datasources=jdbc/DB1|jdbc:postgresql://localhost:5432/DB1|jdbc/DB2|jdbc:postgresq://localhost:5432/DB2
+       jdbc.drivers=org.postgresql.Driver
+       jdbc.datasources=jdbc/DB1|jdbc:postgresql://localhost:5432/DB1|jdbc/DB2|jdbc:postgresq://localhost:5432/DB2
 
-   Of course, if PostgreSQL is running on a computer different from
-   the one running the application server, localhost should be changed
-   to the proper host. Also, 5432 should be changed to whatever port
-   PostgreSQL is listening on (5432 is the default).
+    Of course, if PostgreSQL is running on a computer different from
+    the one running the application server, localhost should be changed
+    to the proper host. Also, 5432 should be changed to whatever port
+    PostgreSQL is listening on (5432 is the default).
 
-   In $J2EE_HOME/bin/userconfig.sh:
+    In $J2EE_HOME/bin/userconfig.sh:
 
-      Add $CTS_HOME/lib/harness.jar, $CTS_HOME/lib/moo.jar,
-      $CTS_HOME/lib/util.jar to J2EE_CLASSPATH. Also add the path to
-      the PostgreSQL JDBC jar to J2EE_CLASSPATH. Set the JAVA_HOME
-      variable to where you installed the J2SE. You should end up with
-      something like this:
-    
-      CTS_HOME=/home/liams/linux/java/jdbccts
-      J2EE_CLASSPATH=/home/liams/work/inst/postgresql-7.1.2/share/java/postgresql.jar:$CTS_HOME/lib/harness.jar:$CTS_HOME/lib/moo.jar:$CTS_HOME/lib/util.jar
-      export J2EE_CLASSPATH
-    
-      JAVA_HOME=/home/liams/linux/java/jdk1.3.1
-      export JAVA_HOME
+       Add $CTS_HOME/lib/harness.jar, $CTS_HOME/lib/moo.jar,
+       $CTS_HOME/lib/util.jar to J2EE_CLASSPATH. Also add the path to
+       the PostgreSQL JDBC jar to J2EE_CLASSPATH. Set the JAVA_HOME
+       variable to where you installed the J2SE. You should end up with
+       something like this:
+
+       CTS_HOME=/home/liams/linux/java/jdbccts
+       J2EE_CLASSPATH=/home/liams/work/inst/postgresql-7.1.2/share/java/postgresql.jar:$CTS_HOME/lib/harness.jar:$CTS_HOME/lib/moo.jar:$CTS_HOME/lib/util.jar
+       export J2EE_CLASSPATH
+
+       JAVA_HOME=/home/liams/linux/java/jdk1.3.1
+       export JAVA_HOME
 
    In $CTS_HOME/bin/cts.jte:
 
-      webServerHost=localhost
-      webServerPort=8000
-      servletServerHost=localhost
-      servletServerPort=8000
+       webServerHost=localhost
+       webServerPort=8000
+       servletServerHost=localhost
+       servletServerPort=8000
 
 5. Start the application server (j2ee):
 
-      $ cd $J2EE_HOME
-      $ bin/j2ee -verbose
+        cd $J2EE_HOME
+        bin/j2ee -verbose
 
-   The server can be stopped after the tests have finished:
+    The server can be stopped after the tests have finished:
 
-     $ cd $J2EE_HOME
-     $ bin/j2ee -stop
+        cd $J2EE_HOME
+        bin/j2ee -stop
 
 6. Run the JDBC tests:
 
-     $ cd $CTS_HOME/tests/jdbc/ee
-     $ make jdbc-tests
+        cd $CTS_HOME/tests/jdbc/ee
+        make jdbc-tests
 
 At the time of writing of this document, a great number of tests
 in this test suite fail.
@@ -210,4 +223,3 @@ the section on the Sun JDBC 2 test suite.
 
 Please send your questions about the JDBC test suites or suggestions
 for improvement to the pgsql-jdbc@postgresql.org mailing list.
-

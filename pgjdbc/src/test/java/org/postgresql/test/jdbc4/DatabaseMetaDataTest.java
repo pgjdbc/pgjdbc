@@ -14,11 +14,13 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -195,6 +197,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testGetFunctionsWithBlankPatterns() throws SQLException {
     int minFuncCount = 1000;
     DatabaseMetaData dbmd = conn.getMetaData();

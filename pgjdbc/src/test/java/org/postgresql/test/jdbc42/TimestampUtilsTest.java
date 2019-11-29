@@ -3,23 +3,20 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.jdbc;
+package org.postgresql.test.jdbc42;
 
 import static org.junit.Assert.assertEquals;
 
 import org.postgresql.core.Provider;
+import org.postgresql.jdbc.TimestampUtils;
 
 import org.junit.Test;
 
 import java.sql.SQLException;
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
 import java.time.LocalTime;
-//#endif
 import java.util.TimeZone;
 
 public class TimestampUtilsTest {
-
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Test
   public void testToStringOfLocalTime() {
     TimestampUtils timestampUtils = createTimestampUtils();
@@ -66,13 +63,6 @@ public class TimestampUtilsTest {
   }
 
   private TimestampUtils createTimestampUtils() {
-    return  new TimestampUtils(true, new Provider<TimeZone>() {
-      @Override
-      public TimeZone get() {
-        return TimeZone.getDefault();
-      }
-    });
+    return new TimestampUtils(true, (Provider<TimeZone>) TimeZone::getDefault);
   }
-  //#endif
-
 }

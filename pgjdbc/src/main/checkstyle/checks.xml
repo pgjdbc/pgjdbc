@@ -22,26 +22,13 @@
 
   <property name="fileExtensions" value="java, properties, xml"/>
 
-  <!-- Checks for whitespace                               -->
-  <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-  <module name="FileTabCharacter">
-    <property name="eachLine" value="true"/>
-  </module>
-  <module name="NewlineAtEndOfFile">
-    <property name="lineSeparator" value="lf"/>
-  </module>
+  <!-- Checks for whitespace are implemented in Autostyle, please do not add them here -->
 
   <module name="TreeWalker">
 
     <module name="SuppressionCommentFilter">
       <property name="offCommentFormat" value="CHECKSTYLE: OFF"/>
       <property name="onCommentFormat"  value="CHECKSTYLE: ON"/>
-    </module>
-
-    <module name="Regexp">
-      <property name="format" value="[ \t]++$"/>
-      <property name="illegalPattern" value="true"/>
-      <property name="message" value="Trailing whitespace"/>
     </module>
 
     <module name="OuterTypeFilename"/>
@@ -237,5 +224,9 @@
         value="/\*\n \* Copyright \(c\) 20\d\d, PostgreSQL Global Development Group\n \* See the LICENSE file in the project root for more information.\n \*/"
     />
     <property name="fileExtensions" value="java"/>
+  </module>
+
+  <module name="SuppressionFilter">
+    <property name="file" value="${config_loc}/suppressions.xml"/>
   </module>
 </module>

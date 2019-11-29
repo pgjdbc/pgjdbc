@@ -574,4 +574,3 @@ public class ArrayTest extends BaseTest4 {
   }
 
 }
-
