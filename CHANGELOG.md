@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+ - Build system update from Maven to Gradle [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627)
+
+### Added
+ - docker-compose image for creating test databases (see `docker` folder)
+
 ## [42.2.10] (2020-01-30)
 ### Changed
 

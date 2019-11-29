@@ -1,4 +1,5 @@
 .classpath
+.gradle
 .settings
 .project
 .checkstyle
@@ -16,6 +17,8 @@ nbproject
 *-dist.zip
 *.po.~*~
 target/
+build/
+*/build/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -26,5 +29,4 @@ buildNumber.properties
 
 # Ignore folders used to build binaries for old Java
 /pgjdbc-jre6
-/pgjdbc-jre7
 /eclipsebin/
