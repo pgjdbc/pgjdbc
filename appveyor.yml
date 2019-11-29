@@ -59,12 +59,12 @@ before_build:
 - createdb -U postgres -O test test
 
 build_script:
-  - mvn clean package -DskipTests
+  - gradlew assemble
 
 test_script:
   - echo redirect escape ^> foo.bar
   - echo privilegedPassword=Password12!>c:\projects\pgjdbc\build.local.properties
-  - mvn package
+  - gradlew test
 
 cache:
   - C:\Users\appveyor\.m2

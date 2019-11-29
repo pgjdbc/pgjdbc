@@ -394,4 +394,3 @@ public class XmlTest extends BaseTest4 {
   }
 
 }
-
