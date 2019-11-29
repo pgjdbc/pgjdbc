@@ -54,6 +54,9 @@ URL or an additional `Properties` object parameter to `DriverManager.getConnecti
 The following examples illustrate the use of both methods to establish a SSL
 connection.
 
+If a property is specified both in URL and in `Properties` object, the value from
+`Properties` object is ignored.
+
 ```java
 String url = "jdbc:postgresql://localhost/test";
 Properties props = new Properties();
@@ -68,55 +71,86 @@ Connection conn = DriverManager.getConnection(url);
 
 * **user** = String
 
-	The database user on whose behalf the connection is being made. 
+	The database user on whose behalf the connection is being made.
 
 * **password** = String
 
-	The database user's password. 
+	The database user's password.
+
+* **options** = String
+
+	Specify 'options' connection initialization parameter.
+
+	The value of this property may contain spaces or other special characters,
+	and it should be properly encoded if provided in the connection URL. Spaces
+	are considered to separate command-line arguments, unless escaped with
+	a backslash (`\`); `\\` represents a literal backslash.
 
 * **ssl** = boolean
 
-	Connect using SSL. The driver must have been compiled with SSL support.
+	Connect using SSL. The server must have been compiled with SSL support.
 	This property does not need a value associated with it. The mere presence
 	of it specifies a SSL connection. However, for compatibility with future
 	versions, the value "true" is preferred. For more information see [Chapter
 	4, *Using SSL*](ssl.html).
+
+    Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
  
 * **sslfactory** = String
-
+    
 	The provided value is a class name to use as the `SSLSocketFactory` when
 	establishing a SSL connection. For more information see the section
-	called [“Custom SSLSocketFactory”](ssl-factory.html). 
+	called [“Custom SSLSocketFactory”](ssl-factory.html).  defaults to LibPQFactory
 
-* **sslfactoryarg** = String
+* **sslfactoryarg** (deprecated) = String
 
 	This value is an optional argument to the constructor of the sslfactory
 	class provided above. For more information see the section called [“Custom SSLSocketFactory”](ssl-factory.html). 
 
 * **sslmode** = String
 
-	possible values are "verify-ca" and "verify-full" setting these will 
-	necessitate storing the server certificate on the client machine ["Configuring the client"](ssl-client.html).
+	possible values include `disable`, `allow`, `prefer`, `require`, `verify-ca` and `verify-full`
+	. `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
+	validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
+	verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
+	host connected to has the same hostname as the certificate.
+
+	Setting these will necessitate storing the server certificate on the client machine see
+	["Configuring the client"](ssl-client.html) for details.
 
 * **sslcert** = String
 
 	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
 
+    It can be a PEM encoded X509v3 certificate
+
 	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
 
 * **sslkey** = String
 
-	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8
+	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
+	
+	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	
+	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
+
+    *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
+    by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
+    We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at
+    the time of writing. If you have stricter security needs, please see https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1
+    for a discussion of the problem and information on choosing a better cipher suite.
 
 * **sslrootcert** = String
 
 	File name of the SSL root certificate. Defaults to defaultdir/root.crt
 
+    It can be a PEM encoded X509v3 certificate
+
 * **sslhostnameverifier** = String
 
-	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.jdbc4.LibPQFactory.verify()`
+	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.PGjdbcHostnameVerifier`
 
-* **sslpaswordcallback** = String
+* **sslpasswordcallback** = String
 
 	Class name of the SSL password provider. Defaults to `org.postgresql.ssl.jdbc4.LibPQFactory.ConsoleCallbackHandler`
 
@@ -185,6 +219,14 @@ Connection conn = DriverManager.getConnection(url);
     like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
 
     The default is `never` 
+
+* **cleanupSavepoints** = boolean
+
+    Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
+    done to avoid running out of shared buffers on the server in the case where 1000's of queries are
+    performed.
+     
+    The default is 'false'
 
 * **binaryTransferEnable** = String
 
@@ -304,7 +346,15 @@ Connection conn = DriverManager.getConnection(url);
 
 * **jaasApplicationName** = String
 
-	Specifies the name of the JAAS system or application login configuration. 
+	Specifies the name of the JAAS system or application login configuration.
+
+* **jaasLogin** = boolean
+
+	Specifies whether to perform a JAAS login before authenticating with GSSAPI.
+	If set to `true` (the default), the driver will attempt to obtain GSS credentials
+	using the configured JAAS login module(s) (e.g. `Krb5LoginModule`) before
+	authenticating. To skip the JAAS login, for example if the native GSS
+	implementation is being used to obtain credentials, set this to `false`.
 
 * **ApplicationName** = String
 
@@ -327,6 +377,11 @@ Connection conn = DriverManager.getConnection(url);
 	gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour.
 
 	On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
+
+        To use SSPI with PgJDBC you must ensure that
+        [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/)
+	and its dependencies are present on the `CLASSPATH`. PgJDBC does *not*
+        bundle `waffle-jna` in the PgJDBC jar.
 
 	Since: 9.4
 
@@ -368,15 +423,15 @@ Connection conn = DriverManager.getConnection(url);
 
 * **currentSchema** = String
 
-	Specify the schema to be set in the search-path. 
+	Specify the schema (or several schema separated by commas) to be set in the search-path. 
 	This schema will be used to resolve unqualified object names used in statements over this connection.
 
 * **targetServerType** = String
 
 	Allows opening connections to only servers with required state, 
-	the allowed values are any, master, slave and preferSlave. 
+	the allowed values are any, master, slave, secondary, preferSlave and preferSecondary. 
 	The master/slave distinction is currently done by observing if the server allows writes. 
-	The value preferSlave tries to connect to slaves if any are available, 
+	The value preferSecondary tries to connect to secondary if any are available, 
 	otherwise allows falls back to connecting also to master.
 
 * **hostRecheckSeconds** = int
@@ -397,7 +452,7 @@ Connection conn = DriverManager.getConnection(url);
 	This class must have a zero argument constructor or a single argument constructor taking a String argument. 
 	This argument may optionally be supplied by `socketFactoryArg`.
 
-* **socketFactoryArg** = String
+* **socketFactoryArg** (deprecated) = String
 
 	This value is an optional argument to the constructor of the socket factory
 	class provided above. 
@@ -417,7 +472,43 @@ Connection conn = DriverManager.getConnection(url);
    for logical replication from that database. <p>Parameter should be use together with 
    `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
     
+* **escapeSyntaxCallMode** = String
+
+	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
+	In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
+	In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there is no 
+	return parameter specified, otherwise the driver uses a SELECT statement.
+	In `escapeSyntaxCallMode=call` mode, the driver always uses a CALL statement (allowing procedure invocation only).
+
+	The default is `select` 
+
     
+<a name="unix sockets"></a>
+## Unix sockets
+
+Aleksander Blomskøld has forked junixsocket and added a [Unix SocketFactory](https://github.com/fiken/junixsocket/blob/master/junixsocket-common/src/main/java/org/newsclub/net/unix/socketfactory/PostgresqlAFUNIXSocketFactory.java) that works with the driver.
+His code can be found at [https://github.com/fiken/junixsocket](https://github.com/fiken/junixsocket).
+
+Dependencies for junixsocket are :
+
+```xml
+<dependency>
+  <groupId>no.fiken.oss.junixsocket</groupId>
+  <artifactId>junixsocket-common</artifactId>
+  <version>1.0.2</version>
+</dependency>
+<dependency>
+  <groupId>no.fiken.oss.junixsocket</groupId>
+  <artifactId>junixsocket-native-common</artifactId>
+  <version>1.0.2</version>
+</dependency>
+```
+Simply add
+`?socketFactory=org.newsclub.net.unix.socketfactory.PostgresqlAFUNIXSocketFactory&socketFactoryArg=[path-to-the-unix-socket]`
+to the connection URL.
+
+For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
+
 <a name="connection-failover"></a>
 ## Connection Fail-over
 
@@ -442,3 +533,7 @@ One data source is for writes, another for reads. The write pool limits connecti
 And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
+
+If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
+the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
+will be made to connect to all of the hosts in the URL in order.

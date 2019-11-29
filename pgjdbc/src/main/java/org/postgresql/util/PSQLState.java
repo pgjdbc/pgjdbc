@@ -3,7 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 /**
@@ -51,6 +50,7 @@ public enum PSQLState {
   NOT_IMPLEMENTED("0A000"),
 
   DATA_ERROR("22000"),
+  STRING_DATA_RIGHT_TRUNCATION("22001"),
   NUMERIC_VALUE_OUT_OF_RANGE("22003"),
   BAD_DATETIME_FORMAT("22007"),
   DATETIME_OVERFLOW("22008"),
@@ -72,6 +72,7 @@ public enum PSQLState {
 
   INVALID_SAVEPOINT_SPECIFICATION("3B000"),
 
+  DEADLOCK_DETECTED("40P01"),
   SYNTAX_ERROR("42601"),
   UNDEFINED_COLUMN("42703"),
   UNDEFINED_OBJECT("42704"),
@@ -82,11 +83,13 @@ public enum PSQLState {
   INVALID_NAME("42602"),
   DATATYPE_MISMATCH("42804"),
   CANNOT_COERCE("42846"),
+  UNDEFINED_TABLE("42P01"),
 
   OUT_OF_MEMORY("53200"),
   OBJECT_NOT_IN_STATE("55000"),
   OBJECT_IN_USE("55006"),
 
+  QUERY_CANCELED("57014"),
 
   SYSTEM_ERROR("60000"),
   IO_ERROR("58030"),
@@ -101,6 +104,14 @@ public enum PSQLState {
 
   public String getState() {
     return this.state;
+  }
+
+  public static boolean isConnectionError(String psqlState) {
+    return PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(psqlState)
+        || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
+        || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)
+        || PSQLState.CONNECTION_FAILURE.getState().equals(psqlState)
+        || PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION.getState().equals(psqlState);
   }
 
 }

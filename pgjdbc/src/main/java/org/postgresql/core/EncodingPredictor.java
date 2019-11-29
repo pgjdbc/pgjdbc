@@ -8,10 +8,13 @@ package org.postgresql.core;
 import java.io.IOException;
 
 /**
- * Predicts encoding for error messages based on some heuristics:
- * 1) For certain languages, it is known how "FATAL" is translated
- * 2) For Japanese, several common words are hardcoded
- * 3) Then try various LATIN encodings
+ * <p>Predicts encoding for error messages based on some heuristics.</p>
+ *
+ * <ol>
+ * <li>For certain languages, it is known how "FATAL" is translated</li>
+ * <li>For Japanese, several common words are hardcoded</li>
+ * <li>Then try various LATIN encodings</li>
+ * </ol>
  */
 public class EncodingPredictor {
   /**

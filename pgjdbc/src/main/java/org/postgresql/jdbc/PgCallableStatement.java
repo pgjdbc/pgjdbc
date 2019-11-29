@@ -48,7 +48,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       int rsHoldability) throws SQLException {
     super(connection, connection.borrowCallableQuery(sql), rsType, rsConcurrency, rsHoldability);
     this.isFunction = preparedQuery.isFunction;
-    this.outParmBeforeFunc = preparedQuery.outParmBeforeFunc;
 
     if (this.isFunction) {
       int inParamCount = this.preparedParameters.getInParameterCount() + 1;
@@ -87,7 +86,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           PSQLState.NO_DATA);
     }
 
-    ResultSet rs = result.getResultSet();
+    ResultSet rs;
+    synchronized (this) {
+      checkClosed();
+      rs = result.getResultSet();
+    }
     if (!rs.next()) {
       throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."),
           PSQLState.NO_DATA);
@@ -146,26 +149,30 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
     }
     rs.close();
-    result = null;
+    synchronized (this) {
+      result = null;
+    }
     return false;
   }
 
   /**
-   * Before executing a stored procedure call you must explicitly call registerOutParameter to
-   * register the java.sql.Type of each out parameter.
+   * {@inheritDoc}
    *
-   * <p>
-   * Note: When reading the value of an out parameter, you must use the getXXX method whose Java
-   * type XXX corresponds to the parameter's registered SQL type.
+   * <p>Before executing a stored procedure call you must explicitly call registerOutParameter to
+   * register the java.sql.Type of each out parameter.</p>
    *
-   * ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used
+   * <p>Note: When reading the value of an out parameter, you must use the getXXX method whose Java
+   * type XXX corresponds to the parameter's registered SQL type.</p>
+   *
+   * <p>ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used</p>
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
    * @param sqlType SQL type code defined by java.sql.Types; for parameters of type Numeric or
    *        Decimal use the version of registerOutParameter that accepts a scale value
    * @throws SQLException if a database-access error occurs.
    */
-  public void registerOutParameter(int parameterIndex, int sqlType, boolean setPreparedParameters)
+  @Override
+  public void registerOutParameter(int parameterIndex, int sqlType)
       throws SQLException {
     checkClosed();
     switch (sqlType) {
@@ -187,6 +194,9 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       case Types.LONGVARBINARY:
         sqlType = Types.BINARY;
         break;
+      case Types.BOOLEAN:
+        sqlType = Types.BIT;
+        break;
       default:
         break;
     }
@@ -198,9 +208,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
     checkIndex(parameterIndex, false);
 
-    if (setPreparedParameters) {
-      preparedParameters.registerOutParameter(parameterIndex, sqlType);
-    }
+    preparedParameters.registerOutParameter(parameterIndex, sqlType);
     // functionReturnType contains the user supplied value to check
     // testReturn contains a modified version to make it easier to
     // check the getXXX methods..
@@ -214,25 +222,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       testReturn[parameterIndex - 1] = Types.REAL; // changes to streamline later error checking
     }
     returnTypeSet = true;
-  }
-
-  /**
-   * You must also specify the scale for numeric/decimal types:
-   *
-   * <p>
-   * Note: When reading the value of an out parameter, you must use the getXXX method whose Java
-   * type XXX corresponds to the parameter's registered SQL type.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2,...
-   * @param sqlType use either java.sql.Type.NUMERIC or java.sql.Type.DECIMAL
-   * @param scale a value greater than or equal to zero representing the desired number of digits to
-   *        the right of the decimal point
-   * @param setPreparedParameters set prepared parameters
-   * @throws SQLException if a database-access error occurs.
-   */
-  public void registerOutParameter(int parameterIndex, int sqlType, int scale,
-      boolean setPreparedParameters) throws SQLException {
-    registerOutParameter(parameterIndex, sqlType, setPreparedParameters); // ignore for now..
   }
 
   public boolean wasNull() throws SQLException {
@@ -383,7 +372,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * helperfunction for the getXXX calls to check isFunction and index == 1
+   * Helper function for the getXXX calls to check isFunction and index == 1.
    *
    * @param parameterIndex parameter index (1-based)
    * @param type type
@@ -406,7 +395,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   /**
-   * helperfunction for the getXXX calls to check isFunction and index == 1
+   * Helper function for the getXXX calls to check isFunction and index == 1.
    *
    * @param parameterIndex index of getXXX (index) check to make sure is a function and index == 1
    * @param fetchingData fetching data
@@ -912,19 +901,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   public java.net.URL getURL(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getURL(String)");
-  }
-
-  public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
-    // if this isn't 8.1 or we are using protocol version 2 then we don't
-    // register the parameter
-    switch (sqlType) {
-      case Types.BOOLEAN:
-        sqlType = Types.BIT;
-        break;
-      default:
-
-    }
-    registerOutParameter(parameterIndex, sqlType, !adjustIndex);
   }
 
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {

@@ -6,6 +6,8 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -30,7 +32,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -107,10 +108,8 @@ public class CopyTest {
 
     long count1 = cp.endCopy();
     long count2 = cp.getHandledRowCount();
-    long expectedResult = -1;
-    expectedResult = dataRows;
-    assertEquals(expectedResult, count1);
-    assertEquals(expectedResult, count2);
+    assertEquals(dataRows, count1);
+    assertEquals(dataRows, count2);
 
     try {
       cp.cancelCopy();
@@ -134,6 +133,47 @@ public class CopyTest {
     os.close();
     int rowCount = getCount();
     assertEquals(dataRows, rowCount);
+  }
+
+  @Test
+  public void testCopyInAsOutputStreamClosesAfterEndCopy() throws SQLException, IOException {
+    String sql = "COPY copytest FROM STDIN";
+    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    try {
+      for (String anOrigData : origData) {
+        byte[] buf = anOrigData.getBytes();
+        os.write(buf);
+      }
+      os.endCopy();
+    } finally {
+      os.close();
+    }
+    assertFalse(os.isActive());
+    int rowCount = getCount();
+    assertEquals(dataRows, rowCount);
+  }
+
+  @Test
+  public void testCopyInAsOutputStreamFailsOnFlushAfterEndCopy() throws SQLException, IOException {
+    String sql = "COPY copytest FROM STDIN";
+    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    try {
+      for (String anOrigData : origData) {
+        byte[] buf = anOrigData.getBytes();
+        os.write(buf);
+      }
+      os.endCopy();
+    } finally {
+      os.close();
+    }
+    try {
+      os.flush();
+      fail("should have failed flushing an inactive copy stream.");
+    } catch (IOException e) {
+      if (!e.toString().contains("This copy stream is closed.")) {
+        fail("has failed not due to checkClosed(): " + e);
+      }
+    }
   }
 
   @Test
@@ -212,10 +252,8 @@ public class CopyTest {
     assertEquals(dataRows, count);
 
     long rowCount = cp.getHandledRowCount();
-    long expectedResult = -1;
-    expectedResult = dataRows;
 
-    assertEquals(expectedResult, rowCount);
+    assertEquals(dataRows, rowCount);
 
     assertEquals(dataRows, getCount());
   }
@@ -229,10 +267,9 @@ public class CopyTest {
     assertEquals(dataRows, getCount());
     // deep comparison of data written and read
     byte[] copybytes = copydata.toByteArray();
-    assertTrue(copybytes != null);
+    assertNotNull(copybytes);
     for (int i = 0, l = 0; i < origData.length; i++) {
       byte[] origBytes = origData[i].getBytes();
-      assertTrue(origBytes != null);
       assertTrue("Copy is shorter than original", copybytes.length >= l + origBytes.length);
       for (int j = 0; j < origBytes.length; j++, l++) {
         assertEquals("content changed at byte#" + j + ": " + origBytes[j] + copybytes[l],
@@ -357,17 +394,14 @@ public class CopyTest {
     // on the Connection object fails to deadlock.
     con.setAutoCommit(false);
 
-    Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("select pg_backend_pid()");
-    rs.next();
-    int pid = rs.getInt(1);
-    rs.close();
-    stmt.close();
+    // We get the process id before the COPY as we cannot run other commands
+    // on the connection during the COPY operation.
+    int pid = TestUtil.getBackendPid(con);
 
     CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
     CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with " + copyParams);
     try {
-      killConnection(pid);
+      TestUtil.terminateBackend(pid);
       byte[] bunchOfNulls = ",,\n".getBytes();
       while (true) {
         copyIn.writeToCopy(bunchOfNulls, 0, bunchOfNulls.length);
@@ -421,23 +455,6 @@ public class CopyTest {
 
     public SQLException exception() {
       return rollbackException;
-    }
-  }
-
-  private void killConnection(int pid) throws SQLException {
-    Connection killerCon;
-    try {
-      killerCon = TestUtil.openPrivilegedDB();
-    } catch (Exception e) {
-      fail("Unable to open secondary connection to terminate copy");
-      return; // persuade Java killerCon will not be used uninitialized
-    }
-    try {
-      PreparedStatement stmt = killerCon.prepareStatement("select pg_terminate_backend(?)");
-      stmt.setInt(1, pid);
-      stmt.execute();
-    } finally {
-      killerCon.close();
     }
   }
 

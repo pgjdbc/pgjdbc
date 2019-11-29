@@ -5,15 +5,18 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.postgresql.jdbc.PgConnection;
+import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 
+import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -26,7 +29,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Arrays;
 import java.util.TimeZone;
 
 public class UpdateableResultTest extends BaseTest4 {
@@ -35,8 +37,7 @@ public class UpdateableResultTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "updateable",
-        "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]",
-        true);
+        "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
@@ -83,7 +84,6 @@ public class UpdateableResultTest extends BaseTest4 {
     rs.close();
     st.close();
   }
-
 
   @Test
   public void testCancelRowUpdates() throws Exception {
@@ -245,21 +245,21 @@ public class UpdateableResultTest extends BaseTest4 {
     assertEquals(2, rs.getInt(1));
     assertEquals(string, rs.getString(2));
     assertEquals(string, rs.getString(3));
-    assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
+    assertArrayEquals(bytes, rs.getBytes(4));
 
     rs.refreshRow();
 
     assertEquals(2, rs.getInt(1));
     assertEquals(string, rs.getString(2));
     assertEquals(string, rs.getString(3));
-    assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
+    assertArrayEquals(bytes, rs.getBytes(4));
 
     rs.next();
 
     assertEquals(3, rs.getInt(1));
     assertEquals(string, rs.getString(2));
     assertEquals(string, rs.getString(3));
-    assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
+    assertArrayEquals(bytes, rs.getBytes(4));
 
     rs.close();
     stmt.close();
@@ -328,7 +328,7 @@ public class UpdateableResultTest extends BaseTest4 {
     } catch (SQLException ex) {
     }
 
-    rs = st.executeQuery("select oid,* from updateable");
+    rs = st.executeQuery("select * from updateable");
     assertTrue(rs.first());
     rs.updateInt("id", 3);
     rs.updateString("name", "dave3");
@@ -551,6 +551,49 @@ public class UpdateableResultTest extends BaseTest4 {
     rs.updateString("name1", "newval");
     rs.updateRow();
     rs.close();
+    
+  @Test
+  public void simpleAndUpdateableSameQuery() throws Exception {
+    PGConnection unwrap = con.unwrap(PGConnection.class);
+    Assume.assumeNotNull(unwrap);
+    int prepareThreshold = unwrap.getPrepareThreshold();
+    String sql = "select * from second where id1=?";
+    for (int i = 0; i <= prepareThreshold; i++) {
+      PreparedStatement ps = null;
+      ResultSet rs = null;
+      try {
+        ps = con.prepareStatement(sql);
+        ps.setInt(1, 1);
+        rs = ps.executeQuery();
+        rs.next();
+        String name1 = rs.getString("name1");
+        Assert.assertEquals("anyvalue", name1);
+        int id1 = rs.getInt("id1");
+        Assert.assertEquals(1, id1);
+      } finally {
+        TestUtil.closeQuietly(rs);
+        TestUtil.closeQuietly(ps);
+      }
+    }
+    // The same SQL, and use updateable ResultSet
+    {
+      PreparedStatement ps = null;
+      ResultSet rs = null;
+      try {
+        ps = con.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        ps.setInt(1, 1);
+        rs = ps.executeQuery();
+        rs.next();
+        String name1 = rs.getString("name1");
+        Assert.assertEquals("anyvalue", name1);
+        int id1 = rs.getInt("id1");
+        Assert.assertEquals(1, id1);
+        rs.updateString("name1", "updatedValue");
+        rs.updateRow();
+      } finally {
+        TestUtil.closeQuietly(rs);
+        TestUtil.closeQuietly(ps);
+      }
+    }
   }
-
 }

@@ -26,16 +26,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
- * talking to a Windows server.
+ * <p>Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
+ * talking to a Windows server.</p>
  *
- * SSPI is not supported on a non-Windows client.
+ * <p>SSPI is not supported on a non-Windows client.</p>
  *
  * @author craig
  */
 public class SSPIClient implements ISSPIClient {
 
-  public static String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
+  public static final String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
 
   private static final Logger LOGGER = Logger.getLogger(SSPIClient.class.getName());
   private final PGStream pgStream;
@@ -46,14 +46,13 @@ public class SSPIClient implements ISSPIClient {
   private WindowsSecurityContextImpl sspiContext;
   private String targetName;
 
-
   /**
-   * Instantiate an SSPIClient for authentication of a connection.
+   * <p>Instantiate an SSPIClient for authentication of a connection.</p>
    *
-   * SSPIClient is not re-usable across connections.
+   * <p>SSPIClient is not re-usable across connections.</p>
    *
-   * It is safe to instantiate SSPIClient even if Waffle and JNA are missing or on non-Windows
-   * platforms, however you may not call any methods other than isSSPISupported().
+   * <p>It is safe to instantiate SSPIClient even if Waffle and JNA are missing or on non-Windows
+   * platforms, however you may not call any methods other than isSSPISupported().</p>
    *
    * @param pgStream PostgreSQL connection stream
    * @param spnServiceClass SSPI SPN service class, defaults to POSTGRES if null
@@ -62,11 +61,7 @@ public class SSPIClient implements ISSPIClient {
   public SSPIClient(PGStream pgStream, String spnServiceClass, boolean enableNegotiate) {
     this.pgStream = pgStream;
 
-    /* If blank or unspecified, SPN service class should be POSTGRES */
-    if (spnServiceClass != null && spnServiceClass.isEmpty()) {
-      spnServiceClass = null;
-    }
-    if (spnServiceClass == null) {
+    if (spnServiceClass == null || spnServiceClass.isEmpty()) {
       spnServiceClass = SSPI_DEFAULT_SPN_SERVICE_CLASS;
     }
     this.spnServiceClass = spnServiceClass;
@@ -81,6 +76,7 @@ public class SSPIClient implements ISSPIClient {
    *
    * @return true if it's safe to attempt SSPI authentication
    */
+  @Override
   public boolean isSSPISupported() {
     try {
       /*
@@ -88,7 +84,7 @@ public class SSPIClient implements ISSPIClient {
        * won't have JNA and this will throw a NoClassDefFoundError.
        */
       if (!Platform.isWindows()) {
-        LOGGER.log(Level.WARNING, "SSPI not supported: non-Windows host");
+        LOGGER.log(Level.FINE, "SSPI not supported: non-Windows host");
         return false;
       }
       /* Waffle must be on the CLASSPATH */
@@ -122,6 +118,7 @@ public class SSPIClient implements ISSPIClient {
    * @throws SQLException on SSPI authentication handshake failure
    * @throws IOException on network I/O issues
    */
+  @Override
   public void startSSPI() throws SQLException, IOException {
 
     /*
@@ -181,6 +178,7 @@ public class SSPIClient implements ISSPIClient {
    * @throws SQLException if something wrong happens
    * @throws IOException if something wrong happens
    */
+  @Override
   public void continueSSPI(int msgLength) throws SQLException, IOException {
 
     if (sspiContext == null) {
@@ -226,6 +224,7 @@ public class SSPIClient implements ISSPIClient {
    * Clean up native win32 resources after completion or failure of SSPI authentication. This
    * SSPIClient instance becomes unusable after disposal.
    */
+  @Override
   public void dispose() {
     if (sspiContext != null) {
       sspiContext.dispose();

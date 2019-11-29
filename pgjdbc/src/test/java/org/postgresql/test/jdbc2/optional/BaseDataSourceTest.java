@@ -5,7 +5,11 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
@@ -35,7 +39,8 @@ import javax.naming.NamingException;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public abstract class BaseDataSourceTest {
-  public static String DATA_SOURCE_JNDI = "BaseDataSource";
+  public static final String DATA_SOURCE_JNDI = "BaseDataSource";
+
   protected Connection con;
   protected BaseDataSource bds;
 
@@ -53,7 +58,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * Removes the test table using a standard connection (not from a DataSource)
+   * Removes the test table using a standard connection (not from a DataSource).
    */
   @After
   public void tearDown() throws Exception {
@@ -64,7 +69,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * Gets a connection from the current BaseDataSource
+   * Gets a connection from the current BaseDataSource.
    */
   protected Connection getDataSourceConnection() throws SQLException {
     if (bds == null) {
@@ -92,7 +97,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * Test to make sure you can instantiate and configure the appropriate DataSource
+   * Test to make sure you can instantiate and configure the appropriate DataSource.
    */
   @Test
   public void testCreateDataSource() {
@@ -114,7 +119,7 @@ public abstract class BaseDataSourceTest {
   }
 
   /**
-   * A simple test to make sure you can execute SQL using the Connection from the DataSource
+   * A simple test to make sure you can execute SQL using the Connection from the DataSource.
    */
   @Test
   public void testUseConnection() {
@@ -167,7 +172,7 @@ public abstract class BaseDataSourceTest {
     con = getDataSourceConnection();
     String name2 = con.toString();
     con.close();
-    assertTrue(!name.equals(name2));
+    assertNotEquals(name, name2);
   }
 
   /**
@@ -194,23 +199,27 @@ public abstract class BaseDataSourceTest {
   public void testJndi() {
     initializeDataSource();
     BaseDataSource oldbds = bds;
+    String oldurl = bds.getURL();
     InitialContext ic = getInitialContext();
     try {
       ic.rebind(DATA_SOURCE_JNDI, bds);
       bds = (BaseDataSource) ic.lookup(DATA_SOURCE_JNDI);
-      assertTrue("Got null looking up DataSource from JNDI!", bds != null);
+      assertNotNull("Got null looking up DataSource from JNDI!", bds);
       compareJndiDataSource(oldbds, bds);
     } catch (NamingException e) {
       fail(e.getMessage());
     }
     oldbds = bds;
+    String url = bds.getURL();
     testUseConnection();
-    assertTrue("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
-        bds == oldbds);
+    assertSame("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
+        oldbds , bds);
+    assertEquals("Test should not have changed DataSource URL",
+        oldurl, url);
   }
 
   /**
-   * Uses the mini-JNDI implementation for testing purposes
+   * Uses the mini-JNDI implementation for testing purposes.
    */
   protected InitialContext getInitialContext() {
     Hashtable<String, Object> env = new Hashtable<String, Object>();
@@ -227,7 +236,6 @@ public abstract class BaseDataSourceTest {
    * Check whether a DS was dereferenced from JNDI or recreated.
    */
   protected void compareJndiDataSource(BaseDataSource oldbds, BaseDataSource bds) {
-    assertTrue("DataSource was dereferenced, should have been serialized or recreated",
-        bds != oldbds);
+    assertNotSame("DataSource was dereferenced, should have been serialized or recreated", oldbds, bds);
   }
 }

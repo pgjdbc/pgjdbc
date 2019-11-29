@@ -98,14 +98,10 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The warnings chain.
    */
-  protected SQLWarning warnings = null;
-  /**
-   * The last warning of the warning chain.
-   */
-  protected SQLWarning lastWarning = null;
+  protected volatile PSQLWarningWrapper warnings = null;
 
   /**
-   * Maximum number of rows to return, 0 = unlimited
+   * Maximum number of rows to return, 0 = unlimited.
    */
   protected int maxrows = 0;
 
@@ -115,9 +111,9 @@ public class PgStatement implements Statement, BaseStatement {
   protected int fetchSize = 0;
 
   /**
-   * Timeout (in milliseconds) for a query
+   * Timeout (in milliseconds) for a query.
    */
-  protected int timeout = 0;
+  protected long timeout = 0;
 
   protected boolean replaceProcessingEnabled = true;
 
@@ -129,16 +125,16 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The first unclosed result.
    */
-  protected ResultWrapper firstUnclosedResult = null;
+  protected volatile ResultWrapper firstUnclosedResult = null;
 
   /**
    * Results returned by a statement that wants generated keys.
    */
   protected ResultWrapper generatedKeys = null;
 
-  protected int m_prepareThreshold; // Reuse threshold to enable use of PREPARE
+  protected int mPrepareThreshold; // Reuse threshold to enable use of PREPARE
 
-  protected int maxfieldSize = 0;
+  protected int maxFieldSize = 0;
 
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
@@ -213,53 +209,65 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     @Override
-    public void handleCommandStatus(String status, int updateCount, long insertOID) {
+    public void handleCommandStatus(String status, long updateCount, long insertOID) {
       append(new ResultWrapper(updateCount, insertOID));
     }
 
     @Override
-    public void handleCompletion() throws SQLException {
-      SQLWarning warning = getWarning();
-      if (warning != null) {
-        PgStatement.this.addWarning(warning);
-      }
-      super.handleCompletion();
+    public void handleWarning(SQLWarning warning) {
+      PgStatement.this.addWarning(warning);
     }
+
   }
 
-  public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
-    if (!executeWithFlags(p_sql, 0)) {
+  @Override
+  public ResultSet executeQuery(String sql) throws SQLException {
+    if (!executeWithFlags(sql, 0)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    if (result.getNext() != null) {
-      throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
-          PSQLState.TOO_MANY_RESULTS);
-    }
-
-    return result.getResultSet();
+    return getSingleResultSet();
   }
 
-  public int executeUpdate(String p_sql) throws SQLException {
-    executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS);
-
-    ResultWrapper iter = result;
-    while (iter != null) {
-      if (iter.getResultSet() != null) {
-        throw new PSQLException(GT.tr("A result was returned when none was expected."),
+  protected ResultSet getSingleResultSet() throws SQLException {
+    synchronized (this) {
+      checkClosed();
+      if (result.getNext() != null) {
+        throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
             PSQLState.TOO_MANY_RESULTS);
-
       }
-      iter = iter.getNext();
-    }
 
+      return result.getResultSet();
+    }
+  }
+
+  @Override
+  public int executeUpdate(String sql) throws SQLException {
+    executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
     return getUpdateCount();
   }
 
-  public boolean execute(String p_sql) throws SQLException {
-    return executeWithFlags(p_sql, 0);
+  protected final void checkNoResultUpdate() throws SQLException {
+    synchronized (this) {
+      checkClosed();
+      ResultWrapper iter = result;
+      while (iter != null) {
+        if (iter.getResultSet() != null) {
+          throw new PSQLException(GT.tr("A result was returned when none was expected."),
+              PSQLState.TOO_MANY_RESULTS);
+        }
+        iter = iter.getNext();
+      }
+    }
   }
 
+  @Override
+  public boolean execute(String sql) throws SQLException {
+    return executeWithFlags(sql, 0);
+  }
+
+  @Override
   public boolean executeWithFlags(String sql, int flags) throws SQLException {
     return executeCachedSql(sql, flags, NO_RETURNING_COLUMNS);
   }
@@ -299,7 +307,10 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
     }
     execute(simpleQuery, null, flags);
-    return (result != null && result.getResultSet() != null);
+    synchronized (this) {
+      checkClosed();
+      return (result != null && result.getResultSet() != null);
+    }
   }
 
   public boolean executeWithFlags(int flags) throws SQLException {
@@ -309,29 +320,32 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void closeForNextExecution() throws SQLException {
+
     // Every statement execution clears any previous warnings.
     clearWarnings();
 
     // Close any existing resultsets associated with this statement.
-    while (firstUnclosedResult != null) {
-      ResultSet rs = firstUnclosedResult.getResultSet();
-      if (rs != null) {
-        rs.close();
+    synchronized (this) {
+      while (firstUnclosedResult != null) {
+        PgResultSet rs = (PgResultSet)firstUnclosedResult.getResultSet();
+        if (rs != null) {
+          rs.closeInternally();
+        }
+        firstUnclosedResult = firstUnclosedResult.getNext();
       }
-      firstUnclosedResult = firstUnclosedResult.getNext();
-    }
-    result = null;
+      result = null;
 
-    if (generatedKeys != null) {
-      if (generatedKeys.getResultSet() != null) {
-        generatedKeys.getResultSet().close();
+      if (generatedKeys != null) {
+        if (generatedKeys.getResultSet() != null) {
+          generatedKeys.getResultSet().close();
+        }
+        generatedKeys = null;
       }
-      generatedKeys = null;
     }
   }
 
   /**
-   * Returns true if query is unlikely to be reused
+   * Returns true if query is unlikely to be reused.
    *
    * @param cachedQuery to check (null if current query)
    * @return true if query is unlikely to be reused
@@ -341,7 +355,7 @@ public class PgStatement implements Statement, BaseStatement {
       return true;
     }
     cachedQuery.increaseExecuteCount();
-    if ((m_prepareThreshold == 0 || cachedQuery.getExecuteCount() < m_prepareThreshold)
+    if ((mPrepareThreshold == 0 || cachedQuery.getExecuteCount() < mPrepareThreshold)
         && !getForceBinaryTransfer()) {
       return true;
     }
@@ -394,6 +408,9 @@ public class PgStatement implements Statement, BaseStatement {
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
     }
+    if (connection.hintReadOnly()) {
+      flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
+    }
 
     // updateable result sets do not yet support binary updates
     if (concurrency != ResultSet.CONCUR_READ_ONLY) {
@@ -422,7 +439,9 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     StatementResultHandler handler = new StatementResultHandler();
-    result = null;
+    synchronized (this) {
+      result = null;
+    }
     try {
       startTimer();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
@@ -430,17 +449,19 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
     }
-    result = firstUnclosedResult = handler.getResults();
+    synchronized (this) {
+      checkClosed();
+      result = firstUnclosedResult = handler.getResults();
 
-    if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
-      generatedKeys = result;
-      result = result.getNext();
+      if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
+        generatedKeys = result;
+        result = result.getNext();
 
-      if (wantsGeneratedKeysOnce) {
-        wantsGeneratedKeysOnce = false;
+        if (wantsGeneratedKeysOnce) {
+          wantsGeneratedKeysOnce = false;
+        }
       }
     }
-
   }
 
   public void setCursorName(String name) throws SQLException {
@@ -448,35 +469,40 @@ public class PgStatement implements Statement, BaseStatement {
     // No-op.
   }
 
-  // This is intentionally non-volatile to avoid performance hit in isClosed checks
-  // see #close()
-  protected boolean isClosed = false;
+  private volatile boolean isClosed = false;
 
+  @Override
   public int getUpdateCount() throws SQLException {
-    checkClosed();
-    if (result == null || result.getResultSet() != null) {
-      return -1;
-    }
+    synchronized (this) {
+      checkClosed();
+      if (result == null || result.getResultSet() != null) {
+        return -1;
+      }
 
-    return result.getUpdateCount();
+      long count = result.getUpdateCount();
+      return count > Integer.MAX_VALUE ? Statement.SUCCESS_NO_INFO : (int) count;
+    }
   }
 
   public boolean getMoreResults() throws SQLException {
-    if (result == null) {
-      return false;
-    }
-
-    result = result.getNext();
-
-    // Close preceding resultsets.
-    while (firstUnclosedResult != result) {
-      if (firstUnclosedResult.getResultSet() != null) {
-        firstUnclosedResult.getResultSet().close();
+    synchronized (this) {
+      checkClosed();
+      if (result == null) {
+        return false;
       }
-      firstUnclosedResult = firstUnclosedResult.getNext();
-    }
 
-    return (result != null && result.getResultSet() != null);
+      result = result.getNext();
+
+      // Close preceding resultsets.
+      while (firstUnclosedResult != result) {
+        if (firstUnclosedResult.getResultSet() != null) {
+          firstUnclosedResult.getResultSet().close();
+        }
+        firstUnclosedResult = firstUnclosedResult.getNext();
+      }
+
+      return (result != null && result.getResultSet() != null);
+    }
   }
 
   public int getMaxRows() throws SQLException {
@@ -500,11 +526,16 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public int getQueryTimeout() throws SQLException {
-    return getQueryTimeoutMs() / 1000;
+    checkClosed();
+    long seconds = timeout / 1000;
+    if (seconds >= Integer.MAX_VALUE) {
+      return Integer.MAX_VALUE;
+    }
+    return (int) seconds;
   }
 
   public void setQueryTimeout(int seconds) throws SQLException {
-    setQueryTimeoutMs(seconds * 1000);
+    setQueryTimeoutMs(seconds * 1000L);
   }
 
   /**
@@ -514,18 +545,18 @@ public class PgStatement implements Statement, BaseStatement {
    * @return the current query timeout limit in milliseconds; 0 = unlimited
    * @throws SQLException if a database access error occurs
    */
-  public int getQueryTimeoutMs() throws SQLException {
+  public long getQueryTimeoutMs() throws SQLException {
     checkClosed();
     return timeout;
   }
 
   /**
-   * Sets the queryTimeout limit
+   * Sets the queryTimeout limit.
    *
    * @param millis - the new query timeout limit in milliseconds
    * @throws SQLException if a database access error occurs
    */
-  public void setQueryTimeoutMs(int millis) throws SQLException {
+  public void setQueryTimeoutMs(long millis) throws SQLException {
     checkClosed();
 
     if (millis < 0) {
@@ -536,31 +567,37 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * This adds a warning to the warning chain. We track the tail of the warning chain as well to
-   * avoid O(N) behavior for adding a new warning to an existing chain. Some server functions which
-   * RAISE NOTICE (or equivalent) produce a ton of warnings.
+   * <p>Either initializes new warning wrapper, or adds warning onto the chain.</p>
+   *
+   * <p>Although warnings are expected to be added sequentially, the warnings chain may be cleared
+   * concurrently at any time via {@link #clearWarnings()}, therefore it is possible that a warning
+   * added via this method is placed onto the end of the previous warning chain</p>
    *
    * @param warn warning to add
    */
   public void addWarning(SQLWarning warn) {
-    if (warnings == null) {
-      warnings = warn;
-      lastWarning = warn;
+    //copy reference to avoid NPE from concurrent modification of this.warnings
+    final PSQLWarningWrapper warnWrap = this.warnings;
+    if (warnWrap == null) {
+      this.warnings = new PSQLWarningWrapper(warn);
     } else {
-      lastWarning.setNextWarning(warn);
-      lastWarning = warn;
+      warnWrap.addWarning(warn);
     }
   }
 
   public SQLWarning getWarnings() throws SQLException {
     checkClosed();
-    return warnings;
+    //copy reference to avoid NPE from concurrent modification of this.warnings
+    final PSQLWarningWrapper warnWrap = this.warnings;
+    return warnWrap != null ? warnWrap.getFirstWarning() : null;
   }
 
+  @Override
   public int getMaxFieldSize() throws SQLException {
-    return maxfieldSize;
+    return maxFieldSize;
   }
 
+  @Override
   public void setMaxFieldSize(int max) throws SQLException {
     checkClosed();
     if (max < 0) {
@@ -568,22 +605,30 @@ public class PgStatement implements Statement, BaseStatement {
           GT.tr("The maximum field size must be a value greater than or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    maxfieldSize = max;
+    maxFieldSize = max;
   }
 
+  /**
+   * <p>Clears the warning chain.</p>
+   * <p>Note that while it is safe to clear warnings while the query is executing, warnings that are
+   * added between calls to {@link #getWarnings()} and #clearWarnings() may be missed.
+   * Therefore you should hold a reference to the tail of the previous warning chain
+   * and verify if its {@link SQLWarning#getNextWarning()} value is holds any new value.</p>
+   */
   public void clearWarnings() throws SQLException {
     warnings = null;
-    lastWarning = null;
   }
 
-  public java.sql.ResultSet getResultSet() throws SQLException {
-    checkClosed();
+  public ResultSet getResultSet() throws SQLException {
+    synchronized (this) {
+      checkClosed();
 
-    if (result == null) {
-      return null;
+      if (result == null) {
+        return null;
+      }
+
+      return result.getResultSet();
     }
-
-    return result.getResultSet();
   }
 
   /**
@@ -592,17 +637,27 @@ public class PgStatement implements Statement, BaseStatement {
    *
    * {@inheritDoc}
    */
-  public void close() throws SQLException {
+  public final void close() throws SQLException {
     // closing an already closed Statement is a no-op.
-    if (isClosed) {
-      return;
+    synchronized (this) {
+      if (isClosed) {
+        return;
+      }
+      isClosed = true;
     }
 
-    cleanupTimer();
+    cancel();
 
     closeForNextExecution();
 
-    isClosed = true;
+    closeImpl();
+  }
+
+  /**
+   * This is guaranteed to be called exactly once even in case of concurrent {@link #close()} calls.
+   * @throws SQLException in case of error
+   */
+  protected void closeImpl() throws SQLException {
   }
 
   /*
@@ -612,13 +667,16 @@ public class PgStatement implements Statement, BaseStatement {
    */
 
   public long getLastOID() throws SQLException {
-    checkClosed();
-    if (result == null) {
-      return 0;
+    synchronized (this) {
+      checkClosed();
+      if (result == null) {
+        return 0;
+      }
+      return result.getInsertOID();
     }
-    return result.getInsertOID();
   }
 
+  @Override
   public void setPrepareThreshold(int newThreshold) throws SQLException {
     checkClosed();
 
@@ -627,23 +685,26 @@ public class PgStatement implements Statement, BaseStatement {
       newThreshold = 1;
     }
 
-    this.m_prepareThreshold = newThreshold;
+    this.mPrepareThreshold = newThreshold;
   }
 
+  @Override
   public int getPrepareThreshold() {
-    return m_prepareThreshold;
+    return mPrepareThreshold;
   }
 
+  @Override
   public void setUseServerPrepare(boolean flag) throws SQLException {
     setPrepareThreshold(flag ? 1 : 0);
   }
 
+  @Override
   public boolean isUseServerPrepare() {
     return false;
   }
 
   protected void checkClosed() throws SQLException {
-    if (isClosed) {
+    if (isClosed()) {
       throw new PSQLException(GT.tr("This statement has been closed."),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
@@ -651,7 +712,8 @@ public class PgStatement implements Statement, BaseStatement {
 
   // ** JDBC 2 Extensions **
 
-  public void addBatch(String p_sql) throws SQLException {
+  @Override
+  public void addBatch(String sql) throws SQLException {
     checkClosed();
 
     if (batchStatements == null) {
@@ -661,11 +723,12 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Simple statements should not replace ?, ? with $1, $2
     boolean shouldUseParameterized = false;
-    CachedQuery cachedQuery = connection.createQuery(p_sql, replaceProcessingEnabled, shouldUseParameterized);
+    CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, shouldUseParameterized);
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }
 
+  @Override
   public void clearBatch() throws SQLException {
     if (batchStatements != null) {
       batchStatements.clear();
@@ -679,26 +742,17 @@ public class PgStatement implements Statement, BaseStatement {
         wantsGeneratedKeysAlways);
   }
 
-  public int[] executeBatch() throws SQLException {
-    checkClosed();
-
-    closeForNextExecution();
-
-    if (batchStatements == null || batchStatements.isEmpty()) {
-      return new int[0];
-    }
-
+  private BatchResultHandler internalExecuteBatch() throws SQLException {
     // Construct query/parameter arrays.
     transformQueriesAndParameters();
     // Empty arrays should be passed to toArray
     // see http://shipilev.net/blog/2016/arrays-wisdom-ancients/
     Query[] queries = batchStatements.toArray(new Query[0]);
-    ParameterList[] parameterLists =
-        batchParameters.toArray(new ParameterList[0]);
+    ParameterList[] parameterLists = batchParameters.toArray(new ParameterList[0]);
     batchStatements.clear();
     batchParameters.clear();
 
-    int flags = 0;
+    int flags;
 
     // Force a Describe before any execution? We need to do this if we're going
     // to send anything dependent on the Describe results, e.g. binary parameters.
@@ -759,6 +813,9 @@ public class PgStatement implements Statement, BaseStatement {
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
     }
+    if (connection.hintReadOnly()) {
+      flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
+    }
 
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
@@ -784,7 +841,9 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    result = null;
+    synchronized (this) {
+      result = null;
+    }
 
     try {
       startTimer();
@@ -793,27 +852,42 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
       // There might be some rows generated even in case of failures
-      if (wantsGeneratedKeysAlways) {
-        generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
+      synchronized (this) {
+        checkClosed();
+        if (wantsGeneratedKeysAlways) {
+          generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
+        }
       }
     }
+    return handler;
+  }
 
-    return handler.getUpdateCount();
+  public int[] executeBatch() throws SQLException {
+    checkClosed();
+    closeForNextExecution();
+
+    if (batchStatements == null || batchStatements.isEmpty()) {
+      return new int[0];
+    }
+
+    return internalExecuteBatch().getUpdateCount();
   }
 
   public void cancel() throws SQLException {
-    if (!STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY, StatementCancelState.CANCELING)) {
+    if (statementState == StatementCancelState.IDLE) {
+      return;
+    }
+    if (!STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY,
+        StatementCancelState.CANCELING)) {
       // Not in query, there's nothing to cancel
       return;
     }
-    try {
-      // Synchronize on connection to avoid spinning in killTimerTask
-      synchronized (connection) {
+    // Synchronize on connection to avoid spinning in killTimerTask
+    synchronized (connection) {
+      try {
         connection.cancelQuery();
-      }
-    } finally {
-      STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
-      synchronized (connection) {
+      } finally {
+        STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
         connection.notifyAll(); // wake-up killTimerTask
       }
     }
@@ -922,8 +996,10 @@ public class PgStatement implements Statement, BaseStatement {
     // "timeout error"
     // We wait till state becomes "cancelled"
     boolean interrupted = false;
-    while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
-      synchronized (connection) {
+    synchronized (connection) {
+      // state check is performed under synchronized so it detects "cancelled" state faster
+      // In other words, it prevents unnecessary ".wait()" call
+      while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
         try {
           // Note: wait timeout here is irrelevant since synchronized(connection) would block until
           // .cancel finishes
@@ -943,8 +1019,17 @@ public class PgStatement implements Statement, BaseStatement {
     return forceBinaryTransfers;
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  @Override
   public long getLargeUpdateCount() throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getLargeUpdateCount");
+    synchronized (this) {
+      checkClosed();
+      if (result == null || result.getResultSet() != null) {
+        return -1;
+      }
+
+      return result.getUpdateCount();
+    }
   }
 
   public void setLargeMaxRows(long max) throws SQLException {
@@ -955,29 +1040,57 @@ public class PgStatement implements Statement, BaseStatement {
     throw Driver.notImplemented(this.getClass(), "getLargeMaxRows");
   }
 
+  @Override
   public long[] executeLargeBatch() throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeBatch");
+    checkClosed();
+    closeForNextExecution();
+
+    if (batchStatements == null || batchStatements.isEmpty()) {
+      return new long[0];
+    }
+
+    return internalExecuteBatch().getLargeUpdateCount();
   }
 
+  @Override
   public long executeLargeUpdate(String sql) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getLargeUpdateCount();
   }
 
+  @Override
   public long executeLargeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
+      return executeLargeUpdate(sql);
+    }
+
+    return executeLargeUpdate(sql, (String[]) null);
   }
 
+  @Override
   public long executeLargeUpdate(String sql, int[] columnIndexes) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    if (columnIndexes == null || columnIndexes.length == 0) {
+      return executeLargeUpdate(sql);
+    }
+
+    throw new PSQLException(GT.tr("Returning autogenerated keys by column index is not supported."),
+        PSQLState.NOT_IMPLEMENTED);
   }
 
+  @Override
   public long executeLargeUpdate(String sql, String[] columnNames) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
-  }
+    if (columnNames != null && columnNames.length == 0) {
+      return executeLargeUpdate(sql);
+    }
 
-  public long executeLargeUpdate() throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+    wantsGeneratedKeysOnce = true;
+    if (!executeCachedSql(sql, 0, columnNames)) {
+      // no resultset returned. What's a pity!
+    }
+    return getLargeUpdateCount();
   }
+  //#endif
 
   public boolean isClosed() throws SQLException {
     return isClosed;
@@ -1017,12 +1130,14 @@ public class PgStatement implements Statement, BaseStatement {
       return;
     }
 
-    ResultWrapper result = firstUnclosedResult;
-    while (result != null) {
-      if (result.getResultSet() != null && !result.getResultSet().isClosed()) {
-        return;
+    synchronized (this) {
+      ResultWrapper result = firstUnclosedResult;
+      while (result != null) {
+        if (result.getResultSet() != null && !result.getResultSet().isClosed()) {
+          return;
+        }
+        result = result.getNext();
       }
-      result = result.getNext();
     }
 
     // prevent all ResultSet.close arising from Statement.close to loop here
@@ -1036,39 +1151,44 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean getMoreResults(int current) throws SQLException {
-    // CLOSE_CURRENT_RESULT
-    if (current == Statement.CLOSE_CURRENT_RESULT && result != null
-        && result.getResultSet() != null) {
-      result.getResultSet().close();
-    }
-
-    // Advance resultset.
-    if (result != null) {
-      result = result.getNext();
-    }
-
-    // CLOSE_ALL_RESULTS
-    if (current == Statement.CLOSE_ALL_RESULTS) {
-      // Close preceding resultsets.
-      while (firstUnclosedResult != result) {
-        if (firstUnclosedResult.getResultSet() != null) {
-          firstUnclosedResult.getResultSet().close();
-        }
-        firstUnclosedResult = firstUnclosedResult.getNext();
+    synchronized (this) {
+      checkClosed();
+      // CLOSE_CURRENT_RESULT
+      if (current == Statement.CLOSE_CURRENT_RESULT && result != null
+          && result.getResultSet() != null) {
+        result.getResultSet().close();
       }
-    }
 
-    // Done.
-    return (result != null && result.getResultSet() != null);
+      // Advance resultset.
+      if (result != null) {
+        result = result.getNext();
+      }
+
+      // CLOSE_ALL_RESULTS
+      if (current == Statement.CLOSE_ALL_RESULTS) {
+        // Close preceding resultsets.
+        while (firstUnclosedResult != result) {
+          if (firstUnclosedResult.getResultSet() != null) {
+            firstUnclosedResult.getResultSet().close();
+          }
+          firstUnclosedResult = firstUnclosedResult.getNext();
+        }
+      }
+
+      // Done.
+      return (result != null && result.getResultSet() != null);
+    }
   }
 
   public ResultSet getGeneratedKeys() throws SQLException {
-    checkClosed();
-    if (generatedKeys == null || generatedKeys.getResultSet() == null) {
-      return createDriverResultSet(new Field[0], new ArrayList<byte[][]>());
-    }
+    synchronized (this) {
+      checkClosed();
+      if (generatedKeys == null || generatedKeys.getResultSet() == null) {
+        return createDriverResultSet(new Field[0], new ArrayList<byte[][]>());
+      }
 
-    return generatedKeys.getResultSet();
+      return generatedKeys.getResultSet();
+    }
   }
 
   public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException {

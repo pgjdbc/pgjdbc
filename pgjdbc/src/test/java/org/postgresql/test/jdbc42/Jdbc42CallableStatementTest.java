@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
 /**
  * Tests for JDBC 4.2 features in {@link org.postgresql.jdbc.PgCallableStatement}.
  */
@@ -40,7 +39,6 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
                       + "begin OPEN ref FOR SELECT 1; RETURN ref; end; ' LANGUAGE plpgsql;");
     }
   }
-
 
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";

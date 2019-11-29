@@ -10,6 +10,6 @@ cd "$(dirname "$0")"
     echo "$copr_token_password" | gpg --batch --passphrase-fd 0 rpm/copr-token.gpg
 ) || exit 0
 
-docker run -e HOME=/git -e PARENT_VERSION  \
+docker run -e HOME=/git -e PARENT_VERSION -e PROJECT_VERSION \
     -u `id -u` -ti --rm -v `pwd`/..:/git:Z praiskup/copr-and-jdbc-ci \
-    copr-ci-git /git/packaging/rpm postgresql-jdbc 9.5.git
+    copr-ci-git /git/packaging/rpm postgresql-jdbc

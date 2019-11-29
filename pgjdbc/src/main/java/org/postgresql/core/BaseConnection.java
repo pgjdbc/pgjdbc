@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
@@ -64,12 +65,12 @@ public interface BaseConnection extends PGConnection, Connection {
   ReplicationProtocol getReplicationProtocol();
 
   /**
-   * Construct and return an appropriate object for the given type and value. This only considers
+   * <p>Construct and return an appropriate object for the given type and value. This only considers
    * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)} and
-   * {@link org.postgresql.PGConnection#addDataType(String, String)}.
-   * <p>
-   * If no class is registered as handling the given type, then a generic
-   * {@link org.postgresql.util.PGobject} instance is returned.
+   * {@link org.postgresql.PGConnection#addDataType(String, String)}.</p>
+   *
+   * <p>If no class is registered as handling the given type, then a generic
+   * {@link org.postgresql.util.PGobject} instance is returned.</p>
    *
    * @param type the backend typename
    * @param value the type-specific string representation of the value
@@ -84,10 +85,10 @@ public interface BaseConnection extends PGConnection, Connection {
   TypeInfo getTypeInfo();
 
   /**
-   * Check if we have at least a particular server version.
+   * <p>Check if we have at least a particular server version.</p>
    *
-   * The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
-   * is 90012 .
+   * <p>The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
+   * is 90012.</p>
    *
    * @param ver the server version to check, of the form xxyyzz eg 90401
    * @return true if the server version is at least "ver".
@@ -95,10 +96,10 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean haveMinimumServerVersion(int ver);
 
   /**
-   * Check if we have at least a particular server version.
+   * <p>Check if we have at least a particular server version.</p>
    *
-   * The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
-   * is 90012 .
+   * <p>The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
+   * is 90012.</p>
    *
    * @param ver the server version to check
    * @return true if the server version is at least "ver".
@@ -184,7 +185,7 @@ public interface BaseConnection extends PGConnection, Connection {
   void purgeTimerTasks();
 
   /**
-   * Return metadata cache for given connection
+   * Return metadata cache for given connection.
    *
    * @return metadata cache
    */
@@ -202,4 +203,13 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param flushCacheOnDeallocate true if statement cache should be reset when "deallocate/discard" message observed
    */
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
+
+  /**
+   * Indicates if statements to backend should be hinted as read only.
+   *
+   * @return Indication if hints to backend (such as when transaction begins)
+   *         should be read only.
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  boolean hintReadOnly();
 }

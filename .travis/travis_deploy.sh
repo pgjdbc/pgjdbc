@@ -13,5 +13,5 @@ then
     cd pgjdbc-jre7
     mvn ${MVN_ARGS} -P release-artifacts,release,skip-unzip-jdk
 else
-    mvn ${MVN_ARGS} -P release-artifacts,release
+    mvn ${MVN_ARGS} -P release-artifacts,release -Dskip.unzip-jdk-src=false
 fi

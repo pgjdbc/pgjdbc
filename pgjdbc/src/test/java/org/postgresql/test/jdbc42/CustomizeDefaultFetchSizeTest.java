@@ -51,7 +51,6 @@ public class CustomizeDefaultFetchSizeTest {
         resultFetchSize, CoreMatchers.equalTo(waitFetchSize));
   }
 
-
   @Test
   public void testSetPredefineDefaultFetchSizeOnPreparedStatement() throws Exception {
     final int waitFetchSize = 14;

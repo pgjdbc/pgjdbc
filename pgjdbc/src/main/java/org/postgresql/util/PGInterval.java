@@ -7,42 +7,32 @@ package org.postgresql.util;
 
 import java.io.Serializable;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.StringTokenizer;
 
 /**
- * This implements a class that handles the PostgreSQL interval type
+ * This implements a class that handles the PostgreSQL interval type.
  */
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
   private int years;
-  private int months;
-  private int days;
-  private int hours;
-  private int minutes;
-  private double seconds;
-
-  private static final DecimalFormat secondsFormat;
-
-  static {
-    secondsFormat = new DecimalFormat("0.00####");
-    DecimalFormatSymbols dfs = secondsFormat.getDecimalFormatSymbols();
-    dfs.setDecimalSeparator('.');
-    secondsFormat.setDecimalFormatSymbols(dfs);
-  }
+  private byte months;
+  private byte days;
+  private byte hours;
+  private byte minutes;
+  private int wholeSeconds;
+  private int microSeconds;
 
   /**
-   * required by the driver
+   * required by the driver.
    */
   public PGInterval() {
     setType("interval");
   }
 
   /**
-   * Initialize a interval with a given interval string representation
+   * Initialize a interval with a given interval string representation.
    *
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
@@ -53,8 +43,68 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     setValue(value);
   }
 
+  private int lookAhead(String value, int position, String find) {
+    char [] tokens = find.toCharArray();
+    int found = -1;
+
+    for ( int i = 0; i < tokens.length; i++ ) {
+      found = value.indexOf(tokens[i], position);
+      if ( found > 0 ) {
+        return found;
+      }
+    }
+    return found;
+  }
+
+  private void parseISO8601Format(String value) {
+    int number = 0;
+    String dateValue;
+    String timeValue = null;
+
+    int hasTime = value.indexOf('T');
+    if ( hasTime > 0 ) {
+      /* skip over the P */
+      dateValue = value.substring(1,hasTime);
+      timeValue = value.substring(hasTime + 1);
+    } else {
+      /* skip over the P */
+      dateValue = value.substring(1);
+    }
+
+    for ( int i = 0; i < dateValue.length(); i++ ) {
+      int lookAhead = lookAhead(dateValue, i, "YMD");
+      if (lookAhead > 0) {
+        number = Integer.parseInt(dateValue.substring(i, lookAhead));
+        if (dateValue.charAt(lookAhead) == 'Y') {
+          setYears(number);
+        } else if (dateValue.charAt(lookAhead) == 'M') {
+          setMonths(number);
+        } else if (dateValue.charAt(lookAhead) == 'D') {
+          setDays(number);
+        }
+        i = lookAhead;
+      }
+    }
+    if ( timeValue != null ) {
+      for (int i = 0; i < timeValue.length(); i++) {
+        int lookAhead = lookAhead(timeValue, i, "HMS");
+        if (lookAhead > 0) {
+          number = Integer.parseInt(timeValue.substring(i, lookAhead));
+          if (timeValue.charAt(lookAhead) == 'H') {
+            setHours(number);
+          } else if (timeValue.charAt(lookAhead) == 'M') {
+            setMinutes(number);
+          } else if (timeValue.charAt(lookAhead) == 'S') {
+            setSeconds(number);
+          }
+          i = lookAhead;
+        }
+      }
+    }
+  }
+
   /**
-   * Initializes all values of this interval to the specified values
+   * Initializes all values of this interval to the specified values.
    *
    * @param years years
    * @param months months
@@ -71,16 +121,19 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
 
   /**
    * Sets a interval string represented value to this instance. This method only recognize the
-   * format, that Postgres returns - not all input formats are supported (e.g. '1 yr 2 m 3 s')!
+   * format, that Postgres returns - not all input formats are supported (e.g. '1 yr 2 m 3 s').
    *
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
    */
   public void setValue(String value) throws SQLException {
-    final boolean ISOFormat = !value.startsWith("@");
-
+    final boolean PostgresFormat = !value.startsWith("@");
+    if (value.startsWith("P")) {
+      parseISO8601Format(value);
+      return;
+    }
     // Just a simple '0'
-    if (!ISOFormat && value.length() == 3 && value.charAt(2) == '0') {
+    if (!PostgresFormat && value.length() == 3 && value.charAt(2) == '0') {
       setValue(0, 0, 0, 0, 0, 0.0);
       return;
     }
@@ -153,7 +206,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
     }
 
-    if (!ISOFormat && value.endsWith("ago")) {
+    if (!PostgresFormat && value.endsWith("ago")) {
       // Inverse the leading sign
       setValue(-years, -months, -days, -hours, -minutes, -seconds);
     } else {
@@ -162,7 +215,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set all values of this interval to the specified values
+   * Set all values of this interval to the specified values.
    *
    * @param years years
    * @param months months
@@ -181,7 +234,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the stored interval information as a string
+   * Returns the stored interval information as a string.
    *
    * @return String represented interval
    */
@@ -191,11 +244,11 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         + days + " days "
         + hours + " hours "
         + minutes + " mins "
-        + secondsFormat.format(seconds) + " secs";
+        + wholeSeconds + '.' + microSeconds + " secs";
   }
 
   /**
-   * Returns the years represented by this interval
+   * Returns the years represented by this interval.
    *
    * @return years represented by this interval
    */
@@ -204,7 +257,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the years of this interval to the specified value
+   * Set the years of this interval to the specified value.
    *
    * @param years years to set
    */
@@ -213,7 +266,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the months represented by this interval
+   * Returns the months represented by this interval.
    *
    * @return months represented by this interval
    */
@@ -222,16 +275,16 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the months of this interval to the specified value
+   * Set the months of this interval to the specified value.
    *
    * @param months months to set
    */
   public void setMonths(int months) {
-    this.months = months;
+    this.months = (byte) months;
   }
 
   /**
-   * Returns the days represented by this interval
+   * Returns the days represented by this interval.
    *
    * @return days represented by this interval
    */
@@ -240,16 +293,16 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the days of this interval to the specified value
+   * Set the days of this interval to the specified value.
    *
    * @param days days to set
    */
   public void setDays(int days) {
-    this.days = days;
+    this.days = (byte)days;
   }
 
   /**
-   * Returns the hours represented by this interval
+   * Returns the hours represented by this interval.
    *
    * @return hours represented by this interval
    */
@@ -258,16 +311,16 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the hours of this interval to the specified value
+   * Set the hours of this interval to the specified value.
    *
    * @param hours hours to set
    */
   public void setHours(int hours) {
-    this.hours = hours;
+    this.hours = (byte)hours;
   }
 
   /**
-   * Returns the minutes represented by this interval
+   * Returns the minutes represented by this interval.
    *
    * @return minutes represented by this interval
    */
@@ -276,42 +329,71 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Set the minutes of this interval to the specified value
+   * Set the minutes of this interval to the specified value.
    *
    * @param minutes minutes to set
    */
   public void setMinutes(int minutes) {
-    this.minutes = minutes;
+    this.minutes = (byte)minutes;
   }
 
   /**
-   * Returns the seconds represented by this interval
+   * Returns the seconds represented by this interval.
    *
    * @return seconds represented by this interval
    */
   public double getSeconds() {
-    return seconds;
+    if ( microSeconds < 0) {
+      if ( wholeSeconds == 0 ) {
+        return Double.parseDouble("-0." + -microSeconds);
+      } else {
+        return Double.parseDouble("" + wholeSeconds + '.' + -microSeconds);
+      }
+    }
+    return Double.parseDouble("" + wholeSeconds + '.' + microSeconds );
+  }
+
+  public int getWholeSeconds() {
+    return wholeSeconds;
+  }
+
+  public int getMicroSeconds() {
+    return microSeconds;
   }
 
   /**
-   * Set the seconds of this interval to the specified value
+   * Set the seconds of this interval to the specified value.
    *
    * @param seconds seconds to set
    */
   public void setSeconds(double seconds) {
-    this.seconds = seconds;
+    String str = Double.toString(seconds);
+    int decimal = str.indexOf('.');
+    if (decimal > 0) {
+
+      /* how many 10's do we need to multiply by to get microseconds */
+      String micSeconds = str.substring(decimal + 1);
+      int power = 6 - micSeconds.length();
+
+      microSeconds = Integer.parseInt(micSeconds) * (int)Math.pow(10,power);
+      wholeSeconds = Integer.parseInt(str.substring(0,decimal));
+    } else {
+      microSeconds = 0;
+      wholeSeconds = Integer.parseInt(str);
+    }
+    if ( seconds < 0 ) {
+      microSeconds = -microSeconds;
+    }
   }
 
   /**
-   * Rolls this interval on a given calendar
+   * Rolls this interval on a given calendar.
    *
    * @param cal Calendar instance to add to
    */
   public void add(Calendar cal) {
-    // Avoid precision loss
-    // Be aware postgres doesn't return more than 60 seconds - no overflow can happen
-    final int microseconds = (int) (getSeconds() * 1000000.0);
-    final int milliseconds = (microseconds + ((microseconds < 0) ? -500 : 500)) / 1000;
+
+    final int milliseconds = (microSeconds + ((microSeconds < 0) ? -500 : 500)) / 1000 + wholeSeconds * 1000;
 
     cal.add(Calendar.MILLISECOND, milliseconds);
     cal.add(Calendar.MINUTE, getMinutes());
@@ -322,7 +404,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Rolls this interval on a given date
+   * Rolls this interval on a given date.
    *
    * @param date Date instance to add to
    */
@@ -366,7 +448,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns integer value of value or 0 if value is null
+   * Returns integer value of value or 0 if value is null.
    *
    * @param value integer as string value
    * @return integer parsed from string value
@@ -377,7 +459,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns double value of value or 0 if value is null
+   * Returns double value of value or 0 if value is null.
    *
    * @param value double as string value
    * @return double parsed from string value
@@ -388,7 +470,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns whether an object is equal to this one or not
+   * Returns whether an object is equal to this one or not.
    *
    * @param obj Object to compare with
    * @return true if the two intervals are identical
@@ -413,16 +495,18 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         && pgi.days == days
         && pgi.hours == hours
         && pgi.minutes == minutes
-        && Double.doubleToLongBits(pgi.seconds) == Double.doubleToLongBits(seconds);
+        && pgi.wholeSeconds == wholeSeconds
+        && pgi.microSeconds == microSeconds;
   }
 
   /**
-   * Returns a hashCode for this object
+   * Returns a hashCode for this object.
    *
    * @return hashCode
    */
+  @Override
   public int hashCode() {
-    return ((((((7 * 31 + (int) Double.doubleToLongBits(seconds)) * 31 + minutes) * 31 + hours) * 31
+    return (((((((8 * 31 + microSeconds) * 31 + wholeSeconds) * 31 + minutes) * 31 + hours) * 31
         + days) * 31 + months) * 31 + years) * 31;
   }
 

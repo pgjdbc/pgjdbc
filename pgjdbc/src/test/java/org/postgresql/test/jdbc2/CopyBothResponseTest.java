@@ -36,7 +36,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
- * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol
+ * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol.
  */
 @HaveMinimalServerVersion("9.4")
 public class CopyBothResponseTest {

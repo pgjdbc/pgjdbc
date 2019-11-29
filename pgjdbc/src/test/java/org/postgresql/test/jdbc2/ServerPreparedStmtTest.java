@@ -75,7 +75,6 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     pstmt.close();
   }
 
-
   @Test
   public void testPreparedStatementsNoBinds() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");

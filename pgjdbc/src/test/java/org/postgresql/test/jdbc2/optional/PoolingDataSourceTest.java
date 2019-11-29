@@ -6,7 +6,7 @@
 package org.postgresql.test.jdbc2.optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.postgresql.ds.common.BaseDataSource;
@@ -60,7 +60,7 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
     con = getDataSourceConnection();
     String name2 = con.toString();
     con.close();
-    assertTrue("Pooled DS doesn't appear to be pooling connections!", name.equals(name2));
+    assertEquals("Pooled DS doesn't appear to be pooling connections!", name, name2);
   }
 
   /**
@@ -68,8 +68,8 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
    */
   @Override
   protected void compareJndiDataSource(BaseDataSource oldbds, BaseDataSource bds) {
-    assertTrue("DataSource was serialized or recreated, should have been dereferenced",
-        bds == oldbds);
+    assertSame("DataSource was serialized or recreated, should have been dereferenced",
+        bds, oldbds);
   }
 
   /**

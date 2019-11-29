@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc4;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -77,7 +78,7 @@ public class ClientInfoTest extends BaseTest4 {
   }
 
   /**
-   * Test that no exception is thrown when an unknown property is set
+   * Test that no exception is thrown when an unknown property is set.
    */
   @Test
   public void testWarningOnUnknownName() throws SQLException {
@@ -86,11 +87,11 @@ public class ClientInfoTest extends BaseTest4 {
     } catch (SQLClientInfoException e) {
       fail("Trying to set an unexisting name must not throw an exception (spec)");
     }
-    assertTrue(con.getWarnings() != null);
+    assertNotNull(con.getWarnings());
   }
 
   /**
-   * Test that a name missing in the properties given to setClientInfo should be unset (spec)
+   * Test that a name missing in the properties given to setClientInfo should be unset (spec).
    */
   @Test
   public void testMissingName() throws SQLException {

@@ -67,6 +67,7 @@ public class DateTest {
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'3456-01-01'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0101-01-01 BC'")));
 
+
     /* dateTest() contains all of the tests */
     dateTest();
 

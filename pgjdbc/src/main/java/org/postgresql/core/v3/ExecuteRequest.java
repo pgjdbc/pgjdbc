@@ -6,7 +6,7 @@
 package org.postgresql.core.v3;
 
 /**
- * Information for "pending execute queue"
+ * Information for "pending execute queue".
  *
  * @see QueryExecutorImpl#pendingExecuteQueue
  */

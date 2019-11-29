@@ -6,11 +6,11 @@
 package org.postgresql;
 
 /**
- * This interface defines the public PostgreSQL extension for Notifications
+ * This interface defines the public PostgreSQL extension for Notifications.
  */
 public interface PGNotification {
   /**
-   * Returns name of this notification
+   * Returns name of this notification.
    *
    * @return name of this notification
    * @since 7.3
@@ -18,7 +18,7 @@ public interface PGNotification {
   String getName();
 
   /**
-   * Returns the process id of the backend process making this notification
+   * Returns the process id of the backend process making this notification.
    *
    * @return process id of the backend process making this notification
    * @since 7.3

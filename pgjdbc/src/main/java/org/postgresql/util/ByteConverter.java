@@ -17,6 +17,25 @@ public class ByteConverter {
   }
 
   /**
+   * Convert a variable length array of bytes to an integer
+   * @param bytes array of bytes that can be decoded as an integer
+   * @return integer
+   */
+  public static int bytesToInt(byte []bytes) {
+    if ( bytes.length == 1 ) {
+      return (int)bytes[0];
+    }
+    if ( bytes.length == 2 ) {
+      return int2(bytes, 0);
+    }
+    if ( bytes.length == 4 ) {
+      return int4(bytes, 0);
+    } else {
+      throw new IllegalArgumentException("Argument bytes is empty");
+    }
+  }
+
+  /**
    * Parses a long value from the byte array.
    *
    * @param bytes The byte array to parse.
@@ -59,6 +78,19 @@ public class ByteConverter {
    */
   public static short int2(byte[] bytes, int idx) {
     return (short) (((bytes[idx] & 255) << 8) + ((bytes[idx + 1] & 255)));
+  }
+
+  /**
+   * Parses a boolean value from the byte array.
+   *
+   * @param bytes
+   *          The byte array to parse.
+   * @param idx
+   *          The starting index to read from bytes.
+   * @return parsed boolean value.
+   */
+  public static boolean bool(byte[] bytes, int idx) {
+    return bytes[idx] == 1;
   }
 
   /**
@@ -125,6 +157,20 @@ public class ByteConverter {
   public static void int2(byte[] target, int idx, int value) {
     target[idx + 0] = (byte) (value >>> 8);
     target[idx + 1] = (byte) value;
+  }
+
+  /**
+   * Encodes a boolean value to the byte array.
+   *
+   * @param target
+   *          The byte array to encode to.
+   * @param idx
+   *          The starting index in the byte array.
+   * @param value
+   *          The value to encode.
+   */
+  public static void bool(byte[] target, int idx, boolean value) {
+    target[idx] = value ? (byte) 1 : (byte) 0;
   }
 
   /**

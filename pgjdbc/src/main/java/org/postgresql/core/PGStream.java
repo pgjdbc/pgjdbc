@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2017, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -14,34 +14,40 @@ import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.FilterOutputStream;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.sql.SQLException;
-
 import javax.net.SocketFactory;
 
 /**
- * Wrapper around the raw connection to the server that implements some basic primitives
- * (reading/writing formatted data, doing string encoding, etc).
- * <p>
- * In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
- * at a time is accessing a particular PGStream instance.
+ * <p>Wrapper around the raw connection to the server that implements some basic primitives
+ * (reading/writing formatted data, doing string encoding, etc).</p>
+ *
+ * <p>In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
+ * at a time is accessing a particular PGStream instance.</p>
  */
-public class PGStream implements Closeable {
+public class PGStream implements Closeable, Flushable {
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
 
-  private final byte[] _int4buf;
-  private final byte[] _int2buf;
+  private final byte[] int4Buf;
+  private final byte[] int2Buf;
 
   private Socket connection;
-  private VisibleBufferedInputStream pg_input;
-  private OutputStream pg_output;
+  private VisibleBufferedInputStream pgInput;
+  private OutputStream pgOutput;
   private byte[] streamBuffer;
+
+  private long nextStreamAvailableCheckTime;
+  // This is a workaround for SSL sockets: sslInputStream.available() might return 0
+  // so we perform "1ms reads" once in a while
+  private int minStreamAvailableCheckDelay = 1000;
 
   private Encoding encoding;
   private Writer encodingWriter;
@@ -63,7 +69,7 @@ public class PGStream implements Closeable {
       // When using a SOCKS proxy, the host might not be resolvable locally,
       // thus we defer resolution until the traffic reaches the proxy. If there
       // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = System.getProperty("socksProxyHost") == null
+      InetSocketAddress address = hostSpec.shouldResolve()
           ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
           : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
       socket.connect(address, timeout);
@@ -71,8 +77,8 @@ public class PGStream implements Closeable {
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
-    _int2buf = new byte[2];
-    _int4buf = new byte[4];
+    int2Buf = new byte[2];
+    int4Buf = new byte[4];
   }
 
   /**
@@ -109,7 +115,43 @@ public class PGStream implements Closeable {
    * @throws IOException if something wrong happens
    */
   public boolean hasMessagePending() throws IOException {
-    return pg_input.available() > 0 || connection.getInputStream().available() > 0;
+
+    boolean available = false;
+
+    // In certain cases, available returns 0, yet there are bytes
+    if (pgInput.available() > 0) {
+      return true;
+    }
+    long now = System.nanoTime() / 1000000;
+
+    if (now < nextStreamAvailableCheckTime && minStreamAvailableCheckDelay != 0) {
+      // Do not use ".peek" too often
+      return false;
+    }
+
+    int soTimeout = getNetworkTimeout();
+    setNetworkTimeout(1);
+    try {
+      available = (pgInput.peek() != -1);
+    } catch (SocketTimeoutException e) {
+      return false;
+    } finally {
+      setNetworkTimeout(soTimeout);
+    }
+
+    /*
+    If none available then set the next check time
+    In the event that there more async bytes available we will continue to get them all
+    see issue 1547 https://github.com/pgjdbc/pgjdbc/issues/1547
+     */
+    if (!available) {
+      nextStreamAvailableCheckTime = now + minStreamAvailableCheckDelay;
+    }
+    return available;
+  }
+
+  public void setMinStreamAvailableCheckDelay(int delay) {
+    this.minStreamAvailableCheckDelay = delay;
   }
 
   /**
@@ -128,8 +170,8 @@ public class PGStream implements Closeable {
     connection.setTcpNoDelay(true);
 
     // Buffer sizes submitted by Sverre H Huseby <sverrehu@online.no>
-    pg_input = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
-    pg_output = new BufferedOutputStream(connection.getOutputStream(), 8192);
+    pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
+    pgOutput = new BufferedOutputStream(connection.getOutputStream(), 8192);
 
     if (encoding != null) {
       setEncoding(encoding);
@@ -147,6 +189,9 @@ public class PGStream implements Closeable {
    * @throws IOException if something goes wrong
    */
   public void setEncoding(Encoding encoding) throws IOException {
+    if (this.encoding != null && this.encoding.name().equals(encoding.name())) {
+      return;
+    }
     // Close down any old writer.
     if (encodingWriter != null) {
       encodingWriter.close();
@@ -156,7 +201,7 @@ public class PGStream implements Closeable {
 
     // Intercept flush() downcalls from the writer; our caller
     // will call PGStream.flush() as needed.
-    OutputStream interceptor = new FilterOutputStream(pg_output) {
+    OutputStream interceptor = new FilterOutputStream(pgOutput) {
       public void flush() throws IOException {
       }
 
@@ -169,12 +214,12 @@ public class PGStream implements Closeable {
   }
 
   /**
-   * Get a Writer instance that encodes directly onto the underlying stream.
-   * <p>
-   * The returned Writer should not be closed, as it's a shared object. Writer.flush needs to be
+   * <p>Get a Writer instance that encodes directly onto the underlying stream.</p>
+   *
+   * <p>The returned Writer should not be closed, as it's a shared object. Writer.flush needs to be
    * called when switching between use of the Writer and use of the PGStream write methods, but it
    * won't actually flush output all the way out -- call {@link #flush} to actually ensure all
-   * output has been pushed to the server.
+   * output has been pushed to the server.</p>
    *
    * @return the shared Writer instance
    * @throws IOException if something goes wrong.
@@ -187,31 +232,31 @@ public class PGStream implements Closeable {
   }
 
   /**
-   * Sends a single character to the back end
+   * Sends a single character to the back end.
    *
    * @param val the character to be sent
    * @throws IOException if an I/O error occurs
    */
   public void sendChar(int val) throws IOException {
-    pg_output.write(val);
+    pgOutput.write(val);
   }
 
   /**
-   * Sends a 4-byte integer to the back end
+   * Sends a 4-byte integer to the back end.
    *
    * @param val the integer to be sent
    * @throws IOException if an I/O error occurs
    */
   public void sendInteger4(int val) throws IOException {
-    _int4buf[0] = (byte) (val >>> 24);
-    _int4buf[1] = (byte) (val >>> 16);
-    _int4buf[2] = (byte) (val >>> 8);
-    _int4buf[3] = (byte) (val);
-    pg_output.write(_int4buf);
+    int4Buf[0] = (byte) (val >>> 24);
+    int4Buf[1] = (byte) (val >>> 16);
+    int4Buf[2] = (byte) (val >>> 8);
+    int4Buf[3] = (byte) (val);
+    pgOutput.write(int4Buf);
   }
 
   /**
-   * Sends a 2-byte integer (short) to the back end
+   * Sends a 2-byte integer (short) to the back end.
    *
    * @param val the integer to be sent
    * @throws IOException if an I/O error occurs or {@code val} cannot be encoded in 2 bytes
@@ -221,19 +266,19 @@ public class PGStream implements Closeable {
       throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
     }
 
-    _int2buf[0] = (byte) (val >>> 8);
-    _int2buf[1] = (byte) val;
-    pg_output.write(_int2buf);
+    int2Buf[0] = (byte) (val >>> 8);
+    int2Buf[1] = (byte) val;
+    pgOutput.write(int2Buf);
   }
 
   /**
-   * Send an array of bytes to the backend
+   * Send an array of bytes to the backend.
    *
    * @param buf The array of bytes to be sent
    * @throws IOException if an I/O error occurs
    */
   public void send(byte[] buf) throws IOException {
-    pg_output.write(buf);
+    pgOutput.write(buf);
   }
 
   /**
@@ -259,9 +304,9 @@ public class PGStream implements Closeable {
    */
   public void send(byte[] buf, int off, int siz) throws IOException {
     int bufamt = buf.length - off;
-    pg_output.write(buf, off, bufamt < siz ? bufamt : siz);
+    pgOutput.write(buf, off, bufamt < siz ? bufamt : siz);
     for (int i = bufamt; i < siz; ++i) {
-      pg_output.write(0);
+      pgOutput.write(0);
     }
   }
 
@@ -273,7 +318,7 @@ public class PGStream implements Closeable {
    * @throws IOException if an I/O Error occurs
    */
   public int peekChar() throws IOException {
-    int c = pg_input.peek();
+    int c = pgInput.peek();
     if (c < 0) {
       throw new EOFException();
     }
@@ -281,13 +326,13 @@ public class PGStream implements Closeable {
   }
 
   /**
-   * Receives a single character from the backend
+   * Receives a single character from the backend.
    *
    * @return the character received
    * @throws IOException if an I/O Error occurs
    */
   public int receiveChar() throws IOException {
-    int c = pg_input.read();
+    int c = pgInput.read();
     if (c < 0) {
       throw new EOFException();
     }
@@ -295,32 +340,32 @@ public class PGStream implements Closeable {
   }
 
   /**
-   * Receives a four byte integer from the backend
+   * Receives a four byte integer from the backend.
    *
    * @return the integer received from the backend
    * @throws IOException if an I/O error occurs
    */
   public int receiveInteger4() throws IOException {
-    if (pg_input.read(_int4buf) != 4) {
+    if (pgInput.read(int4Buf) != 4) {
       throw new EOFException();
     }
 
-    return (_int4buf[0] & 0xFF) << 24 | (_int4buf[1] & 0xFF) << 16 | (_int4buf[2] & 0xFF) << 8
-        | _int4buf[3] & 0xFF;
+    return (int4Buf[0] & 0xFF) << 24 | (int4Buf[1] & 0xFF) << 16 | (int4Buf[2] & 0xFF) << 8
+        | int4Buf[3] & 0xFF;
   }
 
   /**
-   * Receives a two byte integer from the backend
+   * Receives a two byte integer from the backend.
    *
    * @return the integer received from the backend
    * @throws IOException if an I/O error occurs
    */
   public int receiveInteger2() throws IOException {
-    if (pg_input.read(_int2buf) != 2) {
+    if (pgInput.read(int2Buf) != 2) {
       throw new EOFException();
     }
 
-    return (_int2buf[0] & 0xFF) << 8 | _int2buf[1] & 0xFF;
+    return (int2Buf[0] & 0xFF) << 8 | int2Buf[1] & 0xFF;
   }
 
   /**
@@ -331,12 +376,12 @@ public class PGStream implements Closeable {
    * @throws IOException if something wrong happens
    */
   public String receiveString(int len) throws IOException {
-    if (!pg_input.ensureBytes(len)) {
+    if (!pgInput.ensureBytes(len)) {
       throw new EOFException();
     }
 
-    String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
-    pg_input.skip(len);
+    String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
+    pgInput.skip(len);
     return res;
   }
 
@@ -349,24 +394,24 @@ public class PGStream implements Closeable {
    * @throws IOException if something wrong happens
    */
   public EncodingPredictor.DecodeResult receiveErrorString(int len) throws IOException {
-    if (!pg_input.ensureBytes(len)) {
+    if (!pgInput.ensureBytes(len)) {
       throw new EOFException();
     }
 
     EncodingPredictor.DecodeResult res;
     try {
-      String value = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
+      String value = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
       // no autodetect warning as the message was converted on its own
       res = new EncodingPredictor.DecodeResult(value, null);
     } catch (IOException e) {
-      res = EncodingPredictor.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
+      res = EncodingPredictor.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
       if (res == null) {
         Encoding enc = Encoding.defaultEncoding();
-        String value = enc.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
+        String value = enc.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
         res = new EncodingPredictor.DecodeResult(value, enc.name());
       }
     }
-    pg_input.skip(len);
+    pgInput.skip(len);
     return res;
   }
 
@@ -378,9 +423,9 @@ public class PGStream implements Closeable {
    * @throws IOException if an I/O error occurs, or end of file
    */
   public String receiveString() throws IOException {
-    int len = pg_input.scanCStringLength();
-    String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(), len - 1);
-    pg_input.skip(len);
+    int len = pgInput.scanCStringLength();
+    String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
+    pgInput.skip(len);
     return res;
   }
 
@@ -392,21 +437,20 @@ public class PGStream implements Closeable {
    * @throws IOException if a data I/O error occurs
    */
   public byte[][] receiveTupleV3() throws IOException, OutOfMemoryError {
-    // TODO: use l_msgSize
-    int l_msgSize = receiveInteger4();
-    int l_nf = receiveInteger2();
-    byte[][] answer = new byte[l_nf][];
+    receiveInteger4(); // MESSAGE SIZE
+    int nf = receiveInteger2();
+    byte[][] answer = new byte[nf][];
 
     OutOfMemoryError oom = null;
-    for (int i = 0; i < l_nf; ++i) {
-      int l_size = receiveInteger4();
-      if (l_size != -1) {
+    for (int i = 0; i < nf; ++i) {
+      int size = receiveInteger4();
+      if (size != -1) {
         try {
-          answer[i] = new byte[l_size];
-          receive(answer[i], 0, l_size);
+          answer[i] = new byte[size];
+          receive(answer[i], 0, size);
         } catch (OutOfMemoryError oome) {
           oom = oome;
-          skip(l_size);
+          skip(size);
         }
       }
     }
@@ -419,7 +463,7 @@ public class PGStream implements Closeable {
   }
 
   /**
-   * Reads in a given number of bytes from the backend
+   * Reads in a given number of bytes from the backend.
    *
    * @param siz number of bytes to read
    * @return array of bytes received
@@ -432,7 +476,7 @@ public class PGStream implements Closeable {
   }
 
   /**
-   * Reads in a given number of bytes from the backend
+   * Reads in a given number of bytes from the backend.
    *
    * @param buf buffer to store result
    * @param off offset in buffer
@@ -443,7 +487,7 @@ public class PGStream implements Closeable {
     int s = 0;
 
     while (s < siz) {
-      int w = pg_input.read(buf, off + s, siz - s);
+      int w = pgInput.read(buf, off + s, siz - s);
       if (w < 0) {
         throw new EOFException();
       }
@@ -454,10 +498,9 @@ public class PGStream implements Closeable {
   public void skip(int size) throws IOException {
     long s = 0;
     while (s < size) {
-      s += pg_input.skip(size - s);
+      s += pgInput.skip(size - s);
     }
   }
-
 
   /**
    * Copy data from an input stream to the connection.
@@ -503,21 +546,22 @@ public class PGStream implements Closeable {
    *
    * @throws IOException if an I/O error occurs
    */
+  @Override
   public void flush() throws IOException {
     if (encodingWriter != null) {
       encodingWriter.flush();
     }
-    pg_output.flush();
+    pgOutput.flush();
   }
 
   /**
-   * Consume an expected EOF from the backend
+   * Consume an expected EOF from the backend.
    *
    * @throws IOException if an I/O error occurs
    * @throws SQLException if we get something other than an EOF
    */
   public void receiveEOF() throws SQLException, IOException {
-    int c = pg_input.read();
+    int c = pgInput.read();
     if (c < 0) {
       return;
     }
@@ -526,7 +570,7 @@ public class PGStream implements Closeable {
   }
 
   /**
-   * Closes the connection
+   * Closes the connection.
    *
    * @throws IOException if an I/O Error occurs
    */
@@ -536,8 +580,16 @@ public class PGStream implements Closeable {
       encodingWriter.close();
     }
 
-    pg_output.close();
-    pg_input.close();
+    pgOutput.close();
+    pgInput.close();
     connection.close();
+  }
+
+  public void setNetworkTimeout(int milliseconds) throws IOException {
+    connection.setSoTimeout(milliseconds);
+  }
+
+  public int getNetworkTimeout() throws IOException {
+    return connection.getSoTimeout();
   }
 }
