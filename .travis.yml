@@ -21,7 +21,8 @@ stages:
     if: branch =~ ^release\/.*$
 
 before_script:
-  - test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
+  # TODO: restore when the number of Travis jobs is back to normal (coverage)
+  #- test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
   - export PG_SLAVE1_DATADIR="/etc/postgresql/${PG_VERSION}/slave1"
   - export PG_SLAVE2_DATADIR="/etc/postgresql/${PG_VERSION}/slave2"
@@ -69,7 +70,8 @@ script:
 
 before_cache:
   # No sense in caching current build artifacts
-  - rm -rf $HOME/.m2/repository/org/postgresql
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
 
@@ -79,8 +81,8 @@ install: true
 
 cache:
   directories:
-    - $HOME/.m2/repository
-    - $HOME/.ivy2/cache
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
     - $HOME/.sbt/boot/
 
 matrix:
@@ -89,186 +91,16 @@ matrix:
     - stage: test
       jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
-    - env:
-        - FEDORA_CI=Y
-      services:
-        - docker
-      if: type != pull_request
-    - jdk: openjdk-ea
-      sudo: required
-      addons:
-        postgresql: "10"
-      env:
-      - PG_VERSION=10
-      - JDK=12
-      - TZ=America/New_York # flips between −05:00 and −04:00
-    - jdk: openjdk-ea
-      sudo: required
-      addons:
-        postgresql: "11"
-      env:
-        - PG_VERSION=11
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - PLPGSQL_EXTENSION=Y
-    - jdk: oraclejdk9
-      sudo: required
-      addons:
-        postgresql: "11"
-      env:
-        - PG_VERSION=11
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - PLPGSQL_EXTENSION=Y
-        - JDK=9
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "11"
-      env:
-        - PG_VERSION=11
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - PLPGSQL_EXTENSION=Y
-        - JDK=8
+      script: ./gradlew autostyleCheck checkstyleAll
     - jdk: oraclejdk11
       sudo: required
       addons:
         postgresql: "10"
       env:
-      - PG_VERSION=10
-      - JDK=11
-      - TZ=America/New_York # flips between −05:00 and −04:00
-    - jdk: oraclejdk9
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - JDK=9
-        - TZ=America/New_York # flips between −05:00 and −04:00
-    - jdk: oraclejdk8
-      sudo: required
-      env:
-        - PG_VERSION=HEAD
-        - XA=true
-        - REPLICATION=Y
-        - COVERAGE=Y
-        - TEST_CLIENTS=Y
-        - TZ=Pacific/Chatham # flips between +12:45 and +13:45
-        - JDK=8
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - ZULU_JDK=8
-        - XA=true
-        - REPLICATION=Y
-        - COVERAGE=Y
-        - MCENTRAL=Y
-        - JDOC=Y
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "9.5"
-      env:
-        - PG_VERSION=9.5
-        - XA=true
-        - REPLICATION=Y
-        - JDK=8
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - QUERY_MODE=extendedCacheEverything
-        - COVERAGE=Y
-        - TZ=Europe/Moscow # +03:00, no DST
-        - JDK=8
-    - jdk: oraclejdk8
-      sudo: required
-      addons:
-        postgresql: "10"
-      env:
         - PG_VERSION=10
-        - SSLTEST=Y
-        - COVERAGE=Y
-        - JDK=8
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=7
-        - MCENTRAL=Y
-        - COVERAGE=Y
-        - TZ=UTC
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
-        - MCENTRAL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      env:
-        - PG_VERSION=8.4
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - QUERY_MODE=simple
-        - COVERAGE=Y
+        - JDK=11
+        - TZ=America/New_York # flips between −05:00 and −04:00
         - TEST_CLIENTS=Y
-        - JDK=8
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.3"
-      env:
-        - PG_VERSION=9.3
-        - QUERY_MODE=extendedForPrepared
-        - COVERAGE=Y
-        - JDK=8
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - NO_WAFFLE_NO_OSGI=Y
-        - JDK=8
-    - stage: release
-      jdk: oraclejdk8
-      env:
-        - PG_VERSION=9.6
-    - stage: release_prev
-      jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=7
-    - stage: release_prev
-      jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
 
 # Deploy snapshots to Maven Central
 after_success:

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners
+# GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
+
+jobs:
+  ubuntu-latest:
+    name: 'Ubuntu, PG latest (JDK 8)'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          # Empty password
+          # POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: >-
+          --name db
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+    - name: Setup Users
+      uses: docker://docker
+      with:
+        args: docker exec -t db psql -U postgres -c "set password_encryption='scram-sha-256'; create user test with password 'test';"
+    - name: Create DB
+      uses: docker://docker
+      with:
+        args: docker exec -t db psql -U postgres -c "create database test owner test;"
+    - uses: actions/checkout@master
+      with:
+        fetch-depth: 50
+    - name: 'Set up JDK 8'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+#    - name: 'Setup DB'
+#      run: |
+#        psql -U postgres -c "set password_encryption='scram-sha-256'; create user test with password 'test';"
+#        psql -U postgres -c 'create database test owner test;'
+#        psql -U postgres test -c 'CREATE EXTENSION hstore;'
+    - name: 'Test'
+      run: |
+        ./gradlew --no-parallel --no-daemon -PskipReplicationTests test javadoc -Pport=${{ job.services.postgres.ports['5432'] }}
