@@ -104,11 +104,20 @@ public class DatabaseMetaDataTest {
     int count = assertGetFunctionRS(rs);
     assertThat( count, is(1));
 
-    conn.setSchema("hasfunctions");
+    Statement statement = conn.createStatement();
+    statement.execute("set search_path=hasfunctions");
+
     rs = dbmd.getFunctions("", "","addfunction");
     assertThat( assertGetFunctionRS(rs), is(1) );
 
-    conn.setSchema("public");
+    statement.execute("set search_path=nofunctions");
+
+    rs = dbmd.getFunctions("", "","addfunction");
+    assertFalse(rs.next());
+
+    statement.execute("reset search_path");
+    statement.close();
+
     rs = dbmd.getFunctions("", "nofunctions",null);
     assertFalse(rs.next());
 
@@ -120,11 +129,19 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getProcedures("", "hasfunctions",null);
     assertTrue(rs.next());
 
-    conn.setSchema("hasfunctions");
-    rs = dbmd.getProcedures("", "",null);
+
+    Statement statement = conn.createStatement();
+    statement.execute("set search_path=hasfunctions");
+
+    rs = dbmd.getProcedures("", "","addfunction");
     assertTrue(rs.next());
 
-    conn.setSchema("public");
+    statement.execute("set search_path=nofunctions");
+    rs = dbmd.getProcedures("", "","addfunction");
+    assertFalse(rs.next());
+
+    statement.execute("reset search_path");
+    statement.close();
     rs = dbmd.getProcedures("", "nofunctions",null);
     assertFalse(rs.next());
 
