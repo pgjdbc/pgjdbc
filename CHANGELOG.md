@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.2.9] (2019-12-03)
+### Changed
+
+### Added
+
+### Fixed
+
 ## [42.2.8] (2019-09-13)
 ### Changed
 
@@ -246,4 +253,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...REL42.2.6
 [42.2.7]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.6...REL42.2.7
 [42.2.8]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.7...REL42.2.8
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.8...HEAD
+[42.2.9]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.8...REL42.2.9
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...HEAD
