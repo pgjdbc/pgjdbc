@@ -1038,6 +1038,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " WHERE p.pronamespace=n.oid ";
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    } else {
+      /* limit to current schema if no schema given */
+      sql += "and pg_function_is_visible(p.oid)";
     }
     if (procedureNamePattern != null && !procedureNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
@@ -2679,9 +2682,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "FROM pg_catalog.pg_proc p "
         + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
         + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
-        + "WHERE pg_function_is_visible(p.oid) ";
+        + "WHERE true  ";
+    /*
+    if the user provides a schema then search inside the schema for it
+     */
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    } else {
+      /* if no schema is provided then limit the search inside the search_path */
+      sql += "and pg_function_is_visible(p.oid)";
     }
     if (functionNamePattern != null && !functionNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);

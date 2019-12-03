@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc4;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -37,12 +38,20 @@ public class DatabaseMetaDataTest {
     conn = TestUtil.openDB();
     TestUtil.dropSequence(conn, "sercoltest_a_seq");
     TestUtil.createTable(conn, "sercoltest", "a serial, b int");
+    TestUtil.createSchema(conn, "hasfunctions");
+    TestUtil.createSchema(conn, "nofunctions");
+    TestUtil.execute("create function hasfunctions.addfunction (integer, integer) "
+        + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE", conn);
+
+
   }
 
   @After
   public void tearDown() throws Exception {
     TestUtil.dropSequence(conn, "sercoltest_a_seq");
     TestUtil.dropTable(conn, "sercoltest");
+    TestUtil.dropSchema(conn, "hasfunctions");
+    TestUtil.dropSchema(conn, "nofunctions");
     TestUtil.closeDB(conn);
   }
 
@@ -86,6 +95,39 @@ public class DatabaseMetaDataTest {
     assertEquals("public", rs.getString("TABLE_SCHEM"));
     assertNull(rs.getString("TABLE_CATALOG"));
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testGetFunctionsInSchema() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getFunctions("", "hasfunctions","");
+    int count = assertGetFunctionRS(rs);
+    assertThat( count, is(1));
+
+    conn.setSchema("hasfunctions");
+    rs = dbmd.getFunctions("", "","addfunction");
+    assertThat( assertGetFunctionRS(rs), is(1) );
+
+    conn.setSchema("public");
+    rs = dbmd.getFunctions("", "nofunctions",null);
+    assertFalse(rs.next());
+
+  }
+
+  @Test
+  public void testGetProceduresInSchema() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getProcedures("", "hasfunctions",null);
+    assertTrue(rs.next());
+
+    conn.setSchema("hasfunctions");
+    rs = dbmd.getProcedures("", "",null);
+    assertTrue(rs.next());
+
+    conn.setSchema("public");
+    rs = dbmd.getProcedures("", "nofunctions",null);
+    assertFalse(rs.next());
+
   }
 
   @Test
