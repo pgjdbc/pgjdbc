@@ -35,6 +35,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Array;
@@ -2343,6 +2344,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return res;
         }
         return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
+      } else {
+        Number num = ByteConverter.numeric(thisRow[columnIndex - 1]);
+        if (allowNaN && Double.isNaN(num.doubleValue())) {
+          return Double.NaN;
+        }
+
+        return num;
       }
     }
 
@@ -3014,6 +3022,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return ByteConverter.float4(bytes, 0);
       case Oid.FLOAT8:
         return ByteConverter.float8(bytes, 0);
+      case Oid.NUMERIC:
+        return ByteConverter.numeric(bytes).doubleValue();
     }
     throw new PSQLException(GT.tr("Cannot convert the column of type {0} to requested type {1}.",
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
@@ -3057,6 +3067,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         break;
       case Oid.FLOAT8:
         val = (long) ByteConverter.float8(bytes, 0);
+        break;
+      case Oid.NUMERIC:
+        Number num = ByteConverter.numeric(bytes);
+        if (num instanceof  BigDecimal) {
+          val = ((BigDecimal) num).setScale(0 , RoundingMode.DOWN).longValueExact();
+        } else {
+          val = num.longValue();
+        }
         break;
       default:
         throw new PSQLException(
