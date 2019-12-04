@@ -4,11 +4,6 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-### Changed
-
-### Added
-
-### Fixed
 
 ## [42.2.9] (2019-12-04)
 ### Changed
