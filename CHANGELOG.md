@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 ## [42.2.9] (2019-12-03)
+## [42.2.9] (2019-12-04)
 ### Changed
 
 ### Added
