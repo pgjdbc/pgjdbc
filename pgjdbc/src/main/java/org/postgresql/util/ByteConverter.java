@@ -136,20 +136,28 @@ public class ByteConverter {
     return new String(buffer.array(), 0, buffer.position() - extra);
   }
 
+  public static Number numeric(byte [] bytes) {
+    return numeric(bytes, 0, bytes.length);
+  }
+
   /**
    * Convert a variable length array of bytes to an integer
    * @param bytes array of bytes that can be decoded as an integer
    * @return integer
    */
-  public static Number numeric(byte []bytes) {
-    if (bytes.length < 8) {
+  public static Number numeric(byte [] bytes, int pos, int numBytes) {
+    if (numBytes < 8) {
       throw new IllegalArgumentException("number of bytes should be at-least 8");
     }
 
-    short len = ByteConverter.int2(bytes, 0);
-    short weight = ByteConverter.int2(bytes, 2);
-    short sign = ByteConverter.int2(bytes, 4);
-    short scale = ByteConverter.int2(bytes, 6);
+    short len = ByteConverter.int2(bytes, pos);
+    short weight = ByteConverter.int2(bytes, pos + 2);
+    short sign = ByteConverter.int2(bytes, pos + 4);
+    short scale = ByteConverter.int2(bytes, pos + 6);
+
+    if (numBytes != (len * Short.BYTES) + 8) {
+      throw new IllegalArgumentException("invalid length of bytes \"numeric\" value");
+    }
 
     if (!(sign == NUMERIC_POS
         || sign == NUMERIC_NEG
@@ -166,7 +174,7 @@ public class ByteConverter {
     }
 
     short[] digits = new short[len];
-    int idx = 8;
+    int idx = pos + 8;
     for (int i = 0; i < len; i++) {
       short d = ByteConverter.int2(bytes, idx);
       idx += 2;

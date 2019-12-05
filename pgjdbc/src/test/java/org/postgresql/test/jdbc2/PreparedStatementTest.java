@@ -519,7 +519,7 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testNumeric() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
-      "CREATE TEMP TABLE numeric_tab (max_numeric_positive numeric, min_numeric_positive numeric, max_numeric_negative numeric, min_numeric_negative numeric, null_value numeric)");
+        "CREATE TEMP TABLE numeric_tab (max_numeric_positive numeric, min_numeric_positive numeric, max_numeric_negative numeric, min_numeric_negative numeric, null_value numeric)");
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -542,8 +542,8 @@ public class PreparedStatementTest extends BaseTest4 {
     values[3] = new BigDecimal("-" + minValueString);
 
     pstmt = con.prepareStatement("insert into numeric_tab values (?,?,?,?,?)");
-    for(int i = 1; i < 5 ; i++) {
-      pstmt.setBigDecimal(i, values[i-1]);
+    for (int i = 1; i < 5 ; i++) {
+      pstmt.setBigDecimal(i, values[i - 1]);
     }
 
     pstmt.setNull(5, Types.NUMERIC);
@@ -553,7 +553,7 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt = con.prepareStatement("select * from numeric_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    for(int i = 1; i < 5 ; i++) {
+    for (int i = 1; i < 5 ; i++) {
       assertTrue(rs.getBigDecimal(i).compareTo(values[i - 1]) == 0);
     }
     rs.getDouble(5);
