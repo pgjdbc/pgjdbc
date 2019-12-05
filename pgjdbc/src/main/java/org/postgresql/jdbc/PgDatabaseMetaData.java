@@ -1045,6 +1045,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (procedureNamePattern != null && !procedureNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
     }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
+    }
     sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
 
     return createMetaDataStatement().executeQuery(sql);
@@ -1303,6 +1306,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
+    if (connection.getHideUnprivilegedObjects()) {
+      select += " AND has_table_privilege(c.oid, "
+        + " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
+    }
     orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
 
     if (tableNamePattern != null && !tableNamePattern.isEmpty()) {
@@ -1418,6 +1425,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
     }
     sql += " ORDER BY TABLE_SCHEM";
 
@@ -2266,6 +2276,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " AND "
           + " (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))";
 
+    if (connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
+
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     // cache some results, this will keep memory usage down, and speed
@@ -2584,6 +2598,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       toAdd.append(" and n.nspname like ").append(escapeQuotes(schemaPattern));
     }
     sql += toAdd.toString();
+
+    if (connection.getHideUnprivilegedObjects()
+        && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
+
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }
@@ -2694,6 +2714,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     if (functionNamePattern != null && !functionNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
     }
     sql += " ORDER BY FUNCTION_SCHEM, FUNCTION_NAME, p.oid::text ";
 

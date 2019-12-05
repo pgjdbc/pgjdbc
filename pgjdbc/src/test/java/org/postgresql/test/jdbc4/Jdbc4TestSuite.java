@@ -19,6 +19,7 @@ import org.junit.runners.Suite;
     BlobTest.class,
     CharacterStreamTest.class,
     ClientInfoTest.class,
+    DatabaseMetaDataHideUnprivilegedObjectsTest.class,
     DatabaseMetaDataTest.class,
     IsValidTest.class,
     JsonbTest.class,
