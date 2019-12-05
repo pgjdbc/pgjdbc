@@ -58,6 +58,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -77,7 +78,7 @@ import java.util.logging.Logger;
 public class PgConnection implements BaseConnection {
 
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
-
+  private static final Set<Integer> SUPPORTED_BINARY_OIDS = getSupportedBinaryOids();
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
@@ -321,36 +322,42 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  private static Set<Integer> getSupportedBinaryOids() {
+    return new HashSet<Integer>(Arrays.asList(
+        Oid.BYTEA,
+        Oid.INT2,
+        Oid.INT4,
+        Oid.INT8,
+        Oid.FLOAT4,
+        Oid.FLOAT8,
+        Oid.TIME,
+        Oid.DATE,
+        Oid.TIMETZ,
+        Oid.TIMESTAMP,
+        Oid.TIMESTAMPTZ,
+        Oid.INT2_ARRAY,
+        Oid.INT4_ARRAY,
+        Oid.INT8_ARRAY,
+        Oid.FLOAT4_ARRAY,
+        Oid.FLOAT8_ARRAY,
+        Oid.VARCHAR_ARRAY,
+        Oid.TEXT_ARRAY,
+        Oid.POINT,
+        Oid.BOX,
+        Oid.UUID));
+  }
+
   private static Set<Integer> getBinaryOids(Properties info) throws PSQLException {
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // Formats that currently have binary protocol support
     Set<Integer> binaryOids = new HashSet<Integer>(32);
     if (binaryTransfer) {
-      binaryOids.add(Oid.BYTEA);
-      binaryOids.add(Oid.INT2);
-      binaryOids.add(Oid.INT4);
-      binaryOids.add(Oid.INT8);
-      binaryOids.add(Oid.FLOAT4);
-      binaryOids.add(Oid.FLOAT8);
-      binaryOids.add(Oid.TIME);
-      binaryOids.add(Oid.DATE);
-      binaryOids.add(Oid.TIMETZ);
-      binaryOids.add(Oid.TIMESTAMP);
-      binaryOids.add(Oid.TIMESTAMPTZ);
-      binaryOids.add(Oid.INT2_ARRAY);
-      binaryOids.add(Oid.INT4_ARRAY);
-      binaryOids.add(Oid.INT8_ARRAY);
-      binaryOids.add(Oid.FLOAT4_ARRAY);
-      binaryOids.add(Oid.FLOAT8_ARRAY);
-      binaryOids.add(Oid.VARCHAR_ARRAY);
-      binaryOids.add(Oid.TEXT_ARRAY);
-      binaryOids.add(Oid.POINT);
-      binaryOids.add(Oid.BOX);
-      binaryOids.add(Oid.UUID);
+      binaryOids.addAll(SUPPORTED_BINARY_OIDS);
     }
 
     binaryOids.addAll(getOidSet(PGProperty.BINARY_TRANSFER_ENABLE.get(info)));
     binaryOids.removeAll(getOidSet(PGProperty.BINARY_TRANSFER_DISABLE.get(info)));
+    binaryOids.retainAll(SUPPORTED_BINARY_OIDS);
     return binaryOids;
   }
 
