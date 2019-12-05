@@ -136,6 +136,11 @@ public class ByteConverter {
     return new String(buffer.array(), 0, buffer.position() - extra);
   }
 
+  /**
+   * Convert a variable length array of bytes to an integer
+   * @param bytes array of bytes that can be decoded as an integer
+   * @return integer
+   */
   public static Number numeric(byte [] bytes) {
     return numeric(bytes, 0, bytes.length);
   }
@@ -143,6 +148,9 @@ public class ByteConverter {
   /**
    * Convert a variable length array of bytes to an integer
    * @param bytes array of bytes that can be decoded as an integer
+   * @param pos index of the start position of the bytes array for number
+   * @param numBytes number of bytes to use, length is already encoded
+   *                in the binary format but this is used for double checking
    * @return integer
    */
   public static Number numeric(byte [] bytes, int pos, int numBytes) {
