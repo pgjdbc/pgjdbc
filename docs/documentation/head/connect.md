@@ -166,11 +166,6 @@ Connection conn = DriverManager.getConnection(url);
 
 	Sets SO_RCVBUF on the connection stream
 
-* **protocolVersion** = int
-
-	The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and
-	the driver will by default try to	connect using the V3 protocol.
- 
 * **loggerLevel** = String
 
 	Logger level of the driver. Allowed values: <code>OFF</code>, <code>DEBUG</code> or <code>TRACE</code>.
