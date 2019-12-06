@@ -13,6 +13,7 @@ import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
+import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
 import org.postgresql.jdbc.PgSQLXMLTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.JavaVersionTest;
@@ -73,6 +74,7 @@ import org.junit.runners.Suite;
     LruCacheTest.class,
     MiscTest.class,
     NativeQueryBindLengthTest.class,
+    NoColumnMetadataIssue1613Test.class,
     NotifyTest.class,
     OidToStringTest.class,
     OidValueOfTest.class,
