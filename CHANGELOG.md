@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [42.2.9] (2019-12-04)
+## [42.2.9] (2019-12-06)
 ### Changed
 
 ### Added
