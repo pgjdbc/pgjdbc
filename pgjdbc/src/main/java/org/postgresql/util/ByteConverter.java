@@ -22,6 +22,8 @@ public class ByteConverter {
   private static final short NUMERIC_NAN = (short) 0xC000;
   private static final int DEC_DIGITS = 4;
   private static final int[] round_powers = {0, 1000, 100, 10};
+  private static final int SHORT_BYTES = 2;
+  private static final int LONG_BYTES = 4;
 
   private ByteConverter() {
     // prevent instantiation of static helper class
@@ -36,10 +38,10 @@ public class ByteConverter {
     if ( bytes.length == 1 ) {
       return (int)bytes[0];
     }
-    if ( bytes.length == 2 ) {
+    if ( bytes.length == SHORT_BYTES ) {
       return int2(bytes, 0);
     }
-    if ( bytes.length == 4 ) {
+    if ( bytes.length == LONG_BYTES ) {
       return int4(bytes, 0);
     } else {
       throw new IllegalArgumentException("Argument bytes is empty");
@@ -163,7 +165,7 @@ public class ByteConverter {
     short sign = ByteConverter.int2(bytes, pos + 4);
     short scale = ByteConverter.int2(bytes, pos + 6);
 
-    if (numBytes != (len * Short.BYTES) + 8) {
+    if (numBytes != (len * SHORT_BYTES + 8)) {
       throw new IllegalArgumentException("invalid length of bytes \"numeric\" value");
     }
 
