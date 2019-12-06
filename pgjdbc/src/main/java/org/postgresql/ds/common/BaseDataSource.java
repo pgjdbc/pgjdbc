@@ -1495,6 +1495,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
   }
 
+  /**
+   * @return boolean indicating property is enabled or not.
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   */
+  public boolean getHideUnprivilegedObjects() {
+    return PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(properties);
+  }
+
+  /**
+   * @param hideUnprivileged boolean value to set the property in the properties collection
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   */
+  public void setHideUnprivilegedObjects(boolean hideUnprivileged) {
+    PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
+  }
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");

@@ -243,6 +243,9 @@ public class PgArray implements java.sql.Array {
           case Oid.FLOAT8:
             arr[i] = ByteConverter.float8(fieldBytes, pos);
             break;
+          case Oid.NUMERIC:
+            arr[i] = ByteConverter.numeric(fieldBytes, pos, len);
+            break;
           case Oid.TEXT:
           case Oid.VARCHAR:
             Encoding encoding = connection.getEncoding();
@@ -389,6 +392,8 @@ public class PgArray implements java.sql.Array {
         return Float.class;
       case Oid.FLOAT8:
         return Double.class;
+      case Oid.NUMERIC:
+        return BigDecimal.class;
       case Oid.TEXT:
       case Oid.VARCHAR:
         return String.class;

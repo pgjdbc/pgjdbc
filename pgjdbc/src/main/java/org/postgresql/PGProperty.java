@@ -426,6 +426,13 @@ public enum PGProperty {
       "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
 
   /**
+   * Enable mode to filter out the names of database objects for which the current user has no privileges
+   * granted from appearing in the DatabaseMetaData returned by the driver.
+   */
+  HIDE_UNPRIVILEGED_OBJECTS("hideUnprivilegedObjects", "false",
+    "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData"),
+
+  /**
    * <p>Connection parameter passed in the startup message. This parameter accepts two values; "true"
    * and "database". Passing "true" tells the backend to go into walsender mode, wherein a small set
    * of replication commands can be issued instead of SQL statements. Only the simple query protocol
