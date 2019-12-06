@@ -903,7 +903,7 @@ public class StatementTest {
     }
   }
 
-  @Test(timeout = 20000)
+  @Test(timeout = 2000)
   public void testFastCloses() throws SQLException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
