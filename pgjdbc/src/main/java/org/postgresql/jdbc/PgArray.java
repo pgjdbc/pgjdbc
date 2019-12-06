@@ -194,12 +194,12 @@ public class PgArray implements java.sql.Array {
       pos += 4;
     }
     if (dimensions == 0) {
-      return java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), 0);
+      return newTypedArray(elementOid, 0);
     }
     if (count > 0) {
       dims[0] = Math.min(count, dims[0]);
     }
-    Object arr = java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), dims);
+    Object arr = newTypedArray(elementOid, dims);
     try {
       storeValues((Object[]) arr, elementOid, dims, pos, 0, index);
     } catch (IOException ioe) {
@@ -377,27 +377,27 @@ public class PgArray implements java.sql.Array {
     return pos;
   }
 
-  private Class<?> elementOidToClass(int oid) throws SQLException {
+  private Object newTypedArray(final int oid, final int... dimensions) throws SQLException {
     switch (oid) {
       case Oid.INT2:
-        return Short.class;
+        return java.lang.reflect.Array.newInstance(Short.class, dimensions);
       case Oid.INT4:
-        return Integer.class;
+        return java.lang.reflect.Array.newInstance(Integer.class, dimensions);
       case Oid.INT8:
-        return Long.class;
+        return java.lang.reflect.Array.newInstance(Long.class, dimensions);
       case Oid.FLOAT4:
-        return Float.class;
+        return java.lang.reflect.Array.newInstance(Float.class, dimensions);
       case Oid.FLOAT8:
-        return Double.class;
+        return java.lang.reflect.Array.newInstance(Double.class, dimensions);
       case Oid.TEXT:
       case Oid.VARCHAR:
-        return String.class;
+        return java.lang.reflect.Array.newInstance(String.class, dimensions);
       case Oid.BOOL:
-        return Boolean.class;
+        return java.lang.reflect.Array.newInstance(Boolean.class, dimensions);
       default:
         ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
         if (arrElemBuilder != null) {
-          return arrElemBuilder.baseType();
+          return arrElemBuilder.makeTypedArray(dimensions);
         }
 
         throw org.postgresql.Driver.notImplemented(this.getClass(), "readBinaryArray(data,oid)");
@@ -567,8 +567,10 @@ public class PgArray implements java.sql.Array {
 
       if (dims > 1 || useObjects) {
         ret = oa = (dims > 1
-            ? (Object[]) java.lang.reflect.Array
-                .newInstance(useObjects ? Boolean.class : boolean.class, dimsLength)
+            ? ((Object[]) (useObjects
+                  ? java.lang.reflect.Array.newInstance(Boolean.class, dimsLength)
+                  : java.lang.reflect.Array.newInstance(boolean.class, dimsLength)
+              ))
             : new Boolean[count]);
       } else {
         ret = pa = new boolean[count];
@@ -592,8 +594,11 @@ public class PgArray implements java.sql.Array {
       if (dims > 1 || useObjects) {
         ret =
             oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Short.class : short.class, dimsLength)
+                ?
+                ((Object[]) (useObjects
+                    ? java.lang.reflect.Array.newInstance(Short.class, dimsLength)
+                    : java.lang.reflect.Array.newInstance(short.class, dimsLength)
+                ))
                 : new Short[count]);
       } else {
         ret = pa = new short[count];
@@ -616,8 +621,10 @@ public class PgArray implements java.sql.Array {
       if (dims > 1 || useObjects) {
         ret =
             oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Integer.class : int.class, dimsLength)
+                ? ((Object[]) (useObjects
+                      ? java.lang.reflect.Array.newInstance(Integer.class, dimsLength)
+                      : java.lang.reflect.Array.newInstance(int.class, dimsLength)
+            ))
                 : new Integer[count]);
       } else {
         ret = pa = new int[count];
@@ -640,8 +647,11 @@ public class PgArray implements java.sql.Array {
       if (dims > 1 || useObjects) {
         ret =
             oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Long.class : long.class, dimsLength)
+                  ?
+                ((Object[]) (useObjects
+                    ? java.lang.reflect.Array.newInstance(Long.class, dimsLength)
+                    : java.lang.reflect.Array.newInstance(long.class, dimsLength)
+                ))
                 : new Long[count]);
       } else {
         ret = pa = new long[count];
@@ -675,8 +685,10 @@ public class PgArray implements java.sql.Array {
       if (dims > 1 || useObjects) {
         ret =
             oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Float.class : float.class, dimsLength)
+                ? ((Object[]) (useObjects
+                  ? java.lang.reflect.Array.newInstance(Float.class, dimsLength)
+                  : java.lang.reflect.Array.newInstance(float.class, dimsLength)
+            ))
                 : new Float[count]);
       } else {
         ret = pa = new float[count];
@@ -698,8 +710,10 @@ public class PgArray implements java.sql.Array {
 
       if (dims > 1 || useObjects) {
         ret = oa = (dims > 1
-            ? (Object[]) java.lang.reflect.Array
-                .newInstance(useObjects ? Double.class : double.class, dimsLength)
+            ? ((Object[]) (useObjects
+                  ? java.lang.reflect.Array.newInstance(Double.class, dimsLength)
+                  : java.lang.reflect.Array.newInstance(double.class, dimsLength)
+            ))
             : new Double[count]);
       } else {
         ret = pa = new double[count];
@@ -763,8 +777,8 @@ public class PgArray implements java.sql.Array {
 
       Object[] oa = null;
       ret = oa = (dims > 1)
-          ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), dimsLength)
-          : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
+          ? (Object[]) arrAssistant.makeTypedArray(dimsLength)
+          : (Object[]) arrAssistant.makeTypedArray(count);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
