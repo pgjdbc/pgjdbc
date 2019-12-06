@@ -630,8 +630,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       };
 
       try {
-        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0,
-            QueryExecutor.QUERY_NO_METADATA);
+        /* Send BEGIN with simple protocol preferred */
+        int beginFlags = QueryExecutor.QUERY_NO_METADATA
+                         | QueryExecutor.QUERY_ONESHOT
+                         | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+        beginFlags = updateQueryMode(beginFlags);
+        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
         sendSync();
         processResults(handler, 0);
         estimatedReceiveBufferBytes = 0;
