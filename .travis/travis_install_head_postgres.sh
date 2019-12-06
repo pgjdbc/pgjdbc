@@ -16,12 +16,14 @@ else
     git checkout ${POSTGRES_SOURCE_SHA}
 fi
 
+eval "${MATRIX_EVAL}"
+
 # Build PostgreSQL from source
 if [[ "${COMPILE_PG_WITH_DEBUG_FLAG}" == "Y" ]]
 then
-    sudo ./configure --enable-debug --with-libxml CFLAGS="-ggdb"
+    sudo ./configure --enable-debug --with-libxml --with-llvm CFLAGS="-ggdb"
 else
-    sudo ./configure --with-libxml CFLAGS="-ggdb"
+    sudo ./configure --with-libxml --with-llvm CFLAGS="-ggdb"
 fi
 
 sudo make && sudo make install

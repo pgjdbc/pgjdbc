@@ -157,6 +157,14 @@ matrix:
         - COVERAGE=Y
         - TEST_CLIENTS=Y
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
+        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+      addons:
+        apt:
+          sources:
+          - llvm-toolchain-trusty-5.0
+          packages:
+          - clang-5.0
+          - llvm-config-5.0
     - jdk: oraclejdk8
       sudo: required
       addons:
