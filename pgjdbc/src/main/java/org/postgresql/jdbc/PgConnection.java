@@ -335,6 +335,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.INT8);
       binaryOids.add(Oid.FLOAT4);
       binaryOids.add(Oid.FLOAT8);
+      binaryOids.add(Oid.NUMERIC);
       binaryOids.add(Oid.TIME);
       binaryOids.add(Oid.DATE);
       binaryOids.add(Oid.TIMETZ);
@@ -345,6 +346,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.INT8_ARRAY);
       binaryOids.add(Oid.FLOAT4_ARRAY);
       binaryOids.add(Oid.FLOAT8_ARRAY);
+      binaryOids.add(Oid.NUMERIC_ARRAY);
       binaryOids.add(Oid.VARCHAR_ARRAY);
       binaryOids.add(Oid.TEXT_ARRAY);
       binaryOids.add(Oid.POINT);
