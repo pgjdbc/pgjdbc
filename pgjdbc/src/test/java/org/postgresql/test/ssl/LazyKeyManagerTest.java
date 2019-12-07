@@ -47,7 +47,7 @@ public class LazyKeyManagerTest {
     String certdir = certDirFile.getAbsolutePath();
 
     LazyKeyManager lazyKeyManager = new LazyKeyManager(certdir + "/goodclient.crt",
-        certdir + "goodclient.pk8", new TestCallbackHandler("sslpwd"), true);
+        certdir + "/goodclient.pk8", new TestCallbackHandler("sslpwd"), true);
     PrivateKey pk = lazyKeyManager.getPrivateKey("user");
     Assert.assertNotNull(pk);
   }
