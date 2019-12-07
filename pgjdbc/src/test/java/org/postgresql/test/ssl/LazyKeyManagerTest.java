@@ -32,7 +32,7 @@ public class LazyKeyManagerTest {
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();
 
-    PKCS12KeyManager pkcs12KeyManager = new PKCS12KeyManager(certdir + "goodclient.p12", new TestCallbackHandler("sslpwd"));
+    PKCS12KeyManager pkcs12KeyManager = new PKCS12KeyManager(certdir + "/goodclient.p12", new TestCallbackHandler("sslpwd"));
     PrivateKey pk = pkcs12KeyManager.getPrivateKey("user");
     Assert.assertNotNull(pk);
     X509Certificate[] chain = pkcs12KeyManager.getCertificateChain("user");
@@ -46,8 +46,7 @@ public class LazyKeyManagerTest {
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();
 
-    String path = new File("./").getAbsolutePath();
-    LazyKeyManager lazyKeyManager = new LazyKeyManager(certdir + "goodclient.crt",
+    LazyKeyManager lazyKeyManager = new LazyKeyManager(certdir + "/goodclient.crt",
         certdir + "goodclient.pk8", new TestCallbackHandler("sslpwd"), true);
     PrivateKey pk = lazyKeyManager.getPrivateKey("user");
     Assert.assertNotNull(pk);
