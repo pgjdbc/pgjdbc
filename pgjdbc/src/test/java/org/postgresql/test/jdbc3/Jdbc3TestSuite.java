@@ -24,6 +24,7 @@ import org.junit.runners.Suite;
     Jdbc3CallableStatementTest.class,
     Jdbc3SavepointTest.class,
     ParameterMetaDataTest.class,
+    ProcedureTransactionTest.class,
     ResultSetTest.class,
     SendRecvBufferSizeTest.class,
     SqlCommandParseTest.class,
