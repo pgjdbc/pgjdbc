@@ -23,7 +23,7 @@ import java.sql.Statement;
  * @author Ivy (ivyyiyideng@gmail.com)
  *
  */
-public class NoColumnMetadataIssue1613 extends BaseTest4 {
+public class NoColumnMetadataIssue1613Test extends BaseTest4 {
   @Override
   @Before
   public void setUp() throws Exception {
@@ -34,7 +34,7 @@ public class NoColumnMetadataIssue1613 extends BaseTest4 {
   @Test
   public void shouldBeNoNPE() throws Exception {
     Statement statement = con.createStatement();
-    statement.executeQuery("INSERT INTO test_no_column_metadata values (1)");
+    statement.execute("INSERT INTO test_no_column_metadata values (1)");
     ResultSet rs = statement.executeQuery("SELECT x FROM test_no_column_metadata x");
     assertTrue(rs.next());
   }
