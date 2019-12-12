@@ -11,6 +11,7 @@ import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -119,6 +121,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_EXECUTE_AS_SIMPLE = 1024;
 
   int MAX_SAVE_POINTS = 1000;
+
+  /**
+   * Flag indicating that when beginning a transaction, it should be read only.
+   */
+  int QUERY_READ_ONLY_HINT = 2048;
 
   /**
    * Execute a Query, passing results to a provided ResultHandler.
@@ -427,6 +434,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   boolean isColumnSanitiserDisabled();
 
+  EscapeSyntaxCallMode getEscapeSyntaxCallMode();
+
   PreferQueryMode getPreferQueryMode();
 
   AutoSave getAutoSave();
@@ -452,4 +461,9 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setNetworkTimeout(int milliseconds) throws IOException;
 
   int getNetworkTimeout() throws IOException;
+
+  // Expose parameter status to PGConnection
+  Map<String,String> getParameterStatuses();
+
+  String getParameterStatus(String parameterName);
 }

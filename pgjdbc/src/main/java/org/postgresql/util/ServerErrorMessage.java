@@ -3,7 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 import org.postgresql.core.EncodingPredictor;
@@ -142,6 +141,19 @@ public class ServerErrorMessage implements Serializable {
       return 0;
     }
     return Integer.parseInt(s);
+  }
+
+  String getNonSensitiveErrorMessage() {
+    StringBuilder totalMessage = new StringBuilder();
+    String message = mesgParts.get(SEVERITY);
+    if (message != null) {
+      totalMessage.append(message).append(": ");
+    }
+    message = mesgParts.get(MESSAGE);
+    if (message != null) {
+      totalMessage.append(message);
+    }
+    return totalMessage.toString();
   }
 
   public String toString() {

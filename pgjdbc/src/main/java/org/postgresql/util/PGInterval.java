@@ -7,8 +7,6 @@ package org.postgresql.util;
 
 import java.io.Serializable;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.StringTokenizer;
@@ -19,20 +17,12 @@ import java.util.StringTokenizer;
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
   private int years;
-  private int months;
-  private int days;
-  private int hours;
-  private int minutes;
-  private double seconds;
-
-  private static final DecimalFormat secondsFormat;
-
-  static {
-    secondsFormat = new DecimalFormat("0.00####");
-    DecimalFormatSymbols dfs = secondsFormat.getDecimalFormatSymbols();
-    dfs.setDecimalSeparator('.');
-    secondsFormat.setDecimalFormatSymbols(dfs);
-  }
+  private byte months;
+  private byte days;
+  private byte hours;
+  private byte minutes;
+  private int wholeSeconds;
+  private int microSeconds;
 
   /**
    * required by the driver.
@@ -51,6 +41,66 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   public PGInterval(String value) throws SQLException {
     this();
     setValue(value);
+  }
+
+  private int lookAhead(String value, int position, String find) {
+    char [] tokens = find.toCharArray();
+    int found = -1;
+
+    for ( int i = 0; i < tokens.length; i++ ) {
+      found = value.indexOf(tokens[i], position);
+      if ( found > 0 ) {
+        return found;
+      }
+    }
+    return found;
+  }
+
+  private void parseISO8601Format(String value) {
+    int number = 0;
+    String dateValue;
+    String timeValue = null;
+
+    int hasTime = value.indexOf('T');
+    if ( hasTime > 0 ) {
+      /* skip over the P */
+      dateValue = value.substring(1,hasTime);
+      timeValue = value.substring(hasTime + 1);
+    } else {
+      /* skip over the P */
+      dateValue = value.substring(1);
+    }
+
+    for ( int i = 0; i < dateValue.length(); i++ ) {
+      int lookAhead = lookAhead(dateValue, i, "YMD");
+      if (lookAhead > 0) {
+        number = Integer.parseInt(dateValue.substring(i, lookAhead));
+        if (dateValue.charAt(lookAhead) == 'Y') {
+          setYears(number);
+        } else if (dateValue.charAt(lookAhead) == 'M') {
+          setMonths(number);
+        } else if (dateValue.charAt(lookAhead) == 'D') {
+          setDays(number);
+        }
+        i = lookAhead;
+      }
+    }
+    if ( timeValue != null ) {
+      for (int i = 0; i < timeValue.length(); i++) {
+        int lookAhead = lookAhead(timeValue, i, "HMS");
+        if (lookAhead > 0) {
+          number = Integer.parseInt(timeValue.substring(i, lookAhead));
+          if (timeValue.charAt(lookAhead) == 'H') {
+            setHours(number);
+          } else if (timeValue.charAt(lookAhead) == 'M') {
+            setMinutes(number);
+          } else if (timeValue.charAt(lookAhead) == 'S') {
+            setSeconds(number);
+          }
+          i = lookAhead;
+        }
+      }
+    }
   }
 
   /**
@@ -77,10 +127,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @throws SQLException Is thrown if the string representation has an unknown format
    */
   public void setValue(String value) throws SQLException {
-    final boolean ISOFormat = !value.startsWith("@");
-
+    final boolean PostgresFormat = !value.startsWith("@");
+    if (value.startsWith("P")) {
+      parseISO8601Format(value);
+      return;
+    }
     // Just a simple '0'
-    if (!ISOFormat && value.length() == 3 && value.charAt(2) == '0') {
+    if (!PostgresFormat && value.length() == 3 && value.charAt(2) == '0') {
       setValue(0, 0, 0, 0, 0, 0.0);
       return;
     }
@@ -153,7 +206,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
     }
 
-    if (!ISOFormat && value.endsWith("ago")) {
+    if (!PostgresFormat && value.endsWith("ago")) {
       // Inverse the leading sign
       setValue(-years, -months, -days, -hours, -minutes, -seconds);
     } else {
@@ -191,7 +244,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         + days + " days "
         + hours + " hours "
         + minutes + " mins "
-        + secondsFormat.format(seconds) + " secs";
+        + wholeSeconds + '.' + microSeconds + " secs";
   }
 
   /**
@@ -227,7 +280,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param months months to set
    */
   public void setMonths(int months) {
-    this.months = months;
+    this.months = (byte) months;
   }
 
   /**
@@ -245,7 +298,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param days days to set
    */
   public void setDays(int days) {
-    this.days = days;
+    this.days = (byte)days;
   }
 
   /**
@@ -263,7 +316,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param hours hours to set
    */
   public void setHours(int hours) {
-    this.hours = hours;
+    this.hours = (byte)hours;
   }
 
   /**
@@ -281,7 +334,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param minutes minutes to set
    */
   public void setMinutes(int minutes) {
-    this.minutes = minutes;
+    this.minutes = (byte)minutes;
   }
 
   /**
@@ -290,7 +343,22 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return seconds represented by this interval
    */
   public double getSeconds() {
-    return seconds;
+    if ( microSeconds < 0) {
+      if ( wholeSeconds == 0 ) {
+        return Double.parseDouble("-0." + -microSeconds);
+      } else {
+        return Double.parseDouble("" + wholeSeconds + '.' + -microSeconds);
+      }
+    }
+    return Double.parseDouble("" + wholeSeconds + '.' + microSeconds );
+  }
+
+  public int getWholeSeconds() {
+    return wholeSeconds;
+  }
+
+  public int getMicroSeconds() {
+    return microSeconds;
   }
 
   /**
@@ -299,7 +367,23 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param seconds seconds to set
    */
   public void setSeconds(double seconds) {
-    this.seconds = seconds;
+    String str = Double.toString(seconds);
+    int decimal = str.indexOf('.');
+    if (decimal > 0) {
+
+      /* how many 10's do we need to multiply by to get microseconds */
+      String micSeconds = str.substring(decimal + 1);
+      int power = 6 - micSeconds.length();
+
+      microSeconds = Integer.parseInt(micSeconds) * (int)Math.pow(10,power);
+      wholeSeconds = Integer.parseInt(str.substring(0,decimal));
+    } else {
+      microSeconds = 0;
+      wholeSeconds = Integer.parseInt(str);
+    }
+    if ( seconds < 0 ) {
+      microSeconds = -microSeconds;
+    }
   }
 
   /**
@@ -308,10 +392,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param cal Calendar instance to add to
    */
   public void add(Calendar cal) {
-    // Avoid precision loss
-    // Be aware postgres doesn't return more than 60 seconds - no overflow can happen
-    final int microseconds = (int) (getSeconds() * 1000000.0);
-    final int milliseconds = (microseconds + ((microseconds < 0) ? -500 : 500)) / 1000;
+
+    final int milliseconds = (microSeconds + ((microSeconds < 0) ? -500 : 500)) / 1000 + wholeSeconds * 1000;
 
     cal.add(Calendar.MILLISECOND, milliseconds);
     cal.add(Calendar.MINUTE, getMinutes());
@@ -413,7 +495,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         && pgi.days == days
         && pgi.hours == hours
         && pgi.minutes == minutes
-        && Double.doubleToLongBits(pgi.seconds) == Double.doubleToLongBits(seconds);
+        && pgi.wholeSeconds == wholeSeconds
+        && pgi.microSeconds == microSeconds;
   }
 
   /**
@@ -421,8 +504,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @return hashCode
    */
+  @Override
   public int hashCode() {
-    return ((((((7 * 31 + (int) Double.doubleToLongBits(seconds)) * 31 + minutes) * 31 + hours) * 31
+    return (((((((8 * 31 + microSeconds) * 31 + wholeSeconds) * 31 + minutes) * 31 + hours) * 31
         + days) * 31 + months) * 31 + years) * 31;
   }
 

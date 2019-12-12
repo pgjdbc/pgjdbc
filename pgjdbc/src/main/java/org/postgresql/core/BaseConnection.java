@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
@@ -202,4 +203,13 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param flushCacheOnDeallocate true if statement cache should be reset when "deallocate/discard" message observed
    */
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
+
+  /**
+   * Indicates if statements to backend should be hinted as read only.
+   *
+   * @return Indication if hints to backend (such as when transaction begins)
+   *         should be read only.
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  boolean hintReadOnly();
 }

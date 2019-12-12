@@ -61,7 +61,7 @@ public class Driver implements java.sql.Driver {
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static SharedTimer sharedTimer = new SharedTimer();
   private static final String DEFAULT_PORT =
-      /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5431";
+      /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5432";
 
   static {
     try {
@@ -397,7 +397,9 @@ public class Driver implements java.sql.Driver {
      * @throws SQLException if a connection error occurs or the timeout is reached
      */
     public Connection getResult(long timeout) throws SQLException {
+
       long expiry = System.nanoTime() / 1000000 + timeout;
+
       synchronized (this) {
         while (true) {
           if (result != null) {
@@ -417,6 +419,7 @@ public class Driver implements java.sql.Driver {
           }
 
           long delay = expiry - System.nanoTime() / 1000000;
+          
           if (delay <= 0) {
             abandoned = true;
             throw new PSQLException(GT.tr("Connection attempt timed out."),

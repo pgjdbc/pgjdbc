@@ -3,13 +3,13 @@
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-versions</artifactId>
-    <version>1.1.5</version>
+    <version>1.1.6</version>
   </parent>
 
   <artifactId>pgjdbc-aggregate</artifactId>
   <packaging>pom</packaging>
   <name>PostgreSQL JDBC Driver aggregate</name>
-  <version>42.2.6-SNAPSHOT</version>
+  <version>42.2.10-SNAPSHOT</version>
   <description>PgJDBC aggregate project</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 

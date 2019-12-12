@@ -122,9 +122,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public int executeUpdate() throws SQLException {
     executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
-
-    return getNoResultUpdateCount();
+    checkNoResultUpdate();
+    return getUpdateCount();
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getLargeUpdateCount();
+  }
+  //#endif
 
   @Override
   public boolean execute(String sql) throws SQLException {
@@ -173,6 +182,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
     checkClosed();
+
+    if (parameterIndex < 1 || parameterIndex > preparedParameters.getInParameterCount()) {
+      throw new PSQLException(
+        GT.tr("The column index is out of range: {0}, number of columns: {1}.",
+          parameterIndex, preparedParameters.getInParameterCount()),
+        PSQLState.INVALID_PARAMETER_VALUE);
+    }
 
     int oid;
     switch (sqlType) {
@@ -1400,7 +1416,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
   //#endif
-
 
   public void setRowId(int parameterIndex, RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRowId(int, RowId)");

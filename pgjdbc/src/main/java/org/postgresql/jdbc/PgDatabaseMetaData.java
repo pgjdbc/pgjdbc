@@ -9,11 +9,13 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,6 +26,9 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -90,7 +95,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     return nameDataLength - 1;
   }
-
 
   public boolean allProceduresAreCallable() throws SQLException {
     return true; // For now...
@@ -1034,9 +1038,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " WHERE p.pronamespace=n.oid ";
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    } else {
+      /* limit to current schema if no schema given */
+      sql += "and pg_function_is_visible(p.oid)";
     }
     if (procedureNamePattern != null && !procedureNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
     }
     sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
 
@@ -1296,6 +1306,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
+    if (connection.getHideUnprivilegedObjects()) {
+      select += " AND has_table_privilege(c.oid, "
+        + " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
+    }
     orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
 
     if (tableNamePattern != null && !tableNamePattern.isEmpty()) {
@@ -1412,6 +1426,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
     }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
+    }
     sql += " ORDER BY TABLE_SCHEM";
 
     return createMetaDataStatement().executeQuery(sql);
@@ -1480,7 +1497,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[20] = new Field("SCOPE_TABLE", Oid.VARCHAR);
     f[21] = new Field("SOURCE_DATA_TYPE", Oid.INT2);
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
-    f[23] = new Field( "IS_GENERATED", Oid.VARCHAR);
+    f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
     String sql;
     // a.attnum isn't decremented when preceding columns are dropped,
@@ -1498,7 +1515,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,";
+           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
@@ -1581,12 +1598,40 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
       String identity = rs.getString("attidentity");
 
-      int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
-      int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-      if (columnSize == 0) {
-        columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
-      }
+      int baseTypeOid = (int) rs.getLong("typbasetype");
 
+      int decimalDigits;
+      int columnSize;
+
+      /* this is really a DOMAIN type not sure where DISTINCT came from */
+      if ( sqlType == Types.DISTINCT ) {
+        /*
+        From the docs if typtypmod is -1
+         */
+        int typtypmod = rs.getInt("typtypmod");
+        decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typeMod);
+        /*
+        From the postgres docs:
+        Domains use typtypmod to record the typmod to be applied to their
+        base type (-1 if base type does not use a typmod). -1 if this type is not a domain.
+        if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
+        a domain, but for actual types this will return the correct value.
+         */
+        if ( typtypmod == -1 ) {
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typeMod);
+        } else if (baseTypeOid == Oid.NUMERIC ) {
+          decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typtypmod);
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typtypmod);
+        } else {
+          columnSize = typtypmod;
+        }
+      } else {
+        decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
+        columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
+        if (columnSize == 0) {
+          columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
+        }
+      }
       tuple[6] = connection.encodeString(Integer.toString(columnSize));
       tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
 
@@ -1607,8 +1652,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
       // Is nullable
       tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
-
-      int baseTypeOid = (int) rs.getLong("typbasetype");
 
       tuple[18] = null; // SCOPE_CATLOG
       tuple[19] = null; // SCOPE_SCHEMA
@@ -2233,6 +2276,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " AND "
           + " (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))";
 
+    if (connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
+
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     // cache some results, this will keep memory usage down, and speed
@@ -2248,7 +2295,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
               connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
     while (rs.next()) {
-      byte[][] tuple = new byte[18][];
+      byte[][] tuple = new byte[19][];
       String typname = rs.getString(1);
       int typeOid = (int) rs.getLong(2);
 
@@ -2256,6 +2303,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int sqlType = connection.getTypeInfo().getSQLType(typname);
       tuple[1] =
           connection.encodeString(Integer.toString(sqlType));
+
+      /* this is just for sorting below, the result set never sees this */
+      tuple[18] = BigInteger.valueOf(sqlType).toByteArray();
+
       tuple[2] = connection
           .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
 
@@ -2301,6 +2352,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
+    Collections.sort(v, new Comparator<byte[][]>() {
+      @Override
+      public int compare(byte[][] o1, byte[][] o2) {
+        int i1 = ByteConverter.bytesToInt(o1[18]);
+        int i2 = ByteConverter.bytesToInt(o2[18]);
+        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+      }
+    });
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
@@ -2414,7 +2473,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     // The only type we don't support
     return type != ResultSet.TYPE_SCROLL_SENSITIVE;
   }
-
 
   public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
     // These combinations are not supported!
@@ -2540,10 +2598,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       toAdd.append(" and n.nspname like ").append(escapeQuotes(schemaPattern));
     }
     sql += toAdd.toString();
+
+    if (connection.getHideUnprivilegedObjects()
+        && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
+
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }
-
 
   @Override
   public Connection getConnection() throws SQLException {
@@ -2639,12 +2702,21 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "FROM pg_catalog.pg_proc p "
         + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
         + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
-        + "WHERE pg_function_is_visible(p.oid) ";
+        + "WHERE true  ";
+    /*
+    if the user provides a schema then search inside the schema for it
+     */
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    } else {
+      /* if no schema is provided then limit the search inside the search_path */
+      sql += "and pg_function_is_visible(p.oid)";
     }
     if (functionNamePattern != null && !functionNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
     }
     sql += " ORDER BY FUNCTION_SCHEM, FUNCTION_NAME, p.oid::text ";
 

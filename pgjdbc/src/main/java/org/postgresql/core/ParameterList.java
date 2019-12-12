@@ -24,7 +24,6 @@ import java.sql.SQLException;
  */
 public interface ParameterList {
 
-
   void registerOutParameter(int index, int sqlType) throws SQLException;
 
   /**

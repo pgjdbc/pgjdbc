@@ -243,6 +243,9 @@ public class PgArray implements java.sql.Array {
           case Oid.FLOAT8:
             arr[i] = ByteConverter.float8(fieldBytes, pos);
             break;
+          case Oid.NUMERIC:
+            arr[i] = ByteConverter.numeric(fieldBytes, pos, len);
+            break;
           case Oid.TEXT:
           case Oid.VARCHAR:
             Encoding encoding = connection.getEncoding();
@@ -266,7 +269,6 @@ public class PgArray implements java.sql.Array {
     }
     return pos;
   }
-
 
   private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
@@ -390,6 +392,8 @@ public class PgArray implements java.sql.Array {
         return Float.class;
       case Oid.FLOAT8:
         return Double.class;
+      case Oid.NUMERIC:
+        return BigDecimal.class;
       case Oid.TEXT:
       case Oid.VARCHAR:
         return String.class;
@@ -907,7 +911,8 @@ public class PgArray implements java.sql.Array {
 
         final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
         if (arraySupport != null) {
-          fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+          fieldString =
+            arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
         } else {
           java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
           fieldString = tmpArray.toString();

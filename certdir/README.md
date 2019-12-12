@@ -48,3 +48,9 @@ openssl req -x509 -newkey rsa:1024 -nodes -days 3650 -keyout server.key -out ser
 cp server.crt ../goodroot.crt
 
 #Common name is localhost, no password
+
+#PKCS12
+
+Create the goodclient.p12 file with
+
+openssl pkcs12 -export -in goodclient.crt -inkey goodclient.key -out goodclient.p12 -name local -CAfile client_ca.crt -caname local

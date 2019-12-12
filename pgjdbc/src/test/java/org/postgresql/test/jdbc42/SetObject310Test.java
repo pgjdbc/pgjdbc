@@ -11,12 +11,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -38,11 +40,13 @@ import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-public class SetObject310Test {
+@RunWith(Parameterized.class)
+public class SetObject310Test extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();
 
   public static final DateTimeFormatter LOCAL_TIME_FORMATTER =
@@ -65,11 +69,22 @@ public class SetObject310Test {
           .withResolverStyle(ResolverStyle.LENIENT)
           .withChronology(IsoChronology.INSTANCE);
 
-  private Connection con;
+  public SetObject310Test(BaseTest4.BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BaseTest4.BinaryMode binaryMode : BaseTest4.BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Before
   public void setUp() throws Exception {
-    con = TestUtil.openDB();
+    super.setUp();
     TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
             + "timestamp_with_time_zone_column timestamp with time zone,"
             + "date_column date,"
@@ -82,7 +97,7 @@ public class SetObject310Test {
   public void tearDown() throws SQLException {
     TimeZone.setDefault(saveTZ);
     TestUtil.dropTable(con, "table1");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   private void insert(Object data, String columnName, Integer type) throws SQLException {
@@ -242,6 +257,12 @@ public class SetObject310Test {
             "2000-03-26T03:00:00", "2000-03-26T03:00:01", "2000-03-26T03:59:59", "2000-03-26T04:00:00",
             "2000-03-26T04:00:01", "2000-03-26T04:00:00.000001",
 
+            // This is a pre-1970 date, so check if it is rounded properly
+            "1950-07-20T02:00:00",
+
+            // Ensure the calendar is proleptic
+            "1582-09-30T00:00:00", "1582-10-16T00:00:00",
+
             // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
             "2000-10-29T01:59:59", "2000-10-29T02:00:00", "2000-10-29T02:00:01", "2000-10-29T02:59:59",
             "2000-10-29T03:00:00", "2000-10-29T03:00:01", "2000-10-29T03:59:59", "2000-10-29T04:00:00",
@@ -293,7 +314,7 @@ public class SetObject310Test {
               "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
                   + storeZone + ", setObject(int, Object)", data.toInstant(),
               noTypeRes.toInstant());
-          String withType = rs.getString(1);
+          String withType = rs.getString(2);
           OffsetDateTime withTypeRes = OffsetDateTime.parse(withType.replace(' ', 'T') + ":00");
           assertEquals(
               "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
@@ -312,6 +333,8 @@ public class SetObject310Test {
 
   @Test
   public void testTimeStampRounding() throws SQLException {
+    // TODO: fix for binary
+    assumeBinaryModeRegular();
     LocalTime time = LocalTime.parse("23:59:59.999999500");
     Time actual = insertThenReadWithoutType(time, "time_without_time_zone_column", Time.class);
     assertEquals(Time.valueOf("24:00:00"), actual);
@@ -319,6 +342,8 @@ public class SetObject310Test {
 
   @Test
   public void testTimeStampRoundingWithType() throws SQLException {
+    // TODO: fix for binary
+    assumeBinaryModeRegular();
     LocalTime time = LocalTime.parse("23:59:59.999999500");
     Time actual =
         insertThenReadWithType(time, Types.TIME, "time_without_time_zone_column", Time.class);
@@ -370,6 +395,9 @@ public class SetObject310Test {
    */
   @Test
   public void testSetLocalTimeAndReadBack() throws SQLException {
+    // TODO: fix for binary mode.
+    //  Avoid micros truncation in org.postgresql.jdbc.PgResultSet#internalGetObject
+    assumeBinaryModeRegular();
     LocalTime data = LocalTime.parse("16:21:51.123456");
 
     insertWithoutType(data, "time_without_time_zone_column");

@@ -210,7 +210,6 @@ public class StatementTest {
     assertEquals("%found", rs.getString(1));
   }
 
-
   @Test
   public void testPreparedFunction() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT {fn concat('a', ?)}");
@@ -730,11 +729,21 @@ public class StatementTest {
     Statement stmt2 = con.createStatement();
     while (System.currentTimeMillis() < deadLine) {
       try {
-        stmt.execute("select 1");
+        // This usually won't time out but scheduler jitter, server load
+        // etc can cause a timeout.
+        stmt.executeQuery("select 1;");
       } catch (SQLException e) {
-        // ignore "statement cancelled"
+        // Expect "57014 query_canceled" (en-msg is "canceling statement due to statement timeout")
+        // but anything else is fatal. We can't differentiate other causes of statement cancel like
+        // "canceling statement due to user request" without error message matching though, and we
+        // don't want to do that.
+        Assert.assertEquals(
+            "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+            PSQLState.QUERY_CANCELED.getState(),
+            e.getSQLState());
       }
-      stmt2.executeQuery("select 1");
+      // Must never time out.
+      stmt2.executeQuery("select 1;");
     }
   }
 

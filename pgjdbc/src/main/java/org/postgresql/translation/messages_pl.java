@@ -38,8 +38,6 @@ public class messages_pl extends java.util.ResourceBundle {
     t[61] = "Nie można wywołać updateRow() na wstawianym rekordzie.";
     t[62] = "Where: {0}";
     t[63] = "Gdzie: {0}";
-    t[66] = "Failed to initialize LargeObject API";
-    t[67] = "Nie udało się zainicjować LargeObject API";
     t[72] = "Cannot call cancelRowUpdates() when on the insert row.";
     t[73] = "Nie można wywołać cancelRowUpdates() na wstawianym rekordzie.";
     t[82] = "Server SQLState: {0}";

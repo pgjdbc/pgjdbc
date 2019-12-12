@@ -59,7 +59,6 @@ public class XmlTest extends BaseTest4 {
   private final Transformer xslTransformer;
   private final Transformer identityTransformer;
 
-
   public XmlTest() throws Exception {
     TransformerFactory factory = TransformerFactory.newInstance();
     xslTransformer = factory.newTransformer(new StreamSource(new StringReader(_xsl)));

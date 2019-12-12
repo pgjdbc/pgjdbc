@@ -388,7 +388,6 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.send(encoded[index]);
   }
 
-
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);

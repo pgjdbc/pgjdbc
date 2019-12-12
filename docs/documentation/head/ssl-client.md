@@ -35,7 +35,7 @@ stored in the server certificate.
 The SSL connection will fail if the server certificate cannot be verified. `verify-full` is recommended
 in most security-sensitive environments.
 
-
+The default SSL Socket factory is the LibPQFactory
 In the case where the certificate validation is failing you can try `sslcert=` and LibPQFactory will
 not send the client certificate. If the server is not configured to authenticate using the certificate
 it should connect.
@@ -44,6 +44,9 @@ The location of the client certificate, client key and root certificate can be o
 `sslcert`, `sslkey`, and `sslrootcert` settings respectively. These default to /defaultdir/postgresql.crt,
 /defaultdir/postgresql.pk8, and /defaultdir/root.crt respectively where defaultdir is
 ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows
+
+as of version 42.2.9 PKCS12 is supported. In this archive format the key, cert and root cert are all
+in one file which by default is /defaultdir/postgresql.p12
 
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
 This parameter is the same as the libpq `sslmode` parameter and the currently SSL implements the

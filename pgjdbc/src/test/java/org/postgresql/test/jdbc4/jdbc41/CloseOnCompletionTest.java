@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -88,5 +89,13 @@ public class CloseOnCompletionTest {
 
     stmt.executeUpdate(TestUtil.insertSQL("table1", "1"));
     assertFalse(stmt.isClosed());
+  }
+
+  @Test
+  public void testExecuteTwice() throws SQLException {
+    PreparedStatement s = conn.prepareStatement("SELECT 1");
+    s.closeOnCompletion();
+    s.executeQuery();
+    s.executeQuery();
   }
 }

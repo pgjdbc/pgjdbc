@@ -78,7 +78,6 @@ public class Base64 {
    */
   public static final int DONT_BREAK_LINES = 8;
 
-
   /* ******** P R I V A T E F I E L D S ******** */
 
   /**
@@ -179,7 +178,6 @@ public class Base64 {
    */
   private Base64() {
   }
-
 
   /* ******** E N C O D I N G M E T H O D S ******** */
 
@@ -361,7 +359,6 @@ public class Base64 {
     }
 
   }
-
 
   /* ******** D E C O D I N G M E T H O D S ******** */
 

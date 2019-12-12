@@ -115,25 +115,39 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public boolean hasMessagePending() throws IOException {
+
+    boolean available = false;
+
+    // In certain cases, available returns 0, yet there are bytes
     if (pgInput.available() > 0) {
       return true;
     }
-    // In certain cases, available returns 0, yet there are bytes
-    long now = System.currentTimeMillis();
+    long now = System.nanoTime() / 1000000;
+
     if (now < nextStreamAvailableCheckTime && minStreamAvailableCheckDelay != 0) {
       // Do not use ".peek" too often
       return false;
     }
-    nextStreamAvailableCheckTime = now + minStreamAvailableCheckDelay;
+
     int soTimeout = getNetworkTimeout();
     setNetworkTimeout(1);
     try {
-      return pgInput.peek() != -1;
+      available = (pgInput.peek() != -1);
     } catch (SocketTimeoutException e) {
       return false;
     } finally {
       setNetworkTimeout(soTimeout);
     }
+
+    /*
+    If none available then set the next check time
+    In the event that there more async bytes available we will continue to get them all
+    see issue 1547 https://github.com/pgjdbc/pgjdbc/issues/1547
+     */
+    if (!available) {
+      nextStreamAvailableCheckTime = now + minStreamAvailableCheckDelay;
+    }
+    return available;
   }
 
   public void setMinStreamAvailableCheckDelay(int delay) {
@@ -423,8 +437,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if a data I/O error occurs
    */
   public byte[][] receiveTupleV3() throws IOException, OutOfMemoryError {
-    // TODO: use msgSize
-    int msgSize = receiveInteger4();
+    receiveInteger4(); // MESSAGE SIZE
     int nf = receiveInteger2();
     byte[][] answer = new byte[nf][];
 

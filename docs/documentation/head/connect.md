@@ -88,17 +88,19 @@ Connection conn = DriverManager.getConnection(url);
 
 * **ssl** = boolean
 
-	Connect using SSL. The driver must have been compiled with SSL support.
+	Connect using SSL. The server must have been compiled with SSL support.
 	This property does not need a value associated with it. The mere presence
 	of it specifies a SSL connection. However, for compatibility with future
 	versions, the value "true" is preferred. For more information see [Chapter
 	4, *Using SSL*](ssl.html).
+
+    Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
  
 * **sslfactory** = String
-
+    
 	The provided value is a class name to use as the `SSLSocketFactory` when
 	establishing a SSL connection. For more information see the section
-	called [“Custom SSLSocketFactory”](ssl-factory.html). 
+	called [“Custom SSLSocketFactory”](ssl-factory.html).  defaults to LibPQFactory
 
 * **sslfactoryarg** (deprecated) = String
 
@@ -120,19 +122,29 @@ Connection conn = DriverManager.getConnection(url);
 
 	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
 
+    It can be a PEM encoded X509v3 certificate
+
 	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
 
 * **sslkey** = String
 
 	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
 	
-	*Note:* The key file **must** be in [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
-	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der`
+	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
+
+    *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
+    by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
+    We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at
+    the time of writing. If you have stricter security needs, please see https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1
+    for a discussion of the problem and information on choosing a better cipher suite.
 
 * **sslrootcert** = String
 
 	File name of the SSL root certificate. Defaults to defaultdir/root.crt
+
+    It can be a PEM encoded X509v3 certificate
 
 * **sslhostnameverifier** = String
 
@@ -208,7 +220,7 @@ Connection conn = DriverManager.getConnection(url);
 
     The default is `never` 
 
-* **cleanupSavePoints** = boolean
+* **cleanupSavepoints** = boolean
 
     Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
     done to avoid running out of shared buffers on the server in the case where 1000's of queries are
@@ -411,7 +423,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **currentSchema** = String
 
-	Specify the schema to be set in the search-path. 
+	Specify the schema (or several schema separated by commas) to be set in the search-path. 
 	This schema will be used to resolve unqualified object names used in statements over this connection.
 
 * **targetServerType** = String
@@ -460,7 +472,43 @@ Connection conn = DriverManager.getConnection(url);
    for logical replication from that database. <p>Parameter should be use together with 
    `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
     
+* **escapeSyntaxCallMode** = String
+
+	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
+	In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
+	In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there is no 
+	return parameter specified, otherwise the driver uses a SELECT statement.
+	In `escapeSyntaxCallMode=call` mode, the driver always uses a CALL statement (allowing procedure invocation only).
+
+	The default is `select` 
+
     
+<a name="unix sockets"></a>
+## Unix sockets
+
+Aleksander Blomskøld has forked junixsocket and added a [Unix SocketFactory](https://github.com/fiken/junixsocket/blob/master/junixsocket-common/src/main/java/org/newsclub/net/unix/socketfactory/PostgresqlAFUNIXSocketFactory.java) that works with the driver.
+His code can be found at [https://github.com/fiken/junixsocket](https://github.com/fiken/junixsocket).
+
+Dependencies for junixsocket are :
+
+```xml
+<dependency>
+  <groupId>no.fiken.oss.junixsocket</groupId>
+  <artifactId>junixsocket-common</artifactId>
+  <version>1.0.2</version>
+</dependency>
+<dependency>
+  <groupId>no.fiken.oss.junixsocket</groupId>
+  <artifactId>junixsocket-native-common</artifactId>
+  <version>1.0.2</version>
+</dependency>
+```
+Simply add
+`?socketFactory=org.newsclub.net.unix.socketfactory.PostgresqlAFUNIXSocketFactory&socketFactoryArg=[path-to-the-unix-socket]`
+to the connection URL.
+
+For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
+
 <a name="connection-failover"></a>
 ## Connection Fail-over
 

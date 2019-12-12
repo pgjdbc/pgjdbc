@@ -40,7 +40,6 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
     }
   }
 
-
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
 
