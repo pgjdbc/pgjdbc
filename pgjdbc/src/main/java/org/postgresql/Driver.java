@@ -419,7 +419,7 @@ public class Driver implements java.sql.Driver {
           }
 
           long delay = expiry - System.nanoTime() / 1000000;
-          
+
           if (delay <= 0) {
             abandoned = true;
             throw new PSQLException(GT.tr("Connection attempt timed out."),
