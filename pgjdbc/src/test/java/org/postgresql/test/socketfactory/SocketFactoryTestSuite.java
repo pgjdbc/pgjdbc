@@ -44,7 +44,8 @@ public class SocketFactoryTestSuite {
   public void testDatabaseMetaData() throws Exception {
     assertNotNull("Custom socket factory not null", CustomSocketFactory.getInstance());
     assertEquals(STRING_ARGUMENT, CustomSocketFactory.getInstance().getArgument());
-    assertEquals(1, CustomSocketFactory.getInstance().getSocketCreated());
+    /* since we are enabling ssl a second connection is created */
+    assertEquals(2, CustomSocketFactory.getInstance().getSocketCreated());
   }
 
 }
