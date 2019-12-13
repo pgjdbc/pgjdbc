@@ -183,7 +183,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
     checkClosed();
 
-    if (parameterIndex < 1 || parameterIndex > preparedParameters.getInParameterCount()) {
+    if (parameterIndex < 1 || parameterIndex > preparedParameters.getParameterCount()) {
       throw new PSQLException(
         GT.tr("The column index is out of range: {0}, number of columns: {1}.",
           parameterIndex, preparedParameters.getInParameterCount()),
