@@ -26,7 +26,7 @@ public class GlobalHostStatusTracker {
    * @param hostStatus Latest known status for the host.
    */
   public static void reportHostStatus(HostSpec hostSpec, HostStatus hostStatus) {
-    long now = System.nanoTime() / 1000;
+    long now = System.nanoTime() / 1000000;
     synchronized (hostStatusMap) {
       HostSpecStatus hostSpecStatus = hostStatusMap.get(hostSpec);
       if (hostSpecStatus == null) {
@@ -49,7 +49,7 @@ public class GlobalHostStatusTracker {
   static List<HostSpec> getCandidateHosts(HostSpec[] hostSpecs,
       HostRequirement targetServerType, long hostRecheckMillis) {
     List<HostSpec> candidates = new ArrayList<HostSpec>(hostSpecs.length);
-    long latestAllowedUpdate = System.nanoTime() / 1000 - hostRecheckMillis;
+    long latestAllowedUpdate = System.nanoTime() / 1000000 - hostRecheckMillis;
     synchronized (hostStatusMap) {
       for (HostSpec hostSpec : hostSpecs) {
         HostSpecStatus hostInfo = hostStatusMap.get(hostSpec);

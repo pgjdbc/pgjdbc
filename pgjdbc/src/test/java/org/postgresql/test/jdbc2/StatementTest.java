@@ -688,7 +688,7 @@ public class StatementTest {
     boolean cancelReceived = false;
     try {
       stmt.setQueryTimeout(1);
-      start = System.currentTimeMillis();
+      start = System.nanoTime();
       stmt.execute("select pg_sleep(10)");
     } catch (SQLException sqle) {
       // state for cancel
@@ -696,8 +696,8 @@ public class StatementTest {
         cancelReceived = true;
       }
     }
-    long duration = System.currentTimeMillis() - start;
-    if (!cancelReceived || duration > 5000) {
+    long duration = System.nanoTime() - start;
+    if (!cancelReceived || duration > (5E9)) {
       fail("Query should have been cancelled since the timeout was set to 1 sec."
           + " Cancel state: " + cancelReceived + ", duration: " + duration);
     }
@@ -722,11 +722,11 @@ public class StatementTest {
   public void testShortQueryTimeout() throws SQLException {
     assumeLongTest();
 
-    long deadLine = System.currentTimeMillis() + 10000;
+    long deadLine = System.nanoTime() + 10000 * 1000000;
     Statement stmt = con.createStatement();
     ((PgStatement) stmt).setQueryTimeoutMs(1);
     Statement stmt2 = con.createStatement();
-    while (System.currentTimeMillis() < deadLine) {
+    while (System.nanoTime() < deadLine) {
       try {
         // This usually won't time out but scheduler jitter, server load
         // etc can cause a timeout.
@@ -869,10 +869,10 @@ public class StatementTest {
         executor.submit(new Callable<Void>() {
           @Override
           public Void call() throws Exception {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             while (st.getWarnings() == null) {
-              long dt = System.currentTimeMillis() - start;
-              if (dt > 10000) {
+              long dt = System.nanoTime() - start;
+              if (dt > 10000 * 10000000) {
                 throw new IllegalStateException("Expected to receive a notice within 10 seconds");
               }
             }
@@ -963,12 +963,12 @@ public class StatementTest {
    */
   @Test
   public void testSideStatementFinalizers() throws SQLException {
-    long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(2);
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
 
     final AtomicInteger leaks = new AtomicInteger();
     final AtomicReference<Throwable> cleanupFailure = new AtomicReference<Throwable>();
 
-    for (int q = 0; System.currentTimeMillis() < deadline || leaks.get() < 10000; q++) {
+    for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {
       for (int i = 0; i < 100; i++) {
         PreparedStatement ps = con.prepareStatement("select " + (i + q));
         ps.close();
