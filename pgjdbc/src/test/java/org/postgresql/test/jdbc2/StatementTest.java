@@ -697,7 +697,7 @@ public class StatementTest {
       }
     }
     long duration = System.nanoTime() - start;
-    if (!cancelReceived || duration > (5000 * 1000000)) {
+    if (!cancelReceived || duration > (5E9)) {
       fail("Query should have been cancelled since the timeout was set to 1 sec."
           + " Cancel state: " + cancelReceived + ", duration: " + duration);
     }
