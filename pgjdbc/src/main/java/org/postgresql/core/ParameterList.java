@@ -23,7 +23,6 @@ import java.sql.SQLException;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface ParameterList {
-
   void registerOutParameter(int index, int sqlType) throws SQLException;
 
   /**

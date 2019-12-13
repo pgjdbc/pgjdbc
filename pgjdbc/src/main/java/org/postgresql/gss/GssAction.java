@@ -92,7 +92,6 @@ class GssAction implements PrivilegedAction<Exception> {
       while (!established) {
         outToken = secContext.initSecContext(inToken, 0, inToken.length);
 
-
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 

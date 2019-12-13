@@ -473,7 +473,6 @@ public class TestUtil {
     try {
       dropType(con, name);
 
-
       // Now create the table
       st.executeUpdate("create type " + name + " as enum (" + values + ")");
     } finally {

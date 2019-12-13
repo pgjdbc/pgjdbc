@@ -674,7 +674,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-
     pgStream.sendChar('F');
     pgStream.sendInteger4(4 + 4 + 2 + 2 * paramCount + 2 + encodedSize + 2);
     pgStream.sendInteger4(fnid);
@@ -2026,7 +2025,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
-
           DescribeRequest describeData = pendingDescribeStatementQueue.getFirst();
           SimpleQuery query = describeData.query;
           SimpleParameterList params = describeData.parameterList;
@@ -2101,7 +2099,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
-
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
@@ -2127,7 +2124,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
 
           doneAfterRowDescNoData = false;
-
 
           ExecuteRequest executeData = pendingExecuteQueue.peekFirst();
           SimpleQuery currentQuery = executeData.query;
@@ -2209,7 +2205,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                       PSQLState.OUT_OF_MEMORY, oome));
             }
           }
-
 
           if (!noResults) {
             if (tuples == null) {

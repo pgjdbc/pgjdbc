@@ -70,7 +70,6 @@ public class LibPQFactory extends WrappedFactory {
       sslcertfile = defaultdir + "postgresql.crt";
     }
 
-
     // If the properties are empty, give null to prevent client key selection
     km = new LazyKeyManager(("".equals(sslcertfile) ? null : sslcertfile),
       ("".equals(sslkeyfile) ? null : sslkeyfile), getCallbackHandler(info), defaultfile);

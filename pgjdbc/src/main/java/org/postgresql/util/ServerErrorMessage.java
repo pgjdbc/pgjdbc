@@ -14,7 +14,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerErrorMessage implements Serializable {
-
   private static final Logger LOGGER = Logger.getLogger(ServerErrorMessage.class.getName());
 
   private static final Character SEVERITY = 'S';

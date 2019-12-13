@@ -1582,7 +1582,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[5] = connection.encodeString(pgType); // Type name
       tuple[7] = null; // Buffer length
 
-
       String defval = rs.getString("adsrc");
 
       if (defval != null) {
@@ -2551,7 +2550,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
         + "else null end as base_type "
         + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
-
 
     StringBuilder toAdd = new StringBuilder();
     if (types != null) {

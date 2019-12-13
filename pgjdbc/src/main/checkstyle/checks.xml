@@ -22,7 +22,6 @@
 
   <property name="fileExtensions" value="java, properties, xml"/>
 
-
   <!-- Checks for whitespace                               -->
   <!-- See http://checkstyle.sf.net/config_whitespace.html -->
   <module name="FileTabCharacter">
@@ -101,6 +100,7 @@
     <module name="EmptyLineSeparator">
       <property name="allowNoEmptyLineBetweenFields" value="true"/>
       <property name="allowMultipleEmptyLines" value="false"/>
+      <property name="allowMultipleEmptyLinesInsideClassMembers" value="false"/>
     </module>
     <module name="SeparatorWrap">
       <property name="tokens" value="DOT"/>

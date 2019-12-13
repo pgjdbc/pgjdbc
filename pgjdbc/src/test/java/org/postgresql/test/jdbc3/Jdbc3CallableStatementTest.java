@@ -534,8 +534,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
       stmt.execute(insertRealTab);
       stmt.close();
-
-
     } catch (Exception ex) {
       fail(ex.getMessage());
       throw ex;

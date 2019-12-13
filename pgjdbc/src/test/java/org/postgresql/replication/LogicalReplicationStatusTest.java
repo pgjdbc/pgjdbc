@@ -336,7 +336,6 @@ public class LogicalReplicationStatusTest {
     receiveMessageWithoutBlock(stream, 1);
     stream.forceUpdateStatus();
 
-
     LogSequenceNumber flushed = getFlushLocationOnView();
     LogSequenceNumber applied = getReplayLocationOnView();
 

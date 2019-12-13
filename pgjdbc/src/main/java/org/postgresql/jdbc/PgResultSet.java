@@ -943,11 +943,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-
     int numKeys = primaryKeys.size();
     if (deleteStatement == null) {
-
-
       StringBuilder deleteSQL =
           new StringBuilder("DELETE FROM ").append(onlyTable).append(tableName).append(" where ");
 
@@ -966,7 +963,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (int i = 0; i < numKeys; i++) {
       deleteStatement.setObject(i + 1, primaryKeys.get(i).getValue());
     }
-
 
     deleteStatement.executeUpdate();
 
@@ -1040,8 +1036,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
       // need to clear this in case of another insert
       clearRowBuffer(false);
-
-
     }
   }
 
@@ -1068,13 +1062,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       insertStatement = null;
     }
 
-
     // make sure the underlying data is null
     clearRowBuffer(false);
 
     onInsertRow = true;
     doingUpdates = false;
-
   }
 
   private synchronized void clearRowBuffer(boolean copyCurrentRow) throws SQLException {
@@ -1088,7 +1080,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     // clear the updateValues hash map for the next set of updates
     updateValues.clear();
-
   }
 
   public boolean rowDeleted() throws SQLException {
@@ -1252,7 +1243,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public synchronized void updateObject(int columnIndex, Object x, int scale) throws SQLException {
     this.updateObject(columnIndex, x);
-
   }
 
   @Override
@@ -1299,7 +1289,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     selectStatement = connection.prepareStatement(sqlText,
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-
     for (int j = 0, i = 1; j < numKeys; j++, i++) {
       selectStatement.setObject(i, primaryKeys.get(j).getValue());
     }
@@ -1318,7 +1307,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     rs.close();
     selectStatement.close();
     selectStatement = null;
-
   }
 
   @Override
@@ -1500,7 +1488,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     updateObject(findColumn(columnName), x);
   }
 
-
   /**
    * Is this ResultSet updateable?
    */
@@ -1540,7 +1527,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // with oids has been removed in version 12
     // FIXME: with oids does not automatically create an index, should check for primary keys first
 
-
     usingOID = false;
     int oidIndex = findColumnIndex("oid"); // 0 if not present
 
@@ -1577,7 +1563,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     connection.getLogger().log(Level.FINE, "no of keys={0}", i);
-
 
     if (i < 1) {
       throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
@@ -1679,7 +1664,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   private void updateRowBuffer() throws SQLException {
-
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
 

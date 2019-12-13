@@ -167,7 +167,6 @@ public interface PGConnection {
    */
   void setDefaultFetchSize(int fetchSize) throws SQLException;
 
-
   /**
    * Get the default fetch size for statements created from this connection.
    *
@@ -223,7 +222,6 @@ public interface PGConnection {
    * @see PreferQueryMode
    */
   PreferQueryMode getPreferQueryMode();
-
 
   /**
    * Connection configuration regarding automatic per-query savepoints.

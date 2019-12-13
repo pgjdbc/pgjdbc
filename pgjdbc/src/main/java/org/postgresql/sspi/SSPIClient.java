@@ -111,7 +111,6 @@ public class SSPIClient implements ISSPIClient {
     }
   }
 
-
   /**
    * Respond to an authentication request from the back-end for SSPI authentication (AUTH_REQ_SSPI).
    *
