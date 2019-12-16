@@ -16,7 +16,6 @@ import org.postgresql.util.PGobject;
 import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import java.util.Map;
 
 /**

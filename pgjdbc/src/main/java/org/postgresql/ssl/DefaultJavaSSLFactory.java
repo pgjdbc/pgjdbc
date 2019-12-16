@@ -6,6 +6,7 @@
 package org.postgresql.ssl;
 
 import java.util.Properties;
+
 import javax.net.ssl.SSLSocketFactory;
 
 /**

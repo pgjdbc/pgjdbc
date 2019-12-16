@@ -10,7 +10,6 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.hamcrest.core.StringStartsWith;
-
 import org.junit.Assert;
 import org.junit.Test;
 
