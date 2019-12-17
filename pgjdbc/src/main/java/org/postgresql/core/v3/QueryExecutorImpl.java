@@ -720,7 +720,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     long startTime = 0;
     int oldTimeout = 0;
     if (useTimeout) {
-      startTime = System.nanoTime() / 1000;
+      startTime = System.nanoTime() / (long)1E6;
       try {
         oldTimeout = pgStream.getSocket().getSoTimeout();
       } catch (SocketException e) {
@@ -750,7 +750,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             SQLWarning warning = receiveNoticeResponse();
             addWarning(warning);
             if (useTimeout) {
-              long newTimeMillis = System.nanoTime() / 1000;
+              long newTimeMillis = System.nanoTime() / (long)1E6;
               timeoutMillis += startTime - newTimeMillis; // Overflows after 49 days, ignore that
               startTime = newTimeMillis;
               if (timeoutMillis == 0) {
