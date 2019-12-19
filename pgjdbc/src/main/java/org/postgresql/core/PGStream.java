@@ -307,7 +307,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs
    */
   public void send(ByteStreamWriter writer) throws IOException {
-    final FixedLengthOutputStream fixedLengthStream = new FixedLengthOutputStream(writer.getLength(), pg_output);
+    final FixedLengthOutputStream fixedLengthStream = new FixedLengthOutputStream(writer.getLength(), pgOutput);
     try {
       writer.writeTo(new ByteStreamWriter.ByteStreamTarget() {
         @Override
@@ -321,7 +321,7 @@ public class PGStream implements Closeable, Flushable {
       throw new IOException("Error writing bytes to stream", re);
     }
     for (int i = fixedLengthStream.remaining(); i > 0; i--) {
-      pg_output.write(0);
+      pgOutput.write(0);
     }
   }
 
