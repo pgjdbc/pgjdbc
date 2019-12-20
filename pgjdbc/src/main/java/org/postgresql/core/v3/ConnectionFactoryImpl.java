@@ -97,6 +97,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       newStream.getSocket().setSoTimeout(socketTimeout * 1000);
     }
 
+    String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
+    newStream.setMaxResultBuffer(maxResultBuffer);
+
     // Enable TCP keep-alive probe if required.
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
     newStream.getSocket().setKeepAlive(requireTCPKeepAlive);

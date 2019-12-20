@@ -476,7 +476,14 @@ public enum PGProperty {
           + "When 'transaction' setting readOnly to 'true' will cause transactions to BEGIN READ ONLY if autocommit is 'false'. "
           + "When 'always' setting readOnly to 'true' will set the session to READ ONLY if autoCommit is 'true' "
           + "and the transaction to BEGIN READ ONLY if autocommit is 'false'.",
-      false, "ignore", "transaction", "always");
+      false, "ignore", "transaction", "always"),
+
+  /**
+   * Specifies size of buffer during fetching result set. Can be specified as specified size or
+   * percent of heap memory.
+   */
+  MAX_RESULT_BUFFER("maxResultBuffer", null,
+    "Specifies size of buffer during fetching result set. Can be specified as specified size or percent of heap memory.");
 
   private final String name;
   private final String defaultValue;

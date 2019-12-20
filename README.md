@@ -152,6 +152,7 @@ In addition to the standard connection parameters the driver supports a number o
 | preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, possible values: extended, extendedForPrepared, extendedCacheEverything, simple |
 | reWriteBatchedInserts         | Boolean | false  | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
 | escapeSyntaxCallMode          | String  | select   | Specifies how JDBC escape call syntax is transformed into underlying SQL (CALL/SELECT), for invoking procedures or functions (requires server version >= 11), possible values: select, callIfNoReturn, call |
+| maxResultBuffer               | String  | null    | Specifies size of result buffer in bytes, which can't be exceeded during reading result set. Can be specified as particular size (i.e. "100", "200M" "2G") or as percent of max heap memory (i.e. "10p", "20pct", "50percent") |
 
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)

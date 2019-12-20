@@ -2204,8 +2204,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                   new PSQLException(GT.tr("Ran out of memory retrieving query results."),
                       PSQLState.OUT_OF_MEMORY, oome));
             }
+          } catch (SQLException e) {
+            handler.handleError(e);
           }
-
           if (!noResults) {
             if (tuples == null) {
               tuples = new ArrayList<byte[][]>();
@@ -2300,6 +2301,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           receiveRFQ();
           if (!pendingExecuteQueue.isEmpty() && pendingExecuteQueue.peekFirst().asSimple) {
             tuples = null;
+            pgStream.clearResultBufferCount();
 
             ExecuteRequest executeRequest = pendingExecuteQueue.removeFirst();
             // Simple queries might return several resultsets, thus we clear
