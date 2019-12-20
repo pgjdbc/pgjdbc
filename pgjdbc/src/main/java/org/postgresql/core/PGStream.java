@@ -440,6 +440,7 @@ public class PGStream implements Closeable, Flushable {
    *
    * @return tuple from the back end
    * @throws IOException if a data I/O error occurs
+   * @throws SQLException if read more bytes than set maxResultBuffer
    */
   public byte[][] receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
     int messageSize = receiveInteger4(); // MESSAGE SIZE
@@ -623,7 +624,7 @@ public class PGStream implements Closeable, Flushable {
    * limit, then gonna return an exception.
    *
    * @param value size of bytes to add to byte buffer.
-   * @throws PSQLException exception returned when result buffer count is bigger than max result
+   * @throws SQLException exception returned when result buffer count is bigger than max result
    *                          buffer.
    */
   private void increaseByteCounter(long value) throws SQLException {

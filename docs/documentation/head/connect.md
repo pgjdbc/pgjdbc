@@ -482,7 +482,17 @@ Connection conn = DriverManager.getConnection(url);
 
 	The default is `select` 
 
+* **maxResultBuffer** = String
+
+    Specifies size of result buffer in bytes, which can't be exceeded during reading result set. 
+    Property can be specified in two styles:
+    - as size of bytes (i.e. 100, 150M, 300K, 400G, 1T);
+    - as percent of max heap memory (i.e. 10p, 15pct, 20percent);
     
+    A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
+    
+	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
+	
 <a name="unix sockets"></a>
 ## Unix sockets
 
