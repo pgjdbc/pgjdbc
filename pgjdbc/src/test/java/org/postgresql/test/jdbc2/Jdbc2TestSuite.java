@@ -23,6 +23,7 @@ import org.postgresql.test.core.OptionsPropertyTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.HostSpecTest;
 import org.postgresql.test.util.LruCacheTest;
+import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.ReaderInputStreamTest;
@@ -82,6 +83,7 @@ import org.junit.runners.Suite;
     OuterJoinSyntaxTest.class,
     ParameterStatusTest.class,
     ParserTest.class,
+    PGPropertyMaxResultBufferParserTest.class,
     PGPropertyTest.class,
     PGTimestampTest.class,
     PGTimeTest.class,
