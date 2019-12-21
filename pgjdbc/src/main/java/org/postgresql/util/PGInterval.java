@@ -17,10 +17,10 @@ import java.util.StringTokenizer;
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
   private int years;
-  private byte months;
-  private byte days;
-  private byte hours;
-  private byte minutes;
+  private int months;
+  private int days;
+  private int hours;
+  private int minutes;
   private int wholeSeconds;
   private int microSeconds;
 
@@ -280,7 +280,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param months months to set
    */
   public void setMonths(int months) {
-    this.months = (byte) months;
+    this.months = months;
   }
 
   /**
@@ -298,7 +298,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param days days to set
    */
   public void setDays(int days) {
-    this.days = (byte)days;
+    this.days = days;
   }
 
   /**
@@ -316,7 +316,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param hours hours to set
    */
   public void setHours(int hours) {
-    this.hours = (byte)hours;
+    this.hours = hours;
   }
 
   /**
@@ -334,7 +334,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param minutes minutes to set
    */
   public void setMinutes(int minutes) {
-    this.minutes = (byte)minutes;
+    this.minutes = minutes;
   }
 
   /**

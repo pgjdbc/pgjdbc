@@ -174,6 +174,15 @@ public class IntervalTest {
     assertEquals(-15, pgi.getHours());
     assertEquals(57, pgi.getMinutes());
     assertEquals(-12.1, pgi.getSeconds(), 0);
+
+    // Unjustified interval test
+    pgi = new PGInterval("@ 0 years 0 mons 0 days 900 hours 0 mins 0.00 secs");
+    assertEquals(0, pgi.getYears());
+    assertEquals(0, pgi.getMonths());
+    assertEquals(0, pgi.getDays());
+    assertEquals(900, pgi.getHours());
+    assertEquals(0, pgi.getMinutes());
+    assertEquals(0, pgi.getSeconds(), 0);
   }
 
   private Calendar getStartCalendar() {
