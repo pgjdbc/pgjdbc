@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, PostgreSQL Global Development Group
+ * Copyright (c) 2020, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
