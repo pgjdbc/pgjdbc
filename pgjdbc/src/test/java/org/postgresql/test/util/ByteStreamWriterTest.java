@@ -18,7 +18,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ByteStreamWriterTest extends BaseTest4 {
 
