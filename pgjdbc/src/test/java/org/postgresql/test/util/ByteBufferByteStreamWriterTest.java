@@ -63,7 +63,7 @@ public class ByteBufferByteStreamWriterTest {
     }
   }
 
-  private static ByteStreamWriter.ByteStreamTarget target(OutputStream stream) {
+  private static ByteStreamWriter.ByteStreamTarget target(final OutputStream stream) {
     return new ByteStreamWriter.ByteStreamTarget() {
       @Override
       public OutputStream getOutputStream() {

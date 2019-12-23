@@ -58,6 +58,8 @@ public interface ByteStreamWriter {
 
     /**
      * Provides an output stream to write bytes to.
+     *
+     * @return an output stream
      */
     OutputStream getOutputStream();
   }
