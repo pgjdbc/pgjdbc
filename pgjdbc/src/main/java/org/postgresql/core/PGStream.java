@@ -5,9 +5,12 @@
 
 package org.postgresql.core;
 
-import org.postgresql.util.*;
+import org.postgresql.util.ByteStreamWriter;
+import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
-import javax.net.SocketFactory;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.EOFException;
@@ -21,6 +24,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
+
+import javax.net.SocketFactory;
 
 /**
  * <p>Wrapper around the raw connection to the server that implements some basic primitives

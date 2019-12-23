@@ -5,32 +5,32 @@
 
 package org.postgresql.test.util;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.ByteStreamWriter;
+
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 public class ByteBufferByteStreamWriterTest {
 
   private ByteArrayOutputStream targetStream;
   private byte[] data;
-  private ByteBuffer buffer;
   private ByteBufferByteStreamWriter writer;
 
   @Before
   public void setUp() throws Exception {
     targetStream = new ByteArrayOutputStream();
     data = new byte[] { 1, 2, 3, 4 };
-    buffer = ByteBuffer.wrap(data);
+    ByteBuffer buffer = ByteBuffer.wrap(data);
     writer = new ByteBufferByteStreamWriter(buffer);
   }
 

@@ -90,6 +90,4 @@ public class FixedLengthOutputStreamTest {
         2, fixedLengthStream.remaining());
     verifyExpectedOutput(data);
   }
-
-
 }
