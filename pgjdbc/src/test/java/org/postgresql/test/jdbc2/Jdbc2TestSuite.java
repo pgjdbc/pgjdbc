@@ -16,10 +16,13 @@ import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
 import org.postgresql.jdbc.PgSQLXMLTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
+import org.postgresql.test.core.FixedLengthOutputStreamTest;
 import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.LogServerMessagePropertyTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
 import org.postgresql.test.core.OptionsPropertyTest;
+import org.postgresql.test.util.ByteBufferByteStreamWriterTest;
+import org.postgresql.test.util.ByteStreamWriterTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.HostSpecTest;
 import org.postgresql.test.util.LruCacheTest;
@@ -80,6 +83,9 @@ import org.junit.runners.Suite;
     OidValueOfTest.class,
     OptionsPropertyTest.class,
     OuterJoinSyntaxTest.class,
+    FixedLengthOutputStreamTest.class,
+    ByteStreamWriterTest.class,
+    ByteBufferByteStreamWriterTest.class,
     ParameterStatusTest.class,
     ParserTest.class,
     PGPropertyTest.class,
