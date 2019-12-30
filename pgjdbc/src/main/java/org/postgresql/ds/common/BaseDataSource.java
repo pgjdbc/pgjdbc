@@ -1511,6 +1511,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
   }
 
+  public String getMaxResultBuffer() {
+    return PGProperty.MAX_RESULT_BUFFER.get(properties);
+  }
+
+  public void setMaxResultBuffer(String maxResultBuffer) {
+    PGProperty.MAX_RESULT_BUFFER.set(properties, maxResultBuffer);
+  }
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
