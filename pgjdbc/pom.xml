@@ -33,7 +33,7 @@
     <jdbc.specification.version>4.2</jdbc.specification.version>
     <jdbc.specification.version.nodot>42</jdbc.specification.version.nodot>
     <skip.assembly>false</skip.assembly>
-    <checkstyle.version>8.27</checkstyle.version>
+    <checkstyle.version>8.28</checkstyle.version>
   </properties>
 
   <dependencies>
