@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -397,7 +398,7 @@ public class Driver implements java.sql.Driver {
      * @throws SQLException if a connection error occurs or the timeout is reached
      */
     public Connection getResult(long timeout) throws SQLException {
-      long expiry = System.nanoTime() / (long)1E6 + timeout;
+      long expiry = TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) + timeout;
       synchronized (this) {
         while (true) {
           if (result != null) {
@@ -416,7 +417,7 @@ public class Driver implements java.sql.Driver {
             }
           }
 
-          long delay = expiry - System.nanoTime() / (long)1E6;
+          long delay = expiry - TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
           if (delay <= 0) {
             abandoned = true;
             throw new PSQLException(GT.tr("Connection attempt timed out."),
