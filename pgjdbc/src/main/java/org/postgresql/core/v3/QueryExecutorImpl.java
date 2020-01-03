@@ -1075,8 +1075,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  AtomicBoolean processingCopyResults = new AtomicBoolean(false);
-
   /**
    * Handles copy sub protocol responses from server. Unlocks at end of sub protocol, so operations
    * on pgStream or QueryExecutor are not allowed in a method after calling this!
@@ -1090,16 +1088,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   CopyOperationImpl processCopyResults(CopyOperationImpl op, boolean block)
       throws SQLException, IOException {
 
-    /*
-    *  This is a hack as we should not end up here, but sometimes do with large copy operations.
-     */
-    if ( processingCopyResults.compareAndSet(false,true) == false ) {
-      LOGGER.log(Level.INFO, "Ignoring request to process copy results, already processing");
-      return null;
-    }
-
-    // put this all in a try, finally block and reset the processingCopyResults in the finally clause
-    try {
       boolean endReceiving = false;
       SQLException error = null;
       SQLException errors = null;
@@ -1301,13 +1289,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         throw errors;
       }
       return op;
-
-    } finally {
-      /*
-      reset here in the finally block to make sure it really is cleared
-       */
-      processingCopyResults.set(false);
-    }
   }
 
   /*
