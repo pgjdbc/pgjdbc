@@ -61,6 +61,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -719,7 +720,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     long startTime = 0;
     int oldTimeout = 0;
     if (useTimeout) {
-      startTime = System.nanoTime() / 1000;
+      startTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
       try {
         oldTimeout = pgStream.getSocket().getSoTimeout();
       } catch (SocketException e) {
@@ -749,7 +750,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             SQLWarning warning = receiveNoticeResponse();
             addWarning(warning);
             if (useTimeout) {
-              long newTimeMillis = System.nanoTime() / 1000;
+              long newTimeMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
               timeoutMillis += startTime - newTimeMillis; // Overflows after 49 days, ignore that
               startTime = newTimeMillis;
               if (timeoutMillis == 0) {

@@ -144,7 +144,7 @@ public class VisibleBufferedInputStream extends InputStream {
     } catch (SocketTimeoutException e) {
       // ignore
     }
-    if (read < 0) {
+    if (read <= 0) {
       return false;
     }
     endIndex += read;

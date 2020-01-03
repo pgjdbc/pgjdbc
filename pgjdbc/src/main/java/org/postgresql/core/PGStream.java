@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.SocketFactory;
 
@@ -128,7 +129,7 @@ public class PGStream implements Closeable, Flushable {
     if (pgInput.available() > 0) {
       return true;
     }
-    long now = System.nanoTime() / 1000000;
+    long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
 
     if (now < nextStreamAvailableCheckTime && minStreamAvailableCheckDelay != 0) {
       // Do not use ".peek" too often
