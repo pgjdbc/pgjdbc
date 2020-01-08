@@ -24,8 +24,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TypeInfoCache implements TypeInfo {
+
+  private static final Logger LOGGER = Logger.getLogger(TypeInfoCache.class.getName());
 
   // pgname (String) -> java.sql.Types (Integer)
   private Map<String, Integer> pgNameToSQLType;
@@ -189,6 +193,8 @@ public class TypeInfoCache implements TypeInfo {
     if (i != null) {
       return i;
     }
+
+    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type '{0}'", pgTypeName);
 
     if (getTypeInfoStatement == null) {
       // There's no great way of telling what's an array type.
