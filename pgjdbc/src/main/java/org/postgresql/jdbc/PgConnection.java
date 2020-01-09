@@ -1465,7 +1465,7 @@ public class PgConnection implements BaseConnection {
       } finally {
         setNetworkTimeout(null, savedNetworkTimeOut);
       }
-    } catch (SQLException e) {
+    } catch (PSQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
         // "current transaction aborted", assume the connection is up and running
         return true;
