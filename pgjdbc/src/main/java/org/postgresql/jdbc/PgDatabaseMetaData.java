@@ -9,6 +9,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
@@ -2291,6 +2292,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
               connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNullable));
     byte[] bSearchable =
               connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
+
+    TypeInfo ti = connection.getTypeInfo();
+    if (ti instanceof TypeInfoCache) {
+      ((TypeInfoCache) ti).cacheSQLTypes();
+    }
 
     while (rs.next()) {
       byte[][] tuple = new byte[19][];

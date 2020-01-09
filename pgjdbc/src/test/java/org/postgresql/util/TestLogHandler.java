@@ -7,7 +7,7 @@ import java.util.logging.LogRecord;
 import java.util.regex.Pattern;
 
 public class TestLogHandler extends Handler {
-  public List<LogRecord> records = new ArrayList<>();
+  public List<LogRecord> records = new ArrayList<LogRecord>();
 
   @Override
   public void publish(LogRecord record) {
@@ -23,7 +23,7 @@ public class TestLogHandler extends Handler {
   }
 
   public List<LogRecord> getRecordsMatching(Pattern messagePattern) {
-    ArrayList<LogRecord> matches = new ArrayList<>();
+    ArrayList<LogRecord> matches = new ArrayList<LogRecord>();
     for (LogRecord r: this.records) {
       if (messagePattern.matcher(r.getMessage()).find()) {
         matches.add(r);

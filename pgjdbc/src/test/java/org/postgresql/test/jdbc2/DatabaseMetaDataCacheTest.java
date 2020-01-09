@@ -34,6 +34,7 @@ public class DatabaseMetaDataCacheTest {
   private Level driverLogLevel;
 
   private static final Pattern SQL_TYPE_QUERY_LOG_FILTER = Pattern.compile("querying SQL typecode for pg type");
+  private static final Pattern SQL_TYPE_CACHE_LOG_FILTER = Pattern.compile("caching all SQL typecodes");
 
   @Before
   public void setUp() throws Exception {
@@ -72,7 +73,11 @@ public class DatabaseMetaDataCacheTest {
   @Test
   public void testGetTypeInfoUsesCache() throws SQLException {
     con.getMetaData().getTypeInfo();
+
+    List<LogRecord> typeCacheQuery = log.getRecordsMatching(SQL_TYPE_CACHE_LOG_FILTER);
+    assertEquals("PgDatabaseMetadata.getTypeInfo() did not cache SQL typecodes", 1, typeCacheQuery.size());
+
     List<LogRecord> typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
-    assertEquals("DatabaseMetadata.getTypeInfo() resulted in individual queries for SQL typecodes", 0, typeQueries.size());
+    assertEquals("PgDatabaseMetadata.getTypeInfo() resulted in individual queries for SQL typecodes", 0, typeQueries.size());
   }
 }
