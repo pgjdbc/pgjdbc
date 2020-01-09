@@ -5,13 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+
 import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.TestLogHandler;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -20,8 +23,6 @@ import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
-import static org.junit.Assert.assertEquals;
 
 /*
  * Tests for caching of DatabaseMetadata
