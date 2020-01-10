@@ -528,6 +528,28 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
+  public void testMultipleSchemas() throws Exception {
+    PgConnection pgConnection = con.unwrap(PgConnection.class);
+
+    String previousSchema = pgConnection.getSchema();
+
+    TestUtil.createSchema(con, "schema_update_row");
+    pgConnection.setSchema("schema_update_row");
+    TestUtil.createTable(con, "second",
+        "id1 int, name1 text, name2 text, constraint second_pk primary key (id1, name2)");
+    Statement st2 = con.createStatement();
+    st2.execute("insert into second values (1,'anyvalue', 'anyvalue2')");
+
+    pgConnection.setSchema(previousSchema);
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("select id1, name1 from second");
+    rs.next();
+    rs.updateString("name1", "newval");
+    rs.updateRow();
+    rs.close();
+    
+  @Test
   public void simpleAndUpdateableSameQuery() throws Exception {
     PGConnection unwrap = con.unwrap(PGConnection.class);
     Assume.assumeNotNull(unwrap);
@@ -571,5 +593,4 @@ public class UpdateableResultTest extends BaseTest4 {
       }
     }
   }
-
 }

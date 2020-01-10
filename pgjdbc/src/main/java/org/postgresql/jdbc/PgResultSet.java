@@ -1546,6 +1546,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       String[] s = quotelessTableName(tableName);
       String quotelessTableName = s[0];
       String quotelessSchemaName = s[1];
+      if (quotelessSchemaName.isEmpty() && !isTemporaryTable(quotelessTableName)) {
+        PgConnection pgConnection = connection.unwrap(PgConnection.class);
+        String connectionSchema = pgConnection.getSchema();
+        if (connectionSchema != null && !connectionSchema.isEmpty()) {
+          quotelessSchemaName = connectionSchema;
+        }
+      }
       java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
           quotelessSchemaName, quotelessTableName);
       while (rs.next()) {
@@ -1639,6 +1646,25 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // Always put table in slot 0
     parts[0] = acc.toString();
     return parts;
+  }
+
+  private boolean isTemporaryTable(String tableName) throws SQLException {
+    PreparedStatement smt = null;
+    ResultSet rs = null;
+    try {
+      smt = connection.prepareStatement(
+        "select n.nspname from pg_class c join pg_namespace n on n.oid=c.relnamespace where c.relname = ? and n.nspname like 'pg_temp%'");
+      smt.setString(1, tableName);
+      rs = smt.executeQuery();
+      return rs.next();
+    } finally {
+      if (rs != null && !rs.isClosed()) {
+        rs.close();
+      }
+      if (smt != null && !smt.isClosed()) {
+        smt.close();
+      }
+    }
   }
 
   private void parseQuery() {
