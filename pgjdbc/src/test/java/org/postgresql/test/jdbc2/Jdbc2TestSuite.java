@@ -110,6 +110,7 @@ import org.junit.runners.Suite;
     TypeCacheDLLStressTest.class,
     UpdateableResultTest.class,
     UpsertTest.class,
+    UTF8EncodingTest.class,
     V3ParameterListTests.class,
 })
 public class Jdbc2TestSuite {
