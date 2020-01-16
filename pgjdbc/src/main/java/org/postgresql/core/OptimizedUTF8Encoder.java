@@ -47,8 +47,9 @@ abstract class OptimizedUTF8Encoder extends Encoding {
       return decoderArray;
     }
     final char[] chars = new char[size];
+    //only if size is below the threshold do we want to keep new char[] for future reuse
     if (size <= thresholdSize) {
-      decoderArray = new char[size];
+      decoderArray = chars;
     }
     return chars;
   }
