@@ -11,6 +11,7 @@ import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
+import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
@@ -119,6 +120,7 @@ import org.junit.runners.Suite;
     TypeCacheDLLStressTest.class,
     UpdateableResultTest.class,
     UpsertTest.class,
+    UTF8EncodingTest.class,
     V3ParameterListTests.class,
 })
 public class Jdbc2TestSuite {
