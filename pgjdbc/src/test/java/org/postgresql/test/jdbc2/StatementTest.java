@@ -963,7 +963,9 @@ public class StatementTest {
     try {
       executor.shutdownNow();
       executor.awaitTermination(1000, TimeUnit.MILLISECONDS);
-      TestUtil.executeQuery(con, "select 1");
+      // just close the connection to avoid lingering cancel requests from above
+      con.close();
+      con = TestUtil.openDB();
     } catch ( PSQLException ex ) {
       // draining out any cancel
       if ( !ex.getServerErrorMessage().getMessage().startsWith("canceling statement due to user request")) {
