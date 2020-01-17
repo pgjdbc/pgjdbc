@@ -2108,14 +2108,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String sql;
     sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
-          + "  (i.keys).n AS KEY_SEQ, ci.relname AS PK_NAME "
+          + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
+          + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM "
           + "FROM pg_catalog.pg_class ct "
           + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-          + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, "
-          + "             information_schema._pg_expandarray(i.indkey) AS keys "
-          + "        FROM pg_catalog.pg_index i) i "
-          + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
+          + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
           + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
           + "WHERE true ";
 
@@ -2127,8 +2125,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql += " AND ct.relname = " + escapeQuotes(table);
     }
 
-    sql += " AND i.indisprimary "
-        + " ORDER BY table_name, pk_name, key_seq";
+    sql += " AND i.indisprimary ";
+    sql = "SELECT " +
+			"       result.TABLE_CAT, " +
+			"       result.TABLE_SCHEM, " +
+			"       result.TABLE_NAME, " +
+			"       result.COLUMN_NAME, " +
+			"       result.KEY_SEQ, " +
+			"       result.PK_NAME " +
+			"FROM " +
+			"     (" + sql +" ) result" +
+			" where " +
+			" result.A_ATTNUM = (result.KEYS).x ";
+    sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
 
     return createMetaDataStatement().executeQuery(sql);
   }
@@ -2384,34 +2393,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther
             + "    END "
             + "  END AS TYPE, "
-            + "  (i.keys).n AS ORDINAL_POSITION, "
-            + "  trim(both '\"' from pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false)) AS COLUMN_NAME, "
-            + (connection.haveMinimumServerVersion(ServerVersion.v9_6)
-               ? "  CASE am.amname "
-                 + "    WHEN 'btree' THEN CASE i.indoption[(i.keys).n - 1] & 1 "
-                 + "      WHEN 1 THEN 'D' "
-                 + "      ELSE 'A' "
-                 + "    END "
-                 + "    ELSE NULL "
-                 + "  END AS ASC_OR_DESC, "
-               : "  CASE am.amcanorder "
-                 + "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 "
-                 + "      WHEN 1 THEN 'D' "
-                 + "      ELSE 'A' "
-                 + "    END "
-                 + "    ELSE NULL "
-                 + "  END AS ASC_OR_DESC, ")
+            + "  (information_schema._pg_expandarray(i.indkey)).n AS ORDINAL_POSITION, "
             + "  ci.reltuples AS CARDINALITY, "
             + "  ci.relpages AS PAGES, "
-            + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION "
+            + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION, "
+            + "  ci.oid AS CI_OID, "
+            + "  i.indoption AS I_INDOPTION, "
+            + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME " : "  am.amcanorder AS AM_CANORDER ")
             + "FROM pg_catalog.pg_class ct "
             + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-            + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indoption, "
-            + "          i.indisunique, i.indisclustered, i.indpred, "
-            + "          i.indexprs, "
-            + "          information_schema._pg_expandarray(i.indkey) AS keys "
-            + "        FROM pg_catalog.pg_index i) i "
-            + "    ON (ct.oid = i.indrelid) "
+            + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
             + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
             + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
             + "WHERE true ";
@@ -2419,6 +2410,42 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if (schema != null && !schema.isEmpty()) {
         sql += " AND n.nspname = " + escapeQuotes(schema);
       }
+
+		sql += " AND ct.relname = " + escapeQuotes(tableName);
+
+		if (unique) {
+			sql += " AND i.indisunique ";
+		}
+
+		sql = "SELECT " +
+				"    tmp.TABLE_SCHEM, " +
+				"    tmp.TABLE_NAME, " +
+				"    tmp.NON_UNIQUE, " +
+				"    tmp.INDEX_QUALIFIER, " +
+				"    tmp.INDEX_NAME, " +
+				"    tmp.TYPE, " +
+				"    tmp.ORDINAL_POSITION, " +
+				"    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS COLUMN_NAME, " +
+				(connection.haveMinimumServerVersion(ServerVersion.v9_6)
+						? "  CASE tmp.AM_NAME "
+						+ "    WHEN 'btree' THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+						+ "      WHEN 1 THEN 'D' "
+						+ "      ELSE 'A' "
+						+ "    END "
+						+ "    ELSE NULL "
+						+ "  END AS ASC_OR_DESC, "
+						: "  CASE tmp.AM_CANORDER "
+						+ "    WHEN true THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+						+ "      WHEN 1 THEN 'D' "
+						+ "      ELSE 'A' "
+						+ "    END "
+						+ "    ELSE NULL "
+						+ "  END AS ASC_OR_DESC, ") +
+				"    tmp.CARDINALITY, " +
+				"    tmp.PAGES, " +
+				"    tmp.FILTER_CONDITION " +
+				"FROM ("+ sql
+				+ ") AS tmp";
     } else {
       String select;
       String from;
@@ -2453,13 +2480,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + from
             + " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid "
             + where;
+
+		sql += " AND ct.relname = " + escapeQuotes(tableName);
+
+		if (unique) {
+			sql += " AND i.indisunique ";
+		}
     }
 
-    sql += " AND ct.relname = " + escapeQuotes(tableName);
-
-    if (unique) {
-      sql += " AND i.indisunique ";
-    }
     sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
 
     return createMetaDataStatement().executeQuery(sql);
