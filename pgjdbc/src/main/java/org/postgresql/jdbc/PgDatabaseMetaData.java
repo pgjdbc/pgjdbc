@@ -2424,6 +2424,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       sql = "SELECT "
+                + "    tmp.TABLE_CAT, "
                 + "    tmp.TABLE_SCHEM, "
                 + "    tmp.TABLE_NAME, "
                 + "    tmp.NON_UNIQUE, "
