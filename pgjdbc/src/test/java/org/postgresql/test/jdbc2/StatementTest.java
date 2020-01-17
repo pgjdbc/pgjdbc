@@ -925,7 +925,12 @@ public class StatementTest {
         public Void call() throws Exception {
           int s = rnd.nextInt(10);
           if (s > 8) {
-            Thread.sleep(s - 9);
+            try {
+              Thread.sleep(s - 9);
+            } catch (InterruptedException ex ) {
+              // don't execute the close here as this thread was cancelled below in shutdownNow
+              return null;
+            }
           }
           st.close();
           return null;
@@ -956,7 +961,7 @@ public class StatementTest {
     }
     System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
     try {
-      executor.shutdown();
+      executor.shutdownNow();
       executor.awaitTermination(1000, TimeUnit.MILLISECONDS);
       TestUtil.executeQuery(con, "select 1");
     } catch ( PSQLException ex ) {
