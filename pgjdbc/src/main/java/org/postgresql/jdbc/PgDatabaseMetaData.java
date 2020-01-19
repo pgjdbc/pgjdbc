@@ -2126,17 +2126,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql += " AND i.indisprimary ";
-    sql = "SELECT " +
-			"       result.TABLE_CAT, " +
-			"       result.TABLE_SCHEM, " +
-			"       result.TABLE_NAME, " +
-			"       result.COLUMN_NAME, " +
-			"       result.KEY_SEQ, " +
-			"       result.PK_NAME " +
-			"FROM " +
-			"     (" + sql +" ) result" +
-			" where " +
-			" result.A_ATTNUM = (result.KEYS).x ";
+    sql = "SELECT "
+            + "       result.TABLE_CAT, "
+            + "       result.TABLE_SCHEM, "
+            + "       result.TABLE_NAME, "
+            + "       result.COLUMN_NAME, "
+            + "       result.KEY_SEQ, "
+            + "       result.PK_NAME "
+            + "FROM "
+            + "     (" + sql + " ) result"
+            + " where "
+            + " result.A_ATTNUM = (result.KEYS).x ";
     sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
 
     return createMetaDataStatement().executeQuery(sql);
@@ -2411,41 +2411,42 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         sql += " AND n.nspname = " + escapeQuotes(schema);
       }
 
-		sql += " AND ct.relname = " + escapeQuotes(tableName);
+      sql += " AND ct.relname = " + escapeQuotes(tableName);
 
-		if (unique) {
-			sql += " AND i.indisunique ";
-		}
+      if (unique) {
+        sql += " AND i.indisunique ";
+      }
 
-		sql = "SELECT " +
-				"    tmp.TABLE_SCHEM, " +
-				"    tmp.TABLE_NAME, " +
-				"    tmp.NON_UNIQUE, " +
-				"    tmp.INDEX_QUALIFIER, " +
-				"    tmp.INDEX_NAME, " +
-				"    tmp.TYPE, " +
-				"    tmp.ORDINAL_POSITION, " +
-				"    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS COLUMN_NAME, " +
-				(connection.haveMinimumServerVersion(ServerVersion.v9_6)
-						? "  CASE tmp.AM_NAME "
-						+ "    WHEN 'btree' THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
-						+ "      WHEN 1 THEN 'D' "
-						+ "      ELSE 'A' "
-						+ "    END "
-						+ "    ELSE NULL "
-						+ "  END AS ASC_OR_DESC, "
-						: "  CASE tmp.AM_CANORDER "
-						+ "    WHEN true THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
-						+ "      WHEN 1 THEN 'D' "
-						+ "      ELSE 'A' "
-						+ "    END "
-						+ "    ELSE NULL "
-						+ "  END AS ASC_OR_DESC, ") +
-				"    tmp.CARDINALITY, " +
-				"    tmp.PAGES, " +
-				"    tmp.FILTER_CONDITION " +
-				"FROM ("+ sql
-				+ ") AS tmp";
+      sql = "SELECT "
+                + "    tmp.TABLE_SCHEM, "
+                + "    tmp.TABLE_NAME, "
+                + "    tmp.NON_UNIQUE, "
+                + "    tmp.INDEX_QUALIFIER, "
+                + "    tmp.INDEX_NAME, "
+                + "    tmp.TYPE, "
+                + "    tmp.ORDINAL_POSITION, "
+                + "    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS COLUMN_NAME, "
+                + (connection.haveMinimumServerVersion(ServerVersion.v9_6)
+                        ? "  CASE tmp.AM_NAME "
+                        + "    WHEN 'btree' THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+                        + "      WHEN 1 THEN 'D' "
+                        + "      ELSE 'A' "
+                        + "    END "
+                        + "    ELSE NULL "
+                        + "  END AS ASC_OR_DESC, "
+                        : "  CASE tmp.AM_CANORDER "
+                        + "    WHEN true THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+                        + "      WHEN 1 THEN 'D' "
+                        + "      ELSE 'A' "
+                        + "    END "
+                        + "    ELSE NULL "
+                        + "  END AS ASC_OR_DESC, ")
+                + "    tmp.CARDINALITY, "
+                + "    tmp.PAGES, "
+                + "    tmp.FILTER_CONDITION "
+                + "FROM ("
+                + sql
+                + ") AS tmp";
     } else {
       String select;
       String from;
@@ -2481,11 +2482,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid "
             + where;
 
-		sql += " AND ct.relname = " + escapeQuotes(tableName);
+      sql += " AND ct.relname = " + escapeQuotes(tableName);
 
-		if (unique) {
-			sql += " AND i.indisunique ";
-		}
+      if (unique) {
+        sql += " AND i.indisunique ";
+      }
     }
 
     sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
