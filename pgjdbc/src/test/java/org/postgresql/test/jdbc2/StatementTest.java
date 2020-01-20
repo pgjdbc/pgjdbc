@@ -15,6 +15,7 @@ import static org.junit.Assert.fail;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
@@ -68,8 +69,8 @@ public class StatementTest {
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
     TestUtil.dropTable(con, "test_lock");
-    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_loop()");
-    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_then_sleep()");
+    TestUtil.execute("DROP FUNCTION IF EXISTS notify_loop()",con);
+    TestUtil.execute("DROP FUNCTION IF EXISTS notify_then_sleep()",con);
     con.close();
   }
 
@@ -924,7 +925,12 @@ public class StatementTest {
         public Void call() throws Exception {
           int s = rnd.nextInt(10);
           if (s > 8) {
-            Thread.sleep(s - 9);
+            try {
+              Thread.sleep(s - 9);
+            } catch (InterruptedException ex ) {
+              // don't execute the close here as this thread was cancelled below in shutdownNow
+              return null;
+            }
           }
           st.close();
           return null;
@@ -954,7 +960,20 @@ public class StatementTest {
       cnt.put(sqlState, val);
     }
     System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
-    executor.shutdown();
+    try {
+      executor.shutdownNow();
+      executor.awaitTermination(1000, TimeUnit.MILLISECONDS);
+      // just close the connection to avoid lingering cancel requests from above
+      con.close();
+      con = TestUtil.openDB();
+    } catch ( PSQLException ex ) {
+      // draining out any cancel
+      if ( !ex.getServerErrorMessage().getMessage().startsWith("canceling statement due to user request")) {
+        throw ex;
+      }
+    } catch ( InterruptedException ex ) {
+
+    }
   }
 
   /**
