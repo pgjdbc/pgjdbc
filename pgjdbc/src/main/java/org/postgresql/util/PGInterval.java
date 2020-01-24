@@ -240,12 +240,16 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return String represented interval
    */
   public String getValue() {
-    return years + " years "
-        + months + " mons "
-        + days + " days "
-        + hours + " hours "
-        + minutes + " mins "
-        + wholeSeconds + '.' + microSeconds + " secs";
+    return String.format(
+      Locale.ROOT,
+      "%d years %d mons %d days %d hours %d mins %f secs",
+      years,
+      months,
+      days,
+      hours,
+      minutes,
+      wholeSeconds + microSeconds / 1e6d
+    );
   }
 
   /**
