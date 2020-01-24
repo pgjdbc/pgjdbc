@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
+  private static final int MICROS_IN_SECOND = 1000000;
+
   private int years;
   private int months;
   private int days;
@@ -250,9 +252,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       days,
       hours,
       minutes,
-      new DecimalFormat("0.0#####").format(
-        wholeSeconds + (double) microSeconds / TimeUnit.SECONDS.toMicros(1)
-      )
+      new DecimalFormat("0.0#####").format(getSeconds())
     );
   }
 
@@ -352,14 +352,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return seconds represented by this interval
    */
   public double getSeconds() {
-    if ( microSeconds < 0) {
-      if ( wholeSeconds == 0 ) {
-        return Double.parseDouble("-0." + -microSeconds);
-      } else {
-        return Double.parseDouble("" + wholeSeconds + '.' + -microSeconds);
-      }
-    }
-    return Double.parseDouble("" + wholeSeconds + '.' + microSeconds );
+    return wholeSeconds + (double) microSeconds / MICROS_IN_SECOND;
   }
 
   public int getWholeSeconds() {
@@ -376,13 +369,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param seconds seconds to set
    */
   public void setSeconds(double seconds) {
-    String str = String.format(Locale.ROOT,"%.6f",seconds);
-    int decimal = str.indexOf('.');
-    microSeconds = Integer.parseInt(str.substring(decimal + 1));
-    wholeSeconds = Integer.parseInt(str.substring(0,decimal));
-    if ( seconds < 0 ) {
-      microSeconds = -microSeconds;
-    }
+    wholeSeconds = (int) seconds;
+    microSeconds = (int) Math.round((seconds - wholeSeconds) * MICROS_IN_SECOND);
   }
 
   /**

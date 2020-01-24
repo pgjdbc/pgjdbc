@@ -336,6 +336,20 @@ public class IntervalTest {
     assertEquals(orig, copy);
   }
 
+  @Test
+  public void testGetSecondsForSmallValue() throws SQLException {
+    PGInterval pgi = new PGInterval("0.000001 seconds");
+
+    assertEquals(0.000001, pgi.getSeconds(), 0.000000001);
+  }
+
+  @Test
+  public void testMicroSecondsAreRoundedToNearest() throws SQLException {
+    PGInterval pgi = new PGInterval("0.0000007 seconds");
+
+    assertEquals(1, pgi.getMicroSeconds());
+  }
+
   private java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }
