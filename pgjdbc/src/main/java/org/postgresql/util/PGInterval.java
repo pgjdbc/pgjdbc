@@ -7,10 +7,12 @@ package org.postgresql.util;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This implements a class that handles the PostgreSQL interval type.
@@ -242,13 +244,15 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   public String getValue() {
     return String.format(
       Locale.ROOT,
-      "%d years %d mons %d days %d hours %d mins %f secs",
+      "%d years %d mons %d days %d hours %d mins %s secs",
       years,
       months,
       days,
       hours,
       minutes,
-      wholeSeconds + microSeconds / 1e6d
+      new DecimalFormat("0.0#####").format(
+        wholeSeconds + (double) microSeconds / TimeUnit.SECONDS.toMicros(1)
+      )
     );
   }
 
