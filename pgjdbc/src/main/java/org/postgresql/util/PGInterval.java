@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 /**
@@ -367,20 +368,10 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param seconds seconds to set
    */
   public void setSeconds(double seconds) {
-    String str = Double.toString(seconds);
+    String str = String.format(Locale.ROOT,"%.6f",seconds);
     int decimal = str.indexOf('.');
-    if (decimal > 0) {
-
-      /* how many 10's do we need to multiply by to get microseconds */
-      String micSeconds = str.substring(decimal + 1);
-      int power = 6 - micSeconds.length();
-
-      microSeconds = Integer.parseInt(micSeconds) * (int)Math.pow(10,power);
-      wholeSeconds = Integer.parseInt(str.substring(0,decimal));
-    } else {
-      microSeconds = 0;
-      wholeSeconds = Integer.parseInt(str);
-    }
+    microSeconds = Integer.parseInt(str.substring(decimal + 1));
+    wholeSeconds = Integer.parseInt(str.substring(0,decimal));
     if ( seconds < 0 ) {
       microSeconds = -microSeconds;
     }
