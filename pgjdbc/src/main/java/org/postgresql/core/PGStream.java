@@ -138,6 +138,9 @@ public class PGStream implements Closeable, Flushable {
     int soTimeout = getNetworkTimeout();
     setNetworkTimeout(1);
     try {
+      if (!pgInput.ensureBytes(1, false)) {
+        return false;
+      }
       available = (pgInput.peek() != -1);
     } catch (SocketTimeoutException e) {
       return false;
