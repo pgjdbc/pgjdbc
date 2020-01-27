@@ -51,6 +51,11 @@ public class VisibleBufferedInputStream extends InputStream {
   private int endIndex;
 
   /**
+   * socket timeout has been requested
+   */
+  private boolean timeoutRequested = false;
+
+  /**
    * Creates a new buffer around the given stream.
    *
    * @param in The stream to buffer.
@@ -161,6 +166,8 @@ public class VisibleBufferedInputStream extends InputStream {
       if (!block) {
         return false;
       }
+      if (timeoutRequested)
+        throw e;
     }
     if (read < 0) {
       return false;
@@ -321,5 +328,9 @@ public class VisibleBufferedInputStream extends InputStream {
       }
       pos = index;
     }
+  }
+
+  public void setTimeoutRequested(boolean timeoutRequested) {
+    this.timeoutRequested = timeoutRequested;
   }
 }

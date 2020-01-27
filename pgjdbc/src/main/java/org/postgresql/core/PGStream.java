@@ -136,7 +136,7 @@ public class PGStream implements Closeable, Flushable {
     }
 
     int soTimeout = getNetworkTimeout();
-    setNetworkTimeout(1);
+    connection.setSoTimeout(1);
     try {
       if (!pgInput.ensureBytes(1, false)) {
         return false;
@@ -145,7 +145,7 @@ public class PGStream implements Closeable, Flushable {
     } catch (SocketTimeoutException e) {
       return false;
     } finally {
-      setNetworkTimeout(soTimeout);
+      connection.setSoTimeout(soTimeout);
     }
 
     /*
@@ -625,6 +625,7 @@ public class PGStream implements Closeable, Flushable {
 
   public void setNetworkTimeout(int milliseconds) throws IOException {
     connection.setSoTimeout(milliseconds);
+    pgInput.setTimeoutRequested(milliseconds != 0);
   }
 
   public int getNetworkTimeout() throws IOException {
