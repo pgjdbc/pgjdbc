@@ -247,6 +247,9 @@ public class VisibleBufferedInputStream extends InputStream {
       try {
         r = wrapped.read(to, off, len);
       } catch (SocketTimeoutException e) {
+        if (read == 0 && timeoutRequested) {
+          throw e;
+        }
         return read;
       }
       if (r <= 0) {
