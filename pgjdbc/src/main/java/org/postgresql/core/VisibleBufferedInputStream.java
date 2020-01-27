@@ -166,8 +166,9 @@ public class VisibleBufferedInputStream extends InputStream {
       if (!block) {
         return false;
       }
-      if (timeoutRequested)
+      if (timeoutRequested) {
         throw e;
+      }
     }
     if (read < 0) {
       return false;
