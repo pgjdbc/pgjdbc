@@ -780,9 +780,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     try {
       Socket s = pgStream.getSocket();
       if (!s.isClosed()) { // Is this check required?
-        pgStream.getSocket().setSoTimeout(millis);
+        pgStream.setNetworkTimeout(millis);
       }
-    } catch (SocketException e) {
+    } catch (IOException e) {
       throw new PSQLException(GT.tr("An error occurred while trying to reset the socket timeout."),
         PSQLState.CONNECTION_FAILURE, e);
     }
