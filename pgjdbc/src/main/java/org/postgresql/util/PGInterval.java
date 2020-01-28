@@ -12,7 +12,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
-import java.util.concurrent.TimeUnit;
 
 /**
  * This implements a class that handles the PostgreSQL interval type.
