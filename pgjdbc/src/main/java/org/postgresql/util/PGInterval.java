@@ -7,14 +7,19 @@ package org.postgresql.util;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This implements a class that handles the PostgreSQL interval type.
  */
 public class PGInterval extends PGobject implements Serializable, Cloneable {
+
+  private static final int MICROS_IN_SECOND = 1000000;
 
   private int years;
   private int months;
@@ -239,12 +244,16 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return String represented interval
    */
   public String getValue() {
-    return years + " years "
-        + months + " mons "
-        + days + " days "
-        + hours + " hours "
-        + minutes + " mins "
-        + wholeSeconds + '.' + microSeconds + " secs";
+    return String.format(
+      Locale.ROOT,
+      "%d years %d mons %d days %d hours %d mins %s secs",
+      years,
+      months,
+      days,
+      hours,
+      minutes,
+      new DecimalFormat("0.0#####").format(getSeconds())
+    );
   }
 
   /**
@@ -343,14 +352,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return seconds represented by this interval
    */
   public double getSeconds() {
-    if ( microSeconds < 0) {
-      if ( wholeSeconds == 0 ) {
-        return Double.parseDouble("-0." + -microSeconds);
-      } else {
-        return Double.parseDouble("" + wholeSeconds + '.' + -microSeconds);
-      }
-    }
-    return Double.parseDouble("" + wholeSeconds + '.' + microSeconds );
+    return wholeSeconds + (double) microSeconds / MICROS_IN_SECOND;
   }
 
   public int getWholeSeconds() {
@@ -367,23 +369,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param seconds seconds to set
    */
   public void setSeconds(double seconds) {
-    String str = Double.toString(seconds);
-    int decimal = str.indexOf('.');
-    if (decimal > 0) {
-
-      /* how many 10's do we need to multiply by to get microseconds */
-      String micSeconds = str.substring(decimal + 1);
-      int power = 6 - micSeconds.length();
-
-      microSeconds = Integer.parseInt(micSeconds) * (int)Math.pow(10,power);
-      wholeSeconds = Integer.parseInt(str.substring(0,decimal));
-    } else {
-      microSeconds = 0;
-      wholeSeconds = Integer.parseInt(str);
-    }
-    if ( seconds < 0 ) {
-      microSeconds = -microSeconds;
-    }
+    wholeSeconds = (int) seconds;
+    microSeconds = (int) Math.round((seconds - wholeSeconds) * MICROS_IN_SECOND);
   }
 
   /**

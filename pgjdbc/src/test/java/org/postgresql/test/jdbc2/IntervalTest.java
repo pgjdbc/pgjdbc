@@ -305,6 +305,51 @@ public class IntervalTest {
     assertEquals(-4, pgi.getHours());
   }
 
+  @Test
+  public void testSmallValue() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO testinterval VALUES (?)");
+    pstmt.setObject(1, new PGInterval("0.0001 seconds"));
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT v FROM testinterval");
+    assertTrue(rs.next());
+    PGInterval pgi = (PGInterval) rs.getObject(1);
+    assertEquals(0, pgi.getYears());
+    assertEquals(0, pgi.getMonths());
+    assertEquals(0, pgi.getDays());
+    assertEquals(0, pgi.getHours());
+    assertEquals(0, pgi.getMinutes());
+    assertEquals(0, pgi.getWholeSeconds());
+    assertEquals(100, pgi.getMicroSeconds());
+    assertFalse(rs.next());
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testGetValueForSmallValue() throws SQLException {
+    PGInterval orig = new PGInterval("0.0001 seconds");
+    PGInterval copy = new PGInterval(orig.getValue());
+
+    assertEquals(orig, copy);
+  }
+
+  @Test
+  public void testGetSecondsForSmallValue() throws SQLException {
+    PGInterval pgi = new PGInterval("0.000001 seconds");
+
+    assertEquals(0.000001, pgi.getSeconds(), 0.000000001);
+  }
+
+  @Test
+  public void testMicroSecondsAreRoundedToNearest() throws SQLException {
+    PGInterval pgi = new PGInterval("0.0000007 seconds");
+
+    assertEquals(1, pgi.getMicroSeconds());
+  }
+
   private java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }
