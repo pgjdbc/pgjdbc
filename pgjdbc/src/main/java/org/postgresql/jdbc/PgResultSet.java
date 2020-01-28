@@ -1685,9 +1685,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             // or we won't be able to re-parse it.
             //
           case Types.DATE:
-            rowBuffer[columnIndex] =
-              connection.encodeString(connection.getTimestampUtils().toString(getDefaultCalendar(),
-                (Date) valueObject));
+            rowBuffer[columnIndex] = connection
+                .encodeString(
+                    connection.getTimestampUtils().toString(
+                        getDefaultCalendar(), (Date) valueObject));
             break;
 
           case Types.TIME:
