@@ -1674,11 +1674,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       } else {
         switch (getSQLType(columnIndex + 1)) {
 
-          //
-          // toString() isn't enough for date and time types; we must format it correctly
-          // or we won't be able to re-parse it.
-          //
-
+          // boolean needs to be formatted as t or f instead of true or false
+          case Types.BIT:
+          case Types.BOOLEAN:
+            rowBuffer[columnIndex] =
+              connection.encodeString(((Boolean)valueObject).booleanValue() ? "t" : "f");
+            break;
+            //
+            // toString() isn't enough for date and time types; we must format it correctly
+            // or we won't be able to re-parse it.
+            //
           case Types.DATE:
             rowBuffer[columnIndex] = connection
                 .encodeString(
