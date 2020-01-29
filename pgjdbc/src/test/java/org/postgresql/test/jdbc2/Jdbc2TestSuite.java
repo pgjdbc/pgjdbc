@@ -60,6 +60,7 @@ import org.junit.runners.Suite;
     CopyTest.class,
     CursorFetchTest.class,
     DatabaseEncodingTest.class,
+    DatabaseMetaDataCacheTest.class,
     DatabaseMetaDataPropertiesTest.class,
     DatabaseMetaDataTest.class,
     DateStyleTest.class,
