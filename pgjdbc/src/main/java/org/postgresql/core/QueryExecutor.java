@@ -11,6 +11,7 @@ import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
@@ -120,6 +121,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_EXECUTE_AS_SIMPLE = 1024;
 
   int MAX_SAVE_POINTS = 1000;
+
+  /**
+   * Flag indicating that when beginning a transaction, it should be read only.
+   */
+  int QUERY_READ_ONLY_HINT = 2048;
 
   /**
    * Execute a Query, passing results to a provided ResultHandler.
@@ -427,6 +433,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   String getApplicationName();
 
   boolean isColumnSanitiserDisabled();
+
+  EscapeSyntaxCallMode getEscapeSyntaxCallMode();
 
   PreferQueryMode getPreferQueryMode();
 

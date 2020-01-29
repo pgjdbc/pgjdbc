@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
 import javax.net.ssl.SSLHandshakeException;
 
 @RunWith(Parameterized.class)
@@ -122,7 +123,6 @@ public class SslTest extends BaseTest4 {
     }
 
     Collection<Object[]> tests = new ArrayList<Object[]>();
-
 
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();
@@ -271,7 +271,6 @@ public class SslTest extends BaseTest4 {
     } catch (AssertionError ae) {
       errors = addError(errors, ae);
     }
-
 
     try {
       if (assertClientCertificate(e)) {

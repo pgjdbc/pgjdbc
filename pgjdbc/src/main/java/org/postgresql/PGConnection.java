@@ -16,7 +16,6 @@ import org.postgresql.util.PGobject;
 import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import java.util.Map;
 
 /**
@@ -167,7 +166,6 @@ public interface PGConnection {
    */
   void setDefaultFetchSize(int fetchSize) throws SQLException;
 
-
   /**
    * Get the default fetch size for statements created from this connection.
    *
@@ -183,6 +181,12 @@ public interface PGConnection {
    * @return PID of backend server process.
    */
   int getBackendPID();
+
+  /**
+   * Sends a query cancellation for this connection.
+   * @throws SQLException if there are problems cancelling the query
+   */
+  void cancelQuery() throws SQLException;
 
   /**
    * Return the given string suitably quoted to be used as an identifier in an SQL statement string.
@@ -217,7 +221,6 @@ public interface PGConnection {
    * @see PreferQueryMode
    */
   PreferQueryMode getPreferQueryMode();
-
 
   /**
    * Connection configuration regarding automatic per-query savepoints.

@@ -125,7 +125,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The first unclosed result.
    */
-  protected ResultWrapper firstUnclosedResult = null;
+  protected volatile ResultWrapper firstUnclosedResult = null;
 
   /**
    * Results returned by a statement that wants generated keys.
@@ -327,9 +327,9 @@ public class PgStatement implements Statement, BaseStatement {
     // Close any existing resultsets associated with this statement.
     synchronized (this) {
       while (firstUnclosedResult != null) {
-        ResultSet rs = firstUnclosedResult.getResultSet();
+        PgResultSet rs = (PgResultSet)firstUnclosedResult.getResultSet();
         if (rs != null) {
-          rs.close();
+          rs.closeInternally();
         }
         firstUnclosedResult = firstUnclosedResult.getNext();
       }
@@ -407,6 +407,9 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+    }
+    if (connection.hintReadOnly()) {
+      flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
     }
 
     // updateable result sets do not yet support binary updates
@@ -809,6 +812,9 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+    }
+    if (connection.hintReadOnly()) {
+      flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
     }
 
     BatchResultHandler handler;

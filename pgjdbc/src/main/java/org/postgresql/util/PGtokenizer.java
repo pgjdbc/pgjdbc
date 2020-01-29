@@ -89,8 +89,6 @@ public class PGtokenizer {
     }
 
     // Don't forget the last token ;-)
-
-
     if (s < string.length()) {
       tokens.add(string.substring(s));
     }

@@ -55,9 +55,7 @@ package org.postgresql.util;
  * @version 2.1
  */
 public class Base64 {
-
   /* ******** P U B L I C F I E L D S ******** */
-
   /**
    * No options specified. Value is zero.
    */
@@ -79,7 +77,6 @@ public class Base64 {
   public static final int DONT_BREAK_LINES = 8;
 
   /* ******** P R I V A T E F I E L D S ******** */
-
   /**
    * Maximum line length (76) of Base64 output.
    */
@@ -180,7 +177,6 @@ public class Base64 {
   }
 
   /* ******** E N C O D I N G M E T H O D S ******** */
-
   /**
    * Encodes up to three bytes of the array <var>source</var> and writes the resulting four Base64
    * bytes to <var>destination</var>. The source and destination arrays can be manipulated anywhere
@@ -348,20 +344,16 @@ public class Base64 {
         e += 4;
       } // end if: some padding needed
 
-
       // Return value according to relevant encoding.
       try {
         return new String(outBuff, 0, e, PREFERRED_ENCODING);
       } catch (java.io.UnsupportedEncodingException uue) {
         return new String(outBuff, 0, e);
       }
-
     }
-
   }
 
   /* ******** D E C O D I N G M E T H O D S ******** */
-
   /**
    * Decodes four bytes from array <var>source</var> and writes the resulting bytes (up to three of
    * them) to <var>destination</var>. The source and destination arrays can be manipulated anywhere
@@ -414,7 +406,6 @@ public class Base64 {
             | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
             | ((DECODABET[source[srcOffset + 2]] & 0xFF) << 6)
             | ((DECODABET[source[srcOffset + 3]] & 0xFF));
-
 
         destination[destOffset] = (byte) (outBuff >> 16);
         destination[destOffset + 1] = (byte) (outBuff >> 8);

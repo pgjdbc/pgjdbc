@@ -11,6 +11,7 @@ import org.postgresql.util.PSQLException;
 
 import java.net.IDN;
 import java.util.Properties;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
 

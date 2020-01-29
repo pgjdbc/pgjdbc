@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc4;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -37,12 +38,18 @@ public class DatabaseMetaDataTest {
     conn = TestUtil.openDB();
     TestUtil.dropSequence(conn, "sercoltest_a_seq");
     TestUtil.createTable(conn, "sercoltest", "a serial, b int");
+    TestUtil.createSchema(conn, "hasfunctions");
+    TestUtil.createSchema(conn, "nofunctions");
+    TestUtil.execute("create function hasfunctions.addfunction (integer, integer) "
+        + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE", conn);
   }
 
   @After
   public void tearDown() throws Exception {
     TestUtil.dropSequence(conn, "sercoltest_a_seq");
     TestUtil.dropTable(conn, "sercoltest");
+    TestUtil.dropSchema(conn, "hasfunctions");
+    TestUtil.dropSchema(conn, "nofunctions");
     TestUtil.closeDB(conn);
   }
 
@@ -86,6 +93,55 @@ public class DatabaseMetaDataTest {
     assertEquals("public", rs.getString("TABLE_SCHEM"));
     assertNull(rs.getString("TABLE_CATALOG"));
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testGetFunctionsInSchema() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getFunctions("", "hasfunctions","");
+    int count = assertGetFunctionRS(rs);
+    assertThat( count, is(1));
+
+    Statement statement = conn.createStatement();
+    statement.execute("set search_path=hasfunctions");
+
+    rs = dbmd.getFunctions("", "","addfunction");
+    assertThat( assertGetFunctionRS(rs), is(1) );
+
+    statement.execute("set search_path=nofunctions");
+
+    rs = dbmd.getFunctions("", "","addfunction");
+    assertFalse(rs.next());
+
+    statement.execute("reset search_path");
+    statement.close();
+
+    rs = dbmd.getFunctions("", "nofunctions",null);
+    assertFalse(rs.next());
+
+  }
+
+  @Test
+  public void testGetProceduresInSchema() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getProcedures("", "hasfunctions",null);
+    assertTrue(rs.next());
+
+    Statement statement = conn.createStatement();
+    statement.execute("set search_path=hasfunctions");
+
+    rs = dbmd.getProcedures("", "","addfunction");
+    assertTrue(rs.next());
+
+    statement.execute("set search_path=nofunctions");
+    rs = dbmd.getProcedures("", "","addfunction");
+    assertFalse(rs.next());
+
+    statement.execute("reset search_path");
+    statement.close();
+    rs = dbmd.getProcedures("", "nofunctions",null);
+    assertFalse(rs.next());
+
   }
 
   @Test
@@ -230,6 +286,19 @@ public class DatabaseMetaDataTest {
       assertThat(rs.next(), is(false));
       rs.close();
       stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
+    }
+  }
+
+  @Test
+  public void testSortedDataTypes() throws SQLException {
+    // https://github.com/pgjdbc/pgjdbc/issues/716
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getTypeInfo();
+    int lastType = Integer.MIN_VALUE;
+    while (rs.next()) {
+      int type = rs.getInt("DATA_TYPE");
+      assertTrue(lastType <= type);
+      lastType = type;
     }
   }
 }

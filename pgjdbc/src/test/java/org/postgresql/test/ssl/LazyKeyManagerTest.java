@@ -6,6 +6,8 @@
 package org.postgresql.test.ssl;
 
 import org.postgresql.ssl.LazyKeyManager;
+import org.postgresql.ssl.PKCS12KeyManager;
+import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -13,6 +15,8 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+import java.util.Properties;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -22,11 +26,28 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 public class LazyKeyManagerTest {
 
   @Test
+  public void testLoadP12Key() throws Exception {
+
+    Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
+    File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
+    String certdir = certDirFile.getAbsolutePath();
+
+    PKCS12KeyManager pkcs12KeyManager = new PKCS12KeyManager(certdir + "/goodclient.p12", new TestCallbackHandler("sslpwd"));
+    PrivateKey pk = pkcs12KeyManager.getPrivateKey("user");
+    Assert.assertNotNull(pk);
+    X509Certificate[] chain = pkcs12KeyManager.getCertificateChain("user");
+    Assert.assertNotNull(chain);
+  }
+
+  @Test
   public void testLoadKey() throws Exception {
-    String certdir = "../certdir/";
-    String path = new File("./").getAbsolutePath();
-    LazyKeyManager lazyKeyManager = new LazyKeyManager(certdir + "goodclient.crt",
-        certdir + "goodclient.pk8", new TestCallbackHandler("sslpwd"), true);
+
+    Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
+    File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
+    String certdir = certDirFile.getAbsolutePath();
+
+    LazyKeyManager lazyKeyManager = new LazyKeyManager(certdir + "/goodclient.crt",
+        certdir + "/goodclient.pk8", new TestCallbackHandler("sslpwd"), true);
     PrivateKey pk = lazyKeyManager.getPrivateKey("user");
     Assert.assertNotNull(pk);
   }

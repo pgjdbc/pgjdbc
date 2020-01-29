@@ -14,7 +14,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerErrorMessage implements Serializable {
-
   private static final Logger LOGGER = Logger.getLogger(ServerErrorMessage.class.getName());
 
   private static final Character SEVERITY = 'S';
@@ -141,6 +140,19 @@ public class ServerErrorMessage implements Serializable {
       return 0;
     }
     return Integer.parseInt(s);
+  }
+
+  String getNonSensitiveErrorMessage() {
+    StringBuilder totalMessage = new StringBuilder();
+    String message = mesgParts.get(SEVERITY);
+    if (message != null) {
+      totalMessage.append(message).append(": ");
+    }
+    message = mesgParts.get(MESSAGE);
+    if (message != null) {
+      totalMessage.append(message);
+    }
+    return totalMessage.toString();
   }
 
   public String toString() {

@@ -173,6 +173,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
     PGProperty.AUTOSAVE.set(props, autoSave.value());
+    PGProperty.CLEANUP_SAVEPOINTS.set(props, cleanSavePoint.toString());
     PGProperty.PREPARE_THRESHOLD.set(props, 1);
   }
 
@@ -354,7 +355,6 @@ public class AutoRollbackTestSuite extends BaseTest4 {
         throw e;
       }
     }
-
 
     try {
       assertRows("rollbacktest", rowsExpected);

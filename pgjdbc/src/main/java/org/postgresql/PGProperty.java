@@ -10,6 +10,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
 import java.util.Properties;
 
@@ -171,6 +172,12 @@ public enum PGProperty {
    */
   LOG_UNCLOSED_CONNECTIONS("logUnclosedConnections", "false",
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
+
+  /**
+   * Whether to include full server error detail in exception messages.
+   */
+  LOG_SERVER_ERROR_DETAIL("logServerErrorDetail", "true",
+      "Include full server error detail in exception messages. If disabled then only the error itself will be included."),
 
   /**
    * Enable optimization that disables column name sanitiser.
@@ -419,6 +426,13 @@ public enum PGProperty {
       "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
 
   /**
+   * Enable mode to filter out the names of database objects for which the current user has no privileges
+   * granted from appearing in the DatabaseMetaData returned by the driver.
+   */
+  HIDE_UNPRIVILEGED_OBJECTS("hideUnprivilegedObjects", "false",
+    "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData"),
+
+  /**
    * <p>Connection parameter passed in the startup message. This parameter accepts two values; "true"
    * and "database". Passing "true" tells the backend to go into walsender mode, wherein a small set
    * of replication commands can be issued instead of SQL statements. Only the simple query protocol
@@ -437,7 +451,39 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+
+  /**
+   * Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions. (backend &gt;= 11)
+   * In {@code escapeSyntaxCallMode=select} mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
+   * In {@code escapeSyntaxCallMode=callIfNoReturn} mode, the driver uses a CALL statement (allowing procedure invocation) if there is no return parameter specified, otherwise the driver uses a SELECT statement.
+   * In {@code escapeSyntaxCallMode=call} mode, the driver always uses a CALL statement (allowing procedure invocation only).
+   */
+  ESCAPE_SYNTAX_CALL_MODE("escapeSyntaxCallMode", "select",
+      "Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions. (backend >= 11)"
+          + "In escapeSyntaxCallMode=select mode (the default), the driver always uses a SELECT statement (allowing function invocation only)."
+          + "In escapeSyntaxCallMode=callIfNoReturn mode, the driver uses a CALL statement (allowing procedure invocation) if there is no return parameter specified, otherwise the driver uses a SELECT statement."
+          + "In escapeSyntaxCallMode=call mode, the driver always uses a CALL statement (allowing procedure invocation only).",
+      false, "select", "callIfNoReturn", "call"),
+
+  /**
+   * Connection parameter to control behavior when
+   * {@link Connection#setReadOnly(boolean)} is set to {@code true}.
+   */
+  READ_ONLY_MODE("readOnlyMode", "transaction",
+      "Controls the behavior when a connection is set to be read only, one of 'ignore', 'transaction', or 'always' "
+          + "When 'ignore', setting readOnly has no effect. "
+          + "When 'transaction' setting readOnly to 'true' will cause transactions to BEGIN READ ONLY if autocommit is 'false'. "
+          + "When 'always' setting readOnly to 'true' will set the session to READ ONLY if autoCommit is 'true' "
+          + "and the transaction to BEGIN READ ONLY if autocommit is 'false'.",
+      false, "ignore", "transaction", "always"),
+
+  /**
+   * Specifies size of buffer during fetching result set. Can be specified as specified size or
+   * percent of heap memory.
+   */
+  MAX_RESULT_BUFFER("maxResultBuffer", null,
+    "Specifies size of buffer during fetching result set. Can be specified as specified size or percent of heap memory.");
 
   private final String name;
   private final String defaultValue;

@@ -11,15 +11,23 @@ import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
+import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
+import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
+import org.postgresql.jdbc.PgSQLXMLTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
+import org.postgresql.test.core.FixedLengthOutputStreamTest;
 import org.postgresql.test.core.JavaVersionTest;
+import org.postgresql.test.core.LogServerMessagePropertyTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
 import org.postgresql.test.core.OptionsPropertyTest;
+import org.postgresql.test.util.ByteBufferByteStreamWriterTest;
+import org.postgresql.test.util.ByteStreamWriterTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.HostSpecTest;
 import org.postgresql.test.util.LruCacheTest;
+import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.ReaderInputStreamTest;
@@ -52,6 +60,7 @@ import org.junit.runners.Suite;
     CopyTest.class,
     CursorFetchTest.class,
     DatabaseEncodingTest.class,
+    DatabaseMetaDataCacheTest.class,
     DatabaseMetaDataPropertiesTest.class,
     DatabaseMetaDataTest.class,
     DateStyleTest.class,
@@ -67,19 +76,26 @@ import org.junit.runners.Suite;
     JavaVersionTest.class,
     JBuilderTest.class,
     LoginTimeoutTest.class,
+    LogServerMessagePropertyTest.class,
     LruCacheTest.class,
     MiscTest.class,
     NativeQueryBindLengthTest.class,
+    NoColumnMetadataIssue1613Test.class,
     NotifyTest.class,
     OidToStringTest.class,
     OidValueOfTest.class,
     OptionsPropertyTest.class,
     OuterJoinSyntaxTest.class,
+    FixedLengthOutputStreamTest.class,
+    ByteStreamWriterTest.class,
+    ByteBufferByteStreamWriterTest.class,
     ParameterStatusTest.class,
     ParserTest.class,
+    PGPropertyMaxResultBufferParserTest.class,
     PGPropertyTest.class,
     PGTimestampTest.class,
     PGTimeTest.class,
+    PgSQLXMLTest.class,
     PreparedStatementTest.class,
     PrimitiveArraySupportTest.class,
     QuotationTest.class,
@@ -105,6 +121,7 @@ import org.junit.runners.Suite;
     TypeCacheDLLStressTest.class,
     UpdateableResultTest.class,
     UpsertTest.class,
+    UTF8EncodingTest.class,
     V3ParameterListTests.class,
 })
 public class Jdbc2TestSuite {

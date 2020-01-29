@@ -40,7 +40,6 @@ public class SendRecvBufferSizeTest {
     TestUtil.closeDB(conn);
   }
 
-
   // dummy test
   @Test
   public void testSelect() throws SQLException {
@@ -48,5 +47,4 @@ public class SendRecvBufferSizeTest {
     stmt.execute("select * from hold");
     stmt.close();
   }
-
 }

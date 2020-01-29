@@ -246,8 +246,6 @@ public abstract class AbstractBlobClob {
   }
 
   protected synchronized LargeObject getLo(boolean forWrite) throws SQLException {
-
-
     if (this.currentLo != null) {
       if (forWrite && !currentLoIsWriteable) {
         // Reopen the stream in read-write, at the same pos.

@@ -35,6 +35,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Array;
@@ -942,11 +943,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-
     int numKeys = primaryKeys.size();
     if (deleteStatement == null) {
-
-
       StringBuilder deleteSQL =
           new StringBuilder("DELETE FROM ").append(onlyTable).append(tableName).append(" where ");
 
@@ -965,7 +963,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (int i = 0; i < numKeys; i++) {
       deleteStatement.setObject(i + 1, primaryKeys.get(i).getValue());
     }
-
 
     deleteStatement.executeUpdate();
 
@@ -1039,8 +1036,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
       // need to clear this in case of another insert
       clearRowBuffer(false);
-
-
     }
   }
 
@@ -1067,13 +1062,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       insertStatement = null;
     }
 
-
     // make sure the underlying data is null
     clearRowBuffer(false);
 
     onInsertRow = true;
     doingUpdates = false;
-
   }
 
   private synchronized void clearRowBuffer(boolean copyCurrentRow) throws SQLException {
@@ -1087,7 +1080,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     // clear the updateValues hash map for the next set of updates
     updateValues.clear();
-
   }
 
   public boolean rowDeleted() throws SQLException {
@@ -1251,7 +1243,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public synchronized void updateObject(int columnIndex, Object x, int scale) throws SQLException {
     this.updateObject(columnIndex, x);
-
   }
 
   @Override
@@ -1298,7 +1289,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     selectStatement = connection.prepareStatement(sqlText,
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-
     for (int j = 0, i = 1; j < numKeys; j++, i++) {
       selectStatement.setObject(i, primaryKeys.get(j).getValue());
     }
@@ -1317,7 +1307,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     rs.close();
     selectStatement.close();
     selectStatement = null;
-
   }
 
   @Override
@@ -1499,7 +1488,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     updateObject(findColumn(columnName), x);
   }
 
-
   /**
    * Is this ResultSet updateable?
    */
@@ -1536,7 +1524,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     // this is not strictly jdbc spec, but it will make things much faster if used
     // the user has to select oid, * from table and then we will just use oid
-
+    // with oids has been removed in version 12
+    // FIXME: with oids does not automatically create an index, should check for primary keys first
 
     usingOID = false;
     int oidIndex = findColumnIndex("oid"); // 0 if not present
@@ -1574,7 +1563,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     connection.getLogger().log(Level.FINE, "no of keys={0}", i);
-
 
     if (i < 1) {
       throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
@@ -1676,7 +1664,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   private void updateRowBuffer() throws SQLException {
-
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
 
@@ -1687,11 +1674,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       } else {
         switch (getSQLType(columnIndex + 1)) {
 
-          //
-          // toString() isn't enough for date and time types; we must format it correctly
-          // or we won't be able to re-parse it.
-          //
-
+          // boolean needs to be formatted as t or f instead of true or false
+          case Types.BIT:
+          case Types.BOOLEAN:
+            rowBuffer[columnIndex] =
+              connection.encodeString(((Boolean)valueObject).booleanValue() ? "t" : "f");
+            break;
+            //
+            // toString() isn't enough for date and time types; we must format it correctly
+            // or we won't be able to re-parse it.
+            //
           case Types.DATE:
             rowBuffer[columnIndex] = connection
                 .encodeString(
@@ -1852,14 +1844,24 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void close() throws SQLException {
     try {
-      // release resources held (memory for tuples)
-      rows = null;
-      if (cursor != null) {
-        cursor.close();
-        cursor = null;
-      }
+      closeInternally();
     } finally {
       ((PgStatement) statement).checkCompletion();
+    }
+  }
+
+  /*
+  used by PgStatement.closeForNextExecution to avoid
+  closing the firstUnclosedResult twice.
+  checkCompletion above modifies firstUnclosedResult
+  fixes issue #684
+   */
+  protected void closeInternally() throws SQLException {
+    // release resources held (memory for tuples)
+    rows = null;
+    if (cursor != null) {
+      cursor.close();
+      cursor = null;
     }
   }
 
@@ -2331,6 +2333,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return res;
         }
         return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
+      } else {
+        Number num = ByteConverter.numeric(thisRow[columnIndex - 1]);
+        if (allowNaN && Double.isNaN(num.doubleValue())) {
+          return Double.NaN;
+        }
+
+        return num;
       }
     }
 
@@ -3002,6 +3011,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return ByteConverter.float4(bytes, 0);
       case Oid.FLOAT8:
         return ByteConverter.float8(bytes, 0);
+      case Oid.NUMERIC:
+        return ByteConverter.numeric(bytes).doubleValue();
     }
     throw new PSQLException(GT.tr("Cannot convert the column of type {0} to requested type {1}.",
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
@@ -3045,6 +3056,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         break;
       case Oid.FLOAT8:
         val = (long) ByteConverter.float8(bytes, 0);
+        break;
+      case Oid.NUMERIC:
+        Number num = ByteConverter.numeric(bytes);
+        if (num instanceof  BigDecimal) {
+          val = ((BigDecimal) num).setScale(0 , RoundingMode.DOWN).longValueExact();
+        } else {
+          val = num.longValue();
+        }
         break;
       default:
         throw new PSQLException(

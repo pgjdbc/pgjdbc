@@ -913,6 +913,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return The behavior when set read only
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  public String getReadOnlyMode() {
+    return PGProperty.READ_ONLY_MODE.get(properties);
+  }
+
+  /**
+   * @param mode the behavior when set read only
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  public void setReadOnlyMode(String mode) {
+    PGProperty.READ_ONLY_MODE.set(properties, mode);
+  }
+
+  /**
    * @return true if driver should log unclosed connections
    * @see PGProperty#LOG_UNCLOSED_CONNECTIONS
    */
@@ -926,6 +942,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setLogUnclosedConnections(boolean enabled) {
     PGProperty.LOG_UNCLOSED_CONNECTIONS.set(properties, enabled);
+  }
+
+  /**
+   * @return true if driver should log include detail in server error messages
+   * @see PGProperty#LOG_SERVER_ERROR_DETAIL
+   */
+  public boolean getLogServerErrorDetail() {
+    return PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(properties);
+  }
+
+  /**
+   * @param enabled true if driver should include detail in server error messages
+   * @see PGProperty#LOG_SERVER_ERROR_DETAIL
+   */
+  public void setLogServerErrorDetail(boolean enabled) {
+    PGProperty.LOG_SERVER_ERROR_DETAIL.set(properties, enabled);
   }
 
   /**
@@ -1094,6 +1126,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setReplication(String replication) {
     PGProperty.REPLICATION.set(properties, replication);
+  }
+
+  /**
+   * @return 'select', "callIfNoReturn', or 'call'
+   * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
+   */
+  public String getEscapeSyntaxCallMode() {
+    return PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(properties);
+  }
+
+  /**
+   * @param callMode the call mode to use for JDBC escape call syntax
+   * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
+   */
+  public void setEscapeSyntaxCallMode(String callMode) {
+    PGProperty.ESCAPE_SYNTAX_CALL_MODE.set(properties, callMode);
   }
 
   /**
@@ -1445,6 +1493,30 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setReWriteBatchedInserts(boolean reWrite) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
+  }
+
+  /**
+   * @return boolean indicating property is enabled or not.
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   */
+  public boolean getHideUnprivilegedObjects() {
+    return PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(properties);
+  }
+
+  /**
+   * @param hideUnprivileged boolean value to set the property in the properties collection
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   */
+  public void setHideUnprivilegedObjects(boolean hideUnprivileged) {
+    PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
+  }
+
+  public String getMaxResultBuffer() {
+    return PGProperty.MAX_RESULT_BUFFER.get(properties);
+  }
+
+  public void setMaxResultBuffer(String maxResultBuffer) {
+    PGProperty.MAX_RESULT_BUFFER.set(properties, maxResultBuffer);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"

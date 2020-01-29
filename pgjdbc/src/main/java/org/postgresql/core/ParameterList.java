@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.ByteStreamWriter;
+
 import java.io.InputStream;
 import java.sql.SQLException;
 
@@ -23,7 +25,6 @@ import java.sql.SQLException;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface ParameterList {
-
   void registerOutParameter(int index, int sqlType) throws SQLException;
 
   /**
@@ -122,6 +123,16 @@ public interface ParameterList {
    * @throws SQLException on error or if <code>index</code> is out of range
    */
   void setBytea(int index, InputStream stream) throws SQLException;
+
+  /**
+   * Binds a binary bytea value stored as a ByteStreamWriter. The parameter's type is implicitly set to
+   * 'bytea'. The stream should remain valid until query execution has completed.
+   *
+   * @param index the 1-based parameter index to bind.
+   * @param writer a writer that can write the bytes for the parameter
+   * @throws SQLException on error or if <code>index</code> is out of range
+   */
+  void setBytea(int index, ByteStreamWriter writer) throws SQLException;
 
   /**
    * Binds a text value stored as an InputStream that is a valid UTF-8 byte stream.

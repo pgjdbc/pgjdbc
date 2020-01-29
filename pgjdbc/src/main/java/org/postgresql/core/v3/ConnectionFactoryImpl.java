@@ -43,6 +43,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+
 import javax.net.SocketFactory;
 
 /**
@@ -90,14 +91,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
-    // Construct and send an ssl startup packet if requested.
-    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
-
     // Set the socket timeout if the "socketTimeout" property has been set.
     int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
     if (socketTimeout > 0) {
       newStream.getSocket().setSoTimeout(socketTimeout * 1000);
     }
+
+    String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
+    newStream.setMaxResultBuffer(maxResultBuffer);
 
     // Enable TCP keep-alive probe if required.
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
@@ -133,6 +134,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
       LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
     }
+
+    // Construct and send an ssl startup packet if requested.
+    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
 
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
@@ -517,7 +521,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-            throw new PSQLException(errorMsg);
+            throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
 
           case 'R':
             // Authentication request.
@@ -647,7 +651,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
                       PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
-                      PGProperty.JAAS_LOGIN.getBoolean(info));
+                      PGProperty.JAAS_LOGIN.getBoolean(info),
+                      PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                 }
                 break;
 

@@ -113,7 +113,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public int isNullable(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().nullable;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? ResultSetMetaData.columnNullable : metadata.nullable;
   }
 
   /**
@@ -151,7 +152,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return "";
     }
     fetchFieldMetaData();
-    return field.getMetadata().columnName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.columnName;
   }
 
   public String getSchemaName(int column) throws SQLException {
@@ -268,7 +270,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getBaseSchemaName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().schemaName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.schemaName;
   }
 
   public int getPrecision(int column) throws SQLException {
@@ -288,7 +291,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getBaseTableName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().tableName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.tableName;
   }
 
   /**

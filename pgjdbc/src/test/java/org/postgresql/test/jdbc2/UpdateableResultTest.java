@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -41,6 +42,8 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
+    TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
+    TestUtil.execute( "insert into booltable (id) values (1)", con);
 
     Statement st2 = con.createStatement();
     // create pk for multicol table
@@ -56,6 +59,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "updateable");
     TestUtil.dropTable(con, "second");
     TestUtil.dropTable(con, "stream");
+    TestUtil.dropTable(con, "booltable");
     super.tearDown();
   }
 
@@ -113,7 +117,6 @@ public class UpdateableResultTest extends BaseTest4 {
     rs.next();
     assertEquals(999, rs.getInt(1));
     assertEquals("anyvalue", rs.getString(2));
-
 
     // make sure the update got to the db and the driver isn't lying to us.
     rs.close();
@@ -322,8 +325,6 @@ public class UpdateableResultTest extends BaseTest4 {
         rs.updateString("name", "dave");
         rs.updateRow();
       }
-
-
       fail("should not get here, update should fail");
     } catch (SQLException ex) {
     }
@@ -575,4 +576,17 @@ public class UpdateableResultTest extends BaseTest4 {
     }
   }
 
+  @Test
+  public void testUpdateBoolean() throws Exception {
+
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT * FROM booltable WHERE id=1");
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean("b"));
+    rs.updateBoolean("b", true);
+    rs.updateRow();
+    //rs.refreshRow(); //fetches the value stored
+    assertTrue(rs.getBoolean("b"));
+  }
 }

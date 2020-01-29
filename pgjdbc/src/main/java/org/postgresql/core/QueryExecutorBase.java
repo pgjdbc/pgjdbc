@@ -8,6 +8,7 @@ package org.postgresql.core;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -42,9 +43,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private TransactionState transactionState;
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
+  private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
+  protected final boolean logServerErrorDetail;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
@@ -67,9 +70,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
+    String callMode = PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(info);
+    this.escapeSyntaxCallMode = EscapeSyntaxCallMode.of(callMode);
     String preferMode = PGProperty.PREFER_QUERY_MODE.get(info);
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
+    this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
@@ -179,7 +185,6 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream.sendInteger4(cancelPid);
       cancelStream.sendInteger4(cancelKey);
       cancelStream.flush();
-      cancelStream.receiveEOF();
     } catch (IOException e) {
       // Safe to ignore.
       LOGGER.log(Level.FINEST, "Ignoring exception on cancel request:", e);
@@ -335,6 +340,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public boolean isColumnSanitiserDisabled() {
     return columnSanitiserDisabled;
+  }
+
+  @Override
+  public EscapeSyntaxCallMode getEscapeSyntaxCallMode() {
+    return escapeSyntaxCallMode;
   }
 
   @Override

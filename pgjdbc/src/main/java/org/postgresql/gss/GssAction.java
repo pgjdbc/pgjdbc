@@ -32,15 +32,17 @@ class GssAction implements PrivilegedAction<Exception> {
   private final String kerberosServerName;
   private final boolean useSpnego;
   private final GSSCredential clientCredentials;
+  private final boolean logServerErrorDetail;
 
   GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
-      String kerberosServerName, boolean useSpnego) {
+      String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
     this.clientCredentials = clientCredentials;
     this.host = host;
     this.user = user;
     this.kerberosServerName = kerberosServerName;
     this.useSpnego = useSpnego;
+    this.logServerErrorDetail = logServerErrorDetail;
   }
 
   private static boolean hasSpnegoSupport(GSSManager manager) throws GSSException {
@@ -90,7 +92,6 @@ class GssAction implements PrivilegedAction<Exception> {
       while (!established) {
         outToken = secContext.initSecContext(inToken, 0, inToken.length);
 
-
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
@@ -111,7 +112,7 @@ class GssAction implements PrivilegedAction<Exception> {
 
               LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
 
-              return new PSQLException(errorMsg);
+              return new PSQLException(errorMsg, logServerErrorDetail);
             case 'R':
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();

@@ -22,7 +22,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 
-
 /**
  * Tests {@code INSERT .. ON CONFLICT} introduced in PostgreSQL 9.5.
  */

@@ -313,7 +313,6 @@ public class DatabaseEncodingTest {
         // Expected exception.
       }
 
-
       // Try it with padding and a truncated length.
       Arrays.fill(paddedSequence, (byte) 0);
       System.arraycopy(sequence, 0, paddedSequence, 0, sequence.length);
