@@ -111,7 +111,7 @@ connection.
 * `sendBufferSize = int`
 	Sets SO_SNDBUF on the connection stream
 	
-* `recvBufferSize = int`
+* `receiveBufferSize = int`
 	Sets SO_RCVBUF on the connection stream
 	
 * `protocolVersion = String`

@@ -122,7 +122,7 @@ In addition to the standard connection parameters the driver supports a number o
 | sslpasswordcallback           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.security.auth.callback.CallbackHandler and can handle PasswordCallback for the ssl password. |
 | sslpassword                   | String  | null    | The password for the client's ssl key (ignored if sslpasswordcallback is set) |
 | sendBufferSize                | Integer | -1      | Socket write buffer size |
-| recvBufferSize                | Integer | -1      | Socket read buffer size  |
+| receiveBufferSize             | Integer | -1      | Socket read buffer size  |
 | loggerLevel                   | String  | null    | Logger level of the driver using java.util.logging. Allowed values: OFF, DEBUG or TRACE. |
 | loggerFile                    | String  | null    | File name output of the Logger, if set, the Logger will use a FileHandler to write to a specified file. If the parameter is not set or the file can't be created the ConsoleHandler will be used instead. |
 | allowEncodingChanges          | Boolean | false   | Allow for changes in client_encoding |

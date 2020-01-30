@@ -158,14 +158,6 @@ Connection conn = DriverManager.getConnection(url);
 
 	If provided will be used by ConsoleCallbackHandler
 
-* **sendBufferSize** = int
-
-	Sets SO_SNDBUF on the connection stream
-
-* **recvBufferSize** = int
-
-	Sets SO_RCVBUF on the connection stream
-
 * **protocolVersion** = int
 
 	The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and
