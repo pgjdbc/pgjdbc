@@ -220,6 +220,12 @@ Connection conn = DriverManager.getConnection(url);
      
     The default is 'false'
 
+* **binaryTransfer** = boolean
+
+	Use binary format for sending and receiving data if possible.
+
+	The default is 'true'
+
 * **binaryTransferEnable** = String
 
 	A comma separated list of types to enable binary transfer. Either OID numbers or names.
