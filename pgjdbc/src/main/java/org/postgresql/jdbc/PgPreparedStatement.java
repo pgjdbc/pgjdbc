@@ -1184,16 +1184,39 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException {
+  public void setCharacterStream(int parameterIndex, Reader value) throws SQLException {
     checkClosed();
 
-    if (x == null) {
-      setNull(i, Types.VARCHAR);
+    if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+      String s = (value != null) ? readerToString(value, Integer.MAX_VALUE) : null;
+      setString(parameterIndex, s);
+      return;
+    }
+    InputStream is = (value != null) ? new ReaderInputStream(value) : null;
+    setObject(parameterIndex, is, Types.LONGVARCHAR);
+  }
+
+
+  public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException {
+    setCharacterStream(i, x, (long)length);
+  }
+
+  public void setCharacterStream(int parameterIndex, Reader value, long length)
+      throws SQLException {
+    checkClosed();
+
+    if (value == null) {
+      setNull(parameterIndex, Types.VARCHAR);
       return;
     }
 
     if (length < 0) {
       throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    if (length > Integer.MAX_VALUE) {
+      throw new PSQLException(GT.tr("Object is too large to send over the protocol."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
@@ -1203,7 +1226,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // long varchar datatype, but with toast all the text datatypes are capable of
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
-    setString(i, readerToString(x, length));
+    setString(parameterIndex, readerToString(value, (int)length));
   }
 
   @Override
@@ -1439,21 +1462,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNCharacterStream(int, Reader)");
-  }
-
-  public void setCharacterStream(int parameterIndex, Reader value, long length)
-      throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader, long)");
-  }
-
-  public void setCharacterStream(int parameterIndex, Reader value) throws SQLException {
-    if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
-      String s = (value != null) ? readerToString(value, Integer.MAX_VALUE) : null;
-      setString(parameterIndex, s);
-      return;
-    }
-    InputStream is = (value != null) ? new ReaderInputStream(value) : null;
-    setObject(parameterIndex, is, Types.LONGVARCHAR);
   }
 
   public void setBinaryStream(int parameterIndex, InputStream value, long length)

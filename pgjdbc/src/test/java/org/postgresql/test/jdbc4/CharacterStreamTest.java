@@ -16,19 +16,16 @@ import java.io.StringReader;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 
 public class CharacterStreamTest extends BaseTest4 {
 
   private static final String TEST_TABLE_NAME = "charstream";
   private static final String TEST_COLUMN_NAME = "cs";
 
-  private static final String _delete;
   private static final String _insert;
   private static final String _select;
 
   static {
-    _delete = String.format("DELETE FROM %s", TEST_TABLE_NAME);
     _insert = String.format("INSERT INTO %s (%s) VALUES (?)", TEST_TABLE_NAME, TEST_COLUMN_NAME);
     _select = String.format("SELECT %s FROM %s", TEST_COLUMN_NAME, TEST_TABLE_NAME);
   }
@@ -125,7 +122,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLengthNull() throws Exception {
     String data = null;
     insertStreamKnownLongLength(data);
@@ -146,7 +143,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLengthEmpty() throws Exception {
     String data = "";
     insertStreamKnownLongLength(data);
@@ -167,7 +164,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength2Kb() throws Exception {
     String data = getTestData(2 * 1024);
     insertStreamKnownLongLength(data);
@@ -188,7 +185,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength10Kb() throws Exception {
     String data = getTestData(10 * 1024);
     insertStreamKnownLongLength(data);
@@ -209,7 +206,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamKnownLongLength(data);
@@ -230,7 +227,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamKnownLongLength(data);
