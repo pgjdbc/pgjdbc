@@ -1092,6 +1092,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       throws SQLException, IOException {
 
     /*
+    * fixes issue #1592 where one thread closes the stream and another is reading it
+     */
+    if (pgStream.isClosed()) {
+      throw new PSQLException(GT.tr("PGStream is closed",
+        op.getClass().getName()), PSQLState.CONNECTION_DOES_NOT_EXIST);
+    }
+    /*
     *  This is a hack as we should not end up here, but sometimes do with large copy operations.
      */
     if ( processingCopyResults.compareAndSet(false,true) == false ) {

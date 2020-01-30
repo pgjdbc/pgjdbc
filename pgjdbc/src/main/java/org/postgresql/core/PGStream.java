@@ -668,4 +668,8 @@ public class PGStream implements Closeable, Flushable {
       }
     }
   }
+
+  public boolean isClosed() {
+    return connection.isClosed();
+  }
 }
