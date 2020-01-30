@@ -235,6 +235,20 @@ Connection conn = DriverManager.getConnection(url);
 	A comma separated list of types to disable binary transfer. Either OID numbers or names.
 	Overrides values in the driver default set and values set with binaryTransferEnable.
 
+* **databaseMetadataCacheFields** = int
+
+	Specifies the maximum number of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 65536.
+
+* **databaseMetadataCacheFieldsMiB** = int
+
+	Specifies the maximum size (in megabytes) of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 5.
+
 * **prepareThreshold** = int
 
 	Determine the number of `PreparedStatement` executions required before
