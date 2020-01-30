@@ -158,14 +158,6 @@ Connection conn = DriverManager.getConnection(url);
 
 	If provided will be used by ConsoleCallbackHandler
 
-* **sendBufferSize** = int
-
-	Sets SO_SNDBUF on the connection stream
-
-* **recvBufferSize** = int
-
-	Sets SO_RCVBUF on the connection stream
-
 * **protocolVersion** = int
 
 	The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and
@@ -228,6 +220,12 @@ Connection conn = DriverManager.getConnection(url);
      
     The default is 'false'
 
+* **binaryTransfer** = boolean
+
+	Use binary format for sending and receiving data if possible.
+
+	The default is 'true'
+
 * **binaryTransferEnable** = String
 
 	A comma separated list of types to enable binary transfer. Either OID numbers or names.
@@ -236,6 +234,20 @@ Connection conn = DriverManager.getConnection(url);
 
 	A comma separated list of types to disable binary transfer. Either OID numbers or names.
 	Overrides values in the driver default set and values set with binaryTransferEnable.
+
+* **databaseMetadataCacheFields** = int
+
+	Specifies the maximum number of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 65536.
+
+* **databaseMetadataCacheFieldsMiB** = int
+
+	Specifies the maximum size (in megabytes) of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 5.
 
 * **prepareThreshold** = int
 
