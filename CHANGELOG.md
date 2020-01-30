@@ -5,6 +5,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [42.2.10] (2020-01-30)
+### Changed
+
+### Added
+ - Add maxResultBuffer property (#1657)
+ - add caller push of binary data (rebase of #953) (#1659)
+ 
+### Fixed
+ - Cleanup PGProperty, sort values, and add some missing to docs (#1686)
+ - Fixing LocalTime rounding (losing precision) (#1570)
+ - Network Performance of PgDatabaseMetaData.getTypeInfo() method (#1668)
+ - Issue #1680 updating a boolean field requires special handling to set it to t or f instead of true or false (#1682)
+ - bug in pgstream for replication (#1681)
+ - Issue #1677 NumberFormatException when fetching PGInterval with small value (#1678)
+ - Metadata queries improvements with large schemas. (#1673)
+ - Utf 8 encoding optimizations (#1444)
+ - interval overflow (#1658)
+ - Issue #1482 where the port was being added to the GSSAPI service name (#1651)
+ - remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) (#1641)
+ - Unable to register out parameter Issue #1646 (#1648)
+  
 ## [42.2.9] (2019-12-06)
 ### Changed
 
