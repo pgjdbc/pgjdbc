@@ -632,7 +632,6 @@ public class PGStream implements Closeable, Flushable {
     return connection.getSoTimeout();
   }
 
-
   /**
    * Method to set MaxResultBuffer inside PGStream.
    *
@@ -669,7 +668,8 @@ public class PGStream implements Closeable, Flushable {
       }
     }
   }
+  
   public boolean isClosed() {
-   return connection.isClosed();
+    return connection.isClosed();
   }
 }
