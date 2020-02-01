@@ -735,7 +735,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (useTimeout && timeoutMillis >= 0) {
           setSocketTimeout(timeoutMillis);
         }
-        int c = pgStream.receiveChar();
+        int c = pgStream.receiveChar(timeoutMillis);
         if (useTimeout && timeoutMillis >= 0) {
           setSocketTimeout(0); // Don't timeout after first char
         }
@@ -794,7 +794,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] returnValue = null;
 
     while (!endQuery) {
-      int c = pgStream.receiveChar();
+      int c = pgStream.receiveChar(100);
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
@@ -896,7 +896,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private synchronized void initCopy(CopyOperationImpl op) throws SQLException, IOException {
     pgStream.receiveInteger4(); // length not used
-    int rowFormat = pgStream.receiveChar();
+    int rowFormat = pgStream.receiveChar(1000);
     int numFields = pgStream.receiveInteger2();
     int[] fieldFormats = new int[numFields];
 
@@ -1132,7 +1132,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
 
-        int c = pgStream.receiveChar();
+        int c = pgStream.receiveChar(1000);
         switch (c) {
 
           case 'A': // Asynchronous Notify
@@ -2012,7 +2012,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean doneAfterRowDescNoData = false;
 
     while (!endQuery) {
-      c = pgStream.receiveChar();
+      c = pgStream.receiveChar(1000);
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
@@ -2535,7 +2535,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // read len -5 bytes (-4 for len and -1 for trailing \0)
     String status = pgStream.receiveString(len - 5);
     // now read and discard the trailing \0
-    pgStream.receiveChar(); // Receive(1) would allocate new byte[1], so avoid it
+    pgStream.receiveChar(1000); // Receive(1) would allocate new byte[1], so avoid it
 
     LOGGER.log(Level.FINEST, " <=BE CommandStatus({0})", status);
 
@@ -2560,7 +2560,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       throw new IOException("unexpected length of ReadyForQuery message");
     }
 
-    char tStatus = (char) pgStream.receiveChar();
+    char tStatus = (char) pgStream.receiveChar(1000);
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ReadyForQuery({0})", tStatus);
     }
@@ -2592,7 +2592,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void readStartupMessages() throws IOException, SQLException {
     for (int i = 0; i < 1000; i++) {
-      int beresp = pgStream.receiveChar();
+      int beresp = pgStream.receiveChar(1000);
       switch (beresp) {
         case 'Z':
           receiveRFQ();

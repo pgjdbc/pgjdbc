@@ -66,11 +66,15 @@ public class VisibleBufferedInputStream extends InputStream {
     buffer = new byte[bufferSize < MINIMUM_READ ? MINIMUM_READ : bufferSize];
   }
 
+  private int bytesRead() {
+    return endIndex - index;
+  }
+
   /**
    * {@inheritDoc}
    */
   public int read() throws IOException {
-    if (ensureBytes(1)) {
+    if ( bytesRead() > 0 ) {
       return buffer[index++] & 0xFF;
     }
     return -1;
@@ -83,7 +87,7 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws IOException if something wrong happens
    */
   public int peek() throws IOException {
-    if (ensureBytes(1)) {
+    if ( bytesRead() > 0 ) {
       return buffer[index] & 0xFF;
     }
     return -1;
@@ -218,11 +222,7 @@ public class VisibleBufferedInputStream extends InputStream {
 
     // if the read would go to wrapped stream, but would result
     // in a small read then try read to the buffer instead
-    int avail = endIndex - index;
-    if (len - avail < MINIMUM_READ) {
-      ensureBytes(len);
-      avail = endIndex - index;
-    }
+    int avail = bytesRead();
 
     // first copy from buffer
     if (avail > 0) {
@@ -236,10 +236,6 @@ public class VisibleBufferedInputStream extends InputStream {
       off += avail;
     }
     int read = avail;
-
-    // good place to reset index because the buffer is fully drained
-    index = 0;
-    endIndex = 0;
 
     // then directly from wrapped stream
     do {
@@ -332,6 +328,10 @@ public class VisibleBufferedInputStream extends InputStream {
       }
       pos = index;
     }
+  }
+
+  public int roomAvailable() {
+    return buffer.length - endIndex;
   }
 
   public void setTimeoutRequested(boolean timeoutRequested) {

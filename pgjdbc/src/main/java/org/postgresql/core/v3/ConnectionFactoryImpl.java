@@ -412,7 +412,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
 
     // Now get the response from the backend, one of N, E, S.
-    int beresp = pgStream.receiveChar();
+    int beresp = pgStream.receiveChar(connectTimeout);
     switch (beresp) {
       case 'E':
         LOGGER.log(Level.FINEST, " <=BE SSLError");
@@ -506,7 +506,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     try {
       authloop: while (true) {
-        int beresp = pgStream.receiveChar();
+        int beresp = pgStream.receiveChar(1000);
 
         switch (beresp) {
           case 'E':
