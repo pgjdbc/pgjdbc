@@ -34,6 +34,7 @@
     <jdbc.specification.version.nodot>42</jdbc.specification.version.nodot>
     <skip.assembly>false</skip.assembly>
     <checkstyle.version>8.29</checkstyle.version>
+	  <parsedVersion.osgiVersion>${project.version}</parsedVersion.osgiVersion>
   </properties>
 
   <dependencies>
