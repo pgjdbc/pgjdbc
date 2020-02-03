@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
@@ -89,7 +90,6 @@ public class PGStream implements Closeable, Flushable, Runnable {
     changeSocket(socket);
 
     ioThread = new Thread(this);
-    ioThread.start();
 
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
@@ -365,6 +365,14 @@ public class PGStream implements Closeable, Flushable, Runnable {
   public int peekChar() throws IOException {
     int c = pgInput.peek();
     if (c < 0) {
+      throw new EOFException();
+    }
+    return c;
+  }
+
+  public int receiveCharDirect() throws IOException {
+    int c = pgInput.readDirect();
+    if ( c < 0 ) {
       throw new EOFException();
     }
     return c;
@@ -690,21 +698,42 @@ public class PGStream implements Closeable, Flushable, Runnable {
     return connection.isClosed();
   }
 
+  public void stopBackgroundReceive() {
+    readAhead = false;
+    ioThread.interrupt();
+    try {
+      ioThread.join(1000);
+    } catch ( InterruptedException ie ) {
+    }
+    LOGGER.log(Level.FINE,"Background thread stopped");
+  }
+
+  public void startBackgroundReceive() {
+    readAhead = true;
+    ioThread = new Thread(this);
+    ioThread.start();
+  }
+
   public void run() {
     while ( readAhead ) {
       try {
         if ( !(pgInput.roomAvailable() > 0) || !(pgInput.ensureBytes(1) ) ) {
           // if no room or we weren't able to read anything then wait for a bit.
           Thread.sleep(10);
+        } else {
+          LOGGER.log(Level.FINE,
+            () -> String.format("Reading Index: {0}, available {1}", pgInput.getIndex(),
+              pgInput.getEndIndex()));
         }
-
       } catch (IOException ex) {
         // need to save this for the next time the reader reads
         // and throw it
       } catch ( InterruptedException ie ) {
+        LOGGER.log(Level.FINE,"Reading process shutting down");
         // don't need to do much here
       }
     }
+    LOGGER.log(Level.FINE,"Reading process shutdown");
   }
 
 }

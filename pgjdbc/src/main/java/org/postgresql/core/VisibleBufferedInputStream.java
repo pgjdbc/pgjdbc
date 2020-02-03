@@ -80,6 +80,9 @@ public class VisibleBufferedInputStream extends InputStream {
     return -1;
   }
 
+  public int readDirect() throws IOException {
+    return wrapped.read();
+  }
   /**
    * Reads a byte from the buffer without advancing the index pointer.
    *
@@ -91,18 +94,6 @@ public class VisibleBufferedInputStream extends InputStream {
       return buffer[index] & 0xFF;
     }
     return -1;
-  }
-
-  /**
-   * Reads byte from the buffer without any checks. This method never reads from the underlaying
-   * stream. Before calling this method the {@link #ensureBytes} method must have been called.
-   *
-   * @return The next byte from the buffer.
-   * @throws ArrayIndexOutOfBoundsException If ensureBytes was not called to make sure the buffer
-   *         contains the byte.
-   */
-  public byte readRaw() {
-    return buffer[index++];
   }
 
   /**
@@ -306,6 +297,10 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   public int getIndex() {
     return index;
+  }
+
+  public int getEndIndex() {
+    return endIndex;
   }
 
   /**
