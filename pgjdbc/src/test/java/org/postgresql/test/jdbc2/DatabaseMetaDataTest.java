@@ -658,30 +658,30 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-	/**
-	 * Order defined at https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo-java.lang.String-java.lang.String-java.lang.String-boolean-boolean-
-	 * @throws SQLException
-	 */
-	@Test
+  /**
+   * Order defined at
+   * https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo-java.lang.String-java.lang.String-java.lang.String-boolean-boolean-
+   */
+  @Test
   public void testIndexInfoColumnOrder() throws SQLException {
-	  DatabaseMetaData dbmd = con.getMetaData();
-	  assertNotNull(dbmd);
-	  ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
-	  assertEquals(rs.findColumn("TABLE_CAT"), 1);
-	  assertEquals(rs.findColumn("TABLE_SCHEM"), 2);
-	  assertEquals(rs.findColumn("TABLE_NAME"), 3);
-	  assertEquals(rs.findColumn("NON_UNIQUE"), 4);
-	  assertEquals(rs.findColumn("INDEX_QUALIFIER"), 5);
-	  assertEquals(rs.findColumn("INDEX_NAME"), 6);
-	  assertEquals(rs.findColumn("TYPE"), 7);
-	  assertEquals(rs.findColumn("ORDINAL_POSITION"), 8);
-	  assertEquals(rs.findColumn("COLUMN_NAME"), 9);
-	  assertEquals(rs.findColumn("ASC_OR_DESC"), 10);
-	  assertEquals(rs.findColumn("CARDINALITY"), 11);
-	  assertEquals(rs.findColumn("PAGES"), 12);
-	  assertEquals(rs.findColumn("FILTER_CONDITION"), 13);
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+    assertEquals(rs.findColumn("TABLE_CAT"), 1);
+    assertEquals(rs.findColumn("TABLE_SCHEM"), 2);
+    assertEquals(rs.findColumn("TABLE_NAME"), 3);
+    assertEquals(rs.findColumn("NON_UNIQUE"), 4);
+    assertEquals(rs.findColumn("INDEX_QUALIFIER"), 5);
+    assertEquals(rs.findColumn("INDEX_NAME"), 6);
+    assertEquals(rs.findColumn("TYPE"), 7);
+    assertEquals(rs.findColumn("ORDINAL_POSITION"), 8);
+    assertEquals(rs.findColumn("COLUMN_NAME"), 9);
+    assertEquals(rs.findColumn("ASC_OR_DESC"), 10);
+    assertEquals(rs.findColumn("CARDINALITY"), 11);
+    assertEquals(rs.findColumn("PAGES"), 12);
+    assertEquals(rs.findColumn("FILTER_CONDITION"), 13);
 
-	  rs.close();
+    rs.close();
   }
 
   @Test
