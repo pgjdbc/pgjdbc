@@ -393,15 +393,12 @@ public class PGStream implements Closeable, Flushable, Runnable {
         return c;
       }
       try {
-        Thread.sleep(1);
+        Thread.sleep(2);
       } catch ( InterruptedException ie ) {
 
       }
     }
-    if (c < 0) {
-      throw new EOFException();
-    }
-    return c;
+    throw new EOFException();
   }
 
   /**
@@ -441,8 +438,9 @@ public class PGStream implements Closeable, Flushable, Runnable {
    * @throws IOException if something wrong happens
   */
   public String receiveString(int len) throws IOException {
-    String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
-    pgInput.skip(len);
+    byte buf[] = new byte[len];
+    pgInput.read(buf);
+    String res = encoding.decode(buf, 0, len);
     return res;
   }
 
@@ -614,20 +612,6 @@ public class PGStream implements Closeable, Flushable, Runnable {
     pgOutput.flush();
   }
 
-  /**
-   * Consume an expected EOF from the backend.
-   *
-   * @throws IOException if an I/O error occurs
-   * @throws SQLException if we get something other than an EOF
-   */
-  public void receiveEOF() throws SQLException, IOException {
-    int c = pgInput.read();
-    if (c < 0) {
-      return;
-    }
-    throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
-        PSQLState.COMMUNICATION_ERROR);
-  }
 
   /**
    * Closes the connection.
@@ -698,15 +682,6 @@ public class PGStream implements Closeable, Flushable, Runnable {
     return connection.isClosed();
   }
 
-  public void stopBackgroundReceive() {
-    readAhead = false;
-    ioThread.interrupt();
-    try {
-      ioThread.join(1000);
-    } catch ( InterruptedException ie ) {
-    }
-    LOGGER.log(Level.FINE,"Background thread stopped");
-  }
 
   public void startBackgroundReceive() {
     readAhead = true;
@@ -717,7 +692,7 @@ public class PGStream implements Closeable, Flushable, Runnable {
   public void run() {
     while ( readAhead ) {
       try {
-        if ( !(pgInput.roomAvailable() > 0) || !(pgInput.ensureBytes(1) ) ) {
+        if ( !(pgInput.roomAvailable() > 0) || !(pgInput.readBackground() ) ) {
           // if no room or we weren't able to read anything then wait for a bit.
           Thread.sleep(10);
         } else {

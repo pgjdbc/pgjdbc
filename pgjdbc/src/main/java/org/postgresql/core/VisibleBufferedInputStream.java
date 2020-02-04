@@ -67,7 +67,9 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   private int bytesRead() {
-    return endIndex - index;
+    synchronized ( buffer ) {
+      return endIndex - index;
+    }
   }
 
   /**
@@ -75,7 +77,9 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   public int read() throws IOException {
     if ( bytesRead() > 0 ) {
-      return buffer[index++] & 0xFF;
+      synchronized ( buffer ) {
+        return buffer[index++] & 0xFF;
+      }
     }
     return -1;
   }
@@ -108,6 +112,22 @@ public class VisibleBufferedInputStream extends InputStream {
     return ensureBytes(n, true);
   }
 
+  public boolean readBackground() throws IOException {
+    int roomLeft = roomAvailable();
+
+    if ( roomLeft > 0  ) {
+      try {
+        int actuallyRead = wrapped.read(buffer, endIndex, roomLeft);
+        synchronized (buffer) {
+          endIndex += actuallyRead;
+        }
+        return true;
+      } catch ( SocketTimeoutException ste ) {
+        // TODO do something with this later
+      }
+    }
+    return false;
+  }
   /**
    * Ensures that the buffer contains at least n bytes. This method invalidates the buffer and index
    * fields.
@@ -210,43 +230,31 @@ public class VisibleBufferedInputStream extends InputStream {
     } else if (len == 0) {
       return 0;
     }
+    int read = 0;
+    while ( len > 0 ) {
+      // if the read would go to wrapped stream, but would result
+      // in a small read then try read to the buffer instead
+      int avail = bytesRead();
+      if ( avail > 0  ) {
+        // first copy from buffer
+        synchronized (buffer) {
 
-    // if the read would go to wrapped stream, but would result
-    // in a small read then try read to the buffer instead
-    int avail = bytesRead();
+          int bytesToRead = avail < len ? avail:len;
+          System.arraycopy(buffer, index, to, off, bytesToRead);
 
-    // first copy from buffer
-    if (avail > 0) {
-      if (len <= avail) {
-        System.arraycopy(buffer, index, to, off, len);
-        index += len;
-        return len;
-      }
-      System.arraycopy(buffer, index, to, off, avail);
-      len -= avail;
-      off += avail;
-    }
-    int read = avail;
-
-    // then directly from wrapped stream
-    do {
-      int r;
-      try {
-        r = wrapped.read(to, off, len);
-      } catch (SocketTimeoutException e) {
-        if (read == 0 && timeoutRequested) {
-          throw e;
+          len -= bytesToRead;
+          off += bytesToRead;
+          read += bytesToRead;
+          index += bytesToRead;
         }
-        return read;
+      } else {
+        try {
+          Thread.sleep(10);
+        } catch ( InterruptedException ie ) {
+          break;
+        }
       }
-      if (r <= 0) {
-        return (read == 0) ? r : read;
-      }
-      read += r;
-      off += r;
-      len -= r;
-    } while (len > 0);
-
+    }
     return read;
   }
 
@@ -254,23 +262,24 @@ public class VisibleBufferedInputStream extends InputStream {
    * {@inheritDoc}
    */
   public long skip(long n) throws IOException {
-    int avail = endIndex - index;
-    if (avail >= n) {
-      index += n;
-      return n;
+    int avail = 0;
+    avail = bytesRead();
+    synchronized (buffer) {
+      if (avail >= n) {
+        index += n;
+        return n;
+      } else {
+        index += avail;
+        return avail;
+      }
     }
-    n -= avail;
-    index = 0;
-    endIndex = 0;
-    return avail + wrapped.skip(n);
   }
 
   /**
    * {@inheritDoc}
    */
   public int available() throws IOException {
-    int avail = endIndex - index;
-    return avail > 0 ? avail : wrapped.available();
+    return bytesRead();
   }
 
   /**
@@ -326,7 +335,12 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   public int roomAvailable() {
-    return buffer.length - endIndex;
+    synchronized ( buffer ) {
+      if ( index == endIndex ) {
+        index = endIndex = 0;
+      }
+      return buffer.length - endIndex;
+    }
   }
 
   public void setTimeoutRequested(boolean timeoutRequested) {
