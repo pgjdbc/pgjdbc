@@ -461,8 +461,9 @@ Connection conn = DriverManager.getConnection(url);
 	The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
 	This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` 
 	must extend `javax.net.SocketFactory` and be available to the driver's classloader.
-	This class must have a zero argument constructor or a single argument constructor taking a String argument. 
-	This argument may optionally be supplied by `socketFactoryArg`.
+	This class must have a zero-argument constructor, a single-argument constructor taking a String argument, or
+	a single-argument constructor taking a Properties argument. The Properties object will contain all the
+	connection parameters. The String argument will have the value of the `socketFactoryArg` connection parameter.
 
 * **socketFactoryArg** (deprecated) = String
 
