@@ -7,8 +7,9 @@ cd .travis
 mkdir secrets
 
 # GPG is required for artifact signing
-openssl aes-256-cbc -k "$SUPER_SECRET_KEY" -in secrets.tar.enc -out secrets/secrets.tar -d
+echo $SUPER_SECRET_KEY | gpg --passphrase-fd 0 secrets.tar.gpg
 
+mv secrets.tar secrets
 cd secrets
 tar xvf secrets.tar
 
