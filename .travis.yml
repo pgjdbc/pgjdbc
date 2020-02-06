@@ -49,6 +49,7 @@ before_install:
   - ./.travis/travis_install_zulu.sh
   - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
   - unset _JAVA_OPTIONS # see https://github.com/travis-ci/travis-ci/issues/8408
+  - echo $SUPER_SECRET_KEY | gpg --passphrase-fd 0 secret.tar.gpg
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
