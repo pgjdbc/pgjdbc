@@ -95,7 +95,7 @@ git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git :$RELEASE_TAG || true
 
 # -Darguments here is for maven-release-plugin
 MVN_SETTINGS=$(pwd)/settings.xml
-mvn -B --settings settings.xml -Darguments="--settings '${MVN_SETTINGS}' -Dskip.unzip-jdk-src=false" -Dskip.unzip-jdk-src=false release:prepare release:perform
+mvn -B --settings settings.xml -Darguments="--settings '${MVN_SETTINGS}' -Dskip.unzip-jdk-src=false" -Dskip.unzip-jdk-src=false release:prepare release:perform -Dgpg.passphrase=$GPG_PASSPHRASE
 
 # Point "master" branch to "next development snapshot commit"
 git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git "HEAD:$ORIGINAL_BRANCH"
