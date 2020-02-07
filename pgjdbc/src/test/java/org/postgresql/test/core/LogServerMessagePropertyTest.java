@@ -12,6 +12,7 @@ import org.postgresql.test.TestUtil;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.postgresql.util.PSQLState;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -27,7 +28,6 @@ public class LogServerMessagePropertyTest {
   private static final String SECRET_VALUE = "some_secret_value";
   private static final String INSERT_SQL =
       "INSERT INTO pg_temp.lms_test (id) VALUES ('" + SECRET_VALUE + "')";
-  private static final String UNIQUE_VIOLATION_SQL_STATE = "23505";
 
   /**
    * Creates a connection with the additional properties, use it to
@@ -44,7 +44,7 @@ public class LogServerMessagePropertyTest {
       // Second insert should throw a duplicate key error
       TestUtil.execute(INSERT_SQL, conn);
     } catch (SQLException e) {
-      Assert.assertEquals("SQL state must be for a unique violation", UNIQUE_VIOLATION_SQL_STATE, e.getSQLState());
+      Assert.assertEquals("SQL state must be for a unique violation", PSQLState.UNIQUE_VIOLATION.getState(), e.getSQLState());
       return e.getMessage();
     } finally {
       conn.close();
