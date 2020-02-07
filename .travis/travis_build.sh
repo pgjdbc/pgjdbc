@@ -16,7 +16,7 @@ then
 fi
 
 # Build project
-GRADLE_ARGS="--no-daemon --stacktrace -PskipAutostyle -PskipCheckstyle -PskipReplicationTests build $MVN_CUSTOM_ARGS"
+GRADLE_ARGS="--no-daemon -PskipAutostyle -PskipCheckstyle -PskipReplicationTests build $MVN_CUSTOM_ARGS"
 MVN_PROFILES="release"
 
 if [[ "${NO_WAFFLE_NO_OSGI}" == *"Y"* ]];

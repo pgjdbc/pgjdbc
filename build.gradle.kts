@@ -9,8 +9,6 @@ import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.properties.dsl.stringProperty
-import com.github.vlsi.gradle.test.dsl.printTestResults
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
     publishing
@@ -80,6 +78,8 @@ val licenseHeaderFile = file("config/license.header.java")
 allprojects {
     group = "org.postgresql"
     version = buildVersion
+
+    apply(plugin = "com.github.vlsi.gradle-extensions")
 
     repositories {
         if (enableMavenLocal) {
@@ -313,7 +313,6 @@ allprojects {
                     }
                 }
                 testLogging {
-                    exceptionFormat = TestExceptionFormat.FULL
                     showStandardStreams = true
                 }
                 exclude("**/*Suite*")
@@ -340,7 +339,6 @@ allprojects {
                         "simpleProtocolOnly", "enable_ssl_tests")) {
                     passProperty(p)
                 }
-                printTestResults()
             }
             withType<SpotBugsTask>().configureEach {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP

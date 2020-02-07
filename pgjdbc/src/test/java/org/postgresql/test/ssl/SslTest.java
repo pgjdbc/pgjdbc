@@ -322,7 +322,8 @@ public class SslTest extends BaseTest4 {
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
       firstError.addSuppressed(error);
       //#endif
-      error.printStackTrace();
+      // TODO: this is needed for Java < 1.7. Should it be just removed?
+      // error.printStackTrace();
     }
 
     throw firstError;
