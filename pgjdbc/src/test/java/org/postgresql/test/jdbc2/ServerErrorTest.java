@@ -157,14 +157,11 @@ public class ServerErrorTest extends BaseTest4 {
 
   @Test
   public void testExclusionConstraint() throws Exception {
-    TestUtil.execute("DROP EXTENSION IF EXISTS btree_gist CASCADE", con);
-    TestUtil.execute("CREATE EXTENSION btree_gist", con);
-    TestUtil.createTable(con, "testerr_exclude", "room int, during tsrange, EXCLUDE USING GIST (room WITH =, during WITH &&)");
+    TestUtil.createTable(con, "testerr_exclude", "id int, EXCLUDE (id WITH =)");
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO testerr_exclude (room, during) VALUES (1108, '[2010-01-01 14:30, 2010-01-01 15:30]')");
-    stmt.executeUpdate("INSERT INTO testerr_exclude (room, during) VALUES (1108, '[2010-01-01 15:31, 2010-01-01 16:30]')");
+    stmt.executeUpdate("INSERT INTO testerr_exclude (id) VALUES (1108)");
     try {
-      stmt.executeUpdate("INSERT INTO testerr_exclude (room, during) VALUES (1108, '[2010-01-01 15:00, 2010-01-01 16:00]')");
+      stmt.executeUpdate("INSERT INTO testerr_exclude (id) VALUES (1108)");
       fail("Should have thrown an exclusion exception.");
     } catch (SQLException sqle) {
       ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
