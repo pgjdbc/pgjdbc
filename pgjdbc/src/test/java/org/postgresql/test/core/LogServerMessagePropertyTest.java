@@ -8,11 +8,11 @@ package org.postgresql.test.core;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
-import org.postgresql.util.PSQLState;
 
 import java.sql.Connection;
 import java.sql.SQLException;

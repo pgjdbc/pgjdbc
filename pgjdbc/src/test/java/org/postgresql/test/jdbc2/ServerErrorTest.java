@@ -97,7 +97,6 @@ public class ServerErrorTest extends BaseTest4 {
     stmt.close();
   }
 
-
   @Test
   public void testNotNullConstraint() throws Exception {
     Statement stmt = con.createStatement();
@@ -118,7 +117,7 @@ public class ServerErrorTest extends BaseTest4 {
   @Test
   public void testForeignKeyConstraint() throws Exception {
     TestUtil.createTable(con, "testerr_foreign", "id int not null, testerr_id int,"
-      + "CONSTRAINT testerr FOREIGN KEY (testerr_id) references testerr(id)");
+        + "CONSTRAINT testerr FOREIGN KEY (testerr_id) references testerr(id)");
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
     try {
@@ -160,8 +159,7 @@ public class ServerErrorTest extends BaseTest4 {
   public void testExclusionConstraint() throws Exception {
     TestUtil.execute("DROP EXTENSION IF EXISTS btree_gist CASCADE", con);
     TestUtil.execute("CREATE EXTENSION btree_gist", con);
-    TestUtil.createTable(con, "testerr_exclude", "room int, during tsrange, " +
-      "EXCLUDE USING GIST (room WITH =, during WITH &&)");
+    TestUtil.createTable(con, "testerr_exclude", "room int, during tsrange, EXCLUDE USING GIST (room WITH =, during WITH &&)");
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO testerr_exclude (room, during) VALUES (1108, '[2010-01-01 14:30, 2010-01-01 15:30]')");
     stmt.executeUpdate("INSERT INTO testerr_exclude (room, during) VALUES (1108, '[2010-01-01 15:31, 2010-01-01 16:30]')");
@@ -179,6 +177,5 @@ public class ServerErrorTest extends BaseTest4 {
     TestUtil.dropTable(con, "testerr_exclude");
     stmt.close();
   }
-
 
 }
