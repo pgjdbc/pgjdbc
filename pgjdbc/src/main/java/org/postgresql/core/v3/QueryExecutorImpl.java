@@ -2116,7 +2116,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<Tuple>();
+            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
           handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
@@ -2167,7 +2167,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<Tuple>();
+            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
           // If we received tuples we must know the structure of the

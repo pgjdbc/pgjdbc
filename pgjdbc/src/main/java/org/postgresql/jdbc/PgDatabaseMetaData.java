@@ -2366,11 +2366,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    Collections.sort(v, new Comparator<byte[][]>() {
+    Collections.sort(v, new Comparator<Tuple>() {
       @Override
-      public int compare(byte[][] o1, byte[][] o2) {
-        int i1 = ByteConverter.bytesToInt(o1[18]);
-        int i2 = ByteConverter.bytesToInt(o2[18]);
+      public int compare(Tuple o1, Tuple o2) {
+        int i1 = ByteConverter.bytesToInt(o1.get(18));
+        int i2 = ByteConverter.bytesToInt(o2.get(18));
         return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
       }
     });
@@ -2763,7 +2763,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     int columns = 17;
 
     Field[] f = new Field[columns];
-    List<byte[][]> v = new ArrayList<byte[][]>();
+    List<Tuple> v = new ArrayList<Tuple>();
 
     f[0] = new Field("FUNCTION_CAT", Oid.VARCHAR);
     f[1] = new Field("FUNCTION_SCHEM", Oid.VARCHAR);
@@ -2861,7 +2861,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[15] = isnullableUnknown;
         tuple[16] = specificName;
 
-        v.add(tuple);
+        v.add(new Tuple(tuple));
       }
 
       // Add a row for each argument.
@@ -2911,7 +2911,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[15] = isnullableUnknown;
         tuple[16] = specificName;
 
-        v.add(tuple);
+        v.add(new Tuple(tuple));
       }
 
       // if we are returning a multi-column result.
@@ -2944,7 +2944,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[15] = isnullableUnknown;
           tuple[16] = specificName;
 
-          v.add(tuple);
+          v.add(new Tuple(tuple));
         }
         columnrs.close();
         columnstmt.close();
