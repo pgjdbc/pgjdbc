@@ -39,7 +39,7 @@ val skipAutostyle by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
-val includeTestTags by props("!org.postgresql.test.SlowTests")
+val includeTestTags by props("") // e.g. !org.postgresql.test.SlowTests
 // By default use Java implementation to sign artifacts
 // When useGpgCmd=true, then gpg command line tool is used for signing
 val useGpgCmd by props()

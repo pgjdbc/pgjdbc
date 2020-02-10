@@ -16,7 +16,8 @@ then
 fi
 
 # Build project
-GRADLE_ARGS="--no-daemon -PskipAutostyle -PskipCheckstyle -PskipReplicationTests build $MVN_CUSTOM_ARGS"
+# TODO: run SlowTests as well
+GRADLE_ARGS="-PincludeTestTags=!org.postgresql.test.SlowTests --no-daemon -PskipAutostyle -PskipCheckstyle -PskipReplicationTests build $MVN_CUSTOM_ARGS"
 MVN_PROFILES="release"
 
 if [[ "${NO_WAFFLE_NO_OSGI}" == *"Y"* ]];

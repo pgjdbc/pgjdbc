@@ -56,5 +56,6 @@ jobs:
         java-version: 8
     - name: 'Test'
       run: |
-        ./gradlew --no-parallel --no-daemon -PskipReplicationTests -Pport=${{ job.services.postgres.ports['5432'] }} test
+        # TODO: run SlowTests as well
+        ./gradlew '-PincludeTestTags=!org.postgresql.test.SlowTests' --no-parallel --no-daemon -PskipReplicationTests -Pport=${{ job.services.postgres.ports['5432'] }} test
         # test javadoc -Pport=${{ job.services.postgres.ports['5432'] }}
