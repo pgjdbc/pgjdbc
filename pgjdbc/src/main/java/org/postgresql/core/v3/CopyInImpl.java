@@ -6,6 +6,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.copy.CopyIn;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -35,6 +36,10 @@ public class CopyInImpl extends CopyOperationImpl implements CopyIn {
 
   public void writeToCopy(byte[] data, int off, int siz) throws SQLException {
     queryExecutor.writeToCopy(this, data, off, siz);
+  }
+
+  public void writeToCopy(ByteStreamWriter from) throws SQLException {
+    queryExecutor.writeToCopy(this, from);
   }
 
   public void flushCopy() throws SQLException {
