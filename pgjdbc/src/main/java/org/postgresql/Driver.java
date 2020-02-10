@@ -6,7 +6,6 @@
 package org.postgresql;
 
 import org.postgresql.jdbc.PgConnection;
-
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
@@ -14,12 +13,12 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
+import org.postgresql.util.URLCoder;
 import org.postgresql.util.WriterHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -32,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,21 +39,18 @@ import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
 /**
- * The Java SQL framework allows for multiple database drivers. Each driver should supply a class
- * that implements the Driver interface
+ * <p>The Java SQL framework allows for multiple database drivers. Each driver should supply a class
+ * that implements the Driver interface</p>
  *
- * <p>
- * The DriverManager will try to load as many drivers as it can find and then for any given
- * connection request, it will ask each driver in turn to try to connect to the target URL.
+ * <p>The DriverManager will try to load as many drivers as it can find and then for any given
+ * connection request, it will ask each driver in turn to try to connect to the target URL.</p>
  *
- * <p>
- * It is strongly recommended that each Driver class should be small and standalone so that the
- * Driver class can be loaded and queried without bringing in vast quantities of supporting code.
+ * <p>It is strongly recommended that each Driver class should be small and standalone so that the
+ * Driver class can be loaded and queried without bringing in vast quantities of supporting code.</p>
  *
- * <p>
- * When a Driver class is loaded, it should create an instance of itself and register it with the
+ * <p>When a Driver class is loaded, it should create an instance of itself and register it with the
  * DriverManager. This means that a user can load and register a driver by doing
- * Class.forName("foo.bah.Driver")
+ * Class.forName("foo.bah.Driver")</p>
  *
  * @see org.postgresql.PGConnection
  * @see java.sql.Driver
@@ -64,6 +61,8 @@ public class Driver implements java.sql.Driver {
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static SharedTimer sharedTimer = new SharedTimer();
+  private static final String DEFAULT_PORT =
+      /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5432";
 
   static {
     try {
@@ -106,7 +105,7 @@ public class Driver implements java.sql.Driver {
 
     try {
       PGProperty.USER.set(merged, System.getProperty("user.name"));
-    } catch (java.lang.SecurityException se) {
+    } catch (SecurityException se) {
       // We're just trying to set a default, so if we can't
       // it's not a big deal.
     }
@@ -121,11 +120,14 @@ public class Driver implements java.sql.Driver {
     // neither case can throw SecurityException.
     ClassLoader cl = getClass().getClassLoader();
     if (cl == null) {
+      LOGGER.log(Level.FINE, "Can't find our classloader for the Driver; "
+          + "attempt to use the system class loader");
       cl = ClassLoader.getSystemClassLoader();
     }
 
     if (cl == null) {
-      LOGGER.log(Level.WARNING, "Can't find a classloader for the Driver; not loading driver configuration");
+      LOGGER.log(Level.WARNING, "Can't find a classloader for the Driver; not loading driver "
+          + "configuration from org/postgresql/driverconfig.properties");
       return merged; // Give up on finding defaults.
     }
 
@@ -153,54 +155,61 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * Try to make a database connection to the given URL. The driver should return "null" if it
+   * <p>Try to make a database connection to the given URL. The driver should return "null" if it
    * realizes it is the wrong kind of driver to connect to the given URL. This will be common, as
    * when the JDBC driverManager is asked to connect to a given URL, it passes the URL to each
-   * loaded driver in turn.
+   * loaded driver in turn.</p>
    *
-   * <p>
-   * The driver should raise an SQLException if it is the right driver to connect to the given URL,
-   * but has trouble connecting to the database.
+   * <p>The driver should raise an SQLException if it is the right driver to connect to the given URL,
+   * but has trouble connecting to the database.</p>
    *
-   * <p>
-   * The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as
-   * connection arguments.
+   * <p>The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as
+   * connection arguments.</p>
    *
-   * user - (required) The user to connect as password - (optional) The password for the user ssl -
-   * (optional) Use SSL when connecting to the server readOnly - (optional) Set connection to
-   * read-only by default charSet - (optional) The character set to be used for converting to/from
+   * <ul>
+   * <li>user - (required) The user to connect as</li>
+   * <li>password - (optional) The password for the user</li>
+   * <li>ssl -(optional) Use SSL when connecting to the server</li>
+   * <li>readOnly - (optional) Set connection to read-only by default</li>
+   * <li>charSet - (optional) The character set to be used for converting to/from
    * the database to unicode. If multibyte is enabled on the server then the character set of the
    * database is used as the default, otherwise the jvm character encoding is used as the default.
-   * This value is only used when connecting to a 7.2 or older server. loglevel - (optional) Enable
-   * logging of messages from the driver. The value is an integer from 0 to 2 where: OFF = 0, INFO =
-   * 1, DEBUG = 2 The output is sent to DriverManager.getPrintWriter() if set, otherwise it is sent
-   * to System.out. compatible - (optional) This is used to toggle between different functionality
+   * This value is only used when connecting to a 7.2 or older server.</li>
+   * <li>loglevel - (optional) Enable logging of messages from the driver. The value is an integer
+   * from 0 to 2 where: OFF = 0, INFO =1, DEBUG = 2 The output is sent to
+   * DriverManager.getPrintWriter() if set, otherwise it is sent to System.out.</li>
+   * <li>compatible - (optional) This is used to toggle between different functionality
    * as it changes across different releases of the jdbc driver code. The values here are versions
    * of the jdbc client and not server versions. For example in 7.1 get/setBytes worked on
    * LargeObject values, in 7.2 these methods were changed to work on bytea values. This change in
    * functionality could be disabled by setting the compatible level to be "7.1", in which case the
-   * driver will revert to the 7.1 functionality.
+   * driver will revert to the 7.1 functionality.</li>
+   * </ul>
    *
-   * <p>
-   * Normally, at least "user" and "password" properties should be included in the properties. For a
+   * <p>Normally, at least "user" and "password" properties should be included in the properties. For a
    * list of supported character encoding , see
    * http://java.sun.com/products/jdk/1.2/docs/guide/internat/encoding.doc.html Note that you will
    * probably want to have set up the Postgres database itself to use the same encoding, with the
-   * {@code -E <encoding>} argument to createdb.
+   * {@code -E <encoding>} argument to createdb.</p>
    *
-   * Our protocol takes the forms:
+   * <p>Our protocol takes the forms:</p>
    *
-   * <PRE>
+   * <pre>
    *  jdbc:postgresql://host:port/database?param1=val1&amp;...
-   * </PRE>
+   * </pre>
    *
    * @param url the URL of the database to connect to
    * @param info a list of arbitrary tag/value pairs as connection arguments
    * @return a connection to the URL or null if it isnt us
-   * @throws SQLException if a database access error occurs
+   * @exception SQLException if a database access error occurs or the url is
+   * {@code null}
    * @see java.sql.Driver#connect
    */
-  public java.sql.Connection connect(String url, Properties info) throws SQLException {
+  @Override
+  public Connection connect(String url, Properties info) throws SQLException {
+    if (url == null) {
+      throw new SQLException("url is null");
+    }
     // get defaults
     Properties defaults;
 
@@ -231,7 +240,6 @@ public class Driver implements java.sql.Driver {
     }
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
-      LOGGER.log(Level.SEVERE, "Error in url: {0}", url);
       return null;
     }
     try {
@@ -259,7 +267,7 @@ public class Driver implements java.sql.Driver {
       thread.start();
       return ct.getResult(timeout);
     } catch (PSQLException ex1) {
-      LOGGER.log(Level.SEVERE, "Connection error: ", ex1);
+      LOGGER.log(Level.FINE, "Connection error: ", ex1);
       // re-throw the exception, otherwise it will be caught next, and a
       // org.postgresql.unusual error will be returned instead.
       throw ex1;
@@ -269,7 +277,7 @@ public class Driver implements java.sql.Driver {
               "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
           PSQLState.UNEXPECTED_ERROR, ace);
     } catch (Exception ex2) {
-      LOGGER.log(Level.SEVERE, "Unexpected connection error: ", ex2);
+      LOGGER.log(Level.FINE, "Unexpected connection error: ", ex2);
       throw new PSQLException(
           GT.tr(
               "Something unusual has occurred to cause the driver to fail. Please report this exception."),
@@ -281,9 +289,9 @@ public class Driver implements java.sql.Driver {
   private static String loggerHandlerFile;
 
   /**
-   * Setup java.util.logging.Logger using connection properties.
-   * <p>
-   * See {@link PGProperty#LOGGER_FILE} and {@link PGProperty#LOGGER_FILE}
+   * <p>Setup java.util.logging.Logger using connection properties.</p>
+   *
+   * <p>See {@link PGProperty#LOGGER_FILE} and {@link PGProperty#LOGGER_FILE}</p>
    *
    * @param props Connection Properties
    */
@@ -390,7 +398,7 @@ public class Driver implements java.sql.Driver {
      * @throws SQLException if a connection error occurs or the timeout is reached
      */
     public Connection getResult(long timeout) throws SQLException {
-      long expiry = System.currentTimeMillis() + timeout;
+      long expiry = TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) + timeout;
       synchronized (this) {
         while (true) {
           if (result != null) {
@@ -409,7 +417,7 @@ public class Driver implements java.sql.Driver {
             }
           }
 
-          long delay = expiry - System.currentTimeMillis();
+          long delay = expiry - TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
           if (delay <= 0) {
             abandoned = true;
             throw new PSQLException(GT.tr("Connection attempt timed out."),
@@ -460,17 +468,17 @@ public class Driver implements java.sql.Driver {
    * @return true if this driver accepts the given URL
    * @see java.sql.Driver#acceptsURL
    */
+  @Override
   public boolean acceptsURL(String url) {
     return parseURL(url, null) != null;
   }
 
   /**
-   * The getPropertyInfo method is intended to allow a generic GUI tool to discover what properties
-   * it should prompt a human for in order to get enough information to connect to a database.
+   * <p>The getPropertyInfo method is intended to allow a generic GUI tool to discover what properties
+   * it should prompt a human for in order to get enough information to connect to a database.</p>
    *
-   * <p>
-   * Note that depending on the values the human has supplied so far, additional values may become
-   * necessary, so it may be necessary to iterate through several calls to getPropertyInfo
+   * <p>Note that depending on the values the human has supplied so far, additional values may become
+   * necessary, so it may be necessary to iterate through several calls to getPropertyInfo</p>
    *
    * @param url the Url of the database to connect to
    * @param info a proposed list of tag/value pairs that will be sent on connect open.
@@ -478,6 +486,7 @@ public class Driver implements java.sql.Driver {
    *         be an empty array if no properties are required
    * @see java.sql.Driver#getPropertyInfo
    */
+  @Override
   public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
     Properties copy = new Properties(info);
     Properties parse = parseURL(url, copy);
@@ -516,19 +525,19 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * Report whether the driver is a genuine JDBC compliant driver. A driver may only report "true"
+   * <p>Report whether the driver is a genuine JDBC compliant driver. A driver may only report "true"
    * here if it passes the JDBC compliance tests, otherwise it is required to return false. JDBC
-   * compliance requires full support for the JDBC API and full support for SQL 92 Entry Level.
+   * compliance requires full support for the JDBC API and full support for SQL 92 Entry Level.</p>
    *
-   * <p>
-   * For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).
+   * <p>For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).</p>
    */
+  @Override
   public boolean jdbcCompliant() {
     return false;
   }
 
   /**
-   * Constructs a new DriverURL, splitting the specified URL into its component parts
+   * Constructs a new DriverURL, splitting the specified URL into its component parts.
    *
    * @param url JDBC URL to parse
    * @param defaults Default properties
@@ -537,48 +546,51 @@ public class Driver implements java.sql.Driver {
   public static Properties parseURL(String url, Properties defaults) {
     Properties urlProps = new Properties(defaults);
 
-    String l_urlServer = url;
-    String l_urlArgs = "";
+    String urlServer = url;
+    String urlArgs = "";
 
-    int l_qPos = url.indexOf('?');
-    if (l_qPos != -1) {
-      l_urlServer = url.substring(0, l_qPos);
-      l_urlArgs = url.substring(l_qPos + 1);
+    int qPos = url.indexOf('?');
+    if (qPos != -1) {
+      urlServer = url.substring(0, qPos);
+      urlArgs = url.substring(qPos + 1);
     }
 
-    if (!l_urlServer.startsWith("jdbc:postgresql:")) {
+    if (!urlServer.startsWith("jdbc:postgresql:")) {
+      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
       return null;
     }
-    l_urlServer = l_urlServer.substring("jdbc:postgresql:".length());
+    urlServer = urlServer.substring("jdbc:postgresql:".length());
 
-    if (l_urlServer.startsWith("//")) {
-      l_urlServer = l_urlServer.substring(2);
-      int slash = l_urlServer.indexOf('/');
+    if (urlServer.startsWith("//")) {
+      urlServer = urlServer.substring(2);
+      int slash = urlServer.indexOf('/');
       if (slash == -1) {
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
         return null;
       }
-      urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer.substring(slash + 1)));
+      urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer.substring(slash + 1)));
 
-      String[] addresses = l_urlServer.substring(0, slash).split(",");
+      String[] addresses = urlServer.substring(0, slash).split(",");
       StringBuilder hosts = new StringBuilder();
       StringBuilder ports = new StringBuilder();
-      for (int addr = 0; addr < addresses.length; ++addr) {
-        String address = addresses[addr];
-
+      for (String address : addresses) {
         int portIdx = address.lastIndexOf(':');
         if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
           String portStr = address.substring(portIdx + 1);
           try {
-            // squid:S2201 The return value of "parseInt" must be used.
-            // The side effect is NumberFormatException, thus ignore sonar error here
-            Integer.parseInt(portStr); //NOSONAR
-          } catch (NumberFormatException ex) {
+            int port = Integer.parseInt(portStr);
+            if (port < 1 || port > 65535) {
+              LOGGER.log(Level.WARNING, "JDBC URL port: {0} not valid (1:65535) ", portStr);
+              return null;
+            }
+          } catch (NumberFormatException ignore) {
+            LOGGER.log(Level.WARNING, "JDBC URL invalid port number: {0}", portStr);
             return null;
           }
           ports.append(portStr);
           hosts.append(address.subSequence(0, portIdx));
         } else {
-          ports.append("/*$mvn.project.property.template.default.pg.port$*/");
+          ports.append(DEFAULT_PORT);
           hosts.append(address);
         }
         ports.append(',');
@@ -594,27 +606,27 @@ public class Driver implements java.sql.Driver {
        then set it to default
       */
       if (defaults == null || !defaults.containsKey("PGPORT")) {
-        urlProps.setProperty("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
+        urlProps.setProperty("PGPORT", DEFAULT_PORT);
       }
       if (defaults == null || !defaults.containsKey("PGHOST")) {
         urlProps.setProperty("PGHOST", "localhost");
       }
       if (defaults == null || !defaults.containsKey("PGDBNAME")) {
-        urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer));
+        urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
       }
     }
 
     // parse the args part of the url
-    String[] args = l_urlArgs.split("&");
+    String[] args = urlArgs.split("&");
     for (String token : args) {
       if (token.isEmpty()) {
         continue;
       }
-      int l_pos = token.indexOf('=');
-      if (l_pos == -1) {
+      int pos = token.indexOf('=');
+      if (pos == -1) {
         urlProps.setProperty(token, "");
       } else {
-        urlProps.setProperty(token.substring(0, l_pos), URLDecoder.decode(token.substring(l_pos + 1)));
+        urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
       }
     }
 

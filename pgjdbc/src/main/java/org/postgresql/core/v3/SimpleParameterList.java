@@ -14,6 +14,7 @@ import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -23,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
-
 
 /**
  * Parameter list for a single-statement V3 query.
@@ -148,6 +148,11 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
+  public void setBytea(int index, ByteStreamWriter writer) throws SQLException {
+    bind(index, writer, Oid.BYTEA, BINARY);
+  }
+
+  @Override
   public void setText(int index, InputStream stream) throws SQLException {
     bind(index, new StreamWrapper(stream), Oid.TEXT, TEXT);
   }
@@ -188,10 +193,16 @@ class SimpleParameterList implements V3ParameterList {
 
         case Oid.FLOAT4:
           float f = ByteConverter.float4((byte[]) paramValues[index], 0);
+          if (Float.isNaN(f)) {
+            return "'NaN'::real";
+          }
           return Float.toString(f);
 
         case Oid.FLOAT8:
           double d = ByteConverter.float8((byte[]) paramValues[index], 0);
+          if (Double.isNaN(d)) {
+            return "'NaN'::double precision";
+          }
           return Double.toString(d);
 
         case Oid.UUID:
@@ -214,7 +225,7 @@ class SimpleParameterList implements V3ParameterList {
       String param = paramValues[index].toString();
 
       // add room for quotes + potential escaping.
-      StringBuilder p = new StringBuilder(3 + param.length() * 11 / 10);
+      StringBuilder p = new StringBuilder(3 + (param.length() + 10) / 10 * 11);
 
       // No E'..' here since escapeLiteral escapes all things and it does not use \123 kind of
       // escape codes
@@ -245,6 +256,8 @@ class SimpleParameterList implements V3ParameterList {
         p.append("::date");
       } else if (paramType == Oid.INTERVAL) {
         p.append("::interval");
+      } else if (paramType == Oid.NUMERIC) {
+        p.append("::numeric");
       }
       return p.toString();
     }
@@ -282,6 +295,14 @@ class SimpleParameterList implements V3ParameterList {
     }
 
     pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
+  }
+
+  //
+  // byte stream writer support
+  //
+
+  private static void streamBytea(PGStream pgStream, ByteStreamWriter writer) throws IOException {
+    pgStream.send(writer);
   }
 
   public int[] getTypeOIDs() {
@@ -345,6 +366,11 @@ class SimpleParameterList implements V3ParameterList {
       return ((StreamWrapper) paramValues[index]).getLength();
     }
 
+    // Binary-format bytea?
+    if (paramValues[index] instanceof ByteStreamWriter) {
+      return ((ByteStreamWriter) paramValues[index]).getLength();
+    }
+
     // Already encoded?
     if (encoded[index] == null) {
       // Encode value and compute actual length using UTF-8.
@@ -374,13 +400,18 @@ class SimpleParameterList implements V3ParameterList {
       return;
     }
 
+    // Streamed bytea?
+    if (paramValues[index] instanceof ByteStreamWriter) {
+      streamBytea(pgStream, (ByteStreamWriter) paramValues[index]);
+      return;
+    }
+
     // Encoded string.
     if (encoded[index] == null) {
       encoded[index] = Utils.encodeUTF8((String) paramValues[index]);
     }
     pgStream.send(encoded[index]);
   }
-
 
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
@@ -471,4 +502,3 @@ class SimpleParameterList implements V3ParameterList {
 
   private int pos = 0;
 }
-

@@ -29,7 +29,6 @@ public class ReturningParserTest {
     this.suffix = suffix;
   }
 
-
   @Parameterized.Parameters(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
@@ -53,14 +52,12 @@ public class ReturningParserTest {
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
-    List<NativeQuery> qry =
-        Parser.parseJdbcSql(
-            query, true, true, true, true, new String[0]);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
 
     boolean expectedReturning = this.returning.equalsIgnoreCase("returning")
-        && (prefix.length() == 0 || !Character.isJavaIdentifierStart(prefix.charAt(0)))
-        && (suffix.length() == 0 || !Character.isJavaIdentifierPart(suffix.charAt(0)));
+        && (prefix.isEmpty() || !Character.isJavaIdentifierStart(prefix.charAt(0)))
+        && (suffix.isEmpty() || !Character.isJavaIdentifierPart(suffix.charAt(0)));
     if (expectedReturning != returningKeywordPresent) {
       Assert.assertEquals("Wrong <returning_clause> detected in SQL " + query,
           expectedReturning,

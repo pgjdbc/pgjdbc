@@ -9,7 +9,7 @@ import org.postgresql.replication.LogSequenceNumber;
 
 import java.util.concurrent.TimeUnit;
 
-/***
+/**
  * Fluent interface for specify common parameters for Logical and Physical replication.
  */
 public interface ChainedCommonStreamBuilder<T extends ChainedCommonStreamBuilder<T>> {
@@ -20,10 +20,11 @@ public interface ChainedCommonStreamBuilder<T extends ChainedCommonStreamBuilder
    * rows which could cause a recovery conflict even when the standby is disconnected.
    *
    * @param slotName not null replication slot already exists on server.
+   * @return this instance as a fluent interface
    */
   T withSlotName(String slotName);
 
-  /***
+  /**
    * Specifies the number of time between status packets sent back to the server. This allows for
    * easier monitoring of the progress from server. A value of zero disables the periodic status
    * updates completely, although an update will still be sent when requested by the server, to
@@ -36,7 +37,7 @@ public interface ChainedCommonStreamBuilder<T extends ChainedCommonStreamBuilder
   T withStatusInterval(int time, TimeUnit format);
 
   /**
-   * Specify start position from wich backend will start stream changes. If parameter will not
+   * Specify start position from which backend will start stream changes. If parameter will not
    * specify, streaming starts from restart_lsn. For more details see pg_replication_slots
    * description.
    *

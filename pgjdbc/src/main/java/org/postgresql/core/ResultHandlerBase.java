@@ -30,7 +30,7 @@ public class ResultHandlerBase implements ResultHandler {
   }
 
   @Override
-  public void handleCommandStatus(String status, int updateCount, long insertOID) {
+  public void handleCommandStatus(String status, long updateCount, long insertOID) {
   }
 
   @Override

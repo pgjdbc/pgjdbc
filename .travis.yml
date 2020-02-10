@@ -2,28 +2,53 @@ sudo: false
 language: java
 dist: trusty
 
+branches:
+  except:
+    - /^tmp\/.*/
+    - /^REL.*/
+
+stages:
+  - name: test
+    if: not branch =~ ^release\/.*$
+  - name: release
+    # releases pgjdbc for Java 8
+    # It does set release tag and update pom.xml versions
+    if: branch =~ ^release\/.*$
+  - name: release_prev
+    # releases pgjdbc for Java 6, Java 7
+    # pgjdbc-jreX requires release pom.xml versions of the main project, so pgjdbc-jreX should be
+    # released after the release of the main version, thus second stage
+    if: branch =~ ^release\/.*$
+
 before_script:
+  - test $(grep "after_n_builds" codecov.yml | tr -d '[:space:]' | cut -d":" -f2) -eq $(grep -e "COVERAGE=Y$" .travis.yml | wc -l) || exit 1
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
+  - export PG_SLAVE1_DATADIR="/etc/postgresql/${PG_VERSION}/slave1"
+  - export PG_SLAVE2_DATADIR="/etc/postgresql/${PG_VERSION}/slave2"
   -  ./.travis/travis_install_postgres.sh
   - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
   - test "x$REPLICATION" == 'x' || ./.travis/travis_configure_replication.sh
+  - test "x$SSLTEST" == 'x' || ./.travis/travis_configure_ssl.sh
   - ./.travis/travis_start_postgres.sh
-  - psql -U postgres -c "create user test with password 'test';"
+  - test "x$PG_VERSION" != 'xHEAD' || psql -U postgres -c "set password_encryption='scram-sha-256'; create user test with password 'test';"
+  - test "x$PG_VERSION" = 'xHEAD' || psql -U postgres -c "create user test with password 'test';"
   - test "x$REPLICATION" == 'x' || psql -U postgres -c "alter user test with replication;"
   - psql -c 'create database test owner test;' -U postgres
-  - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
+  - test "x$SSLTEST" == 'x' || ./.travis/travis_ssl_users.sh
+  - test "x$REPLICATION" == 'x' || ./.travis/travis_create_slaves.sh
+  - if [[ $TRAVIS_BRANCH == release/* ]]; then echo "MAVEN_OPTS='-Xmx1g'" > ~/.mavenrc; else echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc; fi
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
+  - test "x$PG_VERSION" == 'x' || test "x$PLPGSQL_EXTENSION" == 'x' || psql test -c 'CREATE EXTENSION IF NOT EXISTS plpgsql;' -U postgres
 
 env:
   global:
-    - secure: "3HRd+UJQzXoxmBAiJ8SLFuYK8NvMVgIs0erfcPdgvtfFGTPkH3XMONfNr2VE2uz6qwUB5GWkVzvS4c9CPbnnft9QhyYeeUINiqQMN5+6AN5re3C2D7VQMm3NSB+T2R6zS/18UZW5tIoTJILgl5oRCQFI7RSpqhvZ8nqPxJ4gptI="
-    - secure: "VrNgbyKQi5HjSMZfkt/zwG+AHk1NW1b+f3Jo1ZH7DCqcgLApwvp4MNsw+XamqHxudjj3Z8+4bYBxG2H6zIOobIyYhBvxUwMq7HTjM4jH8m5phqvQIWZOzZzqguYNNS7JJQUpIMwR7wTuHqucVfMxljoSuXQbs+0BUxo4Eh+FScQ="
     - secure: "NI+aqwRLLVt2feJdk/2ZEZnsaPyu+vOx8MahVxjz0UUVvRHVqxM5O1M0R53NJfEeIjflOzgZJwRLqgyl6dkdfjytRhaHWGptQdehV4cwNb+4epnn8WlpRzMac65zTQqnbGVtw9jissDQv6/Zl/+D+DMcU65BbFZkix40whILXG0="
 
 before_install:
   - ./.travis/travis_install_zulu.sh
   - test -z "${ZULU_JDK}" || export JDK${ZULU_JDK}_HOME=/usr/lib/jvm/zulu-${ZULU_JDK}-amd64
+  - unset _JAVA_OPTIONS # see https://github.com/travis-ci/travis-ci/issues/8408
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
@@ -35,7 +60,8 @@ script:
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
-  - ./.travis/travis_build.sh
+  - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
+  - if [[ $TRAVIS_BRANCH == release/* ]]; then .travis/travis_release.sh; else ./.travis/travis_build.sh; fi
   - ./.travis/travis_check_postgres_health.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
   #- mkdir /tmp/cache-trick
@@ -60,22 +86,70 @@ cache:
 matrix:
   fast_finish: true
   include:
-    - jdk: oraclejdk8
+    - stage: test
+      jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
       script: mvn checkstyle:check
     - env:
         - FEDORA_CI=Y
       services:
         - docker
+      if: type != pull_request
+    - jdk: openjdk-ea
+      sudo: required
+      addons:
+        postgresql: "10"
+      env:
+      - PG_VERSION=10
+      - JDK=12
+      - TZ=America/New_York # flips between −05:00 and −04:00
+    - jdk: openjdk-ea
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
+    - jdk: oraclejdk9
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
+        - JDK=9
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
+        - JDK=8
+    - jdk: oraclejdk11
+      sudo: required
+      addons:
+        postgresql: "10"
+      env:
+      - PG_VERSION=10
+      - JDK=11
+      - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk9
       addons:
-        apt:
-          packages:
-            - oracle-java9-installer # Test with latest update
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
         - JDK=9
+        - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk8
       sudo: required
       env:
@@ -83,6 +157,9 @@ matrix:
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
+        - TEST_CLIENTS=Y
+        - TZ=Pacific/Chatham # flips between +12:45 and +13:45
+        - JDK=8
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -103,19 +180,43 @@ matrix:
         - PG_VERSION=9.5
         - XA=true
         - REPLICATION=Y
+        - JDK=8
     - jdk: oraclejdk8
-      sudo: required
       addons:
-        apt:
-          packages:
-            - oracle-java8-installer # Test with latest update
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - LATEST_JAVA_UPDATE=Y # Use Travis last Java update
-        - XA=true
-        - REPLICATION=Y
+        - QUERY_MODE=extendedCacheEverything
         - COVERAGE=Y
+        - TZ=Europe/Moscow # +03:00, no DST
+        - JDK=8
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        postgresql: "10"
+      env:
+        - PG_VERSION=10
+        - SSLTEST=Y
+        - COVERAGE=Y
+        - JDK=8
+    - jdk: openjdk7
+      sudo: required
+      addons:
+        postgresql: "9.2"
+      env:
+        - PG_VERSION=9.2
+        - ZULU_JDK=7
+        - MCENTRAL=Y
+        - COVERAGE=Y
+        - TZ=UTC
+    - jdk: openjdk7
+      sudo: required
+      addons:
+        postgresql: "9.1"
+      env:
+        - PG_VERSION=9.1
+        - ZULU_JDK=6
+        - MCENTRAL=Y
     - jdk: oraclejdk8
       sudo: required
       env:
@@ -125,74 +226,46 @@ matrix:
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.3
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.2
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - TEST_CLIENTS=Y
-    - jdk: oraclejdk8
       addons:
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
         - QUERY_MODE=simple
         - COVERAGE=Y
-        - ANORM_SBT=Y
+        - TEST_CLIENTS=Y
+        - JDK=8
     - jdk: oraclejdk8
-      addons:
-        postgresql: "9.6"
-      env:
-        - PG_VERSION=9.6
-        - QUERY_MODE=extendedForPrepared
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.5"
-      env:
-        - PG_VERSION=9.5
-        - NO_WAFFLE_NO_OSGI=Y
-        - JDOC=Y
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - ZULU_JDK=7
-        - MCENTRAL=Y
-    - jdk: openjdk7
-      sudo: required
       addons:
         postgresql: "9.3"
       env:
         - PG_VERSION=9.3
-        - ZULU_JDK=7
-    - jdk: openjdk6
+        - QUERY_MODE=extendedForPrepared
+        - COVERAGE=Y
+        - JDK=8
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.4"
+      env:
+        - PG_VERSION=9.4
+        - NO_WAFFLE_NO_OSGI=Y
+        - JDK=8
+    - stage: release
+      jdk: oraclejdk8
+      env:
+        - PG_VERSION=9.6
+    - stage: release_prev
+      jdk: openjdk7
       sudo: required
+      addons:
+        postgresql: "9.2"
       env:
         - PG_VERSION=9.2
-        - ZULU_JDK=6
-        - MCENTRAL=Y
-    - jdk: openjdk6
+        - ZULU_JDK=7
+    - stage: release_prev
+      jdk: openjdk7
       sudo: required
+      addons:
+        postgresql: "9.1"
       env:
         - PG_VERSION=9.1
         - ZULU_JDK=6

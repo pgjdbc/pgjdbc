@@ -10,12 +10,12 @@ next: ext.html
 ---
 
 The JDBC specification defines functions with an escape call syntax : `{fn function_name(arguments)}`.
-The following tables show which functions are supported by the PostgresSQL™ driver. 
+The following tables show which functions are supported by the PostgreSQL™ driver.
 The driver supports the nesting and the mixing of escaped functions and escaped
 values. The appendix C of the JDBC specification describes the functions.
 
 Some functions in the following tables are translated but not reported as supported
-because they are duplicating or changing ther order of the arguments. While this
+because they are duplicating or changing their order of the arguments. While this
 is harmless for literal values or columns, it will cause problems when using
 prepared statements. For example "`{fn right(?,?)}`" will be translated to "`substring(? from (length(?)+1-?))`".
 As you can see the translated SQL requires more parameters than before the

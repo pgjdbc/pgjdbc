@@ -5,19 +5,17 @@
 
 package org.postgresql.hostchooser;
 
-import org.postgresql.util.HostSpec;
-
 import java.util.Iterator;
 
 /**
  * Lists connections in preferred order.
  */
-public interface HostChooser extends Iterable<HostSpec> {
+public interface HostChooser extends Iterable<CandidateHost> {
   /**
    * Lists connection hosts in preferred order.
    *
    * @return connection hosts in preferred order.
    */
   @Override
-  Iterator<HostSpec> iterator();
+  Iterator<CandidateHost> iterator();
 }

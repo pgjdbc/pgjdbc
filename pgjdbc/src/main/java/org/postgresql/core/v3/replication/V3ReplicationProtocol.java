@@ -66,7 +66,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
   }
 
   /**
-   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX
+   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX.
    */
   private String createStartPhysicalQuery(PhysicalReplicationOptions options) {
     StringBuilder builder = new StringBuilder();
@@ -129,11 +129,11 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
       }
 
       pgStream.getSocket().setSoTimeout(minimalTimeOut);
+      // Use blocking 1ms reads for `available()` checks
+      pgStream.setMinStreamAvailableCheckDelay(0);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("The connection attempt failed."),
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
     }
   }
-
-
 }

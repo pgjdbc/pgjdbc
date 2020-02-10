@@ -5,17 +5,16 @@
 
 package org.postgresql.hostchooser;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.shuffle;
-import static java.util.Collections.sort;
 
 import org.postgresql.PGProperty;
-import org.postgresql.hostchooser.GlobalHostStatusTracker.HostSpecStatus;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 
+import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -23,13 +22,13 @@ import java.util.Properties;
 /**
  * HostChooser that keeps track of known host statuses.
  */
-public class MultiHostChooser implements HostChooser {
+class MultiHostChooser implements HostChooser {
   private HostSpec[] hostSpecs;
   private final HostRequirement targetServerType;
   private int hostRecheckTime;
   private boolean loadBalance;
 
-  protected MultiHostChooser(HostSpec[] hostSpecs, HostRequirement targetServerType,
+  MultiHostChooser(HostSpec[] hostSpecs, HostRequirement targetServerType,
       Properties info) {
     this.hostSpecs = hostSpecs;
     this.targetServerType = targetServerType;
@@ -42,79 +41,98 @@ public class MultiHostChooser implements HostChooser {
   }
 
   @Override
-  public Iterator<HostSpec> iterator() {
-    List<HostSpecStatus> candidates =
-        GlobalHostStatusTracker.getCandidateHosts(hostSpecs, targetServerType, hostRecheckTime);
-    // if no candidates are suitable (all wrong type or unavailable) then we try original list in
-    // order
-    if (candidates.isEmpty()) {
-      return asList(hostSpecs).iterator();
-    }
-    if (candidates.size() == 1) {
-      return asList(candidates.get(0).host).iterator();
-    }
-    sortCandidates(candidates);
-    shuffleGoodHosts(candidates);
-    return extractHostSpecs(candidates).iterator();
-  }
-
-  private void sortCandidates(List<HostSpecStatus> candidates) {
-    if (targetServerType == HostRequirement.any) {
-      return;
-    }
-    sort(candidates, new HostSpecByTargetServerTypeComparator());
-  }
-
-  private void shuffleGoodHosts(List<HostSpecStatus> candidates) {
-    if (!loadBalance) {
-      return;
-    }
-    int count;
-    for (count = 1; count < candidates.size(); count++) {
-      HostSpecStatus hostSpecStatus = candidates.get(count);
-      if (hostSpecStatus.status != null
-          && !targetServerType.allowConnectingTo(hostSpecStatus.status)) {
-        break;
+  public Iterator<CandidateHost> iterator() {
+    Iterator<CandidateHost> res = candidateIterator();
+    if (!res.hasNext()) {
+      // In case all the candidate hosts are unavailable or do not match, try all the hosts just in case
+      List<HostSpec> allHosts = Arrays.asList(hostSpecs);
+      if (loadBalance) {
+        allHosts = new ArrayList<HostSpec>(allHosts);
+        Collections.shuffle(allHosts);
       }
+      res = withReqStatus(targetServerType, allHosts).iterator();
     }
-    if (count == 1) {
-      return;
-    }
-    List<HostSpecStatus> goodHosts = candidates.subList(0, count);
-    shuffle(goodHosts);
+    return res;
   }
 
-  private List<HostSpec> extractHostSpecs(List<HostSpecStatus> hostSpecStatuses) {
-    List<HostSpec> hostSpecs = new ArrayList<HostSpec>(hostSpecStatuses.size());
-    for (HostSpecStatus hostSpecStatus : hostSpecStatuses) {
-      hostSpecs.add(hostSpecStatus.host);
+  private Iterator<CandidateHost> candidateIterator() {
+    if (targetServerType != HostRequirement.preferSecondary) {
+      return getCandidateHosts(targetServerType).iterator();
     }
-    return hostSpecs;
+
+    // preferSecondary tries to find secondary hosts first
+    // Note: sort does not work here since there are "unknown" hosts,
+    // and that "unknown" might turn out to be master, so we should discard that
+    // if other secondaries exist
+    List<CandidateHost> secondaries = getCandidateHosts(HostRequirement.secondary);
+    List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
+
+    if (secondaries.isEmpty()) {
+      return any.iterator();
+    }
+
+    if (any.isEmpty()) {
+      return secondaries.iterator();
+    }
+
+    if (secondaries.get(secondaries.size() - 1).equals(any.get(0))) {
+      // When the last secondary's hostspec is the same as the first in "any" list, there's no need
+      // to attempt to connect it as "secondary"
+      // Note: this is only an optimization
+      secondaries = rtrim(1, secondaries);
+    }
+    return append(secondaries, any).iterator();
   }
 
-  class HostSpecByTargetServerTypeComparator implements Comparator<HostSpecStatus> {
-    @Override
-    public int compare(HostSpecStatus o1, HostSpecStatus o2) {
-      int r1 = rank(o1.status, targetServerType);
-      int r2 = rank(o2.status, targetServerType);
-      return r1 == r2 ? 0 : r1 > r2 ? -1 : 1;
+  private List<CandidateHost> getCandidateHosts(HostRequirement hostRequirement) {
+    List<HostSpec> candidates =
+        GlobalHostStatusTracker.getCandidateHosts(hostSpecs, hostRequirement, hostRecheckTime);
+    if (loadBalance) {
+      shuffle(candidates);
     }
+    return withReqStatus(hostRequirement, candidates);
+  }
 
-    private int rank(HostStatus status, HostRequirement targetServerType) {
-      if (status == HostStatus.ConnectFail) {
-        return -1;
+  private List<CandidateHost> withReqStatus(final HostRequirement requirement, final List<HostSpec> hosts) {
+    return new AbstractList<CandidateHost>() {
+      @Override
+      public CandidateHost get(int index) {
+        return new CandidateHost(hosts.get(index), requirement);
       }
-      switch (targetServerType) {
-        case master:
-          return status == HostStatus.Master || status == null ? 1 : 0;
-        case slave:
-          return status == HostStatus.Slave || status == null ? 1 : 0;
-        case preferSlave:
-          return status == HostStatus.Slave || status == null ? 2
-              : status == HostStatus.Master ? 1 : 0;
-        default:
-          return 0;
+
+      @Override
+      public int size() {
+        return hosts.size();
       }
-    }
+    };
   }
+
+  private <T> List<T> append(final List<T> a, final List<T> b) {
+    return new AbstractList<T>() {
+      @Override
+      public T get(int index) {
+        return index < a.size() ? a.get(index) : b.get(index - a.size());
+      }
+
+      @Override
+      public int size() {
+        return a.size() + b.size();
+      }
+    };
+  }
+
+  private <T> List<T> rtrim(final int size, final List<T> a) {
+    return new AbstractList<T>() {
+      @Override
+      public T get(int index) {
+        return a.get(index);
+      }
+
+      @Override
+      public int size() {
+        return Math.max(0, a.size() - size);
+      }
+    };
+  }
+
 }

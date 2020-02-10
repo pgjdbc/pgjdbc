@@ -14,7 +14,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 public abstract class DbKeyStoreSocketFactory extends org.postgresql.ssl.WrappedFactory {
   /*
-   * Populate the WrappedFactory member _factory with an SSL Socket Factory that uses the JKS
+   * Populate the WrappedFactory member factory with an SSL Socket Factory that uses the JKS
    * keystore provided by getKeyStorePassword() and getKeyStoreStream(). A subclass only needs to
    * implement these two methods. The key store will be used both for selecting a private key
    * certificate to send to the server, as well as checking the server's certificate against a set
@@ -45,7 +45,7 @@ public abstract class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
 
       SSLContext ctx = SSLContext.getInstance("SSL");
       ctx.init(keyfact.getKeyManagers(), trustfact.getTrustManagers(), null);
-      _factory = ctx.getSocketFactory();
+      factory = ctx.getSocketFactory();
     } catch (java.security.GeneralSecurityException gse) {
       throw new DbKeyStoreSocketException(
           "Failed to set up database socket factory: " + gse.getMessage());

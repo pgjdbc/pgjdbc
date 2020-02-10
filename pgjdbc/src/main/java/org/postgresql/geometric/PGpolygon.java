@@ -16,12 +16,12 @@ import java.sql.SQLException;
  */
 public class PGpolygon extends PGobject implements Serializable, Cloneable {
   /**
-   * The points defining the polygon
+   * The points defining the polygon.
    */
   public PGpoint[] points;
 
   /**
-   * Creates a polygon using an array of PGpoints
+   * Creates a polygon using an array of PGpoints.
    *
    * @param points the points defining the polygon
    */
@@ -40,7 +40,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Required by the driver
+   * Required by the driver.
    */
   public PGpolygon() {
     setType("polygon");

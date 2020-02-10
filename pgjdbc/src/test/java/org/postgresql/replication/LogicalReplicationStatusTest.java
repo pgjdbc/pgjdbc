@@ -96,7 +96,7 @@ public class LogicalReplicationStatusTest {
   }
 
   /**
-   * Test fail on PG version 9.4.5 because postgresql have bug
+   * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
   @HaveMinimalServerVersion("9.4.8")
@@ -304,7 +304,7 @@ public class LogicalReplicationStatusTest {
   }
 
   /**
-   * Test fail on PG version 9.4.5 because postgresql have bug
+   * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
   @HaveMinimalServerVersion("9.4.8")
@@ -335,7 +335,6 @@ public class LogicalReplicationStatusTest {
 
     receiveMessageWithoutBlock(stream, 1);
     stream.forceUpdateStatus();
-
 
     LogSequenceNumber flushed = getFlushLocationOnView();
     LogSequenceNumber applied = getReplayLocationOnView();

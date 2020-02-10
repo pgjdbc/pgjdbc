@@ -81,7 +81,7 @@ exhausted the next block of rows is retrieved by repositioning the cursor.
 * The `Connection` must not be in autocommit mode. The backend closes cursors at
 	the end of transactions, so in autocommit mode the backend will have
 	closed the cursor before anything can be fetched from it.
-*The `Statement` must be created with a `ResultSet` type of `ResultSet.TYPE_FORWARD_ONLY`.
+* The `Statement` must be created with a `ResultSet` type of `ResultSet.TYPE_FORWARD_ONLY`.
 	This is the default, so no code will need to be rewritten to take advantage
 	of this, but it also means that you cannot scroll backwards or otherwise
 	jump around in the `ResultSet`.

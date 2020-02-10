@@ -31,7 +31,7 @@ public class ResultHandlerDelegate implements ResultHandler {
   }
 
   @Override
-  public void handleCommandStatus(String status, int updateCount, long insertOID) {
+  public void handleCommandStatus(String status, long updateCount, long insertOID) {
     if (delegate != null) {
       delegate.handleCommandStatus(status, updateCount, insertOID);
     }

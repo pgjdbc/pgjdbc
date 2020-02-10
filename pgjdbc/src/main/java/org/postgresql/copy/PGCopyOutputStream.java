@@ -13,7 +13,7 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
- * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation
+ * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation.
  */
 public class PGCopyOutputStream extends OutputStream implements CopyIn {
   private CopyIn op;
@@ -22,7 +22,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   private int at = 0;
 
   /**
-   * Uses given connection for specified COPY FROM STDIN operation
+   * Uses given connection for specified COPY FROM STDIN operation.
    *
    * @param connection database connection to use for copying (protocol version 3 required)
    * @param sql        COPY FROM STDIN statement
@@ -33,7 +33,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   /**
-   * Uses given connection for specified COPY FROM STDIN operation
+   * Uses given connection for specified COPY FROM STDIN operation.
    *
    * @param connection database connection to use for copying (protocol version 3 required)
    * @param sql        COPY FROM STDIN statement
@@ -46,7 +46,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   /**
-   * Use given CopyIn operation for writing
+   * Use given CopyIn operation for writing.
    *
    * @param op COPY FROM STDIN operation
    */
@@ -55,7 +55,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   /**
-   * Use given CopyIn operation for writing
+   * Use given CopyIn operation for writing.
    *
    * @param op         COPY FROM STDIN operation
    * @param bufferSize try to send this many bytes at a time
@@ -101,17 +101,20 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
       return;
     }
 
-    try {
-      endCopy();
-    } catch (SQLException se) {
-      IOException ioe = new IOException("Ending write to copy failed.");
-      ioe.initCause(se);
-      throw ioe;
+    if (op.isActive()) {
+      try {
+        endCopy();
+      } catch (SQLException se) {
+        IOException ioe = new IOException("Ending write to copy failed.");
+        ioe.initCause(se);
+        throw ioe;
+      }
     }
     op = null;
   }
 
   public void flush() throws IOException {
+    checkClosed();
     try {
       op.writeToCopy(copyBuffer, 0, at);
       at = 0;
@@ -154,7 +157,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   public boolean isActive() {
-    return op.isActive();
+    return op != null && op.isActive();
   }
 
   public void flushCopy() throws SQLException {

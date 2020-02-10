@@ -3,19 +3,18 @@
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-versions</artifactId>
-    <version>1.1.2</version>
+    <version>1.1.6</version>
   </parent>
 
   <artifactId>pgjdbc-aggregate</artifactId>
   <packaging>pom</packaging>
   <name>PostgreSQL JDBC Driver aggregate</name>
-  <version>42.1.5-SNAPSHOT</version>
+  <version>42.2.11-SNAPSHOT</version>
   <description>PgJDBC aggregate project</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 
   <modules>
     <module>pgjdbc</module>
-    <module>ubenchmark</module>
   </modules>
 
   <!-- If inherited from parent pom, maven tries to add artifactId to URLs -->

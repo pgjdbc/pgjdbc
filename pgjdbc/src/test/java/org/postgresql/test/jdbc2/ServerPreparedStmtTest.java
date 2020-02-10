@@ -75,7 +75,6 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     pstmt.close();
   }
 
-
   @Test
   public void testPreparedStatementsNoBinds() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");
@@ -95,8 +94,6 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     rs.close();
 
     // Verify that using the statement still works after turning off prepares
-
-
     if (Boolean.getBoolean("org.postgresql.forceBinary")) {
       return;
     }

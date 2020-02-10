@@ -13,10 +13,12 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGBinaryObject;
@@ -70,18 +72,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
-  /**
-   * used to differentiate between new function call logic and old function call logic will be set
-   * to true if the server is &lt; 8.1 or if we are using v2 protocol There is an exception to this
-   * where we are using v3, and the call does not have an out parameter before the call
-   */
-  protected boolean adjustIndex = false;
-
-  /*
-   * Used to set adjustIndex above
-   */
-  protected boolean outParmBeforeFunc = false;
-
   private TimeZone defaultTimeZone;
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
@@ -100,7 +90,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }
 
-  public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
+  @Override
+  public ResultSet executeQuery(String sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
@@ -113,47 +104,46 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    *
    * @exception SQLException if a database access error occurs
    */
-  public java.sql.ResultSet executeQuery() throws SQLException {
+  @Override
+  public ResultSet executeQuery() throws SQLException {
     if (!executeWithFlags(0)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    if (result.getNext() != null) {
-      throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
-          PSQLState.TOO_MANY_RESULTS);
-    }
-
-    return result.getResultSet();
+    return getSingleResultSet();
   }
 
-  public int executeUpdate(String p_sql) throws SQLException {
+  @Override
+  public int executeUpdate(String sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public int executeUpdate() throws SQLException {
     executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
-
-    ResultWrapper iter = result;
-    while (iter != null) {
-      if (iter.getResultSet() != null) {
-        throw new PSQLException(GT.tr("A result was returned when none was expected."),
-            PSQLState.TOO_MANY_RESULTS);
-
-      }
-      iter = iter.getNext();
-    }
-
+    checkNoResultUpdate();
     return getUpdateCount();
   }
 
-  public boolean execute(String p_sql) throws SQLException {
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getLargeUpdateCount();
+  }
+  //#endif
+
+  @Override
+  public boolean execute(String sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public boolean execute() throws SQLException {
     return executeWithFlags(0);
   }
@@ -168,7 +158,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
       execute(preparedQuery, preparedParameters, flags);
 
-      return (result != null && result.getResultSet() != null);
+      synchronized (this) {
+        checkClosed();
+        return (result != null && result.getResultSet() != null);
+      }
     } finally {
       defaultTimeZone = null;
     }
@@ -182,28 +175,21 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   @Override
-  public void close() throws SQLException {
-    if (isClosed) {
-      return;
-    }
-
+  public void closeImpl() throws SQLException {
     if (preparedQuery != null) {
-      // See #368. We need to prevent closing the same statement twice
-      // Otherwise we might "release" a query that someone else is already using
-      // In other words, client does .close() as usual, however cleanup thread might fail to observe
-      // isClosed=true
-      synchronized (preparedQuery) {
-        if (!isClosed) {
-          ((PgConnection) connection).releaseQuery(preparedQuery);
-        }
-      }
+      ((PgConnection) connection).releaseQuery(preparedQuery);
     }
-
-    super.close();
   }
 
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
     checkClosed();
+
+    if (parameterIndex < 1 || parameterIndex > preparedParameters.getParameterCount()) {
+      throw new PSQLException(
+        GT.tr("The column index is out of range: {0}, number of columns: {1}.",
+          parameterIndex, preparedParameters.getParameterCount()),
+        PSQLState.INVALID_PARAMETER_VALUE);
+    }
 
     int oid;
     switch (sqlType) {
@@ -272,9 +258,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       default:
         // Bad Types value.
         throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
-    }
-    if (adjustIndex) {
-      parameterIndex--;
     }
     preparedParameters.setNull(parameterIndex, oid);
   }
@@ -361,9 +344,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // if the passed string is null, then set this column to null
     checkClosed();
     if (x == null) {
-      if (adjustIndex) {
-        parameterIndex--;
-      }
       preparedParameters.setNull(parameterIndex, oid);
     } else {
       bindString(parameterIndex, x, oid);
@@ -382,6 +362,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     byte[] copy = new byte[x.length];
     System.arraycopy(x, 0, copy, 0, x.length);
     preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
+  }
+
+  private void setByteStreamWriter(int parameterIndex, ByteStreamWriter x) throws SQLException {
+    preparedParameters.setBytea(parameterIndex, x);
   }
 
   public void setDate(int parameterIndex, java.sql.Date x) throws SQLException {
@@ -415,29 +399,29 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
     try {
-      InputStreamReader l_inStream = new InputStreamReader(x, encoding);
-      char[] l_chars = new char[length];
-      int l_charsRead = 0;
+      InputStreamReader inStream = new InputStreamReader(x, encoding);
+      char[] chars = new char[length];
+      int charsRead = 0;
       while (true) {
-        int n = l_inStream.read(l_chars, l_charsRead, length - l_charsRead);
+        int n = inStream.read(chars, charsRead, length - charsRead);
         if (n == -1) {
           break;
         }
 
-        l_charsRead += n;
+        charsRead += n;
 
-        if (l_charsRead == length) {
+        if (charsRead == length) {
           break;
         }
       }
 
-      setString(parameterIndex, new String(l_chars, 0, l_charsRead), Oid.VARCHAR);
-    } catch (UnsupportedEncodingException l_uee) {
+      setString(parameterIndex, new String(chars, 0, charsRead), Oid.VARCHAR);
+    } catch (UnsupportedEncodingException uee) {
       throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
-    } catch (IOException l_ioe) {
+          PSQLState.UNEXPECTED_ERROR, uee);
+    } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
-          l_ioe);
+          ioe);
     }
   }
 
@@ -682,6 +666,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.ARRAY:
         if (in instanceof Array) {
           setArray(parameterIndex, (Array) in);
+        } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(in)) {
+          setPrimitiveArray(parameterIndex, in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -704,6 +690,21 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       default:
         throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
             PSQLState.INVALID_PARAMETER_TYPE);
+    }
+  }
+
+  private <A> void setPrimitiveArray(int parameterIndex, A in) throws SQLException {
+    final PrimitiveArraySupport<A> arrayToString = PrimitiveArraySupport.getArraySupport(in);
+
+    final TypeInfo typeInfo = connection.getTypeInfo();
+
+    final int oid = arrayToString.getDefaultArrayTypeOid(typeInfo);
+
+    if (arrayToString.supportBinaryRepresentation() && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in), oid);
+    } else {
+      final char delim = typeInfo.getArrayDelimiter(oid);
+      setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
     }
   }
 
@@ -934,6 +935,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setDouble(parameterIndex, (Double) x);
     } else if (x instanceof byte[]) {
       setBytes(parameterIndex, (byte[]) x);
+    } else if (x instanceof ByteStreamWriter) {
+      setByteStreamWriter(parameterIndex, (ByteStreamWriter) x);
     } else if (x instanceof java.sql.Date) {
       setDate(parameterIndex, (java.sql.Date) x);
     } else if (x instanceof Time) {
@@ -968,6 +971,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
+    } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
+      setPrimitiveArray(parameterIndex, x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
@@ -1000,16 +1005,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * @throws SQLException if something goes wrong
    */
   protected void bindLiteral(int paramIndex, String s, int oid) throws SQLException {
-    if (adjustIndex) {
-      paramIndex--;
-    }
     preparedParameters.setLiteralParameter(paramIndex, s, oid);
   }
 
   protected void bindBytes(int paramIndex, byte[] b, int oid) throws SQLException {
-    if (adjustIndex) {
-      paramIndex--;
-    }
     preparedParameters.setBinaryParameter(paramIndex, b, oid);
   }
 
@@ -1023,18 +1022,17 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * @throws SQLException if something goes wrong
    */
   private void bindString(int paramIndex, String s, int oid) throws SQLException {
-    if (adjustIndex) {
-      paramIndex--;
-    }
     preparedParameters.setStringParameter(paramIndex, s, oid);
   }
 
+  @Override
   public boolean isUseServerPrepare() {
-    return (preparedQuery != null && m_prepareThreshold != 0
-        && preparedQuery.getExecuteCount() + 1 >= m_prepareThreshold);
+    return (preparedQuery != null && mPrepareThreshold != 0
+        && preparedQuery.getExecuteCount() + 1 >= mPrepareThreshold);
   }
 
-  public void addBatch(String p_sql) throws SQLException {
+  @Override
+  public void addBatch(String sql) throws SQLException {
     checkClosed();
 
     throw new PSQLException(
@@ -1042,6 +1040,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public void addBatch() throws SQLException {
     checkClosed();
     if (batchStatements == null) {
@@ -1096,10 +1095,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // literal from Array.toString(), such as the implementation we return
     // from ResultSet.getArray(). Eventually we need a proper implementation
     // here that works for any Array implementation.
-
-    // Add special suffix for array identification
-    String typename = x.getBaseTypeName() + "[]";
-    int oid = connection.getTypeInfo().getPGType(typename);
+    String typename = x.getBaseTypeName();
+    int oid = connection.getTypeInfo().getPGArrayType(typename);
     if (oid == Oid.UNSPECIFIED) {
       throw new PSQLException(GT.tr("Unknown type {0}.", typename),
           PSQLState.INVALID_PARAMETER_TYPE);
@@ -1209,6 +1206,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setString(i, readerToString(x, length));
   }
 
+  @Override
   public void setClob(int i, Clob x) throws SQLException {
     checkClosed();
 
@@ -1217,8 +1215,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    Reader l_inStream = x.getCharacterStream();
-    int l_length = (int) x.length();
+    Reader inStream = x.getCharacterStream();
+    int length = (int) x.length();
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
@@ -1229,11 +1227,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // could be buffered, but then the OutputStream returned by LargeObject
       // is buffered internally anyhow, so there would be no performance
       // boost gained, if anything it would be worse!
-      int c = l_inStream.read();
+      int c = inStream.read();
       int p = 0;
-      while (c > -1 && p < l_length) {
+      while (c > -1 && p < length) {
         lw.write(c);
-        c = l_inStream.read();
+        c = inStream.read();
         p++;
       }
       lw.close();
@@ -1245,9 +1243,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setLong(i, oid);
   }
 
-  public void setNull(int i, int t, String s) throws SQLException {
+  public void setNull(int parameterIndex, int t, String typeName) throws SQLException {
+    if (typeName == null) {
+      setNull(parameterIndex, t);
+      return;
+    }
+
     checkClosed();
-    setNull(i, t);
+
+    TypeInfo typeInfo = connection.getTypeInfo();
+    int oid = typeInfo.getPGType(typeName);
+
+    preparedParameters.setNull(parameterIndex, oid);
   }
 
   public void setRef(int i, Ref x) throws SQLException {
@@ -1405,7 +1412,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return new PgParameterMetaData(conn, oids);
   }
 
-
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
@@ -1417,7 +1423,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
   //#endif
-
 
   public void setRowId(int parameterIndex, RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRowId(int, RowId)");
@@ -1525,10 +1530,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
     checkClosed();
-    if (xmlObject == null || xmlObject.getString() == null) {
+    String stringValue = xmlObject == null ? null : xmlObject.getString();
+    if (stringValue == null) {
       setNull(parameterIndex, Types.SQLXML);
     } else {
-      setString(parameterIndex, xmlObject.getString(), Oid.XML);
+      setString(parameterIndex, stringValue, Oid.XML);
     }
   }
 
@@ -1553,12 +1559,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // Note: in batch prepared statements batchStatements == 1, and batchParameters is equal
       // to the number of addBatch calls
       // batchParameters might be empty in case of empty batch
-      if (batchParameters != null && batchParameters.size() > 1 && m_prepareThreshold > 0) {
+      if (batchParameters != null && batchParameters.size() > 1 && mPrepareThreshold > 0) {
         // Use server-prepared statements when there's more than one statement in a batch
         // Technically speaking, it might cause to create a server-prepared statement
         // just for 2 executions even for prepareThreshold=5. That however should be
         // acceptable since prepareThreshold is a optimization kind of parameter.
-        this.preparedQuery.increaseExecuteCount(m_prepareThreshold);
+        this.preparedQuery.increaseExecuteCount(mPrepareThreshold);
       }
       return super.executeBatch();
     } finally {

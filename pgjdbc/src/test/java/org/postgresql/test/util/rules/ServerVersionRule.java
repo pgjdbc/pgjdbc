@@ -19,8 +19,9 @@ import org.junit.runners.model.Statement;
 /**
  * <p>Rule for ignore test if current version postgresql to old to use. And it necessary because
  * without it test will fail. For use it method test class or test method should be annotate with
- * {@link HaveMinimalServerVersion} annotation.
- * Example use:
+ * {@link HaveMinimalServerVersion} annotation.</p>
+ *
+ * <p>Example use:
  * <pre>
  * &#064;HaveMinimalServerVersion("8.4")
  * public class CopyAPITest {
@@ -45,6 +46,7 @@ import org.junit.runners.model.Statement;
  *     }
  * }
  * </pre>
+ * </p>
  */
 public class ServerVersionRule implements TestRule {
   /**

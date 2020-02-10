@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * Caches values in simple least-recently-accessed order.
  */
-public class LruCache<Key, Value extends CanEstimateSize> {
+public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Key, Value> {
   /**
    * Action that is invoked when the entry is removed from the cache.
    *
@@ -119,7 +119,7 @@ public class LruCache<Key, Value extends CanEstimateSize> {
   }
 
   /**
-   * Returns given value to the cache
+   * Returns given value to the cache.
    *
    * @param key key
    * @param value value
@@ -141,6 +141,17 @@ public class LruCache<Key, Value extends CanEstimateSize> {
     currentSize -= prev.getSize();
     if (prev != value) {
       evictValue(prev);
+    }
+  }
+
+  /**
+   * Puts all the values from the given map into the cache.
+   *
+   * @param m The map containing entries to put into the cache
+   */
+  public synchronized void putAll(Map<Key, Value> m) {
+    for (Map.Entry<Key, Value> entry : m.entrySet()) {
+      this.put(entry.getKey(), entry.getValue());
     }
   }
 

@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
@@ -155,6 +156,30 @@ public class BlobTest {
   }
 
   @Test
+  public void testMarkResetStream() throws Exception {
+    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    assertTrue(rs.next());
+
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+
+    long oid = rs.getLong(1);
+    LargeObject blob = lom.open(oid);
+    InputStream bis = blob.getInputStream();
+
+    assertEquals('<', bis.read());
+    bis.mark(4);
+    assertEquals('?', bis.read());
+    assertEquals('x', bis.read());
+    assertEquals('m', bis.read());
+    assertEquals('l', bis.read());
+    bis.reset();
+    assertEquals('?', bis.read());
+  }
+
+  @Test
   public void testGetBytesOffset() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -275,7 +300,7 @@ public class BlobTest {
         break;
 
       default:
-        assertTrue("Unknown method in uploadFile", false);
+        fail("Unknown method in uploadFile");
     }
 
     blob.close();
@@ -323,7 +348,7 @@ public class BlobTest {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("Large Object API Blob compare failed at " + c + " of " + blob.size(), false);
+        fail("Large Object API Blob compare failed at " + c + " of " + blob.size());
       }
 
       blob.close();
@@ -364,7 +389,7 @@ public class BlobTest {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("JDBC API Blob compare failed at " + c + " of " + blob.length(), false);
+        fail("JDBC API Blob compare failed at " + c + " of " + blob.length());
       }
 
       bis.close();
@@ -405,7 +430,7 @@ public class BlobTest {
       result = result && f == -1 && b == -1;
 
       if (!result) {
-        assertTrue("Clob compare failed at " + c + " of " + clob.length(), false);
+        fail("Clob compare failed at " + c + " of " + clob.length());
       }
 
       bis.close();

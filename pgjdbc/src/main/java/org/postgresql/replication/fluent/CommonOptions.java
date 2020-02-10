@@ -8,7 +8,7 @@ package org.postgresql.replication.fluent;
 import org.postgresql.replication.LogSequenceNumber;
 
 /**
- * Common parameters for logical and physical replication
+ * Common parameters for logical and physical replication.
  */
 public interface CommonOptions {
   /**

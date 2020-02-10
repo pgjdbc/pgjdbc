@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -24,27 +25,26 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 
 public class Jdbc3BlobTest {
   private static final String TABLE = "blobtest";
   private static final String INSERT = "INSERT INTO " + TABLE + " VALUES (1, lo_creat(-1))";
   private static final String SELECT = "SELECT ID, DATA FROM " + TABLE + " WHERE ID = 1";
 
-  private Connection _conn;
+  private Connection conn;
 
   @Before
   public void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.createTable(_conn, TABLE, "ID INT PRIMARY KEY, DATA OID");
-    _conn.setAutoCommit(false);
+    conn = TestUtil.openDB();
+    TestUtil.createTable(conn, TABLE, "ID INT PRIMARY KEY, DATA OID");
+    conn.setAutoCommit(false);
   }
 
   @After
   public void tearDown() throws SQLException {
-    _conn.setAutoCommit(true);
+    conn.setAutoCommit(true);
     try {
-      Statement stmt = _conn.createStatement();
+      Statement stmt = conn.createStatement();
       try {
         stmt.execute("SELECT lo_unlink(DATA) FROM " + TABLE);
       } finally {
@@ -54,8 +54,8 @@ public class Jdbc3BlobTest {
         }
       }
     } finally {
-      TestUtil.dropTable(_conn, TABLE);
-      TestUtil.closeDB(_conn);
+      TestUtil.dropTable(conn, TABLE);
+      TestUtil.closeDB(conn);
     }
   }
 
@@ -109,7 +109,7 @@ public class Jdbc3BlobTest {
 
   @Test
   public void testTruncate() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
+    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3)) {
       return;
     }
 
@@ -119,7 +119,7 @@ public class Jdbc3BlobTest {
     }
     readWrite(data);
 
-    PreparedStatement ps = _conn.prepareStatement(SELECT);
+    PreparedStatement ps = conn.prepareStatement(SELECT);
     ResultSet rs = ps.executeQuery();
 
     assertTrue(rs.next());
@@ -160,11 +160,11 @@ public class Jdbc3BlobTest {
    * @throws SQLException if something goes wrong
    */
   public void readWrite(int offset, byte[] data) throws SQLException {
-    PreparedStatement ps = _conn.prepareStatement(INSERT);
+    PreparedStatement ps = conn.prepareStatement(INSERT);
     ps.executeUpdate();
     ps.close();
 
-    ps = _conn.prepareStatement(SELECT);
+    ps = conn.prepareStatement(SELECT);
     ResultSet rs = ps.executeQuery();
 
     assertTrue(rs.next());
@@ -174,18 +174,17 @@ public class Jdbc3BlobTest {
     rs.close();
     ps.close();
 
-    ps = _conn.prepareStatement(SELECT);
+    ps = conn.prepareStatement(SELECT);
     rs = ps.executeQuery();
 
     assertTrue(rs.next());
     b = rs.getBlob("DATA");
     byte[] rspData = b.getBytes(offset, data.length);
-    assertTrue("Request should be the same as the response", Arrays.equals(data, rspData));
+    assertArrayEquals("Request should be the same as the response", data, rspData);
 
     rs.close();
     ps.close();
   }
-
 
   /**
    * Test the writing and reading of a single byte.
@@ -239,16 +238,15 @@ public class Jdbc3BlobTest {
     readWriteStream(1, data);
   }
 
-
   /**
    * Reads then writes data to the blob via a stream.
    */
   public void readWriteStream(int offset, byte[] data) throws SQLException, IOException {
-    PreparedStatement ps = _conn.prepareStatement(INSERT);
+    PreparedStatement ps = conn.prepareStatement(INSERT);
     ps.executeUpdate();
     ps.close();
 
-    ps = _conn.prepareStatement(SELECT);
+    ps = conn.prepareStatement(SELECT);
     ResultSet rs = ps.executeQuery();
 
     assertTrue(rs.next());
@@ -261,7 +259,7 @@ public class Jdbc3BlobTest {
     rs.close();
     ps.close();
 
-    ps = _conn.prepareStatement(SELECT);
+    ps = conn.prepareStatement(SELECT);
     rs = ps.executeQuery();
 
     assertTrue(rs.next());
@@ -272,7 +270,7 @@ public class Jdbc3BlobTest {
     in.read(rspData);
     in.close();
 
-    assertTrue("Request should be the same as the response", Arrays.equals(data, rspData));
+    assertArrayEquals("Request should be the same as the response", data, rspData);
 
     rs.close();
     ps.close();
@@ -283,11 +281,11 @@ public class Jdbc3BlobTest {
     byte[] data = "abcdefghijklmnopqrstuvwxyx0123456789".getBytes();
     byte[] pattern = "def".getBytes();
 
-    PreparedStatement ps = _conn.prepareStatement(INSERT);
+    PreparedStatement ps = conn.prepareStatement(INSERT);
     ps.executeUpdate();
     ps.close();
 
-    ps = _conn.prepareStatement(SELECT);
+    ps = conn.prepareStatement(SELECT);
     ResultSet rs = ps.executeQuery();
 
     assertTrue(rs.next());
@@ -297,14 +295,14 @@ public class Jdbc3BlobTest {
     rs.close();
     ps.close();
 
-    ps = _conn.prepareStatement(SELECT);
+    ps = conn.prepareStatement(SELECT);
     rs = ps.executeQuery();
 
     assertTrue(rs.next());
     b = rs.getBlob("DATA");
     long position = b.position(pattern, 1);
     byte[] rspData = b.getBytes(position, pattern.length);
-    assertTrue("Request should be the same as the response", Arrays.equals(pattern, rspData));
+    assertArrayEquals("Request should be the same as the response", pattern, rspData);
 
     rs.close();
     ps.close();

@@ -15,21 +15,23 @@ import java.sql.SQLException;
 
 public class PgParameterMetaData implements ParameterMetaData {
 
-  private final BaseConnection _connection;
-  private final int[] _oids;
+  private final BaseConnection connection;
+  private final int[] oids;
 
   public PgParameterMetaData(BaseConnection connection, int[] oids) {
-    _connection = connection;
-    _oids = oids;
+    this.connection = connection;
+    this.oids = oids;
   }
 
+  @Override
   public String getParameterClassName(int param) throws SQLException {
     checkParamIndex(param);
-    return _connection.getTypeInfo().getJavaClass(_oids[param - 1]);
+    return connection.getTypeInfo().getJavaClass(oids[param - 1]);
   }
 
+  @Override
   public int getParameterCount() {
-    return _oids.length;
+    return oids.length;
   }
 
   /**
@@ -41,14 +43,16 @@ public class PgParameterMetaData implements ParameterMetaData {
     return ParameterMetaData.parameterModeIn;
   }
 
+  @Override
   public int getParameterType(int param) throws SQLException {
     checkParamIndex(param);
-    return _connection.getTypeInfo().getSQLType(_oids[param - 1]);
+    return connection.getTypeInfo().getSQLType(oids[param - 1]);
   }
 
+  @Override
   public String getParameterTypeName(int param) throws SQLException {
     checkParamIndex(param);
-    return _connection.getTypeInfo().getPGType(_oids[param - 1]);
+    return connection.getTypeInfo().getPGType(oids[param - 1]);
   }
 
   // we don't know this
@@ -72,16 +76,17 @@ public class PgParameterMetaData implements ParameterMetaData {
   /**
    * {@inheritDoc} PostgreSQL doesn't have unsigned numbers
    */
+  @Override
   public boolean isSigned(int param) throws SQLException {
     checkParamIndex(param);
-    return _connection.getTypeInfo().isSigned(_oids[param - 1]);
+    return connection.getTypeInfo().isSigned(oids[param - 1]);
   }
 
   private void checkParamIndex(int param) throws PSQLException {
-    if (param < 1 || param > _oids.length) {
+    if (param < 1 || param > oids.length) {
       throw new PSQLException(
           GT.tr("The parameter index is out of range: {0}, number of parameters: {1}.",
-              param, _oids.length),
+              param, oids.length),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
   }

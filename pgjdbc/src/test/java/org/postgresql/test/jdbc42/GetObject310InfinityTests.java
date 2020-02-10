@@ -26,16 +26,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-
 @RunWith(Parameterized.class)
 public class GetObject310InfinityTests extends BaseTest4 {
   private final String expression;
   private final String pgType;
-  private final Class klass;
+  private final Class<?> klass;
   private final Object expectedValue;
 
   public GetObject310InfinityTests(BinaryMode binaryMode, String expression,
-      String pgType, Class klass, Object expectedValue) {
+      String pgType, Class<?> klass, Object expectedValue) {
     setBinaryMode(binaryMode);
     this.expression = expression;
     this.pgType = pgType;
@@ -57,7 +56,7 @@ public class GetObject310InfinityTests extends BaseTest4 {
       for (String expression : Arrays.asList("-infinity", "infinity")) {
         for (String pgType : Arrays.asList("date", "timestamp",
             "timestamp with time zone")) {
-          for (Class klass : Arrays.asList(LocalDate.class, LocalDateTime.class,
+          for (Class<?> klass : Arrays.asList(LocalDate.class, LocalDateTime.class,
               OffsetDateTime.class)) {
             if (klass.equals(LocalDate.class) && !pgType.equals("date")) {
               continue;

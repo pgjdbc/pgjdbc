@@ -306,7 +306,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
    * Again using reflection to gain access to a private field member
    * @param bqd BatchedQueryDecorator object on which field is present
    * @return byte[] array of bytes that represent the statement name
-   * when encoded
+   *     when encoded
    * @throws Exception fault raised if access to field not possible
    */
   private byte[] getEncodedStatementName(BatchedQuery bqd)

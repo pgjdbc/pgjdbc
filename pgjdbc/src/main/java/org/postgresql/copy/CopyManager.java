@@ -3,10 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-/**
- * Bulk data copy for PostgreSQL
- */
-
 package org.postgresql.copy;
 
 import org.postgresql.core.BaseConnection;
@@ -24,7 +20,7 @@ import java.io.Writer;
 import java.sql.SQLException;
 
 /**
- * API for PostgreSQL COPY bulk data transfer
+ * API for PostgreSQL COPY bulk data transfer.
  */
 public class CopyManager {
   // I don't know what the best buffer size is, so we let people specify it if
@@ -99,7 +95,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try { // read until excausted or operation cancelled SQLException
+      try { // read until exhausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
@@ -134,7 +130,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try { // read until excausted or operation cancelled SQLException
+      try { // read until exhausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {

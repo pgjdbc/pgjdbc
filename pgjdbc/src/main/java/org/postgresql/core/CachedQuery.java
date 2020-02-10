@@ -13,22 +13,21 @@ import org.postgresql.util.CanEstimateSize;
  */
 public class CachedQuery implements CanEstimateSize {
   /**
-   * Cache key. {@link String} or {@code org.postgresql.jdbc.CallableQueryKey}. It is assumed that
-   * {@code String.valueOf(key)*2} would give reasonable estimate of the number of retained bytes by
-   * given key (see {@link #getSize}).
+   * Cache key. {@link String} or {@code org.postgresql.util.CanEstimateSize}.
    */
   public final Object key;
   public final Query query;
   public final boolean isFunction;
-  public final boolean outParmBeforeFunc;
 
   private int executeCount;
 
-  public CachedQuery(Object key, Query query, boolean isFunction, boolean outParmBeforeFunc) {
+  public CachedQuery(Object key, Query query, boolean isFunction) {
+    assert key instanceof String || key instanceof CanEstimateSize
+        : "CachedQuery.key should either be String or implement CanEstimateSize."
+        + " Actual class is " + key.getClass();
     this.key = key;
     this.query = query;
     this.isFunction = isFunction;
-    this.outParmBeforeFunc = outParmBeforeFunc;
   }
 
   public void increaseExecuteCount() {
@@ -45,7 +44,7 @@ public class CachedQuery implements CanEstimateSize {
   }
 
   /**
-   * Number of times this statement has been used
+   * Number of times this statement has been used.
    *
    * @return number of times this statement has been used
    */
@@ -55,7 +54,12 @@ public class CachedQuery implements CanEstimateSize {
 
   @Override
   public long getSize() {
-    int queryLength = String.valueOf(key).length() * 2 /* 2 bytes per char */;
+    long queryLength;
+    if (key instanceof String) {
+      queryLength = ((String) key).length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
+    } else {
+      queryLength = ((CanEstimateSize) key).getSize();
+    }
     return queryLength * 2 /* original query and native sql */
         + 100L /* entry in hash map, CachedQuery wrapper, etc */;
   }
@@ -66,7 +70,6 @@ public class CachedQuery implements CanEstimateSize {
         + "executeCount=" + executeCount
         + ", query=" + query
         + ", isFunction=" + isFunction
-        + ", outParmBeforeFunc=" + outParmBeforeFunc
         + '}';
   }
 }

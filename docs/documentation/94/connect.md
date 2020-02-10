@@ -118,10 +118,10 @@ connection.
 
 	Sets SO_SNDBUF on the connection stream
 	
-* `recvBufferSize = int`
+* `receiveBufferSize = int`
 
 	Sets SO_RCVBUF on the connection stream
-	
+
 * `protocolVersion = String`
 
 	The driver supports both the V2 and V3 frontend/backend protocols. The
@@ -231,7 +231,7 @@ connection.
 	Enable optimization to rewrite and collapse compatible INSERT statements that are batched.
 	If enabled, pgjdbc rewrites batch of `insert into ... values(?, ?)` into `insert into ... values(?, ?), (?, ?), ...`
 	That reduces per-statement overhead. The drawback is if one of the statements fail, the whole batch fails.
-	The default value is `false`. The option is avaliable since 9.4.1208
+	The default value is `false`. The option is available since 9.4.1208
 
 * `loginTimeout = int`
 
@@ -329,14 +329,6 @@ connection.
 *	`useSpnego = boolean`
 	
 	Use SPNEGO in SSPI authentication requests
-
-*	`sendBufferSize = int`  
-	
-	Sets SO_SNDBUF on the connection stream
-
-*	`receiveBufferSize = int`  
-	
-	Sets SO_RCVBUF on the connection stream
 
 *	`readOnly = boolean`
 	

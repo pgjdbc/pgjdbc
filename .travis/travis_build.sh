@@ -3,7 +3,15 @@ set -x -e
 
 if [[ "${FEDORA_CI}" == *"Y" ]];
 then
+  # Try to prevent "stdout: write error"
+  # WA is taken from https://github.com/travis-ci/travis-ci/issues/4704#issuecomment-348435959
+  python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
+  export PROJECT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\[')
   export PARENT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.parent.version | grep -v '\[')
+  export CHECK_PARENT_VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout -f pgjdbc/pom.xml)
+  # just make sure that pom.xml has the same value as pgjdbc/pom.xml
+  test "$PARENT_VERSION" = "$CHECK_PARENT_VERSION"
+
   exec ./packaging/rpm_ci
 fi
 
@@ -32,10 +40,7 @@ then
     MVN_ARGS="$MVN_ARGS -Dcurrent.jdk=1.9 -Djavac.target=1.9"
 fi
 
-if [[ "$TEST_CLIENTS" ]];
-then
-    mvn clean install -B -V -DskipTests $MVN_CUSTOM_ARGS
-elif [[ "$JDOC" == *"Y"* ]];
+if [[ "$JDOC" == *"Y"* ]];
 then
     # Build javadocs for Java 8 only
     mvn ${MVN_ARGS} -P ${MVN_PROFILES},release-artifacts
@@ -53,9 +58,16 @@ else
     mvn ${MVN_ARGS} -P ${MVN_PROFILES}
 fi
 
+if [[ "${COVERAGE}" == "Y" ]];
+then
+    pip install --user codecov
+    codecov
+fi
+
 # Run Scala-based and Clojure-based tests
 if [[ "${TEST_CLIENTS}" == *"Y" ]];
 then
+  # Pgjdbc should be in "local maven repository" so the clients can use it. Mvn commands above just package it.
   mvn -DskipTests install
 
   mkdir -p $HOME/.sbt/launchers/0.13.12
@@ -73,10 +85,4 @@ then
   #git clone --depth=10 https://github.com/clojure/java.jdbc.git
   #cd java.jdbc
   #TEST_DBS=postgres TEST_POSTGRES_USER=test TEST_POSTGRES_DBNAME=test mvn test -Djava.jdbc.test.pgjdbc.version=$PROJECT_VERSION
-fi
-
-if [[ "${COVERAGE}" == "Y" ]];
-then
-    pip install --user codecov
-    codecov
 fi
