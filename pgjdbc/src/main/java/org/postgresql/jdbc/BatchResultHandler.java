@@ -10,6 +10,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -38,8 +39,8 @@ public class BatchResultHandler extends ResultHandlerBase {
   private final boolean expectGeneratedKeys;
   private PgResultSet generatedKeys;
   private int committedRows; // 0 means no rows committed. 1 means row 0 was committed, and so on
-  private final List<List<byte[][]>> allGeneratedRows;
-  private List<byte[][]> latestGeneratedRows;
+  private final List<List<Tuple>> allGeneratedRows;
+  private List<Tuple> latestGeneratedRows;
   private PgResultSet latestGeneratedKeysRs;
 
   BatchResultHandler(PgStatement pgStatement, Query[] queries, ParameterList[] parameterLists,
@@ -49,11 +50,11 @@ public class BatchResultHandler extends ResultHandlerBase {
     this.parameterLists = parameterLists;
     this.longUpdateCounts = new long[queries.length];
     this.expectGeneratedKeys = expectGeneratedKeys;
-    this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<List<byte[][]>>();
+    this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<List<Tuple>>();
   }
 
   @Override
-  public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
+  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
       ResultCursor cursor) {
     // If SELECT, then handleCommandStatus call would just be missing
     resultIndex++;
@@ -66,7 +67,7 @@ public class BatchResultHandler extends ResultHandlerBase {
         // If SELECT, the resulting ResultSet is not valid
         // Thus it is up to handleCommandStatus to decide if resultSet is good enough
         latestGeneratedKeysRs = (PgResultSet) pgStatement.createResultSet(fromQuery, fields,
-            new ArrayList<byte[][]>(), cursor);
+            new ArrayList<Tuple>(), cursor);
       } catch (SQLException e) {
         handleError(e);
       }
@@ -121,7 +122,7 @@ public class BatchResultHandler extends ResultHandlerBase {
     if (allGeneratedRows == null || allGeneratedRows.isEmpty()) {
       return;
     }
-    for (List<byte[][]> rows : allGeneratedRows) {
+    for (List<Tuple> rows : allGeneratedRows) {
       generatedKeys.addRows(rows);
     }
     allGeneratedRows.clear();

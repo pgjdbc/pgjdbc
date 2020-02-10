@@ -13,6 +13,7 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
 import org.postgresql.core.SocketFactoryFactory;
+import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.hostchooser.CandidateHost;
@@ -753,8 +754,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private boolean isMaster(QueryExecutor queryExecutor) throws SQLException, IOException {
-    byte[][] results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
-    String value = queryExecutor.getEncoding().decode(results[0]);
+    Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
+    String value = queryExecutor.getEncoding().decode(results.get(0));
     return value.equalsIgnoreCase("off");
   }
 }

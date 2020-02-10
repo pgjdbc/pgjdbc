@@ -16,6 +16,7 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.core.Tuple;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -147,7 +148,7 @@ public class PgStatement implements Statement, BaseStatement {
     this.rsHoldability = rsHoldability;
   }
 
-  public ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
+  public ResultSet createResultSet(Query originalQuery, Field[] fields, List<Tuple> tuples,
       ResultCursor cursor) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
@@ -198,7 +199,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     @Override
-    public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
+    public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
         ResultCursor cursor) {
       try {
         ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
@@ -1184,7 +1185,7 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       checkClosed();
       if (generatedKeys == null || generatedKeys.getResultSet() == null) {
-        return createDriverResultSet(new Field[0], new ArrayList<byte[][]>());
+        return createDriverResultSet(new Field[0], new ArrayList<Tuple>());
       }
 
       return generatedKeys.getResultSet();
@@ -1249,7 +1250,7 @@ public class PgStatement implements Statement, BaseStatement {
     return rsHoldability;
   }
 
-  public ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples)
+  public ResultSet createDriverResultSet(Field[] fields, List<Tuple> tuples)
       throws SQLException {
     return createResultSet(null, fields, tuples, null);
   }

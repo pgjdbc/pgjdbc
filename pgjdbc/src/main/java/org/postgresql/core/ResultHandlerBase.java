@@ -25,7 +25,7 @@ public class ResultHandlerBase implements ResultHandler {
   private SQLWarning lastWarning;
 
   @Override
-  public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
+  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
       ResultCursor cursor) {
   }
 

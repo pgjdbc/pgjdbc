@@ -31,6 +31,7 @@ import org.postgresql.core.ResultHandlerDelegate;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
+import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
@@ -555,7 +556,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return new ResultHandlerDelegate(delegateHandler) {
       private boolean sawBegin = false;
 
-      public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
+      public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
           ResultCursor cursor) {
         if (sawBegin) {
           super.handleResultRows(fromQuery, fields, tuples, cursor);
@@ -1999,7 +2000,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
-    List<byte[][]> tuples = null;
+    List<Tuple> tuples = null;
 
     int c;
     boolean endQuery = false;
@@ -2093,7 +2094,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             Field[] fields = currentQuery.getFields();
 
             if (fields != null) { // There was a resultset.
-              tuples = new ArrayList<byte[][]>();
+              tuples = new ArrayList<Tuple>();
               handler.handleResultRows(currentQuery, fields, tuples, null);
               tuples = null;
             }
@@ -2115,7 +2116,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<byte[][]>();
+            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
           handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
@@ -2166,7 +2167,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<byte[][]>();
+            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
           // If we received tuples we must know the structure of the
@@ -2203,7 +2204,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         case 'D': // Data Transfer (ongoing Execute response)
-          byte[][] tuple = null;
+          Tuple tuple = null;
           try {
             tuple = pgStream.receiveTupleV3();
           } catch (OutOfMemoryError oome) {
@@ -2217,7 +2218,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           if (!noResults) {
             if (tuples == null) {
-              tuples = new ArrayList<byte[][]>();
+              tuples = new ArrayList<Tuple>();
             }
             tuples.add(tuple);
           }
@@ -2227,13 +2228,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (tuple == null) {
               length = -1;
             } else {
-              length = 0;
-              for (byte[] aTuple : tuple) {
-                if (aTuple == null) {
-                  continue;
-                }
-                length += aTuple.length;
-              }
+              length = tuple.length();
             }
             LOGGER.log(Level.FINEST, " <=BE DataRow(len={0})", length);
           }
@@ -2287,7 +2282,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'T': // Row Description (response to Describe)
           Field[] fields = receiveFields();
-          tuples = new ArrayList<byte[][]>();
+          tuples = new ArrayList<Tuple>();
 
           SimpleQuery query = pendingDescribePortalQueue.peekFirst();
           if (!pendingExecuteQueue.isEmpty() && !pendingExecuteQueue.peekFirst().asSimple) {
@@ -2422,7 +2417,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     handler = new ResultHandlerDelegate(delegateHandler) {
       @Override
       public void handleCommandStatus(String status, long updateCount, long insertOID) {
-        handleResultRows(portal.getQuery(), null, new ArrayList<byte[][]>(), null);
+        handleResultRows(portal.getQuery(), null, new ArrayList<Tuple>(), null);
       }
     };
 
