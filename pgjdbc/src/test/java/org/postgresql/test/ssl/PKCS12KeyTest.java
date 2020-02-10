@@ -10,6 +10,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,6 +31,11 @@ public class PKCS12KeyTest extends BaseTest4 {
     Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
     props.put(TestUtil.DATABASE_PROP, "hostssldb");
     PGProperty.SSL_MODE.set(props, "prefer");
+    String enableSslTests = prop.getProperty("enable_ssl_tests");
+    Assume.assumeTrue(
+        "Skipping the test as enable_ssl_tests is not set",
+        Boolean.parseBoolean(enableSslTests)
+    );
 
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();

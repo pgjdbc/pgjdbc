@@ -117,7 +117,7 @@ public class SslTest extends BaseTest4 {
   public static Iterable<Object[]> data() {
     Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
     String enableSslTests = prop.getProperty("enable_ssl_tests");
-    if (!Boolean.valueOf(enableSslTests)) {
+    if (!Boolean.parseBoolean(enableSslTests)) {
       System.out.println("enableSslTests is " + enableSslTests + ", skipping SSL tests");
       return Collections.emptyList();
     }
