@@ -37,6 +37,7 @@ import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1034,7 +1035,34 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendChar('d');
       pgStream.sendInteger4(siz + 4);
       pgStream.send(data, off, siz);
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
+          PSQLState.CONNECTION_FAILURE, ioe);
+    }
+  }
 
+  /**
+   * Sends data during a live COPY IN operation. Only unlocks the connection if server suddenly
+   * returns CommandComplete, which should not happen
+   *
+   * @param op   the CopyIn operation presumably currently holding lock on this connection
+   * @param from the source of bytes, e.g. a ByteBufferByteStreamWriter
+   * @throws SQLException on failure
+   */
+  public synchronized void writeToCopy(CopyOperationImpl op, ByteStreamWriter from)
+      throws SQLException {
+    if (!hasLock(op)) {
+      throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"),
+          PSQLState.OBJECT_NOT_IN_STATE);
+    }
+
+    int siz = from.getLength();
+    LOGGER.log(Level.FINEST, " FE=> CopyData({0})", siz);
+
+    try {
+      pgStream.sendChar('d');
+      pgStream.sendInteger4(siz + 4);
+      pgStream.send(from);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
           PSQLState.CONNECTION_FAILURE, ioe);
