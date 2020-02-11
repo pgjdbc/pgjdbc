@@ -25,6 +25,7 @@ import java.sql.Statement;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 
 public class IntervalTest {
   private Connection conn;
@@ -334,6 +335,20 @@ public class IntervalTest {
     PGInterval copy = new PGInterval(orig.getValue());
 
     assertEquals(orig, copy);
+  }
+
+  @Test
+  public void testGetValueForSmallValueWithCommaAsDecimalSeparatorInDefaultLocale() throws SQLException {
+    Locale originalLocale = Locale.getDefault();
+    Locale.setDefault(Locale.GERMANY);
+    try {
+      PGInterval orig = new PGInterval("0.0001 seconds");
+      PGInterval copy = new PGInterval(orig.getValue());
+
+      assertEquals(orig, copy);
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
   }
 
   @Test
