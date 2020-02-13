@@ -1,0 +1,27 @@
+version: "3"
+services:
+  pgdb:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    volumes:
+      - ./scripts/chmod_ssl.sh:/home/certdir/chmod_ssl.sh
+      - ./scripts/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+      - ../.travis/travis_ssl_users.sh:/home/scripts/travis_ssl_users.sh
+      - ../certdir/server:/home/certdir
+    entrypoint:
+      - bash
+      - /home/certdir/chmod_ssl.sh
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=postgres
+      - GITHUB_ACTIONS=true
+    command: >-
+      postgres
+      -c 'hba_file=/home/pg_hba.conf'
+      -c 'ssl=on'
+      -c 'ssl_cert_file=/home/certdir/server.crt'
+      -c 'ssl_key_file=/home/certdir/server.key'
+      -c 'ssl_ca_file=/home/certdir/root.crt'
+      -c 'max_prepared_transactions=64'

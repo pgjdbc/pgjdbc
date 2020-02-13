@@ -212,6 +212,11 @@ public class SslTest extends BaseTest4 {
   }
 
   private void checkErrorCodes(SQLException e) {
+    if (e != null && e.getCause() instanceof FileNotFoundException
+        && clientRootCertificate != ClientRootCertificate.EMPTY) {
+      Assert.fail("FileNotFoundException => it looks like a configuration failure");
+    }
+
     if (e == null && sslmode == SslMode.ALLOW && !db.requiresSsl()) {
       // allowed to connect with plain connection
       return;
@@ -426,6 +431,9 @@ public class SslTest extends BaseTest4 {
     // SSLHandshakeException: Received fatal alert: unknown_ca
     // SocketException: broken pipe (write failed)
 
+    // decrypt_error does not look to be a valid case, however, we allow it for now
+    // SSLHandshakeException: Received fatal alert: decrypt_error
+
     SocketException brokenPipe = findCause(e, SocketException.class);
     SSLHandshakeException handshakeException = findCause(e, SSLHandshakeException.class);
 
@@ -438,10 +446,15 @@ public class SslTest extends BaseTest4 {
           caseName + " ==> server should have terminated the connection (broken pipe expected)"
               + ", actual exception was " + brokenPipe.getMessage());
     }
-    if (handshakeException != null && !handshakeException.getMessage().contains("unknown_ca")) {
-      Assert.fail(
-          caseName + " ==> server should have terminated the connection (expected 'unknown_ca')"
-              + ", actual exception was " + handshakeException.getMessage());
+
+    if (handshakeException != null) {
+      final String handshakeMessage = handshakeException.getMessage();
+      if (!handshakeMessage.contains("unknown_ca") && !handshakeMessage.contains("decrypt_error")) {
+        Assert.fail(
+            caseName
+                + " ==> server should have terminated the connection (expected 'unknown_ca' or 'decrypt_error')"
+                + ", actual exception was " + handshakeMessage);
+      }
     }
     return true;
   }
