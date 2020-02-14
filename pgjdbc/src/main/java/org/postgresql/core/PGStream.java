@@ -58,6 +58,8 @@ public class PGStream implements Closeable, Flushable {
   private long maxResultBuffer = -1;
   private long resultBufferByteCount = 0;
 
+  private int maxRowSize = -1;
+
   /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
@@ -477,6 +479,8 @@ public class PGStream implements Closeable, Flushable {
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
+    setMaxRowSize(dataToReadSize);
+
     byte[][] answer = new byte[nf][];
 
     increaseByteCounter(dataToReadSize);
@@ -641,6 +645,47 @@ public class PGStream implements Closeable, Flushable {
    */
   public void setMaxResultBuffer(String value) throws PSQLException {
     maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
+  }
+
+  /**
+   * Method to get MaxResultBuffer from PGStream.
+   *
+   * @return size of MaxResultBuffer
+   */
+  public long getMaxResultBuffer() {
+    return maxResultBuffer;
+  }
+
+  /**
+   * Method to set noticed so far max row size. Set is only performed, when given value is greater
+   * than existing maxRowSize.
+   *
+   * @param rowSize new value to be set as maxRowSize
+   */
+  public void setMaxRowSize(int rowSize) {
+    if (maxRowSize == -1) {
+      maxRowSize = rowSize;
+    } else {
+      if (maxRowSize < rowSize) {
+        maxRowSize = rowSize;
+      }
+    }
+  }
+
+  /**
+   * Method to get actual max row size noticed so far.
+   *
+   * @return value of max row size
+   */
+  public int getMaxRowSize() {
+    return maxRowSize;
+  }
+
+  /**
+   * Method to clear value of max row size noticed so far.
+   */
+  public void clearMaxRowSize() {
+    maxRowSize = -1;
   }
 
   /**

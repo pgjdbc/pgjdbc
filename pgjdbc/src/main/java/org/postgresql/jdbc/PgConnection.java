@@ -1823,4 +1823,14 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getParameterStatus(parameterName);
   }
 
+  @Override
+  public boolean getAdaptiveFetch() {
+    return queryExecutor.getAdaptiveFetch();
+  }
+
+  @Override
+  public void setAdaptiveFetch(boolean adaptiveFetch) {
+    queryExecutor.setAdaptiveFetch(adaptiveFetch);
+  }
+
 }
