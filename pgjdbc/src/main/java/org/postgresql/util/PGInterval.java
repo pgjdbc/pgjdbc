@@ -8,6 +8,7 @@ package org.postgresql.util;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -243,6 +244,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return String represented interval
    */
   public String getValue() {
+    DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(Locale.US);
+    df.applyPattern("0.0#####");
+
     return String.format(
       Locale.ROOT,
       "%d years %d mons %d days %d hours %d mins %s secs",
@@ -251,7 +255,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       days,
       hours,
       minutes,
-      new DecimalFormat("0.0#####").format(getSeconds())
+      df.format(getSeconds())
     );
   }
 
