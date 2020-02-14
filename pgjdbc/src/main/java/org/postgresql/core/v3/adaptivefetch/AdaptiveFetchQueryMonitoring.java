@@ -23,7 +23,7 @@ public class AdaptiveFetchQueryMonitoring {
 
   public AdaptiveFetchQueryMonitoring(long maxResultBufferSize, Properties info)
       throws SQLException {
-    this.adaptiveFetchInfoMap = new HashMap<>();
+    this.adaptiveFetchInfoMap = new HashMap<String, AdaptiveFetchQueryInfo>();
 
     this.adaptiveFetch = PGProperty.ADAPTIVE_FETCH.getBoolean(info);
     this.minimumAdaptiveFetchSize = PGProperty.ADAPTIVE_FETCH_MINIMUM.getInt(info);
