@@ -507,7 +507,8 @@ Connection conn = DriverManager.getConnection(url);
 	
 * **adaptiveFetch** = boolean	
 
-    Specifies if number of rows fetched in `ResultSet` by one fetch with trip to the database should be dynamic.
+    Specifies if number of rows, fetched in `ResultSet` by one fetch with trip to the database, should be dynamic.
+    Using dynamic number of rows, computed by adaptive fetch, allows to use most of the buffer declared in `maxResultBuffer` property.
     Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed so far, rounded down.
     First fetch will have number of rows declared in `defaultRowFetchSize`.
     Number of rows can be limited by `adaptiveFetchMinimum` and `adaptiveFetchMaximum`. 
