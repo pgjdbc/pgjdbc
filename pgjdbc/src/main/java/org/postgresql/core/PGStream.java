@@ -657,8 +657,11 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Method to set noticed so far max row size. Set is only performed, when given value is greater
-   * than existing maxRowSize.
+   * The idea behind this method is to keep in maxRowSize the size of biggest read data row. As
+   * there may be many data rows send after each other for a query, then value in maxRowSize would
+   * contain value noticed so far, because next data rows and their sizes are not read for that
+   * moment. We want it increasing, because the size of the biggest among data rows will be used
+   * during computing new adaptive fetch size for the query.
    *
    * @param rowSize new value to be set as maxRowSize
    */
