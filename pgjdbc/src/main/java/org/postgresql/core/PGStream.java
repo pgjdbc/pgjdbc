@@ -666,12 +666,8 @@ public class PGStream implements Closeable, Flushable {
    * @param rowSize new value to be set as maxRowSize
    */
   public void setMaxRowSize(int rowSize) {
-    if (maxRowSize == -1) {
+    if (rowSize > maxRowSize) {
       maxRowSize = rowSize;
-    } else {
-      if (maxRowSize < rowSize) {
-        maxRowSize = rowSize;
-      }
     }
   }
 

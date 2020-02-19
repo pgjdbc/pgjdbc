@@ -203,7 +203,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       } catch (InterruptedException ie) {
         Thread.currentThread().interrupt();
         throw new PSQLException(
-              GT.tr("Interrupted while waiting to obtain lock on database connection"),
+            GT.tr("Interrupted while waiting to obtain lock on database connection"),
             PSQLState.OBJECT_NOT_IN_STATE, ie);
       }
     }
