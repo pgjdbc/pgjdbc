@@ -29,6 +29,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -758,11 +759,27 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testTableTypes() throws SQLException {
-    // At the moment just test that no exceptions are thrown KJ
+    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX",
+        "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
+        "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
+        "TEMPORARY VIEW", "TYPE", "VIEW"));
+    final List<String> foundTableTypes = new ArrayList<String>();
+
+    // Test that no exceptions are thrown
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
+
+    // Test that the table types returned are the same as those expected
     ResultSet rs = dbmd.getTableTypes();
+    while (rs.next()) {
+      String tableType = new String(rs.getBytes(1));
+      foundTableTypes.add(tableType);
+    }
     rs.close();
+    Collections.sort(expectedTableTypes);
+    Collections.sort(foundTableTypes);
+    Assert.assertEquals("The table types received from DatabaseMetaData should match the 17 expected types",
+        true, foundTableTypes.equals(expectedTableTypes));
   }
 
   @Test
