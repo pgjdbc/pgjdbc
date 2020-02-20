@@ -956,27 +956,27 @@ public class AdaptiveFetchQueryMonitoringTest {
   private int getMinimumSizeVariable() throws NoSuchFieldException, IllegalAccessException {
     Field field = adaptiveFetchQueryMonitoring.getClass().getDeclaredField(minimumSizeVariableName);
     field.setAccessible(true);
-    return (int) field.get(adaptiveFetchQueryMonitoring);
+    return (Integer) field.get(adaptiveFetchQueryMonitoring);
   }
 
   private int getMaximumSizeVariable() throws NoSuchFieldException, IllegalAccessException {
     Field field = adaptiveFetchQueryMonitoring.getClass().getDeclaredField(maximumSizeVariableName);
     field.setAccessible(true);
-    return (int) field.get(adaptiveFetchQueryMonitoring);
+    return (Integer) field.get(adaptiveFetchQueryMonitoring);
   }
 
   private boolean getAdaptiveFetchVariable() throws NoSuchFieldException, IllegalAccessException {
     Field field = adaptiveFetchQueryMonitoring.getClass()
         .getDeclaredField(adaptiveFetchVariableName);
     field.setAccessible(true);
-    return (boolean) field.get(adaptiveFetchQueryMonitoring);
+    return (Boolean) field.get(adaptiveFetchQueryMonitoring);
   }
 
   private long getMaxBufferVariable() throws NoSuchFieldException, IllegalAccessException {
     Field field = adaptiveFetchQueryMonitoring.getClass()
         .getDeclaredField(maxBufferSizeVariableName);
     field.setAccessible(true);
-    return (long) field.get(adaptiveFetchQueryMonitoring);
+    return (Long) field.get(adaptiveFetchQueryMonitoring);
   }
 
   private void setMinimumSizeVariable(int value)
