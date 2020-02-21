@@ -13,6 +13,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * The main purpose of this class is to handle adaptive fetching process. Adaptive fetching is used
+ * to compute fetch size to fully use size defined by maxResultBuffer. Computing is made by dividing
+ * maxResultBuffer size by max row result size noticed so far. Each query have separate adaptive
+ * fetch size computed, but same queries have it shared. If adaptive fetch is turned on, first fetch
+ * is going to be made with defaultRowFetchSize, next fetching of resultSet will be made with
+ * computed adaptive fetch size. If adaptive fetch is turned on during fetching, then first fetching
+ * made by ResultSet will be made with defaultRowFetchSize, next will use computed adaptive fetch
+ * size. Property adaptiveFetch need properties defaultRowFetchSize and maxResultBuffer to work.
+ */
 public class AdaptiveFetchQueryMonitoring {
 
   private final Map<String, AdaptiveFetchQueryInfo> adaptiveFetchInfoMap;
