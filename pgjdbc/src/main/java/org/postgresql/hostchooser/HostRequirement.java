@@ -50,7 +50,7 @@ public enum HostRequirement {
    *
    * <p>The current policy is to keep accepting this silently but not document slave, or slave preferSlave</p>
    *
-   * <p></p>As of Jul 2018 silently deprecate the use of the word master as well</p>
+   * <p>As of Jul 2018 silently deprecate the use of the word master as well</p>
    *
    * @param targetServerType the value of {@code targetServerType} connection property
    * @return HostRequirement
