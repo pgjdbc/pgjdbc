@@ -441,10 +441,12 @@ Connection conn = DriverManager.getConnection(url);
 * **targetServerType** = String
 
 	Allows opening connections to only servers with required state, 
-	the allowed values are any, master, slave, secondary, preferSlave and preferSecondary. 
-	The master/slave distinction is currently done by observing if the server allows writes. 
+	the allowed values are any, primary, master, slave, secondary, preferSlave and preferSecondary. 
+	The primary/secondary distinction is currently done by observing if the server allows writes. 
 	The value preferSecondary tries to connect to secondary if any are available, 
-	otherwise allows falls back to connecting also to master.
+	otherwise allows falls back to connecting also to primary.
+	- *N.B.* the words master and slave are being deprecated. We will silently accept them, but primary
+	and secondary are encouraged.
 
 * **hostRecheckSeconds** = int
 
@@ -549,14 +551,20 @@ postgres installation that has identical data on each node.
 For example streaming replication postgres or postgres-xc cluster.
 
 For example an application can create two connection pools. 
-One data source is for writes, another for reads. The write pool limits connections only to master node:
+One data source is for writes, another for reads. The write pool limits connections only to a primary node:
 
-`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master`.
+`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=primary`.
 
-And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
+And read pool balances connections between secondary nodes, but allows connections also to a primary if no secondaries are available:
 
-`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
+`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
+<<<<<<< HEAD
 If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
 the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
 will be made to connect to all of the hosts in the URL in order.
+=======
+If a secondary fails, all secondaries in the list will be tried first. If the case that there are no available secondaries
+the primary will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
+will be made to connect to all of the hosts in the URL in order.
+>>>>>>> 263d23605b9e4900fc161da165829a6b2ae168fc

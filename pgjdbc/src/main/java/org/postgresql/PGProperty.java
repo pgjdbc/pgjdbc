@@ -583,6 +583,7 @@ public enum PGProperty {
     null,
     "The password for the client's ssl key (ignored if sslpasswordcallback is set)"),
 
+
   /**
    * The classname instantiating {@code javax.security.auth.callback.CallbackHandler} to use.
    */
@@ -626,7 +627,7 @@ public enum PGProperty {
     "any",
     "Specifies what kind of server to connect",
     false,
-    new String[] {"any", "master", "slave", "secondary",  "preferSlave", "preferSecondary"}),
+    new String [] {"any", "primary", "master", "slave", "secondary",  "preferSlave", "preferSecondary"}),
 
   /**
    * Enable or disable TCP keep-alive. The default is {@code false}.
