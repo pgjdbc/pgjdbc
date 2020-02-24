@@ -109,7 +109,6 @@ public abstract class AbstractBlobClob {
     return getLo(false).read(length);
   }
 
-
   public synchronized InputStream getBinaryStream() throws SQLException {
     checkFreed();
     LargeObject subLO = getLo(false).copy();
@@ -247,8 +246,6 @@ public abstract class AbstractBlobClob {
   }
 
   protected synchronized LargeObject getLo(boolean forWrite) throws SQLException {
-
-
     if (this.currentLo != null) {
       if (forWrite && !currentLoIsWriteable) {
         // Reopen the stream in read-write, at the same pos.

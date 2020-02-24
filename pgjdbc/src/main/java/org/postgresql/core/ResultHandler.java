@@ -36,8 +36,7 @@ public interface ResultHandler {
    * @param cursor a cursor to use to fetch additional data; <code>null</code> if no further results
    *        are present.
    */
-  void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor);
+  void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples, ResultCursor cursor);
 
   /**
    * Called when a query that did not return a resultset completes.
@@ -48,7 +47,7 @@ public interface ResultHandler {
    * @param insertOID for a single-row INSERT query, the OID of the newly inserted row; 0 if not
    *        available.
    */
-  void handleCommandStatus(String status, int updateCount, long insertOID);
+  void handleCommandStatus(String status, long updateCount, long insertOID);
 
   /**
    * Called when a warning is emitted.

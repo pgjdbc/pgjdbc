@@ -4,12 +4,106 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [42.2.10] (2020-01-30)
+### Changed
+
+### Added
+ - Add maxResultBuffer property (#1657)
+ - add caller push of binary data (rebase of #953) (#1659)
+ 
+### Fixed
+ - Cleanup PGProperty, sort values, and add some missing to docs (#1686)
+ - Fixing LocalTime rounding (losing precision) (#1570)
+ - Network Performance of PgDatabaseMetaData.getTypeInfo() method (#1668)
+ - Issue #1680 updating a boolean field requires special handling to set it to t or f instead of true or false (#1682)
+ - bug in pgstream for replication (#1681)
+ - Issue #1677 NumberFormatException when fetching PGInterval with small value (#1678)
+ - Metadata queries improvements with large schemas. (#1673)
+ - Utf 8 encoding optimizations (#1444)
+ - interval overflow (#1658)
+ - Issue #1482 where the port was being added to the GSSAPI service name (#1651)
+ - remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) (#1641)
+ - Unable to register out parameter Issue #1646 (#1648)
+  
+## [42.2.9] (2019-12-06)
+### Changed
+
+### Added
+ - read only transactions [PR 1252](https://github.com/pgjdbc/pgjdbc/pull/1252)
+ - pkcs12 key functionality [PR 1599](https://github.com/pgjdbc/pgjdbc/pull/1599)
+ - new "escapeSyntaxCallMode" connection property [PR 1560](https://github.com/pgjdbc/pgjdbc/pull/1560)
+ - connection property to limit server error detail in exception exceptions [PR 1579](https://github.com/pgjdbc/pgjdbc/pull/1579)
+ - cancelQuery() to PGConnection public interface [PR 1157](https://github.com/pgjdbc/pgjdbc/pull/1157) 
+ - support for large update counts (JDBC 4.2) [PR 935](https://github.com/pgjdbc/pgjdbc/pull/935)
+ - Add Binary Support for Oid.NUMERIC and Oid.NUMERIC_ARRAY [PR 1636](https://github.com/pgjdbc/pgjdbc/pull/1636) 
+ 
+### Fixed
+ - issue 716 getTypeInfo() may not return data in the order specified in Oracle documentation [PR 1506](https://github.com/pgjdbc/pgjdbc/pull/1506)
+ - PgSQLXML setCharacterStream() results in null value  [PR 1608](https://github.com/pgjdbc/pgjdbc/pull/1608)
+ - get correct column length for simple domains [PR 1605](https://github.com/pgjdbc/pgjdbc/pull/1605)
+ - NPE as a result of calling executeQuery twice on a statement fixes issue [#684](https://github.com/pgjdbc/pgjdbc/issues/684) [PR 1610] (https://github.com/pgjdbc/pgjdbc/pull/1610)
+ - handle numeric domain types [PR 1611](https://github.com/pgjdbc/pgjdbc/pull/1611) 
+ - pginterval to take iso8601 strings [PR 1612](https://github.com/pgjdbc/pgjdbc/pull/1612)
+ - remove currentTimeMillis from code, tests are OK [PR 1617](https://github.com/pgjdbc/pgjdbc/pull/1617) 
+ - NPE when calling setNull on a PreparedStatement with no parameters [PR 1620](https://github.com/pgjdbc/pgjdbc/pull/1620)
+ - allow OUT parameter registration when using CallableStatement native CALL [PR 1561](https://github.com/pgjdbc/pgjdbc/pull/1561)
+ - add release save point into execute with batch [PR 1583](https://github.com/pgjdbc/pgjdbc/pull/1583) 
+ - Prevent use of extended query protocol for BEGIN before COPY [PR 1639](https://github.com/pgjdbc/pgjdbc/pull/1639)
+
+## [42.2.8] (2019-09-13)
 ### Changed
 
 ### Added
 
 ### Fixed
-- Fixed async copy performance regression [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
+
+* fix: Revert inet default Java type to PGObject and handle values with net masks [PR 1568](https://github.com/pgjdbc/pgjdbc/pull/1568) 
+
+## [42.2.7] (2019-09-03)
+### Changed
+
+
+### Added
+- Expose parameter status messages (GUC_REPORT) to the user [PR 1435](https://github.com/pgjdbc/pgjdbc/pull/1435)
+- Add automatic module name to manifest for jdk9+ [PR 1538](https://github.com/pgjdbc/pgjdbc/pull/1538)
+- Log ignoring rollback when no transaction in progress [PR 1549](https://github.com/pgjdbc/pgjdbc/pull/1549)
+- Map inet type to InetAddress [PR 1527](https://github.com/pgjdbc/pgjdbc/pull/1527) [issue 1134](https://github.com/pgjdbc/pgjdbc/issues/1134)
+
+### Fixed
+- fix [issue 1547](https://github.com/pgjdbc/pgjdbc/issues/1547) As long as peek returns some bytes do not reset the timeout, this allows us to continue checking until any async notifies are consumed [PR 1548](https://github.com/pgjdbc/pgjdbc/pull/1548)
+- fix: [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466) In logical decoding the if the backend was requesting a reply we… [PR 1467](https://github.com/pgjdbc/pgjdbc/pull/1467) 
+- fix: [issue 1534](https://github.com/pgjdbc/pgjdbc/issues/1534) Proleptic java.time support [PR 1539](https://github.com/pgjdbc/pgjdbc/pull/1539)
+- fix Ensure isValid() will not last more than timeout seconds [PR 1557](https://github.com/pgjdbc/pgjdbc/pull/1557)
+## [42.2.6] (2019-06-19)
+### Known issues
+- Waffle has [dropped support](https://github.com/Waffle/waffle/releases/tag/waffle-1.9.0) for 1.6, 1.7 as such the new waffle 1.9.x is only available in jre8
+- Microseconds in timestamps might be truncated when transferred in binary mode
+- 24:00 time handling is not consistent [issue 1385](https://github.com/pgjdbc/pgjdbc/issues/1385)
+- Unexpected packet type during stream replication [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466)
+- Driver goes missing after OSGi bundle restart [issue 1476](https://github.com/pgjdbc/pgjdbc/issues/1476)
+### Changed
+- Change IS_GENERATED to IS_GENERATEDCOLUMN as per spec [PR 1485](https://github.com/pgjdbc/pgjdbc/pull/1485)
+- Fix missing metadata columns, and misspelled columns in PgDatabaseMetaData#getTables [PR 1323](https://github.com/pgjdbc/pgjdbc/pull/1323)
+
+### Added
+- CI tests with Java 11, and Java EA
+- Support temporary replication slots in ReplicationCreateSlotBuilder [PR 1306](https://github.com/pgjdbc/pgjdbc/pull/1306)
+- Support PostgreSQL 11, 12
+- Return function (PostgreSQL 11) columns in PgDatabaseMetaData#getFunctionColumns
+- Return information on create replication slot, now the snapshot_name is exported
+  to allow a consistent snapshot in some uses cases. [PR 1335](https://github.com/pgjdbc/pgjdbc/pull/1335)
+
+### Fixed
+- Fixed async copy performance (1ms per op) in SSL mode [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
+- Return Double.NaN for 'NaN'::numeric [PR 1304](https://github.com/pgjdbc/pgjdbc/pull/1304)
+- Performance issue in PgDatabaseMetaData#getTypeInfo with lots of types in DB [PR 1302](https://github.com/pgjdbc/pgjdbc/pull/1302)
+- PGCopyInputStream#read should cap values to [0, 255], -1 [PR 1349](https://github.com/pgjdbc/pgjdbc/pull/1349)
+- Fixes LocalDateTime handling of BC dates [PR 1388](https://github.com/pgjdbc/pgjdbc/pull/1388)
+- Release savepoints in autosave mode to prevent out of shared memory errors at the server side [PR 1409](https://github.com/pgjdbc/pgjdbc/pull/1409)
+- Fix execution with big decimal in simple query mode. [PR 1463](https://github.com/pgjdbc/pgjdbc/pull/1463)
+- Fix rounding for timestamps truncated to dates before 1970 [PR 1502](https://github.com/pgjdbc/pgjdbc/pull/1502)
+
 
 ## [42.2.5] (2018-08-27)
 ### Known issues
@@ -18,6 +112,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 - `ssl=true` implies `sslmode=verify-full`, that is it requires valid server certificate [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
 
+targetServerType=master has been deprecated in favour of targetServerType=primary. master
+will still be accepted but not documented.
 ### Added
 - Support for `sslmode=allow/prefer/require` [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
 
@@ -190,4 +286,8 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.2...REL42.2.3
 [42.2.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.3...REL42.2.4
 [42.2.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.4...REL42.2.5
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...HEAD
+[42.2.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...REL42.2.6
+[42.2.7]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.6...REL42.2.7
+[42.2.8]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.7...REL42.2.8
+[42.2.9]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.8...REL42.2.9
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...HEAD

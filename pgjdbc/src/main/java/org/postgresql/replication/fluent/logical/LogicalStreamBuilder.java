@@ -42,7 +42,6 @@ public class LogicalStreamBuilder extends AbstractStreamBuilder<ChainedLogicalSt
     return slotName;
   }
 
-
   @Override
   public ChainedLogicalStreamBuilder withStartPosition(LogSequenceNumber lsn) {
     startPosition = lsn;

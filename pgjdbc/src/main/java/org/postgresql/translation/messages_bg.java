@@ -74,8 +74,6 @@ public class messages_bg extends java.util.ResourceBundle {
     t[137] = "Източникът на данни е прекъснат.";
     t[138] = "Unable to convert DOMResult SQLXML data to a string.";
     t[139] = "Не може да преобразува DOMResult SQLXML данни в низ.";
-    t[140] = "Failed to initialize LargeObject API";
-    t[141] = "Не може да инициализира LargeObject API";
     t[144] = "Invalid UUID data.";
     t[145] = "Невалидни UUID данни.";
     t[148] = "The fastpath function {0} is unknown.";
@@ -188,8 +186,6 @@ public class messages_bg extends java.util.ResourceBundle {
     t[363] = "Времето за осъществяване на връзката изтече (таймаут).";
     t[364] = "Expected command status BEGIN, got {0}.";
     t[365] = "Очаквана команда BEGIN, получена {0}.";
-    t[366] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[367] = "Невъзможна комбинация: втората фаза на commit задължително трябва да бъде издадена при свободна връзка. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
     t[372] = "This copy stream is closed.";
     t[373] = "Потока за копиране на данните е затворен.";
     t[376] = "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.";
@@ -270,6 +266,8 @@ public class messages_bg extends java.util.ResourceBundle {
     t[551] = "Не сме в редицата на въвеждане.";
     t[566] = "Unable to decode xml data.";
     t[567] = "Не може да декодира XML данните.";
+    t[570] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[571] = "Невъзможна комбинация: втората фаза на commit задължително трябва да бъде издадена при свободна връзка. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[596] = "Tried to write to an inactive copy operation";
     t[597] = "Опит за писане при неактивна операция за копиране";
     t[606] = "An error occurred while setting up the SSL connection.";

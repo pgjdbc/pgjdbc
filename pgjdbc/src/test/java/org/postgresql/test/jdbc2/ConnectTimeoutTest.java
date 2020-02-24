@@ -10,14 +10,15 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-
 
 public class ConnectTimeoutTest {
   // The IP below is non-routable (see http://stackoverflow.com/a/904609/1261287)
@@ -42,11 +43,27 @@ public class ConnectTimeoutTest {
     try {
       DriverManager.getConnection(UNREACHABLE_URL, props);
     } catch (SQLException e) {
-      assertTrue("Unexpected " + e.toString(),
-          e.getCause() instanceof SocketTimeoutException);
       final long interval = System.currentTimeMillis() - startTime;
       final long connectTimeoutMillis = CONNECT_TIMEOUT * 1000;
       final long maxDeviation = connectTimeoutMillis / 10;
+
+      /*
+       * If the platform fast-fails the unroutable address connection then this
+       * test may not time out, instead throwing
+       * java.net.NoRouteToHostException. The test has failed in that the connection
+       * attempt did not time out.
+       *
+       * We treat this as a skipped test, as the test didn't really "succeed"
+       * in testing the original behaviour, but it didn't fail either.
+       */
+      Assume.assumeTrue("Host fast-failed connection to unreachable address "
+                        + UNREACHABLE_HOST + " after " + interval + " ms, "
+                        + " before timeout should have triggered.",
+                        e.getCause() instanceof NoRouteToHostException
+                        && interval < connectTimeoutMillis );
+
+      assertTrue("Unexpected " + e.toString() + " with cause " + e.getCause(),
+          e.getCause() instanceof SocketTimeoutException);
       // check that it was not a default system timeout, an approximate value is used
       assertTrue(Math.abs(interval - connectTimeoutMillis) < maxDeviation);
       return;

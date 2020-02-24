@@ -254,8 +254,6 @@ public class messages_fr extends java.util.ResourceBundle {
     t[719] = "Interrompu pendant l''établissement de la connexion.";
     t[722] = "Illegal UTF-8 sequence: final value is out of range: {0}";
     t[723] = "Séquence UTF-8 illégale: la valeur finale est en dehors des limites: {0}";
-    t[728] = "Failed to initialize LargeObject API";
-    t[729] = "Échec à l''initialisation de l''API LargeObject";
     t[734] = "No function outputs were registered.";
     t[735] = "Aucune fonction outputs n''a été enregistrée.";
     t[736] = "{0} function takes one and only one argument.";

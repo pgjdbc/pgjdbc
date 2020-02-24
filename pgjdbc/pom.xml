@@ -3,14 +3,14 @@
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-core-parent</artifactId>
-    <version>1.1.5</version>
+    <version>1.1.6</version>
     <relativePath />
   </parent>
 
   <artifactId>postgresql</artifactId>
   <packaging>bundle</packaging>
   <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-  <version>42.2.6-SNAPSHOT</version>
+  <version>42.2.11-SNAPSHOT</version>
   <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 
@@ -33,14 +33,14 @@
     <jdbc.specification.version>4.2</jdbc.specification.version>
     <jdbc.specification.version.nodot>42</jdbc.specification.version.nodot>
     <skip.assembly>false</skip.assembly>
-    <checkstyle.version>[8.18,)</checkstyle.version>
+    <checkstyle.version>8.29</checkstyle.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>com.ongres.scram</groupId>
       <artifactId>client</artifactId>
-      <version>1.0.0-beta.2</version>
+      <version>2.1</version>
     </dependency>
 
     <dependency>
@@ -248,6 +248,22 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.5</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Automatic-Module-Name>org.postgresql.jdbc</Automatic-Module-Name>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.1.0</version>
@@ -297,6 +313,27 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.karaf.tooling</groupId>
+        <artifactId>karaf-maven-plugin</artifactId>
+        <version>4.2.5</version>
+        <extensions>true</extensions>
+        <configuration>
+          <startLevel>80</startLevel>
+          <includeTransitiveDependency>false</includeTransitiveDependency>
+          <aggregateFeatures>false</aggregateFeatures>
+          <includeProjectArtifact>true</includeProjectArtifact>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-features-file</id>
+            <phase>package</phase>
+            <goals>
+              <goal>features-generate-descriptor</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
 
     <pluginManagement>
@@ -304,7 +341,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>3.1.0</version>
           <dependencies>
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>

@@ -21,13 +21,13 @@ import java.util.List;
 public class SetupQueryRunner {
 
   private static class SimpleResultHandler extends ResultHandlerBase {
-    private List<byte[][]> tuples;
+    private List<Tuple> tuples;
 
-    List<byte[][]> getResults() {
+    List<Tuple> getResults() {
       return tuples;
     }
 
-    public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
+    public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
         ResultCursor cursor) {
       this.tuples = tuples;
     }
@@ -38,7 +38,7 @@ public class SetupQueryRunner {
     }
   }
 
-  public static byte[][] run(QueryExecutor executor, String queryString,
+  public static Tuple run(QueryExecutor executor, String queryString,
       boolean wantResults) throws SQLException {
     Query query = executor.createSimpleQuery(queryString);
     SimpleResultHandler handler = new SimpleResultHandler();
@@ -59,7 +59,7 @@ public class SetupQueryRunner {
       return null;
     }
 
-    List<byte[][]> tuples = handler.getResults();
+    List<Tuple> tuples = handler.getResults();
     if (tuples == null || tuples.size() != 1) {
       throw new PSQLException(GT.tr("An unexpected result was returned by a query."),
           PSQLState.CONNECTION_UNABLE_TO_CONNECT);

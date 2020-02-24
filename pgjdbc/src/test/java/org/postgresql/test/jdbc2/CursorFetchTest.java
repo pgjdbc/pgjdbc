@@ -90,7 +90,6 @@ public class CursorFetchTest extends BaseTest4 {
     }
   }
 
-
   // Similar, but for scrollable resultsets.
   @Test
   public void testScrollableFetch() throws Exception {
@@ -479,7 +478,6 @@ public class CursorFetchTest extends BaseTest4 {
       stmt.close();
     }
   }
-
 
   // Empty resultsets require all row positioning methods to return false
   @Test

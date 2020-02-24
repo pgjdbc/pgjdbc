@@ -6,6 +6,7 @@
 package org.postgresql.copy;
 
 import org.postgresql.PGConnection;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 
 import java.io.IOException;
@@ -101,17 +102,20 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
       return;
     }
 
-    try {
-      endCopy();
-    } catch (SQLException se) {
-      IOException ioe = new IOException("Ending write to copy failed.");
-      ioe.initCause(se);
-      throw ioe;
+    if (op.isActive()) {
+      try {
+        endCopy();
+      } catch (SQLException se) {
+        IOException ioe = new IOException("Ending write to copy failed.");
+        ioe.initCause(se);
+        throw ioe;
+      }
     }
     op = null;
   }
 
   public void flush() throws IOException {
+    checkClosed();
     try {
       op.writeToCopy(copyBuffer, 0, at);
       at = 0;
@@ -137,6 +141,10 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
   }
 
+  public void writeToCopy(ByteStreamWriter from) throws SQLException {
+    op.writeToCopy(from);
+  }
+
   public int getFormat() {
     return op.getFormat();
   }
@@ -154,7 +162,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   public boolean isActive() {
-    return op.isActive();
+    return op != null && op.isActive();
   }
 
   public void flushCopy() throws SQLException {

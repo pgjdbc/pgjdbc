@@ -3,7 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 import java.util.ArrayList;
@@ -90,8 +89,6 @@ public class PGtokenizer {
     }
 
     // Don't forget the last token ;-)
-
-
     if (s < string.length()) {
       tokens.add(string.substring(s));
     }

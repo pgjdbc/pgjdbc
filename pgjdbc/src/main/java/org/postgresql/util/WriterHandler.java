@@ -20,7 +20,6 @@
 package org.postgresql.util;
 
 import java.io.Writer;
-
 import java.util.logging.ErrorManager;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;

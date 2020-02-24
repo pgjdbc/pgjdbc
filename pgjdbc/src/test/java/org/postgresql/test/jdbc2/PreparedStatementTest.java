@@ -48,9 +48,11 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-
 @RunWith(Parameterized.class)
 public class PreparedStatementTest extends BaseTest4 {
+
+  private static final int NUMERIC_MAX_PRECISION = 1000;
+  private static final int NUMERIC_MAX_DISPLAY_SCALE = NUMERIC_MAX_PRECISION;
 
   public PreparedStatementTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
@@ -512,6 +514,53 @@ public class PreparedStatementTest extends BaseTest4 {
     assertEquals("t", rs.getString(1));
     assertFalse(rs.next());
     st.close();
+  }
+
+  @Test
+  public void testNumeric() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement(
+        "CREATE TEMP TABLE numeric_tab (max_numeric_positive numeric, min_numeric_positive numeric, max_numeric_negative numeric, min_numeric_negative numeric, null_value numeric)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    char[] wholeDigits = new char[NUMERIC_MAX_DISPLAY_SCALE];
+    for (int i = 0; i < NUMERIC_MAX_DISPLAY_SCALE; i++) {
+      wholeDigits[i] = '9';
+    }
+
+    char[] fractionDigits = new char[NUMERIC_MAX_PRECISION];
+    for (int i = 0; i < NUMERIC_MAX_PRECISION; i++) {
+      fractionDigits[i] = '9';
+    }
+
+    String maxValueString = new String(wholeDigits);
+    String minValueString = new String(fractionDigits);
+    BigDecimal[] values = new BigDecimal[4];
+    values[0] = new BigDecimal(maxValueString);
+    values[1] = new BigDecimal("-" + maxValueString);
+    values[2] = new BigDecimal(minValueString);
+    values[3] = new BigDecimal("-" + minValueString);
+
+    pstmt = con.prepareStatement("insert into numeric_tab values (?,?,?,?,?)");
+    for (int i = 1; i < 5 ; i++) {
+      pstmt.setBigDecimal(i, values[i - 1]);
+    }
+
+    pstmt.setNull(5, Types.NUMERIC);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = con.prepareStatement("select * from numeric_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    for (int i = 1; i < 5 ; i++) {
+      assertTrue(rs.getBigDecimal(i).compareTo(values[i - 1]) == 0);
+    }
+    rs.getDouble(5);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+
   }
 
   @Test
@@ -1515,6 +1564,18 @@ public class PreparedStatementTest extends BaseTest4 {
       TestUtil.closeQuietly(ps);
       log.removeHandler(handler);
       log.setLevel(prevLevel);
+    }
+  }
+
+  @Test
+  public void testNoParametersNPE() throws SQLException {
+    try {
+      PreparedStatement ps = con.prepareStatement("select 1");
+      ps.setString(1, "null");
+    } catch ( NullPointerException ex ) {
+      fail("Should throw a SQLException");
+    } catch (SQLException ex) {
+      // ignore
     }
   }
 }

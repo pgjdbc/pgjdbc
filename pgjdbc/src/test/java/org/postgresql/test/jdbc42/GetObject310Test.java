@@ -6,10 +6,12 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLException;
@@ -19,20 +21,28 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.chrono.IsoEra;
+import java.time.temporal.ChronoField;
+import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RunWith(Parameterized.class)
 public class GetObject310Test extends BaseTest4 {
@@ -43,7 +53,6 @@ public class GetObject310Test extends BaseTest4 {
   private static final ZoneOffset GMT03 = ZoneOffset.of("+03:00"); // +0300 always
   private static final ZoneOffset GMT05 = ZoneOffset.of("-05:00"); // -0500 always
   private static final ZoneOffset GMT13 = ZoneOffset.of("+13:00"); // +1300 always
-
 
   public GetObject310Test(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
@@ -189,6 +198,12 @@ public class GetObject310Test extends BaseTest4 {
             "2000-03-26T03:00:00", "2000-03-26T03:00:01", "2000-03-26T03:59:59", "2000-03-26T04:00:00",
             "2000-03-26T04:00:01", "2000-03-26T04:00:00.000001",
 
+            // This is a pre-1970 date, so check if it is rounded properly
+            "1950-07-20T02:00:00",
+
+            // Ensure the calendar is proleptic
+            "1582-09-30T00:00:00", "1582-10-16T00:00:00",
+
             // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
             "2000-10-29T01:59:59", "2000-10-29T02:00:00", "2000-10-29T02:00:01", "2000-10-29T02:59:59",
             "2000-10-29T03:00:00", "2000-10-29T03:00:01", "2000-10-29T03:59:59", "2000-10-29T04:00:00",
@@ -257,6 +272,103 @@ public class GetObject310Test extends BaseTest4 {
       stmt.executeUpdate("DELETE FROM table1");
     } finally {
       stmt.close();
+    }
+  }
+
+  @Test
+  public void testBcTimestamp() throws SQLException {
+
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56 BC'::timestamp");
+    try {
+      assertTrue(rs.next());
+      LocalDateTime expected = LocalDateTime.of(1582, 9, 30, 12, 34, 56)
+          .with(ChronoField.ERA, IsoEra.BCE.getValue());
+      LocalDateTime actual = rs.getObject(1, LocalDateTime.class);
+      assertEquals(expected, actual);
+      assertFalse(rs.next());
+    } finally {
+      rs.close();
+      stmt.close();
+    }
+  }
+
+  @Test
+  public void testBcTimestamptz() throws SQLException {
+
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56Z BC'::timestamp");
+    try {
+      assertTrue(rs.next());
+      OffsetDateTime expected = OffsetDateTime.of(1582, 9, 30, 12, 34, 56, 0, UTC)
+          .with(ChronoField.ERA, IsoEra.BCE.getValue());
+      OffsetDateTime actual = rs.getObject(1, OffsetDateTime.class);
+      assertEquals(expected, actual);
+      assertFalse(rs.next());
+    } finally {
+      rs.close();
+      stmt.close();
+    }
+  }
+
+  @Test
+  public void testProlepticCalendarTimestamp() throws SQLException {
+    // date time ranges and CTEs are both new with 8.4
+    assumeMinimumServerVersion(ServerVersion.v8_4);
+    LocalDateTime start = LocalDate.of(1582, 9, 30).atStartOfDay();
+    LocalDateTime end = LocalDate.of(1582, 10, 16).atStartOfDay();
+    long numberOfDays = Duration.between(start, end).toDays() + 1L;
+    List<LocalDateTime> range = Stream.iterate(start, new LocalDateTimePlusOneDay())
+        .limit(numberOfDays)
+        .collect(Collectors.toList());
+
+    runProlepticTests(LocalDateTime.class, "'1582-09-30 00:00'::timestamp, '1582-10-16 00:00'::timestamp", range);
+  }
+
+  @Test
+  public void testProlepticCalendarTimestamptz() throws SQLException {
+    // date time ranges and CTEs are both new with 8.4
+    assumeMinimumServerVersion(ServerVersion.v8_4);
+    OffsetDateTime start = LocalDate.of(1582, 9, 30).atStartOfDay().atOffset(UTC);
+    OffsetDateTime end = LocalDate.of(1582, 10, 16).atStartOfDay().atOffset(UTC);
+    long numberOfDays = Duration.between(start, end).toDays() + 1L;
+    List<OffsetDateTime> range = Stream.iterate(start, new OffsetDateTimePlusOneDay())
+        .limit(numberOfDays)
+        .collect(Collectors.toList());
+
+    runProlepticTests(OffsetDateTime.class, "'1582-09-30 00:00:00 Z'::timestamptz, '1582-10-16 00:00:00 Z'::timestamptz", range);
+  }
+
+  private <T extends Temporal> void runProlepticTests(Class<T> clazz, String selectRange, List<T> range) throws SQLException {
+    List<T> temporals = new ArrayList<>(range.size());
+
+    PreparedStatement stmt = con.prepareStatement("SELECT * FROM generate_series(" + selectRange + ", '1 day');");
+    ResultSet rs = stmt.executeQuery();
+    try {
+      while (rs.next()) {
+        T temporal = rs.getObject(1, clazz);
+        temporals.add(temporal);
+      }
+      assertEquals(range, temporals);
+    } finally {
+      rs.close();
+      stmt.close();
+    }
+  }
+
+  private static class LocalDateTimePlusOneDay implements UnaryOperator<LocalDateTime> {
+
+    @Override
+    public LocalDateTime apply(LocalDateTime x) {
+      return x.plusDays(1);
+    }
+  }
+
+  private static class OffsetDateTimePlusOneDay implements UnaryOperator<OffsetDateTime> {
+
+    @Override
+    public OffsetDateTime apply(OffsetDateTime x) {
+      return x.plusDays(1);
     }
   }
 

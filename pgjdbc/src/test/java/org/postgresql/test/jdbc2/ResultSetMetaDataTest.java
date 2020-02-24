@@ -182,7 +182,6 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     stmt.close();
   }
 
-
   @Test
   public void testDatabaseMetaDataNames() throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();

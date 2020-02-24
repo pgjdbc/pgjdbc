@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.postgresql.jdbc2.optional.ConnectionPool;
@@ -329,18 +328,9 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       Assume.assumeTrue("pg_terminate_backend requires PostgreSQL 8.4+",
           TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
 
-      int pid = ((PGConnection) con).getBackendPID();
-
-      Connection adminCon = TestUtil.openPrivilegedDB();
+      TestUtil.terminateBackend(con);
       try {
-        Statement statement = adminCon.createStatement();
-        statement.executeQuery("SELECT pg_terminate_backend(" + pid + ")");
-      } finally {
-        TestUtil.closeDB(adminCon);
-      }
-      try {
-        Statement statement = con.createStatement();
-        statement.executeQuery("SELECT 1");
+        TestUtil.executeQuery(con, "SELECT 1");
         fail("The connection should not be opened anymore. An exception was expected");
       } catch (SQLException e) {
         // this is expected as the connection has been forcibly closed from backend

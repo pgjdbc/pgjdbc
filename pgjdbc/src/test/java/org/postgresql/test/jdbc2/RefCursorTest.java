@@ -66,7 +66,6 @@ public class RefCursorTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testrs VALUES (6)");
     stmt.executeUpdate("INSERT INTO testrs VALUES (9)");
 
-
     // Create the functions.
     stmt.execute("CREATE OR REPLACE FUNCTION testspg__getRefcursor () RETURNS refcursor AS '"
         + "declare v_resset refcursor; begin open v_resset for select id from testrs order by id; "
@@ -119,7 +118,6 @@ public class RefCursorTest extends BaseTest4 {
 
     call.close();
   }
-
 
   @Test
   public void testEmptyResult() throws SQLException {

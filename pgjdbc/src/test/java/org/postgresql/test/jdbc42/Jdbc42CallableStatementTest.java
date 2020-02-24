@@ -40,7 +40,6 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
     }
   }
 
-
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
 
@@ -90,4 +89,17 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
     }
   }
 
+  @Test
+  public void testRegisterOutParameter() throws SQLException {
+
+    CallableStatement cs = null;
+
+    cs = con.prepareCall("{ ? = call xxxx.yyyy (?,?,?,?)}");
+    cs.registerOutParameter(1, Types.REF_CURSOR);
+
+    cs.setLong(2, 1000L);
+    cs.setLong(3, 500);
+    cs.setLong(4, 3000);
+    cs.setNull(5, Types.NUMERIC);
+  }
 }

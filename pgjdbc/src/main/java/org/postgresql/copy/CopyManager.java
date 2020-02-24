@@ -8,6 +8,7 @@ package org.postgresql.copy;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -220,6 +221,28 @@ public class CopyManager {
           cp.writeToCopy(buf, 0, len);
         }
       }
+      return cp.endCopy();
+    } finally { // see to it that we do not leave the connection locked
+      if (cp.isActive()) {
+        cp.cancelCopy();
+      }
+    }
+  }
+
+  /**
+   * Use COPY FROM STDIN for very fast copying from an ByteStreamWriter into a database table.
+   *
+   * @param sql  COPY FROM STDIN statement
+   * @param from the source of bytes, e.g. a ByteBufferByteStreamWriter
+   * @return number of rows updated for server 8.2 or newer; -1 for older
+   * @throws SQLException on database usage issues
+   * @throws IOException  upon input stream or database connection failure
+   */
+  public long copyIn(String sql, ByteStreamWriter from)
+      throws SQLException, IOException {
+    CopyIn cp = copyIn(sql);
+    try {
+      cp.writeToCopy(from);
       return cp.endCopy();
     } finally { // see to it that we do not leave the connection locked
       if (cp.isActive()) {

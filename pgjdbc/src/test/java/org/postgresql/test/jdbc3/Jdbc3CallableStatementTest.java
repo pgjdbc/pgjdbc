@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
@@ -84,6 +85,12 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
         + "end;'"
         + "LANGUAGE plpgsql VOLATILE;"
     );
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      stmt.execute(
+          "CREATE OR REPLACE PROCEDURE inonlyprocedure(a IN int) AS 'BEGIN NULL; END;' LANGUAGE plpgsql");
+      stmt.execute(
+          "CREATE OR REPLACE PROCEDURE inoutprocedure(a INOUT int) AS 'BEGIN a := a + a; END;' LANGUAGE plpgsql");
+    }
   }
 
   @Override
@@ -97,6 +104,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     stmt.execute("drop function myif(a INOUT int, b IN int)");
     stmt.execute("drop function mynoparams()");
     stmt.execute("drop function mynoparamsproc()");
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      stmt.execute("drop procedure inonlyprocedure(a IN int)");
+      stmt.execute("drop procedure inoutprocedure(a INOUT int)");
+    }
     stmt.close();
     super.tearDown();
   }
@@ -523,8 +534,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
       stmt.execute(insertRealTab);
       stmt.close();
-
-
     } catch (Exception ex) {
       fail(ex.getMessage());
       throw ex;
@@ -647,7 +656,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       }
     }
   }
-
 
   @Test
   public void testGetObjectFloat() throws Throwable {
@@ -1035,4 +1043,26 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     TestUtil.closeQuietly(cs);
   }
 
+  @Test
+  public void testProcedureInOnlyNativeCall() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v11);
+    assumeCallableStatementsSupported();
+    CallableStatement cs = con.prepareCall("call inonlyprocedure(?)");
+    cs.setInt(1, 5);
+    cs.execute();
+    TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testProcedureInOutNativeCall() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v11);
+    assumeCallableStatementsSupported();
+    // inoutprocedure(a INOUT int) returns a*2 via the INOUT parameter
+    CallableStatement cs = con.prepareCall("call inoutprocedure(?)");
+    cs.setInt(1, 5);
+    cs.registerOutParameter(1, Types.INTEGER);
+    cs.execute();
+    assertEquals("call inoutprocedure(?) should return 10 (when input param = 5) via the INOUT parameter, but did not.", 10, cs.getInt(1));
+    TestUtil.closeQuietly(cs);
+  }
 }

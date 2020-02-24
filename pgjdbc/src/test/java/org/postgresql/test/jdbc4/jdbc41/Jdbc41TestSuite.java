@@ -13,13 +13,13 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        SchemaTest.class,
-        AbortTest.class,
-        CloseOnCompletionTest.class,
-        SharedTimerClassLoaderLeakTest.class,
-        NetworkTimeoutTest.class,
-        GetObjectTest.class}
-    )
+    AbortTest.class,
+    CloseOnCompletionTest.class,
+    GetObjectTest.class,
+    NetworkTimeoutTest.class,
+    SchemaTest.class,
+    SharedTimerClassLoaderLeakTest.class,
+})
 public class Jdbc41TestSuite {
 
 }

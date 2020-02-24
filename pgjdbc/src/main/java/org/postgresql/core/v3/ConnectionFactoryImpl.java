@@ -13,6 +13,7 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
 import org.postgresql.core.SocketFactoryFactory;
+import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.hostchooser.CandidateHost;
@@ -43,6 +44,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+
 import javax.net.SocketFactory;
 
 /**
@@ -90,14 +92,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
-    // Construct and send an ssl startup packet if requested.
-    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
-
     // Set the socket timeout if the "socketTimeout" property has been set.
     int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
     if (socketTimeout > 0) {
       newStream.getSocket().setSoTimeout(socketTimeout * 1000);
     }
+
+    String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
+    newStream.setMaxResultBuffer(maxResultBuffer);
 
     // Enable TCP keep-alive probe if required.
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
@@ -133,6 +135,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
       LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
     }
+
+    // Construct and send an ssl startup packet if requested.
+    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
 
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
@@ -250,10 +255,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, user, database,
             cancelSignalTimeout, info);
 
-        // Check Master or Secondary
+        // Check Primary or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;
         if (candidateHost.targetServerType != HostRequirement.any) {
-          hostStatus = isMaster(queryExecutor) ? HostStatus.Master : HostStatus.Secondary;
+          hostStatus = isPrimary(queryExecutor) ? HostStatus.Primary : HostStatus.Secondary;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         knownStates.put(hostSpec, hostStatus);
@@ -495,9 +500,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /* SSPI negotiation state, if used */
     ISSPIClient sspiClient = null;
 
-    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     /* SCRAM authentication state, if used */
-    org.postgresql.jre8.sasl.ScramAuthenticator scramAuthenticator = null;
+    org.postgresql.jre7.sasl.ScramAuthenticator scramAuthenticator = null;
     //#endif
 
     try {
@@ -517,7 +522,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-            throw new PSQLException(errorMsg);
+            throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
 
           case 'R':
             // Authentication request.
@@ -647,7 +652,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
                       PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
-                      PGProperty.JAAS_LOGIN.getBoolean(info));
+                      PGProperty.JAAS_LOGIN.getBoolean(info),
+                      PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                 }
                 break;
 
@@ -661,8 +667,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
-                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-                scramAuthenticator = new org.postgresql.jre8.sasl.ScramAuthenticator(user, password, pgStream);
+                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, password, pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
                 // This works as follows:
@@ -674,12 +680,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                           "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" versions)",
                           areq), PSQLState.CONNECTION_REJECTED);
                   //#endif
-                  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+                  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
                 }
                 break;
                 //#endif
 
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               case AUTH_REQ_SASL_CONTINUE:
                 scramAuthenticator.processServerFirstMessage(msgLen - 4 - 4);
                 break;
@@ -747,9 +753,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   }
 
-  private boolean isMaster(QueryExecutor queryExecutor) throws SQLException, IOException {
-    byte[][] results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
-    String value = queryExecutor.getEncoding().decode(results[0]);
+  private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
+    Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
+    String value = queryExecutor.getEncoding().decode(results.get(0));
     return value.equalsIgnoreCase("off");
   }
 }

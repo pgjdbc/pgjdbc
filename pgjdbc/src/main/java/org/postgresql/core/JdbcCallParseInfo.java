@@ -6,7 +6,7 @@
 package org.postgresql.core;
 
 /**
- * Contains parse flags from {@link Parser#modifyJdbcCall(String, boolean, int, int)}.
+ * Contains parse flags from {@link Parser#modifyJdbcCall(String, boolean, int, int, EscapeSyntaxCallMode)}.
  */
 public class JdbcCallParseInfo {
   private final String sql;

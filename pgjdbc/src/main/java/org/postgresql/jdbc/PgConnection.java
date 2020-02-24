@@ -58,6 +58,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -77,9 +78,15 @@ import java.util.logging.Logger;
 public class PgConnection implements BaseConnection {
 
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
-
+  private static final Set<Integer> SUPPORTED_BINARY_OIDS = getSupportedBinaryOids();
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
+
+  private enum ReadOnlyBehavior {
+    ignore,
+    transaction,
+    always;
+  }
 
   //
   // Data initialized on construction:
@@ -88,6 +95,8 @@ public class PgConnection implements BaseConnection {
 
   /* URL we were created via */
   private final String creatingURL;
+
+  private final ReadOnlyBehavior readOnlyBehavior;
 
   private Throwable openStackTrace;
 
@@ -98,6 +107,10 @@ public class PgConnection implements BaseConnection {
   private final Query commitQuery;
   /* Query that runs ROLLBACK */
   private final Query rollbackQuery;
+
+  private final CachedQuery setSessionReadOnly;
+
+  private final CachedQuery setSessionNotReadOnly;
 
   private final TypeInfo typeCache;
 
@@ -122,7 +135,8 @@ public class PgConnection implements BaseConnection {
   private boolean autoCommit = true;
   // Connection's readonly state.
   private boolean readOnly = false;
-
+  // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
+  private boolean  hideUnprivilegedObjects ;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
 
@@ -184,6 +198,8 @@ public class PgConnection implements BaseConnection {
 
     this.creatingURL = url;
 
+    this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.get(info));
+
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
     setPrepareThreshold(PGProperty.PREPARE_THRESHOLD.getInt(info));
@@ -199,10 +215,15 @@ public class PgConnection implements BaseConnection {
       LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
     }
 
+    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, true);
+    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, true);
+
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
       setReadOnly(true);
     }
+
+    this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
 
     Set<Integer> binaryOids = getBinaryOids(info);
 
@@ -292,38 +313,56 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
   }
 
+  private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
+    try {
+      return ReadOnlyBehavior.valueOf(property);
+    } catch (IllegalArgumentException e) {
+      try {
+        return ReadOnlyBehavior.valueOf(property.toLowerCase(Locale.US));
+      } catch (IllegalArgumentException e2) {
+        return ReadOnlyBehavior.transaction;
+      }
+    }
+  }
+
+  private static Set<Integer> getSupportedBinaryOids() {
+    return new HashSet<Integer>(Arrays.asList(
+        Oid.BYTEA,
+        Oid.INT2,
+        Oid.INT4,
+        Oid.INT8,
+        Oid.FLOAT4,
+        Oid.FLOAT8,
+        Oid.TIME,
+        Oid.DATE,
+        Oid.TIMETZ,
+        Oid.TIMESTAMP,
+        Oid.TIMESTAMPTZ,
+        Oid.BYTEA_ARRAY,
+        Oid.INT2_ARRAY,
+        Oid.INT4_ARRAY,
+        Oid.INT8_ARRAY,
+        Oid.OID_ARRAY,
+        Oid.FLOAT4_ARRAY,
+        Oid.FLOAT8_ARRAY,
+        Oid.VARCHAR_ARRAY,
+        Oid.TEXT_ARRAY,
+        Oid.POINT,
+        Oid.BOX,
+        Oid.UUID));
+  }
+
   private static Set<Integer> getBinaryOids(Properties info) throws PSQLException {
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // Formats that currently have binary protocol support
     Set<Integer> binaryOids = new HashSet<Integer>(32);
     if (binaryTransfer) {
-      binaryOids.add(Oid.BYTEA);
-      binaryOids.add(Oid.INT2);
-      binaryOids.add(Oid.INT4);
-      binaryOids.add(Oid.INT8);
-      binaryOids.add(Oid.FLOAT4);
-      binaryOids.add(Oid.FLOAT8);
-      binaryOids.add(Oid.TIME);
-      binaryOids.add(Oid.DATE);
-      binaryOids.add(Oid.TIMETZ);
-      binaryOids.add(Oid.TIMESTAMP);
-      binaryOids.add(Oid.TIMESTAMPTZ);
-      binaryOids.add(Oid.BYTEA_ARRAY);
-      binaryOids.add(Oid.INT2_ARRAY);
-      binaryOids.add(Oid.INT4_ARRAY);
-      binaryOids.add(Oid.INT8_ARRAY);
-      binaryOids.add(Oid.OID_ARRAY);
-      binaryOids.add(Oid.FLOAT4_ARRAY);
-      binaryOids.add(Oid.FLOAT8_ARRAY);
-      binaryOids.add(Oid.VARCHAR_ARRAY);
-      binaryOids.add(Oid.TEXT_ARRAY);
-      binaryOids.add(Oid.POINT);
-      binaryOids.add(Oid.BOX);
-      binaryOids.add(Oid.UUID);
+      binaryOids.addAll(SUPPORTED_BINARY_OIDS);
     }
 
     binaryOids.addAll(getOidSet(PGProperty.BINARY_TRANSFER_ENABLE.get(info)));
     binaryOids.removeAll(getOidSet(PGProperty.BINARY_TRANSFER_DISABLE.get(info)));
+    binaryOids.retainAll(SUPPORTED_BINARY_OIDS);
     return binaryOids;
   }
 
@@ -440,6 +479,24 @@ public class PgConnection implements BaseConnection {
   public void execSQLUpdate(String s) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
     if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      throw new PSQLException(GT.tr("A result was returned when none was expected."),
+          PSQLState.TOO_MANY_RESULTS);
+    }
+
+    // Transfer warnings to the connection, since the user never
+    // has a chance to see the statement itself.
+    SQLWarning warnings = stmt.getWarnings();
+    if (warnings != null) {
+      addWarning(warnings);
+    }
+
+    stmt.close();
+  }
+
+  void execSQLUpdate(CachedQuery query) throws SQLException {
+    BaseStatement stmt = (BaseStatement) createStatement();
+    if (stmt.executeWithFlags(query, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
         | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("A result was returned when none was expected."),
           PSQLState.TOO_MANY_RESULTS);
@@ -698,7 +755,6 @@ public class PgConnection implements BaseConnection {
     firstWarning = null;
   }
 
-
   @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
@@ -708,10 +764,8 @@ public class PgConnection implements BaseConnection {
           PSQLState.ACTIVE_SQL_TRANSACTION);
     }
 
-    if (readOnly != this.readOnly) {
-      String readOnlySql
-             = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
-      execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
+    if (readOnly != this.readOnly && autoCommit && this.readOnlyBehavior == ReadOnlyBehavior.always) {
+      execSQLUpdate(readOnly ? setSessionReadOnly : setSessionNotReadOnly);
     }
 
     this.readOnly = readOnly;
@@ -725,6 +779,11 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  public boolean hintReadOnly() {
+    return readOnly && readOnlyBehavior != ReadOnlyBehavior.ignore;
+  }
+
+  @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     checkClosed();
 
@@ -734,6 +793,21 @@ public class PgConnection implements BaseConnection {
 
     if (!this.autoCommit) {
       commit();
+    }
+
+    // if the connection is read only, we need to make sure session settings are
+    // correct when autocommit status changed
+    if (this.readOnly && readOnlyBehavior == ReadOnlyBehavior.always) {
+      // if we are turning on autocommit, we need to set session
+      // to read only
+      if (autoCommit) {
+        this.autoCommit = true;
+        execSQLUpdate(setSessionReadOnly);
+      } else {
+        // if we are turning auto commit off, we need to
+        // disable session
+        execSQLUpdate(setSessionNotReadOnly);
+      }
     }
 
     this.autoCommit = autoCommit;
@@ -787,7 +861,6 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-
   @Override
   public void rollback() throws SQLException {
     checkClosed();
@@ -799,6 +872,9 @@ public class PgConnection implements BaseConnection {
 
     if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       executeTransactionCommand(rollbackQuery);
+    } else {
+      // just log for debugging
+      LOGGER.log(Level.FINE, "Rollback requested but no transaction in progress");
     }
   }
 
@@ -882,6 +958,10 @@ public class PgConnection implements BaseConnection {
   public String getCatalog() throws SQLException {
     checkClosed();
     return queryExecutor.getDatabase();
+  }
+
+  public boolean getHideUnprivilegedObjects() {
+    return hideUnprivilegedObjects;
   }
 
   /**
@@ -1289,6 +1369,7 @@ public class PgConnection implements BaseConnection {
     if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
+
     final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
   }
@@ -1308,18 +1389,24 @@ public class PgConnection implements BaseConnection {
       return false;
     }
     try {
-      if (replicationConnection) {
-        Statement statement = createStatement();
-        statement.execute("IDENTIFY_SYSTEM");
-        statement.close();
-      } else {
-        if (checkConnectionQuery == null) {
-          checkConnectionQuery = prepareStatement("");
+      int savedNetworkTimeOut = getNetworkTimeout();
+      try {
+        setNetworkTimeout(null, timeout * 1000);
+        if (replicationConnection) {
+          Statement statement = createStatement();
+          statement.execute("IDENTIFY_SYSTEM");
+          statement.close();
+        } else {
+          if (checkConnectionQuery == null) {
+            checkConnectionQuery = prepareStatement("");
+          }
+          checkConnectionQuery.setQueryTimeout(timeout);
+          checkConnectionQuery.executeUpdate();
         }
-        checkConnectionQuery.setQueryTimeout(timeout);
-        checkConnectionQuery.executeUpdate();
+        return true;
+      } finally {
+        setNetworkTimeout(null, savedNetworkTimeOut);
       }
-      return true;
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
         // "current transaction aborted", assume the connection is up and running
@@ -1667,4 +1754,15 @@ public class PgConnection implements BaseConnection {
     }
     return ps;
   }
+
+  @Override
+  public final Map<String,String> getParameterStatuses() {
+    return queryExecutor.getParameterStatuses();
+  }
+
+  @Override
+  public final String getParameterStatus(String parameterName) {
+    return queryExecutor.getParameterStatus(parameterName);
+  }
+
 }

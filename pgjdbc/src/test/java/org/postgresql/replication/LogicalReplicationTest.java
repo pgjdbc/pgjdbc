@@ -166,7 +166,6 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-
     List<String> result = new ArrayList<String>();
 
     Statement st = sqlConnection.createStatement();
@@ -730,7 +729,6 @@ public class LogicalReplicationTest {
 
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     String result = group(consumedData);
-
 
     String wait = group(Arrays.asList(
         "BEGIN",

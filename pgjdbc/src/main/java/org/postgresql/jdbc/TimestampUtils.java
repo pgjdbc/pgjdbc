@@ -21,6 +21,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -53,9 +54,13 @@ public class TimestampUtils {
   private static final Duration ONE_MICROSECOND = Duration.ofNanos(1000);
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
   // since PostgreSQL has microsecond resolution only
-  private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofMillis(500));
+  private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofNanos(500));
   private static final OffsetDateTime MAX_OFFSET_DATETIME = OffsetDateTime.MAX.minus(Duration.ofMillis(500));
   private static final LocalDateTime MAX_LOCAL_DATETIME = LocalDateTime.MAX.minus(Duration.ofMillis(500));
+  // low value for dates is   4713 BC
+  private static final LocalDate MIN_LOCAL_DATE = LocalDate.of(4713, 1, 1).with(ChronoField.ERA, IsoEra.BCE.getValue());
+  private static final LocalDateTime MIN_LOCAL_DATETIME = MIN_LOCAL_DATE.atStartOfDay();
+  private static final OffsetDateTime MIN_OFFSET_DATETIME = MIN_LOCAL_DATETIME.atOffset(ZoneOffset.UTC);
   //#endif
 
   private static final Field DEFAULT_TIME_ZONE_FIELD;
@@ -469,6 +474,83 @@ public class TimestampUtils {
       return result;
     }
   }
+
+  /**
+   * Parse a string and return a LocalDateTime representing its value.
+   *
+   * @param s The ISO formated date string to parse.
+   * @return null if s is null or a LocalDateTime of the parsed string s.
+   * @throws SQLException if there is a problem parsing s.
+   */
+  public OffsetDateTime toOffsetDateTime(String s) throws SQLException {
+    if (s == null) {
+      return null;
+    }
+
+    int slen = s.length();
+
+    // convert postgres's infinity values to internal infinity magic value
+    if (slen == 8 && s.equals("infinity")) {
+      return OffsetDateTime.MAX;
+    }
+
+    if (slen == 9 && s.equals("-infinity")) {
+      return OffsetDateTime.MIN;
+    }
+
+    ParsedTimestamp ts = parseBackendTimestamp(s);
+
+    Calendar tz = ts.tz;
+    int offsetSeconds;
+    if (tz == null) {
+      offsetSeconds = 0;
+    } else {
+      offsetSeconds = tz.get(Calendar.ZONE_OFFSET) / 1000;
+    }
+    ZoneOffset zoneOffset = ZoneOffset.ofTotalSeconds(offsetSeconds);
+    // Postgres is always UTC
+    OffsetDateTime result = OffsetDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos, zoneOffset)
+        .withOffsetSameInstant(ZoneOffset.UTC);
+    if (ts.era == GregorianCalendar.BC) {
+      return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
+    } else {
+      return result;
+    }
+  }
+
+  /**
+   * Returns the offset date time object matching the given bytes with Oid#TIMETZ.
+   *
+   * @param t the time value
+   * @return the matching offset date time
+   */
+  public OffsetDateTime toOffsetDateTime(Time t) {
+    // hardcode utc because the backend does not provide us the timezone
+    // hardoce UNIX epoch, JDBC requires OffsetDateTime but doesn't describe what date should be used
+    return t.toLocalTime().atDate(LocalDate.of(1970, 1, 1)).atOffset(ZoneOffset.UTC);
+  }
+
+  /**
+   * Returns the offset date time object matching the given bytes with Oid#TIMESTAMPTZ.
+   *
+   * @param bytes The binary encoded local date time value.
+   * @return The parsed local date time object.
+   * @throws PSQLException If binary format could not be parsed.
+   */
+  public OffsetDateTime toOffsetDateTimeBin(byte[] bytes) throws PSQLException {
+    ParsedBinaryTimestamp parsedTimestamp = this.toProlepticParsedTimestampBin(bytes);
+    if (parsedTimestamp.infinity == Infinity.POSITIVE) {
+      return OffsetDateTime.MAX;
+    } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
+      return OffsetDateTime.MIN;
+    }
+
+    // hardcode utc because the backend does not provide us the timezone
+    // Postgres is always UTC
+    Instant instant = Instant.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos);
+    return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
+  }
+
   //#endif
 
   public synchronized Time toTime(Calendar cal, String s) throws SQLException {
@@ -511,7 +593,7 @@ public class TimestampUtils {
     }
 
     // 2) Truncate date part so in given time zone the date would be formatted as 01/01/1970
-    return convertToTime(timeMillis, useCal == null ? null : useCal.getTimeZone());
+    return convertToTime(timeMillis, useCal.getTimeZone());
   }
 
   public synchronized Date toDate(Calendar cal, String s) throws SQLException {
@@ -758,7 +840,7 @@ public class TimestampUtils {
   public synchronized String toString(LocalDate localDate) {
     if (LocalDate.MAX.equals(localDate)) {
       return "infinity";
-    } else if (LocalDate.MIN.equals(localDate)) {
+    } else if (localDate.isBefore(MIN_LOCAL_DATE)) {
       return "-infinity";
     }
 
@@ -789,11 +871,10 @@ public class TimestampUtils {
     return sbuf.toString();
   }
 
-
   public synchronized String toString(OffsetDateTime offsetDateTime) {
     if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
       return "infinity";
-    } else if (OffsetDateTime.MIN.equals(offsetDateTime)) {
+    } else if (offsetDateTime.isBefore(MIN_OFFSET_DATETIME)) {
       return "-infinity";
     }
 
@@ -825,7 +906,7 @@ public class TimestampUtils {
   public synchronized String toString(LocalDateTime localDateTime) {
     if (localDateTime.isAfter(MAX_LOCAL_DATETIME)) {
       return "infinity";
-    } else if (LocalDateTime.MIN.equals(localDateTime)) {
+    } else if (localDateTime.isBefore(MIN_LOCAL_DATETIME)) {
       return "-infinity";
     }
 
@@ -1026,7 +1107,6 @@ public class TimestampUtils {
       micros = ByteConverter.int8(bytes, 0);
     }
 
-
     return LocalTime.ofNanoOfDay(micros * 1000);
   }
   //#endif
@@ -1057,8 +1137,8 @@ public class TimestampUtils {
     return ts;
   }
 
-  private ParsedBinaryTimestamp toParsedTimestampBin(TimeZone tz, byte[] bytes, boolean timestamptz)
-          throws PSQLException {
+  private ParsedBinaryTimestamp toParsedTimestampBinPlain(byte[] bytes)
+      throws PSQLException {
 
     if (bytes.length != 8) {
       throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "timestamp"),
@@ -1107,6 +1187,24 @@ public class TimestampUtils {
     }
     nanos *= 1000;
 
+    long millis = secs * 1000L;
+
+    ParsedBinaryTimestamp ts = new ParsedBinaryTimestamp();
+    ts.millis = millis;
+    ts.nanos = nanos;
+    return ts;
+  }
+
+  private ParsedBinaryTimestamp toParsedTimestampBin(TimeZone tz, byte[] bytes, boolean timestamptz)
+      throws PSQLException {
+
+    ParsedBinaryTimestamp ts = toParsedTimestampBinPlain(bytes);
+    if (ts.infinity != null) {
+      return ts;
+    }
+
+    long secs = ts.millis / 1000L;
+
     secs = toJavaSecs(secs);
     long millis = secs * 1000L;
     if (!timestamptz) {
@@ -1115,9 +1213,25 @@ public class TimestampUtils {
       millis = guessTimestamp(millis, tz);
     }
 
-    ParsedBinaryTimestamp ts = new ParsedBinaryTimestamp();
     ts.millis = millis;
-    ts.nanos = nanos;
+    return ts;
+  }
+
+  private ParsedBinaryTimestamp toProlepticParsedTimestampBin(byte[] bytes)
+      throws PSQLException {
+
+    ParsedBinaryTimestamp ts = toParsedTimestampBinPlain(bytes);
+    if (ts.infinity != null) {
+      return ts;
+    }
+
+    long secs = ts.millis / 1000L;
+
+    // postgres epoc to java epoc
+    secs += 946684800L;
+    long millis = secs * 1000L;
+
+    ts.millis = millis;
     return ts;
   }
 
@@ -1125,21 +1239,22 @@ public class TimestampUtils {
   /**
    * Returns the local date time object matching the given bytes with {@link Oid#TIMESTAMP} or
    * {@link Oid#TIMESTAMPTZ}.
-   *
-   * @param tz time zone to use
    * @param bytes The binary encoded local date time value.
+   *
    * @return The parsed local date time object.
    * @throws PSQLException If binary format could not be parsed.
    */
-  public LocalDateTime toLocalDateTimeBin(TimeZone tz, byte[] bytes) throws PSQLException {
+  public LocalDateTime toLocalDateTimeBin(byte[] bytes) throws PSQLException {
 
-    ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(tz, bytes, true);
+    ParsedBinaryTimestamp parsedTimestamp = this.toProlepticParsedTimestampBin(bytes);
     if (parsedTimestamp.infinity == Infinity.POSITIVE) {
       return LocalDateTime.MAX;
     } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
       return LocalDateTime.MIN;
     }
 
+    // hardcode utc because the backend does not provide us the timezone
+    // Postgres is always UTC
     return LocalDateTime.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos, ZoneOffset.UTC);
   }
   //#endif
@@ -1242,13 +1357,14 @@ public class TimestampUtils {
       millis += offset;
       // 2) Truncate hours, minutes, etc. Day is always 86400 seconds, no matter what leap seconds
       // are
-      millis = millis / ONEDAY * ONEDAY;
+      millis = floorDiv(millis, ONEDAY) * ONEDAY;
       // 2) Now millis is 7 Jan 00:00 UTC, however we need that in GMT+02:00, so subtract some
       // offset
       millis -= offset;
       // Now we have brand-new 7 Jan 00:00 GMT+02:00
       return new Date(millis);
     }
+
     Calendar cal = calendarWithUserTz;
     cal.setTimeZone(tz);
     cal.setTimeInMillis(millis);
@@ -1256,6 +1372,7 @@ public class TimestampUtils {
     cal.set(Calendar.MINUTE, 0);
     cal.set(Calendar.SECOND, 0);
     cal.set(Calendar.MILLISECOND, 0);
+
     return new Date(cal.getTimeInMillis());
   }
 
@@ -1279,7 +1396,7 @@ public class TimestampUtils {
       int offset = tz.getRawOffset();
       millis += offset;
       // 2) Truncate year, month, day. Day is always 86400 seconds, no matter what leap seconds are
-      millis = millis % ONEDAY;
+      millis = floorMod(millis, ONEDAY);
       // 2) Now millis is 1970 1 Jan 15:40 UTC, however we need that in GMT+02:00, so subtract some
       // offset
       millis -= offset;
@@ -1363,7 +1480,7 @@ public class TimestampUtils {
         int years = (int) ((secs + 15773356800L) / -3155823050L);
         years++;
         years -= years / 4;
-        secs += years * 86400;
+        secs += years * 86400L;
       }
     }
 
@@ -1412,4 +1529,18 @@ public class TimestampUtils {
     }
     return TimeZone.getTimeZone(timeZone);
   }
+
+  private static long floorDiv(long x, long y) {
+    long r = x / y;
+    // if the signs are different and modulo not zero, round down
+    if ((x ^ y) < 0 && (r * y != x)) {
+      r--;
+    }
+    return r;
+  }
+
+  private static long floorMod(long x, long y) {
+    return x - floorDiv(x, y) * y;
+  }
+
 }

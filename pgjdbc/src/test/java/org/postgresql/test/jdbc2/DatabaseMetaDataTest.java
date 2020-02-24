@@ -84,7 +84,6 @@ public class DatabaseMetaDataTest {
     TestUtil.createCompositeType(con, "custom", "i int", false);
     TestUtil.createCompositeType(con, "_custom", "f float", false);
 
-
     // 8.2 does not support arrays of composite types
     TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
         + (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3) ? ", c3 custom[], c4 _custom[]" : ""));
@@ -110,7 +109,10 @@ public class DatabaseMetaDataTest {
     }
 
     TestUtil.createDomain(con, "nndom", "int not null");
-    TestUtil.createTable(con, "domaintable", "id nndom");
+    TestUtil.createDomain(con, "varbit2", "varbit(3)");
+    TestUtil.createDomain(con, "float83", "numeric(8,3)");
+
+    TestUtil.createTable(con, "domaintable", "id nndom, v varbit2, f float83");
     stmt.close();
   }
 
@@ -138,6 +140,8 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f3(int, varchar)");
     TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
+    TestUtil.dropDomain(con, "varbit2");
+    TestUtil.dropDomain(con, "float83");
 
     TestUtil.closeDB(con);
   }
@@ -245,7 +249,6 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con1, "ww",
         "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
 
-
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -279,7 +282,6 @@ public class DatabaseMetaDataTest {
       numRows += 1;
     }
     assertEquals(2, numRows);
-
 
     TestUtil.dropTable(con1, "vv");
     TestUtil.dropTable(con1, "ww");
@@ -386,7 +388,6 @@ public class DatabaseMetaDataTest {
             + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
             + "ON UPDATE CASCADE ON DELETE CASCADE");
 
-
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getImportedKeys(null, "", "person");
@@ -430,8 +431,6 @@ public class DatabaseMetaDataTest {
 
     TestUtil.dropTable(con1, "person");
     TestUtil.closeDB(con1);
-
-
   }
 
   @Test
@@ -444,7 +443,6 @@ public class DatabaseMetaDataTest {
         "id int4 primary key, people_id int4, policy_id int4,"
             + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
             + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
-
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -488,7 +486,6 @@ public class DatabaseMetaDataTest {
 
     assertTrue(rs.getString("FK_NAME").startsWith("people"));
 
-
     TestUtil.dropTable(con1, "users");
     TestUtil.dropTable(con1, "people");
     TestUtil.dropTable(con1, "policy");
@@ -503,7 +500,7 @@ public class DatabaseMetaDataTest {
                                  "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
                                  "COLUMN_DEF","SQL_DATA_TYPE","SQL_DATETIME_SUB","CHAR_OCTET_LENGTH",
                                  "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA",
-                                 "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATED"};
+                                 "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN"};
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -563,9 +560,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("updated", rs.getString(4));
 
-
     rs.close();
-
   }
 
   @Test
@@ -690,6 +685,32 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
+  /**
+   * Order defined at
+   * https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo-java.lang.String-java.lang.String-java.lang.String-boolean-boolean-
+   */
+  @Test
+  public void testIndexInfoColumnOrder() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+    assertEquals(rs.findColumn("TABLE_CAT"), 1);
+    assertEquals(rs.findColumn("TABLE_SCHEM"), 2);
+    assertEquals(rs.findColumn("TABLE_NAME"), 3);
+    assertEquals(rs.findColumn("NON_UNIQUE"), 4);
+    assertEquals(rs.findColumn("INDEX_QUALIFIER"), 5);
+    assertEquals(rs.findColumn("INDEX_NAME"), 6);
+    assertEquals(rs.findColumn("TYPE"), 7);
+    assertEquals(rs.findColumn("ORDINAL_POSITION"), 8);
+    assertEquals(rs.findColumn("COLUMN_NAME"), 9);
+    assertEquals(rs.findColumn("ASC_OR_DESC"), 10);
+    assertEquals(rs.findColumn("CARDINALITY"), 11);
+    assertEquals(rs.findColumn("PAGES"), 12);
+    assertEquals(rs.findColumn("FILTER_CONDITION"), 13);
+
+    rs.close();
+  }
+
   @Test
   public void testNotNullDomainColumn() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
@@ -697,7 +718,26 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
+    assertTrue(rs.next());
+    assertTrue(rs.next());
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testDomainColumnSize() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    assertTrue(rs.next());
+    assertEquals("id", rs.getString("COLUMN_NAME"));
+    assertEquals(10, rs.getInt("COLUMN_SIZE"));
+    assertTrue(rs.next());
+    assertEquals("v", rs.getString("COLUMN_NAME"));
+    assertEquals(3, rs.getInt("COLUMN_SIZE"));
+    assertTrue(rs.next());
+    assertEquals("f", rs.getString("COLUMN_NAME"));
+    assertEquals(8, rs.getInt("COLUMN_SIZE"));
+    assertEquals( 3, rs.getInt("DECIMAL_DIGITS"));
+
   }
 
   @Test
@@ -717,7 +757,6 @@ public class DatabaseMetaDataTest {
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("A", rs.getString("ASC_OR_DESC"));
-
 
     assertTrue(rs.next());
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
@@ -1044,7 +1083,6 @@ public class DatabaseMetaDataTest {
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1053,7 +1091,6 @@ public class DatabaseMetaDataTest {
       }
     }
   }
-
 
   @Test
   public void testGetUDT2() throws Exception {
@@ -1078,7 +1115,6 @@ public class DatabaseMetaDataTest {
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1110,7 +1146,6 @@ public class DatabaseMetaDataTest {
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1140,7 +1175,6 @@ public class DatabaseMetaDataTest {
       assertTrue("base type", rs.wasNull());
       assertEquals("data type", Types.STRUCT, dataType);
       assertEquals("type name ", "testint8", typeName);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1209,7 +1243,6 @@ public class DatabaseMetaDataTest {
     for (String typeName : stringTypeList) {
       assertTrue(types.contains(typeName));
     }
-
   }
 
   @Test
@@ -1299,7 +1332,6 @@ public class DatabaseMetaDataTest {
         }
       }
     }
-
   }
 
   @Test
@@ -1435,5 +1467,4 @@ public class DatabaseMetaDataTest {
 
     rs.close();
   }
-
 }
