@@ -11,7 +11,6 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    AdaptiveFetchSizeTest.class,
     CustomizeDefaultFetchSizeTest.class,
     GetObject310InfinityTests.class,
     GetObject310Test.class,
