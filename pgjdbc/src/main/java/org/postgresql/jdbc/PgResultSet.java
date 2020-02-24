@@ -118,8 +118,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private Tuple rowBuffer = null; // updateable rowbuffer
 
   protected int fetchSize; // Current fetch size (might be 0).
-  protected int lastUsedFetchSize; // Fetch size used during last fetch
-  protected boolean adaptiveFetch = false;
   protected ResultCursor cursor; // Cursor for fetching additional data.
 
   private Map<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
@@ -140,7 +138,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List<Tuple> tuples,
       ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
-      int rsHoldability, boolean adaptiveFetch) throws SQLException {
+      int rsHoldability) throws SQLException {
     // Fail-fast on invalid null inputs
     if (tuples == null) {
       throw new NullPointerException("tuples must be non-null");
@@ -159,10 +157,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.maxFieldSize = maxFieldSize;
     this.resultsettype = rsType;
     this.resultsetconcurrency = rsConcurrency;
-    this.adaptiveFetch = adaptiveFetch;
-
-    //Constructor doesn't have fetch size and can't be sure if fetch size was used so initial value would be the number of rows
-    this.lastUsedFetchSize = tuples.size();
   }
 
   public java.net.URL getURL(int columnIndex) throws SQLException {
@@ -821,13 +815,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     // Work out how many rows maxRows will let us fetch.
     int fetchRows = fetchSize;
-    int adaptiveFetchRows = connection.getQueryExecutor()
-        .getAdaptiveFetchSize(adaptiveFetch, cursor);
-
-    if (adaptiveFetchRows != -1) {
-      fetchRows = adaptiveFetchRows;
-    }
-
     if (maxRows != 0) {
       if (fetchRows == 0 || rowOffset + fetchRows > maxRows) {
         // Fetch would exceed maxRows, limit it.
@@ -836,11 +823,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     // Do the actual fetch.
-    connection.getQueryExecutor()
-        .fetch(cursor, new CursorResultHandler(), fetchRows, adaptiveFetch);
-
-    //After fetch, update last used fetch size (could be useful during adaptive fetch).
-    lastUsedFetchSize = fetchRows;
+    connection.getQueryExecutor().fetch(cursor, new CursorResultHandler(), fetchRows);
 
     // Now prepend our one saved row and move to it.
     rows.add(0, thisRow);
@@ -1596,50 +1579,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   /**
-   * Method to turn on/off adaptive fetch for ResultSet.
-   *
-   * @param adaptiveFetch desired state of adaptive fetch.
-   * @throws SQLException exception returned if ResultSet is closed
-   */
-  public void setAdaptiveFetch(boolean adaptiveFetch) throws SQLException {
-    checkClosed();
-    updateQueryInsideAdaptiveFetchMonitoring(adaptiveFetch);
-    this.adaptiveFetch = adaptiveFetch;
-  }
-
-  /**
-   * Method to update adaptive fetch monitoring during changing state of adaptive fetch inside
-   * ResultSet. Update inside AdaptiveFetchMonitoring is required to collect data about max result
-   * row length for that query to compute adaptive fetch size.
-   *
-   * @param newAdaptiveFetch new state of adaptive fetch
-   */
-  private void updateQueryInsideAdaptiveFetchMonitoring(boolean newAdaptiveFetch) {
-    boolean localAdaptiveFetch = this.adaptiveFetch;
-
-    if (localAdaptiveFetch == false && newAdaptiveFetch == true) {
-      //If we are here, that means we want to be added to adaptive fetch.
-      connection.getQueryExecutor().addQueryToAdaptiveFetchMonitoring(Boolean.TRUE, cursor);
-    }
-
-    if (localAdaptiveFetch == true && newAdaptiveFetch == false) {
-      //If we are here, that means we want to be removed from adaptive fetch.
-      connection.getQueryExecutor().removeQueryFromAdaptiveFetchMonitoring(Boolean.TRUE, cursor);
-    }
-  }
-
-  /**
-   * Method to get state of adaptive fetch for resultSet.
-   *
-   * @return state of adaptive fetch (turned on or off)
-   * @throws SQLException exception returned if ResultSet is closed
-   */
-  public boolean getAdaptiveFetch() throws SQLException {
-    checkClosed();
-    return adaptiveFetch;
-  }
-
-  /**
    * Cracks out the table name and schema (if it exists) from a fully qualified table name.
    *
    * @param fullname string that we are trying to crack. Test cases:
@@ -1855,23 +1794,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public int getFetchSize() throws SQLException {
     checkClosed();
-    if (adaptiveFetch) {
-      return lastUsedFetchSize;
-    } else {
-      return fetchSize;
-    }
-  }
-
-  /**
-   * Method to get fetch size used during last fetch. Returned value can be useful if using adaptive
-   * fetch.
-   *
-   * @return fetch size used during last fetch.
-   * @throws SQLException exception returned if ResultSet is closed
-   */
-  public int getLastUsedFetchSize() throws SQLException {
-    checkClosed();
-    return lastUsedFetchSize;
+    return fetchSize;
   }
 
   @Override
@@ -1895,13 +1818,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       rowOffset += rows.size(); // We are discarding some data.
 
       int fetchRows = fetchSize;
-      int adaptiveFetchRows = connection.getQueryExecutor()
-          .getAdaptiveFetchSize(adaptiveFetch, cursor);
-
-      if (adaptiveFetchRows != -1) {
-        fetchRows = adaptiveFetchRows;
-      }
-
       if (maxRows != 0) {
         if (fetchRows == 0 || rowOffset + fetchRows > maxRows) {
           // Fetch would exceed maxRows, limit it.
@@ -1910,11 +1826,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
 
       // Execute the fetch and update this resultset.
-      connection.getQueryExecutor()
-          .fetch(cursor, new CursorResultHandler(), fetchRows, adaptiveFetch);
-
-      //After fetch, update last used fetch size (could be useful for adaptive fetch).
-      lastUsedFetchSize = fetchRows;
+      connection.getQueryExecutor().fetch(cursor, new CursorResultHandler(), fetchRows);
 
       currentRow = 0;
 

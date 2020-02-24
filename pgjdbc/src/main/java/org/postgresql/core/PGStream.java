@@ -58,8 +58,6 @@ public class PGStream implements Closeable, Flushable {
   private long maxResultBuffer = -1;
   private long resultBufferByteCount = 0;
 
-  private int maxRowSize = -1;
-
   /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
@@ -479,8 +477,6 @@ public class PGStream implements Closeable, Flushable {
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
-    setMaxRowSize(dataToReadSize);
-
     byte[][] answer = new byte[nf][];
 
     increaseByteCounter(dataToReadSize);
@@ -645,46 +641,6 @@ public class PGStream implements Closeable, Flushable {
    */
   public void setMaxResultBuffer(String value) throws PSQLException {
     maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
-  }
-
-  /**
-   * Method to get MaxResultBuffer from PGStream.
-   *
-   * @return size of MaxResultBuffer
-   */
-  public long getMaxResultBuffer() {
-    return maxResultBuffer;
-  }
-
-  /**
-   * The idea behind this method is to keep in maxRowSize the size of biggest read data row. As
-   * there may be many data rows send after each other for a query, then value in maxRowSize would
-   * contain value noticed so far, because next data rows and their sizes are not read for that
-   * moment. We want it increasing, because the size of the biggest among data rows will be used
-   * during computing new adaptive fetch size for the query.
-   *
-   * @param rowSize new value to be set as maxRowSize
-   */
-  public void setMaxRowSize(int rowSize) {
-    if (rowSize > maxRowSize) {
-      maxRowSize = rowSize;
-    }
-  }
-
-  /**
-   * Method to get actual max row size noticed so far.
-   *
-   * @return value of max row size
-   */
-  public int getMaxRowSize() {
-    return maxRowSize;
-  }
-
-  /**
-   * Method to clear value of max row size noticed so far.
-   */
-  public void clearMaxRowSize() {
-    maxRowSize = -1;
   }
 
   /**

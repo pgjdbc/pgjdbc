@@ -137,8 +137,6 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected int maxFieldSize = 0;
 
-  protected boolean adaptiveFetch = false;
-
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
@@ -147,7 +145,6 @@ public class PgStatement implements Statement, BaseStatement {
     concurrency = rsConcurrency;
     setFetchSize(c.getDefaultFetchSize());
     setPrepareThreshold(c.getPrepareThreshold());
-    setAdaptiveFetch(c.getAdaptiveFetch());
     this.rsHoldability = rsHoldability;
   }
 
@@ -155,7 +152,7 @@ public class PgStatement implements Statement, BaseStatement {
       ResultCursor cursor) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
-        getResultSetHoldability(), getAdaptiveFetch());
+        getResultSetHoldability());
     newResult.setFetchSize(getFetchSize());
     newResult.setFetchDirection(getFetchDirection());
     return newResult;
@@ -449,7 +446,7 @@ public class PgStatement implements Statement, BaseStatement {
     try {
       startTimer();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
-          fetchSize, flags, adaptiveFetch);
+          fetchSize, flags);
     } finally {
       killTimerTask();
     }
@@ -852,7 +849,7 @@ public class PgStatement implements Statement, BaseStatement {
     try {
       startTimer();
       connection.getQueryExecutor().execute(queries, parameterLists, handler, maxrows, fetchSize,
-          flags, adaptiveFetch);
+          flags);
     } finally {
       killTimerTask();
       // There might be some rows generated even in case of failures
@@ -1259,16 +1256,6 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void transformQueriesAndParameters() throws SQLException {
-  }
-
-  @Override
-  public void setAdaptiveFetch(boolean adaptiveFetch) {
-    this.adaptiveFetch = adaptiveFetch;
-  }
-
-  @Override
-  public boolean getAdaptiveFetch() {
-    return adaptiveFetch;
   }
 
 }
