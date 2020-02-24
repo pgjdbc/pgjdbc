@@ -158,7 +158,6 @@ public class PgArray implements java.sql.Array {
     return ArrayDecoding.readBinaryArray(index, count, fieldBytes, connection);
   }
 
-
   private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
