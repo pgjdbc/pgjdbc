@@ -1633,7 +1633,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         }
       }
       tuple[6] = connection.encodeString(Integer.toString(columnSize));
-      tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+      // Give null for an unset scale on Decimal and Numeric columns
+      if (((sqlType == Types.NUMERIC) || (sqlType == Types.DECIMAL)) && (typeMod == -1)) {
+        tuple[8] = null;
+      } else {
+        tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+      }
 
       // Everything is base 10 unless we override later.
       tuple[9] = connection.encodeString("10");
