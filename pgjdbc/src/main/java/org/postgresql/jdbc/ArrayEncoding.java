@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, PostgreSQL Global Development Group
+ * Copyright (c) 2020, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -42,6 +42,8 @@ import java.util.Map;
  * </ul>
  * </ul>
  * </p>
+ *
+ * @author Brett Okken
  */
 final class ArrayEncoding {
 
