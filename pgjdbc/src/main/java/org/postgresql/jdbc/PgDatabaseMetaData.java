@@ -1284,7 +1284,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " END "
              + " WHEN false THEN CASE c.relkind "
              + " WHEN 'r' THEN 'TABLE' "
-             + " WHEN 'p' THEN 'TABLE' "
+             + " WHEN 'p' THEN 'PARTITIONED TABLE' "
              + " WHEN 'i' THEN 'INDEX' "
              + " WHEN 'S' THEN 'SEQUENCE' "
              + " WHEN 'v' THEN 'VIEW' "
@@ -1339,9 +1339,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tableTypeClauses = new HashMap<String, Map<String, String>>();
     Map<String, String> ht = new HashMap<String, String>();
     tableTypeClauses.put("TABLE", ht);
-    ht.put("SCHEMAS",
-        "c.relkind IN ('r','p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname !~ '^pg_'");
+    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("PARTITIONED TABLE", ht);
+    ht.put("SCHEMAS", "c.relkind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'p' AND c.relname !~ '^pg_'");
     ht = new HashMap<String, String>();
     tableTypeClauses.put("VIEW", ht);
     ht.put("SCHEMAS",
