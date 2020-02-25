@@ -30,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -170,6 +171,56 @@ public class ArrayTest extends BaseTest4 {
     }
 
     rs.close();
+  }
+
+  @Test
+  public void testSetArraysWithFullDataTypeNames() throws SQLException {
+    // Create a test table and insert arrays with data types identified by their full names
+    TestUtil.createTable(conn, "arrtest_fullnames", "floatarr double precision[], varchararr character varying(20)[], timearr time without time zone[]");
+
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest_fullnames VALUES (?,?,?)");
+
+    final PGConnection arraySupport = conn.unwrap(PGConnection.class);
+
+    pstmt.setArray(1, arraySupport.createArrayOf("double precision", new Object[] { 1d, 2d, 3d }));
+    pstmt.setObject(2, arraySupport.createArrayOf("character varying", new String[] { "abc", "f'a", "fa\"b" }));
+    pstmt.setObject(3, arraySupport.createArrayOf("time without time zone", new Object[] { Time.valueOf("12:34:56"), Time.valueOf("03:30:25"), Time.valueOf("05:14:53") }));
+
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    // Select the created record and ensure the returned data has the correct type and content
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT floatarr, varchararr, timearr FROM arrtest_fullnames");
+    Assert.assertTrue(rs.next());
+
+    Array arr = rs.getArray(1);
+    Assert.assertEquals(Types.DOUBLE, arr.getBaseType());
+    Double[] doublearr = (Double[]) arr.getArray();
+    Assert.assertEquals(3, doublearr.length);
+    Assert.assertEquals(1d, doublearr[0].intValue(), 0);
+    Assert.assertEquals(2d, doublearr[1].intValue(), 0);
+    Assert.assertEquals(3d, doublearr[2].intValue(), 0);
+
+    arr = rs.getArray(2);
+    Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+    String[] varchararr = (String[]) arr.getArray();
+    Assert.assertEquals(3, varchararr.length);
+    Assert.assertEquals("abc", varchararr[0]);
+    Assert.assertEquals("f'a", varchararr[1]);
+    Assert.assertEquals("fa\"b", varchararr[2]);
+
+    arr = rs.getArray(3);
+    Assert.assertEquals(Types.TIME, arr.getBaseType());
+    Time[] timearr = (Time []) arr.getArray();
+    Assert.assertEquals(3, timearr.length);
+    Assert.assertEquals(Time.valueOf("12:34:56"), timearr[0]);
+    Assert.assertEquals(Time.valueOf("03:30:25"), timearr[1]);
+    Assert.assertEquals(Time.valueOf("05:14:53"), timearr[2]);
+
+    rs.close();
+
+    TestUtil.dropTable(conn, "arrtest_fullnames");
   }
 
   @Test
