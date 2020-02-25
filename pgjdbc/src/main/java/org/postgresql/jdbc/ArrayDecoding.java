@@ -9,7 +9,6 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
-import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
@@ -307,27 +306,12 @@ final class ArrayDecoding {
     }
   };
 
-  private static final ArrayDecoder<BigDecimal[]> BIG_DECIMAL_DECODER = new AbstractObjectArrayDecoder<BigDecimal[]>(
+  private static final ArrayDecoder<BigDecimal[]> BIG_DECIMAL_STRING_DECODER = new AbstractObjectStringArrayDecoder<BigDecimal[]>(
       BigDecimal.class) {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toBigDecimal(stringVal);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
-      assert bytes.hasArray();
-      final byte[] byteArray = bytes.array();
-      final int offset = bytes.arrayOffset() + bytes.position();
-      try {
-        return ByteConverter.numeric(byteArray, offset, length);
-      } finally {
-        bytes.position(bytes.position() + length);
-      }
     }
   };
 
@@ -388,7 +372,7 @@ final class ArrayDecoding {
     OID_TO_DECODER.put(Oid.BIT, BOOLEAN_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.BOOL, BOOLEAN_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.BYTEA, BYTE_ARRAY_ARRAY);
-    OID_TO_DECODER.put(Oid.NUMERIC, BIG_DECIMAL_DECODER);
+    OID_TO_DECODER.put(Oid.NUMERIC, BIG_DECIMAL_STRING_DECODER);
     OID_TO_DECODER.put(Oid.BPCHAR, STRING_ONLY_DECODER);
     OID_TO_DECODER.put(Oid.CHAR, STRING_ONLY_DECODER);
     OID_TO_DECODER.put(Oid.JSON, STRING_ONLY_DECODER);
