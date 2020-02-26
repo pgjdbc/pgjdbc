@@ -31,6 +31,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -176,22 +177,23 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void testSetArraysWithFullDataTypeNames() throws SQLException {
     // Create a test table and insert arrays with data types identified by their full names
-    TestUtil.createTable(conn, "arrtest_fullnames", "floatarr double precision[], varchararr character varying(20)[], timearr time without time zone[]");
+    TestUtil.createTable(conn, "arrtest_fullnames", "floatarr double precision[], varchararr character varying(20)[], timearr time without time zone[], tzarr timestamp with time zone[]");
 
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest_fullnames VALUES (?,?,?)");
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest_fullnames VALUES (?,?,?,?)");
 
     final PGConnection arraySupport = conn.unwrap(PGConnection.class);
 
     pstmt.setArray(1, arraySupport.createArrayOf("double precision", new Object[] { 1d, 2d, 3d }));
     pstmt.setObject(2, arraySupport.createArrayOf("character varying", new String[] { "abc", "f'a", "fa\"b" }));
     pstmt.setObject(3, arraySupport.createArrayOf("time without time zone", new Object[] { Time.valueOf("12:34:56"), Time.valueOf("03:30:25"), Time.valueOf("05:14:53") }));
+    pstmt.setObject(4, arraySupport.createArrayOf("timestamp with time zone", new Object[] { "1996-01-23 12:00:00-08", "1996-07-09 05:07:30+00", "1997-08-16 16:51:00-04" }));
 
     pstmt.executeUpdate();
     pstmt.close();
 
     // Select the created record and ensure the returned data has the correct type and content
     Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT floatarr, varchararr, timearr FROM arrtest_fullnames");
+    ResultSet rs = stmt.executeQuery("SELECT floatarr, varchararr, timearr, tzarr FROM arrtest_fullnames");
     Assert.assertTrue(rs.next());
 
     Array arr = rs.getArray(1);
@@ -217,6 +219,14 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(Time.valueOf("12:34:56"), timearr[0]);
     Assert.assertEquals(Time.valueOf("03:30:25"), timearr[1]);
     Assert.assertEquals(Time.valueOf("05:14:53"), timearr[2]);
+
+    arr = rs.getArray(4);
+    Assert.assertEquals(Types.TIMESTAMP, arr.getBaseType());
+    Timestamp[] tzarr = (Timestamp[]) arr.getArray();
+    Assert.assertEquals(3, timearr.length);
+    Assert.assertEquals(822427200000L, tzarr[0].getTime());
+    Assert.assertEquals(836888850000L, tzarr[1].getTime());
+    Assert.assertEquals(871764660000L, tzarr[2].getTime());
 
     rs.close();
 
