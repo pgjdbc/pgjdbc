@@ -171,28 +171,27 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetProceduresInSchemaForProcedures() throws SQLException {
-    DatabaseMetaData dbmd = conn.getMetaData();
-    Statement statement = conn.createStatement();
+    // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
+      DatabaseMetaData dbmd = conn.getMetaData();
+      Statement statement = conn.createStatement();
 
-    // Search for procedures in schema "hasprocedures" (which should expect a record regardless of PostgreSQL version)
-    ResultSet rs = dbmd.getProcedures("", "hasprocedures",null);
-    assertTrue(rs.next());
+      ResultSet rs = dbmd.getProcedures("", "hasprocedures", null);
+      assertTrue(rs.next());
 
-    // Search for procedures in schema "noprocedures" (which should never expect records for any PostgreSQL version)
-    rs = dbmd.getProcedures("", "nofunctions",null);
-    assertFalse(rs.next());
+      rs = dbmd.getProcedures("", "nofunctions", null);
+      assertFalse(rs.next());
 
-    // Search for procedures by procedure name "addprocedure" within schema "hasprocedures" (which should expect a record regardless of PostgreSQL version)
-    statement.execute("set search_path=hasprocedures");
-    rs = dbmd.getProcedures("", "","addprocedure");
-    assertTrue(rs.next());
+      statement.execute("set search_path=hasprocedures");
+      rs = dbmd.getProcedures("", "", "addprocedure");
+      assertTrue(rs.next());
 
-    // Search for procedures by procedure name "addprocedure" within schema "noprocedures" (which should never expect records for any PostgreSQL version)
-    statement.execute("set search_path=noprocedures");
-    rs = dbmd.getProcedures("", "","addprocedure");
-    assertFalse(rs.next());
+      statement.execute("set search_path=noprocedures");
+      rs = dbmd.getProcedures("", "", "addprocedure");
+      assertFalse(rs.next());
 
-    statement.close();
+      statement.close();
+    }
   }
 
   @Test
