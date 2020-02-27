@@ -459,42 +459,45 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   @Test
   public void testGetProcedures() throws SQLException {
+    String executeGranted = TestUtil.haveMinimumServerVersion(hidingCon, ServerVersion.v11) ? "execute_granted_insert_procedure" : "execute_granted_add_function";
+    String noGrants = TestUtil.haveMinimumServerVersion(hidingCon, ServerVersion.v11) ? "no_grants_insert_procedure" : "no_grants_add_function";
+
     List<String> proceduresWithHiding =
         getProcedureNames(hidingDatabaseMetaData, "high_privileges_schema");
     assertThat(proceduresWithHiding,
-        hasItem("execute_granted_add_function"));
+        hasItem(executeGranted));
     assertThat(proceduresWithHiding,
-        not(hasItem("no_grants_add_function")));
+        not(hasItem(noGrants)));
 
     List<String> proceduresWithNoHiding =
         getProcedureNames(nonhidingDatabaseMetaData, "high_privileges_schema");
     assertThat(proceduresWithNoHiding,
-        hasItems("execute_granted_add_function", "no_grants_add_function"));
+        hasItems(executeGranted, noGrants));
 
     proceduresWithHiding =
         getProcedureNames(hidingDatabaseMetaData, "low_privileges_schema");
     assertThat(proceduresWithHiding,
-        hasItem("execute_granted_add_function"));
+        hasItem(executeGranted));
     assertThat(proceduresWithHiding,
-        not(hasItem("no_grants_add_function")));
+        not(hasItem(noGrants)));
 
     proceduresWithNoHiding =
         getProcedureNames(nonhidingDatabaseMetaData, "low_privileges_schema");
     assertThat(proceduresWithNoHiding,
-        hasItems("execute_granted_add_function", "no_grants_add_function"));
+        hasItems(executeGranted, noGrants));
 
     // Or should the the function names not be returned because the schema is not visible?
     proceduresWithHiding =
         getProcedureNames(hidingDatabaseMetaData, "no_privileges_schema");
     assertThat(proceduresWithHiding,
-        hasItem("execute_granted_add_function"));
+        hasItem(executeGranted));
     assertThat(proceduresWithHiding,
-        not(hasItem("no_grants_add_function")));
+        not(hasItem(noGrants)));
 
     proceduresWithNoHiding =
         getProcedureNames(nonhidingDatabaseMetaData, "no_privileges_schema");
     assertThat(proceduresWithNoHiding,
-        hasItems("execute_granted_add_function", "no_grants_add_function"));
+        hasItems(executeGranted, noGrants));
 
   }
 
