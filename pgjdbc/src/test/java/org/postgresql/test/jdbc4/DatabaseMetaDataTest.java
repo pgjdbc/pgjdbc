@@ -40,8 +40,12 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(conn, "sercoltest", "a serial, b int");
     TestUtil.createSchema(conn, "hasfunctions");
     TestUtil.createSchema(conn, "nofunctions");
+    TestUtil.createSchema(conn, "hasprocedures");
+    TestUtil.createSchema(conn, "noprocedures");
     TestUtil.execute("create function hasfunctions.addfunction (integer, integer) "
         + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE", conn);
+    TestUtil.execute("create procedure hasprocedures.addprocedure() "
+        + "LANGUAGE plpgsql AS $$ BEGIN SELECT 1; END; $$", conn);
   }
 
   @After
@@ -50,6 +54,8 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(conn, "sercoltest");
     TestUtil.dropSchema(conn, "hasfunctions");
     TestUtil.dropSchema(conn, "nofunctions");
+    TestUtil.dropSchema(conn, "hasprocedures");
+    TestUtil.dropSchema(conn, "noprocedures");
     TestUtil.closeDB(conn);
   }
 
@@ -122,26 +128,69 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testGetProceduresInSchema() throws SQLException {
+  public void testGetProceduresInSchemaForFunctions() throws SQLException {
+    // Due to the introduction of actual stored procedures in PostgreSQL 11, getProcedures should not return functions for PostgreSQL versions 11+
+
     DatabaseMetaData dbmd = conn.getMetaData();
-    ResultSet rs = dbmd.getProcedures("", "hasfunctions",null);
-    assertTrue(rs.next());
-
     Statement statement = conn.createStatement();
+
+    // Search for procedures in schema "hasfunctions" (which should expect a record only for PostgreSQL < 11)
+    ResultSet rs = dbmd.getProcedures("", "hasfunctions",null);
+    Boolean recordFound = rs.next();
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
+      assertEquals("PostgreSQL11+ should not return functions from getProcedures", recordFound, false);
+    } else {
+      assertEquals("PostgreSQL prior to 11 should return functions from getProcedures", recordFound, true);
+    }
+
+    // Search for procedures in schema "nofunctions" (which should never expect records)
+    rs = dbmd.getProcedures("", "nofunctions",null);
+    recordFound = rs.next();
+    assertFalse(recordFound);
+
+    // Search for procedures by function name "addfunction" within schema "hasfunctions" (which should expect a record for PostgreSQL < 11)
     statement.execute("set search_path=hasfunctions");
-
     rs = dbmd.getProcedures("", "","addfunction");
-    assertTrue(rs.next());
+    recordFound = rs.next();
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
+      assertEquals("PostgreSQL11+ should not return functions from getProcedures", recordFound, false);
+    } else {
+      assertEquals("PostgreSQL prior to 11 should return functions from getProcedures", recordFound, true);
+    }
 
+    // Search for procedures by function name "addfunction" within schema "nofunctions"  (which should never expect records)
     statement.execute("set search_path=nofunctions");
     rs = dbmd.getProcedures("", "","addfunction");
-    assertFalse(rs.next());
+    recordFound = rs.next();
+    assertFalse(recordFound);
 
-    statement.execute("reset search_path");
     statement.close();
+  }
+
+  @Test
+  public void testGetProceduresInSchemaForProcedures() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    Statement statement = conn.createStatement();
+
+    // Search for procedures in schema "hasprocedures" (which should expect a record regardless of PostgreSQL version)
+    ResultSet rs = dbmd.getProcedures("", "hasprocedures",null);
+    assertTrue(rs.next());
+
+    // Search for procedures in schema "noprocedures" (which should never expect records for any PostgreSQL version)
     rs = dbmd.getProcedures("", "nofunctions",null);
     assertFalse(rs.next());
 
+    // Search for procedures by procedure name "addprocedure" within schema "hasprocedures" (which should expect a record regardless of PostgreSQL version)
+    statement.execute("set search_path=hasprocedures");
+    rs = dbmd.getProcedures("", "","addprocedure");
+    assertTrue(rs.next());
+
+    // Search for procedures by procedure name "addprocedure" within schema "noprocedures" (which should never expect records for any PostgreSQL version)
+    statement.execute("set search_path=noprocedures");
+    rs = dbmd.getProcedures("", "","addprocedure");
+    assertFalse(rs.next());
+
+    statement.close();
   }
 
   @Test
