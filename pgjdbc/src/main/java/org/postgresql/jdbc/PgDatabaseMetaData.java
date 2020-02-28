@@ -1037,6 +1037,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') "
           + " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') "
           + " WHERE p.pronamespace=n.oid ";
+
+    if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
+      sql += " AND p.prokind='p'";
+    }
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     } else {
@@ -1284,7 +1288,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " END "
              + " WHEN false THEN CASE c.relkind "
              + " WHEN 'r' THEN 'TABLE' "
-             + " WHEN 'p' THEN 'TABLE' "
+             + " WHEN 'p' THEN 'PARTITIONED TABLE' "
              + " WHEN 'i' THEN 'INDEX' "
              + " WHEN 'S' THEN 'SEQUENCE' "
              + " WHEN 'v' THEN 'VIEW' "
@@ -1339,9 +1343,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tableTypeClauses = new HashMap<String, Map<String, String>>();
     Map<String, String> ht = new HashMap<String, String>();
     tableTypeClauses.put("TABLE", ht);
-    ht.put("SCHEMAS",
-        "c.relkind IN ('r','p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname !~ '^pg_'");
+    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("PARTITIONED TABLE", ht);
+    ht.put("SCHEMAS", "c.relkind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'p' AND c.relname !~ '^pg_'");
     ht = new HashMap<String, String>();
     tableTypeClauses.put("VIEW", ht);
     ht.put("SCHEMAS",
@@ -1633,7 +1640,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         }
       }
       tuple[6] = connection.encodeString(Integer.toString(columnSize));
-      tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+      // Give null for an unset scale on Decimal and Numeric columns
+      if (((sqlType == Types.NUMERIC) || (sqlType == Types.DECIMAL)) && (typeMod == -1)) {
+        tuple[8] = null;
+      } else {
+        tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+      }
 
       // Everything is base 10 unless we override later.
       tuple[9] = connection.encodeString("10");
