@@ -14,6 +14,7 @@ plugins {
     publishing
     // Verification
     checkstyle
+    jacoco
     id("com.github.autostyle")
     id("com.github.spotbugs")
     id("org.owasp.dependencycheck")
@@ -28,7 +29,7 @@ plugins {
     id("com.github.vlsi.stage-vote-release")
 }
 
-fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: false)
+fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: props.bool("CI"))
 
 val lastEditYear = 2019 // TODO: by extra(lastEditYear("$rootDir/LICENSE"))
 
@@ -45,6 +46,9 @@ val includeTestTags by props("") // e.g. !org.postgresql.test.SlowTests
 val useGpgCmd by props()
 val slowSuiteLogThreshold = stringProperty("slowSuiteLogThreshold")?.toLong() ?: 0
 val slowTestLogThreshold = stringProperty("slowTestLogThreshold")?.toLong() ?: 2000
+val jacocoEnabled by extra {
+    props.bool("coverage") || gradle.startParameter.taskNames.any { it.contains("jacoco") }
+}
 
 ide {
     // TODO: set copyright to PostgreSQL Global Development Group
@@ -75,6 +79,11 @@ val isReleaseVersion = rootProject.releaseParams.release.get()
 
 val licenseHeaderFile = file("config/license.header.java")
 
+val jacocoReport by tasks.registering(JacocoReport::class) {
+    group = "Coverage reports"
+    description = "Generates an aggregate report from all subprojects"
+}
+
 allprojects {
     group = "org.postgresql"
     version = buildVersion
@@ -91,6 +100,9 @@ allprojects {
     val javaUsed = file("src/main/java").isDirectory
     if (javaUsed) {
         apply(plugin = "java-library")
+        if (jacocoEnabled) {
+            apply(plugin = "jacoco")
+        }
     }
 
     plugins.withId("java-library") {
@@ -186,6 +198,43 @@ allprojects {
         }
     }
 
+    plugins.withType<JacocoPlugin> {
+        the<JacocoPluginExtension>().toolVersion = "jacoco".v
+
+        val testTasks = tasks.withType<Test>()
+        val javaExecTasks = tasks.withType<JavaExec>()
+        // This configuration must be postponed since JacocoTaskExtension might be added inside
+        // configure block of a task (== before this code is run). See :src:dist-check:createBatchTask
+        afterEvaluate {
+            for (t in arrayOf(testTasks, javaExecTasks)) {
+                t.configureEach {
+                    extensions.findByType<JacocoTaskExtension>()?.apply {
+                        // Do not collect coverage when not asked (e.g. via jacocoReport or -Pcoverage)
+                        isEnabled = jacocoEnabled
+                        // We don't want to collect coverage for third-party classes
+                        includes?.add("org.postgresql.*")
+                    }
+                }
+            }
+        }
+
+        jacocoReport {
+            // Note: this creates a lazy collection
+            // Some of the projects might fail to create a file (e.g. no tests or no coverage),
+            // So we check for file existence. Otherwise JacocoMerge would fail
+            val execFiles =
+                    files(testTasks, javaExecTasks).filter { it.exists() && it.name.endsWith(".exec") }
+            executionData(execFiles)
+        }
+
+        tasks.withType<JacocoReport>().configureEach {
+            reports {
+                html.isEnabled = reportsForHumans()
+                xml.isEnabled = !reportsForHumans()
+            }
+        }
+    }
+
     tasks {
         withType<Javadoc>().configureEach {
             (options as StandardJavadocDocletOptions).apply {
@@ -256,6 +305,15 @@ allprojects {
                     indentWithSpaces(4)
                     endWithNewline()
                 }
+            }
+        }
+        if (jacocoEnabled) {
+            // Add each project to combined report
+            val mainCode = sourceSets["main"]
+            jacocoReport.configure {
+                additionalSourceDirs.from(mainCode.allJava.srcDirs)
+                sourceDirectories.from(mainCode.allSource.srcDirs)
+                classDirectories.from(mainCode.output)
             }
         }
         if (enableSpotBugs) {

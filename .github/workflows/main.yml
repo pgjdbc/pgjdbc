@@ -49,7 +49,6 @@ jobs:
         java-version: 8
     - name: 'Test'
       run: |
-        # TODO: run SlowTests as well
         echo enable_ssl_tests=true > ssltest.local.properties
         # '-PincludeTestTags=!org.postgresql.test.SlowTests'
         ./gradlew --no-parallel --no-daemon -PskipReplicationTests -Pport=${{ job.services.postgres.ports['5432'] }} test

@@ -32,7 +32,7 @@ fi
 
 if [[ "${COVERAGE}" == *"Y"* ]];
 then
-    GRADLE_ARGS="$GRADLE_ARGS "
+    GRADLE_ARGS="$GRADLE_ARGS jacocoReport"
 fi
 
 if [[ "${JDK}" == *"9"* ]];

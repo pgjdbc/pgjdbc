@@ -101,6 +101,7 @@ matrix:
         - JDK=11
         - TZ=America/New_York # flips between −05:00 and −04:00
         - TEST_CLIENTS=Y
+        - COVERAGE=Y
 
 # Deploy snapshots to Maven Central
 after_success:
