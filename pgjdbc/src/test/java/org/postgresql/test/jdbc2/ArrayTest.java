@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -18,6 +19,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,6 +31,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -53,11 +56,23 @@ public class ArrayTest extends BaseTest4 {
     return ids;
   }
 
+  private static boolean isXmlEnabled(Connection conn) {
+    try {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT '<a>b</a>'::xml");
+      rs.close();
+      stmt.close();
+      return true;
+    } catch (SQLException sqle) {
+      return false;
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     conn = con;
-    TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
+    TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]" + (isXmlEnabled(conn) ? ", xmlarr xml[]" : ""));
   }
 
   @Override
@@ -632,6 +647,32 @@ public class ArrayTest extends BaseTest4 {
             ars.getMetaData().getColumnType(1));
       }
     }
+  }
+
+  @Test
+  public void testCreateArrayOfXml() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v8_3);
+    Assume.assumeTrue("Server has been compiled --with-libxml", isXmlEnabled(con));
+
+    String xmlA = "<a><b>1</b><b>2</b></a>";
+    String xmlB = "<a>f</a><b>g</b>";
+
+    SQLXML[] in = new SQLXML[2];
+    in[0] = conn.createSQLXML();
+    in[0].setString(xmlA);
+    in[1] = conn.createSQLXML();
+    in[1].setString(xmlB);
+
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::xml[]");
+    pstmt.setArray(1, conn.createArrayOf("xml", in));
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+    Assert.assertEquals("xml", arr.getBaseTypeName());
+    SQLXML[] out = (SQLXML[]) arr.getArray();
+    Assert.assertEquals(2, out.length);
+    Assert.assertEquals(xmlA, out[0].getString());
+    Assert.assertEquals(xmlB, out[1].getString());
   }
 
 }

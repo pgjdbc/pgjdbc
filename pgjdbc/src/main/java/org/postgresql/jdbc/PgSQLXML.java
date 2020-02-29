@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -49,10 +50,9 @@ import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-public class PgSQLXML implements SQLXML {
+public class PgSQLXML extends PGobject implements SQLXML {
 
   private final BaseConnection conn;
-  private String data; // The actual data contained.
   private boolean initialized; // Has someone assigned the data for this object?
   private boolean active; // Is anyone in the process of loading data into us?
   private boolean freed;
@@ -61,26 +61,27 @@ public class PgSQLXML implements SQLXML {
   private StringWriter stringWriter;
   private DOMResult domResult;
 
-  public PgSQLXML(BaseConnection conn) {
+  public PgSQLXML(BaseConnection conn) throws SQLException {
     this(conn, null, false);
   }
 
-  public PgSQLXML(BaseConnection conn, String data) {
+  public PgSQLXML(BaseConnection conn, String data) throws SQLException {
     this(conn, data, true);
   }
 
-  private PgSQLXML(BaseConnection conn, String data, boolean initialized) {
+  private PgSQLXML(BaseConnection conn, String data, boolean initialized) throws SQLException {
     this.conn = conn;
-    this.data = data;
     this.initialized = initialized;
     this.active = false;
     this.freed = false;
+    setValue(data);
+    setType("xml");
   }
 
   @Override
   public synchronized void free() {
     freed = true;
-    data = null;
+    this.value = null;
   }
 
   @Override
@@ -88,12 +89,12 @@ public class PgSQLXML implements SQLXML {
     checkFreed();
     ensureInitialized();
 
-    if (data == null) {
+    if (getValue() == null) {
       return null;
     }
 
     try {
-      return new ByteArrayInputStream(conn.getEncoding().encode(data));
+      return new ByteArrayInputStream(conn.getEncoding().encode(getValue()));
     } catch (IOException ioe) {
       // This should be a can't happen exception. We just
       // decoded this data, so it would be surprising that
@@ -108,11 +109,11 @@ public class PgSQLXML implements SQLXML {
     checkFreed();
     ensureInitialized();
 
-    if (data == null) {
+    if (getValue() == null) {
       return null;
     }
 
-    return new StringReader(data);
+    return new StringReader(getValue());
   }
 
   // We must implement this unsafely because that's what the
@@ -126,7 +127,7 @@ public class PgSQLXML implements SQLXML {
     checkFreed();
     ensureInitialized();
 
-    if (data == null) {
+    if (getValue() == null) {
       return null;
     }
 
@@ -135,16 +136,16 @@ public class PgSQLXML implements SQLXML {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         builder.setErrorHandler(new NonPrintingErrorHandler());
-        InputSource input = new InputSource(new StringReader(data));
+        InputSource input = new InputSource(new StringReader(getValue()));
         return (T) new DOMSource(builder.parse(input));
       } else if (SAXSource.class.equals(sourceClass)) {
-        InputSource is = new InputSource(new StringReader(data));
+        InputSource is = new InputSource(new StringReader(getValue()));
         return (T) new SAXSource(is);
       } else if (StreamSource.class.equals(sourceClass)) {
-        return (T) new StreamSource(new StringReader(data));
+        return (T) new StreamSource(new StringReader(getValue()));
       } else if (StAXSource.class.equals(sourceClass)) {
         XMLInputFactory xif = XMLInputFactory.newInstance();
-        XMLStreamReader xsr = xif.createXMLStreamReader(new StringReader(data));
+        XMLStreamReader xsr = xif.createXMLStreamReader(new StringReader(getValue()));
         return (T) new StAXSource(xsr);
       }
     } catch (Exception e) {
@@ -159,7 +160,12 @@ public class PgSQLXML implements SQLXML {
   public synchronized String getString() throws SQLException {
     checkFreed();
     ensureInitialized();
-    return data;
+    return getValue();
+  }
+
+  @Override
+  public synchronized String toString() {
+    return getValue() == null ? "null" : getValue();
   }
 
   @Override
@@ -227,7 +233,7 @@ public class PgSQLXML implements SQLXML {
   public synchronized void setString(String value) throws SQLException {
     checkFreed();
     initialize();
-    data = value;
+    setValue(value);
   }
 
   private void checkFreed() throws SQLException {
@@ -252,7 +258,7 @@ public class PgSQLXML implements SQLXML {
 
     if (byteArrayOutputStream != null) {
       try {
-        data = conn.getEncoding().decode(byteArrayOutputStream.toByteArray());
+        setValue(conn.getEncoding().decode(byteArrayOutputStream.toByteArray()));
       } catch (IOException ioe) {
         throw new PSQLException(GT.tr("Failed to convert binary xml data to encoding: {0}.",
             conn.getEncoding().name()), PSQLState.DATA_ERROR, ioe);
@@ -264,7 +270,7 @@ public class PgSQLXML implements SQLXML {
       // This is also handling the work for Stream, SAX, and StAX Results
       // as they will use the same underlying stringwriter variable.
       //
-      data = stringWriter.toString();
+      setValue(stringWriter.toString());
       stringWriter = null;
       active = false;
     } else if (domResult != null) {
@@ -278,7 +284,7 @@ public class PgSQLXML implements SQLXML {
         StringWriter stringWriter = new StringWriter();
         StreamResult streamResult = new StreamResult(stringWriter);
         transformer.transform(domSource, streamResult);
-        data = stringWriter.toString();
+        setValue(stringWriter.toString());
       } catch (TransformerException te) {
         throw new PSQLException(GT.tr("Unable to convert DOMResult SQLXML data to a string."),
             PSQLState.DATA_ERROR, te);

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -763,6 +764,22 @@ public class PgArray implements java.sql.Array {
         Object v = input.get(index++);
         oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
             : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
+      }
+    } else if (type == Types.SQLXML) {
+      Object[] oa = null;
+      ret = oa = (dims > 1
+        ? (Object[]) java.lang.reflect.Array.newInstance(PgSQLXML.class, dimsLength)
+        : new PgSQLXML[count]);
+
+      for (; count > 0; count--) {
+        Object v = input.get(index++);
+        if (dims > 1 && v != null) {
+          oa[length++] = buildArray((PgArrayList) v, 0, -1);
+        } else {
+          SQLXML xml = connection.createSQLXML();
+          xml.setString(v.toString());
+          oa[length++] = xml;
+        }
       }
     } else if (ArrayAssistantRegistry.getAssistant(oid) != null) {
       ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
