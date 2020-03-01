@@ -7,8 +7,9 @@ cd .travis
 mkdir secrets
 
 # GPG is required for artifact signing
-openssl aes-256-cbc -k "$SUPER_SECRET_KEY" -in secrets.tar.enc -out secrets/secrets.tar -d
+echo $SUPER_SECRET_KEY | gpg --passphrase-fd 0 secrets.tar.gpg
 
+mv secrets.tar secrets
 cd secrets
 tar xvf secrets.tar
 
@@ -94,7 +95,7 @@ git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git :$RELEASE_TAG || true
 
 # -Darguments here is for maven-release-plugin
 MVN_SETTINGS=$(pwd)/settings.xml
-mvn -B --settings settings.xml -Darguments="--settings '${MVN_SETTINGS}' -Dskip.unzip-jdk-src=false" -Dskip.unzip-jdk-src=false release:prepare release:perform
+mvn -B --settings settings.xml -Darguments="--settings '${MVN_SETTINGS}' -Dskip.unzip-jdk-src=false" -Dskip.unzip-jdk-src=false release:prepare release:perform -Darguments=-Dgpg.passphrase=$GPG_PASSPHRASE
 
 # Point "master" branch to "next development snapshot commit"
 git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git "HEAD:$ORIGINAL_BRANCH"

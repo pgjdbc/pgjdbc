@@ -46,7 +46,6 @@ public class SSPIClient implements ISSPIClient {
   private WindowsSecurityContextImpl sspiContext;
   private String targetName;
 
-
   /**
    * <p>Instantiate an SSPIClient for authentication of a connection.</p>
    *
@@ -104,14 +103,18 @@ public class SSPIClient implements ISSPIClient {
     final HostSpec hs = pgStream.getHostSpec();
 
     try {
+      /*
+      The GSSAPI implementation does not use the port in the service name.
+      Force the port number to 0
+      Fixes issue 1482
+      */
       return NTDSAPIWrapper.instance.DsMakeSpn(spnServiceClass, hs.getHost(), null,
-          (short) hs.getPort(), null);
+          (short) 0, null);
     } catch (LastErrorException ex) {
       throw new PSQLException("SSPI setup failed to determine SPN",
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ex);
     }
   }
-
 
   /**
    * Respond to an authentication request from the back-end for SSPI authentication (AUTH_REQ_SSPI).

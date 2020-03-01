@@ -23,7 +23,6 @@ public interface PGStatement {
   long DATE_POSITIVE_SMALLER_INFINITY = 185543533774800000L;
   long DATE_NEGATIVE_SMALLER_INFINITY = -185543533774800000L;
 
-
   /**
    * Returns the Last inserted/updated oid.
    *

@@ -6,7 +6,9 @@
 package org.postgresql.test;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
 
@@ -397,7 +399,6 @@ public class TestUtil {
     }
   }
 
-
   /*
    * Helper - creates a test table for use by a test
    */
@@ -438,6 +439,26 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a unlogged table for use by a test.
+   * Unlogged tables works from PostgreSQL 9.1+
+   */
+  public static void createUnloggedTable(Connection con, String table, String columns)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the table
+      dropTable(con, table);
+
+      String unlogged = haveMinimumServerVersion(con, ServerVersion.v9_1) ? "UNLOGGED" : "";
+
+      // Now create the table
+      st.executeUpdate("CREATE " + unlogged + " TABLE " + table + " (" + columns + ")");
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
   /**
    * Helper creates an enum type.
    *
@@ -451,7 +472,6 @@ public class TestUtil {
     Statement st = con.createStatement();
     try {
       dropType(con, name);
-
 
       // Now create the table
       st.executeUpdate("create type " + name + " as enum (" + values + ")");
@@ -600,6 +620,11 @@ public class TestUtil {
       closeQuietly(rs);
       closeQuietly(ps);
     }
+  }
+
+  public static void assertTransactionState(String message, Connection con, TransactionState expected) {
+    TransactionState actual = TestUtil.getTransactionState(con);
+    Assert.assertEquals(message, expected, actual);
   }
 
   /*
@@ -898,6 +923,73 @@ public class TestUtil {
     }
   }
 
+  /**
+   * Execute a SQL query with a given connection and return whether any rows were
+   * returned. No column data is fetched.
+   */
+  public static boolean executeQuery(Connection conn, String sql) throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery(sql);
+    boolean hasNext = rs.next();
+    rs.close();
+    stmt.close();
+    return hasNext;
+  }
+
+  /**
+   * Retrieve the backend process id for a given connection.
+   */
+  public static int getBackendPid(Connection conn) throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid()");
+    rs.next();
+    int pid = rs.getInt(1);
+    rs.close();
+    stmt.close();
+    return pid;
+  }
+
+  /**
+   * Executed pg_terminate_backend(...) to terminate the server process for
+   * a given process id with the given connection.
+   */
+  public static boolean terminateBackend(Connection conn, int backendPid) throws SQLException {
+    PreparedStatement stmt = conn.prepareStatement("SELECT pg_terminate_backend(?)");
+    stmt.setInt(1, backendPid);
+    ResultSet rs = stmt.executeQuery();
+    rs.next();
+    boolean wasTerminated = rs.getBoolean(1);
+    rs.close();
+    stmt.close();
+    return wasTerminated;
+  }
+
+  /**
+   * Create a new connection using the default test credentials and use it to
+   * attempt to terminate the specified backend process.
+   */
+  public static boolean terminateBackend(int backendPid) throws SQLException {
+    Connection conn = TestUtil.openPrivilegedDB();
+    try {
+      return terminateBackend(conn, backendPid);
+    } finally {
+      conn.close();
+    }
+  }
+
+  /**
+   * Retrieve the given connection backend process id, then create a new connection
+   * using the default test credentials and attempt to terminate the process.
+   */
+  public static boolean terminateBackend(Connection conn) throws SQLException {
+    int pid = getBackendPid(conn);
+    return terminateBackend(pid);
+  }
+
+  public static TransactionState getTransactionState(Connection conn) {
+    return ((BaseConnection) conn).getTransactionState();
+  }
+
   private static void waitStopReplicationSlot(Connection connection, String slotName)
       throws InterruptedException, TimeoutException, SQLException {
     long startWaitTime = System.currentTimeMillis();
@@ -914,6 +1006,18 @@ public class TestUtil {
 
     if (stillActive) {
       throw new TimeoutException("Wait stop replication slot " + timeInWait + " timeout occurs");
+    }
+  }
+
+  public static void execute(String sql, Connection connection) throws SQLException {
+    Statement stmt = connection.createStatement();
+    try {
+      stmt.execute(sql);
+    } finally {
+      try {
+        stmt.close();
+      } catch (SQLException e) {
+      }
     }
   }
 }

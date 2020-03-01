@@ -113,7 +113,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public int isNullable(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().nullable;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? ResultSetMetaData.columnNullable : metadata.nullable;
   }
 
   /**
@@ -145,14 +146,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return getColumnLabel(column);
   }
 
-
   public String getBaseColumnName(int column) throws SQLException {
     Field field = getField(column);
     if (field.getTableOid() == 0) {
       return "";
     }
     fetchFieldMetaData();
-    return field.getMetadata().columnName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.columnName;
   }
 
   public String getSchemaName(int column) throws SQLException {
@@ -269,7 +270,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getBaseSchemaName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().schemaName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.schemaName;
   }
 
   public int getPrecision(int column) throws SQLException {
@@ -289,7 +291,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getBaseTableName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().tableName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.tableName;
   }
 
   /**
@@ -309,7 +312,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public int getColumnType(int column) throws SQLException {
     return getSQLType(column);
   }
-
 
   public int getFormat(int column) throws SQLException {
     return getField(column).getFormat();
@@ -402,7 +404,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   protected int getSQLType(int columnIndex) throws SQLException {
     return connection.getTypeInfo().getSQLType(getField(columnIndex).getOID());
   }
-
 
   // ** JDBC 2 Extensions **
 

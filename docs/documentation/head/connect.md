@@ -88,17 +88,19 @@ Connection conn = DriverManager.getConnection(url);
 
 * **ssl** = boolean
 
-	Connect using SSL. The driver must have been compiled with SSL support.
+	Connect using SSL. The server must have been compiled with SSL support.
 	This property does not need a value associated with it. The mere presence
 	of it specifies a SSL connection. However, for compatibility with future
 	versions, the value "true" is preferred. For more information see [Chapter
 	4, *Using SSL*](ssl.html).
+
+    Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
  
 * **sslfactory** = String
-
+    
 	The provided value is a class name to use as the `SSLSocketFactory` when
 	establishing a SSL connection. For more information see the section
-	called [“Custom SSLSocketFactory”](ssl-factory.html). 
+	called [“Custom SSLSocketFactory”](ssl-factory.html).  defaults to LibPQFactory
 
 * **sslfactoryarg** (deprecated) = String
 
@@ -120,19 +122,29 @@ Connection conn = DriverManager.getConnection(url);
 
 	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
 
+    It can be a PEM encoded X509v3 certificate
+
 	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
 
 * **sslkey** = String
 
 	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
 	
-	*Note:* The key file **must** be in [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
-	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der`
+	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
+
+    *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
+    by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
+    We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at
+    the time of writing. If you have stricter security needs, please see https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1
+    for a discussion of the problem and information on choosing a better cipher suite.
 
 * **sslrootcert** = String
 
 	File name of the SSL root certificate. Defaults to defaultdir/root.crt
+
+    It can be a PEM encoded X509v3 certificate
 
 * **sslhostnameverifier** = String
 
@@ -145,14 +157,6 @@ Connection conn = DriverManager.getConnection(url);
 * **sslpassword** = String
 
 	If provided will be used by ConsoleCallbackHandler
-
-* **sendBufferSize** = int
-
-	Sets SO_SNDBUF on the connection stream
-
-* **recvBufferSize** = int
-
-	Sets SO_RCVBUF on the connection stream
 
 * **protocolVersion** = int
 
@@ -208,13 +212,19 @@ Connection conn = DriverManager.getConnection(url);
 
     The default is `never` 
 
-* **cleanupSavePoints** = boolean
+* **cleanupSavepoints** = boolean
 
     Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
     done to avoid running out of shared buffers on the server in the case where 1000's of queries are
     performed.
      
     The default is 'false'
+
+* **binaryTransfer** = boolean
+
+	Use binary format for sending and receiving data if possible.
+
+	The default is 'true'
 
 * **binaryTransferEnable** = String
 
@@ -224,6 +234,20 @@ Connection conn = DriverManager.getConnection(url);
 
 	A comma separated list of types to disable binary transfer. Either OID numbers or names.
 	Overrides values in the driver default set and values set with binaryTransferEnable.
+
+* **databaseMetadataCacheFields** = int
+
+	Specifies the maximum number of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 65536.
+
+* **databaseMetadataCacheFieldsMiB** = int
+
+	Specifies the maximum size (in megabytes) of fields to be cached per connection.
+	A value of 0 disables the cache.
+
+	Defaults to 5.
 
 * **prepareThreshold** = int
 
@@ -411,16 +435,18 @@ Connection conn = DriverManager.getConnection(url);
 
 * **currentSchema** = String
 
-	Specify the schema to be set in the search-path. 
+	Specify the schema (or several schema separated by commas) to be set in the search-path. 
 	This schema will be used to resolve unqualified object names used in statements over this connection.
 
 * **targetServerType** = String
 
 	Allows opening connections to only servers with required state, 
-	the allowed values are any, master, slave, secondary, preferSlave and preferSecondary. 
-	The master/slave distinction is currently done by observing if the server allows writes. 
+	the allowed values are any, primary, master, slave, secondary, preferSlave and preferSecondary. 
+	The primary/secondary distinction is currently done by observing if the server allows writes. 
 	The value preferSecondary tries to connect to secondary if any are available, 
-	otherwise allows falls back to connecting also to master.
+	otherwise allows falls back to connecting also to primary.
+	- *N.B.* the words master and slave are being deprecated. We will silently accept them, but primary
+	and secondary are encouraged.
 
 * **hostRecheckSeconds** = int
 
@@ -437,8 +463,9 @@ Connection conn = DriverManager.getConnection(url);
 	The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
 	This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` 
 	must extend `javax.net.SocketFactory` and be available to the driver's classloader.
-	This class must have a zero argument constructor or a single argument constructor taking a String argument. 
-	This argument may optionally be supplied by `socketFactoryArg`.
+	This class must have a zero-argument constructor, a single-argument constructor taking a String argument, or
+	a single-argument constructor taking a Properties argument. The Properties object will contain all the
+	connection parameters. The String argument will have the value of the `socketFactoryArg` connection parameter.
 
 * **socketFactoryArg** (deprecated) = String
 
@@ -460,7 +487,53 @@ Connection conn = DriverManager.getConnection(url);
    for logical replication from that database. <p>Parameter should be use together with 
    `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
     
+* **escapeSyntaxCallMode** = String
+
+	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
+	In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
+	In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there is no 
+	return parameter specified, otherwise the driver uses a SELECT statement.
+	In `escapeSyntaxCallMode=call` mode, the driver always uses a CALL statement (allowing procedure invocation only).
+
+	The default is `select` 
+
+* **maxResultBuffer** = String
+
+    Specifies size of result buffer in bytes, which can't be exceeded during reading result set. 
+    Property can be specified in two styles:
+    - as size of bytes (i.e. 100, 150M, 300K, 400G, 1T);
+    - as percent of max heap memory (i.e. 10p, 15pct, 20percent);
     
+    A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
+    
+	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
+	
+<a name="unix sockets"></a>
+## Unix sockets
+
+Aleksander Blomskøld has forked junixsocket and added a [Unix SocketFactory](https://github.com/fiken/junixsocket/blob/master/junixsocket-common/src/main/java/org/newsclub/net/unix/socketfactory/PostgresqlAFUNIXSocketFactory.java) that works with the driver.
+His code can be found at [https://github.com/fiken/junixsocket](https://github.com/fiken/junixsocket).
+
+Dependencies for junixsocket are :
+
+```xml
+<dependency>
+  <groupId>no.fiken.oss.junixsocket</groupId>
+  <artifactId>junixsocket-common</artifactId>
+  <version>1.0.2</version>
+</dependency>
+<dependency>
+  <groupId>no.fiken.oss.junixsocket</groupId>
+  <artifactId>junixsocket-native-common</artifactId>
+  <version>1.0.2</version>
+</dependency>
+```
+Simply add
+`?socketFactory=org.newsclub.net.unix.socketfactory.PostgresqlAFUNIXSocketFactory&socketFactoryArg=[path-to-the-unix-socket]`
+to the connection URL.
+
+For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
+
 <a name="connection-failover"></a>
 ## Connection Fail-over
 
@@ -478,14 +551,20 @@ postgres installation that has identical data on each node.
 For example streaming replication postgres or postgres-xc cluster.
 
 For example an application can create two connection pools. 
-One data source is for writes, another for reads. The write pool limits connections only to master node:
+One data source is for writes, another for reads. The write pool limits connections only to a primary node:
 
-`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master`.
+`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=primary`.
 
-And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
+And read pool balances connections between secondary nodes, but allows connections also to a primary if no secondaries are available:
 
-`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`
+`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
+<<<<<<< HEAD
 If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
 the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
 will be made to connect to all of the hosts in the URL in order.
+=======
+If a secondary fails, all secondaries in the list will be tried first. If the case that there are no available secondaries
+the primary will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
+will be made to connect to all of the hosts in the URL in order.
+>>>>>>> 263d23605b9e4900fc161da165829a6b2ae168fc

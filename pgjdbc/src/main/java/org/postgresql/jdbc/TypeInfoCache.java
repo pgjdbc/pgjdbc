@@ -24,8 +24,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TypeInfoCache implements TypeInfo {
+
+  private static final Logger LOGGER = Logger.getLogger(TypeInfoCache.class.getName());
 
   // pgname (String) -> java.sql.Types (Integer)
   private Map<String, Integer> pgNameToSQLType;
@@ -57,6 +61,7 @@ public class TypeInfoCache implements TypeInfo {
   private PreparedStatement getArrayElementOidStatement;
   private PreparedStatement getArrayDelimiterStatement;
   private PreparedStatement getTypeInfoStatement;
+  private PreparedStatement getAllTypeInfoStatement;
 
   // basic pg types info:
   // 0 - type name
@@ -72,9 +77,11 @@ public class TypeInfoCache implements TypeInfo {
       {"money", Oid.MONEY, Types.DOUBLE, "java.lang.Double", Oid.MONEY_ARRAY},
       {"numeric", Oid.NUMERIC, Types.NUMERIC, "java.math.BigDecimal", Oid.NUMERIC_ARRAY},
       {"float4", Oid.FLOAT4, Types.REAL, "java.lang.Float", Oid.FLOAT4_ARRAY},
+      {"double precision", Oid.FLOAT8, Types.DOUBLE, "java.lang.Double", Oid.FLOAT8_ARRAY},
       {"float8", Oid.FLOAT8, Types.DOUBLE, "java.lang.Double", Oid.FLOAT8_ARRAY},
       {"char", Oid.CHAR, Types.CHAR, "java.lang.String", Oid.CHAR_ARRAY},
       {"bpchar", Oid.BPCHAR, Types.CHAR, "java.lang.String", Oid.BPCHAR_ARRAY},
+      {"character varying", Oid.VARCHAR, Types.VARCHAR, "java.lang.String", Oid.VARCHAR_ARRAY},
       {"varchar", Oid.VARCHAR, Types.VARCHAR, "java.lang.String", Oid.VARCHAR_ARRAY},
       {"text", Oid.TEXT, Types.VARCHAR, "java.lang.String", Oid.TEXT_ARRAY},
       {"name", Oid.NAME, Types.VARCHAR, "java.lang.String", Oid.NAME_ARRAY},
@@ -83,10 +90,13 @@ public class TypeInfoCache implements TypeInfo {
       {"bit", Oid.BIT, Types.BIT, "java.lang.Boolean", Oid.BIT_ARRAY},
       {"date", Oid.DATE, Types.DATE, "java.sql.Date", Oid.DATE_ARRAY},
       {"time", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
+      {"time without time zone", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
       {"timetz", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
+      {"time with time zone", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
       {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
-      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp",
-          Oid.TIMESTAMPTZ_ARRAY},
+      {"timestamp without time zone", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
+      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMPTZ_ARRAY},
+      {"timestamp with time zone", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMPTZ_ARRAY},
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
       //#endif
@@ -167,7 +177,6 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-
   public synchronized void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
     pgNameToPgObject.put(type, klass);
@@ -176,6 +185,74 @@ public class TypeInfoCache implements TypeInfo {
 
   public Iterator<String> getPGTypeNamesWithSQLTypes() {
     return pgNameToSQLType.keySet().iterator();
+  }
+
+  private String getSQLTypeQuery(boolean typnameParam) {
+    // There's no great way of telling what's an array type.
+    // People can name their own types starting with _.
+    // Other types use typelem that aren't actually arrays, like box.
+    //
+    // in case of multiple records (in different schemas) choose the one from the current
+    // schema,
+    // otherwise take the last version of a type that is at least more deterministic then before
+    // (keeping old behaviour of finding types, that should not be found without correct search
+    // path)
+    StringBuilder sql = new StringBuilder();
+    sql.append("SELECT typinput='array_in'::regproc as is_array, typtype, typname ");
+    sql.append("  FROM pg_catalog.pg_type ");
+    sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
+    sql.append("          from pg_namespace as ns ");
+    // -- go with older way of unnesting array to be compatible with 8.0
+    sql.append("          join ( select s.r, (current_schemas(false))[s.r] as nspname ");
+    sql.append("                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r ");
+    sql.append("         using ( nspname ) ");
+    sql.append("       ) as sp ");
+    sql.append("    ON sp.nspoid = typnamespace ");
+    if (typnameParam) {
+      sql.append(" WHERE typname = ? ");
+    }
+    sql.append(" ORDER BY sp.r, pg_type.oid DESC;");
+    return sql.toString();
+  }
+
+  private int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
+    Integer type = null;
+    boolean isArray = rs.getBoolean("is_array");
+    String typtype = rs.getString("typtype");
+    if (isArray) {
+      type = Types.ARRAY;
+    } else if ("c".equals(typtype)) {
+      type = Types.STRUCT;
+    } else if ("d".equals(typtype)) {
+      type = Types.DISTINCT;
+    } else if ("e".equals(typtype)) {
+      type = Types.VARCHAR;
+    }
+    if (type == null) {
+      type = Types.OTHER;
+    }
+    return type;
+  }
+
+  public void cacheSQLTypes() throws SQLException {
+    LOGGER.log(Level.FINEST, "caching all SQL typecodes");
+    if (getAllTypeInfoStatement == null) {
+      getAllTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(false));
+    }
+    // Go through BaseStatement to avoid transaction start.
+    if (!((BaseStatement) getAllTypeInfoStatement)
+        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+    }
+    ResultSet rs = getAllTypeInfoStatement.getResultSet();
+    while (rs.next()) {
+      String typeName = rs.getString("typname");
+      Integer type = getSQLTypeFromQueryResult(rs);
+      if (!pgNameToSQLType.containsKey(typeName)) {
+        pgNameToSQLType.put(typeName, type);
+      }
+    }
+    rs.close();
   }
 
   public int getSQLType(int oid) throws SQLException {
@@ -191,32 +268,10 @@ public class TypeInfoCache implements TypeInfo {
       return i;
     }
 
-    if (getTypeInfoStatement == null) {
-      // There's no great way of telling what's an array type.
-      // People can name their own types starting with _.
-      // Other types use typelem that aren't actually arrays, like box.
-      //
-      String sql;
-      // in case of multiple records (in different schemas) choose the one from the current
-      // schema,
-      // otherwise take the last version of a type that is at least more deterministic then before
-      // (keeping old behaviour of finding types, that should not be found without correct search
-      // path)
-      sql = "SELECT typinput='array_in'::regproc, typtype "
-            + "  FROM pg_catalog.pg_type "
-            + "  LEFT "
-            + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-            + "          from pg_namespace as ns "
-            // -- go with older way of unnesting array to be compatible with 8.0
-            + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-            + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-            + "         using ( nspname ) "
-            + "       ) as sp "
-            + "    ON sp.nspoid = typnamespace "
-            + " WHERE typname = ? "
-            + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
+    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type '{0}'", pgTypeName);
 
-      getTypeInfoStatement = conn.prepareStatement(sql);
+    if (getTypeInfoStatement == null) {
+      getTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(true));
     }
 
     getTypeInfoStatement.setString(1, pgTypeName);
@@ -229,23 +284,9 @@ public class TypeInfoCache implements TypeInfo {
 
     ResultSet rs = getTypeInfoStatement.getResultSet();
 
-    Integer type = null;
+    Integer type = Types.OTHER;
     if (rs.next()) {
-      boolean isArray = rs.getBoolean(1);
-      String typtype = rs.getString(2);
-      if (isArray) {
-        type = Types.ARRAY;
-      } else if ("c".equals(typtype)) {
-        type = Types.STRUCT;
-      } else if ("d".equals(typtype)) {
-        type = Types.DISTINCT;
-      } else if ("e".equals(typtype)) {
-        type = Types.VARCHAR;
-      }
-    }
-
-    if (type == null) {
-      type = Types.OTHER;
+      type = getSQLTypeFromQueryResult(rs);
     }
     rs.close();
 

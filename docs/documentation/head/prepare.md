@@ -21,5 +21,5 @@ default, and you must set `tcpip_socket = true` in the `postgresql.conf` file.
 Once you have made sure the server is correctly listening for TCP/IP connections
 the next step is to verify that users are allowed to connect to the server. Client
 authentication is setup in `pg_hba.conf`. Refer to the main PostgreSQL™ documentation
-for details. The JDBC driver supports the `trust`, `ident`, `password`, `md5`, and
+for details. The JDBC driver supports the `trust`, `ident`, `password`, `md5`, `gss` and
 `crypt` authentication methods.

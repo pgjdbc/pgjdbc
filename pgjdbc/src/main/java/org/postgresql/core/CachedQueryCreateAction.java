@@ -44,7 +44,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     if (key instanceof CallableQueryKey) {
       JdbcCallParseInfo callInfo =
           Parser.modifyJdbcCall(parsedSql, queryExecutor.getStandardConformingStrings(),
-              queryExecutor.getServerVersionNum(), queryExecutor.getProtocolVersion());
+              queryExecutor.getServerVersionNum(), queryExecutor.getProtocolVersion(), queryExecutor.getEscapeSyntaxCallMode());
       parsedSql = callInfo.getSql();
       isFunction = callInfo.isFunction();
     } else {

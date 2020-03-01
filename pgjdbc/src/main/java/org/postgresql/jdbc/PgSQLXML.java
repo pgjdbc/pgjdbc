@@ -175,6 +175,7 @@ public class PgSQLXML implements SQLXML {
   public synchronized Writer setCharacterStream() throws SQLException {
     checkFreed();
     initialize();
+    active = true;
     stringWriter = new StringWriter();
     return stringWriter;
   }
@@ -287,7 +288,6 @@ public class PgSQLXML implements SQLXML {
       }
     }
   }
-
 
   private void initialize() throws SQLException {
     if (initialized) {

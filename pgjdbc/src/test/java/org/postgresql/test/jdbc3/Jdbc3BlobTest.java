@@ -186,7 +186,6 @@ public class Jdbc3BlobTest {
     ps.close();
   }
 
-
   /**
    * Test the writing and reading of a single byte.
    */
@@ -238,7 +237,6 @@ public class Jdbc3BlobTest {
   public void readWriteStream(byte[] data) throws SQLException, IOException {
     readWriteStream(1, data);
   }
-
 
   /**
    * Reads then writes data to the blob via a stream.

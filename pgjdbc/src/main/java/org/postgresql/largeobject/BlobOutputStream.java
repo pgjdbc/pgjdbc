@@ -86,7 +86,6 @@ public class BlobOutputStream extends OutputStream {
     }
   }
 
-
   /**
    * Flushes this output stream and forces any buffered output bytes to be written out. The general
    * contract of <code>flush</code> is that calling it is an indication that, if any bytes

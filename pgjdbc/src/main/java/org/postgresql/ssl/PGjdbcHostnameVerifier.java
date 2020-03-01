@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -152,7 +153,7 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
       anyDnsSan |= sanType == TYPE_DNS_NAME;
       if (verifyHostName(canonicalHostname, san)) {
         if (LOGGER.isLoggable(Level.FINEST)) {
-          LOGGER.log(Level.SEVERE,
+          LOGGER.log(Level.FINEST,
               GT.tr("Server name validation pass for {0}, subjectAltName {1}", hostname, san));
         }
         return true;

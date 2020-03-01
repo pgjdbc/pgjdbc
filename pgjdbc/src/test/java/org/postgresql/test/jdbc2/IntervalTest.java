@@ -25,6 +25,7 @@ import java.sql.Statement;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 
 public class IntervalTest {
   private Connection conn;
@@ -102,15 +103,13 @@ public class IntervalTest {
     pstmt.close();
   }
 
-
   @Test
   public void testIntervalToStringCoercion() throws SQLException {
     PGInterval interval = new PGInterval("1 year 3 months");
     String coercedStringValue = interval.toString();
 
-    assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.00 secs", coercedStringValue);
+    assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.0 secs", coercedStringValue);
   }
-
 
   @Test
   public void testDaysHours() throws SQLException {
@@ -176,6 +175,15 @@ public class IntervalTest {
     assertEquals(-15, pgi.getHours());
     assertEquals(57, pgi.getMinutes());
     assertEquals(-12.1, pgi.getSeconds(), 0);
+
+    // Unjustified interval test
+    pgi = new PGInterval("@ 0 years 0 mons 0 days 900 hours 0 mins 0.00 secs");
+    assertEquals(0, pgi.getYears());
+    assertEquals(0, pgi.getMonths());
+    assertEquals(0, pgi.getDays());
+    assertEquals(900, pgi.getHours());
+    assertEquals(0, pgi.getMinutes());
+    assertEquals(0, pgi.getSeconds(), 0);
   }
 
   private Calendar getStartCalendar() {
@@ -258,7 +266,7 @@ public class IntervalTest {
   }
 
   @Test
-  public void testISODate() throws Exception {
+  public void testPostgresDate() throws Exception {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();
 
@@ -271,8 +279,93 @@ public class IntervalTest {
     assertEquals(date2, date);
   }
 
+  @Test
+  public void testISO8601() throws Exception {
+    PGInterval pgi = new PGInterval("P1Y2M3DT4H5M6S");
+    assertEquals(1, pgi.getYears() );
+    assertEquals(2, pgi.getMonths() );
+    assertEquals(3, pgi.getDays() );
+    assertEquals(4, pgi.getHours() );
+    assertEquals( 5, pgi.getMinutes() );
+    assertEquals( 6, pgi.getSeconds(), .1 );
+
+    pgi = new PGInterval("P-1Y2M3DT4H5M6S");
+    assertEquals(-1, pgi.getYears());
+
+    pgi = new PGInterval("P1Y2M");
+    assertEquals(1,pgi.getYears());
+    assertEquals(2, pgi.getMonths());
+    assertEquals(0, pgi.getDays());
+
+    pgi = new PGInterval("P3DT4H5M6S");
+    assertEquals(0,pgi.getYears());
+
+    pgi = new PGInterval("P-1Y-2M3DT-4H-5M-6S");
+    assertEquals(-1, pgi.getYears());
+    assertEquals(-2, pgi.getMonths());
+    assertEquals(-4, pgi.getHours());
+  }
+
+  @Test
+  public void testSmallValue() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO testinterval VALUES (?)");
+    pstmt.setObject(1, new PGInterval("0.0001 seconds"));
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT v FROM testinterval");
+    assertTrue(rs.next());
+    PGInterval pgi = (PGInterval) rs.getObject(1);
+    assertEquals(0, pgi.getYears());
+    assertEquals(0, pgi.getMonths());
+    assertEquals(0, pgi.getDays());
+    assertEquals(0, pgi.getHours());
+    assertEquals(0, pgi.getMinutes());
+    assertEquals(0, pgi.getWholeSeconds());
+    assertEquals(100, pgi.getMicroSeconds());
+    assertFalse(rs.next());
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testGetValueForSmallValue() throws SQLException {
+    PGInterval orig = new PGInterval("0.0001 seconds");
+    PGInterval copy = new PGInterval(orig.getValue());
+
+    assertEquals(orig, copy);
+  }
+
+  @Test
+  public void testGetValueForSmallValueWithCommaAsDecimalSeparatorInDefaultLocale() throws SQLException {
+    Locale originalLocale = Locale.getDefault();
+    Locale.setDefault(Locale.GERMANY);
+    try {
+      PGInterval orig = new PGInterval("0.0001 seconds");
+      PGInterval copy = new PGInterval(orig.getValue());
+
+      assertEquals(orig, copy);
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test
+  public void testGetSecondsForSmallValue() throws SQLException {
+    PGInterval pgi = new PGInterval("0.000001 seconds");
+
+    assertEquals(0.000001, pgi.getSeconds(), 0.000000001);
+  }
+
+  @Test
+  public void testMicroSecondsAreRoundedToNearest() throws SQLException {
+    PGInterval pgi = new PGInterval("0.0000007 seconds");
+
+    assertEquals(1, pgi.getMicroSeconds());
+  }
+
   private java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }
-
 }

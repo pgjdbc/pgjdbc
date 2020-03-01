@@ -3,12 +3,10 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 import java.util.ArrayList;
 import java.util.List;
-
 
 /**
  * This class is used to tokenize the text output of org.postgres. It's mainly used by the geometric
@@ -91,8 +89,6 @@ public class PGtokenizer {
     }
 
     // Don't forget the last token ;-)
-
-
     if (s < string.length()) {
       tokens.add(string.substring(s));
     }

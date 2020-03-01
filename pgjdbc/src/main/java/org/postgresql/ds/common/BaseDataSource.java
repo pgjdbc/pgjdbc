@@ -23,9 +23,11 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
@@ -38,16 +40,16 @@ import javax.sql.CommonDataSource;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public abstract class BaseDataSource implements CommonDataSource, Referenceable {
 
+public abstract class BaseDataSource implements CommonDataSource, Referenceable {
   private static final Logger LOGGER = Logger.getLogger(BaseDataSource.class.getName());
 
   // Standard properties, defined in the JDBC 2.0 Optional Package spec
-  private String serverName = "localhost";
+  private String[] serverNames = new String[] {"localhost"};
   private String databaseName = "";
   private String user;
   private String password;
-  private int portNumber = 0;
+  private int[] portNumbers = new int[] {0};
 
   // Map for all other properties
   private Properties properties = new Properties();
@@ -63,7 +65,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     try {
       Class.forName("org.postgresql.Driver");
     } catch (ClassNotFoundException e) {
-      throw new IllegalStateException("BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath", e);
+      throw new IllegalStateException(
+        "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
+        e);
     }
   }
 
@@ -84,7 +88,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * properties serverName, databaseName, and portNumber. The user to connect as is identified by
    * the arguments user and password, which override the DataSource properties by the same name.
    *
-   * @param user user
+   * @param user     user
    * @param password password
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
@@ -93,12 +97,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     try {
       Connection con = DriverManager.getConnection(getUrl(), user, password);
       if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
+        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}",
+            new Object[] {getDescription(), user, getUrl()});
       }
       return con;
     } catch (SQLException e) {
       LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[]{getDescription(), user, getUrl(), e});
+          new Object[] {getDescription(), user, getUrl(), e});
       throw e;
     }
   }
@@ -113,6 +118,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * This implementation don't use a LogWriter.
+   *
    * @param printWriter Not used
    */
   @Override
@@ -124,9 +130,20 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * Gets the name of the host the PostgreSQL database is running on.
    *
    * @return name of the host the PostgreSQL database is running on
+   * @deprecated use {@link #getServerNames()}
    */
+  @Deprecated
   public String getServerName() {
-    return serverName;
+    return serverNames[0];
+  }
+
+  /**
+   * Gets the name of the host(s) the PostgreSQL database is running on.
+   *
+   * @return name of the host(s) the PostgreSQL database is running on
+   */
+  public String[] getServerNames() {
+    return serverNames;
   }
 
   /**
@@ -134,12 +151,30 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
    *
    * @param serverName name of the host the PostgreSQL database is running on
+   * @deprecated use {@link #setServerNames(String[])}
    */
+  @Deprecated
   public void setServerName(String serverName) {
-    if (serverName == null || serverName.equals("")) {
-      this.serverName = "localhost";
+    this.setServerNames(new String[] { serverName });
+  }
+
+  /**
+   * Sets the name of the host(s) the PostgreSQL database is running on. If this is changed, it will
+   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   *
+   * @param serverNames name of the host(s) the PostgreSQL database is running on
+   */
+  public void setServerNames(String[] serverNames) {
+    if (serverNames == null || serverNames.length == 0) {
+      this.serverNames = new String[] {"localhost"};
     } else {
-      this.serverName = serverName;
+      serverNames = Arrays.copyOf(serverNames, serverNames.length);
+      for (int i = 0; i < serverNames.length; i++) {
+        if (serverNames[i] == null || serverNames[i].equals("")) {
+          serverNames[i] = "localhost";
+        }
+      }
+      this.serverNames = serverNames;
     }
   }
 
@@ -216,20 +251,50 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * Gets the port which the PostgreSQL server is listening on for TCP/IP connections.
    *
    * @return The port, or 0 if the default port will be used.
+   * @deprecated use {@link #getPortNumbers()}
    */
+  @Deprecated
   public int getPortNumber() {
-    return portNumber;
+    if (portNumbers == null || portNumbers.length == 0) {
+      return 0;
+    }
+    return portNumbers[0];
   }
 
   /**
-   * Gets the port which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
+   * Gets the port(s) which the PostgreSQL server is listening on for TCP/IP connections.
+   *
+   * @return The port(s), or 0 if the default port will be used.
+   */
+  public int[] getPortNumbers() {
+    return portNumbers;
+  }
+
+  /**
+   * Sets the port which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
    * -i flag is passed to postmaster when PostgreSQL is started. If this is not set, or set to 0,
    * the default port will be used.
    *
    * @param portNumber port which the PostgreSQL server is listening on for TCP/IP
+   * @deprecated use {@link #setPortNumbers(int[])}
    */
+  @Deprecated
   public void setPortNumber(int portNumber) {
-    this.portNumber = portNumber;
+    setPortNumbers(new int[] { portNumber });
+  }
+
+  /**
+   * Sets the port(s) which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
+   * -i flag is passed to postmaster when PostgreSQL is started. If this is not set, or set to 0,
+   * the default port will be used.
+   *
+   * @param portNumbers port(s) which the PostgreSQL server is listening on for TCP/IP
+   */
+  public void setPortNumbers(int[] portNumbers) {
+    if (portNumbers == null || portNumbers.length == 0) {
+      portNumbers = new int[] { 0 };
+    }
+    this.portNumbers = Arrays.copyOf(portNumbers, portNumbers.length);
   }
 
   /**
@@ -241,6 +306,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Set command line options for this connection
+   *
    * @param options string to set options to
    */
   public void setOptions(String options) {
@@ -480,7 +546,6 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public int getCancelSignalTimeout() {
     return PGProperty.CANCEL_SIGNAL_TIMEOUT.getIntNoCheck(properties);
   }
-
 
   /**
    * @param enabled if SSL is enabled
@@ -848,6 +913,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return The behavior when set read only
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  public String getReadOnlyMode() {
+    return PGProperty.READ_ONLY_MODE.get(properties);
+  }
+
+  /**
+   * @param mode the behavior when set read only
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  public void setReadOnlyMode(String mode) {
+    PGProperty.READ_ONLY_MODE.set(properties, mode);
+  }
+
+  /**
    * @return true if driver should log unclosed connections
    * @see PGProperty#LOG_UNCLOSED_CONNECTIONS
    */
@@ -861,6 +942,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setLogUnclosedConnections(boolean enabled) {
     PGProperty.LOG_UNCLOSED_CONNECTIONS.set(properties, enabled);
+  }
+
+  /**
+   * @return true if driver should log include detail in server error messages
+   * @see PGProperty#LOG_SERVER_ERROR_DETAIL
+   */
+  public boolean getLogServerErrorDetail() {
+    return PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(properties);
+  }
+
+  /**
+   * @param enabled true if driver should include detail in server error messages
+   * @see PGProperty#LOG_SERVER_ERROR_DETAIL
+   */
+  public void setLogServerErrorDetail(boolean enabled) {
+    PGProperty.LOG_SERVER_ERROR_DETAIL.set(properties, enabled);
   }
 
   /**
@@ -1032,6 +1129,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return 'select', "callIfNoReturn', or 'call'
+   * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
+   */
+  public String getEscapeSyntaxCallMode() {
+    return PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(properties);
+  }
+
+  /**
+   * @param callMode the call mode to use for JDBC escape call syntax
+   * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
+   */
+  public void setEscapeSyntaxCallMode(String callMode) {
+    PGProperty.ESCAPE_SYNTAX_CALL_MODE.set(properties, callMode);
+  }
+
+  /**
    * @return null, 'database', or 'true
    * @see PGProperty#REPLICATION
    */
@@ -1080,14 +1193,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public String getUrl() {
     StringBuilder url = new StringBuilder(100);
     url.append("jdbc:postgresql://");
-    url.append(serverName);
-    if (portNumber != 0) {
-      url.append(":").append(portNumber);
+    for (int i = 0; i < serverNames.length; i++) {
+      if (i > 0) {
+        url.append(",");
+      }
+      url.append(serverNames[i]);
+      if (portNumbers != null && portNumbers.length >= i && portNumbers[i] != 0) {
+        url.append(":").append(portNumbers[i]);
+      }
     }
     url.append("/").append(URLCoder.encode(databaseName));
 
     StringBuilder query = new StringBuilder(100);
-    for (PGProperty property: PGProperty.values()) {
+    for (PGProperty property : PGProperty.values()) {
       if (property.isPresent(properties)) {
         if (query.length() != 0) {
           query.append("&");
@@ -1124,7 +1242,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
     Properties p = org.postgresql.Driver.parseURL(url, null);
 
-    if (p == null ) {
+    if (p == null) {
       throw new IllegalArgumentException("URL invalid " + url);
     }
     for (PGProperty property : PGProperty.values()) {
@@ -1150,7 +1268,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       return getProperty(pgProperty);
     } else {
       throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -1160,7 +1278,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       setProperty(pgProperty, value);
     } else {
       throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-          PSQLState.INVALID_PARAMETER_VALUE);
+        PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -1174,23 +1292,28 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
     switch (property) {
       case PG_HOST:
-        serverName = value;
+        setServerNames(value.split(","));
         break;
       case PG_PORT:
-        try {
-          portNumber = Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-          portNumber = 0;
+        String[] ps = value.split(",");
+        int[] ports = new int[ps.length];
+        for (int i = 0 ; i < ps.length; i++) {
+          try {
+            ports[i] = Integer.parseInt(ps[i]);
+          } catch (NumberFormatException e) {
+            ports[i] = 0;
+          }
         }
+        setPortNumbers(ports);
         break;
       case PG_DBNAME:
-        databaseName = value;
+        setDatabaseName(value);
         break;
       case USER:
-        user = value;
+        setUser(value);
         break;
       case PASSWORD:
-        password = value;
+        setPassword(value);
         break;
       default:
         properties.setProperty(property.getName(), value);
@@ -1208,10 +1331,25 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
-    ref.add(new StringRefAddr("serverName", serverName));
-    if (portNumber != 0) {
-      ref.add(new StringRefAddr("portNumber", Integer.toString(portNumber)));
+    StringBuilder serverString = new StringBuilder();
+    for (int i = 0; i < serverNames.length; i++) {
+      if (i > 0) {
+        serverString.append(",");
+      }
+      String serverName = serverNames[i];
+      serverString.append(serverName);
     }
+    ref.add(new StringRefAddr("serverName", serverString.toString()));
+
+    StringBuilder portString = new StringBuilder();
+    for (int i = 0; i < portNumbers.length; i++) {
+      if (i > 0) {
+        portString.append(",");
+      }
+      int p = portNumbers[i];
+      portString.append(Integer.toString(p));
+    }
+    ref.add(new StringRefAddr("portNumber", portString.toString()));
     ref.add(new StringRefAddr("databaseName", databaseName));
     if (user != null) {
       ref.add(new StringRefAddr("user", user));
@@ -1231,11 +1369,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public void setFromReference(Reference ref) {
     databaseName = getReferenceProperty(ref, "databaseName");
-    String port = getReferenceProperty(ref, "portNumber");
-    if (port != null) {
-      portNumber = Integer.parseInt(port);
+    String portNumberString = getReferenceProperty(ref, "portNumber");
+    if (portNumberString != null) {
+      String[] ps = portNumberString.split(",");
+      int[] ports = new int[ps.length];
+      for (int i = 0; i < ps.length; i++) {
+        try {
+          ports[i] = Integer.parseInt(ps[i]);
+        } catch (NumberFormatException e) {
+          ports[i] = 0;
+        }
+      }
+      setPortNumbers(ports);
+    } else {
+      setPortNumbers(null);
     }
-    serverName = getReferenceProperty(ref, "serverName");
+    setServerNames(getReferenceProperty(ref, "serverName").split(","));
 
     for (PGProperty property : PGProperty.values()) {
       setProperty(property, getReferenceProperty(ref, property.getName()));
@@ -1251,21 +1400,21 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   protected void writeBaseObject(ObjectOutputStream out) throws IOException {
-    out.writeObject(serverName);
+    out.writeObject(serverNames);
     out.writeObject(databaseName);
     out.writeObject(user);
     out.writeObject(password);
-    out.writeInt(portNumber);
+    out.writeObject(portNumbers);
 
     out.writeObject(properties);
   }
 
   protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    serverName = (String) in.readObject();
+    serverNames = (String[]) in.readObject();
     databaseName = (String) in.readObject();
     user = (String) in.readObject();
     password = (String) in.readObject();
-    portNumber = in.readInt();
+    portNumbers = (int[]) in.readObject();
 
     properties = (Properties) in.readObject();
   }
@@ -1314,6 +1463,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * see PGProperty#CLEANUP_SAVEPOINTS
+   *
    * @return boolean indicating property set
    */
   public boolean getCleanupSavepoints() {
@@ -1322,6 +1472,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * see PGProperty#CLEANUP_SAVEPOINTS
+   *
    * @param cleanupSavepoints will cleanup savepoints after a successful transaction
    */
   public void setCleanupSavepoints(boolean cleanupSavepoints) {
@@ -1344,9 +1495,150 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
   }
 
+  /**
+   * @return boolean indicating property is enabled or not.
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   */
+  public boolean getHideUnprivilegedObjects() {
+    return PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(properties);
+  }
+
+  /**
+   * @param hideUnprivileged boolean value to set the property in the properties collection
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   */
+  public void setHideUnprivilegedObjects(boolean hideUnprivileged) {
+    PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
+  }
+
+  public String getMaxResultBuffer() {
+    return PGProperty.MAX_RESULT_BUFFER.get(properties);
+  }
+
+  public void setMaxResultBuffer(String maxResultBuffer) {
+    PGProperty.MAX_RESULT_BUFFER.set(properties, maxResultBuffer);
+  }
+
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
   }
   //#endif
+
+  /*
+   * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
+   * which expect normal java bean getters / setters to exist for the property names.
+   */
+
+  public boolean isSsl() {
+    return getSsl();
+  }
+
+  public String getSslfactoryarg() {
+    return getSslFactoryArg();
+  }
+
+  public void setSslfactoryarg(final String arg) {
+    setSslFactoryArg(arg);
+  }
+
+  public String getSslcert() {
+    return getSslCert();
+  }
+
+  public void setSslcert(final String file) {
+    setSslCert(file);
+  }
+
+  public String getSslmode() {
+    return getSslMode();
+  }
+
+  public void setSslmode(final String mode) {
+    setSslMode(mode);
+  }
+
+  public String getSslhostnameverifier() {
+    return getSslHostnameVerifier();
+  }
+
+  public void setSslhostnameverifier(final String className) {
+    setSslHostnameVerifier(className);
+  }
+
+  public String getSslkey() {
+    return getSslKey();
+  }
+
+  public void setSslkey(final String file) {
+    setSslKey(file);
+  }
+
+  public String getSslrootcert() {
+    return getSslRootCert();
+  }
+
+  public void setSslrootcert(final String file) {
+    setSslRootCert(file);
+  }
+
+  public String getSslpasswordcallback() {
+    return getSslPasswordCallback();
+  }
+
+  public void setSslpasswordcallback(final String className) {
+    setSslPasswordCallback(className);
+  }
+
+  public String getSslpassword() {
+    return getSslPassword();
+  }
+
+  public void setSslpassword(final String sslpassword) {
+    setSslPassword(sslpassword);
+  }
+
+  public int getRecvBufferSize() {
+    return getReceiveBufferSize();
+  }
+
+  public void setRecvBufferSize(final int nbytes) {
+    setReceiveBufferSize(nbytes);
+  }
+
+  public boolean isAllowEncodingChanges() {
+    return getAllowEncodingChanges();
+  }
+
+  public boolean isLogUnclosedConnections() {
+    return getLogUnclosedConnections();
+  }
+
+  public boolean isTcpKeepAlive() {
+    return getTcpKeepAlive();
+  }
+
+  public boolean isReadOnly() {
+    return getReadOnly();
+  }
+
+  public boolean isDisableColumnSanitiser() {
+    return getDisableColumnSanitiser();
+  }
+
+  public boolean isLoadBalanceHosts() {
+    return getLoadBalanceHosts();
+  }
+
+  public boolean isCleanupSavePoints() {
+    return getCleanupSavepoints();
+  }
+
+  public void setCleanupSavePoints(final boolean cleanupSavepoints) {
+    setCleanupSavepoints(cleanupSavepoints);
+  }
+
+  public boolean isReWriteBatchedInserts() {
+    return getReWriteBatchedInserts();
+  }
 }

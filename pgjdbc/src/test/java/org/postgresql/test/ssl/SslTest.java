@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
 import javax.net.ssl.SSLHandshakeException;
 
 @RunWith(Parameterized.class)
@@ -116,13 +117,12 @@ public class SslTest extends BaseTest4 {
   public static Iterable<Object[]> data() {
     Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
     String enableSslTests = prop.getProperty("enable_ssl_tests");
-    if (!Boolean.valueOf(enableSslTests)) {
+    if (!Boolean.parseBoolean(enableSslTests)) {
       System.out.println("enableSslTests is " + enableSslTests + ", skipping SSL tests");
       return Collections.emptyList();
     }
 
     Collection<Object[]> tests = new ArrayList<Object[]>();
-
 
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();
@@ -271,7 +271,6 @@ public class SslTest extends BaseTest4 {
     } catch (AssertionError ae) {
       errors = addError(errors, ae);
     }
-
 
     try {
       if (assertClientCertificate(e)) {
@@ -455,7 +454,6 @@ public class SslTest extends BaseTest4 {
     }
     return null;
   }
-
 
   @Test
   public void run() throws SQLException {

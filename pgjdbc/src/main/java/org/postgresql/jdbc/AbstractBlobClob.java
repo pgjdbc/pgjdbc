@@ -31,7 +31,6 @@ public abstract class AbstractBlobClob {
   private boolean currentLoIsWriteable;
   private boolean support64bit;
 
-
   /**
    * We create separate LargeObjects for methods that use streams so they won't interfere with each
    * other.
@@ -109,7 +108,6 @@ public abstract class AbstractBlobClob {
     getLo(false).seek((int) (pos - 1), LargeObject.SEEK_SET);
     return getLo(false).read(length);
   }
-
 
   public synchronized InputStream getBinaryStream() throws SQLException {
     checkFreed();
@@ -192,7 +190,6 @@ public abstract class AbstractBlobClob {
     }
   }
 
-
   /**
    * This is simply passing the byte value of the pattern Blob.
    *
@@ -249,8 +246,6 @@ public abstract class AbstractBlobClob {
   }
 
   protected synchronized LargeObject getLo(boolean forWrite) throws SQLException {
-
-
     if (this.currentLo != null) {
       if (forWrite && !currentLoIsWriteable) {
         // Reopen the stream in read-write, at the same pos.

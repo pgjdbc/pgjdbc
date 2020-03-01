@@ -59,7 +59,6 @@ public class ReplicationSlotTest {
     sqlConnection.close();
   }
 
-
   @Test(expected = IllegalArgumentException.class)
   public void testNotAvailableCreatePhysicalSlotWithoutSlotName() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
@@ -398,7 +397,6 @@ public class ReplicationSlotTest {
       TestUtil.dropReplicationSlot(sqlConnection, slotName);
     }
   }
-
 
   private Connection openReplicationConnection() throws Exception {
     Properties properties = new Properties();

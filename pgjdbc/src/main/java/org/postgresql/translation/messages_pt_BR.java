@@ -6,6 +6,8 @@ public class messages_pt_BR extends java.util.ResourceBundle {
     java.lang.String[] t = new java.lang.String[794];
     t[0] = "";
     t[1] = "Project-Id-Version: PostgreSQL 8.4\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2004-10-31 20:48-0300\nLast-Translator: Euler Taveira de Oliveira <euler@timbira.com>\nLanguage-Team: Brazilian Portuguese <pgbr-dev@listas.postgresql.org.br>\nLanguage: pt_BR\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
+    t[2] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[3] = "Não está implementado: efetivação da segunda fase deve ser executada utilizado uma conexão ociosa. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[4] = "DataSource has been closed.";
     t[5] = "DataSource foi fechado.";
     t[8] = "Invalid flags {0}";
@@ -186,8 +188,6 @@ public class messages_pt_BR extends java.util.ResourceBundle {
     t[443] = "Zero bytes não podem ocorrer em parâmetros de cadeia de caracteres.";
     t[444] = "A result was returned when none was expected.";
     t[445] = "Um resultado foi retornado quando nenhum era esperado.";
-    t[446] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[447] = "Não está implementado: efetivação da segunda fase deve ser executada utilizado uma conexão ociosa. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
     t[450] = "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details.";
     t[451] = "ResultSet não é atualizável. A consulta que gerou esse conjunto de resultados deve selecionar somente uma tabela, e deve selecionar todas as chaves primárias daquela tabela. Veja a especificação na API do JDBC 2.1, seção 5.6 para obter mais detalhes.";
     t[454] = "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.";
@@ -304,8 +304,6 @@ public class messages_pt_BR extends java.util.ResourceBundle {
     t[719] = "Interrompido ao tentar se conectar.";
     t[722] = "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to.";
     t[723] = "Sua política de segurança impediu que a conexão pudesse ser estabelecida. Você provavelmente precisa conceder permissão em java.net.SocketPermission para a máquina e a porta do servidor de banco de dados que você deseja se conectar.";
-    t[728] = "Failed to initialize LargeObject API";
-    t[729] = "Falhou ao inicializar API de Objetos Grandes";
     t[734] = "No function outputs were registered.";
     t[735] = "Nenhum saída de função foi registrada.";
     t[736] = "{0} function takes one and only one argument.";

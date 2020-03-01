@@ -39,6 +39,7 @@ before_script:
   - if [[ $TRAVIS_BRANCH == release/* ]]; then echo "MAVEN_OPTS='-Xmx1g'" > ~/.mavenrc; else echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc; fi
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
+  - test "x$PG_VERSION" == 'x' || test "x$PLPGSQL_EXTENSION" == 'x' || psql test -c 'CREATE EXTENSION IF NOT EXISTS plpgsql;' -U postgres
 
 env:
   global:
@@ -102,6 +103,38 @@ matrix:
       - PG_VERSION=10
       - JDK=12
       - TZ=America/New_York # flips between −05:00 and −04:00
+    - jdk: openjdk-ea
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
+    - jdk: oraclejdk9
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
+        - JDK=9
+    - jdk: oraclejdk8
+      sudo: required
+      addons:
+        postgresql: "11"
+      env:
+        - PG_VERSION=11
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - PLPGSQL_EXTENSION=Y
+        - JDK=8
     - jdk: oraclejdk11
       sudo: required
       addons:
@@ -126,6 +159,7 @@ matrix:
         - COVERAGE=Y
         - TEST_CLIENTS=Y
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
+        - JDK=8
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -146,6 +180,7 @@ matrix:
         - PG_VERSION=9.5
         - XA=true
         - REPLICATION=Y
+        - JDK=8
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
@@ -154,6 +189,7 @@ matrix:
         - QUERY_MODE=extendedCacheEverything
         - COVERAGE=Y
         - TZ=Europe/Moscow # +03:00, no DST
+        - JDK=8
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -162,6 +198,7 @@ matrix:
         - PG_VERSION=10
         - SSLTEST=Y
         - COVERAGE=Y
+        - JDK=8
     - jdk: openjdk7
       sudo: required
       addons:
@@ -189,24 +226,6 @@ matrix:
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.3
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.2
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
       addons:
         postgresql: "9.6"
       env:
@@ -214,6 +233,7 @@ matrix:
         - QUERY_MODE=simple
         - COVERAGE=Y
         - TEST_CLIENTS=Y
+        - JDK=8
     - jdk: oraclejdk8
       addons:
         postgresql: "9.3"
@@ -221,12 +241,14 @@ matrix:
         - PG_VERSION=9.3
         - QUERY_MODE=extendedForPrepared
         - COVERAGE=Y
+        - JDK=8
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
         - NO_WAFFLE_NO_OSGI=Y
+        - JDK=8
     - stage: release
       jdk: oraclejdk8
       env:

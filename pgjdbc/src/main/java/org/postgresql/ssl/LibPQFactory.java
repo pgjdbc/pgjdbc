@@ -25,6 +25,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.Properties;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -39,7 +40,45 @@ import javax.security.auth.callback.UnsupportedCallbackException;
  */
 public class LibPQFactory extends WrappedFactory {
 
-  LazyKeyManager km;
+  KeyManager km;
+  boolean defaultfile;
+
+  private CallbackHandler getCallbackHandler(Properties info) throws PSQLException {
+    // Determine the callback handler
+    CallbackHandler cbh;
+    String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
+    if (sslpasswordcallback != null) {
+      try {
+        cbh = (CallbackHandler) ObjectFactory.instantiate(sslpasswordcallback, info, false, null);
+      } catch (Exception e) {
+        throw new PSQLException(
+          GT.tr("The password callback class provided {0} could not be instantiated.",
+            sslpasswordcallback),
+          PSQLState.CONNECTION_FAILURE, e);
+      }
+    } else {
+      cbh = new ConsoleCallbackHandler(PGProperty.SSL_PASSWORD.get(info));
+    }
+    return cbh;
+  }
+
+  private void initPk8(String sslkeyfile, String defaultdir, Properties info) throws  PSQLException {
+
+    // Load the client's certificate and key
+    String sslcertfile = PGProperty.SSL_CERT.get(info);
+    if (sslcertfile == null) { // Fall back to default
+      defaultfile = true;
+      sslcertfile = defaultdir + "postgresql.crt";
+    }
+
+    // If the properties are empty, give null to prevent client key selection
+    km = new LazyKeyManager(("".equals(sslcertfile) ? null : sslcertfile),
+      ("".equals(sslkeyfile) ? null : sslkeyfile), getCallbackHandler(info), defaultfile);
+  }
+
+  private void initP12(String sslkeyfile, Properties info) throws PSQLException {
+    km = new PKCS12KeyManager(sslkeyfile, getCallbackHandler(info));
+  }
 
   /**
    * @param info the connection parameters The following parameters are used:
@@ -53,44 +92,25 @@ public class LibPQFactory extends WrappedFactory {
       // Determining the default file location
       String pathsep = System.getProperty("file.separator");
       String defaultdir;
-      boolean defaultfile = false;
+
       if (System.getProperty("os.name").toLowerCase().contains("windows")) { // It is Windows
         defaultdir = System.getenv("APPDATA") + pathsep + "postgresql" + pathsep;
       } else {
         defaultdir = System.getProperty("user.home") + pathsep + ".postgresql" + pathsep;
       }
 
-      // Load the client's certificate and key
-      String sslcertfile = PGProperty.SSL_CERT.get(info);
-      if (sslcertfile == null) { // Fall back to default
-        defaultfile = true;
-        sslcertfile = defaultdir + "postgresql.crt";
-      }
       String sslkeyfile = PGProperty.SSL_KEY.get(info);
       if (sslkeyfile == null) { // Fall back to default
         defaultfile = true;
         sslkeyfile = defaultdir + "postgresql.pk8";
       }
-
-      // Determine the callback handler
-      CallbackHandler cbh;
-      String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
-      if (sslpasswordcallback != null) {
-        try {
-          cbh = (CallbackHandler) ObjectFactory.instantiate(sslpasswordcallback, info, false, null);
-        } catch (Exception e) {
-          throw new PSQLException(
-              GT.tr("The password callback class provided {0} could not be instantiated.",
-                  sslpasswordcallback),
-              PSQLState.CONNECTION_FAILURE, e);
-        }
-      } else {
-        cbh = new ConsoleCallbackHandler(PGProperty.SSL_PASSWORD.get(info));
+      if (sslkeyfile.endsWith("pk8")) {
+        initPk8(sslkeyfile, defaultdir, info);
       }
 
-      // If the properties are empty, give null to prevent client key selection
-      km = new LazyKeyManager(("".equals(sslcertfile) ? null : sslcertfile),
-          ("".equals(sslkeyfile) ? null : sslkeyfile), cbh, defaultfile);
+      if (sslkeyfile.endsWith("p12")) {
+        initP12(sslkeyfile, info);
+      }
 
       TrustManager[] tm;
       SslMode sslMode = SslMode.of(info);
@@ -171,7 +191,12 @@ public class LibPQFactory extends WrappedFactory {
    */
   public void throwKeyManagerException() throws PSQLException {
     if (km != null) {
-      km.throwKeyManagerException();
+      if (km instanceof LazyKeyManager) {
+        ((LazyKeyManager)km).throwKeyManagerException();
+      }
+      if (km instanceof PKCS12KeyManager) {
+        ((PKCS12KeyManager)km).throwKeyManagerException();
+      }
     }
   }
 
@@ -179,7 +204,7 @@ public class LibPQFactory extends WrappedFactory {
    * A CallbackHandler that reads the password from the console or returns the password given to its
    * constructor.
    */
-  static class ConsoleCallbackHandler implements CallbackHandler {
+  public static class ConsoleCallbackHandler implements CallbackHandler {
 
     private char[] password = null;
 

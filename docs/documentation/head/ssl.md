@@ -20,10 +20,12 @@ next: ssl-client.html
 # Configuring the Server
 
 Configuring the PostgreSQL™ server for SSL is covered in the [main
-documentation](http://www.postgresql.org/docs/current/static/ssl-tcp.html),
-so it will not be repeated here. Before trying to access your SSL enabled
-server from Java, make sure you can get to it via **psql**. You should
-see output like the following if you have established a SSL  connection. 
+documentation](https://www.postgresql.org/docs/current/ssl-tcp.html),
+so it will not be repeated here. There are also instructions in the source 
+[certdir](https://github.com/pgjdbc/pgjdbc/tree/master/certdir)
+Before trying to access your SSL enabled server from Java, make sure 
+you can get to it via **psql**. You should see output like the following 
+if you have established a SSL  connection. 
 
 ```
 $ ./bin/psql -h localhost -U postgres
