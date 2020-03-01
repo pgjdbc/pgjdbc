@@ -25,6 +25,11 @@ configurations {
     compileOnly {
         extendsFrom(shaded)
     }
+    // Add shaded dependencies to test as well
+    // This enables to execute unit tests with original (non-shaded dependencies)
+    testImplementation {
+        extendsFrom(shaded)
+    }
 }
 
 dependencies {
@@ -98,6 +103,7 @@ tasks.compileJava {
     }
 }
 
+//<editor-fold defaultstate="collapsed" desc="Third-party license gathering">
 val getShadedDependencyLicenses by tasks.registering(GatherLicenseTask::class) {
     configuration(shaded)
     extraLicenseDir.set(file("$rootDir/licenses"))
@@ -125,6 +131,7 @@ val renderShadedLicense by tasks.registering(com.github.vlsi.gradle.release.Apac
 }
 
 val shadedLicenseFiles = licensesCopySpec(renderShadedLicense)
+//</editor-fold>
 
 tasks.shadowJar {
     configurations = listOf(shaded)
@@ -144,7 +151,7 @@ tasks.shadowJar {
 publishing {
     publications {
         configureEach<MavenPublication> {
-            // Remove defaul jar
+            // Remove default jar
             artifacts.removeIf { it.extension == "jar" && it.classifier.isNullOrBlank() }
             // Publish shadow jar instead
             artifact(tasks.shadowJar.get()) {
