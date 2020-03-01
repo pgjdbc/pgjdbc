@@ -4,6 +4,7 @@
  */
 
 import com.github.spotbugs.SpotBugsTask
+import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.git.FindGitAttributes
@@ -82,6 +83,26 @@ val licenseHeaderFile = file("config/license.header.java")
 val jacocoReport by tasks.registering(JacocoReport::class) {
     group = "Coverage reports"
     description = "Generates an aggregate report from all subprojects"
+}
+
+releaseParams {
+    tlp.set("pgjdbc")
+    organizationName.set("pgjdbc")
+    componentName.set("pgjdbc")
+    prefixForProperties.set("gh")
+    svnDistEnabled.set(false)
+    sitePreviewEnabled.set(false)
+    nexus {
+        mavenCentral()
+    }
+    voteText.set {
+        """
+        ${it.componentName} v${it.version}-rc${it.rc} is ready for preview.
+
+        Git SHA: ${it.gitSha}
+        Staging repository: ${it.nexusRepositoryUri}
+        """.trimIndent()
+    }
 }
 
 allprojects {
@@ -176,7 +197,7 @@ allprojects {
         }
     }
 
-    tasks.withType<AbstractArchiveTask>().configureEach {
+    tasks.configureEach<AbstractArchiveTask> {
         // Ensure builds are reproducible
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
@@ -227,7 +248,7 @@ allprojects {
             executionData(execFiles)
         }
 
-        tasks.withType<JacocoReport>().configureEach {
+        tasks.configureEach<JacocoReport> {
             reports {
                 html.isEnabled = reportsForHumans()
                 xml.isEnabled = !reportsForHumans()
@@ -236,7 +257,7 @@ allprojects {
     }
 
     tasks {
-        withType<Javadoc>().configureEach {
+        configureEach<Javadoc> {
             (options as StandardJavadocDocletOptions).apply {
                 // Please refrain from using non-ASCII chars below since the options are passed as
                 // javadoc.options file which is parsed with "default encoding"
@@ -268,22 +289,20 @@ allprojects {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
+        configure<JavaPluginExtension> {
+            withSourcesJar()
+            if (!skipJavadoc) {
+                withJavadocJar()
+            }
+        }
 
         val sourceSets: SourceSetContainer by project
 
-        apply(plugin = "signing")
         apply(plugin = "maven-publish")
 
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {
                 enabled = false
-            }
-        }
-
-        if (isReleaseVersion) {
-            configure<SigningExtension> {
-                // Sign all the publications
-                sign(publishing.publications)
             }
         }
 
@@ -348,9 +367,9 @@ allprojects {
         }
 
         tasks {
-            withType<Jar>().configureEach {
+            configureEach<Jar> {
                 manifest {
-                    attributes["Bundle-License"] = "Apache-2.0"
+                    attributes["Bundle-License"] = "BSD-2-Clause"
                     attributes["Implementation-Title"] = "PostgreSQL JDBC Driver"
                     attributes["Implementation-Version"] = "4.2" // TODO: JDBC spec version
                     attributes["Specification-Vendor"] = "Oracle Corporation"
@@ -361,10 +380,10 @@ allprojects {
                 }
             }
 
-            withType<JavaCompile>().configureEach {
+            configureEach<JavaCompile> {
                 options.encoding = "UTF-8"
             }
-            withType<Test>().configureEach {
+            configureEach<Test> {
                 useJUnitPlatform {
                     if (includeTestTags.isNotBlank()) {
                         includeTags.add(includeTestTags)
@@ -398,7 +417,7 @@ allprojects {
                     passProperty(p)
                 }
             }
-            withType<SpotBugsTask>().configureEach {
+            configureEach<SpotBugsTask> {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP
                 if (enableSpotBugs) {
                     description = "$description (skipped by default, to enable it add -Dspotbugs)"
@@ -412,7 +431,7 @@ allprojects {
 
             afterEvaluate {
                 // Add default license/notice when missing
-                withType<Jar>().configureEach {
+                configureEach<Jar> {
                     CrLfSpec(LineEndings.LF).run {
                         into("META-INF") {
                             filteringCharset = "UTF-8"
@@ -428,31 +447,7 @@ allprojects {
             }
         }
 
-        // Note: jars below do not normalize line endings.
-        // Those jars, however are not included to source/binary distributions
-        // so the normailzation is not that important
-        val sourcesJar by tasks.registering(Jar::class) {
-            from(sourceSets["main"].allJava)
-            archiveClassifier.set("sources")
-        }
-
-        val javadocJar by tasks.registering(Jar::class) {
-            from(tasks.named(JavaPlugin.JAVADOC_TASK_NAME))
-            archiveClassifier.set("javadoc")
-        }
-
-        val archives by configurations.getting
-
-        // Parenthesis needed to use Project#getArtifacts
-        (artifacts) {
-            archives(sourcesJar)
-        }
-
         configure<PublishingExtension> {
-            if (project.path == ":") {
-                // Do not publish "root" project. Java plugin is applied here for DSL purposes only
-                return@configure
-            }
             if (!project.props.bool("nexus.publish", default = true)) {
                 // Some of the artifacts do not need to be published
                 return@configure
@@ -461,15 +456,7 @@ allprojects {
                 create<MavenPublication>(project.name) {
                     artifactId = project.name
                     version = rootProject.version.toString()
-                    description = project.description
                     from(components["java"])
-
-                    if (!skipJavadoc) {
-                        // Eager task creation is required due to
-                        // https://github.com/gradle/gradle/issues/6246
-                        artifact(sourcesJar.get())
-                        artifact(javadocJar.get())
-                    }
 
                     // Use the resolved versions in pom.xml
                     // Gradle might have different resolution rules, so we set the versions
