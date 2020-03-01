@@ -506,6 +506,32 @@ allprojects {
                             name.set("PostgreSQL Global Development Group")
                             url.set("https://jdbc.postgresql.org/")
                         }
+                        developers {
+                            developer {
+                                id.set("davecramer")
+                                name.set("Dave Cramer")
+                            }
+                            developer {
+                                id.set("jurka")
+                                name.set("Kris Jurka")
+                            }
+                            developer {
+                                id.set("oliver")
+                                name.set("Oliver Jowett")
+                            }
+                            developer {
+                                id.set("ringerc")
+                                name.set("Craig Ringer")
+                            }
+                            developer {
+                                id.set("vlsi")
+                                name.set("Vladimir Sitnikov")
+                            }
+                            developer {
+                                id.set("bokken")
+                                name.set("Brett Okken")
+                            }
+                        }
                         issueManagement {
                             system.set("GitHub issues")
                             url.set("https://github.com/pgjdbc/pgjdbc/issues")
