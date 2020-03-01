@@ -502,6 +502,10 @@ allprojects {
                                 distribution.set("repo")
                             }
                         }
+                        organization {
+                            name.set("PostgreSQL Global Development Group")
+                            url.set("https://jdbc.postgresql.org/")
+                        }
                         issueManagement {
                             system.set("GitHub issues")
                             url.set("https://github.com/pgjdbc/pgjdbc/issues")
