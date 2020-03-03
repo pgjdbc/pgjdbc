@@ -234,9 +234,89 @@ karaf {
     }
 }
 
+// <editor-fold defaultstate="collapsed" desc="Source distribution for building pgjdbc with minimal features">
+val sourceDistribution by tasks.registering(Tar::class) {
+    archiveClassifier.set("src")
+    archiveExtension.set("tar.gz")
+    compression = Compression.GZIP
+    includeEmptyDirs = false
+    from(rootDir) {
+        include("build.properties")
+        include("ssltest.properties")
+        include("LICENSE")
+        include("README.md")
+    }
+    into("src/main/resources") {
+        from("$rootDir/LICENSE")
+    }
+
+    val props = listOf(
+        "pgjdbc.version",
+        "junit4.version",
+        "junit5.version",
+        "classloader-leak-test-framework.version",
+        "com.ongres.scram.client.version"
+    ).associate { propertyName ->
+        val value = project.findProperty(propertyName) as String
+        inputs.property(propertyName, project.findProperty(propertyName))
+        "%{$propertyName}" to value
+    }
+
+    from("reduced-pom.xml") {
+        rename { "pom.xml" }
+        filter {
+            it.replace(Regex("%\\{[^}]+\\}")) {
+                props[it.value] ?: throw GradleException("Unknown property in reduced-pom.xml: $it")
+            }
+        }
+    }
+    into("src/main/resources") {
+        from(tasks.jar.map {
+            zipTree(it.archiveFile).matching {
+                include("META-INF/MANIFEST.MF")
+            }
+        })
+    }
+    into("src/main") {
+        into("java") {
+            from(preprocessVersion)
+        }
+        from("src/main") {
+            exclude("checkstyle")
+            exclude("*/org/postgresql/osgi/**")
+            exclude("*/org/postgresql/sspi/NTDSAPI.java")
+            exclude("*/org/postgresql/sspi/NTDSAPIWrapper.java")
+            exclude("*/org/postgresql/sspi/SSPIClient.java")
+        }
+    }
+    into("src/test") {
+        from("src/test") {
+            exclude("*/org/postgresql/test/osgi/**")
+            exclude("**/*Suite*")
+            exclude("*/org/postgresql/test/sspi/*.java")
+            exclude("*/org/postgresql/replication/**")
+        }
+    }
+    into("certdir") {
+        from("$rootDir/certdir") {
+            include("good*")
+            include("bad*")
+            include("Makefile")
+            include("README.md")
+            from("server") {
+                include("root*")
+                include("server*")
+                include("pg_hba.conf")
+            }
+        }
+    }
+}
+// </editor-fold>
+
 val extraMavenPublications by configurations.getting
 
 (artifacts) {
+    extraMavenPublications(sourceDistribution)
     extraMavenPublications(osgiJar) {
         classifier = ""
     }
