@@ -81,15 +81,15 @@ public interface PGStatement {
   int getPrepareThreshold();
 
   /**
-   * Method to turn on/off adaptive fetch for statement. Existing resultSets won't be affected by
-   * change here.
+   * Turn on/off adaptive fetch for statement. Existing resultSets won't be affected by change
+   * here.
    *
    * @param adaptiveFetch desired state of adaptive fetch.
    */
   void setAdaptiveFetch(boolean adaptiveFetch);
 
   /**
-   * Method to get state of adaptive fetch for statement.
+   * Get state of adaptive fetch for statement.
    *
    * @return state of adaptive fetch (turned on or off)
    */

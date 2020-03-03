@@ -23,74 +23,74 @@ import java.util.Properties;
  * made by ResultSet will be made with defaultRowFetchSize, next will use computed adaptive fetch
  * size. Property adaptiveFetch need properties defaultRowFetchSize and maxResultBuffer to work.
  */
-public class AdaptiveFetchQueryMonitoring {
+public class AdaptiveFetchCache {
 
-  private final Map<String, AdaptiveFetchQueryInfo> adaptiveFetchInfoMap;
+  private final Map<String, AdaptiveFetchCacheEntry> adaptiveFetchInfoMap;
   private boolean adaptiveFetch = false;
   private int minimumAdaptiveFetchSize = 0;
   private int maximumAdaptiveFetchSize = -1;
-  private long maxResultBufferSize = -1;
+  private long maximumResultBufferSize = -1;
 
-  public AdaptiveFetchQueryMonitoring(long maxResultBufferSize, Properties info)
+  public AdaptiveFetchCache(long maximumResultBufferSize, Properties info)
       throws SQLException {
-    this.adaptiveFetchInfoMap = new HashMap<String, AdaptiveFetchQueryInfo>();
+    this.adaptiveFetchInfoMap = new HashMap<String, AdaptiveFetchCacheEntry>();
 
     this.adaptiveFetch = PGProperty.ADAPTIVE_FETCH.getBoolean(info);
     this.minimumAdaptiveFetchSize = PGProperty.ADAPTIVE_FETCH_MINIMUM.getInt(info);
     this.maximumAdaptiveFetchSize = PGProperty.ADAPTIVE_FETCH_MAXIMUM.getInt(info);
 
-    this.maxResultBufferSize = maxResultBufferSize;
+    this.maximumResultBufferSize = maximumResultBufferSize;
   }
 
   /**
-   * Method to add query to being monitored and computing adaptive fetch size.
+   * Add query to being cached and computing adaptive fetch size.
    *
    * @param adaptiveFetch state of adaptive fetch, which should be used during adding query
-   * @param query         query to be monitored
+   * @param query         query to be cached
    */
   public void addNewQuery(boolean adaptiveFetch, Query query) {
-    if (adaptiveFetch && maxResultBufferSize != -1) {
+    if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
-      AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = adaptiveFetchInfoMap.get(sql);
-      if (adaptiveFetchQueryInfo == null) {
-        adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
+      AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);
+      if (adaptiveFetchCacheEntry == null) {
+        adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
       }
-      adaptiveFetchQueryInfo.setCounter(adaptiveFetchQueryInfo.getCounter() + 1);
+      adaptiveFetchCacheEntry.incrementCounter();
 
-      adaptiveFetchInfoMap.put(sql, adaptiveFetchQueryInfo);
+      adaptiveFetchInfoMap.put(sql, adaptiveFetchCacheEntry);
     }
   }
 
   /**
-   * Method to update adaptive fetch size for given query.
+   * Update adaptive fetch size for given query.
    *
-   * @param adaptiveFetch state of adaptive fetch, which should be used during updating fetch size
-   *                      for query
-   * @param query         query to be updated
-   * @param maxRowSize    max row size used during updating information about adaptive fetch size
-   *                      for given query
+   * @param adaptiveFetch       state of adaptive fetch, which should be used during updating fetch
+   *                            size for query
+   * @param query               query to be updated
+   * @param maximumRowSizeBytes max row size used during updating information about adaptive fetch
+   *                            size for given query
    */
-  public void updateQueryFetchSize(boolean adaptiveFetch, Query query, int maxRowSize) {
-    if (adaptiveFetch && maxResultBufferSize != -1) {
+  public void updateQueryFetchSize(boolean adaptiveFetch, Query query, int maximumRowSizeBytes) {
+    if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
-      AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = adaptiveFetchInfoMap.get(sql);
-      if (adaptiveFetchQueryInfo != null) {
-        int adaptiveMaxRowSize = adaptiveFetchQueryInfo.getMaxRowSize();
-        if (adaptiveMaxRowSize < maxRowSize && maxRowSize > 0) {
-          int newFetchSize = (int) (maxResultBufferSize / maxRowSize);
+      AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);
+      if (adaptiveFetchCacheEntry != null) {
+        int adaptiveMaximumRowSize = adaptiveFetchCacheEntry.getMaximumRowSizeBytes();
+        if (adaptiveMaximumRowSize < maximumRowSizeBytes && maximumRowSizeBytes > 0) {
+          int newFetchSize = (int) (maximumResultBufferSize / maximumRowSizeBytes);
           newFetchSize = adjustFetchSize(newFetchSize);
 
-          adaptiveFetchQueryInfo.setMaxRowSize(maxRowSize);
-          adaptiveFetchQueryInfo.setSize(newFetchSize);
+          adaptiveFetchCacheEntry.setMaximumRowSizeBytes(maximumRowSizeBytes);
+          adaptiveFetchCacheEntry.setSize(newFetchSize);
 
-          adaptiveFetchInfoMap.put(sql, adaptiveFetchQueryInfo);
+          adaptiveFetchInfoMap.put(sql, adaptiveFetchCacheEntry);
         }
       }
     }
   }
 
   /**
-   * Method to get adaptive fetch size for given query.
+   * Get adaptive fetch size for given query.
    *
    * @param adaptiveFetch state of adaptive fetch, which should be used during getting fetch size
    *                      for query
@@ -98,41 +98,41 @@ public class AdaptiveFetchQueryMonitoring {
    * @return adaptive fetch size for query or -1 if size doesn't exist/adaptive fetch state is false
    */
   public int getFetchSizeForQuery(boolean adaptiveFetch, Query query) {
-    if (adaptiveFetch && maxResultBufferSize != -1) {
+    if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
-      AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = adaptiveFetchInfoMap.get(sql);
-      if (adaptiveFetchQueryInfo != null) {
-        return adaptiveFetchQueryInfo.getSize();
+      AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);
+      if (adaptiveFetchCacheEntry != null) {
+        return adaptiveFetchCacheEntry.getSize();
       }
     }
     return -1;
   }
 
   /**
-   * Method to remove query information from monitoring.
+   * Remove query information from caching.
    *
    * @param adaptiveFetch state of adaptive fetch, which should be used during removing fetch size
    *                      for query
-   * @param query         query to be removed from monitoring
+   * @param query         query to be removed from caching
    */
   public void removeQuery(boolean adaptiveFetch, Query query) {
-    if (adaptiveFetch && maxResultBufferSize != -1) {
+    if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
-      AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = adaptiveFetchInfoMap.get(sql);
-      if (adaptiveFetchQueryInfo != null) {
-        adaptiveFetchQueryInfo.setCounter(adaptiveFetchQueryInfo.getCounter() - 1);
+      AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);
+      if (adaptiveFetchCacheEntry != null) {
+        adaptiveFetchCacheEntry.decrementCounter();
 
-        if (adaptiveFetchQueryInfo.getCounter() < 1) {
+        if (adaptiveFetchCacheEntry.getCounter() < 1) {
           adaptiveFetchInfoMap.remove(sql);
         } else {
-          adaptiveFetchInfoMap.put(sql, adaptiveFetchQueryInfo);
+          adaptiveFetchInfoMap.put(sql, adaptiveFetchCacheEntry);
         }
       }
     }
   }
 
   /**
-   * Method to set maximum and minimum constraints on given value.
+   * Set maximum and minimum constraints on given value.
    *
    * @param actualSize value which should be the computed fetch size
    * @return value which meet the constraints
@@ -144,7 +144,7 @@ public class AdaptiveFetchQueryMonitoring {
   }
 
   /**
-   * Method to set minimum constraint on given value.
+   * Set minimum constraint on given value.
    *
    * @param actualSize value which should be the computed fetch size
    * @return value which meet the minimum constraint
@@ -161,7 +161,7 @@ public class AdaptiveFetchQueryMonitoring {
   }
 
   /**
-   * Method to set maximum constraint on given value.
+   * Set maximum constraint on given value.
    *
    * @param actualSize value which should be the computed fetch size
    * @return value which meet the maximum constraint
@@ -178,7 +178,7 @@ public class AdaptiveFetchQueryMonitoring {
   }
 
   /**
-   * Method to get state of adaptive fetch.
+   * Get state of adaptive fetch.
    *
    * @return state of adaptive fetch
    */
@@ -187,7 +187,7 @@ public class AdaptiveFetchQueryMonitoring {
   }
 
   /**
-   * Method to set state of adaptive fetch.
+   * Set state of adaptive fetch.
    *
    * @param adaptiveFetch desired state of adaptive fetch
    */

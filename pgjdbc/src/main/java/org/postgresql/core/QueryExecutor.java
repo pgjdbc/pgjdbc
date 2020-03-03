@@ -509,7 +509,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   String getParameterStatus(String parameterName);
 
   /**
-   * Method to get fetch size computed by adaptive fetch size for given query.
+   * Get fetch size computed by adaptive fetch size for given query.
    *
    * @param adaptiveFetch state of adaptive fetch, which should be used during retrieving
    * @param cursor        Cursor used by resultSet, containing query, have to be able to cast to
@@ -519,34 +519,34 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int getAdaptiveFetchSize(boolean adaptiveFetch, ResultCursor cursor);
 
   /**
-   * Method to get state of adaptive fetch inside QueryExecutor.
+   * Get state of adaptive fetch inside QueryExecutor.
    *
    * @return state of adaptive fetch inside QueryExecutor
    */
   boolean getAdaptiveFetch();
 
   /**
-   * Method to set state of adaptive fetch inside QueryExecutor.
+   * Set state of adaptive fetch inside QueryExecutor.
    *
    * @param adaptiveFetch desired state of adaptive fetch
    */
   void setAdaptiveFetch(boolean adaptiveFetch);
 
   /**
-   * Method to add query to adaptive fetch monitoring inside QueryExecutor.
+   * Add query to adaptive fetch cache inside QueryExecutor.
    *
    * @param adaptiveFetch state of adaptive fetch used during adding query
    * @param cursor        Cursor used by resultSet, containing query, have to be able to cast to
    *                      Portal class.
    */
-  void addQueryToAdaptiveFetchMonitoring(boolean adaptiveFetch, ResultCursor cursor);
+  void addQueryToAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor);
 
   /**
-   * Method to remove query from adaptive fetch monitoring inside QueryExecutor
+   * Remove query from adaptive fetch cache inside QueryExecutor
    *
    * @param adaptiveFetch state of adaptive fetch used during removing query
    * @param cursor        Cursor used by resultSet, containing query, have to be able to cast to
    *                      Portal class.
    */
-  void removeQueryFromAdaptiveFetchMonitoring(boolean adaptiveFetch, ResultCursor cursor);
+  void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor);
 }

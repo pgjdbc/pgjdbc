@@ -36,7 +36,7 @@ public class AdaptiveFetchSizeTest {
   private String columns = "value VARCHAR";
 
   /**
-   * Method to drop table and close connection.
+   * Drop table and close connection.
    */
   @After
   public void tearDown() throws SQLException {
@@ -54,14 +54,14 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * First integration test. First is created table with rows sizes like 4 x 35B, 1 x 40B, 45 x 30B.
-   * Next fetching is happening. First fetch is using default fetch size, so it returns 4 rows.
-   * After reading 4 rows, new fetch size is computed. As biggest rows size so far was 35B, then
-   * 300/35B = 8 rows. Second fetch is done with 8 rows. First row in this fetch has size 40B, which
-   * gonna change fetch size to 7 rows (300/40B = 7), next fetch reads won't change size and 7 will
-   * be used to the end.
+   * Simple integration test. At start created is table with rows sizes like 4 x 35B, 1 x 40B, 45 x
+   * 30B. Next fetching is happening. Starting fetch is using default fetch size, so it returns 4
+   * rows. After reading 4 rows, new fetch size is computed. As biggest rows size so far was 35B,
+   * then 300/35B = 8 rows. Next fetch is done with 8 rows. First row in this fetch has size 40B,
+   * which gonna change fetch size to 7 rows (300/40B = 7), next fetch reads won't change size and 7
+   * will be used to the end.
    * To check if this works correctly checked is:
-   * - if first 4 rows from result set have fetch size as 4;
+   * - if starting 4 rows from result set have fetch size as 4;
    * - if next 8 rows from result set have fetch size as 8;
    * - if next 38 rows from result set have fetch size as 7;
    * - check if all 50 rows were read.
@@ -110,13 +110,13 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * Second integration test. The main purpose of this set is to check if minimum size was used
-   * during adaptive fetching. To a table are added 50 rows with sizes: 1x270B, 49x10B. First fetch
-   * is done with default size 4. As first row from result set have size 270B, then computed size
-   * should be 1 (300/270 = 1), however minimum size set to 10 should make that next fetch should be
-   * done with size 10. After this fetch size shouldn't change to the end.
+   * The main purpose of this set is to check if minimum size was used during adaptive fetching. To
+   * a table are added 50 rows with sizes: 1x270B, 49x10B. Starting fetch is done with default size
+   * 4. As first row from result set have size 270B, then computed size should be 1 (300/270 = 1),
+   * however minimum size set to 10 should make that next fetch should be done with size 10. After
+   * this fetch size shouldn't change to the end.
    * To check if this works correctly checked is:
-   * - if first 4 rows from result set have fetch size as 4;
+   * - if starting 4 rows from result set have fetch size as 4;
    * - if next 46 rows from result set have fetch size as 10;
    * - check if all 50 rows were read.
    */
@@ -159,14 +159,14 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * Third integration test. The main purpose of this set is to check if maximum size was used
-   * during adaptive fetching. To a table are added 50 rows with sizes: 4x10B, 46x30B. First fetch
-   * is done with default size 4. As first fetch have only rows with size 10B, then computed fetch
-   * size should be 30 (300/10 = 30), however maximum size set to 10 should make that next fetch
-   * should be done with size 10 (in other situation next rows will exceed size of maxResultBuffer).
-   * After this fetch size shouldn't change to the end.
+   * The main purpose of this set is to check if maximum size was used during adaptive fetching. To
+   * a table are added 50 rows with sizes: 4x10B, 46x30B. Starting fetch is done with default size
+   * 4. As first fetch have only rows with size 10B, then computed fetch size should be 30 (300/10 =
+   * 30), however maximum size set to 10 should make that next fetch should be done with size 10 (in
+   * other situation next rows will exceed size of maxResultBuffer). After this fetch size shouldn't
+   * change to the end.
    * To check if this works correctly checked is:
-   * - if first 4 rows from result set have fetch size as 4;
+   * - if starting 4 rows from result set have fetch size as 4;
    * - if next 46 rows from result set have fetch size as 10;
    * - check if all 50 rows were read.
    */
@@ -209,12 +209,12 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * Third integration test. The main purpose of this set is to do fetching with maximum possible
-   * buffer. To a table are added 1000 rows with sizes 10B each. First fetch is done with default
-   * size 4, then second fetch should have size computed on maxResultBuffer, most probably that
-   * second fetch would be the last.
+   * The main purpose of this set is to do fetching with maximum possible buffer. To a table are
+   * added 1000 rows with sizes 10B each. Starting fetch is done with default size 4, then next
+   * fetch should have size computed on maxResultBuffer, most probably that the next fetch would be
+   * the last.
    * To check if this works correctly checked is:
-   * - if first 4 rows from result set have fetch size as 4;
+   * - if starting 4 rows from result set have fetch size as 4;
    * - if next 996 rows from result set have fetch size computed with using max size of
    * maxResultBuffer;
    * - check if all 1000 rows were read.
@@ -254,7 +254,7 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * Method to execute query, which gonna be fetched. Sets auto commit to false to make fetching
+   * Execute query, which gonna be fetched. Sets auto commit to false to make fetching
    * happen.
    */
   private void executeFetchingQuery() throws SQLException {
@@ -265,7 +265,7 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * Method to insert string with given size to a table.
+   * Insert string with given size to a table.
    *
    * @param size desired size of a string to be inserted in the table
    */
@@ -281,7 +281,7 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * Method to open connection, check if fetch can be performed and create table.
+   * Open connection, check if fetch can be performed and create table.
    *
    * @param properties Properties to be used during opening connection.
    */
@@ -293,7 +293,7 @@ public class AdaptiveFetchSizeTest {
   }
 
   /**
-   * Method to check if a fetch can be performed - PreferQueryMode is not set to Simple.
+   * Check if a fetch can be performed - PreferQueryMode is not set to Simple.
    *
    * @param connection Connection to be checked.
    */

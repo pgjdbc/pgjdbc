@@ -13,7 +13,7 @@ import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
-import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchQueryMonitoringTest;
+import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCacheTest;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
 import org.postgresql.jdbc.PgSQLXMLTest;
@@ -41,7 +41,7 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    AdaptiveFetchQueryMonitoringTest.class,
+    AdaptiveFetchCacheTest.class,
     ANTTest.class,
     ArrayTest.class,
     BatchedInsertReWriteEnabledTest.class,

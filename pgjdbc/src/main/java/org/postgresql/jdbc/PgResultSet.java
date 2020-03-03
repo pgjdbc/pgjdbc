@@ -160,7 +160,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.resultsetconcurrency = rsConcurrency;
     this.adaptiveFetch = adaptiveFetch;
 
-    //Constructor doesn't have fetch size and can't be sure if fetch size was used so initial value would be the number of rows
+    // Constructor doesn't have fetch size and can't be sure if fetch size was used so initial value would be the number of rows
     this.lastUsedFetchSize = tuples.size();
   }
 
@@ -838,7 +838,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     connection.getQueryExecutor()
         .fetch(cursor, new CursorResultHandler(), fetchRows, adaptiveFetch);
 
-    //After fetch, update last used fetch size (could be useful during adaptive fetch).
+    // After fetch, update last used fetch size (could be useful during adaptive fetch).
     lastUsedFetchSize = fetchRows;
 
     // Now prepend our one saved row and move to it.
@@ -1594,40 +1594,38 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   /**
-   * Method to turn on/off adaptive fetch for ResultSet.
+   * Turn on/off adaptive fetch for ResultSet.
    *
    * @param adaptiveFetch desired state of adaptive fetch.
    * @throws SQLException exception returned if ResultSet is closed
    */
   public void setAdaptiveFetch(boolean adaptiveFetch) throws SQLException {
     checkClosed();
-    updateQueryInsideAdaptiveFetchMonitoring(adaptiveFetch);
+    updateQueryInsideAdaptiveFetchCache(adaptiveFetch);
     this.adaptiveFetch = adaptiveFetch;
   }
 
   /**
-   * Method to update adaptive fetch monitoring during changing state of adaptive fetch inside
-   * ResultSet. Update inside AdaptiveFetchMonitoring is required to collect data about max result
+   * Update adaptive fetch cache during changing state of adaptive fetch inside
+   * ResultSet. Update inside AdaptiveFetchCache is required to collect data about max result
    * row length for that query to compute adaptive fetch size.
    *
    * @param newAdaptiveFetch new state of adaptive fetch
    */
-  private void updateQueryInsideAdaptiveFetchMonitoring(boolean newAdaptiveFetch) {
-    boolean localAdaptiveFetch = this.adaptiveFetch;
-
-    if (localAdaptiveFetch == false && newAdaptiveFetch == true) {
-      //If we are here, that means we want to be added to adaptive fetch.
-      connection.getQueryExecutor().addQueryToAdaptiveFetchMonitoring(Boolean.TRUE, cursor);
+  private void updateQueryInsideAdaptiveFetchCache(boolean newAdaptiveFetch) {
+    if (!this.adaptiveFetch && newAdaptiveFetch) {
+      // If we are here, that means we want to be added to adaptive fetch.
+      connection.getQueryExecutor().addQueryToAdaptiveFetchCache(true, cursor);
     }
 
-    if (localAdaptiveFetch == true && newAdaptiveFetch == false) {
-      //If we are here, that means we want to be removed from adaptive fetch.
-      connection.getQueryExecutor().removeQueryFromAdaptiveFetchMonitoring(Boolean.TRUE, cursor);
+    if (this.adaptiveFetch && !newAdaptiveFetch) {
+      // If we are here, that means we want to be removed from adaptive fetch.
+      connection.getQueryExecutor().removeQueryFromAdaptiveFetchCache(true, cursor);
     }
   }
 
   /**
-   * Method to get state of adaptive fetch for resultSet.
+   * Get state of adaptive fetch for resultSet.
    *
    * @return state of adaptive fetch (turned on or off)
    * @throws SQLException exception returned if ResultSet is closed
@@ -1861,7 +1859,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   /**
-   * Method to get fetch size used during last fetch. Returned value can be useful if using adaptive
+   * Get fetch size used during last fetch. Returned value can be useful if using adaptive
    * fetch.
    *
    * @return fetch size used during last fetch.
@@ -1911,7 +1909,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       connection.getQueryExecutor()
           .fetch(cursor, new CursorResultHandler(), fetchRows, adaptiveFetch);
 
-      //After fetch, update last used fetch size (could be useful for adaptive fetch).
+      // After fetch, update last used fetch size (could be useful for adaptive fetch).
       lastUsedFetchSize = fetchRows;
 
       currentRow = 0;

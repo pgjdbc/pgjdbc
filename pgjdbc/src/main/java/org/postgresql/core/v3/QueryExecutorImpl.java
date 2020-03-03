@@ -32,7 +32,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Utils;
-import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchQueryMonitoring;
+import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
@@ -127,14 +127,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
 
-  private final AdaptiveFetchQueryMonitoring adaptiveFetchQueryMonitoring;
+  private final AdaptiveFetchCache adaptiveFetchCache;
 
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info) throws SQLException, IOException {
     super(pgStream, user, database, cancelSignalTimeout, info);
 
     long maxResultBuffer = pgStream.getMaxResultBuffer();
-    this.adaptiveFetchQueryMonitoring = new AdaptiveFetchQueryMonitoring(maxResultBuffer, info);
+    this.adaptiveFetchCache = new AdaptiveFetchCache(maxResultBuffer, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
@@ -1408,7 +1408,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
         if (fetchSize != 0) {
-          adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, query);
+          adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
         sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
             flags);
@@ -1434,7 +1434,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           subparam = subparams[i];
         }
         if (fetchSize != 0) {
-          adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, subquery);
+          adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
         sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
       }
@@ -2141,10 +2141,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           if (currentPortal != null) {
             // Existence of portal defines if query was using fetching.
-            adaptiveFetchQueryMonitoring
-              .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSize());
+            adaptiveFetchCache
+              .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSizeBytes());
           }
-          pgStream.clearMaxRowSize();
+          pgStream.clearMaxRowSizeBytes();
 
           Field[] fields = currentQuery.getFields();
           if (fields != null && tuples == null) {
@@ -2173,15 +2173,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Portal currentPortal = executeData.portal;
 
           if (currentPortal != null) {
-            //Existence of portal defines if query was using fetching.
+            // Existence of portal defines if query was using fetching.
 
-            //Command executed, adaptive fetch size can be removed for this query, max row size can be cleared
-            adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, currentQuery);
-            //Update to change fetch size for other fetch portals of this query
-            adaptiveFetchQueryMonitoring
-              .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSize());
+            // Command executed, adaptive fetch size can be removed for this query, max row size can be cleared
+            adaptiveFetchCache.removeQuery(adaptiveFetch, currentQuery);
+            // Update to change fetch size for other fetch portals of this query
+            adaptiveFetchCache
+              .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSizeBytes());
           }
-          pgStream.clearMaxRowSize();
+          pgStream.clearMaxRowSizeBytes();
 
           if (status.startsWith("SET")) {
             String nativeSql = currentQuery.getNativeQuery().nativeSql;
@@ -2495,52 +2495,34 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public int getAdaptiveFetchSize(boolean adaptiveFetch, ResultCursor cursor) {
-    try {
-      if (cursor instanceof Portal) {
-        return adaptiveFetchQueryMonitoring
-          .getFetchSizeForQuery(adaptiveFetch, ((Portal) cursor).getQuery());
-      }
-    } catch (Exception ex) {
-      LOGGER.log(Level.WARNING,
-          "Exception returned during getting adaptive fetch size from QueryExecutorImpl:\n {0}",
-          ex.getMessage());
+    if (cursor instanceof Portal) {
+      return adaptiveFetchCache
+        .getFetchSizeForQuery(adaptiveFetch, ((Portal) cursor).getQuery());
     }
     return -1;
   }
 
   @Override
   public void setAdaptiveFetch(boolean adaptiveFetch) {
-    this.adaptiveFetchQueryMonitoring.setAdaptiveFetch(adaptiveFetch);
+    this.adaptiveFetchCache.setAdaptiveFetch(adaptiveFetch);
   }
 
   @Override
   public boolean getAdaptiveFetch() {
-    return this.adaptiveFetchQueryMonitoring.getAdaptiveFetch();
+    return this.adaptiveFetchCache.getAdaptiveFetch();
   }
 
   @Override
-  public void addQueryToAdaptiveFetchMonitoring(boolean adaptiveFetch, ResultCursor cursor) {
-    try {
-      if (cursor instanceof Portal) {
-        adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, ((Portal) cursor).getQuery());
-      }
-    } catch (Exception ex) {
-      LOGGER.log(Level.WARNING,
-          "Exception returned during adding query to Adaptive Fetch Monitoring inside QueryExecutorImpl:\n {0}",
-          ex.getMessage());
+  public void addQueryToAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor) {
+    if (cursor instanceof Portal) {
+      adaptiveFetchCache.addNewQuery(adaptiveFetch, ((Portal) cursor).getQuery());
     }
   }
 
   @Override
-  public void removeQueryFromAdaptiveFetchMonitoring(boolean adaptiveFetch, ResultCursor cursor) {
-    try {
-      if (cursor instanceof Portal) {
-        adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, ((Portal) cursor).getQuery());
-      }
-    } catch (Exception ex) {
-      LOGGER.log(Level.WARNING,
-          "Exception returned during removing query from Adaptive Fetch Monitoring inside QueryExecutorImpl:\n {0}",
-          ex.getMessage());
+  public void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor) {
+    if (cursor instanceof Portal) {
+      adaptiveFetchCache.removeQuery(adaptiveFetch, ((Portal) cursor).getQuery());
     }
   }
 

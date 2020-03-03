@@ -23,28 +23,28 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Unit tests for AdaptiveFetchQueryMonitoring class.
+ * Unit tests for AdaptiveFetchCache class.
  */
-public class AdaptiveFetchQueryMonitoringTest {
+public class AdaptiveFetchCacheTest {
 
-  private AdaptiveFetchQueryMonitoring adaptiveFetchQueryMonitoring;
+  private AdaptiveFetchCache adaptiveFetchCache;
   private int size;
 
-  //string containing variable names in AdaptiveFetchQueryMonitoring class
+  // Strings containing variables names in AdaptiveFetchCache class
   private static String infoMapVariableName = "adaptiveFetchInfoMap";
   private static String minimumSizeVariableName = "minimumAdaptiveFetchSize";
   private static String maximumSizeVariableName = "maximumAdaptiveFetchSize";
   private static String adaptiveFetchVariableName = "adaptiveFetch";
-  private static String maxBufferSizeVariableName = "maxResultBufferSize";
+  private static String maximumBufferSizeVariableName = "maximumResultBufferSize";
 
   /**
-   * Simple setup to create new AdaptiveFetchQueryMonitoring with buffer size 1000.
+   * Simple setup to create new AdaptiveFetchCache with buffer size 1000.
    */
   @Before
   public void setUp() throws SQLException {
     Properties properties = new Properties();
     size = 1000;
-    adaptiveFetchQueryMonitoring = new AdaptiveFetchQueryMonitoring(size, properties);
+    adaptiveFetchCache = new AdaptiveFetchCache(size, properties);
   }
 
   /**
@@ -53,7 +53,7 @@ public class AdaptiveFetchQueryMonitoringTest {
   @Test
   public void testConstructorDefault() throws NoSuchFieldException, IllegalAccessException {
     assertNotNull(getInfoMapVariable());
-    assertEquals(size, getMaxBufferVariable());
+    assertEquals(size, getMaximumBufferVariable());
     assertEquals(false, getAdaptiveFetchVariable());
     assertEquals(0, getMinimumSizeVariable());
     assertEquals(-1, getMaximumSizeVariable());
@@ -69,10 +69,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     boolean expectedValue = true;
     PGProperty.ADAPTIVE_FETCH.set(properties, expectedValue);
 
-    adaptiveFetchQueryMonitoring = new AdaptiveFetchQueryMonitoring(size, properties);
+    adaptiveFetchCache = new AdaptiveFetchCache(size, properties);
 
     assertNotNull(getInfoMapVariable());
-    assertEquals(size, getMaxBufferVariable());
+    assertEquals(size, getMaximumBufferVariable());
     assertEquals(expectedValue, getAdaptiveFetchVariable());
     assertEquals(0, getMinimumSizeVariable());
     assertEquals(-1, getMaximumSizeVariable());
@@ -88,10 +88,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     int expectedValue = 100;
     PGProperty.ADAPTIVE_FETCH_MINIMUM.set(properties, expectedValue);
 
-    adaptiveFetchQueryMonitoring = new AdaptiveFetchQueryMonitoring(size, properties);
+    adaptiveFetchCache = new AdaptiveFetchCache(size, properties);
 
     assertNotNull(getInfoMapVariable());
-    assertEquals(size, getMaxBufferVariable());
+    assertEquals(size, getMaximumBufferVariable());
     assertEquals(false, getAdaptiveFetchVariable());
     assertEquals(expectedValue, getMinimumSizeVariable());
     assertEquals(-1, getMaximumSizeVariable());
@@ -107,10 +107,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     int expectedValue = 100;
     PGProperty.ADAPTIVE_FETCH_MAXIMUM.set(properties, expectedValue);
 
-    adaptiveFetchQueryMonitoring = new AdaptiveFetchQueryMonitoring(size, properties);
+    adaptiveFetchCache = new AdaptiveFetchCache(size, properties);
 
     assertNotNull(getInfoMapVariable());
-    assertEquals(size, getMaxBufferVariable());
+    assertEquals(size, getMaximumBufferVariable());
     assertEquals(false, getAdaptiveFetchVariable());
     assertEquals(0, getMinimumSizeVariable());
     assertEquals(expectedValue, getMaximumSizeVariable());
@@ -131,10 +131,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     PGProperty.ADAPTIVE_FETCH_MINIMUM.set(properties, expectedMinimumSizeValue);
     PGProperty.ADAPTIVE_FETCH_MAXIMUM.set(properties, expectedMaximumSizeValue);
 
-    adaptiveFetchQueryMonitoring = new AdaptiveFetchQueryMonitoring(size, properties);
+    adaptiveFetchCache = new AdaptiveFetchCache(size, properties);
 
     assertNotNull(getInfoMapVariable());
-    assertEquals(size, getMaxBufferVariable());
+    assertEquals(size, getMaximumBufferVariable());
     assertEquals(expectedAdaptiveFetchValue, getAdaptiveFetchVariable());
     assertEquals(expectedMinimumSizeValue, getMinimumSizeVariable());
     assertEquals(expectedMaximumSizeValue, getMaximumSizeVariable());
@@ -149,9 +149,9 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(1, map.size());
     assertNotNull(map.get(expectedQuery));
@@ -166,9 +166,9 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(0, map.size());
     assertNull(map.get(expectedQuery));
@@ -183,10 +183,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(1, map.size());
     assertNotNull(map.get(expectedQuery));
@@ -203,10 +203,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(0, map.size());
     assertNull(map.get(expectedQuery));
@@ -222,10 +222,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery2 = "test-query-2";
     boolean adaptiveFetch = true;
 
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery2));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery2));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(2, map.size());
     assertNotNull(map.get(expectedQuery));
@@ -235,7 +235,7 @@ public class AdaptiveFetchQueryMonitoringTest {
   }
 
   /**
-   * Test for calling addNewQuery method twice with different queries, but adeptiveFetch is set to
+   * Test for calling addNewQuery method twice with different queries, but adaptiveFetch is set to
    * false. Both queries shouldn't be added.
    */
   @Test
@@ -245,10 +245,10 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery2 = "test-query-2";
     boolean adaptiveFetch = false;
 
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
-    adaptiveFetchQueryMonitoring.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery2));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.addNewQuery(adaptiveFetch, new MockUpQuery(expectedQuery2));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(0, map.size());
     assertNull(map.get(expectedQuery));
@@ -264,7 +264,7 @@ public class AdaptiveFetchQueryMonitoringTest {
 
     setAdaptiveFetchVariable(expectedResult);
 
-    assertEquals(expectedResult, adaptiveFetchQueryMonitoring.getAdaptiveFetch());
+    assertEquals(expectedResult, adaptiveFetchCache.getAdaptiveFetch());
   }
 
   /**
@@ -277,7 +277,7 @@ public class AdaptiveFetchQueryMonitoringTest {
 
     setAdaptiveFetchVariable(expectedResult);
 
-    assertEquals(expectedResult, adaptiveFetchQueryMonitoring.getAdaptiveFetch());
+    assertEquals(expectedResult, adaptiveFetchCache.getAdaptiveFetch());
   }
 
   /**
@@ -288,7 +288,7 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
-    int resultSize = adaptiveFetchQueryMonitoring
+    int resultSize = adaptiveFetchCache
         .getFetchSizeForQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(-1, resultSize);
@@ -303,7 +303,7 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
-    int resultSize = adaptiveFetchQueryMonitoring
+    int resultSize = adaptiveFetchCache
         .getFetchSizeForQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(-1, resultSize);
@@ -319,15 +319,15 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int expectedSize = 500;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(expectedSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(expectedSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    int resultSize = adaptiveFetchQueryMonitoring
+    int resultSize = adaptiveFetchCache
         .getFetchSizeForQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(expectedSize, resultSize);
@@ -343,15 +343,15 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int newSize = 500;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(newSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(newSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    int resultSize = adaptiveFetchQueryMonitoring
+    int resultSize = adaptiveFetchCache
         .getFetchSizeForQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(-1, resultSize);
@@ -366,9 +366,9 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(0, map.size());
   }
@@ -383,16 +383,16 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     assertEquals(0, map.size());
   }
 
   /**
    * Test for calling removeQuery method for existing query. The query should be removed from the
-   * map inside AdaptiveFetchQueryMonitoring.
+   * map inside AdaptiveFetchCache.
    */
   @Test
   public void testRemovingExistingQuery()
@@ -400,15 +400,15 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setCounter(1);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setCounter(1);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
     assertEquals(1, map.size());
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(0, map.size());
     assertNull(map.get(expectedQuery));
@@ -424,15 +424,15 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setCounter(1);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setCounter(1);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
     assertEquals(1, map.size());
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(1, map.size());
     assertNotNull(map.get(expectedQuery));
@@ -440,8 +440,8 @@ public class AdaptiveFetchQueryMonitoringTest {
   }
 
   /**
-   * Test for calling removeQuery method for existing query with counter set to 2. After first call,
-   * query shouldn't be removed, but counter set to 1. After second call, query should be removed.
+   * Test for calling removeQuery method for existing query with counter set to 2. After call, query
+   * shouldn't be removed, but counter set to 1. After next call, query should be removed.
    */
   @Test
   public void testRemovingExistingQueryWithLargeCounter()
@@ -449,19 +449,19 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setCounter(2);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setCounter(2);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(1, map.size());
     assertNotNull(map.get(expectedQuery));
     assertEquals(1, map.get(expectedQuery).getCounter());
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(0, map.size());
     assertNull(map.get(expectedQuery));
@@ -478,19 +478,19 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setCounter(2);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setCounter(2);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(1, map.size());
     assertNotNull(map.get(expectedQuery));
     assertEquals(2, map.get(expectedQuery).getCounter());
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
     assertEquals(1, map.size());
     assertNotNull(map.get(expectedQuery));
@@ -502,44 +502,44 @@ public class AdaptiveFetchQueryMonitoringTest {
    * query used in method call should be removed, other shouldn't change.
    */
   @Test
-  public void testRemovingExistingQueryWithMoreQueriesMonitored()
+  public void testRemovingExistingQueryWithMoreQueriesCached()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
     String expectedQuery3 = "test-query-3";
     boolean adaptiveFetch = true;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int expectedCounter1 = 1;
     int expectedCounter2 = 37;
     int expectedCounter3 = 14;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo1 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo1.setCounter(expectedCounter1);
-    map.put(expectedQuery, adaptiveFetchQueryInfo1);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry1 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry1.setCounter(expectedCounter1);
+    map.put(expectedQuery, adaptiveFetchCacheEntry1);
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo2 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo2.setCounter(expectedCounter2);
-    map.put(expectedQuery2, adaptiveFetchQueryInfo2);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry2 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry2.setCounter(expectedCounter2);
+    map.put(expectedQuery2, adaptiveFetchCacheEntry2);
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo3 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo3.setCounter(expectedCounter3);
-    map.put(expectedQuery3, adaptiveFetchQueryInfo3);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry3 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry3.setCounter(expectedCounter3);
+    map.put(expectedQuery3, adaptiveFetchCacheEntry3);
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    AdaptiveFetchQueryInfo resultInfo1 = map.get(expectedQuery);
-    AdaptiveFetchQueryInfo resultInfo2 = map.get(expectedQuery2);
-    AdaptiveFetchQueryInfo resultInfo3 = map.get(expectedQuery3);
+    AdaptiveFetchCacheEntry resultInfo1 = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo2 = map.get(expectedQuery2);
+    AdaptiveFetchCacheEntry resultInfo3 = map.get(expectedQuery3);
 
     assertEquals(2, map.size());
     assertNull(resultInfo1);
     assertNotNull(resultInfo2);
-    assertEquals(adaptiveFetchQueryInfo2, resultInfo2);
+    assertEquals(adaptiveFetchCacheEntry2, resultInfo2);
     assertEquals(expectedCounter2, resultInfo2.getCounter());
     assertNotNull(resultInfo3);
-    assertEquals(adaptiveFetchQueryInfo3, resultInfo3);
+    assertEquals(adaptiveFetchCacheEntry3, resultInfo3);
     assertEquals(expectedCounter3, resultInfo3.getCounter());
   }
 
@@ -548,46 +548,46 @@ public class AdaptiveFetchQueryMonitoringTest {
    * adaptiveFetch is set false. Queries shouldn't change
    */
   @Test
-  public void testRemovingExistingQueryWithMoreQueriesMonitoredIfAdaptiveFetchFalse()
+  public void testRemovingExistingQueryWithMoreQueriesCachedIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
     String expectedQuery3 = "test-query-3";
     boolean adaptiveFetch = false;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int expectedCounter1 = 1;
     int expectedCounter2 = 37;
     int expectedCounter3 = 14;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo1 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo1.setCounter(expectedCounter1);
-    map.put(expectedQuery, adaptiveFetchQueryInfo1);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry1 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry1.setCounter(expectedCounter1);
+    map.put(expectedQuery, adaptiveFetchCacheEntry1);
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo2 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo2.setCounter(expectedCounter2);
-    map.put(expectedQuery2, adaptiveFetchQueryInfo2);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry2 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry2.setCounter(expectedCounter2);
+    map.put(expectedQuery2, adaptiveFetchCacheEntry2);
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo3 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo3.setCounter(expectedCounter3);
-    map.put(expectedQuery3, adaptiveFetchQueryInfo3);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry3 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry3.setCounter(expectedCounter3);
+    map.put(expectedQuery3, adaptiveFetchCacheEntry3);
 
-    adaptiveFetchQueryMonitoring.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
+    adaptiveFetchCache.removeQuery(adaptiveFetch, new MockUpQuery(expectedQuery));
 
-    AdaptiveFetchQueryInfo resultInfo1 = map.get(expectedQuery);
-    AdaptiveFetchQueryInfo resultInfo2 = map.get(expectedQuery2);
-    AdaptiveFetchQueryInfo resultInfo3 = map.get(expectedQuery3);
+    AdaptiveFetchCacheEntry resultInfo1 = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo2 = map.get(expectedQuery2);
+    AdaptiveFetchCacheEntry resultInfo3 = map.get(expectedQuery3);
 
     assertEquals(3, map.size());
     assertNotNull(resultInfo1);
-    assertEquals(adaptiveFetchQueryInfo1, resultInfo1);
+    assertEquals(adaptiveFetchCacheEntry1, resultInfo1);
     assertEquals(expectedCounter1, resultInfo1.getCounter());
     assertNotNull(resultInfo2);
-    assertEquals(adaptiveFetchQueryInfo2, resultInfo2);
+    assertEquals(adaptiveFetchCacheEntry2, resultInfo2);
     assertEquals(expectedCounter2, resultInfo2.getCounter());
     assertNotNull(resultInfo3);
-    assertEquals(adaptiveFetchQueryInfo3, resultInfo3);
+    assertEquals(adaptiveFetchCacheEntry3, resultInfo3);
     assertEquals(expectedCounter3, resultInfo3.getCounter());
   }
 
@@ -599,7 +599,7 @@ public class AdaptiveFetchQueryMonitoringTest {
       throws NoSuchFieldException, IllegalAccessException {
     boolean expectedAdaptiveFetch = true;
 
-    adaptiveFetchQueryMonitoring.setAdaptiveFetch(expectedAdaptiveFetch);
+    adaptiveFetchCache.setAdaptiveFetch(expectedAdaptiveFetch);
 
     boolean resultAdaptiveFetch = getAdaptiveFetchVariable();
 
@@ -614,7 +614,7 @@ public class AdaptiveFetchQueryMonitoringTest {
       throws NoSuchFieldException, IllegalAccessException {
     boolean expectedAdaptiveFetch = false;
 
-    adaptiveFetchQueryMonitoring.setAdaptiveFetch(expectedAdaptiveFetch);
+    adaptiveFetchCache.setAdaptiveFetch(expectedAdaptiveFetch);
 
     boolean resultAdaptiveFetch = getAdaptiveFetchVariable();
 
@@ -630,19 +630,19 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = true;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int rowSize = 33;
     int startSize = size / rowSize - 15;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
 
     assertNotNull(resultInfo);
     assertEquals(size / rowSize, resultInfo.getSize());
@@ -658,19 +658,19 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = false;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int rowSize = 33;
     int startSize = size / rowSize - 15;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
 
     assertNotNull(resultInfo);
     assertEquals(startSize, resultInfo.getSize());
@@ -687,24 +687,24 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery2 = "test-query-2";
     boolean adaptiveFetch = true;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int rowSize = 33;
     int startSize = size / rowSize - 15;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery2, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery2, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
-    AdaptiveFetchQueryInfo resultInfo2 = map.get(expectedQuery2);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo2 = map.get(expectedQuery2);
 
     assertNull(resultInfo);
     assertNotNull(resultInfo2);
-    assertEquals(adaptiveFetchQueryInfo, resultInfo2);
+    assertEquals(adaptiveFetchCacheEntry, resultInfo2);
     assertEquals(startSize, resultInfo2.getSize());
     assertEquals(1, map.size());
   }
@@ -720,24 +720,24 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery2 = "test-query-2";
     boolean adaptiveFetch = false;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int rowSize = 33;
     int startSize = size / rowSize - 15;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery2, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery2, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
-    AdaptiveFetchQueryInfo resultInfo2 = map.get(expectedQuery2);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo2 = map.get(expectedQuery2);
 
     assertNull(resultInfo);
     assertNotNull(resultInfo2);
-    assertEquals(adaptiveFetchQueryInfo, resultInfo2);
+    assertEquals(adaptiveFetchCacheEntry, resultInfo2);
     assertEquals(startSize, resultInfo2.getSize());
     assertEquals(1, map.size());
   }
@@ -753,30 +753,30 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery2 = "test-query-2";
     boolean adaptiveFetch = true;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int rowSize = 33;
     int startSize = size / rowSize - 15;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo2 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo2.setSize(startSize);
-    map.put(expectedQuery2, adaptiveFetchQueryInfo2);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry2 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry2.setSize(startSize);
+    map.put(expectedQuery2, adaptiveFetchCacheEntry2);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
-    AdaptiveFetchQueryInfo resultInfo2 = map.get(expectedQuery2);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo2 = map.get(expectedQuery2);
 
     assertNotNull(resultInfo);
-    assertEquals(adaptiveFetchQueryInfo, resultInfo);
+    assertEquals(adaptiveFetchCacheEntry, resultInfo);
     assertEquals(size / rowSize, resultInfo.getSize());
     assertNotNull(resultInfo2);
-    assertEquals(adaptiveFetchQueryInfo2, resultInfo2);
+    assertEquals(adaptiveFetchCacheEntry2, resultInfo2);
     assertEquals(startSize, resultInfo2.getSize());
     assertEquals(2, map.size());
   }
@@ -792,30 +792,30 @@ public class AdaptiveFetchQueryMonitoringTest {
     String expectedQuery2 = "test-query-2";
     boolean adaptiveFetch = false;
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
     int rowSize = 33;
     int startSize = size / rowSize - 15;
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo2 = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo2.setSize(startSize);
-    map.put(expectedQuery2, adaptiveFetchQueryInfo2);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry2 = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry2.setSize(startSize);
+    map.put(expectedQuery2, adaptiveFetchCacheEntry2);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
-    AdaptiveFetchQueryInfo resultInfo2 = map.get(expectedQuery2);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo2 = map.get(expectedQuery2);
 
     assertNotNull(resultInfo);
-    assertEquals(adaptiveFetchQueryInfo, resultInfo);
+    assertEquals(adaptiveFetchCacheEntry, resultInfo);
     assertEquals(startSize, resultInfo.getSize());
     assertNotNull(resultInfo2);
-    assertEquals(adaptiveFetchQueryInfo2, resultInfo2);
+    assertEquals(adaptiveFetchCacheEntry2, resultInfo2);
     assertEquals(startSize, resultInfo2.getSize());
     assertEquals(2, map.size());
   }
@@ -836,16 +836,16 @@ public class AdaptiveFetchQueryMonitoringTest {
 
     setMinimumSizeVariable(expectedSize);
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
 
     assertNotNull(resultInfo);
     assertEquals(expectedSize, resultInfo.getSize());
@@ -867,16 +867,16 @@ public class AdaptiveFetchQueryMonitoringTest {
 
     setMinimumSizeVariable(expectedSize);
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
 
     assertNotNull(resultInfo);
     assertEquals(startSize, resultInfo.getSize());
@@ -898,16 +898,16 @@ public class AdaptiveFetchQueryMonitoringTest {
 
     setMaximumSizeVariable(expectedSize);
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
-    adaptiveFetchQueryInfo.setSize(startSize);
-    map.put(expectedQuery, adaptiveFetchQueryInfo);
+    AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = new AdaptiveFetchCacheEntry();
+    adaptiveFetchCacheEntry.setSize(startSize);
+    map.put(expectedQuery, adaptiveFetchCacheEntry);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
 
     assertNotNull(resultInfo);
     assertEquals(expectedSize, resultInfo.getSize());
@@ -929,89 +929,89 @@ public class AdaptiveFetchQueryMonitoringTest {
 
     setMaximumSizeVariable(expectedSize);
 
-    Map<String, AdaptiveFetchQueryInfo> map = getInfoMapVariable();
+    Map<String, AdaptiveFetchCacheEntry> map = getInfoMapVariable();
 
-    AdaptiveFetchQueryInfo adaptiveFetchQueryInfo = new AdaptiveFetchQueryInfo();
+    AdaptiveFetchCacheEntry adaptiveFetchQueryInfo = new AdaptiveFetchCacheEntry();
     adaptiveFetchQueryInfo.setSize(startSize);
     map.put(expectedQuery, adaptiveFetchQueryInfo);
 
-    adaptiveFetchQueryMonitoring
+    adaptiveFetchCache
       .updateQueryFetchSize(adaptiveFetch, new MockUpQuery(expectedQuery), rowSize);
 
-    AdaptiveFetchQueryInfo resultInfo = map.get(expectedQuery);
+    AdaptiveFetchCacheEntry resultInfo = map.get(expectedQuery);
 
     assertNotNull(resultInfo);
     assertEquals(startSize, resultInfo.getSize());
   }
 
-  //here are methods for retrieving values from adaptiveFetchQueryMonitoring without calling methods
+  // Here are methods for retrieving values from adaptiveFetchCache without calling methods
 
-  private Map<String, AdaptiveFetchQueryInfo> getInfoMapVariable()
+  private Map<String, AdaptiveFetchCacheEntry> getInfoMapVariable()
       throws IllegalAccessException, NoSuchFieldException {
-    Field field = adaptiveFetchQueryMonitoring.getClass().getDeclaredField(infoMapVariableName);
+    Field field = adaptiveFetchCache.getClass().getDeclaredField(infoMapVariableName);
     field.setAccessible(true);
-    return (Map<String, AdaptiveFetchQueryInfo>) field.get(adaptiveFetchQueryMonitoring);
+    return (Map<String, AdaptiveFetchCacheEntry>) field.get(adaptiveFetchCache);
   }
 
   private int getMinimumSizeVariable() throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass().getDeclaredField(minimumSizeVariableName);
+    Field field = adaptiveFetchCache.getClass().getDeclaredField(minimumSizeVariableName);
     field.setAccessible(true);
-    return (Integer) field.get(adaptiveFetchQueryMonitoring);
+    return (Integer) field.get(adaptiveFetchCache);
   }
 
   private int getMaximumSizeVariable() throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass().getDeclaredField(maximumSizeVariableName);
+    Field field = adaptiveFetchCache.getClass().getDeclaredField(maximumSizeVariableName);
     field.setAccessible(true);
-    return (Integer) field.get(adaptiveFetchQueryMonitoring);
+    return (Integer) field.get(adaptiveFetchCache);
   }
 
   private boolean getAdaptiveFetchVariable() throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass()
+    Field field = adaptiveFetchCache.getClass()
         .getDeclaredField(adaptiveFetchVariableName);
     field.setAccessible(true);
-    return (Boolean) field.get(adaptiveFetchQueryMonitoring);
+    return (Boolean) field.get(adaptiveFetchCache);
   }
 
-  private long getMaxBufferVariable() throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass()
-        .getDeclaredField(maxBufferSizeVariableName);
+  private long getMaximumBufferVariable() throws NoSuchFieldException, IllegalAccessException {
+    Field field = adaptiveFetchCache.getClass()
+        .getDeclaredField(maximumBufferSizeVariableName);
     field.setAccessible(true);
-    return (Long) field.get(adaptiveFetchQueryMonitoring);
+    return (Long) field.get(adaptiveFetchCache);
   }
 
   private void setMinimumSizeVariable(int value)
       throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass().getDeclaredField(minimumSizeVariableName);
+    Field field = adaptiveFetchCache.getClass().getDeclaredField(minimumSizeVariableName);
     field.setAccessible(true);
-    field.set(adaptiveFetchQueryMonitoring, value);
+    field.set(adaptiveFetchCache, value);
   }
 
   private void setMaximumSizeVariable(int value)
       throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass()
-        .getDeclaredField(maxBufferSizeVariableName);
+    Field field = adaptiveFetchCache.getClass()
+        .getDeclaredField(maximumSizeVariableName);
     field.setAccessible(true);
-    field.set(adaptiveFetchQueryMonitoring, value);
+    field.set(adaptiveFetchCache, value);
   }
 
   private void setAdaptiveFetchVariable(boolean value)
       throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass()
+    Field field = adaptiveFetchCache.getClass()
         .getDeclaredField(adaptiveFetchVariableName);
     field.setAccessible(true);
-    field.set(adaptiveFetchQueryMonitoring, value);
+    field.set(adaptiveFetchCache, value);
   }
 
-  private void setMaxBufferVariable(long value)
+  private void setMaximumBufferVariable(long value)
       throws NoSuchFieldException, IllegalAccessException {
-    Field field = adaptiveFetchQueryMonitoring.getClass()
-        .getDeclaredField(maxBufferSizeVariableName);
+    Field field = adaptiveFetchCache.getClass()
+        .getDeclaredField(maximumBufferSizeVariableName);
     field.setAccessible(true);
-    field.set(adaptiveFetchQueryMonitoring, value);
+    field.set(adaptiveFetchCache, value);
   }
 
   /**
-   * Class to mock object with Query interface. As AdaptiveFetchQueryMonitoring is using only
+   * Class to mock object with Query interface. As AdaptiveFetchCache is using only
    * getNativeSql method from Query interface, other shouldn't be called.
    */
   private class MockUpQuery implements Query {
