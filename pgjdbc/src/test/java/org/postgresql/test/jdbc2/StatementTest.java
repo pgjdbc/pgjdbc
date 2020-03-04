@@ -15,7 +15,6 @@ import static org.junit.Assert.fail;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
@@ -960,20 +959,7 @@ public class StatementTest {
       cnt.put(sqlState, val);
     }
     System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
-    try {
-      executor.shutdownNow();
-      executor.awaitTermination(1000, TimeUnit.MILLISECONDS);
-      // just close the connection to avoid lingering cancel requests from above
-      con.close();
-      con = TestUtil.openDB();
-    } catch ( PSQLException ex ) {
-      // draining out any cancel
-      if ( !ex.getServerErrorMessage().getMessage().startsWith("canceling statement due to user request")) {
-        throw ex;
-      }
-    } catch ( InterruptedException ex ) {
-
-    }
+    executor.shutdown();
   }
 
   /**
