@@ -7,7 +7,6 @@ package org.postgresql.replication;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.CopyBothResponseTest;
 
 import org.junit.AssumptionViolatedException;
 import org.junit.BeforeClass;
