@@ -185,6 +185,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream.sendInteger4(cancelPid);
       cancelStream.sendInteger4(cancelKey);
       cancelStream.flush();
+      cancelStream.receiveEOF();
     } catch (IOException e) {
       // Safe to ignore.
       LOGGER.log(Level.FINEST, "Ignoring exception on cancel request:", e);
