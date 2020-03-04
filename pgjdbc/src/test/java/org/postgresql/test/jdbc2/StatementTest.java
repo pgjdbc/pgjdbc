@@ -723,7 +723,7 @@ public class StatementTest {
   public void testShortQueryTimeout() throws SQLException {
     assumeLongTest();
 
-    long deadLine = System.nanoTime() + (long)(10 * 1E9);
+    long deadLine = System.nanoTime() + 10000 * 1000000;
     Statement stmt = con.createStatement();
     ((PgStatement) stmt).setQueryTimeoutMs(1);
     Statement stmt2 = con.createStatement();
@@ -731,7 +731,7 @@ public class StatementTest {
       try {
         // This usually won't time out but scheduler jitter, server load
         // etc can cause a timeout.
-        stmt.executeQuery("select pg_sleep(1);");
+        stmt.executeQuery("select 1;");
       } catch (SQLException e) {
         // Expect "57014 query_canceled" (en-msg is "canceling statement due to statement timeout")
         // but anything else is fatal. We can't differentiate other causes of statement cancel like
