@@ -92,16 +92,21 @@ matrix:
       jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
       script: ./gradlew autostyleCheck checkstyleAll
-    - jdk: oraclejdk11
-      sudo: required
-      addons:
-        postgresql: "10"
-      env:
-        - PG_VERSION=10
-        - JDK=11
-        - TZ=America/New_York # flips between −05:00 and −04:00
-        - TEST_CLIENTS=Y
-        - COVERAGE=Y
+    - env:
+        - FEDORA_CI=Y
+      services:
+        - docker
+      if: type != pull_request
+#    - jdk: oraclejdk11
+#      sudo: required
+#      addons:
+#        postgresql: "10"
+#      env:
+#        - PG_VERSION=10
+#        - JDK=11
+#        - TZ=America/New_York # flips between −05:00 and −04:00
+#        - TEST_CLIENTS=Y
+#        - COVERAGE=Y
 
 # Deploy snapshots to Maven Central
 after_success:
