@@ -698,7 +698,7 @@ public class StatementTest {
       }
     }
     long duration = System.nanoTime() - start;
-    if (!cancelReceived || duration > (5E9)) {
+    if (!cancelReceived || duration > TimeUnit.SECONDS.toNanos(5)) {
       fail("Query should have been cancelled since the timeout was set to 1 sec."
           + " Cancel state: " + cancelReceived + ", duration: " + duration);
     }
@@ -723,7 +723,7 @@ public class StatementTest {
   public void testShortQueryTimeout() throws SQLException {
     assumeLongTest();
 
-    long deadLine = System.nanoTime() + 10000 * 1000000;
+    long deadLine = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
     Statement stmt = con.createStatement();
     ((PgStatement) stmt).setQueryTimeoutMs(1);
     Statement stmt2 = con.createStatement();
@@ -873,7 +873,7 @@ public class StatementTest {
             long start = System.nanoTime();
             while (st.getWarnings() == null) {
               long dt = System.nanoTime() - start;
-              if (dt > 10000 * 10000000) {
+              if (dt > TimeUnit.SECONDS.toNanos(10)) {
                 throw new IllegalStateException("Expected to receive a notice within 10 seconds");
               }
             }
