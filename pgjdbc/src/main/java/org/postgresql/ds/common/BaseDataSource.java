@@ -332,6 +332,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return connect socket timeout
+   * @see PGProperty#CONNECT_SOCKET_TIMEOUT
+   */
+  public int getConnectSocketTimeout() {
+    return PGProperty.CONNECT_SOCKET_TIMEOUT.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param connectSocketTimeout connect timeout
+   * @see PGProperty#CONNECT_SOCKET_TIMEOUT
+   */
+  public void setConnectSocketTimeout(int connectSocketTimeout) {
+    PGProperty.CONNECT_SOCKET_TIMEOUT.set(properties, connectSocketTimeout);
+  }
+
+  /**
    * @return connect timeout
    * @see PGProperty#CONNECT_TIMEOUT
    */

@@ -92,10 +92,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
-    // Set the socket timeout if the "socketTimeout" property has been set.
+    // Set the socket timeout if the "connectSocketTimeout" or "socketTimeout" property has been set.
+    int connectSocketTimeout = PGProperty.CONNECT_SOCKET_TIMEOUT.getInt(info);
     int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
-    if (socketTimeout > 0) {
-      newStream.getSocket().setSoTimeout(socketTimeout * 1000);
+    if (connectSocketTimeout > 0) {
+      newStream.setNetworkTimeout(connectSocketTimeout * 1000);
+    } else if (socketTimeout > 0) {
+      newStream.setNetworkTimeout(socketTimeout * 1000);
     }
 
     String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
@@ -144,6 +147,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Do authentication (until AuthenticationOk).
     doAuthentication(newStream, hostSpec.getHost(), user, info);
+
+    // Reset socket timeout if "socketTimeout" property has been set.
+    if (socketTimeout > 0) {
+      newStream.setNetworkTimeout(socketTimeout * 1000);
+    }
 
     return newStream;
   }
