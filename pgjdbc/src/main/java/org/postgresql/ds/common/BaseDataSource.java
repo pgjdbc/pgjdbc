@@ -148,7 +148,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Sets the name of the host the PostgreSQL database is running on. If this is changed, it will
-   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   * only affect future calls to getConnection. The default value is {@code localhost}.
    *
    * @param serverName name of the host the PostgreSQL database is running on
    * @deprecated use {@link #setServerNames(String[])}
@@ -160,7 +160,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Sets the name of the host(s) the PostgreSQL database is running on. If this is changed, it will
-   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   * only affect future calls to getConnection. The default value is {@code localhost}.
    *
    * @param serverNames name of the host(s) the PostgreSQL database is running on
    */

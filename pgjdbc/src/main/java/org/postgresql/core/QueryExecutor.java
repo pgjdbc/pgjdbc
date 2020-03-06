@@ -409,7 +409,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * Returns whether the server treats string-literals according to the SQL standard or if it uses
    * traditional PostgreSQL escaping rules. Versions up to 8.1 always treated backslashes as escape
    * characters in string-literals. Since 8.2, this depends on the value of the
-   * <tt>standard_conforming_strings</tt> server variable.
+   * {@code standard_conforming_strings} server variable.
    *
    * @return true if the server treats string literals according to the SQL standard
    */

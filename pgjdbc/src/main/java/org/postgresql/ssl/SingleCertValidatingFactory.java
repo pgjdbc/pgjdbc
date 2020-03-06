@@ -37,7 +37,8 @@ import javax.net.ssl.X509TrustManager;
  * <p>Where the certificate is loaded from is based upon the prefix of the <code>sslfactoryarg</code> property.
  * The following table lists the valid set of prefixes.</p>
  *
- * <table border="1" summary="Valid prefixes for sslfactoryarg">
+ * <table border="1">
+ * <caption>Valid prefixes for sslfactoryarg</caption>
  * <tr>
  *     <th>Prefix</th>
  *     <th>Example</th>
