@@ -662,6 +662,14 @@ public enum PGProperty {
     "false",
     "Use SPNEGO in SSPI authentication requests"),
 
+  /**
+   * Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state.
+   */
+  RAISE_EXCEPTION_ON_SILENT_ROLLBACK(
+    "raiseExceptionOnSilentRollback",
+    "true",
+    "Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state"),
+
   ;
 
   private final String name;
