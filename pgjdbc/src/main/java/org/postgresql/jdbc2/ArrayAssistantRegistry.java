@@ -5,8 +5,8 @@
 
 package org.postgresql.jdbc2;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Array assistants register here.
@@ -14,15 +14,15 @@ import java.util.Map;
  * @author Minglei Tu
  */
 public class ArrayAssistantRegistry {
-  private static Map<Integer, ArrayAssistant> arrayAssistantMap =
-      new HashMap<Integer, ArrayAssistant>();
+  private static final ConcurrentMap<Integer, ArrayAssistant> ARRAY_ASSISTANT_MAP =
+      new ConcurrentHashMap<Integer, ArrayAssistant>();
 
   public static ArrayAssistant getAssistant(int oid) {
-    return arrayAssistantMap.get(oid);
+    return ARRAY_ASSISTANT_MAP.get(oid);
   }
 
   ////
   public static void register(int oid, ArrayAssistant assistant) {
-    arrayAssistantMap.put(oid, assistant);
+    ARRAY_ASSISTANT_MAP.put(oid, assistant);
   }
 }
