@@ -409,6 +409,14 @@ public enum PGProperty {
     new String[] {"3"}),
 
   /**
+   * Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state.
+   */
+  RAISE_EXCEPTION_ON_SILENT_ROLLBACK(
+    "raiseExceptionOnSilentRollback",
+    "true",
+    "Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state"),
+
+  /**
    * Puts this connection in read-only mode.
    */
   READ_ONLY(

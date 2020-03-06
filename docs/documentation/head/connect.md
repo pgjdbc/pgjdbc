@@ -220,6 +220,15 @@ Connection conn = DriverManager.getConnection(url);
      
     The default is 'false'
 
+* **raiseExceptionOnSilentRollback** = boolean
+
+    since 42.2.11
+
+    Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state.
+    See https://www.postgresql.org/message-id/b9fb50dc-0f6e-15fb-6555-8ddb86f4aa71%40postgresfriends.org
+
+    The default is 'true'
+
 * **binaryTransfer** = boolean
 
 	Use binary format for sending and receiving data if possible.
