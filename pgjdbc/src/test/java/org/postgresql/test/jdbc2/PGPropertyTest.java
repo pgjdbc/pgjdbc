@@ -77,6 +77,18 @@ public class PGPropertyTest {
     }
   }
 
+  @Test
+  public void testSortOrder() {
+    String prevName = null;
+    for (PGProperty property : PGProperty.values()) {
+      String name = property.name();
+      if (prevName != null) {
+        assertTrue("PGProperty names should be sorted in ascending order: " + name + " < " + prevName, name.compareTo(prevName) > 0);
+      }
+      prevName = name;
+    }
+  }
+
   /**
    * Test that the enum constant is common with the underlying property name.
    */
