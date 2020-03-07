@@ -42,6 +42,14 @@ public enum PGProperty {
     "Name of the Application (backend >= 9.0)"),
 
   /**
+   * Assume the server is at least that version.
+   */
+  ASSUME_MIN_SERVER_VERSION(
+    "assumeMinServerVersion",
+    null,
+    "Assume the server is at least that version"),
+
+  /**
    * Specifies what the driver should do if a query fails. In {@code autosave=always} mode, JDBC driver sets a savepoint before each query,
    * and rolls back to that savepoint in case of failure. In {@code autosave=never} mode (default), no savepoint dance is made ever.
    * In {@code autosave=conservative} mode, savepoint is set for each query, however the rollback is done only for rare cases
@@ -56,15 +64,6 @@ public enum PGProperty {
         + " like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries",
     false,
     new String[] {"always", "never", "conservative"}),
-
-  /**
-   * Assume the server is at least that version.
-   */
-  ASSUME_MIN_SERVER_VERSION(
-    "assumeMinServerVersion",
-    null,
-    "Assume the server is at least that version"),
-
 
   /**
    * Use binary format for sending and receiving data if possible.
