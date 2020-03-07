@@ -32,6 +32,7 @@ rootProject.name = "pgjdbc"
 
 include(
     "bom",
+    "benchmarks",
     "postgresql"
 )
 
