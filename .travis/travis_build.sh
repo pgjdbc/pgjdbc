@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -x -e
 
-if [[ "${FEDORA_CI}" == *"Y" ]];
+if [[ $FEDORA_CI == "Y" ]];
 then
   # Prepare "source release" archive
   ./gradlew :postgresql:sourceDistribution -Prelease
@@ -24,56 +24,51 @@ fi
 GRADLE_ARGS="--no-daemon -PskipAutostyle -PskipCheckstyle build $MVN_CUSTOM_ARGS"
 MVN_PROFILES="release"
 
-if [[ "x${REPLICATION}" == *"x"* ]];
+if [[ $REPLICATION != "Y" ]];
 then
     GRADLE_ARGS="$GRADLE_ARGS -PskipReplicationTests"
 fi
 
-if [[ x$SLOW_TESTS == *"x"* ]];
+if [[ $SLOW_TESTS != "Y" ]];
 then
     GRADLE_ARGS="$GRADLE_ARGS -PincludeTestTags=!org.postgresql.test.SlowTests"
 fi
 
-if [[ "${NO_WAFFLE_NO_OSGI}" == *"Y"* ]];
-then
-    GRADLE_ARGS="$GRADLE_ARGS -DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi"
-fi
-
-if [[ "x${QUERY_MODE}" == *"x"* ]];
+if [[ $QUERY_MODE != "" ]];
 then
     GRADLE_ARGS="$GRADLE_ARGS -DpreferQueryMode=$QUERY_MODE"
 fi
 
-if [[ "${COVERAGE}" == *"Y"* ]];
+if [[ $COVERAGE == "Y" ]];
 then
     GRADLE_ARGS="$GRADLE_ARGS jacocoReport"
 fi
 
-if [[ "${JDK}" == *"9"* ]];
+if [[ $JDK == "9" ]];
 then
     export MAVEN_SKIP_RC=true
     GRADLE_ARGS="$GRADLE_ARGS -Dcurrent.jdk=1.9 -Djavac.target=1.9"
 fi
 
-if [[ "$JDOC" == *"Y"* ]];
+if [[ $JDOC == "Y" ]];
 then
     # Build javadocs for Java 8 only
-    ./gradlew ${GRADLE_ARGS} javadoc
+    ./gradlew $GRADLE_ARGS javadoc
 # We can't execute tests with Java 1.7 yet :(
 #elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk7"* ]];
 #then
 else
-    ./gradlew ${GRADLE_ARGS}
+    ./gradlew $GRADLE_ARGS
 fi
 
-if [[ "${COVERAGE}" == "Y" ]];
+if [[ $COVERAGE == "Y" ]];
 then
     pip install --user codecov
     codecov
 fi
 
 # Run Scala-based and Clojure-based tests
-if [[ "${TEST_CLIENTS}" == *"Y" ]];
+if [[ $TEST_CLIENTS == "Y" ]];
 then
   # Pgjdbc should be in "local maven repository" so the clients can use it
   ./gradlew publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
