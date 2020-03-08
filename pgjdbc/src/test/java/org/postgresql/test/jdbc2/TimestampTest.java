@@ -572,6 +572,22 @@ public class TimestampTest extends BaseTest4 {
     stmt.close();
   }
 
+  @Test
+  public void testJavaTimestampFromSQLTime() throws SQLException {
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("SELECT '00:00:05.123456'::time as t, '1970-01-01 00:00:05.123456'::timestamp as ts;");
+    rs.next();
+    Timestamp t = rs.getTimestamp("t");
+    Timestamp ts = rs.getTimestamp("ts");
+
+    Integer desiredNanos = 123456000;
+    Integer tNanos = t.getNanos();
+    Integer tsNanos = ts.getNanos();
+
+    assertEquals("Time should be microsecond-accurate", desiredNanos, tNanos);
+    assertEquals("Unix epoch timestamp and Time should match", ts, t);
+  }
+
   private static Timestamp getTimestamp(int y, int m, int d, int h, int mn, int se, int f,
       String tz) {
     Timestamp result = null;

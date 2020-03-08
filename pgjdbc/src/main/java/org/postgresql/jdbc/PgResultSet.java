@@ -568,25 +568,28 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
     int col = i - 1;
     int oid = fields[col].getOID();
+
     if (isBinary(i)) {
-      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
-        boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
+      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP || oid == Oid.TIMETZ || oid == Oid.TIME) {
+        boolean hasTimeZone = oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ;
         TimeZone tz = cal.getTimeZone();
-        return connection.getTimestampUtils().toTimestampBin(tz, thisRow.get(col), hasTimeZone);
-      } else {
-        // JDBC spec says getTimestamp of Time and Date must be supported
-        long millis;
-        if (oid == Oid.TIME || oid == Oid.TIMETZ) {
-          millis = getTime(i, cal).getTime();
-        } else if (oid == Oid.DATE) {
-          millis = getDate(i, cal).getTime();
+        Timestamp ts = connection.getTimestampUtils().toTimestampBin(tz, thisRow.get(col), hasTimeZone);
+
+        if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
+          return ts;
         } else {
-          throw new PSQLException(
-              GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                  Oid.toString(oid), "timestamp"),
-              PSQLState.DATA_TYPE_MISMATCH);
+          // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
+          Timestamp tsUnixEpochDate = new Timestamp(getTime(i, cal).getTime());
+          tsUnixEpochDate.setNanos(ts.getNanos());
+          return tsUnixEpochDate;
         }
-        return new Timestamp(millis);
+      } else if (oid == Oid.DATE) {
+        new Timestamp(getDate(i, cal).getTime());
+      } else {
+        throw new PSQLException(
+            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                Oid.toString(oid), "timestamp"),
+            PSQLState.DATA_TYPE_MISMATCH);
       }
     }
 
@@ -596,8 +599,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     String string = getString(i);
     if (oid == Oid.TIME || oid == Oid.TIMETZ) {
       // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-      return new Timestamp(connection.getTimestampUtils().toTime(cal, string).getTime());
+      Timestamp tsWithMicros = connection.getTimestampUtils().toTimestamp(cal, string);
+      Timestamp tsUnixEpochDate = new Timestamp(connection.getTimestampUtils().toTime(cal, string).getTime());
+      tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
+      return tsUnixEpochDate;
     }
+
     return connection.getTimestampUtils().toTimestamp(cal, string);
   }
 
