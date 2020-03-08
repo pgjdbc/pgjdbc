@@ -613,7 +613,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     int oid = fields[col].getOID();
 
     if (isBinary(i)) {
-
       byte [] row = castNonNull(thisRow).get(col);
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
         boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
