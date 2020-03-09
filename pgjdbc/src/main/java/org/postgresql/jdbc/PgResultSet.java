@@ -63,6 +63,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -570,19 +571,24 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     int oid = fields[col].getOID();
 
     if (isBinary(i)) {
-      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP || oid == Oid.TIMETZ || oid == Oid.TIME) {
-        boolean hasTimeZone = oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ;
+      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
+        boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
         TimeZone tz = cal.getTimeZone();
-        Timestamp ts = connection.getTimestampUtils().toTimestampBin(tz, thisRow.get(col), hasTimeZone);
-
-        if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
-          return ts;
-        } else {
-          // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-          Timestamp tsUnixEpochDate = new Timestamp(getTime(i, cal).getTime());
-          tsUnixEpochDate.setNanos(ts.getNanos());
-          return tsUnixEpochDate;
-        }
+        return connection.getTimestampUtils().toTimestampBin(tz, thisRow.get(col), hasTimeZone);
+      } else if (oid == Oid.TIME) {
+        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(cal.getTimeZone(), thisRow.get(col), false);
+        // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
+        Timestamp tsUnixEpochDate = new Timestamp(getTime(i, cal).getTime());
+        tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
+        return tsUnixEpochDate;
+      } else if (oid == Oid.TIMETZ) {
+        TimeZone tz = cal.getTimeZone();
+        byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(thisRow.get(col), 0, 8);
+        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
+        // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
+        Timestamp tsUnixEpochDate = new Timestamp(getTime(i, cal).getTime());
+        tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
+        return tsUnixEpochDate;
       } else if (oid == Oid.DATE) {
         new Timestamp(getDate(i, cal).getTime());
       } else {
