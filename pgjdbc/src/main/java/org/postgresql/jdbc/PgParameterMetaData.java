@@ -101,4 +101,8 @@ public class PgParameterMetaData implements ParameterMetaData {
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
+
+  public int[] getOids() {
+    return oids;
+  }
 }

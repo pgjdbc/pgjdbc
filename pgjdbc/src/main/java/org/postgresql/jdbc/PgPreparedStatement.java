@@ -68,7 +68,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
-class PgPreparedStatement extends PgStatement implements PreparedStatement {
+public class PgPreparedStatement extends PgStatement implements PreparedStatement {
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
@@ -1644,5 +1644,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
     batchStatements = newBatchStatements;
     batchParameters = newBatchParameters;
+  }
+
+  public ParameterList getPreparedParameters() {
+    return preparedParameters;
   }
 }

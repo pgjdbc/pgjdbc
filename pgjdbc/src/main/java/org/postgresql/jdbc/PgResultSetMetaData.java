@@ -440,4 +440,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
+
+  public Field[] getFields() {
+    return fields;
+  }
 }
