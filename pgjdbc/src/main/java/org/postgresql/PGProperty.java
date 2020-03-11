@@ -73,6 +73,14 @@ public enum PGProperty {
     "Name of the Application (backend >= 9.0)"),
 
   /**
+   * Assume the server is at least that version.
+   */
+  ASSUME_MIN_SERVER_VERSION(
+    "assumeMinServerVersion",
+    null,
+    "Assume the server is at least that version"),
+
+  /**
    * Specifies what the driver should do if a query fails. In {@code autosave=always} mode, JDBC driver sets a savepoint before each query,
    * and rolls back to that savepoint in case of failure. In {@code autosave=never} mode (default), no savepoint dance is made ever.
    * In {@code autosave=conservative} mode, savepoint is set for each query, however the rollback is done only for rare cases
@@ -87,15 +95,6 @@ public enum PGProperty {
         + " like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries",
     false,
     new String[] {"always", "never", "conservative"}),
-
-  /**
-   * Assume the server is at least that version.
-   */
-  ASSUME_MIN_SERVER_VERSION(
-    "assumeMinServerVersion",
-    null,
-    "Assume the server is at least that version"),
-
 
   /**
    * Use binary format for sending and receiving data if possible.
@@ -440,6 +439,14 @@ public enum PGProperty {
     new String[] {"3"}),
 
   /**
+   * Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state.
+   */
+  RAISE_EXCEPTION_ON_SILENT_ROLLBACK(
+    "raiseExceptionOnSilentRollback",
+    "true",
+    "Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state"),
+
+  /**
    * Puts this connection in read-only mode.
    */
   READ_ONLY(
@@ -614,6 +621,7 @@ public enum PGProperty {
     null,
     "The password for the client's ssl key (ignored if sslpasswordcallback is set)"),
 
+
   /**
    * The classname instantiating {@code javax.security.auth.callback.CallbackHandler} to use.
    */
@@ -657,7 +665,7 @@ public enum PGProperty {
     "any",
     "Specifies what kind of server to connect",
     false,
-    new String[] {"any", "master", "slave", "secondary",  "preferSlave", "preferSecondary"}),
+    new String [] {"any", "primary", "master", "slave", "secondary",  "preferSlave", "preferSecondary"}),
 
   /**
    * Enable or disable TCP keep-alive. The default is {@code false}.

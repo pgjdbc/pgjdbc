@@ -4,27 +4,51 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-
-## [42.2.10] (2020-01-30)
 ### Changed
 
 ### Added
- - Add maxResultBuffer property (#1657)
- - add caller push of binary data (rebase of #953) (#1659)
+
+### Fixed
+
+## [42.2.11] (2020-03-07)
+### Changed
+ - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals. 
+ - `DatabaseMetaData#getProcedures` returns only procedures (not functions) for PostgreSQL 11+ [PR 1723](https://github.com/pgjdbc/pgjdbc/pull/1723)
+ - Convert silent rollbacks into exception if application sends `commit` or `xa.prepare` command [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)
+
+### Added
+ - feat: `raiseExceptionOnSilentRollback` connection option to configure if silent rollback should raise an exception [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)
+ - feat: Expose `ByteStreamWriter` in CopyManager [PR 1702](https://github.com/pgjdbc/pgjdbc/pull/1702)
+ - feat: add way to distinguish base and partitioned tables in PgDatabaseMetaData.getTables [PR 1708](https://github.com/pgjdbc/pgjdbc/pull/1708)
+ - refactor: introduce tuple abstraction (rebased) [PR 1701](https://github.com/pgjdbc/pgjdbc/pull/1701)
+ - refactor: make PSQLState enum consts for integrity constraint violations [PR 1699](https://github.com/pgjdbc/pgjdbc/pull/1699)
+ - test: add makefile to create ssl certs [PR 1706](https://github.com/pgjdbc/pgjdbc/pull/1706)
+
+### Fixed
+ - fix: Always use `.` as decimal separator in PGInterval [PR 1705](https://github.com/pgjdbc/pgjdbc/pull/1705)
+ - fix: allow DatabaseMetaData.getColumns to describe an unset scale [PR 1716](https://github.com/pgjdbc/pgjdbc/pull/1716)
+
+## [42.2.10] (2020-01-30)
+### Changed
+ - (!) Regression: remove receiving EOF from backend after cancel [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The regression is that the subsequent query might receive the cancel signal.
+
+### Added
+ - Add maxResultBuffer property [PR 1657](https://github.com/pgjdbc/pgjdbc/pull/1657)
+ - add caller push of binary data (rebase of #953) [PR 1659](https://github.com/pgjdbc/pgjdbc/pull/1659)
  
 ### Fixed
- - Cleanup PGProperty, sort values, and add some missing to docs (#1686)
- - Fixing LocalTime rounding (losing precision) (#1570)
- - Network Performance of PgDatabaseMetaData.getTypeInfo() method (#1668)
- - Issue #1680 updating a boolean field requires special handling to set it to t or f instead of true or false (#1682)
- - bug in pgstream for replication (#1681)
- - Issue #1677 NumberFormatException when fetching PGInterval with small value (#1678)
- - Metadata queries improvements with large schemas. (#1673)
- - Utf 8 encoding optimizations (#1444)
- - interval overflow (#1658)
- - Issue #1482 where the port was being added to the GSSAPI service name (#1651)
- - remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) (#1641)
- - Unable to register out parameter Issue #1646 (#1648)
+ - Cleanup PGProperty, sort values, and add some missing to docs [PR 1686](https://github.com/pgjdbc/pgjdbc/pull/1686)
+ - Fixing LocalTime rounding (losing precision) [PR 1570](https://github.com/pgjdbc/pgjdbc/pull/1570)
+ - Network Performance of PgDatabaseMetaData.getTypeInfo() method [PR 1668](https://github.com/pgjdbc/pgjdbc/pull/1668)
+ - Issue #1680 updating a boolean field requires special handling to set it to t or f instead of true or false [PR 1682](https://github.com/pgjdbc/pgjdbc/pull/1682)
+ - bug in pgstream for replication [PR 1681](https://github.com/pgjdbc/pgjdbc/pull/1681)
+ - Issue #1677 NumberFormatException when fetching PGInterval with small value [PR 1678](https://github.com/pgjdbc/pgjdbc/pull/1678)
+ - Metadata queries improvements with large schemas. [PR 1673](https://github.com/pgjdbc/pgjdbc/pull/1673)
+ - Utf 8 encoding optimizations [PR 1444](https://github.com/pgjdbc/pgjdbc/pull/1444)
+ - interval overflow [PR 1658](https://github.com/pgjdbc/pgjdbc/pull/1658)
+ - Issue #1482 where the port was being added to the GSSAPI service name [PR 1651](https://github.com/pgjdbc/pgjdbc/pull/1651)
+ - remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1641)
+ - Unable to register out parameter Issue #1646 [PR 1648](https://github.com/pgjdbc/pgjdbc/pull/1648)
   
 ## [42.2.9] (2019-12-06)
 ### Changed
@@ -112,6 +136,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 - `ssl=true` implies `sslmode=verify-full`, that is it requires valid server certificate [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
 
+targetServerType=master has been deprecated in favour of targetServerType=primary. master
+will still be accepted but not documented.
 ### Added
 - Support for `sslmode=allow/prefer/require` [cdeeaca4](https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
 
@@ -288,4 +314,6 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.7]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.6...REL42.2.7
 [42.2.8]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.7...REL42.2.8
 [42.2.9]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.8...REL42.2.9
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...HEAD
+[42.2.10]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...REL42.2.10
+[42.2.11]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.10...REL42.2.11
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...HEAD

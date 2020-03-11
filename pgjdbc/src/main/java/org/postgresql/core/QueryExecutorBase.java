@@ -48,6 +48,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
   protected final boolean logServerErrorDetail;
+  private boolean raiseExceptionOnSilentRollback;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
@@ -185,6 +186,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream.sendInteger4(cancelPid);
       cancelStream.sendInteger4(cancelKey);
       cancelStream.flush();
+      cancelStream.receiveEOF();
     } catch (IOException e) {
       // Safe to ignore.
       LOGGER.log(Level.FINEST, "Ignoring exception on cancel request:", e);
@@ -405,6 +407,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
+  }
+
+  @Override
+  public boolean isRaiseExceptionOnSilentRollback() {
+    return raiseExceptionOnSilentRollback;
+  }
+
+  @Override
+  public void setRaiseExceptionOnSilentRollback(boolean raiseExceptionOnSilentRollback) {
+    this.raiseExceptionOnSilentRollback = raiseExceptionOnSilentRollback;
   }
 
   protected boolean hasNotifications() {

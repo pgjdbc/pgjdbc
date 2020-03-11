@@ -15,7 +15,6 @@ import static org.junit.Assert.fail;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
@@ -698,7 +697,7 @@ public class StatementTest {
       }
     }
     long duration = System.nanoTime() - start;
-    if (!cancelReceived || duration > (5E9)) {
+    if (!cancelReceived || duration > TimeUnit.SECONDS.toNanos(5)) {
       fail("Query should have been cancelled since the timeout was set to 1 sec."
           + " Cancel state: " + cancelReceived + ", duration: " + duration);
     }
@@ -723,7 +722,7 @@ public class StatementTest {
   public void testShortQueryTimeout() throws SQLException {
     assumeLongTest();
 
-    long deadLine = System.nanoTime() + (long)(10 * 1E9);
+    long deadLine = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
     Statement stmt = con.createStatement();
     ((PgStatement) stmt).setQueryTimeoutMs(1);
     Statement stmt2 = con.createStatement();
@@ -731,7 +730,7 @@ public class StatementTest {
       try {
         // This usually won't time out but scheduler jitter, server load
         // etc can cause a timeout.
-        stmt.executeQuery("select pg_sleep(1);");
+        stmt.executeQuery("select 1;");
       } catch (SQLException e) {
         // Expect "57014 query_canceled" (en-msg is "canceling statement due to statement timeout")
         // but anything else is fatal. We can't differentiate other causes of statement cancel like
@@ -873,7 +872,7 @@ public class StatementTest {
             long start = System.nanoTime();
             while (st.getWarnings() == null) {
               long dt = System.nanoTime() - start;
-              if (dt > 10000 * 10000000) {
+              if (dt > TimeUnit.SECONDS.toNanos(10)) {
                 throw new IllegalStateException("Expected to receive a notice within 10 seconds");
               }
             }
@@ -903,7 +902,7 @@ public class StatementTest {
     }
   }
 
-  @Test(timeout = 2000)
+  @Test(timeout = 20000)
   public void testFastCloses() throws SQLException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
@@ -960,20 +959,7 @@ public class StatementTest {
       cnt.put(sqlState, val);
     }
     System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
-    try {
-      executor.shutdownNow();
-      executor.awaitTermination(1000, TimeUnit.MILLISECONDS);
-      // just close the connection to avoid lingering cancel requests from above
-      con.close();
-      con = TestUtil.openDB();
-    } catch ( PSQLException ex ) {
-      // draining out any cancel
-      if ( !ex.getServerErrorMessage().getMessage().startsWith("canceling statement due to user request")) {
-        throw ex;
-      }
-    } catch ( InterruptedException ex ) {
-
-    }
+    executor.shutdown();
   }
 
   /**

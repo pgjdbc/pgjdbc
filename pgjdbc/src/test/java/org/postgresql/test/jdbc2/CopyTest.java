@@ -18,6 +18,7 @@ import org.postgresql.copy.CopyOut;
 import org.postgresql.copy.PGCopyOutputStream;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
@@ -31,6 +32,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
+import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -206,6 +208,14 @@ public class CopyTest {
   public void testCopyInFromReader() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
     copyAPI.copyIn(sql, new StringReader(new String(getData(origData))), 3);
+    int rowCount = getCount();
+    assertEquals(dataRows, rowCount);
+  }
+
+  @Test
+  public void testCopyInFromByteStreamWriter() throws SQLException, IOException {
+    String sql = "COPY copytest FROM STDIN";
+    copyAPI.copyIn(sql, new ByteBufferByteStreamWriter(ByteBuffer.wrap(getData(origData))));
     int rowCount = getCount();
     assertEquals(dataRows, rowCount);
   }

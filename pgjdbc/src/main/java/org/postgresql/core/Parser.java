@@ -387,8 +387,8 @@ public class Parser {
   /**
    * <p>Find the end of the single-quoted string starting at the given offset.</p>
    *
-   * <p>Note: for <tt>'single '' quote in string'</tt>, this method currently returns the offset of
-   * first <tt>'</tt> character after the initial one. The caller must call the method a second time
+   * <p>Note: for {@code 'single '' quote in string'}, this method currently returns the offset of
+   * first {@code '} character after the initial one. The caller must call the method a second time
    * for the second part of the quoted string.</p>
    *
    * @param query                     query
@@ -437,8 +437,8 @@ public class Parser {
   /**
    * <p>Find the end of the double-quoted string starting at the given offset.</p>
    *
-   * <p>Note: for <tt>&quot;double &quot;&quot; quote in string&quot;</tt>, this method currently
-   * returns the offset of first <tt>&quot;</tt> character after the initial one. The caller must
+   * <p>Note: for {@code "double "" quote in string"}, this method currently
+   * returns the offset of first {@code &quot;} character after the initial one. The caller must
    * call the method a second time for the second part of the quoted string.</p>
    *
    * @param query  query
@@ -453,7 +453,7 @@ public class Parser {
   }
 
   /**
-   * Test if the dollar character (<tt>$</tt>) at the given offset starts a dollar-quoted string and
+   * Test if the dollar character ({@code $}) at the given offset starts a dollar-quoted string and
    * return the offset of the ending dollar character.
    *
    * @param query  query
@@ -494,12 +494,12 @@ public class Parser {
   }
 
   /**
-   * Test if the <tt>-</tt> character at <tt>offset</tt> starts a <tt>--</tt> style line comment,
-   * and return the position of the first <tt>\r</tt> or <tt>\n</tt> character.
+   * Test if the {@code -} character at {@code offset} starts a {@code --} style line comment,
+   * and return the position of the first {@code \r} or {@code \n} character.
    *
    * @param query  query
    * @param offset start offset
-   * @return position of the first <tt>\r</tt> or <tt>\n</tt> character
+   * @return position of the first {@code \r} or {@code \n} character
    */
   public static int parseLineComment(final char[] query, int offset) {
     if (offset + 1 < query.length && query[offset + 1] == '-') {
@@ -514,12 +514,12 @@ public class Parser {
   }
 
   /**
-   * Test if the <tt>/</tt> character at <tt>offset</tt> starts a block comment, and return the
-   * position of the last <tt>/</tt> character.
+   * Test if the {@code /} character at {@code offset} starts a block comment, and return the
+   * position of the last {@code /} character.
    *
    * @param query  query
    * @param offset start offset
-   * @return position of the last <tt>/</tt> character
+   * @return position of the last {@code /} character
    */
   public static int parseBlockComment(final char[] query, int offset) {
     if (offset + 1 < query.length && query[offset + 1] == '*') {

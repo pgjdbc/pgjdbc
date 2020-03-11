@@ -148,7 +148,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Sets the name of the host the PostgreSQL database is running on. If this is changed, it will
-   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   * only affect future calls to getConnection. The default value is {@code localhost}.
    *
    * @param serverName name of the host the PostgreSQL database is running on
    * @deprecated use {@link #setServerNames(String[])}
@@ -160,7 +160,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Sets the name of the host(s) the PostgreSQL database is running on. If this is changed, it will
-   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   * only affect future calls to getConnection. The default value is {@code localhost}.
    *
    * @param serverNames name of the host(s) the PostgreSQL database is running on
    */
@@ -1459,6 +1459,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setAutosave(AutoSave autoSave) {
     PGProperty.AUTOSAVE.set(properties, autoSave.value());
+  }
+
+  /**
+   * @return connection configuration regarding throwing exception from commit if database rolls back the transaction
+   * @see PGProperty#RAISE_EXCEPTION_ON_SILENT_ROLLBACK
+   */
+  public boolean isRaiseExceptionOnSilentRollback() {
+    return PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.getBoolean(properties);
+  }
+
+  /**
+   * @param raiseExceptionOnSilentRollback if the database should throw exception if commit silently rolls back
+   * @see PGProperty#RAISE_EXCEPTION_ON_SILENT_ROLLBACK
+   */
+  public void setRaiseExceptionOnSilentRollback(boolean raiseExceptionOnSilentRollback) {
+    PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.set(properties, raiseExceptionOnSilentRollback);
   }
 
   /**

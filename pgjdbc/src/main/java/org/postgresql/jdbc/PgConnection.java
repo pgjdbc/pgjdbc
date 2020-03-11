@@ -247,6 +247,10 @@ public class PgConnection implements BaseConnection {
       LOGGER.log(Level.FINEST, "    integer date/time = {0}", queryExecutor.getIntegerDateTimes());
     }
 
+    queryExecutor.setRaiseExceptionOnSilentRollback(
+        PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.getBoolean(info)
+    );
+
     //
     // String -> text or unknown?
     //

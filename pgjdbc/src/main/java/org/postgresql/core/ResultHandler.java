@@ -36,8 +36,7 @@ public interface ResultHandler {
    * @param cursor a cursor to use to fetch additional data; <code>null</code> if no further results
    *        are present.
    */
-  void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor);
+  void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples, ResultCursor cursor);
 
   /**
    * Called when a query that did not return a resultset completes.

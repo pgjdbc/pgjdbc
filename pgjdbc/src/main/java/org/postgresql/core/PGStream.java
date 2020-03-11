@@ -474,7 +474,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if a data I/O error occurs
    * @throws SQLException if read more bytes than set maxResultBuffer
    */
-  public byte[][] receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
+  public Tuple receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
     int messageSize = receiveInteger4(); // MESSAGE SIZE
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
@@ -502,7 +502,7 @@ public class PGStream implements Closeable, Flushable {
       throw oom;
     }
 
-    return answer;
+    return new Tuple(answer);
   }
 
   /**

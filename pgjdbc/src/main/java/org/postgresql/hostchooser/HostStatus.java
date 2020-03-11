@@ -11,6 +11,6 @@ package org.postgresql.hostchooser;
 public enum HostStatus {
   ConnectFail,
   ConnectOK,
-  Master,
+  Primary,
   Secondary
 }

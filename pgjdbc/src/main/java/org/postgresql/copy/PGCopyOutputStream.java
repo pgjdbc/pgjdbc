@@ -6,6 +6,7 @@
 package org.postgresql.copy;
 
 import org.postgresql.PGConnection;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 
 import java.io.IOException;
@@ -138,6 +139,10 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
       System.arraycopy(buf, off, copyBuffer, at, siz);
       at += siz;
     }
+  }
+
+  public void writeToCopy(ByteStreamWriter from) throws SQLException {
+    op.writeToCopy(from);
   }
 
   public int getFormat() {

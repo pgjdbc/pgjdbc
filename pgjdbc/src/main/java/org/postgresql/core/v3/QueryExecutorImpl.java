@@ -31,12 +31,14 @@ import org.postgresql.core.ResultHandlerDelegate;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
+import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -66,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * QueryExecutor implementation for the V3 protocol.
@@ -74,6 +77,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
   private static final String COPY_ERROR_MESSAGE = "COPY commands are only supported using the CopyManager API.";
+  private static final Pattern ROLLBACK_PATTERN = Pattern.compile("\\brollback\\b", Pattern.CASE_INSENSITIVE);
+  private static final Pattern COMMIT_PATTERN = Pattern.compile("\\bcommit\\b", Pattern.CASE_INSENSITIVE);
+  private static final Pattern PREPARE_PATTERN = Pattern.compile("\\bprepare ++transaction\\b", Pattern.CASE_INSENSITIVE);
+
+  private static boolean looksLikeCommit(String sql) {
+    if ("COMMIT".equalsIgnoreCase(sql)) {
+      return true;
+    }
+    if ("ROLLBACK".equalsIgnoreCase(sql)) {
+      return false;
+    }
+    return COMMIT_PATTERN.matcher(sql).find() && !ROLLBACK_PATTERN.matcher(sql).find();
+  }
+
+  private static boolean looksLikePrepare(String sql) {
+    return sql.startsWith("PREPARE TRANSACTION") || PREPARE_PATTERN.matcher(sql).find();
+  }
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -364,7 +384,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
         || getTransactionState() == TransactionState.OPEN)
         && query != restoreToAutoSave
-        && !query.getNativeSql().equalsIgnoreCase("COMMIT")
         && getAutoSave() != AutoSave.NEVER
         // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
         // thus no need to set a savepoint before such query
@@ -572,7 +591,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return new ResultHandlerDelegate(delegateHandler) {
       private boolean sawBegin = false;
 
-      public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
+      public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
           ResultCursor cursor) {
         if (sawBegin) {
           super.handleResultRows(fromQuery, fields, tuples, cursor);
@@ -1050,7 +1069,34 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendChar('d');
       pgStream.sendInteger4(siz + 4);
       pgStream.send(data, off, siz);
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
+          PSQLState.CONNECTION_FAILURE, ioe);
+    }
+  }
 
+  /**
+   * Sends data during a live COPY IN operation. Only unlocks the connection if server suddenly
+   * returns CommandComplete, which should not happen
+   *
+   * @param op   the CopyIn operation presumably currently holding lock on this connection
+   * @param from the source of bytes, e.g. a ByteBufferByteStreamWriter
+   * @throws SQLException on failure
+   */
+  public synchronized void writeToCopy(CopyOperationImpl op, ByteStreamWriter from)
+      throws SQLException {
+    if (!hasLock(op)) {
+      throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"),
+          PSQLState.OBJECT_NOT_IN_STATE);
+    }
+
+    int siz = from.getLength();
+    LOGGER.log(Level.FINEST, " FE=> CopyData({0})", siz);
+
+    try {
+      pgStream.sendChar('d');
+      pgStream.sendInteger4(siz + 4);
+      pgStream.send(from);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
           PSQLState.CONNECTION_FAILURE, ioe);
@@ -2027,7 +2073,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
-    List<byte[][]> tuples = null;
+    List<Tuple> tuples = null;
 
     int c;
     boolean endQuery = false;
@@ -2121,7 +2167,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             Field[] fields = currentQuery.getFields();
 
             if (fields != null) { // There was a resultset.
-              tuples = new ArrayList<byte[][]>();
+              tuples = new ArrayList<Tuple>();
               handler.handleResultRows(currentQuery, fields, tuples, null);
               tuples = null;
             }
@@ -2150,7 +2196,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<byte[][]>();
+            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
           handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
@@ -2183,8 +2229,36 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           pgStream.clearMaxRowSizeBytes();
 
+          String nativeSql = currentQuery.getNativeQuery().nativeSql;
+          // Certain backend versions (e.g. 12.2, 11.7, 10.12, 9.6.17, 9.5.21, etc)
+          // silently rollback the transaction in the response to COMMIT statement
+          // in case the transaction has failed.
+          // See discussion in pgsql-hackers: https://www.postgresql.org/message-id/b9fb50dc-0f6e-15fb-6555-8ddb86f4aa71%40postgresfriends.org
+          if (isRaiseExceptionOnSilentRollback()
+              && handler.getException() == null
+              && status.startsWith("ROLLBACK")) {
+            String message = null;
+            if (looksLikeCommit(nativeSql)) {
+              if (transactionFailCause == null) {
+                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be committed. Transaction failure is not known (check server logs?)");
+              } else {
+                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be committed. Transaction failure cause is <<{0}>>", transactionFailCause.getMessage());
+              }
+            } else if (looksLikePrepare(nativeSql)) {
+              if (transactionFailCause == null) {
+                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be prepared. Transaction failure is not known (check server logs?)");
+              } else {
+                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be prepared. Transaction failure cause is <<{0}>>", transactionFailCause.getMessage());
+              }
+            }
+            if (message != null) {
+              handler.handleError(
+                  new PSQLException(
+                      message, PSQLState.IN_FAILED_SQL_TRANSACTION, transactionFailCause));
+            }
+          }
+
           if (status.startsWith("SET")) {
-            String nativeSql = currentQuery.getNativeQuery().nativeSql;
             // Scan only the first 1024 characters to
             // avoid big overhead for long queries.
             if (nativeSql.lastIndexOf("search_path", 1024) != -1
@@ -2212,7 +2286,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<byte[][]>emptyList() : new ArrayList<byte[][]>();
+            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
           // If we received tuples we must know the structure of the
@@ -2249,7 +2323,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         case 'D': // Data Transfer (ongoing Execute response)
-          byte[][] tuple = null;
+          Tuple tuple = null;
           try {
             tuple = pgStream.receiveTupleV3();
           } catch (OutOfMemoryError oome) {
@@ -2263,7 +2337,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           if (!noResults) {
             if (tuples == null) {
-              tuples = new ArrayList<byte[][]>();
+              tuples = new ArrayList<Tuple>();
             }
             tuples.add(tuple);
           }
@@ -2273,13 +2347,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (tuple == null) {
               length = -1;
             } else {
-              length = 0;
-              for (byte[] aTuple : tuple) {
-                if (aTuple == null) {
-                  continue;
-                }
-                length += aTuple.length;
-              }
+              length = tuple.length();
             }
             LOGGER.log(Level.FINEST, " <=BE DataRow(len={0})", length);
           }
@@ -2333,7 +2401,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'T': // Row Description (response to Describe)
           Field[] fields = receiveFields();
-          tuples = new ArrayList<byte[][]>();
+          tuples = new ArrayList<Tuple>();
 
           SimpleQuery query = pendingDescribePortalQueue.peekFirst();
           if (!pendingExecuteQueue.isEmpty() && !pendingExecuteQueue.peekFirst().asSimple) {
@@ -2468,7 +2536,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     handler = new ResultHandlerDelegate(delegateHandler) {
       @Override
       public void handleCommandStatus(String status, long updateCount, long insertOID) {
-        handleResultRows(portal.getQuery(), null, new ArrayList<byte[][]>(), null);
+        handleResultRows(portal.getQuery(), null, new ArrayList<Tuple>(), null);
       }
     };
 
