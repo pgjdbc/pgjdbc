@@ -646,6 +646,14 @@ public enum PGProperty {
     "Specifies the length to return for types of unknown length"),
 
   /**
+   * Specifies the scale to return for numerics of unknown scale.
+   */
+  UNKNOWN_SCALE(
+    "unknownScale",
+    Integer.toString(0),
+    "Specifies the scale to return for numerics of unknown scale"),
+
+  /**
    * Username to connect to the database as.
    */
   USER(

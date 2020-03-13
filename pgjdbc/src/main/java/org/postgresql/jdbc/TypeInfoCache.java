@@ -54,6 +54,7 @@ public class TypeInfoCache implements TypeInfo {
 
   private BaseConnection conn;
   private final int unknownLength;
+  private final int unknownScale;
   private PreparedStatement getOidStatementSimple;
   private PreparedStatement getOidStatementComplexNonArray;
   private PreparedStatement getOidStatementComplexArray;
@@ -121,9 +122,10 @@ public class TypeInfoCache implements TypeInfo {
     typeAliases.put("decimal", "numeric");
   }
 
-  public TypeInfoCache(BaseConnection conn, int unknownLength) {
+  public TypeInfoCache(BaseConnection conn, int unknownLength, int unknownScale) {
     this.conn = conn;
     this.unknownLength = unknownLength;
+    this.unknownScale = unknownScale;
     oidToPgName = new HashMap<Integer, String>((int) Math.round(types.length * 1.5));
     pgNameToOid = new HashMap<String, Integer>((int) Math.round(types.length * 1.5));
     pgNameToJavaClass = new HashMap<String, String>((int) Math.round(types.length * 1.5));
@@ -701,7 +703,7 @@ public class TypeInfoCache implements TypeInfo {
         return 17;
       case Oid.NUMERIC:
         if (typmod == -1) {
-          return 0;
+          return unknownScale;
         }
         return (typmod - 4) & 0xFFFF;
       case Oid.TIME:
