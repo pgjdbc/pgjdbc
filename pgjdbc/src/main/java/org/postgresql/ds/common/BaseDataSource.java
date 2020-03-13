@@ -516,6 +516,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @param unknownScale unknown scale
+   * @see PGProperty#UNKNOWN_SCALE
+   */
+  public void setUnknownScale(int unknownScale) {
+    PGProperty.UNKNOWN_SCALE.set(properties, unknownScale);
+  }
+
+  /**
+   * @return unknown scale
+   * @see PGProperty#UNKNOWN_SCALE
+   */
+  public int getUnknownScale() {
+    return PGProperty.UNKNOWN_SCALE.getIntNoCheck(properties);
+  }
+
+  /**
    * @param seconds socket timeout
    * @see PGProperty#SOCKET_TIMEOUT
    */

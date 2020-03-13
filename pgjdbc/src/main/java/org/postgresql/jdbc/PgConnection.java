@@ -281,9 +281,10 @@ public class PgConnection implements BaseConnection {
     rollbackQuery = createQuery("ROLLBACK", false, true).query;
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
+    int unknownScale = PGProperty.UNKNOWN_SCALE.getInt(info);
 
     // Initialize object handling
-    typeCache = createTypeInfo(this, unknownLength);
+    typeCache = createTypeInfo(this, unknownLength, unknownScale);
     initObjectTypes(info);
 
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
@@ -648,8 +649,8 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  protected TypeInfo createTypeInfo(BaseConnection conn, int unknownLength) {
-    return new TypeInfoCache(conn, unknownLength);
+  protected TypeInfo createTypeInfo(BaseConnection conn, int unknownLength, int unknownScale) {
+    return new TypeInfoCache(conn, unknownLength, unknownScale);
   }
 
   public TypeInfo getTypeInfo() {
