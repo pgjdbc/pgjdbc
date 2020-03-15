@@ -78,7 +78,7 @@ public class BlobTransactionTest {
   public void tearDown() throws Exception {
     TestUtil.closeDB(con2);
 
-    con.setAutoCommit(true);
+    TestUtil.enableAutoCommit(con);
     try {
       Statement stmt = con.createStatement();
       try {

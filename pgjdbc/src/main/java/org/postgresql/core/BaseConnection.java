@@ -222,6 +222,14 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean hintReadOnly();
 
   /**
+   * Prefer streaming ResultSet rows instead of buffering them.
+   *
+   * @return Stream results instead of buffering.
+   * @see PGProperty#STREAM_RESULTS
+   */
+  boolean streamResults();
+
+  /**
    * Retrieve the factory to instantiate XML processing factories.
    *
    * @return The factory to use to instantiate XML processing factories

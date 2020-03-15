@@ -34,9 +34,8 @@ public class DatabaseMetaDataTest {
 
   @After
   public void tearDown() throws Exception {
-    Statement stmt = conn.createStatement();
-    stmt.execute("DROP TABLE domtab");
-    stmt.execute("DROP DOMAIN mydom");
+    TestUtil.dropTable(conn, "domtab");
+    TestUtil.dropDomain(conn, "mydom");
     TestUtil.closeDB(conn);
   }
 

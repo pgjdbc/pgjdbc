@@ -20,6 +20,7 @@ import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.core.v3.SQLRuntimeException;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -29,6 +30,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.StreamingList;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
@@ -2018,17 +2020,24 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    if (currentRow + 1 >= rows.size()) {
+    int size;
+    try {
+      size = rows.size();
+    } catch (SQLRuntimeException e) {
+      // when using the the StreamingList the wire-protocol handling is done every time the list is advanced and we can get an exception
+      throw e.getCause();
+    }
+    if (currentRow + 1 >= size) {
       ResultCursor cursor = this.cursor;
-      if (cursor == null || (maxRows > 0 && rowOffset + rows.size() >= maxRows)) {
-        currentRow = rows.size();
+      if (cursor == null || (maxRows > 0 && rowOffset + size >= maxRows)) {
+        currentRow = size;
         thisRow = null;
         rowBuffer = null;
         return false; // End of the resultset.
       }
 
       // Ask for some more data.
-      rowOffset += rows.size(); // We are discarding some data.
+      rowOffset += size; // We are discarding some data.
 
       int fetchRows = fetchSize;
       int adaptiveFetchRows = connection.getQueryExecutor()
@@ -2084,6 +2093,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    */
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
+    if (rows instanceof StreamingList) {
+      // this reads the line protocol forward until the full request is handled
+      try {
+        connection.getQueryExecutor().finishReadingPendingProtocolEvents(false);
+      } catch (SQLRuntimeException ex) {
+        throw (SQLException) ex.getCause();
+      }
+    }
     rows = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;

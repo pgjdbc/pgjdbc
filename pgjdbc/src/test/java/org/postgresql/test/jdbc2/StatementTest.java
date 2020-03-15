@@ -74,7 +74,7 @@ public class StatementTest {
     TestUtil.dropTable(con, "test_lock");
     TestUtil.execute("DROP FUNCTION IF EXISTS notify_loop()",con);
     TestUtil.execute("DROP FUNCTION IF EXISTS notify_then_sleep()",con);
-    con.close();
+    TestUtil.closeDB(con);
   }
 
   private void assumeLongTest() {
@@ -742,7 +742,9 @@ public class StatementTest {
       try {
         // This usually won't time out but scheduler jitter, server load
         // etc can cause a timeout.
-        stmt.executeQuery("select 1;");
+        ResultSet rs = stmt.executeQuery("select 1;");
+        // with streaming the query timeout can leak to next one if we do not consume the result set fully
+        rs.close();
       } catch (SQLException e) {
         // Expect "57014 query_canceled" (en-msg is "canceling statement due to statement timeout")
         // but anything else is fatal. We can't differentiate other causes of statement cancel like

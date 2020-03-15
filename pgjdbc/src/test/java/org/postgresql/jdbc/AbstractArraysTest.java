@@ -947,6 +947,14 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     @Override
+    public boolean streamResults() {
+      return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setAdaptiveFetch(boolean adaptiveFetch) {
       throw new UnsupportedOperationException();
     }

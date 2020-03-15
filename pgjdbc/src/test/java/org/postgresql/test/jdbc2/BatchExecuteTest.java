@@ -90,7 +90,7 @@ public class BatchExecuteTest extends BaseTest4 {
   // Tear down the fixture for this test case.
   @Override
   public void tearDown() throws SQLException {
-    con.setAutoCommit(true);
+    TestUtil.enableAutoCommit(con);
 
     TestUtil.dropTable(con, "testbatch");
     super.tearDown();
