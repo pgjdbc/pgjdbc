@@ -17,10 +17,13 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.SqlCommand;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.core.v3.SQLRuntimeException;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.StreamingList;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.JdbcBlackHole;
@@ -1925,9 +1928,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    if (currentRow + 1 >= rows.size()) {
-      ResultCursor cursor = this.cursor;
-      if (cursor == null || (maxRows > 0 && rowOffset + rows.size() >= maxRows)) {
+    int size;
+    try {
+      size = rows.size();
+    } catch (SQLRuntimeException e) {
+      // when using the the StreamingList the wire-protocol handling is done every time the list is advanced and we can get an exception
+      throw (SQLException) e.getCause();
+    }
+    if (currentRow + 1 >= size) {
+      if (cursor == null || (maxRows > 0 && rowOffset + size >= maxRows)) {
         currentRow = rows.size();
         thisRow = null;
         rowBuffer = null;
@@ -1980,6 +1989,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    */
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
+    if (rows instanceof StreamingList) {
+      // this reads the line protocol forward until the full request is handled
+      try {
+        ((StreamingList<Tuple>) rows).close();
+      } catch (SQLRuntimeException ex) {
+        throw (SQLException) ex.getCause();
+      }
+    }
     rows = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;
