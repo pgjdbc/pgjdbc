@@ -204,6 +204,15 @@ public enum PGProperty {
     "false",
     "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData"),
 
+  /**
+   * Prefer streaming of ResultSet rows instead of buffering all of them first in memory. This only works for TYPE_FORWARD_ONLY
+   * statements with fetch size of 0.
+   */
+  STREAM_RESULTS(
+      "streamResults",
+      "true",
+      "Streams ResultSet rows instead of buffering all of them first in memory"),
+
   HOST_RECHECK_SECONDS(
     "hostRecheckSeconds",
     "10",

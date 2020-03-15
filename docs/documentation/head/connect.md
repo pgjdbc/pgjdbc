@@ -220,6 +220,15 @@ Connection conn = DriverManager.getConnection(url);
      
     The default is 'false'
 
+* **streamResults** = boolean
+
+    since 42.2.12
+
+	Prefer streaming of ResultSet rows instead of buffering all of them first in memory. This only works for
+	TYPE_FORWARD_ONLY statements with fetch size of 0.
+
+	The default is 'true'
+
 * **binaryTransfer** = boolean
 
 	Use binary format for sending and receiving data if possible.

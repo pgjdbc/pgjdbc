@@ -123,7 +123,6 @@ public class CallableStmtTest extends BaseTest4 {
 
     assertEquals(-1, call.getUpdateCount());
     assertTrue(!call.getMoreResults());
-    call.close();
   }
 
   @Test
@@ -143,6 +142,7 @@ public class CallableStmtTest extends BaseTest4 {
     call = con.prepareCall("{ call " + pkgName + "getVoid(?) }");
     call.setDouble(1, 3.04);
     call.execute();
+    call.close();
   }
 
   @Test

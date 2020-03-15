@@ -212,4 +212,12 @@ public interface BaseConnection extends PGConnection, Connection {
    * @see PGProperty#READ_ONLY_MODE
    */
   boolean hintReadOnly();
+
+  /**
+   * Prefer streaming ResultSet rows instead of buffring them.
+   *
+   * @return Stream results instead of buffering.
+   * @see PGProperty#STREAM_RESULTS
+   */
+  boolean streamResults();
 }

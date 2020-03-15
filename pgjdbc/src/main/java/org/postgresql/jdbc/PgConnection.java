@@ -137,6 +137,8 @@ public class PgConnection implements BaseConnection {
   private boolean readOnly = false;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
   private boolean  hideUnprivilegedObjects ;
+  // If true the ResultSet will try to stream results from backend instead of buffering them
+  private final boolean streamResults;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
 
@@ -224,6 +226,7 @@ public class PgConnection implements BaseConnection {
     }
 
     this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
+    this.streamResults = PGProperty.STREAM_RESULTS.getBoolean(info);
 
     Set<Integer> binaryOids = getBinaryOids(info);
 
@@ -779,6 +782,11 @@ public class PgConnection implements BaseConnection {
   @Override
   public boolean hintReadOnly() {
     return readOnly && readOnlyBehavior != ReadOnlyBehavior.ignore;
+  }
+
+  @Override
+  public boolean streamResults() {
+    return streamResults;
   }
 
   @Override

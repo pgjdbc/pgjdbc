@@ -128,6 +128,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_READ_ONLY_HINT = 2048;
 
   /**
+   * Flag indicating to delay processing of rows.
+   */
+  int QUERY_STREAM_ROWS = 4096;
+
+  /**
    * Execute a Query, passing results to a provided ResultHandler.
    *
    * @param query the query to execute; must be a query returned from calling

@@ -439,6 +439,12 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
+    if ((flags & (QueryExecutor.QUERY_FORWARD_CURSOR|QueryExecutor.QUERY_NO_RESULTS|QueryExecutor.QUERY_EXECUTE_AS_SIMPLE)) == 0 &&
+        resultsettype == ResultSet.TYPE_FORWARD_ONLY && connection.streamResults()) {
+      // make it configurable in connection
+      flags |= QueryExecutor.QUERY_STREAM_ROWS;
+    }
+
     StatementResultHandler handler = new StatementResultHandler();
     synchronized (this) {
       result = null;
