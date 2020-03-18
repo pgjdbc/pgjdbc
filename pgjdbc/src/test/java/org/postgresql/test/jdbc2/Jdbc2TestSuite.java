@@ -9,12 +9,17 @@ import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
+import org.postgresql.core.PGStreamTest;
 import org.postgresql.core.ParserTest;
+import org.postgresql.core.QueryExecutorBaseTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
+import org.postgresql.jdbc.PgParameterMetaDataTest;
+import org.postgresql.jdbc.PgPreparedStatementTest;
+import org.postgresql.jdbc.PgResultSetMetaDataTest;
 import org.postgresql.jdbc.PgSQLXMLTest;
 import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.FixedLengthOutputStreamTest;
@@ -95,9 +100,14 @@ import org.junit.runners.Suite;
     PGPropertyTest.class,
     PGTimestampTest.class,
     PGTimeTest.class,
+    PGStreamTest.class,
+    PgParameterMetaDataTest.class,
+    PgPreparedStatementTest.class,
+    PgResultSetMetaDataTest.class,
     PgSQLXMLTest.class,
     PreparedStatementTest.class,
     PrimitiveArraySupportTest.class,
+    QueryExecutorBaseTest.class,
     QuotationTest.class,
     ReaderInputStreamTest.class,
     RefCursorTest.class,
