@@ -5,11 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import org.hamcrest.Matchers;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
@@ -1258,7 +1261,7 @@ public class DatabaseMetaDataTest {
       types.add(rs.getString("TYPE_NAME"));
     }
     for (String typeName : stringTypeList) {
-      assertTrue(types.contains(typeName));
+      assertThat(types, Matchers.hasItem(typeName));
     }
   }
 

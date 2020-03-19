@@ -674,8 +674,7 @@ public class GetObjectTest {
         insertPS.close();
       }
 
-      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "lob_column"));
-      try {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "lob_column"))) {
         assertTrue(rs.next());
         Blob blob = rs.getObject("lob_column", Blob.class);
         assertEquals(data.length, blob.length());
@@ -686,11 +685,13 @@ public class GetObjectTest {
         assertEquals(data.length, blob.length());
         assertArrayEquals(data, blob.getBytes(1, data.length));
         blob.free();
-      } finally {
-        rs.close();
       }
     } finally {
-      conn.setAutoCommit(true);
+      try {
+        conn.setAutoCommit(true);
+      } catch (Throwable t) {
+        t.printStackTrace();;
+      }
     }
   }
 

@@ -44,7 +44,7 @@ public class StreamResultSetTest extends BaseTest4 {
   }
 
   @Test
-  public void closeCleansUpResourcesOnClose() throws Exception {
+  public void resultSetCloseCleansUpResourcesOnClose() throws Exception {
     results = statement.executeQuery();
 
     // read few first items
@@ -56,6 +56,45 @@ public class StreamResultSetTest extends BaseTest4 {
 
     // query second time to make sure the connection state is still correct after partial streaming
     readResults();
+  }
+
+  @Test
+  public void statementReExecuteCleansUpResources() throws Exception {
+    results = statement.executeQuery();
+
+    // read few first items
+    results.next();
+    results.next();
+
+    // re-execute the same statement -> should close result set
+    ResultSet oldResult = results;
+
+    // query second time to make sure the connection state is still correct after partial streaming
+    readResults();
+
+    assertThat(oldResult.isClosed(), is(true));
+  }
+
+  @Test
+  public void differentStatementExecuteCleansUpResources() throws Exception {
+    try (PreparedStatement statement2 = con.prepareStatement("select *,pg_sleep(0.001) from series")) {
+      results = statement2.executeQuery();
+
+      // read few first items
+      results.next();
+      results.next();
+
+      // re-execute the different statement -> must not close the previous result set
+      ResultSet oldResult = results;
+
+      // query second time to make sure the connection state is still correct after partial streaming
+      readResults();
+
+      assertThat(oldResult.isClosed(), is(false));
+
+      results.next();
+      results.next();
+    }
   }
 
   private void readResults() throws SQLException {

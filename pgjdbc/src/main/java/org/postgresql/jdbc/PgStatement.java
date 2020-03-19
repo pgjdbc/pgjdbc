@@ -212,6 +212,9 @@ public class PgStatement implements Statement, BaseStatement {
     public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
         @Nullable ResultCursor cursor) {
       try {
+        if (PgStatement.this.isClosed()) {
+          return;
+        }
         ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
         append(new ResultWrapper(rs));
       } catch (SQLException e) {
@@ -233,7 +236,12 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
-    if (!executeWithFlags(sql, 0)) {
+    return executeQueryWithFlags(sql, 0);
+  }
+
+  @Override
+  public ResultSet executeQueryWithFlags(String sql, int flags) throws SQLException {
+    if (!executeWithFlags(sql, flags)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -332,6 +340,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+
   private void closeUnclosedResults() throws SQLException {
     synchronized (this) {
       ResultWrapper resultWrapper = this.firstUnclosedResult;
@@ -347,12 +356,22 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  protected void closeForNextExecution() throws SQLException {
+  protected void closeForNextExecution(int flags) throws SQLException {
+    // Close any existing resultsets associated with this statement and with the previous statement that might have executed
+    if ((flags & QueryExecutor.QUERY_RECURSIVE_QUERY) != 0) {
+      connection.getQueryExecutor().finishReadingPendingProtocolEvents();
+    } else {
+      PgStatement previousStreamingStatement = connection.getStreamingStatement();
+      if (previousStreamingStatement != null && previousStreamingStatement != this &&
+          !previousStreamingStatement.isClosed()) {
+        previousStreamingStatement.closeForNextExecution(flags);
+      }
+    }
+    connection.setStatementForCleanup(null);
 
     // Every statement execution clears any previous warnings.
     clearWarnings();
 
-    // Close any existing resultsets associated with this statement.
     synchronized (this) {
       closeUnclosedResults();
       result = null;
@@ -406,7 +425,7 @@ public class PgStatement implements Statement, BaseStatement {
   private void executeInternal(CachedQuery cachedQuery,
       @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
-    closeForNextExecution();
+    closeForNextExecution(flags);
 
     // Enable cursor-based resultset if possible.
     if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
@@ -464,9 +483,11 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    if ((flags & (QueryExecutor.QUERY_FORWARD_CURSOR|QueryExecutor.QUERY_NO_RESULTS|QueryExecutor.QUERY_EXECUTE_AS_SIMPLE)) == 0 &&
-        resultsettype == ResultSet.TYPE_FORWARD_ONLY && connection.streamResults()) {
-      // make it configurable in connection
+    if ((flags & (QueryExecutor.QUERY_FORWARD_CURSOR|QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS|
+                  QueryExecutor.QUERY_DESCRIBE_ONLY|QueryExecutor.QUERY_NO_RESULTS|
+                  QueryExecutor.QUERY_EXECUTE_AS_SIMPLE)) == 0 &&
+        resultsettype == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY &&
+        queryToExecute.getSubqueries() == null && connection.streamResults()) {
       flags |= QueryExecutor.QUERY_STREAM_ROWS;
     }
 
@@ -485,7 +506,7 @@ public class PgStatement implements Statement, BaseStatement {
       checkClosed();
 
       ResultWrapper currentResult = handler.getResults();
-      result = firstUnclosedResult = currentResult;
+      connection.setStatementForCleanup(this);
 
       if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
         generatedKeys = currentResult;
@@ -665,7 +686,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     cancel();
 
-    closeForNextExecution();
+    closeForNextExecution(0);
 
     closeImpl();
   }
@@ -675,6 +696,9 @@ public class PgStatement implements Statement, BaseStatement {
    * @throws SQLException in case of error
    */
   protected void closeImpl() throws SQLException {
+    if (connection.getStreamingStatement() == this) {
+      connection.getQueryExecutor().finishReadingPendingProtocolEvents();
+    }
   }
 
   /*
@@ -890,7 +914,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   public int[] executeBatch() throws SQLException {
     checkClosed();
-    closeForNextExecution();
+    closeForNextExecution(0);
 
     if (batchStatements == null || batchStatements.isEmpty() || batchParameters == null) {
       return new int[0];
@@ -1068,7 +1092,7 @@ public class PgStatement implements Statement, BaseStatement {
   @Override
   public long[] executeLargeBatch() throws SQLException {
     checkClosed();
-    closeForNextExecution();
+    closeForNextExecution(0);
 
     if (batchStatements == null || batchStatements.isEmpty() || batchParameters == null) {
       return new long[0];

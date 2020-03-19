@@ -128,6 +128,8 @@ public class PgConnection implements BaseConnection {
   // Default statement prepare threshold.
   protected int prepareThreshold;
 
+  private PgStatement currentStreamingStatement;
+
   /**
    * Default fetch size for statement.
    *
@@ -181,6 +183,16 @@ public class PgConnection implements BaseConnection {
   private CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
       throws SQLException {
     return queryExecutor.borrowReturningQuery(sql, columnNames);
+  }
+
+  @Override
+  public void setStatementForCleanup(PgStatement pgStatement) {
+    this.currentStreamingStatement = pgStatement;
+  }
+
+  @Override
+  public PgStatement getStreamingStatement() {
+    return currentStreamingStatement;
   }
 
   @Override
@@ -482,7 +494,7 @@ public class PgConnection implements BaseConnection {
   public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
       throws SQLException {
     BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency);
-    boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
+    boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY);
 
     while (!hasResultSet && stat.getUpdateCount() != -1) {
       hasResultSet = stat.getMoreResults();
@@ -506,7 +518,7 @@ public class PgConnection implements BaseConnection {
   public void execSQLUpdate(String s) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
     if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY)) {
       throw new PSQLException(GT.tr("A result was returned when none was expected."),
           PSQLState.TOO_MANY_RESULTS);
     }
@@ -524,7 +536,7 @@ public class PgConnection implements BaseConnection {
   void execSQLUpdate(CachedQuery query) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
     if (stmt.executeWithFlags(query, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY)) {
       throw new PSQLException(GT.tr("A result was returned when none was expected."),
           PSQLState.TOO_MANY_RESULTS);
     }
@@ -601,6 +613,7 @@ public class PgConnection implements BaseConnection {
 
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
     checkClosed();
+    queryExecutor.finishReadingPendingProtocolEvents();
     if (largeobject == null) {
       largeobject = new LargeObjectManager(this);
     }

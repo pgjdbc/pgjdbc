@@ -6,6 +6,9 @@
 package org.postgresql.core;
 
 import org.postgresql.PGStatement;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -72,4 +75,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * @throws SQLException if something goes wrong.
    */
   boolean executeWithFlags(int flags) throws SQLException;
+
+  ResultSet executeQueryWithFlags(String sql, int flags) throws SQLException;
+
 }

@@ -179,6 +179,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public void closeImpl() throws SQLException {
+    super.closeImpl();
     if (preparedQuery != null) {
       ((PgConnection) connection).releaseQuery(preparedQuery);
     }
