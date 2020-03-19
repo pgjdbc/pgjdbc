@@ -26,10 +26,13 @@ public class PgParameterMetaDataTest {
   }
 
   /**
-   * Test to check work of getOids() method.
+   * Test for case of retrieving oids array from PgParameterMetaData object. Checks if returned
+   * array is the same as array set inside pgParameterMetaData object.
    */
   @Test
   public void testGetOids() {
-    Assert.assertArrayEquals(oids, pgParameterMetaData.getOids());
+    int[] actualOids = pgParameterMetaData.getOids();
+
+    Assert.assertArrayEquals(oids, actualOids);
   }
 }

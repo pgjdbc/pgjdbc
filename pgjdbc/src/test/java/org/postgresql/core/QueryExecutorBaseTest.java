@@ -40,11 +40,14 @@ public class QueryExecutorBaseTest {
   }
 
   /**
-   * Test to check work of getPgStream() method.
+   * Test for case of retrieving pgStream from QueryExecutorBase class. Checks if returned PGStream
+   * is the same as PGStream object inside queryExecutor.
    */
   @Test
   public void testGetPgStream() {
-    Assert.assertEquals(pgStream, queryExecutor.getPgStream());
+    PGStream actualPgStream = queryExecutor.getPgStream();
+
+    Assert.assertEquals(pgStream, actualPgStream);
   }
 
   /**

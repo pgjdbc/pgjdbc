@@ -21,7 +21,8 @@ public class PgPreparedStatementTest extends BaseTest4 {
   private static String preparedParametersVariableName = "preparedParameters";
 
   /**
-   * Test to check work of getPreparedParameters() method.
+   * Test for case of retrieving preparedParameters from PgPreparedStatement object. Checks if
+   * returned ParameterList is the same as ParameterList object inside preparedStatement.
    */
   @Test
   public void testGetPreparedParameters()
@@ -29,7 +30,10 @@ public class PgPreparedStatementTest extends BaseTest4 {
     preparedStatement = (PgPreparedStatement) con
       .prepareStatement("SELECT * from function(?,?,?,?)");
 
-    Assert.assertEquals(getPreparedParameters(), preparedStatement.getPreparedParameters());
+    ParameterList expectedParameterList = getPreparedParameters();
+    ParameterList actualParameterList = preparedStatement.getPreparedParameters();
+
+    Assert.assertEquals(expectedParameterList, actualParameterList);
   }
 
   /**

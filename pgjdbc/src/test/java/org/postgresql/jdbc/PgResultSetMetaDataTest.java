@@ -31,11 +31,14 @@ public class PgResultSetMetaDataTest {
   }
 
   /**
-   * Test to check work of getFields() method.
+   * Test for case of retrieving fields array from PgResultSetMetaData object. Checks if returned
+   * fields array is the same as array set in pgResultSetMetaData.
    */
   @Test
   public void testGetFields() {
-    Assert.assertArrayEquals(fields, pgResultSetMetaData.getFields());
+    Field[] actualFields = pgResultSetMetaData.getFields();
+
+    Assert.assertArrayEquals(fields, actualFields);
   }
 
 }

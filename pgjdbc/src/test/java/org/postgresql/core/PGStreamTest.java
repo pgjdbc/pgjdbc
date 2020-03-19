@@ -33,11 +33,15 @@ public class PGStreamTest {
   }
 
   /**
-   * Test to check work of getPgInput() method.
+   * Test for case of retrieving pgInput from PGStream object. Checks if returned
+   * VisibleBufferedInputStream is the same as VisibleBufferedInputStream object inside pgStream.
    */
   @Test
   public void testGetPgInput() throws NoSuchFieldException, IllegalAccessException {
-    Assert.assertEquals(getPgInput(), pgStream.getPgInput());
+    VisibleBufferedInputStream expectedPgInput = getPgInput();
+    VisibleBufferedInputStream actualPgInput = pgStream.getPgInput();
+
+    Assert.assertEquals(expectedPgInput, actualPgInput);
   }
 
   /**
