@@ -95,31 +95,35 @@ public class BlobTest {
     stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
     assertTrue(rs.next());
-    Blob blob = rs.getBlob(1);
-    Clob clob = rs.getClob(1);
 
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)");
 
+    Blob blob = rs.getBlob(1);
     pstmt.setString(1, "setObjectTypeBlob");
     pstmt.setObject(2, blob, Types.BLOB);
     assertEquals(1, pstmt.executeUpdate());
 
+    blob = rs.getBlob(1);
     pstmt.setString(1, "setObjectBlob");
     pstmt.setObject(2, blob);
     assertEquals(1, pstmt.executeUpdate());
 
+    blob = rs.getBlob(1);
     pstmt.setString(1, "setBlob");
     pstmt.setBlob(2, blob);
     assertEquals(1, pstmt.executeUpdate());
 
+    Clob clob = rs.getClob(1);
     pstmt.setString(1, "setObjectTypeClob");
     pstmt.setObject(2, clob, Types.CLOB);
     assertEquals(1, pstmt.executeUpdate());
 
+    clob = rs.getClob(1);
     pstmt.setString(1, "setObjectClob");
     pstmt.setObject(2, clob);
     assertEquals(1, pstmt.executeUpdate());
 
+    clob = rs.getClob(1);
     pstmt.setString(1, "setClob");
     pstmt.setClob(2, clob);
     assertEquals(1, pstmt.executeUpdate());

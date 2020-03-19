@@ -21,19 +21,20 @@ import static org.hamcrest.core.Is.is;
 import static org.postgresql.test.TestUtil.createTempTable;
 
 public class StreamResultSetTest extends BaseTest4 {
-  private ResultSet results;
-  private PreparedStatement statement;
+  private static final int GENERATED_ROWS = 1000;
+  private static final String SELECT_SLEEP_BETWEEN_ROWS = "select *,pg_sleep(0.001) from series";
 
-  private static final int COUNT = 1000;
+  private PreparedStatement statement;
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
     createTempTable(con, "series", "val int");
     try (Statement s = con.createStatement()) {
-      s.execute("insert into series select * from generate_series(1," + COUNT + ")");
+      s.execute("insert into series select * from generate_series(1," + GENERATED_ROWS + ")");
     }
-    statement = con.prepareStatement("select *,pg_sleep(0.001) from series");
+    // statement that sleeps one milliscond between each rows
+    statement = con.prepareStatement(SELECT_SLEEP_BETWEEN_ROWS);
   }
 
   @Test
@@ -44,53 +45,34 @@ public class StreamResultSetTest extends BaseTest4 {
   }
 
   @Test
-  public void resultSetCloseCleansUpResourcesOnClose() throws Exception {
-    results = statement.executeQuery();
-
-    // read few first items
-    results.next();
-    results.next();
-
-    // close the result set before reading all rows
-    results.close();
-
-    // query second time to make sure the connection state is still correct after partial streaming
-    readResults();
-  }
-
-  @Test
   public void statementReExecuteCleansUpResources() throws Exception {
-    results = statement.executeQuery();
+    ResultSet results = statement.executeQuery();
 
     // read few first items
     results.next();
     results.next();
 
     // re-execute the same statement -> should close result set
-    ResultSet oldResult = results;
-
     // query second time to make sure the connection state is still correct after partial streaming
     readResults();
 
-    assertThat(oldResult.isClosed(), is(true));
+    assertThat(results.isClosed(), is(true));
   }
 
   @Test
   public void differentStatementExecuteCleansUpResources() throws Exception {
-    try (PreparedStatement statement2 = con.prepareStatement("select *,pg_sleep(0.001) from series")) {
-      results = statement2.executeQuery();
+    try (PreparedStatement statement2 = con.prepareStatement(SELECT_SLEEP_BETWEEN_ROWS)) {
+      ResultSet results = statement2.executeQuery();
 
       // read few first items
       results.next();
       results.next();
 
       // re-execute the different statement -> must not close the previous result set
-      ResultSet oldResult = results;
-
       // query second time to make sure the connection state is still correct after partial streaming
       readResults();
 
-      assertThat(oldResult.isClosed(), is(false));
+      assertThat(results.isClosed(), is(false));
 
       results.next();
       results.next();
@@ -98,22 +80,23 @@ public class StreamResultSetTest extends BaseTest4 {
   }
 
   private void readResults() throws SQLException {
-    results = statement.executeQuery();
-    int count = 0;
-    long startTime = currentTimeMillis();
-    long fistRowTime = 0;
-    while (results.next()) {
-      int value = results.getInt(1);
-      if (fistRowTime == 0) {
-        fistRowTime = currentTimeMillis();
+    try (ResultSet results = statement.executeQuery()) {
+      int count = 0;
+      long startTime = currentTimeMillis();
+      long fistRowTime = 0;
+      while (results.next()) {
+        int value = results.getInt(1);
+        if (fistRowTime == 0) {
+          fistRowTime = currentTimeMillis();
+        }
+        assertThat(value, is(++count));
       }
-      assertThat(value, is(++count));
+      long timeBetweenFirstAndLastRow = currentTimeMillis() - fistRowTime;
+      long timeToFirstRow = fistRowTime - startTime;
+
+      assertThat(count, is(GENERATED_ROWS));
+      assertThat(timeBetweenFirstAndLastRow, greaterThan(1_000L));
+      assertThat(timeToFirstRow, lessThan(1_000L));
     }
-    long timeBetweenFirstAndLastRow = currentTimeMillis() - fistRowTime;
-    long timeToFirstRow = fistRowTime - startTime;
-    results.close();
-    assertThat(count, is(COUNT));
-    assertThat(timeBetweenFirstAndLastRow, greaterThan(1_000L));
-    assertThat(timeToFirstRow, lessThan(1_000L));
   }
 }
