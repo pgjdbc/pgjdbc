@@ -119,8 +119,6 @@ public class PgConnection implements BaseConnection {
   // Default statement prepare threshold.
   protected int prepareThreshold;
 
-  private PgStatement currentStreamingStatement;
-
   /**
    * Default fetch size for statement.
    *
@@ -170,16 +168,6 @@ public class PgConnection implements BaseConnection {
 
   private CachedQuery borrowReturningQuery(String sql, String[] columnNames) throws SQLException {
     return queryExecutor.borrowReturningQuery(sql, columnNames);
-  }
-
-  @Override
-  public void setStatementForCleanup(PgStatement pgStatement) {
-    this.currentStreamingStatement = pgStatement;
-  }
-
-  @Override
-  public PgStatement getStreamingStatement() {
-    return currentStreamingStatement;
   }
 
   @Override
@@ -845,6 +833,8 @@ public class PgConnection implements BaseConnection {
     if (prepareThreshold == 0) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     }
+
+    getQueryExecutor().finishReadingPendingProtocolEvents();
 
     try {
       getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);

@@ -328,22 +328,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
-  protected void closeForNextExecution(int flags) throws SQLException {
-    // Close any existing resultsets associated with this statement and with the previous statement that might have executed
-    if ((flags & QueryExecutor.QUERY_RECURSIVE_QUERY) != 0) {
-      connection.getQueryExecutor().finishReadingPendingProtocolEvents();
-    } else {
-      PgStatement previousStreamingStatement = connection.getStreamingStatement();
-      if (previousStreamingStatement != null && previousStreamingStatement != this &&
-          !previousStreamingStatement.isClosed()) {
-        previousStreamingStatement.closeForNextExecution(flags);
-      }
-    }
-    connection.setStatementForCleanup(null);
-
-    // Every statement execution clears any previous warnings.
-    clearWarnings();
-
+  protected void closeForNextExecution() throws SQLException {
     synchronized (this) {
       while (firstUnclosedResult != null) {
         PgResultSet rs = (PgResultSet)firstUnclosedResult.getResultSet();
@@ -360,7 +345,12 @@ public class PgStatement implements Statement, BaseStatement {
         }
         generatedKeys = null;
       }
+
+      connection.getQueryExecutor().finishReadingPendingProtocolEvents();
     }
+
+    // Every statement execution clears any previous warnings.
+    clearWarnings();
   }
 
   /**
@@ -399,7 +389,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   private void executeInternal(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
       throws SQLException {
-    closeForNextExecution(flags);
+    closeForNextExecution();
 
     // Enable cursor-based resultset if possible.
     if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
@@ -479,7 +469,6 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       checkClosed();
       result = firstUnclosedResult = handler.getResults();
-      connection.setStatementForCleanup(this);
 
       if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
         generatedKeys = result;
@@ -676,7 +665,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     cancel();
 
-    closeForNextExecution(0);
+    closeForNextExecution();
 
     closeImpl();
   }
@@ -686,9 +675,6 @@ public class PgStatement implements Statement, BaseStatement {
    * @throws SQLException in case of error
    */
   protected void closeImpl() throws SQLException {
-    if (connection.getStreamingStatement() == this) {
-      connection.getQueryExecutor().finishReadingPendingProtocolEvents();
-    }
   }
 
   /*
@@ -895,7 +881,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   public int[] executeBatch() throws SQLException {
     checkClosed();
-    closeForNextExecution(0);
+    closeForNextExecution();
 
     if (batchStatements == null || batchStatements.isEmpty()) {
       return new int[0];
@@ -1074,7 +1060,7 @@ public class PgStatement implements Statement, BaseStatement {
   @Override
   public long[] executeLargeBatch() throws SQLException {
     checkClosed();
-    closeForNextExecution(0);
+    closeForNextExecution();
 
     if (batchStatements == null || batchStatements.isEmpty()) {
       return new long[0];

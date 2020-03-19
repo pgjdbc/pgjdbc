@@ -228,10 +228,12 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   public static void tearDown() throws SQLException {
     TestUtil.closeDB(hidingCon);
     TestUtil.closeDB(nonhidingCon);
-    TestUtil.dropSchema(privilegedCon, "high_privileges_schema");
-    TestUtil.dropSchema(privilegedCon, "low_privileges_schema");
-    TestUtil.dropSchema(privilegedCon, "no_privileges_schema");
-    TestUtil.closeDB(privilegedCon);
+    if (privilegedCon != null) {
+      TestUtil.dropSchema(privilegedCon, "high_privileges_schema");
+      TestUtil.dropSchema(privilegedCon, "low_privileges_schema");
+      TestUtil.dropSchema(privilegedCon, "no_privileges_schema");
+      TestUtil.closeDB(privilegedCon);
+    }
   }
 
   private static boolean isSuperUser(Connection connection) throws SQLException {

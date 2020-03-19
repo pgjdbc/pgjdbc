@@ -59,10 +59,10 @@ public class LogicalReplicationStatusTest {
 
   @After
   public void tearDown() throws Exception {
-    replicationConnection.close();
+    TestUtil.closeQuietly(replicationConnection);
     TestUtil.dropTable(sqlConnection, "test_logic_table");
     TestUtil.dropReplicationSlot(sqlConnection, SLOT_NAME);
-    sqlConnection.close();
+    TestUtil.closeDB(sqlConnection);
   }
 
   @Test()

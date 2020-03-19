@@ -101,6 +101,8 @@ public class Fastpath {
       args[i].populateParameter(params, i + 1);
     }
 
+    executor.finishReadingPendingProtocolEvents();
+
     // Run it.
     return executor.fastpathCall(fnId, params, connection.getAutoCommit());
   }

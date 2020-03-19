@@ -284,10 +284,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new Object[]{handler, maxRows, fetchSize, flags});
     }
 
-    // TODO: if all closes are handled properly at higher level this is not needed
     if (streamingPreviousResults != null) {
-      // throw new IllegalStateException("X);
-      finishReadingPendingProtocolEvents();
+      throw new IllegalStateException("The protocol must be in stable state to execute queries");
     }
 
     if (parameters == null) {
@@ -2050,7 +2048,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void finishReadingPendingProtocolEvents() throws SQLException {
     if (streamingPreviousResults != null) {
       try {
-        ((StreamingList<Tuple>)streamingPreviousResults.tuples).bufferResults();
+        ((StreamingList<Tuple>) streamingPreviousResults.tuples).bufferResults();
+      } catch (SQLRuntimeException ex) {
+        throw (SQLException) ex.getCause();
       } finally {
         streamingPreviousResults = null;
       }

@@ -8,7 +8,6 @@ package org.postgresql.core;
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
-import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
 
@@ -221,8 +220,4 @@ public interface BaseConnection extends PGConnection, Connection {
    * @see PGProperty#STREAM_RESULTS
    */
   boolean streamResults();
-
-  void setStatementForCleanup(PgStatement pgStatement);
-
-  PgStatement getStreamingStatement();
 }
