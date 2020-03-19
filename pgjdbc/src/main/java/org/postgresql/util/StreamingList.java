@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import java.util.AbstractSequentialList;
+import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
@@ -13,6 +14,7 @@ import java.util.function.Supplier;
 public class StreamingList<E> extends AbstractSequentialList<E> {
   private final DynamicListIterator<E> listIterator;
   private boolean firstTime;
+  private ArrayList<E> buffer;
 
   public StreamingList(Supplier<E> supplier) {
     listIterator = new DynamicListIterator<E>(supplier);
@@ -20,6 +22,9 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
 
   @Override
   public ListIterator<E> listIterator(int index) {
+    if (buffer != null) {
+      return buffer.listIterator(index);
+    }
     if (index != 0) {
       throw new UnsupportedOperationException("Can only iterate from beginning");
     }
@@ -32,6 +37,9 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
 
   @Override
   public int size() {
+    if (buffer != null) {
+      return buffer.size();
+    }
     // this is the size seen so far
     int bonus = listIterator.hasNext() ? 1 : 0;
     return listIterator.getResultNumber() + bonus;
@@ -45,6 +53,9 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
 
   @Override
   public E get(int index) {
+    if (buffer != null) {
+      return buffer.get(index);
+    }
     if (listIterator.getResultNumber() != index) {
       if (listIterator.getResultNumber() == index - 1 && listIterator.previous() != null) {
         return listIterator.previous();
@@ -58,6 +69,18 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
     while (listIterator.hasNext()) {
       listIterator.next();
     }
+  }
+
+  @Override
+  public boolean isEmpty() {
+    if (buffer != null) {
+      buffer.isEmpty();
+    }
+    return listIterator.getResultNumber() == -1;
+  }
+
+  public void bufferResults() {
+    this.buffer = listIterator.bufferResults();
   }
 
   static class DynamicListIterator<E> implements ListIterator<E> {
@@ -85,9 +108,7 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
       }
       prev = next;
       next = supplier.get();
-      if (next != null) {
-        resultNumber++;
-      } else {
+      if (next == null) {
         end = true;
       }
       return next != null;
@@ -98,6 +119,7 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
       if (!hasNext()) {
         throw new NoSuchElementException();
       }
+      resultNumber++;
       E ret = next;
       next = null;
       return ret;
@@ -110,6 +132,24 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
       }
       next = e;
       resultNumber++;
+    }
+
+    public ArrayList<E> bufferResults() {
+      // the array list will be mostly nulls, but that is ok, since we only use streaming list for forward_only queries
+      ArrayList<E> list = new ArrayList<>();
+      for (int i=0; i<resultNumber-1; i++) {
+        list.add(null);
+      }
+      if (prev != null) {
+        list.add(prev);
+      }
+      for (int i=list.size(); i<resultNumber; i++) {
+        list.add(null);
+      }
+      while (hasNext()) {
+        list.add(next());
+      }
+      return list;
     }
 
     @Override

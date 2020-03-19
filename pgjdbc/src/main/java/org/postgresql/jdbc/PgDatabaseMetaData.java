@@ -8,9 +8,11 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
+import org.postgresql.core.v3.QueryExecutorImpl;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
@@ -1221,7 +1223,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                            + " WHERE a.attrelid = " + returnTypeRelid
                            + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
         Statement columnstmt = connection.createStatement();
-        ResultSet columnrs = columnstmt.executeQuery(columnsql);
+        ResultSet columnrs = ((BaseStatement)columnstmt).executeQueryWithFlags(columnsql, QueryExecutor.QUERY_RECURSIVE_QUERY);
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[][] tuple = new byte[columns][];
@@ -2153,7 +2155,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " result.A_ATTNUM = (result.KEYS).x ";
     sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
 
-    return createMetaDataStatement().executeQuery(sql);
+    return ((BaseStatement) createMetaDataStatement()).executeQueryWithFlags(sql, QueryExecutor.QUERY_RECURSIVE_QUERY);
   }
 
   /**
@@ -2301,89 +2303,89 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql += " AND has_type_privilege(t.oid, 'USAGE')";
     }
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
-    // cache some results, this will keep memory usage down, and speed
-    // things up a little.
-    byte[] bZero = connection.encodeString("0");
-    byte[] b10 = connection.encodeString("10");
-    byte[] bf = connection.encodeString("f");
-    byte[] bt = connection.encodeString("t");
-    byte[] bliteral = connection.encodeString("'");
-    byte[] bNullable =
-              connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNullable));
-    byte[] bSearchable =
-              connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
+    try (Statement stmt = connection.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        // cache some results, this will keep memory usage down, and speed
+        // things up a little.
+        byte[] bZero = connection.encodeString("0");
+        byte[] b10 = connection.encodeString("10");
+        byte[] bf = connection.encodeString("f");
+        byte[] bt = connection.encodeString("t");
+        byte[] bliteral = connection.encodeString("'");
+        byte[] bNullable =
+            connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNullable));
+        byte[] bSearchable =
+            connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
-    TypeInfo ti = connection.getTypeInfo();
-    if (ti instanceof TypeInfoCache) {
-      ((TypeInfoCache) ti).cacheSQLTypes();
-    }
+        TypeInfo ti = connection.getTypeInfo();
+        if (ti instanceof TypeInfoCache) {
+          ((TypeInfoCache) ti).cacheSQLTypes();
+        }
 
-    while (rs.next()) {
-      byte[][] tuple = new byte[19][];
-      String typname = rs.getString(1);
-      int typeOid = (int) rs.getLong(2);
+        while (rs.next()) {
+          byte[][] tuple = new byte[19][];
+          String typname = rs.getString(1);
+          int typeOid = (int) rs.getLong(2);
 
-      tuple[0] = connection.encodeString(typname);
-      int sqlType = connection.getTypeInfo().getSQLType(typname);
-      tuple[1] =
-          connection.encodeString(Integer.toString(sqlType));
+          tuple[0] = connection.encodeString(typname);
+          int sqlType = connection.getTypeInfo().getSQLType(typname);
+          tuple[1] =
+              connection.encodeString(Integer.toString(sqlType));
 
-      /* this is just for sorting below, the result set never sees this */
-      tuple[18] = BigInteger.valueOf(sqlType).toByteArray();
+          /* this is just for sorting below, the result set never sees this */
+          tuple[18] = BigInteger.valueOf(sqlType).toByteArray();
 
-      tuple[2] = connection
-          .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
+          tuple[2] = connection
+              .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
 
-      // Using requiresQuoting(oid) would might trigger select statements that might fail with NPE
-      // if oid in question is being dropped.
-      // requiresQuotingSqlType is not bulletproof, however, it solves the most visible NPE.
-      if (connection.getTypeInfo().requiresQuotingSqlType(sqlType)) {
-        tuple[3] = bliteral;
-        tuple[4] = bliteral;
+          // Using requiresQuoting(oid) would might trigger select statements that might fail with NPE
+          // if oid in question is being dropped.
+          // requiresQuotingSqlType is not bulletproof, however, it solves the most visible NPE.
+          if (connection.getTypeInfo().requiresQuotingSqlType(sqlType)) {
+            tuple[3] = bliteral;
+            tuple[4] = bliteral;
+          }
+
+          tuple[6] = bNullable; // all types can be null
+          tuple[7] = connection.getTypeInfo().isCaseSensitive(typeOid) ? bt : bf;
+          tuple[8] = bSearchable; // any thing can be used in the WHERE clause
+          tuple[9] = connection.getTypeInfo().isSigned(typeOid) ? bf : bt;
+          tuple[10] = bf; // false for now - must handle money
+          tuple[11] = bf; // false - it isn't autoincrement
+          tuple[13] = bZero; // min scale is zero
+          // only numeric can supports a scale.
+          tuple[14] = (typeOid == Oid.NUMERIC) ? connection.encodeString("1000") : bZero;
+
+          // 12 - LOCAL_TYPE_NAME is null
+          // 15 & 16 are unused so we return null
+          tuple[17] = b10; // everything is base 10
+          v.add(new Tuple(tuple));
+
+          // add pseudo-type serial, bigserial
+          if (typname.equals("int4")) {
+            byte[][] tuple1 = tuple.clone();
+
+            tuple1[0] = connection.encodeString("serial");
+            tuple1[11] = bt;
+            v.add(new Tuple(tuple1));
+          } else if (typname.equals("int8")) {
+            byte[][] tuple1 = tuple.clone();
+
+            tuple1[0] = connection.encodeString("bigserial");
+            tuple1[11] = bt;
+            v.add(new Tuple(tuple1));
+          }
+
+        }
       }
-
-      tuple[6] = bNullable; // all types can be null
-      tuple[7] = connection.getTypeInfo().isCaseSensitive(typeOid) ? bt : bf;
-      tuple[8] = bSearchable; // any thing can be used in the WHERE clause
-      tuple[9] = connection.getTypeInfo().isSigned(typeOid) ? bf : bt;
-      tuple[10] = bf; // false for now - must handle money
-      tuple[11] = bf; // false - it isn't autoincrement
-      tuple[13] = bZero; // min scale is zero
-      // only numeric can supports a scale.
-      tuple[14] = (typeOid == Oid.NUMERIC) ? connection.encodeString("1000") : bZero;
-
-      // 12 - LOCAL_TYPE_NAME is null
-      // 15 & 16 are unused so we return null
-      tuple[17] = b10; // everything is base 10
-      v.add(new Tuple(tuple));
-
-      // add pseudo-type serial, bigserial
-      if (typname.equals("int4")) {
-        byte[][] tuple1 = tuple.clone();
-
-        tuple1[0] = connection.encodeString("serial");
-        tuple1[11] = bt;
-        v.add(new Tuple(tuple1));
-      } else if (typname.equals("int8")) {
-        byte[][] tuple1 = tuple.clone();
-
-        tuple1[0] = connection.encodeString("bigserial");
-        tuple1[11] = bt;
-        v.add(new Tuple(tuple1));
-      }
-
     }
-    rs.close();
-    stmt.close();
 
     Collections.sort(v, new Comparator<Tuple>() {
       @Override
       public int compare(Tuple o1, Tuple o2) {
         int i1 = ByteConverter.bytesToInt(o1.get(18));
         int i2 = ByteConverter.bytesToInt(o2.get(18));
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+        return Integer.compare(i1, i2);
       }
     });
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
@@ -2932,7 +2934,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " WHERE a.attrelid = " + returnTypeRelid
             + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
         Statement columnstmt = connection.createStatement();
-        ResultSet columnrs = columnstmt.executeQuery(columnsql);
+        ResultSet columnrs = ((BaseStatement)columnstmt).executeQueryWithFlags(columnsql, QueryExecutorImpl.QUERY_RECURSIVE_QUERY);
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[][] tuple = new byte[columns][];

@@ -284,6 +284,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new Object[]{handler, maxRows, fetchSize, flags});
     }
 
+    // TODO: if all closes are handled properly at higher level this is not needed
+    if (streamingPreviousResults != null) {
+      // throw new IllegalStateException("X);
+      finishReadingPendingProtocolEvents();
+    }
+
     if (parameters == null) {
       parameters = SimpleQuery.NO_PARAMETERS;
     }
@@ -327,6 +333,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
         estimatedReceiveBufferBytes = 0;
       } catch (PGBindException se) {
+        onFinished = null;
         // There are three causes of this error, an
         // invalid total Bind message length, a
         // BinaryStream that cannot provide the amount
@@ -349,6 +356,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 PSQLState.INVALID_PARAMETER_VALUE, se.getIOException()));
       }
     } catch (IOException e) {
+      onFinished = null;
       handleIoError(handler, e);
     }
 
@@ -2038,16 +2046,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  @Override
+  public void finishReadingPendingProtocolEvents() throws SQLException {
+    if (streamingPreviousResults != null) {
+      try {
+        ((StreamingList<Tuple>)streamingPreviousResults.tuples).bufferResults();
+      } finally {
+        streamingPreviousResults = null;
+      }
+    }
+  }
+
   protected void processResults(ResultHandler handler, int flags) throws IOException {
-    processResultsImpl(handler, new ProcessState(flags, null, null));
+    processResults(handler, flags, null, null);
   }
 
   static class ProcessState {
     final boolean noResults;
     final boolean bothRowsAndStatus;
+    final ResultHandler handler;
     final RunnableContext onFinishedContext;
     final Consumer<IOException> onIOError;
-    final boolean streamRows;
+    boolean streamRows;
 
     List<Tuple> tuples = null;
 
@@ -2062,11 +2082,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // from there.
     boolean doneAfterRowDescNoData = false;
 
-    ProcessState(int flags, RunnableContext onFinishedContext, Consumer<IOException> onIOError) {
+    ProcessState(ResultHandler handler, int flags, RunnableContext onFinishedContext, Consumer<IOException> onIOError) {
       this.noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
       this.bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
       this.streamRows = (flags & QueryExecutor.QUERY_STREAM_ROWS) != 0;
 
+      this.handler = handler;
       this.onFinishedContext = onFinishedContext;
       this.onIOError = onIOError;
     }
@@ -2076,12 +2097,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @return True if the results were handled synchronously
    */
   protected boolean processResults(ResultHandler handler, int flags, RunnableContext onFinishedContext, Consumer<IOException> onIOError) throws IOException {
-    return processResultsImpl(handler, new ProcessState(flags, onFinishedContext, onIOError)) == null;
+    if (streamingPreviousResults != null) {
+      throw new IOException("Previous result is still streaming");
+    }
+    return processResultsImpl(handler, new ProcessState(handler, flags, onFinishedContext, onIOError)) == null;
   }
 
-  private Tuple processStreamedResultsImpl(ResultHandler handler, ProcessState state) throws SQLRuntimeException {
+  private Tuple processStreamedResultsImpl(ProcessState state) throws SQLRuntimeException {
     try {
-      return processResultsImpl(handler, state);
+      return processResultsImpl(state.handler, state);
     } catch (IOException ex) {
       state.onIOError.accept(ex);
     }
@@ -2245,6 +2269,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && state.tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
+            state.streamRows = false;
             state.tuples = state.noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
@@ -2258,7 +2283,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           if (fields != null || state.tuples != null) {
             // There was a resultset.
-            handler.handleResultRows(currentQuery, fields, state.tuples, null);
+            if (state.streamRows) {
+              if (!(state.tuples instanceof StreamingList)) {
+                throw new IllegalStateException("Expecting streaming of results");
+              }
+            } else {
+              handler.handleResultRows(currentQuery, fields, state.tuples, null);
+            }
             state.tuples = null;
             state.firstStreamRow = true;
 
@@ -2295,9 +2326,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           } catch (SQLException e) {
             handler.handleError(e);
           }
+
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            int length;
+            if (tuple == null) {
+              length = -1;
+            } else {
+              length = tuple.length();
+            }
+            LOGGER.log(Level.FINEST, " <=BE DataRow(len={0})", length);
+          }
+
           if (!state.noResults) {
             if (state.tuples == null) {
-              createTupleList(handler, state);
+              if (tuple.fieldCount() == 0) {
+                state.streamRows = false;
+              }
+              createTupleList(state);
             }
             if (state.streamRows) {
               if (!(state.tuples instanceof StreamingList)) {
@@ -2311,20 +2356,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 // handle the first row synchronously, pretending that we have already read the full result set
                 state.tuples.add(tuple);
                 handler.handleResultRows(currentQuery, currentQuery.getFields(), state.tuples, null);
+                streamingPreviousResults = state;
               }
               return tuple;
             }
             state.tuples.add(tuple);
-          }
-
-          if (LOGGER.isLoggable(Level.FINEST)) {
-            int length;
-            if (tuple == null) {
-              length = -1;
-            } else {
-              length = tuple.length();
-            }
-            LOGGER.log(Level.FINEST, " <=BE DataRow(len={0})", length);
           }
 
           break;
@@ -2390,8 +2426,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             handler.handleResultRows(currentQuery, fields, new ArrayList<>(), null);
             state.tuples = null;
             state.firstStreamRow = true;
-          } else {
-            createTupleList(handler, state);
           }
           break;
 
@@ -2488,7 +2522,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     }
 
-    if (state.onFinishedContext != null && !state.firstStreamRow) {
+    if (streamingPreviousResults != null) {
+      streamingPreviousResults = null;
       try {
         state.onFinishedContext.run();
       } catch (SQLException ex) {
@@ -2499,9 +2534,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return null;
   }
 
-  private void createTupleList(ResultHandler handler, ProcessState state) {
+  private void createTupleList(ProcessState state) {
     if (state.streamRows) {
-      state.tuples = new StreamingList<>(() -> processStreamedResultsImpl(handler, state));
+      state.tuples = new StreamingList<>(() -> processStreamedResultsImpl(state));
     } else {
       state.tuples = new ArrayList<>();
     }
@@ -2889,6 +2924,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
+  public ProcessState streamingPreviousResults;
 
   /**
    * <p>The estimated server response size since we last consumed the input stream from the server, in

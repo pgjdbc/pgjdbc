@@ -713,6 +713,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return True if results should be streamed
+   * @see PGProperty#STREAM_RESULTS
+   */
+  public boolean getStreamResults() {
+    return PGProperty.STREAM_RESULTS.getBoolean(properties);
+  }
+
+  /**
+   * @param streamResults True if results should be streamed
+   * @see PGProperty#STREAM_RESULTS
+   */
+  public void setStreamResults(boolean streamResults) {
+    PGProperty.STREAM_RESULTS.set(properties, streamResults);
+  }
+
+  /**
    * @param applicationName application name
    * @see PGProperty#APPLICATION_NAME
    */

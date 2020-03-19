@@ -67,6 +67,7 @@ public class NetworkTimeoutTest {
       stmt.execute("SELECT pg_sleep(2)");
       fail("Connection.setNetworkTimeout() did not throw expected exception");
     } catch (SQLException e) {
+      e.printStackTrace();
       // assertTrue(stmt.isClosed());
       assertTrue(conn.isClosed());
     } finally {

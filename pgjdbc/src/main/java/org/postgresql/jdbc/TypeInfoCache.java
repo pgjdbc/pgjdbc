@@ -236,7 +236,7 @@ public class TypeInfoCache implements TypeInfo {
     }
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getAllTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
     ResultSet rs = getAllTypeInfoStatement.getResultSet();
@@ -273,7 +273,7 @@ public class TypeInfoCache implements TypeInfo {
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -444,7 +444,7 @@ public class TypeInfoCache implements TypeInfo {
     getNameStatement.setInt(1, oid);
 
     // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 

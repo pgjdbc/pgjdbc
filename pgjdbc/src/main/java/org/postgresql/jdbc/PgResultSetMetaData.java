@@ -7,7 +7,9 @@ package org.postgresql.jdbc;
 
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.util.GT;
 import org.postgresql.util.Gettable;
@@ -244,7 +246,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     ResultSet rs = null;
     GettableHashMap<FieldMetadata.Key, FieldMetadata> md = new GettableHashMap<FieldMetadata.Key, FieldMetadata>();
     try {
-      rs = stmt.executeQuery(sql.toString());
+      rs = ((BaseStatement) stmt).executeQueryWithFlags(sql.toString(), QueryExecutor.QUERY_RECURSIVE_QUERY);
       while (rs.next()) {
         int table = (int) rs.getLong(1);
         int column = (int) rs.getLong(2);
