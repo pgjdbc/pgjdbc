@@ -12,10 +12,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import org.hamcrest.Matchers;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

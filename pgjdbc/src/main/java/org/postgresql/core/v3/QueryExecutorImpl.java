@@ -323,7 +323,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int finalFlags = flags;
           boolean finalAutosave = autosave;
           SQLThrowingRunnable finalOnFinished = onFinished = () -> processResultsCleanup(finalHandler, finalFlags, finalAutosave);
-          onIOError = e -> { handleIoError(finalHandler, e); try { finalOnFinished.run(); } catch (SQLException ex) { throw new SQLRuntimeException(ex); }};
+          onIOError = e -> {
+            handleIoError(finalHandler, e);
+            try {
+              finalOnFinished.run();
+            } catch (SQLException ex) {
+              throw new SQLRuntimeException(ex);
+            }
+          };
         }
         if (processResults(handler, flags, onFinished, onIOError)) {
           // query was handled synchronously
