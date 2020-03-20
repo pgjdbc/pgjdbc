@@ -482,7 +482,7 @@ public class PgConnection implements BaseConnection {
   public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
       throws SQLException {
     BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency);
-    boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY);
+    boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
 
     while (!hasResultSet && stat.getUpdateCount() != -1) {
       hasResultSet = stat.getMoreResults();
@@ -506,7 +506,7 @@ public class PgConnection implements BaseConnection {
   public void execSQLUpdate(String s) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
     if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY)) {
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("A result was returned when none was expected."),
           PSQLState.TOO_MANY_RESULTS);
     }
@@ -524,7 +524,7 @@ public class PgConnection implements BaseConnection {
   void execSQLUpdate(CachedQuery query) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
     if (stmt.executeWithFlags(query, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN|QueryExecutor.QUERY_RECURSIVE_QUERY)) {
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("A result was returned when none was expected."),
           PSQLState.TOO_MANY_RESULTS);
     }
