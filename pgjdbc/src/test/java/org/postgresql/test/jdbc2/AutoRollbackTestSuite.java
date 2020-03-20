@@ -160,8 +160,8 @@ public class AutoRollbackTestSuite extends BaseTest4 {
 
   @Override
   public void tearDown() throws SQLException {
+    TestUtil.enableAutoCommit(con);
     try {
-      con.setAutoCommit(true);
       TestUtil.dropTable(con, "rollbacktest");
     } catch (Exception e) {
       e.printStackTrace();

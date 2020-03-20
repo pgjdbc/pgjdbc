@@ -687,11 +687,7 @@ public class GetObjectTest {
         blob.free();
       }
     } finally {
-      try {
-        conn.setAutoCommit(true);
-      } catch (Throwable t) {
-        t.printStackTrace();;
-      }
+      TestUtil.enableAutoCommit(conn);
     }
   }
 

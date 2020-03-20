@@ -182,7 +182,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * Schedule a TimerTask for later execution. The task will be scheduled with the shared Timer for
    * this connection.
    *
-   * @param timerTask    timer task to schedule
+   * @param timerTask timer task to schedule
    * @param milliSeconds delay in milliseconds
    */
   void addTimerTask(TimerTask timerTask, long milliSeconds);
@@ -200,7 +200,7 @@ public interface BaseConnection extends PGConnection, Connection {
   LruCache<FieldMetadata.Key, FieldMetadata> getFieldMetadataCache();
 
   CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
-                          String... columnNames)
+      String... columnNames)
       throws SQLException;
 
   /**
@@ -216,7 +216,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * Indicates if statements to backend should be hinted as read only.
    *
    * @return Indication if hints to backend (such as when transaction begins)
-   * should be read only.
+   *         should be read only.
    * @see PGProperty#READ_ONLY_MODE
    */
   boolean hintReadOnly();

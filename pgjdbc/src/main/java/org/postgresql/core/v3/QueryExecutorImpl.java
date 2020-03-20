@@ -294,7 +294,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           new Object[]{handler, maxRows, fetchSize, flags});
     }
 
-    if (streamingPreviousResults != null) {
+    if (streamingState != null) {
       throw new IllegalStateException("The protocol must be in stable state to execute queries");
     }
 
@@ -314,7 +314,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     boolean autosave = false;
-    RunnableContext onFinished = null;
+    SQLThrowingRunnable onFinished = null;
     Consumer<IOException> onIOError = null;
     try {
       try {
@@ -332,7 +332,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           ResultHandler finalHandler = handler;
           int finalFlags = flags;
           boolean finalAutosave = autosave;
-          RunnableContext finalOnFinished = onFinished = () -> processResultsCleanup(finalHandler, finalFlags, finalAutosave);
+          SQLThrowingRunnable finalOnFinished = onFinished = () -> processResultsCleanup(finalHandler, finalFlags, finalAutosave);
           onIOError = e -> { handleIoError(finalHandler, e); try { finalOnFinished.run(); } catch (SQLException ex) { throw new SQLRuntimeException(ex); }};
         }
         if (processResults(handler, flags, onFinished, onIOError)) {
@@ -341,7 +341,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
         estimatedReceiveBufferBytes = 0;
       } catch (PGBindException se) {
-        onFinished = null;
         // There are three causes of this error, an
         // invalid total Bind message length, a
         // BinaryStream that cannot provide the amount
@@ -357,7 +356,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // transaction in progress?
         //
         sendSync();
-        processResults(handler, flags);
+        if (processResults(handler, flags, onFinished, onIOError)) {
+          // query was handled synchronously
+          onFinished = null;
+        }
         estimatedReceiveBufferBytes = 0;
         handler
             .handleError(new PSQLException(GT.tr("Unable to bind parameter values for statement."),
@@ -2059,13 +2061,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void finishReadingPendingProtocolEvents() throws SQLException {
-    if (streamingPreviousResults != null) {
+    if (streamingState != null) {
       try {
-        ((StreamingList<Tuple>) streamingPreviousResults.tuples).bufferResults();
+        ((StreamingList<Tuple>) streamingState.tuples).bufferResults();
       } catch (SQLRuntimeException ex) {
         throw (SQLException) ex.getCause();
       } finally {
-        streamingPreviousResults = null;
+        streamingState = null;
       }
     }
   }
@@ -2078,7 +2080,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     final boolean noResults;
     final boolean bothRowsAndStatus;
     final ResultHandler handler;
-    final RunnableContext onFinishedContext;
+    final SQLThrowingRunnable onFinishedContext;
     final Consumer<IOException> onIOError;
     boolean streamRows;
 
@@ -2095,7 +2097,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // from there.
     boolean doneAfterRowDescNoData = false;
 
-    ProcessState(ResultHandler handler, int flags, RunnableContext onFinishedContext, Consumer<IOException> onIOError) {
+    ProcessState(ResultHandler handler, int flags, SQLThrowingRunnable onFinishedContext, Consumer<IOException> onIOError) {
       this.noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
       this.bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
       this.streamRows = (flags & QueryExecutor.QUERY_STREAM_ROWS) != 0;
@@ -2109,8 +2111,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   /**
    * @return True if the results were handled synchronously
    */
-  protected boolean processResults(ResultHandler handler, int flags, RunnableContext onFinishedContext, Consumer<IOException> onIOError) throws IOException {
-    if (streamingPreviousResults != null) {
+  protected boolean processResults(ResultHandler handler, int flags, SQLThrowingRunnable onFinishedContext, Consumer<IOException> onIOError) throws IOException {
+    if (streamingState != null) {
       throw new IOException("Previous result is still streaming");
     }
     return processResultsImpl(handler, new ProcessState(handler, flags, onFinishedContext, onIOError)) == null;
@@ -2368,8 +2370,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
                 // handle the first row synchronously, pretending that we have already read the full result set
                 state.tuples.add(tuple);
+                try {
+                  lock(handler);
+                } catch (SQLException ex) {
+                  // should never happen
+                  throw new SQLRuntimeException(ex);
+                }
                 handler.handleResultRows(currentQuery, currentQuery.getFields(), state.tuples, null);
-                streamingPreviousResults = state;
+                streamingState = state;
               }
               return tuple;
             }
@@ -2535,9 +2543,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     }
 
-    if (streamingPreviousResults != null) {
-      streamingPreviousResults = null;
+    if (streamingState != null) {
+      streamingState = null;
       try {
+        synchronized (this) {
+          unlock(handler);
+        }
         state.onFinishedContext.run();
       } catch (SQLException ex) {
         throw new SQLRuntimeException(ex);
@@ -2938,7 +2949,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
-  public ProcessState streamingPreviousResults;
+  private ProcessState streamingState;
 
   /**
    * <p>The estimated server response size since we last consumed the input stream from the server, in

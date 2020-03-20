@@ -42,7 +42,7 @@ public class BlobTest {
 
   @After
   public void tearDown() throws Exception {
-    conn.setAutoCommit(true);
+    TestUtil.enableAutoCommit(conn);
     try {
       Statement stmt = conn.createStatement();
       try {

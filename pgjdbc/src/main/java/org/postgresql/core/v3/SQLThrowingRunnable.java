@@ -8,7 +8,6 @@ package org.postgresql.core.v3;
 import java.sql.SQLException;
 
 @FunctionalInterface
-public interface RunnableContext {
-
+public interface SQLThrowingRunnable {
   void run() throws SQLException;
 }
