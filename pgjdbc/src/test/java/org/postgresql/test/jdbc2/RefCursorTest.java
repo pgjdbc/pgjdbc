@@ -79,7 +79,7 @@ public class RefCursorTest extends BaseTest4 {
 
   @Override
   public void tearDown() throws SQLException {
-    con.setAutoCommit(true);
+    TestUtil.enableAutoCommit(con);
     Statement stmt = con.createStatement();
     stmt.execute("drop FUNCTION testspg__getRefcursor ();");
     stmt.execute("drop FUNCTION testspg__getEmptyRefcursor ();");

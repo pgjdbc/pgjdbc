@@ -6,9 +6,6 @@
 package org.postgresql.core;
 
 import org.postgresql.PGStatement;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

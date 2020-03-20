@@ -11,6 +11,18 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
+/**
+ * The streaming list by default fetches items on-demand from the given supplier.
+ * This means that it can be only iterated through once, and only implements enough of the
+ * List api for the PgResultSet to be happy.
+ *
+ * The list can also switch to basic ArrayList buffered mode, where it preloads items from
+ * the supplier to memory. This is required both when applications keep multiple ResultSets
+ * open at the same time (thre previous ones must be buffered). Or when the jdbc driver
+ * itself does extra queries in the background to fetch for example the metadata.
+ *
+ * @param <E> Tuple type
+ */
 public class StreamingList<E> extends AbstractSequentialList<E> {
   private final DynamicListIterator<E> listIterator;
   private boolean firstTime;
@@ -35,6 +47,10 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
     return listIterator;
   }
 
+  /**
+   * Returns the number of elements seen so far or the actual number of elements if buffered. After every stream iteration the size will be larger.
+   * @return the number of elements seen so far or the actual number of elements if buffered.
+   */
   @Override
   public int size() {
     if (buffer != null) {
@@ -45,6 +61,10 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
     return listIterator.getResultNumber() + bonus;
   }
 
+  /**
+   * Allows one item to be added to an empty list.
+   * @param element The element to add.
+   */
   @Override
   public boolean add(E element) {
     listIterator.add(element);
@@ -65,12 +85,19 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
     return listIterator.next();
   }
 
+  /**
+   * Fetches and ignores all elements from the supplier. Allows the supplier to reach final state.
+   */
   public void close() {
     while (listIterator.hasNext()) {
       listIterator.next();
     }
   }
 
+  /**
+   * True if there are no elements have been fetched so far.
+   * @return If no elements
+   */
   @Override
   public boolean isEmpty() {
     if (buffer != null) {
@@ -79,6 +106,9 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
     return listIterator.getResultNumber() == -1;
   }
 
+  /**
+   * Switches to buffered mode by polling the provider for results and caching them in memory.
+   */
   public void bufferResults() {
     this.buffer = listIterator.bufferResults();
   }
