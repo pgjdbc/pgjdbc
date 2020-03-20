@@ -70,7 +70,7 @@ public class StatementTest {
     TestUtil.dropTable(con, "test_lock");
     TestUtil.execute("DROP FUNCTION IF EXISTS notify_loop()",con);
     TestUtil.execute("DROP FUNCTION IF EXISTS notify_then_sleep()",con);
-    con.close();
+    TestUtil.closeDB(con);
   }
 
   private void assumeLongTest() {

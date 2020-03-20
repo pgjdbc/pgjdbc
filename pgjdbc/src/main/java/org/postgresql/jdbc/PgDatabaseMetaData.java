@@ -1223,7 +1223,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                            + " WHERE a.attrelid = " + returnTypeRelid
                            + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
         Statement columnstmt = connection.createStatement();
-        ResultSet columnrs = ((BaseStatement)columnstmt).executeQueryWithFlags(columnsql, QueryExecutor.QUERY_RECURSIVE_QUERY);
+        ResultSet columnrs = columnstmt.executeQuery(columnsql);
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[][] tuple = new byte[columns][];
@@ -2155,7 +2155,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " result.A_ATTNUM = (result.KEYS).x ";
     sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
 
-    return ((BaseStatement) createMetaDataStatement()).executeQueryWithFlags(sql, QueryExecutor.QUERY_RECURSIVE_QUERY);
+    return createMetaDataStatement().executeQuery(sql);
   }
 
   /**
@@ -2934,7 +2934,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " WHERE a.attrelid = " + returnTypeRelid
             + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
         Statement columnstmt = connection.createStatement();
-        ResultSet columnrs = ((BaseStatement)columnstmt).executeQueryWithFlags(columnsql, QueryExecutorImpl.QUERY_RECURSIVE_QUERY);
+        ResultSet columnrs = columnstmt.executeQuery(columnsql);
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[][] tuple = new byte[columns][];

@@ -133,13 +133,6 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_STREAM_ROWS = 4096;
 
   /**
-   * Flag indicating that we intentionally (internally) do an another query on the connection
-   * before the result set given to application has been fully read or closed. Effectively doing
-   * a recursive query.
-   */
-  int QUERY_RECURSIVE_QUERY = 8192;
-
-  /**
    * Execute a Query, passing results to a provided ResultHandler.
    *
    * @param query the query to execute; must be a query returned from calling
