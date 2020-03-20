@@ -16,11 +16,12 @@ import java.util.function.Supplier;
  * This means that it can be only iterated through once, and only implements enough of the
  * List api for the PgResultSet to be happy.
  *
+ * <p>
  * The list can also switch to basic ArrayList buffered mode, where it preloads items from
  * the supplier to memory. This is required both when applications keep multiple ResultSets
  * open at the same time (thre previous ones must be buffered). Or when the jdbc driver
  * itself does extra queries in the background to fetch for example the metadata.
- *
+ *</p>
  * @param <E> Tuple type
  */
 public class StreamingList<E> extends AbstractSequentialList<E> {
@@ -167,13 +168,14 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
     public ArrayList<E> bufferResults() {
       // the array list will be mostly nulls, but that is ok, since we only use streaming list for forward_only queries
       ArrayList<E> list = new ArrayList<>();
-      for (int i=0; i<resultNumber-1; i++) {
+
+      for (int i = 0; i < resultNumber - 1; i++) {
         list.add(null);
       }
       if (prev != null) {
         list.add(prev);
       }
-      for (int i=list.size(); i<resultNumber; i++) {
+      for (int i = list.size(); i < resultNumber; i++) {
         list.add(null);
       }
       while (hasNext()) {

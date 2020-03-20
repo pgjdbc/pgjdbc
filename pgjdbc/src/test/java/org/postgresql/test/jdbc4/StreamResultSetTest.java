@@ -5,20 +5,21 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.junit.Test;
-import org.postgresql.test.jdbc2.BaseTest4;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-
 import static java.lang.System.currentTimeMillis;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.postgresql.test.TestUtil.createTempTable;
+
+import org.postgresql.test.jdbc2.BaseTest4;
+
+import org.junit.Test;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class StreamResultSetTest extends BaseTest4 {
   private static final int GENERATED_ROWS = 1000;

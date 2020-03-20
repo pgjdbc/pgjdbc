@@ -472,11 +472,11 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    if ((flags & (QueryExecutor.QUERY_FORWARD_CURSOR|QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS|
-                  QueryExecutor.QUERY_DESCRIBE_ONLY|QueryExecutor.QUERY_NO_RESULTS|
-                  QueryExecutor.QUERY_EXECUTE_AS_SIMPLE)) == 0 &&
-        resultsettype == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY &&
-        queryToExecute.getSubqueries() == null && connection.streamResults()) {
+    if ((flags & (QueryExecutor.QUERY_FORWARD_CURSOR | QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS
+                  | QueryExecutor.QUERY_DESCRIBE_ONLY | QueryExecutor.QUERY_NO_RESULTS
+                  | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE)) == 0
+        && resultsettype == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY
+        && queryToExecute.getSubqueries() == null && connection.streamResults()) {
       flags |= QueryExecutor.QUERY_STREAM_ROWS;
     }
 
