@@ -113,7 +113,7 @@ public class StreamWrapper {
             }
           }
 
-          protected void finalize() throws IOException, Throwable {
+          protected void finalize() throws IOException {
             // forcibly close it because super.finalize() may keep the FD open, which may prevent
             // file deletion
             close();
