@@ -50,7 +50,15 @@ public class Utils {
     // for performance measurements.
     // In OracleJDK 6u65, 7u55, and 8u40 String.getBytes(Charset) is
     // 3 times faster than other JDK approaches.
-    return str.getBytes(utf8Charset);
+    try {
+      if (str.contains("\000")) {
+        return ModifiedUtf8.encode(str);
+      } else {
+        return str.getBytes(utf8Charset);
+      }
+    } catch (Throwable t) {
+      return str.getBytes(utf8Charset);
+    }
   }
 
   /**
