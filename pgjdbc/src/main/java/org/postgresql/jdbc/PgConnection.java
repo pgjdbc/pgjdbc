@@ -837,7 +837,7 @@ public class PgConnection implements BaseConnection {
     getQueryExecutor().finishReadingPendingProtocolEvents();
 
     try {
-      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags, null);
     } catch (SQLException e) {
       // Don't retry composite queries as it might get partially executed
       if (query.getSubqueries() != null || !queryExecutor.willHealOnRetry(e)) {
@@ -845,7 +845,7 @@ public class PgConnection implements BaseConnection {
       }
       query.close();
       // retry
-      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags, null);
     }
   }
 

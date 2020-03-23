@@ -145,10 +145,13 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param fetchSize if QUERY_FORWARD_CURSOR is set, the preferred number of rows to retrieve
    *        before suspending
    * @param flags a combination of QUERY_* flags indicating how to handle the query.
+   * @param onFinished If asynchronous streaming is initiated, this method is called when the full results has been
+   *        processed to do the proper cleanup.
+   * @return true if operation was fininshed synchronously
    * @throws SQLException if query execution fails
    */
-  void execute(Query query, ParameterList parameters, ResultHandler handler, int maxRows,
-      int fetchSize, int flags) throws SQLException;
+  boolean execute(Query query, ParameterList parameters, ResultHandler handler, int maxRows,
+      int fetchSize, int flags, Runnable onFinished) throws SQLException;
 
   /**
    * Execute several Query, passing results to a provided ResultHandler.
