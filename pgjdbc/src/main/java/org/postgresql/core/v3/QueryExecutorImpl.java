@@ -328,21 +328,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           sendSync();
         }
         if ((flags & QueryExecutor.QUERY_STREAM_ROWS) != 0) {
-          ResultHandler _Handler = handler;
-          int _flags = flags;
-          boolean _autosave = autosave;
-          SQLThrowingRunnable _onFinished = onFinished = () -> {
+          ResultHandler handler0 = handler;
+          int flags0 = flags;
+          boolean autosave0 = autosave;
+          SQLThrowingRunnable onFinished0 = onFinished = () -> {
             try {
-              processResultsCleanup(_Handler, _flags, _autosave);
+              processResultsCleanup(handler0, flags0, autosave0);
             } finally {
               finallyHandler.run();
             }
           };
           onIOError = e -> {
             try {
-              handleIoError(_Handler, e);
+              handleIoError(handler0, e);
               try {
-                _onFinished.run();
+                onFinished0.run();
               } catch (SQLException ex) {
                 throw new SQLRuntimeException(ex);
               }
@@ -2136,13 +2136,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
+   * Processes protocol events into results.
+   *
+   * @param handler The handler to feed the status and results
+   * @param flags Query flags
+   * @param onFinished Callback that is invoked when streming query processing ends, can be null if
+   *     flags does not have {@link QueryExecutor#QUERY_STREAM_ROWS}
+   * @param onIOError Callback that is invoked when an IOExceptio occurs while processing streaming
+   *     query, can be null if flags does not have {@link QueryExecutor#QUERY_STREAM_ROWS}
    * @return True if the results were handled synchronously
+   * @throws IOException if IO error occurs during synchronous processing
    */
-  protected boolean processResults(ResultHandler handler, int flags, SQLThrowingRunnable onFinishedContext, Consumer<IOException> onIOError) throws IOException {
+  protected boolean processResults(ResultHandler handler, int flags, SQLThrowingRunnable onFinished, Consumer<IOException> onIOError) throws IOException {
     if (streamingState != null) {
       throw new IOException("Previous result is still streaming");
     }
-    return processResultsImpl(handler, new ProcessState(handler, flags, onFinishedContext, onIOError)) == null;
+    return processResultsImpl(handler, new ProcessState(handler, flags, onFinished, onIOError)) == null;
   }
 
   private boolean waitForProtocolFree() throws SQLException {
