@@ -222,7 +222,6 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean hintReadOnly();
 
   /**
-
    * Retrieve the factory to instantiate XML processing factories.
    *
    * @return The factory to use to instantiate XML processing factories
@@ -231,7 +230,7 @@ public interface BaseConnection extends PGConnection, Connection {
   PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
 
   /**
-   * Prefer streaming ResultSet rows instead of buffring them.
+   * Prefer streaming ResultSet rows instead of buffering them.
    *
    * @return Stream results instead of buffering.
    * @see PGProperty#STREAM_RESULTS
