@@ -368,9 +368,8 @@ public class PgStatement implements Statement, BaseStatement {
         }
         this.generatedKeys = null;
       }
-
-      connection.getQueryExecutor().finishReadingPendingProtocolEvents();
     }
+    connection.getQueryExecutor().finishReadingPendingProtocolEvents();
 
     // Every statement execution clears any previous warnings.
     clearWarnings();
@@ -465,7 +464,7 @@ public class PgStatement implements Statement, BaseStatement {
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
-          flags2);
+          flags2, null);
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
         castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
@@ -484,12 +483,17 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       result = null;
     }
+    boolean streamingResults = false;
     try {
       startTimer();
-      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
-          fetchSize, flags);
+      if (!connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
+          fetchSize, flags, this::killTimerTask)) {
+        streamingResults = true;
+      }
     } finally {
-      killTimerTask();
+      if (!streamingResults) {
+        killTimerTask();
+      }
     }
     synchronized (this) {
       checkClosed();
@@ -866,7 +870,7 @@ public class PgStatement implements Statement, BaseStatement {
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
       try {
-        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
+        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2, null);
       } catch (SQLException e) {
         // Unable to parse the first statement -> throw BatchUpdateException
         handler.handleError(e);

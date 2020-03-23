@@ -196,7 +196,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           PSQLState.OBJECT_NOT_IN_STATE);
     }
     lockedFor = null;
-    this.notify();
+    this.notifyAll();
   }
 
   /**
@@ -285,9 +285,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  public synchronized void execute(Query query, @Nullable ParameterList parameters,
-      ResultHandler handler,
-      int maxRows, int fetchSize, int flags) throws SQLException {
+  public synchronized boolean execute(Query query, @Nullable ParameterList parameters, ResultHandler handler,
+      int maxRows, int fetchSize, int flags, Runnable finallyHandler) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -329,16 +328,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           sendSync();
         }
         if ((flags & QueryExecutor.QUERY_STREAM_ROWS) != 0) {
-          ResultHandler finalHandler = handler;
-          int finalFlags = flags;
-          boolean finalAutosave = autosave;
-          SQLThrowingRunnable finalOnFinished = onFinished = () -> processResultsCleanup(finalHandler, finalFlags, finalAutosave);
-          onIOError = e -> {
-            handleIoError(finalHandler, e);
+          ResultHandler _Handler = handler;
+          int _flags = flags;
+          boolean _autosave = autosave;
+          SQLThrowingRunnable _onFinished = onFinished = () -> {
             try {
-              finalOnFinished.run();
-            } catch (SQLException ex) {
-              throw new SQLRuntimeException(ex);
+              processResultsCleanup(_Handler, _flags, _autosave);
+            } finally {
+              finallyHandler.run();
+            }
+          };
+          onIOError = e -> {
+            try {
+              handleIoError(_Handler, e);
+              try {
+                _onFinished.run();
+              } catch (SQLException ex) {
+                throw new SQLRuntimeException(ex);
+              }
+            } finally {
+              finallyHandler.run();
             }
           };
         }
@@ -379,7 +388,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     if (onFinished == null) {
       processResultsCleanup(handler, flags, autosave);
+      return true;
     }
+    return false;
   }
 
   private void handleIoError(ResultHandler handler, IOException e) {
@@ -450,7 +461,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
         execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
-            1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+            1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE, null);
       } catch (SQLException e2) {
         // That's O(N), sorry
         e.setNextException(e2);
@@ -2068,13 +2079,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void finishReadingPendingProtocolEvents() throws SQLException {
-    if (streamingState != null) {
-      try {
-        ((StreamingList<Tuple>) streamingState.tuples).bufferResults();
-      } catch (SQLRuntimeException ex) {
-        throw (SQLException) ex.getCause();
-      } finally {
-        streamingState = null;
+    synchronized (this) {
+      if (streamingState == null) {
+        return;
+      }
+      if (!waitForProtocolFree()) {
+        return;
+      }
+    }
+    try {
+      ((StreamingList<Tuple>) streamingState.tuples).bufferResults();
+    } catch (SQLRuntimeException ex) {
+      throw (SQLException) ex.getCause();
+    } finally {
+      synchronized (this) {
+        this.notifyAll();
       }
     }
   }
@@ -2089,6 +2108,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     final ResultHandler handler;
     final SQLThrowingRunnable onFinishedContext;
     final Consumer<IOException> onIOError;
+    public Thread reader;
     boolean streamRows;
 
     List<Tuple> tuples = null;
@@ -2125,11 +2145,49 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return processResultsImpl(handler, new ProcessState(handler, flags, onFinishedContext, onIOError)) == null;
   }
 
+  private boolean waitForProtocolFree() throws SQLException {
+    if (streamingState.reader == Thread.currentThread()) {
+      return true;
+    }
+    while (streamingState.reader != null) {
+      try {
+        this.wait();
+        if (streamingState == null) {
+          return false;
+        }
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        throw new PSQLException(
+            GT.tr("Interrupted while waiting to obtain lock on database connection"),
+            PSQLState.OBJECT_NOT_IN_STATE, ie);
+      }
+    }
+    streamingState.reader = Thread.currentThread();
+    return true;
+  }
+
   private Tuple processStreamedResultsImpl(ProcessState state) throws SQLRuntimeException {
+    synchronized (this) {
+      if (streamingState != state) {
+        return null;
+      }
+      try {
+        if (!waitForProtocolFree()) {
+          return null;
+        }
+      } catch (SQLException ex) {
+        throw new SQLRuntimeException(ex);
+      }
+    }
     try {
       return processResultsImpl(state.handler, state);
     } catch (IOException ex) {
       state.onIOError.accept(ex);
+    } finally {
+      synchronized (this) {
+        state.reader = null;
+        this.notifyAll();
+      }
     }
     return null;
   }
@@ -2383,8 +2441,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                   // should never happen
                   throw new SQLRuntimeException(ex);
                 }
+                synchronized (this) {
+                  streamingState = state;
+                }
                 handler.handleResultRows(currentQuery, currentQuery.getFields(), state.tuples, null);
-                streamingState = state;
               }
               return tuple;
             }
