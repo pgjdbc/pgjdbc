@@ -9,7 +9,6 @@ import java.util.AbstractSequentialList;
 import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
-import java.util.function.Supplier;
 
 /**
  * The streaming list by default fetches items on-demand from the given supplier.
