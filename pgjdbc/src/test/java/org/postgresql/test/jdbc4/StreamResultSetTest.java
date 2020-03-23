@@ -10,7 +10,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assume.assumeTrue;
+import static org.postgresql.core.ServerVersion.v10;
 import static org.postgresql.test.TestUtil.createTempTable;
+import static org.postgresql.test.TestUtil.haveMinimumServerVersion;
 
 import org.postgresql.test.jdbc2.BaseTest4;
 
@@ -81,6 +84,10 @@ public class StreamResultSetTest extends BaseTest4 {
   }
 
   private void readResults() throws SQLException {
+    // the test query seems to work differently on older servers by not pacing the response rows
+    // the streaming features works nicely though
+    assumeTrue(haveMinimumServerVersion(con, v10));
+
     try (ResultSet results = statement.executeQuery()) {
       int count = 0;
       long startTime = currentTimeMillis();
