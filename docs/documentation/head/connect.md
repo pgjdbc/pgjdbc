@@ -568,12 +568,6 @@ And read pool balances connections between secondary nodes, but allows connectio
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
-<<<<<<< HEAD
-If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
-the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
-will be made to connect to all of the hosts in the URL in order.
-=======
-If a secondary fails, all secondaries in the list will be tried first. If the case that there are no available secondaries
+If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
 the primary will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
 will be made to connect to all of the hosts in the URL in order.
->>>>>>> 263d23605b9e4900fc161da165829a6b2ae168fc
