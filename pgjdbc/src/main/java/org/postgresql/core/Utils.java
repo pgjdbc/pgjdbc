@@ -6,13 +6,11 @@
 
 package org.postgresql.core;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
-import java.sql.SQLException;
+import java.sql.SQLDataException;
 
 /**
  * Collection of utilities used by the protocol-level code.
@@ -63,10 +61,10 @@ public class Utils {
    * @param value the string value
    * @param standardConformingStrings if standard conforming strings should be used
    * @return the sbuf argument; or a new string builder for sbuf == null
-   * @throws SQLException if the string contains a {@code \0} character
+   * @throws SQLDataException if the string contains a {@code \0} character
    */
   public static StringBuilder escapeLiteral(StringBuilder sbuf, String value,
-      boolean standardConformingStrings) throws SQLException {
+      boolean standardConformingStrings) throws SQLDataException {
     if (sbuf == null) {
       sbuf = new StringBuilder((value.length() + 10) / 10 * 11); // Add 10% for escaping.
     }
@@ -82,43 +80,38 @@ public class Utils {
    * @param value value to append
    * @param standardConformingStrings if standard conforming strings should be used
    */
-  private static void doAppendEscapedLiteral(Appendable sbuf, String value,
-      boolean standardConformingStrings) throws SQLException {
-    try {
-      if (standardConformingStrings) {
-        // With standard_conforming_strings on, escape only single-quotes.
-        for (int i = 0; i < value.length(); ++i) {
-          char ch = value.charAt(i);
-          if (ch == '\0') {
-            throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."),
-                PSQLState.INVALID_PARAMETER_VALUE);
-          }
-          if (ch == '\'') {
-            sbuf.append('\'');
-          }
-          sbuf.append(ch);
+  private static void doAppendEscapedLiteral(StringBuilder sbuf, String value,
+      boolean standardConformingStrings) throws SQLDataException {
+    if (standardConformingStrings) {
+      // With standard_conforming_strings on, escape only single-quotes.
+      for (int i = 0; i < value.length(); ++i) {
+        char ch = value.charAt(i);
+        if (ch == '\0') {
+          throw new SQLDataException(GT.tr("Zero bytes may not occur in string parameters."),
+              PgSqlState.CHARACTER_NOT_IN_REPERTOIRE);
         }
-      } else {
-        // With standard_conforming_string off, escape backslashes and
-        // single-quotes, but still escape single-quotes by doubling, to
-        // avoid a security hazard if the reported value of
-        // standard_conforming_strings is incorrect, or an error if
-        // backslash_quote is off.
-        for (int i = 0; i < value.length(); ++i) {
-          char ch = value.charAt(i);
-          if (ch == '\0') {
-            throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."),
-                PSQLState.INVALID_PARAMETER_VALUE);
-          }
-          if (ch == '\\' || ch == '\'') {
-            sbuf.append(ch);
-          }
-          sbuf.append(ch);
+        if (ch == '\'') {
+          sbuf.append('\'');
         }
+        sbuf.append(ch);
       }
-    } catch (IOException e) {
-      throw new PSQLException(GT.tr("No IOException expected from StringBuffer or StringBuilder"),
-          PSQLState.UNEXPECTED_ERROR, e);
+    } else {
+      // With standard_conforming_string off, escape backslashes and
+      // single-quotes, but still escape single-quotes by doubling, to
+      // avoid a security hazard if the reported value of
+      // standard_conforming_strings is incorrect, or an error if
+      // backslash_quote is off.
+      for (int i = 0; i < value.length(); ++i) {
+        char ch = value.charAt(i);
+        if (ch == '\0') {
+          throw new SQLDataException(GT.tr("Zero bytes may not occur in string parameters."),
+              PgSqlState.CHARACTER_NOT_IN_REPERTOIRE);
+        }
+        if (ch == '\\' || ch == '\'') {
+          sbuf.append(ch);
+        }
+        sbuf.append(ch);
+      }
     }
   }
 
@@ -131,10 +124,10 @@ public class Utils {
    * @param sbuf the string builder to append to; or {@code null}
    * @param value the string value
    * @return the sbuf argument; or a new string builder for sbuf == null
-   * @throws SQLException if the string contains a {@code \0} character
+   * @throws SQLDataException if the string contains a {@code \0} character
    */
   public static StringBuilder escapeIdentifier(StringBuilder sbuf, String value)
-      throws SQLException {
+      throws SQLDataException {
     if (sbuf == null) {
       sbuf = new StringBuilder(2 + (value.length() + 10) / 10 * 11); // Add 10% for escaping.
     }
@@ -145,31 +138,26 @@ public class Utils {
   /**
    * Common part for appendEscapedIdentifier.
    *
-   * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
-   *        thrown.
+   * @param sbuf StringBuilder to append value with double-quotes
    * @param value value to append
    */
-  private static void doAppendEscapedIdentifier(Appendable sbuf, String value) throws SQLException {
-    try {
-      sbuf.append('"');
+  private static void doAppendEscapedIdentifier(StringBuilder sbuf, String value)
+      throws SQLDataException {
+    sbuf.append('"');
 
-      for (int i = 0; i < value.length(); ++i) {
-        char ch = value.charAt(i);
-        if (ch == '\0') {
-          throw new PSQLException(GT.tr("Zero bytes may not occur in identifiers."),
-              PSQLState.INVALID_PARAMETER_VALUE);
-        }
-        if (ch == '"') {
-          sbuf.append(ch);
-        }
+    for (int i = 0; i < value.length(); ++i) {
+      char ch = value.charAt(i);
+      if (ch == '\0') {
+        throw new SQLDataException(GT.tr("Zero bytes may not occur in identifiers."),
+            PgSqlState.CHARACTER_NOT_IN_REPERTOIRE);
+      }
+      if (ch == '"') {
         sbuf.append(ch);
       }
-
-      sbuf.append('"');
-    } catch (IOException e) {
-      throw new PSQLException(GT.tr("No IOException expected from StringBuffer or StringBuilder"),
-          PSQLState.UNEXPECTED_ERROR, e);
+      sbuf.append(ch);
     }
+
+    sbuf.append('"');
   }
 
   /**

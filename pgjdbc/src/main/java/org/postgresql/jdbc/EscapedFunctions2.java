@@ -5,12 +5,11 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.lang.reflect.Method;
-import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
@@ -83,9 +82,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlceiling(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlceiling(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "ceil(", "ceiling", parsedArgs);
   }
 
@@ -94,9 +93,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqllog(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqllog(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "ln(", "log", parsedArgs);
   }
 
@@ -105,9 +104,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqllog10(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqllog10(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "log(", "log10", parsedArgs);
   }
 
@@ -116,9 +115,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlpower(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlpower(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     twoArgumentsFunctionCall(buf, "pow(", "power", parsedArgs);
   }
 
@@ -127,9 +126,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqltruncate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqltruncate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     twoArgumentsFunctionCall(buf, "trunc(", "truncate", parsedArgs);
   }
 
@@ -140,9 +139,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlchar(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlchar(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "chr(", "char", parsedArgs);
   }
 
@@ -161,12 +160,12 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlinsert(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlinsert(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 4) {
-      throw new PSQLException(GT.tr("{0} function takes four and only four argument.", "insert"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes four and only four argument.", "insert"),
+          PgSqlState.SYNTAX_ERROR);
     }
     buf.append("overlay(");
     buf.append(parsedArgs.get(0)).append(" placing ").append(parsedArgs.get(3));
@@ -179,9 +178,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqllcase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqllcase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "lower(", "lcase", parsedArgs);
   }
 
@@ -190,12 +189,12 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlleft(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlleft(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 2) {
-      throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "left"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes two and only two arguments.", "left"),
+          PgSqlState.SYNTAX_ERROR);
     }
     appendCall(buf, "substring(", " for ", ")", parsedArgs);
   }
@@ -205,12 +204,12 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqllength(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqllength(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "length"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes one and only one argument.", "length"),
+          PgSqlState.SYNTAX_ERROR);
     }
     appendCall(buf, "length(trim(trailing from ", "", "))", parsedArgs);
   }
@@ -220,9 +219,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqllocate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqllocate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() == 2) {
       appendCall(buf, "position(", " in ", ")", parsedArgs);
     } else if (parsedArgs.size() == 3) {
@@ -236,8 +235,8 @@ public final class EscapedFunctions2 {
           .append(tmp)
           .append(")");
     } else {
-      throw new PSQLException(GT.tr("{0} function takes two or three arguments.", "locate"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes two or three arguments.", "locate"),
+          PgSqlState.SYNTAX_ERROR);
     }
   }
 
@@ -246,9 +245,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlltrim(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlltrim(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "trim(leading from ", "ltrim", parsedArgs);
   }
 
@@ -257,12 +256,12 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlright(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlright(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 2) {
-      throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", "right"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes two and only two arguments.", "right"),
+          PgSqlState.SYNTAX_ERROR);
     }
     buf.append("substring(");
     buf.append(parsedArgs.get(0))
@@ -278,9 +277,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlrtrim(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlrtrim(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "trim(trailing from ", "rtrim", parsedArgs);
   }
 
@@ -289,9 +288,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlspace(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlspace(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "repeat(' ',", "space", parsedArgs);
   }
 
@@ -300,13 +299,13 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlsubstring(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlsubstring(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     int argSize = parsedArgs.size();
     if (argSize != 2 && argSize != 3) {
-      throw new PSQLException(GT.tr("{0} function takes two or three arguments.", "substring"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes two or three arguments.", "substring"),
+          PgSqlState.SYNTAX_ERROR);
     }
     appendCall(buf, "substr(", ",", ")", parsedArgs);
   }
@@ -316,9 +315,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlucase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlucase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "upper(", "ucase", parsedArgs);
   }
 
@@ -327,9 +326,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlcurdate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlcurdate(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     zeroArgumentFunctionCall(buf, "current_date", "curdate", parsedArgs);
   }
 
@@ -338,9 +337,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlcurtime(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlcurtime(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     zeroArgumentFunctionCall(buf, "current_time", "curtime", parsedArgs);
   }
 
@@ -349,12 +348,12 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqldayname(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqldayname(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "dayname"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes one and only one argument.", "dayname"),
+          PgSqlState.SYNTAX_ERROR);
     }
     appendCall(buf, "to_char(", ",", ",'Day')", parsedArgs);
   }
@@ -364,9 +363,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqldayofmonth(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqldayofmonth(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(day from ", "dayofmonth", parsedArgs);
   }
 
@@ -375,12 +374,12 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqldayofweek(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqldayofweek(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "dayofweek"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes one and only one argument.", "dayofweek"),
+          PgSqlState.SYNTAX_ERROR);
     }
     appendCall(buf, "extract(dow from ", ",", ")+1", parsedArgs);
   }
@@ -390,9 +389,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqldayofyear(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqldayofyear(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(doy from ", "dayofyear", parsedArgs);
   }
 
@@ -401,9 +400,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlhour(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlhour(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(hour from ", "hour", parsedArgs);
   }
 
@@ -412,9 +411,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlminute(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlminute(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(minute from ", "minute", parsedArgs);
   }
 
@@ -423,9 +422,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlmonth(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlmonth(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(month from ", "month", parsedArgs);
   }
 
@@ -434,12 +433,12 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlmonthname(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlmonthname(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", "monthname"),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes one and only one argument.", "monthname"),
+          PgSqlState.SYNTAX_ERROR);
     }
     appendCall(buf, "to_char(", ",", ",'Month')", parsedArgs);
   }
@@ -449,9 +448,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlquarter(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlquarter(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(quarter from ", "quarter", parsedArgs);
   }
 
@@ -460,9 +459,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlsecond(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlsecond(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(second from ", "second", parsedArgs);
   }
 
@@ -471,9 +470,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlweek(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlweek(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(week from ", "week", parsedArgs);
   }
 
@@ -482,9 +481,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlyear(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlyear(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     singleArgumentFunctionCall(buf, "extract(year from ", "year", parsedArgs);
   }
 
@@ -493,23 +492,23 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqltimestampadd(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqltimestampadd(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 3) {
-      throw new PSQLException(
+      throw new SQLSyntaxErrorException(
           GT.tr("{0} function takes three and only three arguments.", "timestampadd"),
-          PSQLState.SYNTAX_ERROR);
+          PgSqlState.SYNTAX_ERROR);
     }
     buf.append('(');
     appendInterval(buf, parsedArgs.get(0).toString(), parsedArgs.get(1).toString());
     buf.append('+').append(parsedArgs.get(2)).append(')');
   }
 
-  private static void appendInterval(StringBuilder buf, String type, String value) throws SQLException {
+  private static void appendInterval(StringBuilder buf, String type, String value) throws SQLSyntaxErrorException {
     if (!isTsi(type)) {
-      throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("Interval {0} not yet implemented", type),
+          PgSqlState.FEATURE_NOT_SUPPORTED);
     }
     if (appendSingleIntervalCast(buf, SQL_TSI_DAY, type, value, "day")
         || appendSingleIntervalCast(buf, SQL_TSI_SECOND, type, value, "second")
@@ -525,8 +524,8 @@ public final class EscapedFunctions2 {
       buf.append("CAST((").append(value).append("::int * 3) || ' month' as interval)");
       return;
     }
-    throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
-        PSQLState.NOT_IMPLEMENTED);
+    throw new SQLSyntaxErrorException(GT.tr("Interval {0} not yet implemented", type),
+        PgSqlState.FEATURE_NOT_SUPPORTED);
   }
 
   private static boolean appendSingleIntervalCast(StringBuilder buf, String cmp, String type, String value, String pgType) {
@@ -563,13 +562,13 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqltimestampdiff(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqltimestampdiff(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 3) {
-      throw new PSQLException(
+      throw new SQLSyntaxErrorException(
           GT.tr("{0} function takes three and only three arguments.", "timestampdiff"),
-          PSQLState.SYNTAX_ERROR);
+          PgSqlState.SYNTAX_ERROR);
     }
     buf.append("extract( ")
         .append(constantToDatePart(buf, parsedArgs.get(0).toString()))
@@ -580,10 +579,10 @@ public final class EscapedFunctions2 {
         .append("))");
   }
 
-  private static String constantToDatePart(StringBuilder buf, String type) throws SQLException {
+  private static String constantToDatePart(StringBuilder buf, String type) throws SQLSyntaxErrorException {
     if (!isTsi(type)) {
-      throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("Interval {0} not yet implemented", type),
+          PgSqlState.FEATURE_NOT_SUPPORTED);
     }
     if (areSameTsi(SQL_TSI_DAY, type)) {
       return "day";
@@ -594,8 +593,8 @@ public final class EscapedFunctions2 {
     } else if (areSameTsi(SQL_TSI_MINUTE, type)) {
       return "minute";
     } else {
-      throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("Interval {0} not yet implemented", type),
+          PgSqlState.FEATURE_NOT_SUPPORTED);
     }
     // See http://archives.postgresql.org/pgsql-jdbc/2006-03/msg00096.php
     /*
@@ -611,9 +610,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqldatabase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqldatabase(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     zeroArgumentFunctionCall(buf, "current_database()", "database", parsedArgs);
   }
 
@@ -622,9 +621,9 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqlifnull(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqlifnull(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     twoArgumentsFunctionCall(buf, "coalesce(", "ifnull", parsedArgs);
   }
 
@@ -633,26 +632,26 @@ public final class EscapedFunctions2 {
    *
    * @param buf The buffer to append into
    * @param parsedArgs arguments
-   * @throws SQLException if something wrong happens
+   * @throws SQLSyntaxErrorException if something wrong happens
    */
-  public static void sqluser(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLException {
+  public static void sqluser(StringBuilder buf, List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     zeroArgumentFunctionCall(buf, "user", "user", parsedArgs);
   }
 
   private static void zeroArgumentFunctionCall(StringBuilder buf, String call, String functionName,
-      List<? extends CharSequence> parsedArgs) throws PSQLException {
+      List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (!parsedArgs.isEmpty()) {
-      throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", functionName),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function doesn''t take any argument.", functionName),
+          PgSqlState.SYNTAX_ERROR);
     }
     buf.append(call);
   }
 
   private static void singleArgumentFunctionCall(StringBuilder buf, String call, String functionName,
-      List<? extends CharSequence> parsedArgs) throws PSQLException {
+      List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 1) {
-      throw new PSQLException(GT.tr("{0} function takes one and only one argument.", functionName),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes one and only one argument.", functionName),
+          PgSqlState.SYNTAX_ERROR);
     }
     CharSequence arg0 = parsedArgs.get(0);
     buf.ensureCapacity(buf.length() + call.length() + arg0.length() + 1);
@@ -660,10 +659,10 @@ public final class EscapedFunctions2 {
   }
 
   private static void twoArgumentsFunctionCall(StringBuilder buf, String call, String functionName,
-      List<? extends CharSequence> parsedArgs) throws PSQLException {
+      List<? extends CharSequence> parsedArgs) throws SQLSyntaxErrorException {
     if (parsedArgs.size() != 2) {
-      throw new PSQLException(GT.tr("{0} function takes two and only two arguments.", functionName),
-          PSQLState.SYNTAX_ERROR);
+      throw new SQLSyntaxErrorException(GT.tr("{0} function takes two and only two arguments.", functionName),
+          PgSqlState.SYNTAX_ERROR);
     }
     appendCall(buf, call, ",", ")", parsedArgs);
   }
