@@ -137,8 +137,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List<Tuple> tuples,
-              ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
-              int rsHoldability) throws SQLException {
+      ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
+      int rsHoldability) throws SQLException {
     // Fail-fast on invalid null inputs
     if (tuples == null) {
       throw new NullPointerException("tuples must be non-null");
@@ -650,9 +650,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     int oid = fields[col].getOID();
     if (oid != Oid.TIMESTAMP) {
       throw new PSQLException(
-          GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-              Oid.toString(oid), "timestamp"),
-          PSQLState.DATA_TYPE_MISMATCH);
+              GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                  Oid.toString(oid), "timestamp"),
+              PSQLState.DATA_TYPE_MISMATCH);
     }
     if (isBinary(i)) {
       return connection.getTimestampUtils().toLocalDateTimeBin(thisRow.get(col));
