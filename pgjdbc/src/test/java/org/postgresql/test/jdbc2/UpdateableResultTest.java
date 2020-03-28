@@ -41,6 +41,9 @@ public class UpdateableResultTest extends BaseTest4 {
         "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
+    TestUtil.createTable(con, "compositepktable", "gen_id serial, dec_id serial, name text");
+    TestUtil.execute( "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10", con);
+    TestUtil.execute( "alter table compositepktable add primary key ( gen_id, dec_id )", con);
     TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
@@ -60,6 +63,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "updateable");
     TestUtil.dropTable(con, "second");
     TestUtil.dropTable(con, "serialtable");
+    TestUtil.dropTable(con, "compositepktable");
     TestUtil.dropTable(con, "stream");
     TestUtil.dropTable(con, "booltable");
     super.tearDown();
@@ -225,6 +229,34 @@ public class UpdateableResultTest extends BaseTest4 {
       assertTrue(rs.last());
       assertEquals(2, rs.getInt("gen_id"));
       assertEquals(ole2, rs.getString("name"));
+
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(st);
+    }
+
+    final String dec = "Dec";
+    try {
+      st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+      rs = st.executeQuery("SELECT * FROM compositepktable");
+
+      rs.moveToInsertRow();
+      rs.updateString("name", dec);
+      rs.insertRow();
+
+      assertTrue(rs.first());
+      assertEquals(1, rs.getInt("gen_id"));
+      assertEquals(dec, rs.getString("name"));
+      assertEquals(10, rs.getInt("dec_id"));
+
+      rs.moveToInsertRow();
+      rs.updateString("name", dec);
+      rs.insertRow();
+
+      assertTrue(rs.last());
+      assertEquals(2, rs.getInt("gen_id"));
+      assertEquals(dec, rs.getString("name"));
+      assertEquals(20, rs.getInt("dec_id"));
 
     } finally {
       TestUtil.closeQuietly(rs);
