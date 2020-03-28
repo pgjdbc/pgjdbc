@@ -7,26 +7,21 @@ package org.postgresql.jdbc;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Tuple;
-import org.postgresql.jdbc2.ArrayAssistant;
+import org.postgresql.jdbc.ArrayDecoding.PgArrayList;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import java.io.IOException;
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * <p>Array is used collect one column of query result data.</p>
@@ -48,20 +43,6 @@ public class PgArray implements java.sql.Array {
   }
 
   /**
-   * Array list implementation specific for storing PG array elements.
-   */
-  private static class PgArrayList extends ArrayList<Object> {
-
-    private static final long serialVersionUID = 2052783752654562677L;
-
-    /**
-     * How many dimensions.
-     */
-    int dimensionsCount = 1;
-
-  }
-
-  /**
    * A database connection.
    */
   protected BaseConnection connection = null;
@@ -77,25 +58,16 @@ public class PgArray implements java.sql.Array {
   protected String fieldString = null;
 
   /**
-   * Whether Object[] should be used instead primitive arrays. Object[] can contain null elements.
-   * It should be set to <Code>true</Code> if
-   * {@link BaseConnection#haveMinimumCompatibleVersion(String)} returns <Code>true</Code> for
-   * argument "8.3".
-   */
-  private final boolean useObjects;
-
-  /**
    * Value of field as {@link PgArrayList}. Will be initialized only once within
    * {@link #buildArrayList()}.
    */
-  protected PgArrayList arrayList;
+  protected ArrayDecoding.PgArrayList arrayList;
 
   protected byte[] fieldBytes;
 
   private PgArray(BaseConnection connection, int oid) throws SQLException {
     this.connection = connection;
     this.oid = oid;
-    this.useObjects = true;
   }
 
   /**
@@ -172,7 +144,7 @@ public class PgArray implements java.sql.Array {
     }
 
     // array index out of range
-    if ((--index) + count > arrayList.size()) {
+    if ((index - 1) + count > arrayList.size()) {
       throw new PSQLException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
               index + count, (long) arrayList.size()),
@@ -183,92 +155,7 @@ public class PgArray implements java.sql.Array {
   }
 
   private Object readBinaryArray(int index, int count) throws SQLException {
-    int dimensions = ByteConverter.int4(fieldBytes, 0);
-    // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
-    int elementOid = ByteConverter.int4(fieldBytes, 8);
-    int pos = 12;
-    int[] dims = new int[dimensions];
-    for (int d = 0; d < dimensions; ++d) {
-      dims[d] = ByteConverter.int4(fieldBytes, pos);
-      pos += 4;
-      /* int lbound = ByteConverter.int4(fieldBytes, pos); */
-      pos += 4;
-    }
-    if (dimensions == 0) {
-      return java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), 0);
-    }
-    if (count > 0) {
-      dims[0] = Math.min(count, dims[0]);
-    }
-    Object arr = java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), dims);
-    try {
-      storeValues((Object[]) arr, elementOid, dims, pos, 0, index);
-    } catch (IOException ioe) {
-      throw new PSQLException(
-          GT.tr(
-              "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
-          PSQLState.DATA_ERROR, ioe);
-    }
-    return arr;
-  }
-
-  private int storeValues(final Object[] arr, int elementOid, final int[] dims, int pos,
-      final int thisDimension, int index) throws SQLException, IOException {
-    if (thisDimension == dims.length - 1) {
-      for (int i = 1; i < index; ++i) {
-        int len = ByteConverter.int4(fieldBytes, pos);
-        pos += 4;
-        if (len != -1) {
-          pos += len;
-        }
-      }
-      for (int i = 0; i < dims[thisDimension]; ++i) {
-        int len = ByteConverter.int4(fieldBytes, pos);
-        pos += 4;
-        if (len == -1) {
-          continue;
-        }
-        switch (elementOid) {
-          case Oid.INT2:
-            arr[i] = ByteConverter.int2(fieldBytes, pos);
-            break;
-          case Oid.INT4:
-            arr[i] = ByteConverter.int4(fieldBytes, pos);
-            break;
-          case Oid.INT8:
-            arr[i] = ByteConverter.int8(fieldBytes, pos);
-            break;
-          case Oid.FLOAT4:
-            arr[i] = ByteConverter.float4(fieldBytes, pos);
-            break;
-          case Oid.FLOAT8:
-            arr[i] = ByteConverter.float8(fieldBytes, pos);
-            break;
-          case Oid.NUMERIC:
-            arr[i] = ByteConverter.numeric(fieldBytes, pos, len);
-            break;
-          case Oid.TEXT:
-          case Oid.VARCHAR:
-            Encoding encoding = connection.getEncoding();
-            arr[i] = encoding.decode(fieldBytes, pos, len);
-            break;
-          case Oid.BOOL:
-            arr[i] = ByteConverter.bool(fieldBytes, pos);
-            break;
-          default:
-            ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
-            if (arrAssistant != null) {
-              arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
-            }
-        }
-        pos += len;
-      }
-    } else {
-      for (int i = 0; i < dims[thisDimension]; ++i) {
-        pos = storeValues((Object[]) arr[i], elementOid, dims, pos, thisDimension + 1, 0);
-      }
-    }
-    return pos;
+    return ArrayDecoding.readBinaryArray(index, count, fieldBytes, connection);
   }
 
   private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
@@ -381,156 +268,14 @@ public class PgArray implements java.sql.Array {
     return pos;
   }
 
-  private Class<?> elementOidToClass(int oid) throws SQLException {
-    switch (oid) {
-      case Oid.INT2:
-        return Short.class;
-      case Oid.INT4:
-        return Integer.class;
-      case Oid.INT8:
-        return Long.class;
-      case Oid.FLOAT4:
-        return Float.class;
-      case Oid.FLOAT8:
-        return Double.class;
-      case Oid.NUMERIC:
-        return BigDecimal.class;
-      case Oid.TEXT:
-      case Oid.VARCHAR:
-        return String.class;
-      case Oid.BOOL:
-        return Boolean.class;
-      default:
-        ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
-        if (arrElemBuilder != null) {
-          return arrElemBuilder.baseType();
-        }
-
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "readBinaryArray(data,oid)");
-    }
-  }
-
   /**
    * Build {@link ArrayList} from field's string input. As a result of this method
    * {@link #arrayList} is build. Method can be called many times in order to make sure that array
    * list is ready to use, however {@link #arrayList} will be set only once during first call.
    */
   private synchronized void buildArrayList() throws SQLException {
-    if (arrayList != null) {
-      return;
-    }
-
-    arrayList = new PgArrayList();
-
-    char delim = connection.getTypeInfo().getArrayDelimiter(oid);
-
-    if (fieldString != null) {
-
-      char[] chars = fieldString.toCharArray();
-      StringBuilder buffer = null;
-      boolean insideString = false;
-      boolean wasInsideString = false; // needed for checking if NULL
-      // value occurred
-      List<PgArrayList> dims = new ArrayList<PgArrayList>(); // array dimension arrays
-      PgArrayList curArray = arrayList; // currently processed array
-
-      // Starting with 8.0 non-standard (beginning index
-      // isn't 1) bounds the dimensions are returned in the
-      // data formatted like so "[0:3]={0,1,2,3,4}".
-      // Older versions simply do not return the bounds.
-      //
-      // Right now we ignore these bounds, but we could
-      // consider allowing these index values to be used
-      // even though the JDBC spec says 1 is the first
-      // index. I'm not sure what a client would like
-      // to see, so we just retain the old behavior.
-      int startOffset = 0;
-      {
-        if (chars[0] == '[') {
-          while (chars[startOffset] != '=') {
-            startOffset++;
-          }
-          startOffset++; // skip =
-        }
-      }
-
-      for (int i = startOffset; i < chars.length; i++) {
-
-        // escape character that we need to skip
-        if (chars[i] == '\\') {
-          i++;
-        } else if (!insideString && chars[i] == '{') {
-          // subarray start
-          if (dims.isEmpty()) {
-            dims.add(arrayList);
-          } else {
-            PgArrayList a = new PgArrayList();
-            PgArrayList p = dims.get(dims.size() - 1);
-            p.add(a);
-            dims.add(a);
-          }
-          curArray = dims.get(dims.size() - 1);
-
-          // number of dimensions
-          {
-            for (int t = i + 1; t < chars.length; t++) {
-              if (Character.isWhitespace(chars[t])) {
-                continue;
-              } else if (chars[t] == '{') {
-                curArray.dimensionsCount++;
-              } else {
-                break;
-              }
-            }
-          }
-
-          buffer = new StringBuilder();
-          continue;
-        } else if (chars[i] == '"') {
-          // quoted element
-          insideString = !insideString;
-          wasInsideString = true;
-          continue;
-        } else if (!insideString && Character.isWhitespace(chars[i])) {
-          // white space
-          continue;
-        } else if ((!insideString && (chars[i] == delim || chars[i] == '}'))
-            || i == chars.length - 1) {
-          // array end or element end
-          // when character that is a part of array element
-          if (chars[i] != '"' && chars[i] != '}' && chars[i] != delim && buffer != null) {
-            buffer.append(chars[i]);
-          }
-
-          String b = buffer == null ? null : buffer.toString();
-
-          // add element to current array
-          if (b != null && (!b.isEmpty() || wasInsideString)) {
-            curArray.add(!wasInsideString && b.equals("NULL") ? null : b);
-          }
-
-          wasInsideString = false;
-          buffer = new StringBuilder();
-
-          // when end of an array
-          if (chars[i] == '}') {
-            dims.remove(dims.size() - 1);
-
-            // when multi-dimension
-            if (!dims.isEmpty()) {
-              curArray = dims.get(dims.size() - 1);
-            }
-
-            buffer = null;
-          }
-
-          continue;
-        }
-
-        if (buffer != null) {
-          buffer.append(chars[i]);
-        }
-      }
+    if (arrayList == null) {
+      arrayList = ArrayDecoding.buildArrayList(fieldString, connection.getTypeInfo().getArrayDelimiter(oid));
     }
   }
 
@@ -539,268 +284,8 @@ public class PgArray implements java.sql.Array {
    *
    * @param input list to be converted into array
    */
-  private Object buildArray(PgArrayList input, int index, int count) throws SQLException {
-
-    if (count < 0) {
-      count = input.size();
-    }
-
-    // array to be returned
-    Object ret = null;
-
-    // how many dimensions
-    int dims = input.dimensionsCount;
-
-    // dimensions length array (to be used with java.lang.reflect.Array.newInstance(Class<?>,
-    // int[]))
-    int[] dimsLength = dims > 1 ? new int[dims] : null;
-    if (dims > 1) {
-      for (int i = 0; i < dims; i++) {
-        dimsLength[i] = (i == 0 ? count : 0);
-      }
-    }
-
-    // array elements counter
-    int length = 0;
-
-    // array elements type
-    final int type =
-        connection.getTypeInfo().getSQLType(connection.getTypeInfo().getPGArrayElement(oid));
-
-    if (type == Types.BIT) {
-      boolean[] pa = null; // primitive array
-      Object[] oa = null; // objects array
-
-      if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1
-            ? (Object[]) java.lang.reflect.Array
-                .newInstance(useObjects ? Boolean.class : boolean.class, dimsLength)
-            : new Boolean[count]);
-      } else {
-        ret = pa = new boolean[count];
-      }
-
-      // add elements
-      for (; count > 0; count--) {
-        Object o = input.get(index++);
-
-        if (dims > 1 || useObjects) {
-          oa[length++] = o == null ? null
-            : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : BooleanTypeUtil.castToBoolean((String) o));
-        } else {
-          pa[length++] = o == null ? false : BooleanTypeUtil.castToBoolean((String) o);
-        }
-      }
-    } else if (type == Types.SMALLINT) {
-      short[] pa = null;
-      Object[] oa = null;
-
-      if (dims > 1 || useObjects) {
-        ret =
-            oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Short.class : short.class, dimsLength)
-                : new Short[count]);
-      } else {
-        ret = pa = new short[count];
-      }
-
-      for (; count > 0; count--) {
-        Object o = input.get(index++);
-
-        if (dims > 1 || useObjects) {
-          oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
-        } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
-        }
-      }
-    } else if (type == Types.INTEGER) {
-      int[] pa = null;
-      Object[] oa = null;
-
-      if (dims > 1 || useObjects) {
-        ret =
-            oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Integer.class : int.class, dimsLength)
-                : new Integer[count]);
-      } else {
-        ret = pa = new int[count];
-      }
-
-      for (; count > 0; count--) {
-        Object o = input.get(index++);
-
-        if (dims > 1 || useObjects) {
-          oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toInt((String) o));
-        } else {
-          pa[length++] = o == null ? 0 : PgResultSet.toInt((String) o);
-        }
-      }
-    } else if (type == Types.BIGINT) {
-      long[] pa = null;
-      Object[] oa = null;
-
-      if (dims > 1 || useObjects) {
-        ret =
-            oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Long.class : long.class, dimsLength)
-                : new Long[count]);
-      } else {
-        ret = pa = new long[count];
-      }
-
-      for (; count > 0; count--) {
-        Object o = input.get(index++);
-
-        if (dims > 1 || useObjects) {
-          oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toLong((String) o));
-        } else {
-          pa[length++] = o == null ? 0L : PgResultSet.toLong((String) o);
-        }
-      }
-    } else if (type == Types.NUMERIC) {
-      Object[] oa = null;
-      ret = oa =
-          (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(BigDecimal.class, dimsLength)
-              : new BigDecimal[count]);
-
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : PgResultSet.toBigDecimal((String) v));
-      }
-    } else if (type == Types.REAL) {
-      float[] pa = null;
-      Object[] oa = null;
-
-      if (dims > 1 || useObjects) {
-        ret =
-            oa = (dims > 1
-                ? (Object[]) java.lang.reflect.Array
-                    .newInstance(useObjects ? Float.class : float.class, dimsLength)
-                : new Float[count]);
-      } else {
-        ret = pa = new float[count];
-      }
-
-      for (; count > 0; count--) {
-        Object o = input.get(index++);
-
-        if (dims > 1 || useObjects) {
-          oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toFloat((String) o));
-        } else {
-          pa[length++] = o == null ? 0f : PgResultSet.toFloat((String) o);
-        }
-      }
-    } else if (type == Types.DOUBLE) {
-      double[] pa = null;
-      Object[] oa = null;
-
-      if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1
-            ? (Object[]) java.lang.reflect.Array
-                .newInstance(useObjects ? Double.class : double.class, dimsLength)
-            : new Double[count]);
-      } else {
-        ret = pa = new double[count];
-      }
-
-      for (; count > 0; count--) {
-        Object o = input.get(index++);
-
-        if (dims > 1 || useObjects) {
-          oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toDouble((String) o));
-        } else {
-          pa[length++] = o == null ? 0d : PgResultSet.toDouble((String) o);
-        }
-      }
-    } else if (type == Types.CHAR || type == Types.VARCHAR || oid == Oid.JSONB_ARRAY) {
-      Object[] oa = null;
-      ret =
-          oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(String.class, dimsLength)
-              : new String[count]);
-
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1) : v;
-      }
-    } else if (type == Types.DATE) {
-      Object[] oa = null;
-      ret = oa = (dims > 1
-          ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Date.class, dimsLength)
-          : new java.sql.Date[count]);
-
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : connection.getTimestampUtils().toDate(null, (String) v));
-      }
-    } else if (type == Types.TIME) {
-      Object[] oa = null;
-      ret = oa = (dims > 1
-          ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Time.class, dimsLength)
-          : new java.sql.Time[count]);
-
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : connection.getTimestampUtils().toTime(null, (String) v));
-      }
-    } else if (type == Types.TIMESTAMP) {
-      Object[] oa = null;
-      ret = oa = (dims > 1
-          ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Timestamp.class, dimsLength)
-          : new java.sql.Timestamp[count]);
-
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
-      }
-    } else if (ArrayAssistantRegistry.getAssistant(oid) != null) {
-      ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
-
-      Object[] oa = null;
-      ret = oa = (dims > 1)
-          ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), dimsLength)
-          : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
-
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : arrAssistant.buildElement((String) v));
-      }
-    } else if (dims == 1) {
-      Object[] oa = new Object[count];
-      String typeName = getBaseTypeName();
-      for (; count > 0; count--) {
-        Object v = input.get(index++);
-        if (v instanceof String) {
-          oa[length++] = connection.getObject(typeName, (String) v, null);
-        } else if (v instanceof byte[]) {
-          oa[length++] = connection.getObject(typeName, null, (byte[]) v);
-        } else if (v == null) {
-          oa[length++] = null;
-        } else {
-          throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
-        }
-      }
-      ret = oa;
-    } else {
-      // other datatypes not currently supported
-      connection.getLogger().log(Level.FINEST, "getArrayImpl(long,int,Map) with {0}", getBaseTypeName());
-
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
-    }
-
-    return ret;
+  private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count) throws SQLException {
+    return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
   }
 
   public int getBaseType() throws SQLException {
@@ -895,7 +380,7 @@ public class PgArray implements java.sql.Array {
         Object v = arrayList.get(offset);
 
         t[0] = connection.encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : connection.encodeString(toString((PgArrayList) v));
+        t[1] = v == null ? null : connection.encodeString(toString((ArrayDecoding.PgArrayList) v));
         rows.add(new Tuple(t));
       }
     }
@@ -910,14 +395,9 @@ public class PgArray implements java.sql.Array {
       try {
         Object array = readBinaryArray(1, 0);
 
-        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
-        if (arraySupport != null) {
-          fieldString =
-            arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
-        } else {
-          java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
-          fieldString = tmpArray.toString();
-        }
+        final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(array);
+        assert arraySupport != null;
+        fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
       } catch (SQLException e) {
         fieldString = "NULL"; // punt
       }
@@ -928,7 +408,7 @@ public class PgArray implements java.sql.Array {
   /**
    * Convert array list to PG String representation (e.g. {0,1,2}).
    */
-  private String toString(PgArrayList list) throws SQLException {
+  private String toString(ArrayDecoding.PgArrayList list) throws SQLException {
     if (list == null) {
       return "NULL";
     }
@@ -946,8 +426,8 @@ public class PgArray implements java.sql.Array {
 
       if (v == null) {
         b.append("NULL");
-      } else if (v instanceof PgArrayList) {
-        b.append(toString((PgArrayList) v));
+      } else if (v instanceof ArrayDecoding.PgArrayList) {
+        b.append(toString((ArrayDecoding.PgArrayList) v));
       } else {
         escapeArrayElement(b, (String) v);
       }

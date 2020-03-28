@@ -51,7 +51,7 @@ class BooleanTypeUtil {
     throw new PSQLException("Cannot cast to boolean", PSQLState.CANNOT_COERCE);
   }
 
-  private static boolean fromString(final String strval) throws PSQLException {
+  static boolean fromString(final String strval) throws PSQLException {
     // Leading or trailing whitespace is ignored, and case does not matter.
     final String val = strval.trim();
     if ("1".equals(val) || "true".equalsIgnoreCase(val)
