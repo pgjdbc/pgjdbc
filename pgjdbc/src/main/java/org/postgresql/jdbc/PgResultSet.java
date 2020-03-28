@@ -1741,18 +1741,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (isInsert) {
       final ResultSet generatedKeys = insertStatement.getGeneratedKeys();
-      generatedKeys.next();
+      try {
+        generatedKeys.next();
 
-      int numKeys = primaryKeys.size();
+        int numKeys = primaryKeys.size();
 
-      for (int i = 0; i < numKeys; i++) {
-        final PrimaryKey key = primaryKeys.get(i);
-        int columnIndex = key.index - 1;
-        Object valueObject = generatedKeys.getObject(key.name);
-        setRowBufferColumn(columnIndex, valueObject);
+        for (int i = 0; i < numKeys; i++) {
+          final PrimaryKey key = primaryKeys.get(i);
+          int columnIndex = key.index - 1;
+          Object valueObject = generatedKeys.getObject(key.name);
+          setRowBufferColumn(columnIndex, valueObject);
+        }
+      } finally {
+        generatedKeys.close();
       }
-
-      generatedKeys.close();
     }
   }
 
