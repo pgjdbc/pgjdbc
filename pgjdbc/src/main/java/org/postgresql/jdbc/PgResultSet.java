@@ -1751,6 +1751,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         Object valueObject = generatedKeys.getObject(key.name);
         setRowBufferColumn(columnIndex, valueObject);
       }
+
+      generatedKeys.close();
     }
   }
 
