@@ -186,7 +186,6 @@ public class UpdateableResultTest extends BaseTest4 {
     stmt.close();
   }
 
-
   @Test
   public void testReturnSerial() throws Exception {
     final String ole = "Ole";
