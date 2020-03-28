@@ -186,6 +186,53 @@ public class UpdateableResultTest extends BaseTest4 {
     stmt.close();
   }
 
+
+  @Test
+  public void testReturnSerial() throws Exception {
+    final String ole = "Ole";
+
+    Statement st = null;
+    ResultSet rs = null;
+    try {
+      st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+      rs = st.executeQuery("SELECT * FROM serialtable");
+
+      rs.moveToInsertRow();
+      rs.updateString("name", ole);
+      rs.insertRow();
+
+      assertTrue(rs.first());
+      assertEquals(1, rs.getInt("gen_id"));
+      assertEquals(ole, rs.getString("name"));
+
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(st);
+    }
+
+    final String ole2 = "OleOle";
+    try {
+      st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+      rs = st.executeQuery("SELECT name, gen_id FROM serialtable");
+
+      rs.moveToInsertRow();
+      rs.updateString("name", ole2);
+      rs.insertRow();
+
+      assertTrue(rs.first());
+      assertEquals(1, rs.getInt("gen_id"));
+      assertEquals(ole, rs.getString("name"));
+
+      assertTrue(rs.last());
+      assertEquals(2, rs.getInt("gen_id"));
+      assertEquals(ole2, rs.getString("name"));
+
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(st);
+    }
+  }
+
   @Test
   public void testUpdateTimestamp() throws SQLException {
     TimeZone origTZ = TimeZone.getDefault();
@@ -590,51 +637,5 @@ public class UpdateableResultTest extends BaseTest4 {
     rs.updateRow();
     //rs.refreshRow(); //fetches the value stored
     assertTrue(rs.getBoolean("b"));
-  }
-
-  @Test
-  public void testReturnSerial() throws Exception {
-    final String ole = "Ole";
-
-    Statement st = null;
-    ResultSet rs = null;
-    try {
-      st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-      rs = st.executeQuery("SELECT * FROM serialtable");
-
-      rs.moveToInsertRow();
-      rs.updateString("name", ole);
-      rs.insertRow();
-
-      assertTrue(rs.first());
-      assertEquals(1, rs.getInt("gen_id"));
-      assertEquals(ole, rs.getString("name"));
-
-    } finally {
-      TestUtil.closeQuietly(rs);
-      TestUtil.closeQuietly(st);
-    }
-
-    final String ole2 = "OleOle";
-    try {
-      st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-      rs = st.executeQuery("SELECT name, gen_id FROM serialtable");
-
-      rs.moveToInsertRow();
-      rs.updateString("name", ole2);
-      rs.insertRow();
-
-      assertTrue(rs.first());
-      assertEquals(1, rs.getInt("gen_id"));
-      assertEquals(ole, rs.getString("name"));
-
-      assertTrue(rs.last());
-      assertEquals(2, rs.getInt("gen_id"));
-      assertEquals(ole2, rs.getString("name"));
-
-    } finally {
-      TestUtil.closeQuietly(rs);
-      TestUtil.closeQuietly(st);
-    }
   }
 }
