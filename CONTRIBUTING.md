@@ -77,8 +77,7 @@ Here are a few important things you should know about contributing code:
 In order to build the source code for PgJDBC you will need the following tools:
 
   - A git client
-  - A recent version of Maven (3.x)
-  - A JDK for the JDBC version you'd like to build (JDK6 for JDBC 4, JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
+  - A JDK for the JDBC version you'd like to build (JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
   - A running PostgreSQL instance (optional for unit/integration tests)
 
 Additionally, in order to update translations (not typical), you will need the following additional tools:
@@ -90,17 +89,6 @@ Additionally, in order to update translations (not typical), you will need the f
 The PgJDBC project uses git for version control. You can check out the current code by running:
 
     git clone https://github.com/pgjdbc/pgjdbc.git
-
-This will create a pgjdbc directory containing the checked-out source code.
-In order do build jre7 or jre6 compatible versions, check out those repositories under `pgjdbc`
-
-```bash
-    cd pgjdbc # <-- that is pgjdbc/pgjdbc.git clone
-    git clone https://github.com/pgjdbc/pgjdbc-jre7.git
-    git clone https://github.com/pgjdbc/pgjdbc-jre6.git
-```
-
-Note: all the source code is stored in `pgjdbc.git` repository, so just `pgjdbc.git` is sufficient for development.
 
 ## Compiling with Gradle on the command line
 
@@ -175,28 +163,6 @@ Prerequisites:
 - ensure that the RPM packaging CI isn't failing at
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/)
 
-### Release via Travis
-
-To release a branch via Travis, perform the following:
-
-TL;DR:
-
-    git checkout -B release/master origin/master
-    git push origin release/master
-
-1. Check if `pom.xml` includes proper `-SNAPSHOT` versions (release versions would be the ones without `-SNAPSHOT`)
-1. Push `release/master` branch to pointing to the commit you want to release.
-
-    Note: `master..release/master` should be a fast-forward or both branches should point to the same commit.
-
-    Travis would build new version, create a tag, update `pom.xml` to the next snapshot versions, and update `master` branch accordingly.
-
-    Note: .jre6 and .jre7 builds will be built and staged to Maven Central automatically
-
-    Note: the artifacts will not be visible in Maven Central before you manually release them.
-
-1. Navigate to [Sonatype Nexus Repository Manager](https://oss.sonatype.org/#stagingRepositories), find staging `orgpostgresql` repository there and release it
-
 ### Manual release procedure
 
 See details in [Stage Vote Release readme](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin#making-a-release-candidate)
@@ -225,7 +191,7 @@ libraries must also be on your classpath if you wish to use those features; if
 they aren't, you'll get a `PSQLException` at runtime when you try to use features
 with missing libraries.
 
-Maven will download additional dependencies from the Internet (from Maven
+Gradle will download additional dependencies from the Internet (from Maven
 repositories) to satisfy build requirements. Whether or not you intend to use
 the optional features the libraries used to implement them they *must* be present to
 compile the driver.
@@ -338,12 +304,10 @@ More details here: https://intellij-support.jetbrains.com/hc/en-us/articles/2068
 On Eclipse Mars, to import PgJDBC as an Eclipse Java project with full
 support for on-demand compile, debugging, etc, you can use the following approach:
 
-* File -> New -> Project
-* Maven -> Check out Maven Project from SCM
+* File -> Import ...
+* Then choose Existing Gradle Project and proceed with the import.
 * Pick `git`, select `https://github.com/pgjdbc/pgjdbc.git` URL.
-Note: if `git` SCM is missing, just click `m2e Marketplace` link and search for `egit` there. Note the letter `e`.
 * Click finish
-* Eclipse might complain with "Plugin execution not covered by lifecycle configuration: com.igormaznitsa:jcp:6.0.1:preprocess (execution: preprocessSources, phase: generate-sources)", however this error seems to be not that important
 
 Configure format configuration:
 * Import "import order" configuration: Eclipse -> Preferences -> Java -> Java Code Style -> Organize Imports -> Import... -> `.../workspace-pgjdbc/pgjdbc-aggregate/pgjdbc/src/main/checkstyle/pgjdbc_eclipse.importorder`
@@ -356,10 +320,6 @@ Configure format configuration:
   * On "Code Style" tab, check "Use blocks in if/while/... statements", "Always"
   * On "Missing Code" tab, uncheck "Add missing @Override annotation"
   * On "Unnecessary Code" tab, check "Remove unused imports"
-
-
-Eclipse will interoperate fine with Maven, so you can test and debug
-with Eclipse then do dist builds with Maven.
 
 ### Other IDEs
 
