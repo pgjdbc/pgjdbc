@@ -9,10 +9,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,15 +34,7 @@ public class Jdbc3SavepointTest {
 
   @After
   public void tearDown() throws SQLException {
-    try {
-      conn.setAutoCommit(true);
-    } catch (SQLException e) {
-      Assert.assertEquals(
-          "Unexpected exception from setAutoCommit(true)",
-          PSQLState.IN_FAILED_SQL_TRANSACTION.getState(),
-          e.getSQLState()
-      );
-    }
+    conn.setAutoCommit(true);
     TestUtil.dropTable(conn, "savepointtable");
     TestUtil.closeDB(conn);
   }

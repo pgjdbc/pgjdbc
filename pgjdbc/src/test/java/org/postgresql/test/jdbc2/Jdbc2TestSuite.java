@@ -118,7 +118,6 @@ import org.junit.runners.Suite;
     TimeTest.class,
     TimezoneCachingTest.class,
     TimezoneTest.class,
-    TransactionTest.class,
     TypeCacheDLLStressTest.class,
     UpdateableResultTest.class,
     UpsertTest.class,

@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -239,13 +238,13 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   @Test
-  public void testSelectInBatchThrowsAutoCommit() throws Throwable {
+  public void testSelectInBatchThrowsAutoCommit() throws Exception {
     con.setAutoCommit(true);
     testSelectInBatchThrows();
   }
 
   @Test
-  public void testSelectInBatchThrows() throws Throwable {
+  public void testSelectInBatchThrows() throws Exception {
     Statement stmt = con.createStatement();
 
     int oldValue = getCol1Value();
@@ -262,13 +261,7 @@ public class BatchExecuteTest extends BaseTest4 {
     }
 
     if (!con.getAutoCommit()) {
-      try {
-        con.commit();
-      } catch (SQLException e) {
-        if (!PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
-          throw e;
-        }
-      }
+      con.commit();
     }
 
     int newValue = getCol1Value();

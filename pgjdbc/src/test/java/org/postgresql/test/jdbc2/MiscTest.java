@@ -9,9 +9,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -90,15 +88,7 @@ public class MiscTest {
       oos.close();
     }
 
-    try {
-      con.commit();
-    } catch (SQLException e) {
-      Assert.assertEquals(
-          "Transaction is in failed state, so .commit() should throw",
-          PSQLState.IN_FAILED_SQL_TRANSACTION.getState(),
-          e.getSQLState()
-      );
-    }
+    con.commit();
     con.close();
   }
 
