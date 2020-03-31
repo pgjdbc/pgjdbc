@@ -11,14 +11,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 ## [42.2.12] (2020-03-31)
+
+**Notable changes**
+
+We have released 42.2.12 to correct regressions in this version: Specifically
+- [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729) was reverted as this is a breaking change
+- [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719) has been reverted as it introduced errors in the PgType Cache
+
+We recommend that this version 42.2.11 not be used.
 ### Changed
  - reverted [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)  throw an error instead of silently rolling back a commit error. 
  This change introduced a breaking change which will be moved to 42.3.0
  - reverted [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719)  add support for full names of data types (#1719)
 
-### Added
-
-### Fixed
 
 ## [42.2.11] (2020-03-07)
 ### Changed
