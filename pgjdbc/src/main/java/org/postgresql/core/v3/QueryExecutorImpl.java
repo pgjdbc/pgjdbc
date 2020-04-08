@@ -68,7 +68,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 /**
  * QueryExecutor implementation for the V3 protocol.
@@ -77,23 +76,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
   private static final String COPY_ERROR_MESSAGE = "COPY commands are only supported using the CopyManager API.";
-  private static final Pattern ROLLBACK_PATTERN = Pattern.compile("\\brollback\\b", Pattern.CASE_INSENSITIVE);
-  private static final Pattern COMMIT_PATTERN = Pattern.compile("\\bcommit\\b", Pattern.CASE_INSENSITIVE);
-  private static final Pattern PREPARE_PATTERN = Pattern.compile("\\bprepare ++transaction\\b", Pattern.CASE_INSENSITIVE);
-
-  private static boolean looksLikeCommit(String sql) {
-    if ("COMMIT".equalsIgnoreCase(sql)) {
-      return true;
-    }
-    if ("ROLLBACK".equalsIgnoreCase(sql)) {
-      return false;
-    }
-    return COMMIT_PATTERN.matcher(sql).find() && !ROLLBACK_PATTERN.matcher(sql).find();
-  }
-
-  private static boolean looksLikePrepare(String sql) {
-    return sql.startsWith("PREPARE TRANSACTION") || PREPARE_PATTERN.matcher(sql).find();
-  }
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -384,6 +366,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
         || getTransactionState() == TransactionState.OPEN)
         && query != restoreToAutoSave
+        && !query.getNativeSql().equalsIgnoreCase("COMMIT")
         && getAutoSave() != AutoSave.NEVER
         // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
         // thus no need to set a savepoint before such query
@@ -2225,40 +2208,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             adaptiveFetchCache.removeQuery(adaptiveFetch, currentQuery);
             // Update to change fetch size for other fetch portals of this query
             adaptiveFetchCache
-              .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSizeBytes());
+                .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSizeBytes());
           }
           pgStream.clearMaxRowSizeBytes();
 
-          String nativeSql = currentQuery.getNativeQuery().nativeSql;
-          // Certain backend versions (e.g. 12.2, 11.7, 10.12, 9.6.17, 9.5.21, etc)
-          // silently rollback the transaction in the response to COMMIT statement
-          // in case the transaction has failed.
-          // See discussion in pgsql-hackers: https://www.postgresql.org/message-id/b9fb50dc-0f6e-15fb-6555-8ddb86f4aa71%40postgresfriends.org
-          if (isRaiseExceptionOnSilentRollback()
-              && handler.getException() == null
-              && status.startsWith("ROLLBACK")) {
-            String message = null;
-            if (looksLikeCommit(nativeSql)) {
-              if (transactionFailCause == null) {
-                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be committed. Transaction failure is not known (check server logs?)");
-              } else {
-                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be committed. Transaction failure cause is <<{0}>>", transactionFailCause.getMessage());
-              }
-            } else if (looksLikePrepare(nativeSql)) {
-              if (transactionFailCause == null) {
-                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be prepared. Transaction failure is not known (check server logs?)");
-              } else {
-                message = GT.tr("The database returned ROLLBACK, so the transaction cannot be prepared. Transaction failure cause is <<{0}>>", transactionFailCause.getMessage());
-              }
-            }
-            if (message != null) {
-              handler.handleError(
-                  new PSQLException(
-                      message, PSQLState.IN_FAILED_SQL_TRANSACTION, transactionFailCause));
-            }
-          }
-
           if (status.startsWith("SET")) {
+            String nativeSql = currentQuery.getNativeQuery().nativeSql;
             // Scan only the first 1024 characters to
             // avoid big overhead for long queries.
             if (nativeSql.lastIndexOf("search_path", 1024) != -1

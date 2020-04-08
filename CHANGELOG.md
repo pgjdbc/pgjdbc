@@ -10,6 +10,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.2.12] (2020-03-31)
+
+**Notable changes**
+
+We have released 42.2.12 to correct regressions in this version: Specifically
+- [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729) was reverted as this is a breaking change
+- [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719) has been reverted as it introduced errors in the PgType Cache
+
+We recommend that this version 42.2.11 not be used.
+### Changed
+ - reverted [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)  throw an error instead of silently rolling back a commit error. 
+ This change introduced a breaking change which will be moved to 42.3.0
+ - reverted [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719)  add support for full names of data types (#1719)
+
+
 ## [42.2.11] (2020-03-07)
 ### Changed
  - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals. 
@@ -27,6 +42,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
  - fix: Always use `.` as decimal separator in PGInterval [PR 1705](https://github.com/pgjdbc/pgjdbc/pull/1705)
  - fix: allow DatabaseMetaData.getColumns to describe an unset scale [PR 1716](https://github.com/pgjdbc/pgjdbc/pull/1716)
+
+### Changed
+ - Build system update from Maven to Gradle [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627)
+
+### Added
+ - docker-compose image for creating test databases (see `docker` folder)
 
 ## [42.2.10] (2020-01-30)
 ### Changed
@@ -316,4 +337,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.9]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.8...REL42.2.9
 [42.2.10]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...REL42.2.10
 [42.2.11]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.10...REL42.2.11
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...HEAD
+[42.2.12]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...REL42.2.12
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...HEAD

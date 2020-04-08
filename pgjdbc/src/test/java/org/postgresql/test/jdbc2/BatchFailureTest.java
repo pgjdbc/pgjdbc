@@ -7,7 +7,6 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -243,14 +242,7 @@ public class BatchFailureTest extends BaseTest4 {
     }
 
     if (!con.getAutoCommit()) {
-      try {
-        // Commit might fail if the transaction is in aborted state
-        con.commit();
-      } catch (SQLException e) {
-        if (!PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
-          throw e;
-        }
-      }
+      con.commit();
     }
 
     int finalCount = getBatchUpdCount();

@@ -1462,22 +1462,6 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @return connection configuration regarding throwing exception from commit if database rolls back the transaction
-   * @see PGProperty#RAISE_EXCEPTION_ON_SILENT_ROLLBACK
-   */
-  public boolean isRaiseExceptionOnSilentRollback() {
-    return PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.getBoolean(properties);
-  }
-
-  /**
-   * @param raiseExceptionOnSilentRollback if the database should throw exception if commit silently rolls back
-   * @see PGProperty#RAISE_EXCEPTION_ON_SILENT_ROLLBACK
-   */
-  public void setRaiseExceptionOnSilentRollback(boolean raiseExceptionOnSilentRollback) {
-    PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.set(properties, raiseExceptionOnSilentRollback);
-  }
-
-  /**
    * see PGProperty#CLEANUP_SAVEPOINTS
    *
    * @return boolean indicating property set
