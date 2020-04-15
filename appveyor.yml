@@ -7,10 +7,6 @@ environment:
   PGUSER: postgres
   PGPASSWORD: Password12!
   matrix:
-  - pg: 9.4.19-1
-    PlatformToolset: v120
-  - pg: 9.5.15-1
-    PlatformToolset: v120
   - pg: 9.6.11-1
     PlatformToolset: v120
   - pg: 10.6-1
