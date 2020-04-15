@@ -15,6 +15,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -69,7 +70,7 @@ public class SSPITest {
       TestUtil.closeDB(con);
       fail("Expected a PSQLException");
     } catch (PSQLException e) {
-      assertThat(e.getSQLState(), is(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState()));
+      MatcherAssert.assertThat(e.getSQLState(), is(PSQLState.INVALID_PASSWORD.getState()));
     }
   }
 
