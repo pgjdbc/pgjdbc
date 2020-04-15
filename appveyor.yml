@@ -29,6 +29,9 @@ init:
 - set pf=%ProgramFiles%&& set x64=-x64
 - set exe=postgresql-%pg%-windows%x64%.exe
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+# We expect that Windows would have CRLF for newlines, so autocrlf=true should be used
+# to automatically convert text files to CRLF on checkout
+- git config --global core.autocrlf true
 
 branches:
   except:
