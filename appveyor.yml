@@ -28,6 +28,7 @@ init:
   # We expect that Windows would have CRLF for newlines, so autocrlf=true should be used
   # to automatically convert text files to CRLF on checkout
 - git config --global core.autocrlf true
+
 branches:
   except:
     - /^tmp\/.*/
