@@ -56,6 +56,7 @@ before_build:
 - createuser -U postgres test
 - psql -U postgres -c "alter user test with password 'test'" postgres
 - psql -U postgres -c "alter user test with replication" postgres
+- createuser -U postgres testsspi
 - createdb -U postgres -O test test
 
 build_script:
