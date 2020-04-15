@@ -54,6 +54,7 @@ before_build:
 - SET PGPASSWORD=Password12!
 - createuser -U postgres test
 - psql -U postgres -c "alter user test with password 'test'" postgres
+- psql -U postgres -c "alter user test with replication" postgres
 - createdb -U postgres -O test test
 
 build_script:
