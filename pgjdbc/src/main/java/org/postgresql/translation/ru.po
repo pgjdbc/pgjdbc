@@ -317,7 +317,7 @@ msgstr ""
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2405
 #: org/postgresql/util/StreamWrapper.java:130
 msgid "An I/O error occurred while sending to the backend."
-msgstr "Ошибка ввода/ввывода при отправке бэкенду"
+msgstr "Ошибка ввода/вывода при отправке бэкенду"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:390
 msgid "Error releasing savepoint"
@@ -339,7 +339,7 @@ msgstr "Неожиданный статус команды: {0}."
 #: org/postgresql/core/v3/QueryExecutorImpl.java:717
 #, fuzzy
 msgid "An error occurred while trying to get the socket timeout."
-msgstr "Ошибка ввода/ввывода при отправке бэкенду"
+msgstr "Ошибка ввода/вывода при отправке бэкенду"
 
 # key: postgresql.con.type
 #: org/postgresql/core/v3/QueryExecutorImpl.java:752
@@ -352,7 +352,7 @@ msgstr "Неизвестный тип ответа {0}."
 #: org/postgresql/core/v3/QueryExecutorImpl.java:775
 #, fuzzy
 msgid "An error occurred while trying to reset the socket timeout."
-msgstr "Ошибка ввода/ввывода при отправке бэкенду"
+msgstr "Ошибка ввода/вывода при отправке бэкенду"
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:873
 msgid "Database connection failed when starting copy"
