@@ -89,10 +89,7 @@ matrix:
   fast_finish: true
   include:
     - stage: test
-      jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: ./gradlew autostyleCheck checkstyleAll
-    - env:
+      env:
         - FEDORA_CI=Y
       services:
         - docker
