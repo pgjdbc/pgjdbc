@@ -10,6 +10,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
+import org.junit.Ignore;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -44,18 +46,17 @@ public class SSPITest {
    * Tests that SSPI login succeeds and a query can be run.
    */
   @Test
+  @Ignore
   public void testAuthorized() throws Exception {
     Properties props = new Properties();
     props.setProperty("username", TestUtil.getSSPIUser());
-    /* FIXME
+   
     Connection con = TestUtil.openDB(props);
 
     Statement stmt = con.createStatement();
     stmt.executeQuery("SELECT 1");
 
     TestUtil.closeDB(con);
-
-     */
   }
 
   /*
