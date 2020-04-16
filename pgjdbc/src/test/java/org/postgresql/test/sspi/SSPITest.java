@@ -50,7 +50,7 @@ public class SSPITest {
   public void testAuthorized() throws Exception {
     Properties props = new Properties();
     props.setProperty("username", TestUtil.getSSPIUser());
-   
+
     Connection con = TestUtil.openDB(props);
 
     Statement stmt = con.createStatement();
