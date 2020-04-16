@@ -35,14 +35,18 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
   @Parameterized.Parameter(1)
   public int oidValue;
 
-  // list to contain names of all variables, which should be ignored by this test
-  // prevents situation a that new value will be added to Oid class with ignoring the test
+  /**
+   * List to contain names of all variables, which should be ignored by this test.
+   * Prevents situation that a new value will be added to Oid class with ignoring the test.
+   */
   private static List<String> oidsToIgnore = Arrays.asList(
       "UNSPECIFIED" //UNSPECIFIED isn't an Oid, it's a value to specify that Oid value is unspecified
     );
 
-  // map to contain Oid names with server version of their support
-  // prevents that some Oid values will be tested with a database not supporting given Oid
+  /**
+   * Map to contain Oid names with server version of their support.
+   * Prevents that some Oid values will be tested with a database not supporting given Oid.
+   */
   private static Map<String, ServerVersion> oidsMinimumVersions = new HashMap<String, ServerVersion>() {{
       put("JSON", ServerVersion.v9_2);
       put("JSON_ARRAY", ServerVersion.v9_2);
@@ -50,8 +54,10 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
       put("MACADDR8", ServerVersion.v10);
     }};
 
-  // map to contain Oid names with their proper names from pg_type table (typname) if they are different
-  // helps in situation when variable name in Oid class isn't the same as typname in pg_type table
+  /**
+   * Map to contain Oid names with their proper names from pg_type table (typname) if they are different.
+   * Helps in situation when variable name in Oid class isn't the same as typname in pg_type table.
+   */
   private static Map<String, String> oidTypeNames = new HashMap<String, String>() {{
       put("INT2_ARRAY", "_INT2");
       put("INT4_ARRAY", "_INT4");
