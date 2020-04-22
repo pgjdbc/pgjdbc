@@ -88,19 +88,19 @@ public class StreamResultSetTest extends BaseTest4 {
     // the streaming features works nicely though
     assumeTrue(haveMinimumServerVersion(con, v10));
 
+    long startTime = currentTimeMillis();
     try (ResultSet results = statement.executeQuery()) {
       int count = 0;
-      long startTime = currentTimeMillis();
-      long fistRowTime = 0;
+      long firstRowTime = 0;
       while (results.next()) {
         int value = results.getInt(1);
-        if (fistRowTime == 0) {
-          fistRowTime = currentTimeMillis();
+        if (firstRowTime == 0) {
+          firstRowTime = currentTimeMillis();
         }
         assertThat(value, is(++count));
       }
-      long timeBetweenFirstAndLastRow = currentTimeMillis() - fistRowTime;
-      long timeToFirstRow = fistRowTime - startTime;
+      long timeBetweenFirstAndLastRow = currentTimeMillis() - firstRowTime;
+      long timeToFirstRow = firstRowTime - startTime;
 
       assertThat(count, is(GENERATED_ROWS));
       assertThat(timeBetweenFirstAndLastRow, greaterThan(1_000L));
