@@ -175,7 +175,7 @@ public class SSPIClient implements ISSPIClient {
   }
 
   /**
-   * Continue an existing authentication conversation with the back-end in resonse to an
+   * Continue an existing authentication conversation with the back-end in response to an
    * authentication request of type AUTH_REQ_GSS_CONT.
    *
    * @param msgLength Length of message to read, excluding length word and message type word
