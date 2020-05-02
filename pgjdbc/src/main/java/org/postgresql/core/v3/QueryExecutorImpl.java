@@ -278,7 +278,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   public synchronized boolean execute(Query query, ParameterList parameters, ResultHandler handler,
-      int maxRows, int fetchSize, int flags, Runnable finallyHandler) throws SQLException {
+      int maxRows, int fetchSize, int flags, final Runnable finallyHandler) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -320,10 +320,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           sendSync();
         }
         if ((flags & QueryExecutor.QUERY_STREAM_ROWS) != 0) {
-          ResultHandler handler0 = handler;
-          int flags0 = flags;
-          boolean autosave0 = autosave;
-          SQLThrowingRunnable onFinished0 = onFinished = new SQLThrowingRunnable() {
+          final ResultHandler handler0 = handler;
+          final int flags0 = flags;
+          final boolean autosave0 = autosave;
+          final SQLThrowingRunnable onFinished0 = onFinished = new SQLThrowingRunnable() {
             @Override
             public void run() throws SQLException {
               try {
@@ -2279,7 +2279,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             Field[] fields = currentQuery.getFields();
 
             if (fields != null) { // There was a resultset.
-              handler.handleResultRows(currentQuery, fields, new ArrayList<>(), null);
+              handler.handleResultRows(currentQuery, fields, new ArrayList<Tuple>(), null);
               state.tuples = null;
               state.firstStreamRow = true;
             }
@@ -2515,7 +2515,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             SimpleQuery currentQuery = describeData.query;
             currentQuery.setFields(fields);
 
-            handler.handleResultRows(currentQuery, fields, new ArrayList<>(), null);
+            handler.handleResultRows(currentQuery, fields, new ArrayList<Tuple>(), null);
             state.tuples = null;
             state.firstStreamRow = true;
           }
@@ -2629,7 +2629,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return null;
   }
 
-  private void createTupleList(ProcessState state) {
+  private void createTupleList(final ProcessState state) {
     if (state.streamRows) {
       state.tuples = new StreamingList<>(new Supplier<Tuple>() {
         @Override
