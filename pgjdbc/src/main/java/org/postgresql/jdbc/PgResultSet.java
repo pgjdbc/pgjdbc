@@ -1866,7 +1866,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (rows instanceof StreamingList) {
       // this reads the line protocol forward until the full request is handled
       try {
-        ((StreamingList<Tuple>) rows).close();
+        connection.getQueryExecutor().finishReadingPendingProtocolEvents(false);
       } catch (SQLRuntimeException ex) {
         throw (SQLException) ex.getCause();
       }

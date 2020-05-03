@@ -2073,7 +2073,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
-  public void finishReadingPendingProtocolEvents() throws SQLException {
+  public void finishReadingPendingProtocolEvents(boolean buffer) throws SQLException {
     synchronized (this) {
       if (streamingState == null) {
         return;
@@ -2083,7 +2083,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
     try {
-      ((StreamingList<Tuple>) streamingState.tuples).bufferResults();
+      if (buffer) {
+        streamingState.streamingSwitchedToBuffer = true;
+        ((StreamingList<Tuple>) streamingState.tuples).bufferResults();
+      } else {
+        ((StreamingList<Tuple>) streamingState.tuples).close();
+      }
     } catch (SQLRuntimeException ex) {
       throw (SQLException) ex.getCause();
     } finally {
