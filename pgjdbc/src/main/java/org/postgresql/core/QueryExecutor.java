@@ -479,5 +479,5 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   @Nullable String getParameterStatus(String parameterName);
 
-  void finishReadingPendingProtocolEvents() throws SQLException;
+  void finishReadingPendingProtocolEvents(boolean buffer) throws SQLException;
 }

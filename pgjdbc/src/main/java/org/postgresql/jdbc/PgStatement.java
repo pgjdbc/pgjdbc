@@ -369,7 +369,7 @@ public class PgStatement implements Statement, BaseStatement {
         this.generatedKeys = null;
       }
     }
-    connection.getQueryExecutor().finishReadingPendingProtocolEvents();
+    connection.getQueryExecutor().finishReadingPendingProtocolEvents(true);
 
     // Every statement execution clears any previous warnings.
     clearWarnings();

@@ -110,7 +110,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           PSQLState.SYNTAX_ERROR);
     }
 
-    connection.getQueryExecutor().finishReadingPendingProtocolEvents();
+    connection.getQueryExecutor().finishReadingPendingProtocolEvents(true);
 
     // reset last result fetched (for wasNull)
     lastIndex = 0;

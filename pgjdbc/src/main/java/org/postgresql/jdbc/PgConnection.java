@@ -601,7 +601,7 @@ public class PgConnection implements BaseConnection {
 
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
     checkClosed();
-    queryExecutor.finishReadingPendingProtocolEvents();
+    queryExecutor.finishReadingPendingProtocolEvents(true);
     if (largeobject == null) {
       largeobject = new LargeObjectManager(this);
     }
@@ -862,7 +862,7 @@ public class PgConnection implements BaseConnection {
       flags |= QueryExecutor.QUERY_ONESHOT;
     }
 
-    getQueryExecutor().finishReadingPendingProtocolEvents();
+    getQueryExecutor().finishReadingPendingProtocolEvents(true);
 
     try {
       getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags, null);
