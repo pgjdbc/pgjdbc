@@ -2105,6 +2105,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     final Consumer<IOException> onIOError;
     public Thread reader;
     boolean streamRows;
+    boolean streamingSwitchedToBuffer;
 
     List<Tuple> tuples = null;
 
@@ -2449,6 +2450,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                   streamingState = state;
                 }
                 handler.handleResultRows(currentQuery, currentQuery.getFields(), state.tuples, null);
+              }
+              if (!state.streamingSwitchedToBuffer) {
+                pgStream.clearResultBufferCount();
               }
               return tuple;
             }
