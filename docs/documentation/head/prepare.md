@@ -9,7 +9,7 @@ nexttitle: Creating a Database
 next: your-database.html
 ---
 
-Generally speaking Java does not support using unix sockets the PostgreSQL™ server must be
+Out of the box, Java does not support unix sockets so the PostgreSQL server must be 
 configured to allow TCP/IP connections. Starting with server version 8.0 TCP/IP
 connections are allowed from `localhost`. To allow connections to other interfaces
 than the loopback interface, you must modify the `postgresql.conf` file's `listen_addresses`
