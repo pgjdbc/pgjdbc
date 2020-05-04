@@ -6,5 +6,6 @@
 *.xml text
 *.yaml text
 *.yml text
+*.bat text eol=crlf
 /CHANGELOG.md merge=union
 /contributors.json merge=union

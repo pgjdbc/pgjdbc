@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners
+# GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
+
+jobs:
+  ubuntu-code-style:
+    name: 'Ubuntu, code style (JDK 8)'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+    - name: 'Set up JDK 8'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+    - name: 'Verify code style'
+      run: ./gradlew autostyleCheck checkstyleAll
+
+  ubuntu-latest:
+    name: 'Ubuntu, PG latest (JDK 8)'
+    runs-on: ubuntu-latest
+# Service must be started after checkout, because we want to use git-stored files for initialization
+# of the Docker container. So we start it with and explicit docker ... command
+#    services:
+#      postgres:
+#        image: postgres:latest
+#        env:
+#          POSTGRES_USER: postgres
+#          # Empty password
+#          # POSTGRES_PASSWORD: postgres
+#          POSTGRES_DB: postgres
+#        ports:
+#          - 5432:5432
+#        volumes:
+#          - /home/runner/work/pgjdbc/pgjdbc/.travis:/scripts/.travis
+#        # needed because the postgres container does not provide a healthcheck
+#        options: >-
+#          --name db
+#          --health-cmd pg_isready
+#          --health-interval 10s
+#          --health-timeout 5s
+#          --health-retries 5
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+    - name: Start PostgreSQL
+      working-directory: docker
+      run: docker-compose up -d && docker-compose logs
+    - name: 'Set up JDK 8'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+    - name: 'Test'
+      run: |
+        echo enable_ssl_tests=true > ssltest.local.properties
+        # '-PincludeTestTags=!org.postgresql.test.SlowTests'
+        ./gradlew --no-parallel --no-daemon -PskipReplicationTests -Pport=${{ job.services.postgres.ports['5432'] }} test
+        # test javadoc -Pport=${{ job.services.postgres.ports['5432'] }}

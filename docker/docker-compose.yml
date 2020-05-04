@@ -1,0 +1,27 @@
+version: "3"
+services:
+  pgdb:
+    image: postgres:${PGV:-latest}
+    ports:
+      - 5432:5432
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - ./scripts/chmod_ssl.sh:/home/certdir/chmod_ssl.sh
+      - ./scripts/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+      - ../.travis/travis_ssl_users.sh:/home/scripts/travis_ssl_users.sh
+      - ../certdir/server:/home/certdir
+    entrypoint:
+      - bash
+      - /home/certdir/chmod_ssl.sh
+    environment:
+      - SSL=${SSL:-yes}
+      - XA=${XA:-yes}
+      - SCRAM=${SCRAM:-yes}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - GITHUB_ACTIONS=true
+    command: >-
+      postgres

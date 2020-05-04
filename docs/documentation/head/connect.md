@@ -132,7 +132,9 @@ Connection conn = DriverManager.getConnection(url);
 	
 	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
-	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
+	`openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+
+	If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 
     *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
     by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
@@ -219,15 +221,6 @@ Connection conn = DriverManager.getConnection(url);
     performed.
      
     The default is 'false'
-
-* **raiseExceptionOnSilentRollback** = boolean
-
-    since 42.2.11
-
-    Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state.
-    See https://www.postgresql.org/message-id/b9fb50dc-0f6e-15fb-6555-8ddb86f4aa71%40postgresfriends.org
-
-    The default is 'true'
 
 * **binaryTransfer** = boolean
 

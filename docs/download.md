@@ -9,7 +9,6 @@ nav:
 ***
 * [About](#about)
 * [Current Version](#current)
-* [Supported Versions](#supported)
 * [Other Versions](#others)
 * [Archived Versions](#archived)
 

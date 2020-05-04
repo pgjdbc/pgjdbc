@@ -60,9 +60,8 @@ public class Driver implements java.sql.Driver {
   private static Driver registeredDriver;
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
-  private static SharedTimer sharedTimer = new SharedTimer();
-  private static final String DEFAULT_PORT =
-      /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5432";
+  private static final SharedTimer SHARED_TIMER = new SharedTimer();
+  private static final String DEFAULT_PORT = "5432";
 
   static {
     try {
@@ -701,7 +700,7 @@ public class Driver implements java.sql.Driver {
   //#endif
 
   public static SharedTimer getSharedTimer() {
-    return sharedTimer;
+    return SHARED_TIMER;
   }
 
   /**

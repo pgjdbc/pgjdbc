@@ -444,10 +444,6 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   boolean willHealOnRetry(SQLException e);
 
-  boolean isRaiseExceptionOnSilentRollback();
-
-  void setRaiseExceptionOnSilentRollback(boolean raiseExceptionOnSilentRollback);
-
   /**
    * By default, the connection resets statement cache in case deallocate all/discard all
    * message is observed.
