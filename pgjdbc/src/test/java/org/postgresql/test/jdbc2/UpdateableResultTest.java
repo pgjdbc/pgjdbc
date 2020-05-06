@@ -41,7 +41,7 @@ public class UpdateableResultTest extends BaseTest4 {
         "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
-    TestUtil.createTable(con, "compositepktable", "gen_id serial, dec_id serial, name text");
+    TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
     TestUtil.execute( "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10", con);
     TestUtil.execute( "alter table compositepktable add primary key ( gen_id, dec_id )", con);
     TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
