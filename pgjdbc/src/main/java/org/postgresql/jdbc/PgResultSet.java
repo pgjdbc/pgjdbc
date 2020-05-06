@@ -1001,7 +1001,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
 
       insertSQL.append(paramSQL.toString());
-      insertStatement = connection.prepareStatement(insertSQL.toString());
+      insertStatement = connection.prepareStatement(insertSQL.toString(), Statement.RETURN_GENERATED_KEYS);
 
       Iterator<Object> values = updateValues.values().iterator();
 
@@ -1021,7 +1021,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
 
       // update the underlying row to the new inserted data
-      updateRowBuffer();
+      updateRowBuffer(true);
 
       rows.add(rowBuffer);
 
@@ -1375,7 +1375,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     updateStatement.close();
     updateStatement = null;
 
-    updateRowBuffer();
+    updateRowBuffer(false);
 
     connection.getLogger().log(Level.FINE, "copying data");
     thisRow = rowBuffer.readOnlyCopy();
@@ -1659,73 +1659,95 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-  private void updateRowBuffer() throws SQLException {
+  private void setRowBufferColumn(int columnIndex, Object valueObject) throws SQLException {
+    if (valueObject instanceof PGobject) {
+      String value = ((PGobject) valueObject).getValue();
+      rowBuffer.set(columnIndex, (value == null) ? null : connection.encodeString(value));
+    } else {
+      switch (getSQLType(columnIndex + 1)) {
+
+        // boolean needs to be formatted as t or f instead of true or false
+        case Types.BIT:
+        case Types.BOOLEAN:
+          rowBuffer.set(columnIndex, connection
+              .encodeString(((Boolean) valueObject).booleanValue() ? "t" : "f"));
+          break;
+        //
+        // toString() isn't enough for date and time types; we must format it correctly
+        // or we won't be able to re-parse it.
+        //
+        case Types.DATE:
+          rowBuffer.set(columnIndex, connection
+              .encodeString(
+                  connection.getTimestampUtils().toString(
+                      getDefaultCalendar(), (Date) valueObject)));
+          break;
+
+        case Types.TIME:
+          rowBuffer.set(columnIndex, connection
+              .encodeString(
+                  connection.getTimestampUtils().toString(
+                      getDefaultCalendar(), (Time) valueObject)));
+          break;
+
+        case Types.TIMESTAMP:
+          rowBuffer.set(columnIndex, connection.encodeString(
+              connection.getTimestampUtils().toString(
+                  getDefaultCalendar(), (Timestamp) valueObject)));
+          break;
+
+        case Types.NULL:
+          // Should never happen?
+          break;
+
+        case Types.BINARY:
+        case Types.LONGVARBINARY:
+        case Types.VARBINARY:
+          if (isBinary(columnIndex + 1)) {
+            rowBuffer.set(columnIndex, (byte[]) valueObject);
+          } else {
+            try {
+              rowBuffer.set(columnIndex,
+                  PGbytea.toPGString((byte[]) valueObject).getBytes("ISO-8859-1"));
+            } catch (UnsupportedEncodingException e) {
+              throw new PSQLException(
+                  GT.tr("The JVM claims not to support the encoding: {0}", "ISO-8859-1"),
+                  PSQLState.UNEXPECTED_ERROR, e);
+            }
+          }
+          break;
+
+        default:
+          rowBuffer.set(columnIndex, connection.encodeString(String.valueOf(valueObject)));
+          break;
+      }
+
+    }
+  }
+
+  private void updateRowBuffer(boolean isInsert) throws SQLException {
+
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
-
       Object valueObject = entry.getValue();
-      if (valueObject instanceof PGobject) {
-        String value = ((PGobject) valueObject).getValue();
-        rowBuffer.set(columnIndex, (value == null) ? null : connection.encodeString(value));
-      } else {
-        switch (getSQLType(columnIndex + 1)) {
+      setRowBufferColumn(columnIndex, valueObject);
+    }
 
-          // boolean needs to be formatted as t or f instead of true or false
-          case Types.BIT:
-          case Types.BOOLEAN:
-            rowBuffer.set(columnIndex, connection
-                .encodeString(((Boolean) valueObject).booleanValue() ? "t" : "f"));
-            break;
-            //
-            // toString() isn't enough for date and time types; we must format it correctly
-            // or we won't be able to re-parse it.
-            //
-          case Types.DATE:
-            rowBuffer.set(columnIndex, connection
-                .encodeString(
-                    connection.getTimestampUtils().toString(
-                        getDefaultCalendar(), (Date) valueObject)));
-            break;
+    if (isInsert) {
+      final ResultSet generatedKeys = insertStatement.getGeneratedKeys();
+      try {
+        generatedKeys.next();
 
-          case Types.TIME:
-            rowBuffer.set(columnIndex, connection
-                .encodeString(
-                    connection.getTimestampUtils().toString(
-                        getDefaultCalendar(), (Time) valueObject)));
-            break;
+        int numKeys = primaryKeys.size();
 
-          case Types.TIMESTAMP:
-            rowBuffer.set(columnIndex, connection.encodeString(
-                connection.getTimestampUtils().toString(
-                    getDefaultCalendar(), (Timestamp) valueObject)));
-            break;
-
-          case Types.NULL:
-            // Should never happen?
-            break;
-
-          case Types.BINARY:
-          case Types.LONGVARBINARY:
-          case Types.VARBINARY:
-            if (isBinary(columnIndex + 1)) {
-              rowBuffer.set(columnIndex, (byte[]) valueObject);
-            } else {
-              try {
-                rowBuffer.set(columnIndex,
-                    PGbytea.toPGString((byte[]) valueObject).getBytes("ISO-8859-1"));
-              } catch (UnsupportedEncodingException e) {
-                throw new PSQLException(
-                    GT.tr("The JVM claims not to support the encoding: {0}", "ISO-8859-1"),
-                    PSQLState.UNEXPECTED_ERROR, e);
-              }
-            }
-            break;
-
-          default:
-            rowBuffer.set(columnIndex, connection.encodeString(String.valueOf(valueObject)));
-            break;
+        for (int i = 0; i < numKeys; i++) {
+          final PrimaryKey key = primaryKeys.get(i);
+          int columnIndex = key.index - 1;
+          Object valueObject = generatedKeys.getObject(key.name);
+          setRowBufferColumn(columnIndex, valueObject);
         }
-
+      } finally {
+        generatedKeys.close();
       }
     }
   }
