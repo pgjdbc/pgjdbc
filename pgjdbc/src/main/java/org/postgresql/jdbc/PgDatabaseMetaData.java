@@ -2751,7 +2751,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "WHERE true  ";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
-        sql += " AND p.prokind='f'";
+      sql += " AND p.prokind='f'";
     }
     /*
     if the user provides a schema then search inside the schema for it
