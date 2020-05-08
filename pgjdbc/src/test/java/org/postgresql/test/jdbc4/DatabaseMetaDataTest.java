@@ -7,10 +7,10 @@ package org.postgresql.test.jdbc4;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.ServerVersion;
@@ -106,7 +106,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testGetFunctionsInSchema() throws SQLException {
+  public void testGetFunctionsInSchemaForFunctions() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
     ResultSet rs = dbmd.getFunctions("", "hasfunctions","");
     int count = assertGetFunctionRS(rs);
@@ -129,6 +129,40 @@ public class DatabaseMetaDataTest {
     rs = dbmd.getFunctions("", "nofunctions",null);
     assertFalse(rs.next());
 
+  }
+
+  @Test
+  public void testGetFunctionsInSchemaForProcedures() throws SQLException {
+    // Due to the introduction of actual stored procedures in PostgreSQL 11, getFunctions should not return procedures for PostgreSQL versions 11+
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
+
+      DatabaseMetaData dbmd = conn.getMetaData();
+      Statement statement = conn.createStatement();
+
+      // Search for functions in schema "hasprocedures"
+      ResultSet rs = dbmd.getFunctions("", "hasprocedures", null);
+      Boolean recordFound = rs.next();
+      assertEquals("PostgreSQL11+ should not return procedures from getFunctions", recordFound, false);
+
+      // Search for functions in schema "noprocedures" (which should never expect records)
+      rs = dbmd.getFunctions("", "noprocedures", null);
+      recordFound = rs.next();
+      assertFalse(recordFound);
+
+      // Search for functions by procedure name "addprocedure" within schema "hasprocedures"
+      statement.execute("set search_path=hasprocedures");
+      rs = dbmd.getFunctions("", "", "addprocedure");
+      recordFound = rs.next();
+      assertEquals("PostgreSQL11+ should not return procedures from getFunctions", recordFound, false);
+
+      // Search for functions by procedure name "addprocedure" within schema "noprocedures"  (which should never expect records)
+      statement.execute("set search_path=noprocedures");
+      rs = dbmd.getProcedures("", "", "addprocedure");
+      recordFound = rs.next();
+      assertFalse(recordFound);
+
+      statement.close();
+    }
   }
 
   @Test
