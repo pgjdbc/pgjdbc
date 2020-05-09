@@ -220,6 +220,28 @@ public class CopyTest {
     assertEquals(dataRows, rowCount);
   }
 
+  /**
+   * Tests writing to a COPY ... FROM STDIN using both the standard OutputStream API
+   * write(byte[]) and the driver specific write(ByteStreamWriter) API interleaved.
+   */
+  @Test
+  public void testCopyMultiApi() throws SQLException, IOException {
+    TestUtil.execute("CREATE TABLE pg_temp.copy_api_test (data text)", con);
+    String sql = "COPY pg_temp.copy_api_test (data) FROM STDIN";
+    PGCopyOutputStream out = new PGCopyOutputStream(copyAPI.copyIn(sql));
+    try {
+      out.write("a".getBytes());
+      out.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap("b".getBytes())));
+      out.write("c".getBytes());
+      out.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap("d".getBytes())));
+      out.write("\n".getBytes());
+    } finally {
+      out.close();
+    }
+    String data = TestUtil.queryForString(con, "SELECT data FROM pg_temp.copy_api_test");
+    assertEquals("The writes to the COPY should be in order", "abcd", data);
+  }
+
   @Test
   public void testSkipping() {
     String sql = "COPY copytest FROM STDIN";
