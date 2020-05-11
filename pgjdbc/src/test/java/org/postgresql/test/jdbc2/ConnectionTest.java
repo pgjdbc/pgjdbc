@@ -510,10 +510,9 @@ public class ConnectionTest {
 
   /**
    * Make sure that type map is empty and not null
-   * @throws Exception
    */
   @Test
-  public void testGetTypeMapEmpty() throws Exception{
+  public void testGetTypeMapEmpty() throws Exception {
     con = TestUtil.openDB();
     Map typeMap = con.getTypeMap();
     assertNotNull(typeMap);
