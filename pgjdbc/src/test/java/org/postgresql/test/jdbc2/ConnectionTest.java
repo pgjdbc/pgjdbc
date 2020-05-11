@@ -508,6 +508,19 @@ public class ConnectionTest {
     con.close();
   }
 
+  /**
+   * Make sure that type map is empty and not null
+   * @throws Exception
+   */
+  @Test
+  public void testGetTypeMapEmpty() throws Exception{
+    con = TestUtil.openDB();
+    Map typeMap = con.getTypeMap();
+    assertNotNull(typeMap);
+    assertTrue("TypeMap should be empty", typeMap.isEmpty());
+    con.close();
+  }
+
   private static void assertStringContains(String orig, String toContain) {
     if (!orig.contains(toContain)) {
       fail("expected [" + orig + ']' + "to contain [" + toContain + "].");
