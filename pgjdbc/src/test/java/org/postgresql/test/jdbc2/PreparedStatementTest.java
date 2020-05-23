@@ -1005,6 +1005,8 @@ public class PreparedStatementTest extends BaseTest4 {
         rs.getBigDecimal(2, 0));
     assertNull("rs.getBigDecimal(scale=0)", rs.getBigDecimal(3, 0));
     assertTrue("rs.getBigDecimal after rs.getLong", rs.wasNull());
+    assertEquals("maxInt as rs.getBigDecimal(scale=-1)",
+        BigDecimal.valueOf(maxInt).setScale(-1, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(1, -1));
     assertEquals("maxInt as rs.getBigDecimal(scale=1)",
         BigDecimal.valueOf(maxInt).setScale(1, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(1, 1));
     assertEquals("minInt as rs.getBigDecimal(scale=1)",
@@ -1014,6 +1016,18 @@ public class PreparedStatementTest extends BaseTest4 {
     rs.close();
     pstmt.close();
 
+  }
+
+  @Test
+  public void testBigDecimalWithScale() throws SQLException {
+    final String bigDecimalString = "1.1234";
+    PreparedStatement pstmt = con.prepareStatement("select " + bigDecimalString);
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("rs.getBigDecimal(scale=2)",
+        new BigDecimal(bigDecimalString).setScale(2, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(1, 2));
+    rs.close();
+    pstmt.close();
   }
 
   @Test
