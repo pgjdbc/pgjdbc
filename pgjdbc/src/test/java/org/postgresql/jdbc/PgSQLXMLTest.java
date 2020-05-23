@@ -27,17 +27,17 @@ public class PgSQLXMLTest extends BaseTest4 {
   @Before
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTempTable(con, "xmltab","x xml");
+    TestUtil.createTempTable(con, "xmltab", "x xml");
   }
 
   @Test
-  public void setCharacterStream() throws  Exception {
+  public void setCharacterStream() throws Exception {
     String exmplar = "<x>value</x>";
     SQLXML pgSQLXML = con.createSQLXML();
     Writer writer = pgSQLXML.setCharacterStream();
     writer.write(exmplar);
     PreparedStatement preparedStatement = con.prepareStatement("insert into xmltab values (?)");
-    preparedStatement.setSQLXML(1,pgSQLXML);
+    preparedStatement.setSQLXML(1, pgSQLXML);
     preparedStatement.execute();
 
     Statement statement = con.createStatement();
