@@ -694,10 +694,10 @@ public class Driver implements java.sql.Driver {
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
+  //#endif
   public java.util.logging.Logger getParentLogger() {
     return PARENT_LOGGER;
   }
-  //#endif
 
   public static SharedTimer getSharedTimer() {
     return SHARED_TIMER;

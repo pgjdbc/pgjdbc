@@ -1520,10 +1520,11 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
+  //#endif
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
   }
-  //#endif
 
   /*
    * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
