@@ -26,6 +26,9 @@ buildscript {
     }
 }
 
+version = version.toString().replaceFirst(Regex("(-SNAPSHOT)?$"), ".jre7\$1")
+setProperty("archivesBaseName", "postgresql")
+
 val java7home by props("")
 
 // <editor-fold defaultstate="collapsed" desc="Shade configuration">
@@ -180,5 +183,14 @@ val extraMavenPublications by configurations.getting
 (artifacts) {
     extraMavenPublications(osgiJar) {
         classifier = ""
+    }
+}
+
+publishing {
+    publications {
+        withType<MavenPublication>().configureEach {
+            artifactId = "postgresql"
+            version = project.version.toString()
+        }
     }
 }

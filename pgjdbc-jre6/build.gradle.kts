@@ -23,6 +23,9 @@ buildscript {
     }
 }
 
+version = version.toString().replaceFirst(Regex("(-SNAPSHOT)?$"), ".jre6\$1")
+setProperty("archivesBaseName", "postgresql")
+
 val java6home by props("")
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
@@ -87,6 +90,12 @@ tasks.configureEach<JavaCommentPreprocessorTask> {
     excludedPatterns.addAll("**/jre8/", "**/jdbc42/")
 }
 
+tasks.jar {
+    into("META-INF") {
+        from("$rootDir/LICENSE")
+    }
+}
+
 val osgiJar by tasks.registering(Bundle::class) {
     archiveClassifier.set("osgi")
     from(tasks.jar.map { zipTree(it.archiveFile) })
@@ -115,5 +124,14 @@ val extraMavenPublications by configurations.getting
 (artifacts) {
     extraMavenPublications(osgiJar) {
         classifier = ""
+    }
+}
+
+publishing {
+    publications {
+        withType<MavenPublication>().configureEach {
+            artifactId = "postgresql"
+            version = project.version.toString()
+        }
     }
 }
