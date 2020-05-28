@@ -397,7 +397,7 @@ public class PgConnection implements BaseConnection {
   /**
    * The current type mappings.
    */
-  protected Map<String, Class<?>> typemap = new HashMap<>();
+  protected Map<String, Class<?>> typemap = new HashMap<String, Class<?>>();
 
   @Override
   public Statement createStatement() throws SQLException {
