@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.gss;
 
 import org.ietf.jgss.GSSContext;
@@ -10,8 +15,8 @@ import java.io.OutputStream;
 public class GSSOutputStream extends OutputStream {
   private final GSSContext gssContext;
   private final MessageProp messageProp;
-  private byte []buffer;
-  private byte []int4Buf = new byte[4];
+  private byte[] buffer;
+  private byte[] int4Buf = new byte[4];
   private int index;
   private OutputStream wrapped;
 
@@ -31,12 +36,12 @@ public class GSSOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(byte []buf) throws IOException {
+  public void write(byte[] buf) throws IOException {
     write(buf, 0, buf.length);
   }
 
   @Override
-  public void write(byte []b, int pos, int len) throws IOException {
+  public void write(byte[] b, int pos, int len) throws IOException {
     int max;
 
     while ( len > 0 ) {
@@ -69,7 +74,8 @@ public class GSSOutputStream extends OutputStream {
       wrapped.flush();;
 
   }
-  public void sendInteger4Raw(int val) throws IOException {
+
+  private void sendInteger4Raw(int val) throws IOException {
     int4Buf[0] = (byte) (val >>> 24);
     int4Buf[1] = (byte) (val >>> 16);
     int4Buf[2] = (byte) (val >>> 8);

@@ -291,6 +291,7 @@ public class PGStream implements Closeable, Flushable {
     int4Buf[3] = (byte) (val);
     pgOutput.write(int4Buf);
   }
+
   public void sendInteger2Raw(int val) throws IOException {
     int2Buf[0] = (byte) (val >>> 8);
     int2Buf[1] = (byte) val;

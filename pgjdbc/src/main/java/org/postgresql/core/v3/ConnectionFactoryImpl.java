@@ -7,7 +7,15 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.*;
+import org.postgresql.core.ConnectionFactory;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.core.SetupQueryRunner;
+import org.postgresql.core.SocketFactoryFactory;
+import org.postgresql.core.Tuple;
+import org.postgresql.core.Utils;
+import org.postgresql.core.Version;
 import org.postgresql.hostchooser.CandidateHost;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
@@ -408,46 +416,47 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // Now get the response from the backend, one of N, E, S.
     int beresp = pgStream.receiveChar();
     switch (beresp) {
-    case 'E':
-      LOGGER.log(Level.FINEST, " <=BE GSSEncoding Error");
+      case 'E':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncoding Error");
 
-      // Server doesn't even know about the SSL handshake protocol
-      if (gssEncMode.requireEncryption()) {
-        throw new PSQLException(GT.tr("The server does not support GSS Encoding."),
-            PSQLState.CONNECTION_REJECTED);
-      }
+        // Server doesn't even know about the SSL handshake protocol
+        if (gssEncMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support GSS Encoding."),
+              PSQLState.CONNECTION_REJECTED);
+        }
 
-      // We have to reconnect to continue.
-      pgStream.close();
-      return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+        // We have to reconnect to continue.
+        pgStream.close();
+        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
 
-    case 'N':
-      LOGGER.log(Level.FINEST, " <=BE GSSEncoding Refused");
+      case 'N':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncoding Refused");
 
-      // Server does not support ssl
-      if (gssEncMode.requireEncryption()) {
-        throw new PSQLException(GT.tr("The server does not support SSL."),
-            PSQLState.CONNECTION_REJECTED);
-      }
+        // Server does not support ssl
+        if (gssEncMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support SSL."),
+              PSQLState.CONNECTION_REJECTED);
+        }
 
-      return pgStream;
-
-    case 'G':
-      LOGGER.log(Level.FINEST, " <=BE GSSENCOk");
-
-      org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
-          PGProperty.JAAS_APPLICATION_NAME.get(info),
-          PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
-          PGProperty.JAAS_LOGIN.getBoolean(info),
-          PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
         return pgStream;
 
+      case 'G':
+        LOGGER.log(Level.FINEST, " <=BE GSSENCOk");
 
-    default:
-      throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
-          PSQLState.PROTOCOL_VIOLATION);
-    }
+        org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+            PGProperty.JAAS_APPLICATION_NAME.get(info),
+            PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
+            PGProperty.JAAS_LOGIN.getBoolean(info),
+            PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+          return pgStream;
+
+
+      default:
+        throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
   }
+
   private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
       int connectTimeout)
       throws IOException, PSQLException {

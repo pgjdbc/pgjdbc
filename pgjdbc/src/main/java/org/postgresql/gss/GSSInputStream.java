@@ -1,5 +1,9 @@
-package org.postgresql.gss;
+/*
+ * Copyright (c) 2008, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
+package org.postgresql.gss;
 
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSException;
@@ -21,10 +25,12 @@ public class GSSInputStream extends InputStream {
     this.gssContext = gssContext;
     this.messageProp = messageProp;
   }
+
   @Override
   public int read() throws IOException {
     return 0;
   }
+
   @Override
   public int read(byte [] buffer, int pos, int len) throws IOException {
     byte[] int4Buf = new byte[4];
@@ -36,9 +42,7 @@ public class GSSInputStream extends InputStream {
       System.arraycopy(unencrypted, unencryptedPos, buffer, pos, copyLength);
       unencryptedLength -= copyLength;
       unencryptedPos += copyLength;
-
     } else {
-
       if (wrapped.read(int4Buf, 0, 4) == 4 ) {
 
         encryptedLength = ((int4Buf[0] & 0xFF) << 24 | (int4Buf[1] & 0xFF) << 16 | (int4Buf[2] & 0xFF) << 8
