@@ -195,6 +195,14 @@ public enum PGProperty {
     false,
     new String[] {"auto", "sspi", "gssapi"}),
 
+  GSS_ENC_MODE(
+      "gssMode",
+      "prefer",
+      "Force Encoded GSS Mode",
+      false,
+      new String[] {"disable", "prefer", "require"}
+  ),
+
   /**
    * Enable mode to filter out the names of database objects for which the current user has no privileges
    * granted from appearing in the DatabaseMetaData returned by the driver.

@@ -1,30 +1,18 @@
-/*
- * Copyright (c) 2008, PostgreSQL Global Development Group
- * See the LICENSE file in the project root for more information.
- */
-
 package org.postgresql.gss;
 
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.ServerErrorMessage;
 
-import org.ietf.jgss.GSSContext;
-import org.ietf.jgss.GSSCredential;
-import org.ietf.jgss.GSSException;
-import org.ietf.jgss.GSSManager;
-import org.ietf.jgss.GSSName;
-import org.ietf.jgss.Oid;
+import org.ietf.jgss.*;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-class GssAction implements PrivilegedAction<Exception> {
-
+public class GssEncAction implements PrivilegedAction<Exception> {
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
   private final PGStream pgStream;
   private final String host;
@@ -34,8 +22,8 @@ class GssAction implements PrivilegedAction<Exception> {
   private final GSSCredential clientCredentials;
   private final boolean logServerErrorDetail;
 
-  GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
-      String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
+  public GssEncAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
+            String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
     this.clientCredentials = clientCredentials;
     this.host = host;
@@ -84,6 +72,8 @@ class GssAction implements PrivilegedAction<Exception> {
       GSSContext secContext = manager.createContext(serverName, desiredMechs[0], clientCreds,
           GSSContext.DEFAULT_LIFETIME);
       secContext.requestMutualAuth(true);
+      secContext.requestConf(true);
+      secContext.requestInteg(true);
 
       byte[] inToken = new byte[0];
       byte[] outToken = null;
@@ -95,39 +85,20 @@ class GssAction implements PrivilegedAction<Exception> {
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
-          pgStream.sendChar('p');
-          pgStream.sendInteger4(4 + outToken.length);
+          //    pgStream.sendChar('p');
+          //   pgStream.sendInteger4(4 + outToken.length);
           pgStream.sendInteger4(outToken.length);
           pgStream.send(outToken);
           pgStream.flush();
         }
 
         if (!secContext.isEstablished()) {
-          int response = pgStream.receiveChar();
-          // Error
-          switch (response) {
-            case 'E':
-              int elen = pgStream.receiveInteger4();
-              ServerErrorMessage errorMsg
-                  = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
-
-              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-
-              return new PSQLException(errorMsg, logServerErrorDetail);
-            case 'R':
-              LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
-              int len = pgStream.receiveInteger4();
-              int type = pgStream.receiveInteger4();
-              // should check type = 8
-              inToken = pgStream.receive(len - 8);
-              break;
-            default:
-              // Unknown/unexpected message type.
-              return new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-          }
+          int len = pgStream.receiveInteger4();
+          // should check type = 8
+          inToken = pgStream.receive(len);
         } else {
           established = true;
+          pgStream.setSecContext(secContext);
         }
       }
 
@@ -137,6 +108,8 @@ class GssAction implements PrivilegedAction<Exception> {
       return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
           gsse);
     }
+
     return null;
   }
+
 }
