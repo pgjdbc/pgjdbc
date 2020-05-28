@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -158,6 +159,7 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     int read = 0;
     try {
+
       read = wrapped.read(buffer, endIndex, canFit);
       if (!block && read == 0) {
         return false;
@@ -336,5 +338,8 @@ public class VisibleBufferedInputStream extends InputStream {
 
   public void setTimeoutRequested(boolean timeoutRequested) {
     this.timeoutRequested = timeoutRequested;
+  }
+  public InputStream getWrapped() {
+    return wrapped;
   }
 }
