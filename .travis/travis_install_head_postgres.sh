@@ -11,10 +11,16 @@ then
     git clone --depth=1 https://github.com/postgres/postgres.git
     cd postgres
 else
-    git clone https://github.com/postgres/postgres.git
+    mkdir postgres
     cd postgres
-    git checkout ${POSTGRES_SOURCE_SHA}
+    git init
+    git remote add origin https://github.com/postgres/postgres.git
+    git fetch origin --depth=1 ${POSTGRES_SOURCE_SHA}
+    git checkout -b ci_test FETCH_HEAD
 fi
+
+echo Will build the following PostgreSQL commit
+git log -1 --format=short
 
 # Build PostgreSQL from source
 if [[ "${COMPILE_PG_WITH_DEBUG_FLAG}" == "Y" ]]
