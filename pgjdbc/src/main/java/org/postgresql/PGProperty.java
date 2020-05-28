@@ -180,6 +180,14 @@ public enum PGProperty {
     false,
     new String[] {"select", "callIfNoReturn", "call"}),
 
+  GSS_ENC_MODE(
+      "gssEncMode",
+      "prefer",
+      "Force Encoded GSS Mode",
+      false,
+      new String[] {"disable", "prefer", "require"}
+  ),
+
   /**
    * Force one of
    * <ul>
@@ -194,14 +202,6 @@ public enum PGProperty {
     "Force SSSPI or GSSAPI",
     false,
     new String[] {"auto", "sspi", "gssapi"}),
-
-  GSS_ENC_MODE(
-      "gssMode",
-      "prefer",
-      "Force Encoded GSS Mode",
-      false,
-      new String[] {"disable", "prefer", "require"}
-  ),
 
   /**
    * Enable mode to filter out the names of database objects for which the current user has no privileges
