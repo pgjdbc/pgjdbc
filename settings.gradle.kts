@@ -50,6 +50,12 @@ fun property(name: String) =
         else -> null
     }
 
+
+if (property("pgjdbc.skip.jre6")?.ifBlank { "true" }?.toBoolean() != true) {
+    include("postgresql-jre6")
+    project(":postgresql-jre6").projectDir = file("pgjdbc-jre6")
+}
+
 // By default, Java7-processed sourcse are attached to IDE.
 // However, it might be confusing as IDE always suggests multiple files for a class like PgConnection
 // Note: IDEA caches after_sync task names.
