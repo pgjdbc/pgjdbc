@@ -1066,7 +1066,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    *
-   * @param encryption mode: disable, prefer or require
+   * @param mode encryption mode: disable, prefer or require
    */
   public void setGssEncMode(String mode) {
     PGProperty.GSS_ENC_MODE.set(properties, mode);
