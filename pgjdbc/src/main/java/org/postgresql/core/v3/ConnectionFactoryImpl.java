@@ -448,13 +448,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
             PGProperty.JAAS_LOGIN.getBoolean(info),
             PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
-          return pgStream;
-
+        return pgStream;
 
       default:
         throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
             PSQLState.PROTOCOL_VIOLATION);
-      }
+    }
   }
 
   private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,

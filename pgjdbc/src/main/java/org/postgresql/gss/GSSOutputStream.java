@@ -63,16 +63,15 @@ public class GSSOutputStream extends OutputStream {
 
   @Override
   public void flush() throws IOException {
-      try {
-        byte[] token = gssContext.wrap(buffer, 0, index, messageProp);
-        sendInteger4Raw(token.length);
-        wrapped.write(token, 0, token.length);
-        index = 0;
-      } catch ( GSSException ex ){
-        throw new IOException(ex);
-      }
-      wrapped.flush();;
-
+    try {
+      byte[] token = gssContext.wrap(buffer, 0, index, messageProp);
+      sendInteger4Raw(token.length);
+      wrapped.write(token, 0, token.length);
+      index = 0;
+    } catch ( GSSException ex ) {
+      throw new IOException(ex);
+    }
+    wrapped.flush();
   }
 
   private void sendInteger4Raw(int val) throws IOException {

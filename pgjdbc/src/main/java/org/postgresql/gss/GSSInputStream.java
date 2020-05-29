@@ -16,7 +16,7 @@ public class GSSInputStream extends InputStream {
   private GSSContext gssContext;
   private MessageProp messageProp;
   private InputStream wrapped;
-  byte unencrypted[];
+  byte[] unencrypted;
   int unencryptedPos;
   int unencryptedLength;
 
@@ -48,7 +48,7 @@ public class GSSInputStream extends InputStream {
         encryptedLength = ((int4Buf[0] & 0xFF) << 24 | (int4Buf[1] & 0xFF) << 16 | (int4Buf[2] & 0xFF) << 8
             | int4Buf[3] & 0xFF);
 
-        byte encryptedBuffer[] = new byte[encryptedLength];
+        byte[] encryptedBuffer = new byte[encryptedLength];
         wrapped.read(encryptedBuffer, 0, encryptedLength);
 
         try {
