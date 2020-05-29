@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import org.postgresql.PGProperty;
@@ -36,7 +41,6 @@ public enum GSSEncMode {
   public boolean requireEncryption() {
     return this.compareTo(REQUIRE) >= 0;
   }
-
 
   public static GSSEncMode of(Properties info) throws PSQLException {
     String gssMode = PGProperty.GSS_ENC_MODE.get(info);
