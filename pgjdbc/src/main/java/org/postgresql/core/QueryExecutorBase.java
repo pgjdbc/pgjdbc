@@ -377,7 +377,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     // "cache lookup failed for function"
     if (PSQLState.INTERNAL_ERROR.getState().equals(e.getSQLState())
         && e.getMessage() != null
-        && e.getMessage().startsWith("cache lookup failed for function")) {
+        && e.getMessage().startsWith("cache lookup failed for ")) {
       return true;
     }
 
