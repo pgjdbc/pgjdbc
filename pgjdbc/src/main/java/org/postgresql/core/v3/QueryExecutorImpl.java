@@ -46,8 +46,6 @@ import org.postgresql.util.ServerErrorMessage;
 
 import java.io.IOException;
 import java.lang.ref.PhantomReference;
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -57,7 +55,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -67,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 
 /**
  * QueryExecutor implementation for the V3 protocol.
@@ -1938,67 +1936,48 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pendingDescribePortalQueue.add(query);
   }
 
-  //
-  // Garbage collection of parsed statements.
-  //
-  // When a statement is successfully parsed, registerParsedQuery is called.
-  // This creates a PhantomReference referring to the "owner" of the statement
-  // (the originating Query object) and inserts that reference as a key in
-  // parsedQueryMap. The values of parsedQueryMap are the corresponding allocated
-  // statement names. The originating Query object also holds a reference to the
-  // PhantomReference.
-  //
-  // When the owning Query object is closed, it enqueues and clears the associated
-  // PhantomReference.
-  //
-  // If the owning Query object becomes unreachable (see java.lang.ref javadoc) before
-  // being closed, the corresponding PhantomReference is enqueued on
-  // parsedQueryCleanupQueue. In the Sun JVM, phantom references are only enqueued
-  // when a GC occurs, so this is not necessarily prompt but should eventually happen.
-  //
-  // Periodically (currently, just before query execution), the parsedQueryCleanupQueue
-  // is polled. For each enqueued PhantomReference we find, we remove the corresponding
-  // entry from parsedQueryMap, obtaining the name of the underlying statement in the
-  // process. Then we send a message to the backend to deallocate that statement.
-  //
 
-  private final HashMap<PhantomReference<SimpleQuery>, String> parsedQueryMap =
-      new HashMap<PhantomReference<SimpleQuery>, String>();
-  private final ReferenceQueue<SimpleQuery> parsedQueryCleanupQueue =
-      new ReferenceQueue<SimpleQuery>();
+  /**
+   * Garbage collection of parsed statements. See {@link ServerResourcesCleaner}.
+   */
+
+  private final ServerResourcesCleaner<SimpleQuery> queryServerResourcesCleaner = new ServerResourcesCleaner<SimpleQuery>() {
+    @Override
+    protected void onReferenceCleanup(String statementName) throws IOException {
+      sendCloseStatement(statementName);
+    }
+  };
 
   private void registerParsedQuery(SimpleQuery query, String statementName) {
     if (statementName == null) {
       return;
     }
 
-    PhantomReference<SimpleQuery> cleanupRef =
-        new PhantomReference<SimpleQuery>(query, parsedQueryCleanupQueue);
-    parsedQueryMap.put(cleanupRef, statementName);
-    query.setCleanupRef(cleanupRef);
+    PhantomReference<SimpleQuery> reference = queryServerResourcesCleaner.registerObject(query, statementName);
+    query.setReferenceCleanup(reference, queryServerResourcesCleaner);
   }
 
   private void processDeadParsedQueries() throws IOException {
-    Reference<? extends SimpleQuery> deadQuery;
-    while ((deadQuery = parsedQueryCleanupQueue.poll()) != null) {
-      String statementName = parsedQueryMap.remove(deadQuery);
-      sendCloseStatement(statementName);
-      deadQuery.clear();
-    }
+    queryServerResourcesCleaner.processDeadObjects();
   }
 
-  //
-  // Essentially the same strategy is used for the cleanup of portals.
-  // Note that each Portal holds a reference to the corresponding Query
-  // that generated it, so the Query won't be collected (and the statement
-  // closed) until all the Portals are, too. This is required by the mechanics
-  // of the backend protocol: when a statement is closed, all dependent portals
-  // are also closed.
-  //
 
-  private final HashMap<PhantomReference<Portal>, String> openPortalMap =
-      new HashMap<PhantomReference<Portal>, String>();
-  private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<Portal>();
+  /**
+   * Garbage collection of portals. See {@link ServerResourcesCleaner}.
+   *
+   * <p>Note that each Portal holds a reference to the corresponding Query that
+   * generated it, so the Query won't be collected (and the statement closed)
+   * until all the Portals are, too. This is required by the mechanics of the
+   * backend protocol: when a statement is closed, all dependent portals are
+   * also closed.
+   */
+
+  private final ServerResourcesCleaner<Portal> portalServerResourcesCleaner = new ServerResourcesCleaner<Portal>() {
+    @Override
+    protected void onReferenceCleanup(String portalName) throws IOException {
+      sendClosePortal(portalName);
+    }
+  };
 
   private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
 
@@ -2008,20 +1987,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     String portalName = portal.getPortalName();
-    PhantomReference<Portal> cleanupRef =
-        new PhantomReference<Portal>(portal, openPortalCleanupQueue);
-    openPortalMap.put(cleanupRef, portalName);
-    portal.setCleanupRef(cleanupRef);
+    PhantomReference<Portal> reference = portalServerResourcesCleaner.registerObject(portal, portalName);
+    portal.setReferenceCleanup(reference, portalServerResourcesCleaner);
   }
 
   private void processDeadPortals() throws IOException {
-    Reference<? extends Portal> deadPortal;
-    while ((deadPortal = openPortalCleanupQueue.poll()) != null) {
-      String portalName = openPortalMap.remove(deadPortal);
-      sendClosePortal(portalName);
-      deadPortal.clear();
-    }
+    portalServerResourcesCleaner.processDeadObjects();
   }
+
 
   protected void processResults(ResultHandler handler, int flags) throws IOException {
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;

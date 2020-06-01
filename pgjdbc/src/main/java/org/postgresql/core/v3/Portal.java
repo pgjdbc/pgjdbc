@@ -25,10 +25,10 @@ class Portal implements ResultCursor {
   }
 
   public void close() {
-    if (cleanupRef != null) {
-      cleanupRef.clear();
-      cleanupRef.enqueue();
-      cleanupRef = null;
+    if (portalResourcesCleaner != null && cleanupReference != null) {
+      portalResourcesCleaner.registerClosedObject(cleanupReference);
+      cleanupReference = null;
+      portalResourcesCleaner = null;
     }
   }
 
@@ -44,8 +44,9 @@ class Portal implements ResultCursor {
     return query;
   }
 
-  void setCleanupRef(PhantomReference<?> cleanupRef) {
-    this.cleanupRef = cleanupRef;
+  void setReferenceCleanup(PhantomReference<Portal> cleanupReference, ServerResourcesCleaner<Portal> serverResourcesCleaner) {
+    this.cleanupReference = cleanupReference;
+    this.portalResourcesCleaner = serverResourcesCleaner;
   }
 
   public String toString() {
@@ -61,5 +62,6 @@ class Portal implements ResultCursor {
   private final SimpleQuery query;
   private final String portalName;
   private final byte[] encodedName;
-  private PhantomReference<?> cleanupRef;
+  private ServerResourcesCleaner<Portal> portalResourcesCleaner;
+  private PhantomReference<Portal> cleanupReference;
 }
