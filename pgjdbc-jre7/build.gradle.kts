@@ -62,6 +62,10 @@ configure<JavaPluginConvention> {
     targetCompatibility = JavaVersion.VERSION_1_7
 }
 
+tasks.processResources {
+    from("${project(":postgresql").projectDir}/src/main/resources")
+}
+
 val preprocessMain by tasks.registering(JavaCommentPreprocessorTask::class) {
     baseDir.set(project(":postgresql").projectDir)
     sourceFolders.addAll("src/main/java", "src/main/version")

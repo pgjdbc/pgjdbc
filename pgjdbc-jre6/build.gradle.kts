@@ -52,6 +52,10 @@ if (java6home.isNotBlank()) {
     }
 }
 
+tasks.processResources {
+    from("${project(":postgresql").projectDir}/src/main/resources")
+}
+
 val preprocessMain by tasks.registering(JavaCommentPreprocessorTask::class) {
     baseDir.set(project(":postgresql").projectDir)
     sourceFolders.addAll("src/main/java", "src/main/version")
@@ -88,12 +92,6 @@ tasks.compileTestJava {
 tasks.configureEach<JavaCommentPreprocessorTask> {
     excludedPatterns.addAll("**/jre7/", "**/jdbc41/")
     excludedPatterns.addAll("**/jre8/", "**/jdbc42/")
-}
-
-tasks.jar {
-    into("META-INF") {
-        from("$rootDir/LICENSE")
-    }
 }
 
 val osgiJar by tasks.registering(Bundle::class) {
