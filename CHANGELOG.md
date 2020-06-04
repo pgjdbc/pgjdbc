@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-## [42.2.13] (2020-06-01)
+## [42.2.13] (2020-06-04)
 
 **Notable Changes**
 The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
