@@ -13,10 +13,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [42.2.13] (2020-06-04)
 
 **Notable Changes**
-The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
-Reported by David Dworken this is an XXE and more information can be found [here](https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html)
-Sehrope Sarkuni reworked the XML parsing to provide a solution in commit 14b62aca4 
-The build system has been changed to Gradle thanks to Vladimir [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627)
+
+- Security: The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
+Reported by David Dworken, this is an XXE and more information can be found [here](https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html).
+Sehrope Sarkuni reworked the XML parsing to provide a solution in commit [14b62aca4](https://github.com/pgjdbc/pgjdbc/commit/14b62aca4764d496813f55a43d050b017e01eb65).
+- The build system has been changed to Gradle thanks to Vladimir [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627).
 
 ### Changed
 
