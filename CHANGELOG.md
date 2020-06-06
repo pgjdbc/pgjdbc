@@ -48,7 +48,7 @@ We recommend that version 42.2.11 not be used.
 
 ## [42.2.11] (2020-03-07)
 
-** Notable **
+**Notable changes**
 As mentioned above this version is broken and should not be used.
 ### Changed
  - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals. 
