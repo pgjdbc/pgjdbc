@@ -10,6 +10,8 @@ import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.properties.dsl.stringProperty
+import com.github.vlsi.gradle.publishing.dsl.simplifyXml
+import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
 import org.postgresql.buildtools.JavaCommentPreprocessorTask
 
 plugins {
@@ -553,33 +555,9 @@ allprojects {
                     // Use the resolved versions in pom.xml
                     // Gradle might have different resolution rules, so we set the versions
                     // that were used in Gradle build/test.
-                    versionMapping {
-                        usage(Usage.JAVA_RUNTIME) {
-                            fromResolutionResult()
-                        }
-                        usage(Usage.JAVA_API) {
-                            fromResolutionOf("runtimeClasspath")
-                        }
-                    }
+                    versionFromResolution()
                     pom {
-                        withXml {
-                            val sb = asString()
-                            var s = sb.toString()
-                            // <scope>compile</scope> is Maven default, so delete it
-                            s = s.replace("<scope>compile</scope>", "")
-                            // Cut <dependencyManagement> because all dependencies have the resolved versions
-                            s = s.replace(
-                                Regex(
-                                    "<dependencyManagement>.*?</dependencyManagement>",
-                                    RegexOption.DOT_MATCHES_ALL
-                                ),
-                                ""
-                            )
-                            sb.setLength(0)
-                            sb.append(s)
-                            // Re-format the XML
-                            asNode()
-                        }
+                        simplifyXml()
                         name.set(
                             (project.findProperty("artifact.name") as? String) ?: "pgdjbc ${project.name.capitalize()}"
                         )
