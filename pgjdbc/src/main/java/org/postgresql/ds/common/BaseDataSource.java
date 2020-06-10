@@ -1544,10 +1544,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
+  //#endif
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
   }
-  //#endif
+
+  public String getXmlFactoryFactory() {
+    return PGProperty.XML_FACTORY_FACTORY.get(properties);
+  }
+
+  public void setXmlFactoryFactory(String xmlFactoryFactory) {
+    PGProperty.XML_FACTORY_FACTORY.set(properties, xmlFactoryFactory);
+  }
 
   /*
    * Alias methods below, these are to help with ease-of-use with other database tools / frameworks

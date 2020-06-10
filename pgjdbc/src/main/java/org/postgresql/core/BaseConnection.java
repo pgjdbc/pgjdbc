@@ -10,6 +10,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
+import org.postgresql.xml.PGXmlFactoryFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -212,4 +213,12 @@ public interface BaseConnection extends PGConnection, Connection {
    * @see PGProperty#READ_ONLY_MODE
    */
   boolean hintReadOnly();
+
+  /**
+   * Retrieve the factory to instantiate XML processing factories.
+   *
+   * @return The factory to use to instantiate XML processing factories
+   * @throws SQLException if the class cannot be found or instantiated.
+   */
+  PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
 }

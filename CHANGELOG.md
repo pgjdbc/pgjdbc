@@ -10,6 +10,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.2.13] (2020-06-04)
+
+**Notable Changes**
+
+- Security: The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
+Reported by David Dworken, this is an XXE and more information can be found [here](https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html).
+Sehrope Sarkuni reworked the XML parsing to provide a solution in commit [14b62aca4](https://github.com/pgjdbc/pgjdbc/commit/14b62aca4764d496813f55a43d050b017e01eb65).
+- The build system has been changed to Gradle thanks to Vladimir [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627).
+
+### Changed
+
+### Added
+- jre-6 was added back to allow us to release fixes for all artifacts in the 42.2.x branch [PR 1787](https://github.com/pgjdbc/pgjdbc/pull/1787)
+
+### Fixed
+- I/O error ru translation [PR 1756](https://github.com/pgjdbc/pgjdbc/pull/1756)
+- Issue [1771](https://github.com/pgjdbc/pgjdbc/issues/1771)  PgDatabaseMetaData.getFunctions() returns
+ procedures fixed in [PR 1774](https://github.com/pgjdbc/pgjdbc/pull/1774)
+- getTypeMap() returning null [PR 1781](https://github.com/pgjdbc/pgjdbc/pull/1774)
+- Updated openssl example command [PR 1763](https://github.com/pgjdbc/pgjdbc/pull/1763)
+- fix documentation with ordered list to be displayed correctly [PR 1783](https://github.com/pgjdbc/pgjdbc/pull/1783)
+
 ## [42.2.12] (2020-03-31)
 
 **Notable changes**
@@ -18,7 +40,7 @@ We have released 42.2.12 to correct regressions in this version: Specifically
 - [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729) was reverted as this is a breaking change
 - [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719) has been reverted as it introduced errors in the PgType Cache
 
-We recommend that this version 42.2.11 not be used.
+We recommend that version 42.2.11 not be used.
 ### Changed
  - reverted [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)  throw an error instead of silently rolling back a commit error. 
  This change introduced a breaking change which will be moved to 42.3.0
@@ -26,6 +48,9 @@ We recommend that this version 42.2.11 not be used.
 
 
 ## [42.2.11] (2020-03-07)
+
+**Notable changes**
+As mentioned above this version is broken and should not be used.
 ### Changed
  - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals. 
  - `DatabaseMetaData#getProcedures` returns only procedures (not functions) for PostgreSQL 11+ [PR 1723](https://github.com/pgjdbc/pgjdbc/pull/1723)

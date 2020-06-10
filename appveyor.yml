@@ -7,10 +7,6 @@ environment:
   PGUSER: postgres
   PGPASSWORD: Password12!
   matrix:
-  - pg: 9.4.19-1
-    PlatformToolset: v120
-  - pg: 9.5.15-1
-    PlatformToolset: v120
   - pg: 9.6.11-1
     PlatformToolset: v120
   - pg: 10.6-1
@@ -24,11 +20,14 @@ matrix:
       PlatformToolset: v140
     - platform: x86
       pg: master
-  
-init: 
+
+init:
 - set pf=%ProgramFiles%&& set x64=-x64
 - set exe=postgresql-%pg%-windows%x64%.exe
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # We expect that Windows would have CRLF for newlines, so autocrlf=true should be used
+  # to automatically convert text files to CRLF on checkout
+- git config --global core.autocrlf true
 
 branches:
   except:
@@ -52,10 +51,12 @@ before_build:
 - ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
 - net start postgresql%x64%-%pgversion%
 - path %pgroot%\bin;%PATH%
-- SET PGUSER=postgres 
-- SET PGPASSWORD=Password12! 
+- SET PGUSER=postgres
+- SET PGPASSWORD=Password12!
 - createuser -U postgres test
-- psql -U postgres -c "alter user test with password 'test'" postgres 
+- psql -U postgres -c "alter user test with password 'test'" postgres
+- psql -U postgres -c "alter user test with replication" postgres
+- createuser -U postgres testsspi
 - createdb -U postgres -O test test
 
 build_script:

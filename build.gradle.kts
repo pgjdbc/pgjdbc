@@ -95,6 +95,7 @@ releaseParams {
     prefixForProperties.set("gh")
     svnDistEnabled.set(false)
     sitePreviewEnabled.set(false)
+    releaseTag.set("REL$buildVersion")
     nexus {
         mavenCentral()
     }
