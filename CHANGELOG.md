@@ -5,11 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-- Reverted com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies to optional=true in Maven [PR 1797](https://github.com/pgjdbc/pgjdbc/pull/1797).
 
 ### Added
 
 ### Fixed
+
+## [42.2.14] (2020-06-10)
+### Changed
+- Reverted com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies to optional=true in Maven [PR 1797](https://github.com/pgjdbc/pgjdbc/pull/1797).
 
 ## [42.2.13] (2020-06-04)
 
@@ -365,4 +368,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.10]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...REL42.2.10
 [42.2.11]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.10...REL42.2.11
 [42.2.12]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...REL42.2.12
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...HEAD
+[42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...HEAD
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...HEAD
