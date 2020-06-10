@@ -552,6 +552,9 @@ allprojects {
                     version = rootProject.version.toString()
                     from(components["java"])
 
+                    // Gradle feature variants can't be mapped to Maven's pom
+                    suppressAllPomMetadataWarnings()
+
                     // Use the resolved versions in pom.xml
                     // Gradle might have different resolution rules, so we set the versions
                     // that were used in Gradle build/test.
@@ -624,6 +627,31 @@ allprojects {
                     }
                 }
                 // </editor-fold>
+            }
+        }
+    }
+}
+
+subprojects {
+    if (project.path.startsWith(":postgresql")) {
+        plugins.withId("java") {
+            configure<JavaPluginExtension> {
+                val sourceSets: SourceSetContainer by project
+                registerFeature("sspi") {
+                    usingSourceSet(sourceSets["main"])
+                }
+                registerFeature("osgi") {
+                    usingSourceSet(sourceSets["main"])
+                }
+            }
+            dependencies {
+                if (project.path.startsWith(":postgresql-jre")) {
+                    "sspiImplementation"("com.github.dblock.waffle:waffle-jna:${"waffle-jna-jre7".v}")
+                } else {
+                    "sspiImplementation"("com.github.waffle:waffle-jna")
+                }
+                "osgiImplementation"("org.osgi:org.osgi.core")
+                "osgiImplementation"("org.osgi:org.osgi.enterprise")
             }
         }
     }

@@ -32,9 +32,6 @@ val String.v: String get() = rootProject.extra["$this.version"] as String
 
 dependencies {
     implementation(platform(project(":bom")))
-    implementation("com.github.dblock.waffle:waffle-jna:${"waffle-jna-jre7".v}")
-    implementation("org.osgi:org.osgi.core")
-    implementation("org.osgi:org.osgi.enterprise")
 }
 
 configure<JavaPluginConvention> {

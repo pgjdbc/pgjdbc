@@ -51,9 +51,6 @@ val String.v: String get() = rootProject.extra["$this.version"] as String
 dependencies {
     shaded(platform(project(":bom")))
     shaded("com.ongres.scram:client")
-    implementation("com.github.dblock.waffle:waffle-jna:${"waffle-jna-jre7".v}")
-    implementation("org.osgi:org.osgi.core")
-    implementation("org.osgi:org.osgi.enterprise")
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
 }
 

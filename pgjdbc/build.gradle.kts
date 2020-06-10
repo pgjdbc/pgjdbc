@@ -59,9 +59,6 @@ dependencies {
     karafFeatures("org.osgi:org.osgi.core:${"org.osgi.core".v}")
     karafFeatures("org.osgi:org.osgi.enterprise:${"org.osgi.enterprise".v}")
 
-    implementation("com.github.waffle:waffle-jna")
-    implementation("org.osgi:org.osgi.core")
-    implementation("org.osgi:org.osgi.enterprise")
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
 }
 
