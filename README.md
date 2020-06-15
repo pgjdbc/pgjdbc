@@ -161,4 +161,3 @@ For information on how to contribute to the project see the [Contributing Guidel
 ### Sponsors
 
 * [PostgreSQL International](http://www.postgresintl.com)
-* [YourKit](https://www.yourkit.com/)
