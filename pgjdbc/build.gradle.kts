@@ -233,6 +233,8 @@ karaf {
 
 // <editor-fold defaultstate="collapsed" desc="Source distribution for building pgjdbc with minimal features">
 val sourceDistribution by tasks.registering(Tar::class) {
+    group = LifecycleBasePlugin.BUILD_GROUP
+    description = "Source distribution for building pgjdbc with minimal features"
     archiveClassifier.set("src")
     archiveExtension.set("tar.gz")
     compression = Compression.GZIP
@@ -242,9 +244,6 @@ val sourceDistribution by tasks.registering(Tar::class) {
         include("ssltest.properties")
         include("LICENSE")
         include("README.md")
-    }
-    into("src/main/resources") {
-        from("$rootDir/LICENSE")
     }
 
     val props = listOf(
@@ -273,12 +272,16 @@ val sourceDistribution by tasks.registering(Tar::class) {
                 include("META-INF/MANIFEST.MF")
             }
         })
+        into("META-INF") {
+            dependencyLicenses(shadedLicenseFiles)
+        }
     }
     into("src/main") {
         into("java") {
             from(preprocessVersion)
         }
         from("src/main") {
+            exclude("resources/META-INF/LICENSE")
             exclude("checkstyle")
             exclude("*/org/postgresql/osgi/**")
             exclude("*/org/postgresql/sspi/NTDSAPI.java")
