@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.2.15] (2020-06-19)
+### Changed
+- Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact.  
+
 ## [42.2.14] (2020-06-10)
 ### Changed
 - Reverted com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies to optional=true in Maven [PR 1797](https://github.com/pgjdbc/pgjdbc/pull/1797).
@@ -369,4 +373,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.11]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.10...REL42.2.11
 [42.2.12]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...REL42.2.12
 [42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...HEAD
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...HEAD
+[42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...HEAD
