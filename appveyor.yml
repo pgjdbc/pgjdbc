@@ -29,6 +29,7 @@ init:
   # We expect that Windows would have CRLF for newlines, so autocrlf=true should be used
   # to automatically convert text files to CRLF on checkout
 - git config --global core.autocrlf true
+- mkdir "\Users\appveyor\.gradle
 
 branches:
   except:
@@ -72,6 +73,3 @@ test_script:
 
 cache:
   - C:\Users\appveyor\.m2
-
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
