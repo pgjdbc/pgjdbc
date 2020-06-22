@@ -19,7 +19,7 @@ PostgreSQL™ JDBC driver installed as `/usr/local/pgsql/share/java/postgresql-M
 To run the application, we would use:
 
 ```bash
-export CLASSPATH=/usr/local/lib/myapp.jar:/usr/local/pgsql/share/java/postgresql-42.2.12.jar:.
+export CLASSPATH=/usr/local/lib/myapp.jar:/usr/local/pgsql/share/java/postgresql-42.2.15.jar:.
 java MyApp
 ```
 
