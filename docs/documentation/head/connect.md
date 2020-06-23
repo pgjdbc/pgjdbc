@@ -426,12 +426,14 @@ Connection conn = DriverManager.getConnection(url);
 
 * **readOnlyMode** = String
 	
-	Controls the behavior when a connection is set to be read only, one of 'ignore', 'transaction', or 'always'. 
-	When 'ignore', setting readOnly has no effect. 
-	When 'transaction' setting readOnly to 'true' will cause transactions to BEGIN READ ONLY if autocommit is 'false'.
-	When 'always' setting readOnly to 'true' will set the session to READ ONLY if autoCommit is 'true' and the transaction to BEGIN READ ONLY if autocommit is 'false'.
+	Controls the behavior when a connection is set to read only, one of 'ignore', 'transaction', or 'always'. 
+	When set to 'ignore' then the `readOnly` setting has no effect. 
+	When set to 'transaction' and `readOnly` is set to 'true' and autocommit is 'false' the driver will set the transaction to
+	readonly  by sending `BEGIN READ ONLY`.
+	When set to 'always' and `readOnly` is set to 'true' the session will be to READ ONLY if autoCommit is 'true'. 
+	If autocommit is false the driver set the transaction to read only by sending `BEGIN READ ONLY` .
 	
-	By default the value is "transaction"
+	The default the value is 'transaction'
 
 * **disableColumnSanitiser** = boolean
 
