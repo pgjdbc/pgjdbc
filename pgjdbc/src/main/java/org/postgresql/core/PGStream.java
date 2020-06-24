@@ -71,16 +71,7 @@ public class PGStream implements Closeable, Flushable {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
 
-    Socket socket = socketFactory.createSocket();
-    if (!socket.isConnected()) {
-      // When using a SOCKS proxy, the host might not be resolvable locally,
-      // thus we defer resolution until the traffic reaches the proxy. If there
-      // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = hostSpec.shouldResolve()
-          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
-          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
-      socket.connect(address, timeout);
-    }
+    Socket socket = createSocket(timeout);
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
@@ -116,18 +107,7 @@ public class PGStream implements Closeable, Flushable {
     this.socketFactory = pgStream.socketFactory;
     this.hostSpec = pgStream.hostSpec;
 
-    Socket socket = socketFactory.createSocket();
-    if (!socket.isConnected()) {
-      // When using a SOCKS proxy, the host might not be resolvable locally,
-      // thus we defer resolution until the traffic reaches the proxy. If there
-      // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = hostSpec.shouldResolve()
-          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
-          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
-      socket.connect(address, timeout);
-    }
-    changeSocket(socket);
-    setEncoding(Encoding.getJVMEncoding("UTF-8"));
+    Socket socket = createSocket(timeout);
 
     // set the buffer sizes and timeout
     socket.setReceiveBufferSize(receiveBufferSize);
@@ -214,6 +194,23 @@ public class PGStream implements Closeable, Flushable {
 
   public void setMinStreamAvailableCheckDelay(int delay) {
     this.minStreamAvailableCheckDelay = delay;
+  }
+
+  private Socket createSocket(int timeout) throws IOException {
+
+    Socket socket = socketFactory.createSocket();
+    if (!socket.isConnected()) {
+      // When using a SOCKS proxy, the host might not be resolvable locally,
+      // thus we defer resolution until the traffic reaches the proxy. If there
+      // is no proxy, we must resolve the host to an IP to connect the socket.
+      InetSocketAddress address = hostSpec.shouldResolve()
+          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      socket.connect(address, timeout);
+    }
+    changeSocket(socket);
+    setEncoding(Encoding.getJVMEncoding("UTF-8"));
+    return socket;
   }
 
   /**
