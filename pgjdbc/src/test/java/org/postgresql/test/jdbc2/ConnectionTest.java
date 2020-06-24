@@ -543,7 +543,7 @@ public class ConnectionTest {
 
     TestUtil.closeDB(con);
   }
-  
+
   private static void assertStringContains(String orig, String toContain) {
     if (!orig.contains(toContain)) {
       fail("expected [" + orig + ']' + "to contain [" + toContain + "].");
