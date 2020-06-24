@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 
@@ -85,6 +86,58 @@ public class PGStream implements Closeable, Flushable {
 
     int2Buf = new byte[2];
     int4Buf = new byte[4];
+  }
+
+  public PGStream(PGStream pgStream, int timeout ) throws IOException {
+
+    /*
+    Some defaults
+     */
+    int sendBufferSize = 1024;
+    int receiveBufferSize = 1024;
+    int soTimeout = 0;
+    boolean keepAlive = false;
+
+    /*
+    Get the existing values before closing the stream
+     */
+    try {
+      sendBufferSize = pgStream.getSocket().getSendBufferSize();
+      receiveBufferSize = pgStream.getSocket().getReceiveBufferSize();
+      soTimeout = pgStream.getSocket().getSoTimeout();
+      keepAlive = pgStream.getSocket().getKeepAlive();
+
+    } catch ( SocketException ex ) {
+      // ignore it
+    }
+    //close the existing stream
+    pgStream.close();
+
+    this.socketFactory = pgStream.socketFactory;
+    this.hostSpec = pgStream.hostSpec;
+
+    Socket socket = socketFactory.createSocket();
+    if (!socket.isConnected()) {
+      // When using a SOCKS proxy, the host might not be resolvable locally,
+      // thus we defer resolution until the traffic reaches the proxy. If there
+      // is no proxy, we must resolve the host to an IP to connect the socket.
+      InetSocketAddress address = hostSpec.shouldResolve()
+          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      socket.connect(address, timeout);
+    }
+    changeSocket(socket);
+    setEncoding(Encoding.getJVMEncoding("UTF-8"));
+
+    // set the buffer sizes and timeout
+    socket.setReceiveBufferSize(receiveBufferSize);
+    socket.setSendBufferSize(sendBufferSize);
+    setNetworkTimeout(soTimeout);
+    socket.setKeepAlive(keepAlive);
+
+    int2Buf = new byte[2];
+    int4Buf = new byte[4];
+
   }
 
   /**
