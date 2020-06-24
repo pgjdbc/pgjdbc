@@ -12,9 +12,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.junit.platform.commons.util.ReflectionUtils;
-
-import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
@@ -33,7 +30,6 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -547,6 +543,7 @@ public class ConnectionTest {
 
     TestUtil.closeDB(con);
   }
+  
   private static void assertStringContains(String orig, String toContain) {
     if (!orig.contains(toContain)) {
       fail("expected [" + orig + ']' + "to contain [" + toContain + "].");
