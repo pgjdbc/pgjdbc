@@ -12,7 +12,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.junit.platform.commons.util.ReflectionUtils;
+
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
@@ -20,6 +25,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,6 +33,7 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -520,6 +527,26 @@ public class ConnectionTest {
     con.close();
   }
 
+  @Test
+  public void testPGStreamSettings() throws Exception {
+    con = TestUtil.openDB();
+    QueryExecutor queryExecutor = ((PgConnection)con).getQueryExecutor();
+
+    Field f = queryExecutor.getClass().getSuperclass().getDeclaredField("pgStream");
+    f.setAccessible(true);
+    PGStream pgStream = (PGStream)f.get(queryExecutor);
+    pgStream.setNetworkTimeout(1000);
+    pgStream.getSocket().setKeepAlive(true);
+    pgStream.getSocket().setSendBufferSize(8192);
+    pgStream.getSocket().setReceiveBufferSize(2048);
+    PGStream newStream = new PGStream(pgStream, 10);
+    assertEquals(1000, newStream.getSocket().getSoTimeout());
+    assertEquals(2048, newStream.getSocket().getReceiveBufferSize());
+    assertEquals(8192, newStream.getSocket().getSendBufferSize());
+    assertTrue(newStream.getSocket().getKeepAlive());
+
+    TestUtil.closeDB(con);
+  }
   private static void assertStringContains(String orig, String toContain) {
     if (!orig.contains(toContain)) {
       fail("expected [" + orig + ']' + "to contain [" + toContain + "].");
