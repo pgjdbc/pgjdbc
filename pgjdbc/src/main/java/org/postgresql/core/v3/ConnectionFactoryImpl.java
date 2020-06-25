@@ -426,8 +426,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         // We have to reconnect to continue.
-        pgStream.close();
-        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+        return new PGStream(pgStream, connectTimeout);
 
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE GSSEncoding Refused");
