@@ -67,7 +67,9 @@ public class LogWriterHandler extends Handler {
   @Override
   public void close() throws SecurityException {
     try {
-      writer.close();
+      if ( writer != null ) {
+        writer.close();
+      }
     } catch ( Exception ex ) {
       reportError("Error closing writer", ex, ErrorManager.WRITE_FAILURE);
     }
