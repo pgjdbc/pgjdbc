@@ -112,6 +112,15 @@ public enum PGProperty {
     new String[] {"true", "false"}),
 
   /**
+   * The timeout value used for socket read operations while connecting to server.
+   * The timeout is specified in seconds. When value is zero then 'socketTimeout' will be used.
+   */
+  CONNECT_SOCKET_TIMEOUT(
+          "connectSocketTimeout",
+          "0",
+          "The timeout value used for socket read operations while connecting to server."),
+
+  /**
    * <p>The timeout value used for socket connect operations. If connecting to the server takes longer
    * than this value, the connection is broken.</p>
    *
