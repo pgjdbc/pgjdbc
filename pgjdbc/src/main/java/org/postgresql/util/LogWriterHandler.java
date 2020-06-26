@@ -43,9 +43,7 @@ public class LogWriterHandler extends Handler {
     }
     try {
       synchronized (lock) {
-        if (writer != null) {
-          writer.write(formatted);
-        }
+        writer.write(formatted);
       }
     } catch (Exception ex) {
       reportError("Error writing message", ex, ErrorManager.WRITE_FAILURE);
@@ -56,9 +54,7 @@ public class LogWriterHandler extends Handler {
   @Override
   public void flush() {
     try {
-      if ( writer != null ) {
-        writer.flush();
-      }
+      writer.flush();
     } catch ( Exception ex ) {
       reportError("Error on flush", ex, ErrorManager.WRITE_FAILURE);
     }
@@ -67,21 +63,20 @@ public class LogWriterHandler extends Handler {
   @Override
   public void close() throws SecurityException {
     try {
-      if ( writer != null ) {
-        writer.close();
-      }
+      writer.close();
     } catch ( Exception ex ) {
       reportError("Error closing writer", ex, ErrorManager.WRITE_FAILURE);
     }
   }
 
-  private void setWriter(Writer writer) {
+  private void setWriter(Writer writer) throws IllegalArgumentException {
+    if ( writer == null ) {
+      throw new IllegalArgumentException("Writer cannot be null");
+    }
     this.writer = writer;
 
     try {
-      if ( writer != null ) {
-        writer.write(getFormatter().getHead(this));
-      }
+      writer.write(getFormatter().getHead(this));
     } catch ( Exception ex) {
       reportError("Error writing head section", ex, ErrorManager.WRITE_FAILURE);
     }
