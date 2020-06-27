@@ -6,7 +6,6 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -127,7 +126,7 @@ public class CopyTest {
   @Test
   public void testCopyInAsOutputStream() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
-    OutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    OutputStream os = new PGCopyOutputStream((PGConnection) con, sql);
     for (String anOrigData : origData) {
       byte[] buf = anOrigData.getBytes();
       os.write(buf);
@@ -140,17 +139,15 @@ public class CopyTest {
   @Test
   public void testCopyInAsOutputStreamClosesAfterEndCopy() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
-    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql);
     try {
       for (String anOrigData : origData) {
         byte[] buf = anOrigData.getBytes();
         os.write(buf);
       }
-      os.endCopy();
     } finally {
       os.close();
     }
-    assertFalse(os.isActive());
     int rowCount = getCount();
     assertEquals(dataRows, rowCount);
   }
@@ -158,13 +155,12 @@ public class CopyTest {
   @Test
   public void testCopyInAsOutputStreamFailsOnFlushAfterEndCopy() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
-    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
+    PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql);
     try {
       for (String anOrigData : origData) {
         byte[] buf = anOrigData.getBytes();
         os.write(buf);
       }
-      os.endCopy();
     } finally {
       os.close();
     }
@@ -218,6 +214,28 @@ public class CopyTest {
     copyAPI.copyIn(sql, new ByteBufferByteStreamWriter(ByteBuffer.wrap(getData(origData))));
     int rowCount = getCount();
     assertEquals(dataRows, rowCount);
+  }
+
+  /**
+   * Tests writing to a COPY ... FROM STDIN using both the standard OutputStream API
+   * write(byte[]) and the driver specific write(ByteStreamWriter) API interleaved.
+   */
+  @Test
+  public void testCopyMultiApi() throws SQLException, IOException {
+    TestUtil.execute("CREATE TABLE pg_temp.copy_api_test (data text)", con);
+    String sql = "COPY pg_temp.copy_api_test (data) FROM STDIN";
+    PGCopyOutputStream out = new PGCopyOutputStream(copyAPI.copyIn(sql));
+    try {
+      out.write("a".getBytes());
+      out.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap("b".getBytes())));
+      out.write("c".getBytes());
+      out.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap("d".getBytes())));
+      out.write("\n".getBytes());
+    } finally {
+      out.close();
+    }
+    String data = TestUtil.queryForString(con, "SELECT data FROM pg_temp.copy_api_test");
+    assertEquals("The writes to the COPY should be in order", "abcd", data);
   }
 
   @Test
