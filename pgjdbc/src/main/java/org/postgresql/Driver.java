@@ -10,11 +10,11 @@ import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.LogWriterHandler;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
-import org.postgresql.util.WriterHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -335,7 +335,7 @@ public class Driver implements java.sql.Driver {
 
     if ( handler == null ) {
       if (DriverManager.getLogWriter() != null) {
-        handler = new WriterHandler(DriverManager.getLogWriter());
+        handler = new LogWriterHandler(DriverManager.getLogWriter());
       } else if ( DriverManager.getLogStream() != null) {
         handler = new StreamHandler(DriverManager.getLogStream(), formatter);
       } else {
