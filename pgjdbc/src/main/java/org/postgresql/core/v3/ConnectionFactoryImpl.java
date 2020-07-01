@@ -405,6 +405,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                                     int connectTimeout)
       throws IOException, PSQLException {
 
+    if ( gssEncMode == GSSEncMode.DISABLE ) {
+      return pgStream;
+    }
+
+    if (gssEncMode == GSSEncMode.ALLOW ) {
+      // start with plain text and let the server request it
+      return pgStream;
+    }
+
     String password = PGProperty.PASSWORD.get(info);
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
 
