@@ -29,7 +29,6 @@ ij_any_wrap_long_lines = true
 # $ means "static"
 ij_java_imports_layout = $*,|,org.postgresql.**,|,*,|,java.**,|,javax.**
 indent_size = 2
-continuation_indent_size = 4
 tab_width = 2
 max_line_length = 100
 ij_any_spaces_around_additive_operators = true
@@ -42,6 +41,7 @@ ij_any_spaces_around_multiplicative_operators = true
 ij_any_spaces_around_relational_operators = true
 ij_any_spaces_around_shift_operators = true
 ij_continuation_indent_size = 4
+ij_java_align_multiline_parameters = false
 ij_java_if_brace_force = always
 ij_java_indent_case_from_switch = false
 ij_java_line_comment_add_space = true
