@@ -80,10 +80,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private boolean singleTable = false;
   private String onlyTable = "";
   private String tableName = null;
-  private PreparedStatement updateStatement = null;
-  private PreparedStatement insertStatement = null;
   private PreparedStatement deleteStatement = null;
-  private PreparedStatement selectStatement = null;
   private final int resultsettype;
   private final int resultsetconcurrency;
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
@@ -972,35 +969,38 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (!onInsertRow) {
       throw new PSQLException(GT.tr("Not on the insert row."), PSQLState.INVALID_CURSOR_STATE);
-    } else if (updateValues.isEmpty()) {
+    } else if (updateValues == null || updateValues.isEmpty()) {
       throw new PSQLException(GT.tr("You must specify at least one column value to insert a row."),
           PSQLState.INVALID_PARAMETER_VALUE);
-    } else {
+    }
 
-      // loop through the keys in the insertTable and create the sql statement
-      // we have to create the sql every time since the user could insert different
-      // columns each time
+    // loop through the keys in the insertTable and create the sql statement
+    // we have to create the sql every time since the user could insert different
+    // columns each time
 
-      StringBuilder insertSQL = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
-      StringBuilder paramSQL = new StringBuilder(") values (");
+    StringBuilder insertSQL = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
+    StringBuilder paramSQL = new StringBuilder(") values (");
 
-      Iterator<String> columnNames = updateValues.keySet().iterator();
-      int numColumns = updateValues.size();
+    Iterator<String> columnNames = updateValues.keySet().iterator();
+    int numColumns = updateValues.size();
 
-      for (int i = 0; columnNames.hasNext(); i++) {
-        String columnName = columnNames.next();
+    for (int i = 0; columnNames.hasNext(); i++) {
+      String columnName = columnNames.next();
 
-        Utils.escapeIdentifier(insertSQL, columnName);
-        if (i < numColumns - 1) {
-          insertSQL.append(", ");
-          paramSQL.append("?,");
-        } else {
-          paramSQL.append("?)");
-        }
-
+      Utils.escapeIdentifier(insertSQL, columnName);
+      if (i < numColumns - 1) {
+        insertSQL.append(", ");
+        paramSQL.append("?,");
+      } else {
+        paramSQL.append("?)");
       }
 
-      insertSQL.append(paramSQL.toString());
+    }
+
+    insertSQL.append(paramSQL.toString());
+    PreparedStatement insertStatement = null;
+
+    try {
       insertStatement = connection.prepareStatement(insertSQL.toString(), Statement.RETURN_GENERATED_KEYS);
 
       Iterator<Object> values = updateValues.values().iterator();
@@ -1021,17 +1021,24 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
 
       // update the underlying row to the new inserted data
-      updateRowBuffer(true);
-
-      rows.add(rowBuffer);
-
-      // we should now reflect the current data in thisRow
-      // that way getXXX will get the newly inserted data
-      thisRow = rowBuffer;
-
-      // need to clear this in case of another insert
-      clearRowBuffer(false);
+      updateRowBuffer(insertStatement);
+    } finally {
+      if (insertStatement != null) {
+        try {
+          insertStatement.close();
+        } catch (SQLException ignored) {
+        }
+      }
     }
+
+    rows.add(rowBuffer);
+
+    // we should now reflect the current data in thisRow
+    // that way getXXX will get the newly inserted data
+    thisRow = rowBuffer;
+
+    // need to clear this in case of another insert
+    clearRowBuffer(false);
   }
 
   @Override
@@ -1052,10 +1059,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   @Override
   public synchronized void moveToInsertRow() throws SQLException {
     checkUpdateable();
-
-    if (insertStatement != null) {
-      insertStatement = null;
-    }
 
     // make sure the underlying data is null
     clearRowBuffer(false);
@@ -1282,27 +1285,35 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
     // because updateable result sets do not yet support binary transfers we must request refresh
     // with updateable result set to get field data in correct format
-    selectStatement = connection.prepareStatement(sqlText,
-        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    PreparedStatement selectStatement = null;
+    try {
+      selectStatement = connection.prepareStatement(sqlText,
+          ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-    for (int j = 0, i = 1; j < numKeys; j++, i++) {
-      selectStatement.setObject(i, primaryKeys.get(j).getValue());
+      for (int j = 0, i = 1; j < numKeys; j++, i++) {
+        selectStatement.setObject(i, primaryKeys.get(j).getValue());
+      }
+
+      PgResultSet rs = (PgResultSet) selectStatement.executeQuery();
+
+      if (rs.next()) {
+        rowBuffer = rs.thisRow;
+      }
+
+      rows.set(currentRow, rowBuffer);
+      thisRow = rowBuffer;
+
+      connection.getLogger().log(Level.FINE, "done updates");
+
+      rs.close();
+    } finally {
+      if (selectStatement != null) {
+        try {
+          selectStatement.close();
+        } catch (SQLException ignored) {
+        }
+      }
     }
-
-    PgResultSet rs = (PgResultSet) selectStatement.executeQuery();
-
-    if (rs.next()) {
-      rowBuffer = rs.thisRow;
-    }
-
-    rows.set(currentRow, rowBuffer);
-    thisRow = rowBuffer;
-
-    connection.getLogger().log(Level.FINE, "done updates");
-
-    rs.close();
-    selectStatement.close();
-    selectStatement = null;
   }
 
   @Override
@@ -1358,24 +1369,32 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (connection.getLogger().isLoggable(Level.FINE)) {
       connection.getLogger().log(Level.FINE, "updating {0}", sqlText);
     }
-    updateStatement = connection.prepareStatement(sqlText);
+    PreparedStatement updateStatement = null;
+    try {
+      updateStatement = connection.prepareStatement(sqlText);
 
-    int i = 0;
-    Iterator<Object> iterator = updateValues.values().iterator();
-    for (; iterator.hasNext(); i++) {
-      Object o = iterator.next();
-      updateStatement.setObject(i + 1, o);
+      int i = 0;
+      Iterator<Object> iterator = updateValues.values().iterator();
+      for (; iterator.hasNext(); i++) {
+        Object o = iterator.next();
+        updateStatement.setObject(i + 1, o);
+      }
+
+      for (int j = 0; j < numKeys; j++, i++) {
+        updateStatement.setObject(i + 1, primaryKeys.get(j).getValue());
+      }
+
+      updateStatement.executeUpdate();
+    } finally {
+      if (updateStatement != null) {
+        try {
+          updateStatement.close();
+        } catch (SQLException ignored) {
+        }
+      }
     }
 
-    for (int j = 0; j < numKeys; j++, i++) {
-      updateStatement.setObject(i + 1, primaryKeys.get(j).getValue());
-    }
-
-    updateStatement.executeUpdate();
-    updateStatement.close();
-    updateStatement = null;
-
-    updateRowBuffer(false);
+    updateRowBuffer(null);
 
     connection.getLogger().log(Level.FINE, "copying data");
     thisRow = rowBuffer.readOnlyCopy();
@@ -1725,30 +1744,30 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-  private void updateRowBuffer(boolean isInsert) throws SQLException {
-
+  private void updateRowBuffer(PreparedStatement insertStatement) throws SQLException {
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
       Object valueObject = entry.getValue();
       setRowBufferColumn(columnIndex, valueObject);
     }
 
-    if (isInsert) {
-      final ResultSet generatedKeys = insertStatement.getGeneratedKeys();
-      try {
-        generatedKeys.next();
+    if (insertStatement == null) {
+      return;
+    }
+    final ResultSet generatedKeys = insertStatement.getGeneratedKeys();
+    try {
+      generatedKeys.next();
 
-        int numKeys = primaryKeys.size();
+      int numKeys = primaryKeys.size();
 
-        for (int i = 0; i < numKeys; i++) {
-          final PrimaryKey key = primaryKeys.get(i);
-          int columnIndex = key.index - 1;
-          Object valueObject = generatedKeys.getObject(key.name);
-          setRowBufferColumn(columnIndex, valueObject);
-        }
-      } finally {
-        generatedKeys.close();
+      for (int i = 0; i < numKeys; i++) {
+        final PrimaryKey key = primaryKeys.get(i);
+        int columnIndex = key.index - 1;
+        Object valueObject = generatedKeys.getObject(key.name);
+        setRowBufferColumn(columnIndex, valueObject);
       }
+    } finally {
+      generatedKeys.close();
     }
   }
 
@@ -1877,6 +1896,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
     rows = null;
+    PreparedStatement deleteStatement = this.deleteStatement;
+    if (deleteStatement != null) {
+      try {
+        this.deleteStatement = null;
+        deleteStatement.close();
+      } catch (SQLException ignored) {
+      }
+    }
     if (cursor != null) {
       cursor.close();
       cursor = null;
