@@ -550,166 +550,166 @@ public class Driver implements java.sql.Driver {
    * @param defaults Default properties
    * @return Properties with elements added from the url
    */
-    public static Properties parseURL(String url, Properties defaults) {
-        Properties urlProps = new Properties(defaults);
+  public static Properties parseURL(String url, Properties defaults) {
+    Properties urlProps = new Properties(defaults);
 
-        if (!url.startsWith("jdbc:postgresql:")) {
-            LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
-            return null;
-        }
-        url = url.substring("jdbc:postgresql:".length());
-        boolean ldapURL = false;
-        if (url.startsWith("@ldap")) {
-            ldapURL = true;
-            // Ldap implementation to load server host port dbname
-            // First look for entry "url" in LDAP, url will look like
-            // standard postgre jdbc url
-            // If url not defined, look for libpq attributes host, port, dbname
-            NamingEnumeration<SearchResult> entries = null;
-            try {
-                // Perform search using URL
-                DirContext ctx = new InitialDirContext();
-                entries = ctx.search(url.substring(1), "", null);
-                ctx.close();
-                if (entries.hasMore()) {
-                    SearchResult sr = (SearchResult) entries.next();
-                    if (entries.hasMore()) {
-                        LOGGER.log(Level.WARNING, "LDAP URL returned more than one element : {0}", url);
-                        return null;
-                    }
-                    Attributes atts = sr.getAttributes();
-                    // Loop over all attributes retrieved
-                    NamingEnumeration<? extends Attribute> attsEnum = atts.getAll();
-                    while (attsEnum.hasMore()) {
-                        Attribute att = attsEnum.next();
-                        // Loop over all attribute values
-                        NamingEnumeration<?> attValues = att.getAll();
-                        while (attValues.hasMore()) {
-                            String attValue = (String) attValues.next();
-                            // Look for "key=value" entries only
-                            int pos = attValue.indexOf("=");
-                            if (pos != -1) {
-                                String key = attValue.substring(0, pos);
-                                String value = attValue.substring(pos + 1);
-                                // Is it the
-                                if (key.equals("url")) {
-                                    // Specific case, we just use this as a standard jdbc url later
-                                    // to allow specific functions from jdbc driver to be used such as fail-over
-                                    url = value;
-                                    // Set flag back to false !
-                                    ldapURL = false;
-                                    if (!url.startsWith("jdbc:postgresql:")) {
-                                        LOGGER.log(Level.WARNING,
-                                            "LDAP 'url' must start with \"jdbc:postgresql:\" but was: {0} - LDAP entry = "
-                                                + sr.getNameInNamespace(),
-                                            attValue);
-                                        return null;
-                                    }
-                                    // repeat substring for next block
-                                    url = url.substring("jdbc:postgresql:".length());
-                                } else if (key.equals("host")) {
-                                    urlProps.setProperty("PGHOST", value);
-                                } else if (key.equals("port")) {
-                                    urlProps.setProperty("PGPORT", value);
-                                } else if (key.equals("dbname")) {
-                                    urlProps.setProperty("PGDBNAME", value);
-                                } else {
-                                    // Simply put as extra properties on driver
-                                    urlProps.setProperty(key, value);
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    LOGGER.log(Level.WARNING, "LDAP URL returned no result : {0}", url);
-                    return null;
-                }
-            } catch (NamingException e) {
-                LOGGER.log(Level.WARNING, "JDBC LDAP URL not valid : {0}, error = " + e.toString(), url.substring(1));
-                return null;
-            }
-        }
-        if (!ldapURL) {
-            String urlServer = url;
-            // Deal with "standard" jdbc url
-            String urlArgs = "";
-            int qPos = url.indexOf('?');
-            if (qPos != -1) {
-                urlServer = url.substring(0, qPos);
-                urlArgs = url.substring(qPos + 1);
-            }
-
-            if (urlServer.startsWith("//")) {
-                urlServer = urlServer.substring(2);
-                int slash = urlServer.indexOf('/');
-                if (slash == -1) {
-                    LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
-                    return null;
-                }
-                urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer.substring(slash + 1)));
-
-                String[] addresses = urlServer.substring(0, slash).split(",");
-                StringBuilder hosts = new StringBuilder();
-                StringBuilder ports = new StringBuilder();
-                for (String address : addresses) {
-                    int portIdx = address.lastIndexOf(':');
-                    if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
-                        String portStr = address.substring(portIdx + 1);
-                        try {
-                            int port = Integer.parseInt(portStr);
-                            if (port < 1 || port > 65535) {
-                                LOGGER.log(Level.WARNING, "JDBC URL port: {0} not valid (1:65535) ", portStr);
-                                return null;
-                            }
-                        } catch (NumberFormatException ignore) {
-                            LOGGER.log(Level.WARNING, "JDBC URL invalid port number: {0}", portStr);
-                            return null;
-                        }
-                        ports.append(portStr);
-                        hosts.append(address.subSequence(0, portIdx));
-                    } else {
-                        ports.append(DEFAULT_PORT);
-                        hosts.append(address);
-                    }
-                    ports.append(',');
-                    hosts.append(',');
-                }
-                ports.setLength(ports.length() - 1);
-                hosts.setLength(hosts.length() - 1);
-                urlProps.setProperty("PGPORT", ports.toString());
-                urlProps.setProperty("PGHOST", hosts.toString());
-            } else {
-                /*
-                 * if there are no defaults set or any one of PORT, HOST, DBNAME not set then
-                 * set it to default
-                 */
-                if (defaults == null || !defaults.containsKey("PGPORT")) {
-                    urlProps.setProperty("PGPORT", DEFAULT_PORT);
-                }
-                if (defaults == null || !defaults.containsKey("PGHOST")) {
-                    urlProps.setProperty("PGHOST", "localhost");
-                }
-                if (defaults == null || !defaults.containsKey("PGDBNAME")) {
-                    urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
-                }
-            }
-
-            // parse the args part of the url
-            String[] args = urlArgs.split("&");
-            for (String token : args) {
-                if (token.isEmpty()) {
-                    continue;
-                }
-                int pos = token.indexOf('=');
-                if (pos == -1) {
-                    urlProps.setProperty(token, "");
-                } else {
-                    urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
-                }
-            }
-        }
-        return urlProps;
+    if (!url.startsWith("jdbc:postgresql:")) {
+      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
+      return null;
     }
+    url = url.substring("jdbc:postgresql:".length());
+    boolean ldapURL = false;
+    if (url.startsWith("@ldap")) {
+      ldapURL = true;
+      // Ldap implementation to load server host port dbname
+      // First look for entry "url" in LDAP, url will look like
+      // standard postgre jdbc url
+      // If url not defined, look for libpq attributes host, port, dbname
+      NamingEnumeration<SearchResult> entries = null;
+      try {
+        // Perform search using URL
+        DirContext ctx = new InitialDirContext();
+        entries = ctx.search(url.substring(1), "", null);
+        ctx.close();
+        if (entries.hasMore()) {
+          SearchResult sr = (SearchResult) entries.next();
+          if (entries.hasMore()) {
+            LOGGER.log(Level.WARNING, "LDAP URL returned more than one element : {0}", url);
+            return null;
+          }
+          Attributes atts = sr.getAttributes();
+          // Loop over all attributes retrieved
+          NamingEnumeration<? extends Attribute> attsEnum = atts.getAll();
+          while (attsEnum.hasMore()) {
+            Attribute att = attsEnum.next();
+            // Loop over all attribute values
+            NamingEnumeration<?> attValues = att.getAll();
+            while (attValues.hasMore()) {
+              String attValue = (String) attValues.next();
+              // Look for "key=value" entries only
+              int pos = attValue.indexOf("=");
+              if (pos != -1) {
+                String key = attValue.substring(0, pos);
+                String value = attValue.substring(pos + 1);
+                // Is it the jdbc specific parameter 'url'
+                if (key.equals("url")) {
+                  // Specific case, we just use this as a standard jdbc url later
+                  // to allow specific functions from jdbc driver to be used such as fail-over
+                  url = value;
+                  // Set flag back to false !
+                  ldapURL = false;
+                  if (!url.startsWith("jdbc:postgresql:")) {
+                    LOGGER.log(Level.WARNING,
+                        "LDAP 'url' must start with \"jdbc:postgresql:\" but was: {0} - LDAP entry = "
+                            + sr.getNameInNamespace(),
+                        attValue);
+                    return null;
+                  }
+                  // repeat substring for next block
+                  url = url.substring("jdbc:postgresql:".length());
+                } else if (key.equals("host")) {
+                  urlProps.setProperty("PGHOST", value);
+                } else if (key.equals("port")) {
+                  urlProps.setProperty("PGPORT", value);
+                } else if (key.equals("dbname")) {
+                  urlProps.setProperty("PGDBNAME", value);
+                } else {
+                  // Simply put as extra properties on driver
+                  urlProps.setProperty(key, value);
+                }
+              }
+            }
+          }
+        } else {
+          LOGGER.log(Level.WARNING, "LDAP URL returned no result : {0}", url);
+          return null;
+        }
+      } catch (NamingException e) {
+        LOGGER.log(Level.WARNING, "JDBC LDAP URL not valid : {0}, error = " + e.toString(), url.substring(1));
+        return null;
+      }
+    }
+    if (!ldapURL) {
+      String urlServer = url;
+      // Deal with "standard" jdbc url
+      String urlArgs = "";
+      int qPos = url.indexOf('?');
+      if (qPos != -1) {
+        urlServer = url.substring(0, qPos);
+        urlArgs = url.substring(qPos + 1);
+      }
+
+      if (urlServer.startsWith("//")) {
+        urlServer = urlServer.substring(2);
+        int slash = urlServer.indexOf('/');
+        if (slash == -1) {
+          LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
+          return null;
+        }
+        urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer.substring(slash + 1)));
+
+        String[] addresses = urlServer.substring(0, slash).split(",");
+        StringBuilder hosts = new StringBuilder();
+        StringBuilder ports = new StringBuilder();
+        for (String address : addresses) {
+          int portIdx = address.lastIndexOf(':');
+          if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
+            String portStr = address.substring(portIdx + 1);
+            try {
+              int port = Integer.parseInt(portStr);
+              if (port < 1 || port > 65535) {
+                LOGGER.log(Level.WARNING, "JDBC URL port: {0} not valid (1:65535) ", portStr);
+                return null;
+              }
+            } catch (NumberFormatException ignore) {
+              LOGGER.log(Level.WARNING, "JDBC URL invalid port number: {0}", portStr);
+              return null;
+            }
+            ports.append(portStr);
+            hosts.append(address.subSequence(0, portIdx));
+          } else {
+            ports.append(DEFAULT_PORT);
+            hosts.append(address);
+          }
+          ports.append(',');
+          hosts.append(',');
+        }
+        ports.setLength(ports.length() - 1);
+        hosts.setLength(hosts.length() - 1);
+        urlProps.setProperty("PGPORT", ports.toString());
+        urlProps.setProperty("PGHOST", hosts.toString());
+      } else {
+        /*
+         * if there are no defaults set or any one of PORT, HOST, DBNAME not set then
+         * set it to default
+         */
+        if (defaults == null || !defaults.containsKey("PGPORT")) {
+          urlProps.setProperty("PGPORT", DEFAULT_PORT);
+        }
+        if (defaults == null || !defaults.containsKey("PGHOST")) {
+          urlProps.setProperty("PGHOST", "localhost");
+        }
+        if (defaults == null || !defaults.containsKey("PGDBNAME")) {
+          urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
+        }
+      }
+
+      // parse the args part of the url
+      String[] args = urlArgs.split("&");
+      for (String token : args) {
+        if (token.isEmpty()) {
+          continue;
+        }
+        int pos = token.indexOf('=');
+        if (pos == -1) {
+          urlProps.setProperty(token, "");
+        } else {
+          urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
+        }
+      }
+    }
+    return urlProps;
+  }
 
   /**
    * @return the address portion of the URL
