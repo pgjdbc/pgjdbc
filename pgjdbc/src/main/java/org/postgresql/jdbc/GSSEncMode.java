@@ -43,18 +43,18 @@ public enum GSSEncMode {
   }
 
   public static GSSEncMode of(Properties info) throws PSQLException {
-    String gssMode = PGProperty.GSS_ENC_MODE.get(info);
-    // If sslmode is not set, fallback to ssl parameter
-    if (gssMode == null) {
+    String gssEncMode = PGProperty.GSS_ENC_MODE.get(info);
+    // If gssEncMode is not set, fallback to prefer
+    if (gssEncMode == null) {
       return PREFER;
     }
 
     for (GSSEncMode mode : VALUES) {
-      if (mode.value.equalsIgnoreCase(gssMode)) {
+      if (mode.value.equalsIgnoreCase(gssEncMode)) {
         return mode;
       }
     }
-    throw new PSQLException(GT.tr("Invalid gssmode value: {0}", gssMode),
+    throw new PSQLException(GT.tr("Invalid gssEncMode value: {0}", gssEncMode),
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
