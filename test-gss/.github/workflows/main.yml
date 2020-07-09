@@ -1,0 +1,57 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    - name: 'Set up JDK 8'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+
+    - name: 'install software'
+      run: sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
+
+    - name: 'update hosts'
+      run: sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com >> /etc/hosts"
+
+    - name: 'Pull jdbc'
+      run: git clone https://github.com/pgjdbc/pgjdbc.git
+
+    - name: 'build branch'
+      run: |
+        cd pgjdbc
+        git config user.email "dave@postgres.rocks"
+        git config user.name "Dave Cramer"
+        git checkout -b davecramer-gssapi-ecrypted master
+        git pull https://github.com/davecramer/pgjdbc.git gssapi-ecrypted
+        ./gradlew publishToMavenLocal
+
+      # Runs a set of commands using the runners shell
+    - name: Run a multi-line script
+      run: |
+        echo Add other actions to build,
+        ./gradlew assemble
+
+    - name: Application
+      run: ./gradlew run
