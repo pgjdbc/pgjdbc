@@ -563,7 +563,7 @@ public class Driver implements java.sql.Driver {
       ldapURL = true;
       // Ldap implementation to load server host port dbname
       // First look for entry "url" in LDAP, url will look like
-      // standard postgre jdbc url
+      // standard PostgreSQL jdbc url
       // If url not defined, look for libpq attributes host, port, dbname
       NamingEnumeration<SearchResult> entries = null;
       try {
