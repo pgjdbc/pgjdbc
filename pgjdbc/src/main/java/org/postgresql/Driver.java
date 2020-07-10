@@ -294,7 +294,7 @@ public class Driver implements java.sql.Driver {
 
   // Used to check if the handler file is the same
   private static String loggerHandlerFile;
-  
+
   /**
    * <p>Setup java.util.logging.Logger using connection properties.</p>
    *
@@ -568,7 +568,7 @@ public class Driver implements java.sql.Driver {
       return parseJDBC(url, urlProps);
     }
   }
-  
+
   /**
    * Loads Properties for JDBC Connection from LDAP URL
    *
@@ -650,7 +650,7 @@ public class Driver implements java.sql.Driver {
     }
     return urlProps;
   }
-  
+
   /**
    * Loads Properties for JDBC Connection from LDAP URL
    *
