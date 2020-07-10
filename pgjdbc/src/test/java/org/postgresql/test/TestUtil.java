@@ -364,7 +364,8 @@ public class TestUtil {
 
     // Set GSSEncMode for tests
     PGProperty.GSS_ENC_MODE.set(props,getGSSEncMode().value);
-
+    System.err.println("GSS Encode mode: " + PGProperty.GSS_ENC_MODE.get(props));
+    
     return DriverManager.getConnection(getURL(hostport, database), props);
   }
 
