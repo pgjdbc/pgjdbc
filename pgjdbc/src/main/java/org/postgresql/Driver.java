@@ -294,7 +294,7 @@ public class Driver implements java.sql.Driver {
 
   // Used to check if the handler file is the same
   private static String loggerHandlerFile;
-
+  
   /**
    * <p>Setup java.util.logging.Logger using connection properties.</p>
    *
