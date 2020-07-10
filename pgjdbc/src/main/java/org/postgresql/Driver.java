@@ -561,11 +561,11 @@ public class Driver implements java.sql.Driver {
       urlProps.setProperty("PGHOST", "localhost");
     }
     if (url.startsWith("jdbc:postgresql:@ldap")) {
-    	// Send only ldap URL
+      // Send only ldap URL
       return parseLDAP(url.substring("jdbc:postgresql:@".length()), urlProps);
     } else {
-    	// Send full JDBC URL
-    	return parseJDBC(url, urlProps);
+      // Send full JDBC URL
+      return parseJDBC(url, urlProps);
     }
   }
   
@@ -577,78 +577,78 @@ public class Driver implements java.sql.Driver {
    * @return Properties with elements added or null if not valid
    */
   public static Properties parseJDBC(String jdbcURL, Properties urlProps) {
-		String urlServer = jdbcURL;
-		String urlArgs = "";
+    String urlServer = jdbcURL;
+    String urlArgs = "";
 
-		int qPos = jdbcURL.indexOf('?');
-		if (qPos != -1) {
-			urlServer = jdbcURL.substring(0, qPos);
-			urlArgs = jdbcURL.substring(qPos + 1);
-		}
+    int qPos = jdbcURL.indexOf('?');
+    if (qPos != -1) {
+      urlServer = jdbcURL.substring(0, qPos);
+      urlArgs = jdbcURL.substring(qPos + 1);
+    }
 
-		if (!urlServer.startsWith("jdbc:postgresql:")) {
-			LOGGER.log(Level.WARNING, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", jdbcURL);
-			return null;
-		}
-		urlServer = urlServer.substring("jdbc:postgresql:".length());
+    if (!urlServer.startsWith("jdbc:postgresql:")) {
+      LOGGER.log(Level.WARNING, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", jdbcURL);
+      return null;
+    }
+    urlServer = urlServer.substring("jdbc:postgresql:".length());
 
-		if (urlServer.startsWith("//")) {
-			urlServer = urlServer.substring(2);
-			int slash = urlServer.indexOf('/');
-			if (slash == -1) {
-				LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", jdbcURL);
-				return null;
-			}
-			urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer.substring(slash + 1)));
+    if (urlServer.startsWith("//")) {
+      urlServer = urlServer.substring(2);
+      int slash = urlServer.indexOf('/');
+      if (slash == -1) {
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", jdbcURL);
+        return null;
+      }
+      urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer.substring(slash + 1)));
 
-			String[] addresses = urlServer.substring(0, slash).split(",");
-			StringBuilder hosts = new StringBuilder();
-			StringBuilder ports = new StringBuilder();
-			for (String address : addresses) {
-				int portIdx = address.lastIndexOf(':');
-				if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
-					String portStr = address.substring(portIdx + 1);
-					try {
-						int port = Integer.parseInt(portStr);
-						if (port < 1 || port > 65535) {
-							LOGGER.log(Level.WARNING, "JDBC URL port: {0} not valid (1:65535) ", portStr);
-							return null;
-						}
-					} catch (NumberFormatException ignore) {
-						LOGGER.log(Level.WARNING, "JDBC URL invalid port number: {0}", portStr);
-						return null;
-					}
-					ports.append(portStr);
-					hosts.append(address.subSequence(0, portIdx));
-				} else {
-					ports.append(DEFAULT_PORT);
-					hosts.append(address);
-				}
-				ports.append(',');
-				hosts.append(',');
-			}
-			ports.setLength(ports.length() - 1);
-			hosts.setLength(hosts.length() - 1);
-			urlProps.setProperty("PGPORT", ports.toString());
-			urlProps.setProperty("PGHOST", hosts.toString());
-		} else {
-			// jdbcURL format is "jdbc:postgresql:database"
-			urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
-		}
-		// parse the args part of the url
-		String[] args = urlArgs.split("&");
-		for (String token : args) {
-			if (token.isEmpty()) {
-				continue;
-			}
-			int pos = token.indexOf('=');
-			if (pos == -1) {
-				urlProps.setProperty(token, "");
-			} else {
-				urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
-			}
-		}
-		return urlProps;
+      String[] addresses = urlServer.substring(0, slash).split(",");
+      StringBuilder hosts = new StringBuilder();
+      StringBuilder ports = new StringBuilder();
+      for (String address : addresses) {
+        int portIdx = address.lastIndexOf(':');
+        if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
+          String portStr = address.substring(portIdx + 1);
+          try {
+            int port = Integer.parseInt(portStr);
+            if (port < 1 || port > 65535) {
+              LOGGER.log(Level.WARNING, "JDBC URL port: {0} not valid (1:65535) ", portStr);
+              return null;
+            }
+          } catch (NumberFormatException ignore) {
+            LOGGER.log(Level.WARNING, "JDBC URL invalid port number: {0}", portStr);
+            return null;
+          }
+          ports.append(portStr);
+          hosts.append(address.subSequence(0, portIdx));
+        } else {
+          ports.append(DEFAULT_PORT);
+          hosts.append(address);
+        }
+        ports.append(',');
+        hosts.append(',');
+      }
+      ports.setLength(ports.length() - 1);
+      hosts.setLength(hosts.length() - 1);
+      urlProps.setProperty("PGPORT", ports.toString());
+      urlProps.setProperty("PGHOST", hosts.toString());
+    } else {
+      // jdbcURL format is "jdbc:postgresql:database"
+      urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
+    }
+    // parse the args part of the url
+    String[] args = urlArgs.split("&");
+    for (String token : args) {
+      if (token.isEmpty()) {
+        continue;
+      }
+      int pos = token.indexOf('=');
+      if (pos == -1) {
+        urlProps.setProperty(token, "");
+      } else {
+        urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
+      }
+    }
+    return urlProps;
   }
   
   /**
