@@ -235,10 +235,13 @@ karaf {
 val sourceDistribution by tasks.registering(Tar::class) {
     group = LifecycleBasePlugin.BUILD_GROUP
     description = "Source distribution for building pgjdbc with minimal features"
-    archiveClassifier.set("src")
+    archiveClassifier.set("jdbc-src")
     archiveExtension.set("tar.gz")
     compression = Compression.GZIP
     includeEmptyDirs = false
+
+    into(provider { archiveBaseName.get() + "-" + archiveVersion.get() + "-" + archiveClassifier.get() } )
+
     from(rootDir) {
         include("build.properties")
         include("ssltest.properties")

@@ -5,10 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-
-### Added
-
-### Fixed
+- Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder
 
 ## [42.2.15] (2020-06-19)
 ### Changed
