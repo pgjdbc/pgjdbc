@@ -140,6 +140,70 @@ You might use the following command to fix auto-correctable issues, and report t
 
     ./gradlew style
 
+## Null safety
+
+The project uses [Checker Framework](https://checkerframework.org/) for verification of the null safety
+(see [PR 1814](https://github.com/pgjdbc/pgjdbc/pull/1814)).
+
+By default, parameters, return values, and fields are `@NonNull`, so you need to add `@Nullable`
+as required.
+
+To execute checkerframework locally please use the following command:
+
+    ./gradlew -PenableCheckerframework :postgresql:classes
+
+Notable items:
+
+* CheckerFramework verifies code method by method. That means, it does can't account for method execution order.
+That is why `@Nullable` fields should be verified in each method where they are used.
+If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
+
+* If you are absolutely sure the value is non-null, you might use `org.postgresql.util.internal.Nullness.castNonNull(T)`
+or `org.postgresql.util.internal.Nullness.castNonNull(T, String)`.
+
+* You can configure postfix completion in IntelliJ IDEA via `Preferences -> Editor -> General -> Postfix Completion`
+key: `cnn`, applicable element type: `non-primitive`, `org.postgresql.util.internal.Nullness.castNonNull($EXPR$)`.  
+
+* CheckerFramework comes with an annotated JDK, however, there might be invalid annotations.
+In that cases, stub files can be placed to `/config/checkerframework` to override the annotations.
+It is important the files have `.astub` extension otherwise they will be ignored.
+
+* Type annotations are not that obvious when arrays come into the equation.
+You can find more details in [Java Language Specification](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.7.4).
+
+        String nonNullable;
+        @Nullable String nullable;
+
+        java.lang.@Nullable String fullyQualifiedNullable;
+
+        // array and elements: non-nullable
+        String[] x;
+
+        // array: nullable, elements: non-nullable
+        String @Nullable [] x;
+
+        // array: non-nullable, elements: nullable
+        @Nullable String[] x;
+
+        // array: nullable, elements: nullable
+        @Nullable String @Nullable [] x;  
+
+        // arrays: nullable, elements: nullable
+        // x: non-nullable
+        // x[0]: non-nullable
+        // x[0][0]: nullable
+        @Nullable String[][] x;
+
+        // x: nullable
+        // x[0]: non-nullable
+        // x[0][0]: non-nullable
+        String @Nullable [][] x;
+
+        // x: non-nullable
+        // x[0]: nullable
+        // x[0][0]: non-nullable
+        String[] @Nullable [] x;
+
 ## Updating translations
 
 From time to time, the translation packages will need to be updated as part of the build process.
