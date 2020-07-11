@@ -10,6 +10,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -22,18 +23,19 @@ import java.security.PrivilegedAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class GssEncAction implements PrivilegedAction<Exception> {
+public class GssEncAction implements PrivilegedAction<@Nullable Exception> {
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
   private final PGStream pgStream;
   private final String host;
   private final String user;
   private final String kerberosServerName;
   private final boolean useSpnego;
-  private final GSSCredential clientCredentials;
+  private final @Nullable GSSCredential clientCredentials;
   private final boolean logServerErrorDetail;
 
-  public GssEncAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
-            String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
+  public GssEncAction(PGStream pgStream, @Nullable GSSCredential clientCredentials,
+      String host, String user,
+      String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
     this.clientCredentials = clientCredentials;
     this.host = host;
@@ -57,7 +59,7 @@ public class GssEncAction implements PrivilegedAction<Exception> {
   }
 
   @Override
-  public Exception run() {
+  public @Nullable Exception run() {
     try {
       GSSManager manager = GSSManager.getInstance();
       GSSCredential clientCreds = null;

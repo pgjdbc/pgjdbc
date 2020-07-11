@@ -1,0 +1,10 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+interface DriverPropertyInfo {
+    @Nullable String description;
+    @Nullable String value;
+    String @Nullable [] choices;
+    DriverPropertyInfo(String name, @Nullable String value);
+}

@@ -5,6 +5,8 @@
 
 package org.postgresql.replication;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Information returned on replication slot creation.
  *
@@ -15,17 +17,20 @@ package org.postgresql.replication;
  * <li><b>snapshot_name</b> String {@code =>} exported snapshot's name (may be <code>null</code>)
  * <li><b>output_plugin</b> String {@code =>} output plugin (may be <code>null</code>)
  * </ol>
+ *
+ * @see <a href="https://www.postgresql.org/docs/12/protocol-replication.html#PROTOCOL-REPLICATION-CREATE-SLOT">CREATE_REPLICATION_SLOT documentation</a>
  */
 public final class ReplicationSlotInfo {
 
   private final String slotName;
   private final ReplicationType replicationType;
   private final LogSequenceNumber consistentPoint;
-  private final String snapshotName;
-  private final String outputPlugin;
+  private final @Nullable String snapshotName;
+  private final @Nullable String outputPlugin;
 
   public ReplicationSlotInfo(String slotName, ReplicationType replicationType,
-      LogSequenceNumber consistentPoint, String snapshotName, String outputPlugin) {
+      LogSequenceNumber consistentPoint, @Nullable String snapshotName,
+      @Nullable String outputPlugin) {
     this.slotName = slotName;
     this.replicationType = replicationType;
     this.consistentPoint = consistentPoint;
@@ -69,7 +74,7 @@ public final class ReplicationSlotInfo {
    *
    * @return exported snapshot_name (may be <code>null</code>)
    */
-  public String getSnapshotName() {
+  public @Nullable String getSnapshotName() {
     return snapshotName;
   }
 
@@ -78,7 +83,7 @@ public final class ReplicationSlotInfo {
    *
    * @return output_plugin (may be <code>null</code>)
    */
-  public String getOutputPlugin() {
+  public @Nullable String getOutputPlugin() {
     return outputPlugin;
   }
 

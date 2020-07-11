@@ -1,0 +1,7 @@
+package javax.naming;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class StringRefAddr {
+    StringRefAddr(String addrType, @Nullable String addr);
+}

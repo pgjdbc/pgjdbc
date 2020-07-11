@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Writer;
 import java.util.logging.ErrorManager;
 import java.util.logging.Formatter;
@@ -15,9 +17,10 @@ import java.util.logging.SimpleFormatter;
 
 public class LogWriterHandler extends Handler {
 
-  Writer writer;
-  private  final Object lock = new Object();
+  private @Nullable Writer writer;
+  private final Object lock = new Object();
 
+  @SuppressWarnings("method.invocation.invalid")
   public LogWriterHandler(Writer inWriter) {
     super();
     setLevel(Level.INFO);
@@ -43,18 +46,23 @@ public class LogWriterHandler extends Handler {
     }
     try {
       synchronized (lock) {
-        writer.write(formatted);
+        Writer writer = this.writer;
+        if (writer != null) {
+          writer.write(formatted);
+        }
       }
     } catch (Exception ex) {
       reportError("Error writing message", ex, ErrorManager.WRITE_FAILURE);
-      return;
     }
   }
 
   @Override
   public void flush() {
     try {
-      writer.flush();
+      Writer writer = this.writer;
+      if (writer != null) {
+        writer.flush();
+      }
     } catch ( Exception ex ) {
       reportError("Error on flush", ex, ErrorManager.WRITE_FAILURE);
     }
@@ -63,14 +71,17 @@ public class LogWriterHandler extends Handler {
   @Override
   public void close() throws SecurityException {
     try {
-      writer.close();
+      Writer writer = this.writer;
+      if (writer != null) {
+        writer.close();
+      }
     } catch ( Exception ex ) {
       reportError("Error closing writer", ex, ErrorManager.WRITE_FAILURE);
     }
   }
 
   private void setWriter(Writer writer) throws IllegalArgumentException {
-    if ( writer == null ) {
+    if (writer == null) {
       throw new IllegalArgumentException("Writer cannot be null");
     }
     this.writer = writer;

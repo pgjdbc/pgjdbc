@@ -12,6 +12,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
@@ -52,24 +53,24 @@ import javax.xml.transform.stream.StreamSource;
 public class PgSQLXML implements SQLXML {
 
   private final BaseConnection conn;
-  private String data; // The actual data contained.
+  private @Nullable String data; // The actual data contained.
   private boolean initialized; // Has someone assigned the data for this object?
   private boolean active; // Is anyone in the process of loading data into us?
   private boolean freed;
 
-  private ByteArrayOutputStream byteArrayOutputStream;
-  private StringWriter stringWriter;
-  private DOMResult domResult;
+  private @Nullable ByteArrayOutputStream byteArrayOutputStream;
+  private @Nullable StringWriter stringWriter;
+  private @Nullable DOMResult domResult;
 
   public PgSQLXML(BaseConnection conn) {
     this(conn, null, false);
   }
 
-  public PgSQLXML(BaseConnection conn, String data) {
+  public PgSQLXML(BaseConnection conn, @Nullable String data) {
     this(conn, data, true);
   }
 
-  private PgSQLXML(BaseConnection conn, String data, boolean initialized) {
+  private PgSQLXML(BaseConnection conn, @Nullable String data, boolean initialized) {
     this.conn = conn;
     this.data = data;
     this.initialized = initialized;
@@ -91,7 +92,7 @@ public class PgSQLXML implements SQLXML {
   }
 
   @Override
-  public synchronized InputStream getBinaryStream() throws SQLException {
+  public synchronized @Nullable InputStream getBinaryStream() throws SQLException {
     checkFreed();
     ensureInitialized();
 
@@ -111,7 +112,7 @@ public class PgSQLXML implements SQLXML {
   }
 
   @Override
-  public synchronized Reader getCharacterStream() throws SQLException {
+  public synchronized @Nullable Reader getCharacterStream() throws SQLException {
     checkFreed();
     ensureInitialized();
 
@@ -129,10 +130,12 @@ public class PgSQLXML implements SQLXML {
   // ensure they are the same.
   //
   @Override
-  public synchronized <T extends Source> T getSource(Class<T> sourceClass) throws SQLException {
+  public synchronized <T extends Source> @Nullable T getSource(@Nullable Class<T> sourceClass)
+      throws SQLException {
     checkFreed();
     ensureInitialized();
 
+    String data = this.data;
     if (data == null) {
       return null;
     }
@@ -141,17 +144,19 @@ public class PgSQLXML implements SQLXML {
       if (sourceClass == null || DOMSource.class.equals(sourceClass)) {
         DocumentBuilder builder = getXmlFactoryFactory().newDocumentBuilder();
         InputSource input = new InputSource(new StringReader(data));
-        return (T) new DOMSource(builder.parse(input));
+        DOMSource domSource = new DOMSource(builder.parse(input));
+        //noinspection unchecked
+        return (T) domSource;
       } else if (SAXSource.class.equals(sourceClass)) {
         XMLReader reader = getXmlFactoryFactory().createXMLReader();
         InputSource is = new InputSource(new StringReader(data));
-        return (T) new SAXSource(reader, is);
+        return sourceClass.cast(new SAXSource(reader, is));
       } else if (StreamSource.class.equals(sourceClass)) {
-        return (T) new StreamSource(new StringReader(data));
+        return sourceClass.cast(new StreamSource(new StringReader(data)));
       } else if (StAXSource.class.equals(sourceClass)) {
         XMLInputFactory xif = getXmlFactoryFactory().newXMLInputFactory();
         XMLStreamReader xsr = xif.createXMLStreamReader(new StringReader(data));
-        return (T) new StAXSource(xsr);
+        return sourceClass.cast(new StAXSource(xsr));
       }
     } catch (Exception e) {
       throw new PSQLException(GT.tr("Unable to decode xml data."), PSQLState.DATA_ERROR, e);
@@ -162,7 +167,7 @@ public class PgSQLXML implements SQLXML {
   }
 
   @Override
-  public synchronized String getString() throws SQLException {
+  public synchronized @Nullable String getString() throws SQLException {
     checkFreed();
     ensureInitialized();
     return data;
@@ -194,6 +199,7 @@ public class PgSQLXML implements SQLXML {
     if (resultClass == null || DOMResult.class.equals(resultClass)) {
       domResult = new DOMResult();
       active = true;
+      //noinspection unchecked
       return (T) domResult;
     } else if (SAXResult.class.equals(resultClass)) {
       try {
@@ -202,7 +208,7 @@ public class PgSQLXML implements SQLXML {
         stringWriter = new StringWriter();
         transformerHandler.setResult(new StreamResult(stringWriter));
         active = true;
-        return (T) new SAXResult(transformerHandler);
+        return resultClass.cast(new SAXResult(transformerHandler));
       } catch (TransformerException te) {
         throw new PSQLException(GT.tr("Unable to create SAXResult for SQLXML."),
             PSQLState.UNEXPECTED_ERROR, te);
@@ -210,14 +216,15 @@ public class PgSQLXML implements SQLXML {
     } else if (StreamResult.class.equals(resultClass)) {
       stringWriter = new StringWriter();
       active = true;
-      return (T) new StreamResult(stringWriter);
+      return resultClass.cast(new StreamResult(stringWriter));
     } else if (StAXResult.class.equals(resultClass)) {
-      stringWriter = new StringWriter();
+      StringWriter stringWriter = new StringWriter();
+      this.stringWriter = stringWriter;
       try {
         XMLOutputFactory xof = getXmlFactoryFactory().newXMLOutputFactory();
         XMLStreamWriter xsw = xof.createXMLStreamWriter(stringWriter);
         active = true;
-        return (T) new StAXResult(xsw);
+        return resultClass.cast(new StAXResult(xsw));
       } catch (XMLStreamException xse) {
         throw new PSQLException(GT.tr("Unable to create StAXResult for SQLXML"),
             PSQLState.UNEXPECTED_ERROR, xse);
@@ -273,6 +280,7 @@ public class PgSQLXML implements SQLXML {
       stringWriter = null;
       active = false;
     } else if (domResult != null) {
+      DOMResult domResult = this.domResult;
       // Copy the content from the result to a source
       // and use the identify transform to get it into a
       // friendlier result format.

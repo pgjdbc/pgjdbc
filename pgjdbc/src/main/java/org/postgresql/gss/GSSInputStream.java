@@ -5,6 +5,9 @@
 
 package org.postgresql.gss;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.MessageProp;
@@ -16,7 +19,7 @@ public class GSSInputStream extends InputStream {
   private GSSContext gssContext;
   private MessageProp messageProp;
   private InputStream wrapped;
-  byte[] unencrypted;
+  byte @Nullable [] unencrypted;
   int unencryptedPos;
   int unencryptedLength;
 
@@ -38,8 +41,8 @@ public class GSSInputStream extends InputStream {
     int copyLength = 0;
 
     if ( unencryptedLength > 0 ) {
-      copyLength = len <= unencryptedLength ? len : unencryptedLength;
-      System.arraycopy(unencrypted, unencryptedPos, buffer, pos, copyLength);
+      copyLength = Math.min(len, unencryptedLength);
+      System.arraycopy(castNonNull(unencrypted), unencryptedPos, buffer, pos, copyLength);
       unencryptedLength -= copyLength;
       unencryptedPos += copyLength;
     } else {
@@ -52,11 +55,12 @@ public class GSSInputStream extends InputStream {
         wrapped.read(encryptedBuffer, 0, encryptedLength);
 
         try {
-          unencrypted = gssContext.unwrap(encryptedBuffer, 0, encryptedLength, messageProp);
+          byte[] unencrypted = gssContext.unwrap(encryptedBuffer, 0, encryptedLength, messageProp);
+          this.unencrypted = unencrypted;
           unencryptedLength = unencrypted.length;
           unencryptedPos = 0;
 
-          copyLength = len <= unencrypted.length ? len : unencrypted.length;
+          copyLength = Math.min(len, unencrypted.length);
           System.arraycopy(unencrypted, unencryptedPos, buffer, pos, copyLength);
           unencryptedLength -= copyLength;
           unencryptedPos += copyLength;

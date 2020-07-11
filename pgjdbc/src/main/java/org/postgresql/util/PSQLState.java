@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * This class is used for holding SQLState codes.
  */
@@ -115,7 +117,7 @@ public enum PSQLState {
     return this.state;
   }
 
-  public static boolean isConnectionError(String psqlState) {
+  public static boolean isConnectionError(@Nullable String psqlState) {
     return PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(psqlState)
         || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
         || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)

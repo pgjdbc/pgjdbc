@@ -8,6 +8,8 @@ package org.postgresql.replication;
 import org.postgresql.replication.fluent.CommonOptions;
 import org.postgresql.replication.fluent.logical.LogicalReplicationOptions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 
@@ -37,7 +39,7 @@ public interface PGReplicationStream
    *     received byte array with use offset, so, use {@link ByteBuffer#array()} carefully
    * @throws SQLException when some internal exception occurs during read from stream
    */
-  ByteBuffer read() throws SQLException;
+  @Nullable ByteBuffer read() throws SQLException;
 
   /**
    * <p>Read next WAL record from backend. This method does not block and in contrast to {@link
@@ -55,7 +57,7 @@ public interface PGReplicationStream
    *     ByteBuffer#array()} carefully.
    * @throws SQLException when some internal exception occurs during read from stream
    */
-  ByteBuffer readPending() throws SQLException;
+  @Nullable ByteBuffer readPending() throws SQLException;
 
   /**
    * <p>Parameter updates by execute {@link PGReplicationStream#read()} method.</p>

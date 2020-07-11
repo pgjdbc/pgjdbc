@@ -7,6 +7,8 @@ package org.postgresql.core;
 
 import org.postgresql.util.CanEstimateSize;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * This class is used as a cache key for simple statements that have no "returning columns".
  * Prepared statements that have no returning columns use just {@code String sql} as a key.
@@ -42,7 +44,7 @@ class BaseQueryKey implements CanEstimateSize {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

@@ -7,6 +7,9 @@ package org.postgresql.core;
 
 import org.postgresql.jdbc.FieldMetadata;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 /*
  */
 public class Field {
@@ -30,7 +33,7 @@ public class Field {
 
   // Cache fields filled in by AbstractJdbc2ResultSetMetaData.fetchFieldMetaData.
   // Don't use unless that has been called.
-  private FieldMetadata metadata;
+  private @Nullable FieldMetadata metadata;
 
   private int sqlType;
   private String pgType = NOT_YET_LOADED;
@@ -83,6 +86,7 @@ public class Field {
   /**
    * @return the oid of this Field's data type
    */
+  @Pure
   public int getOID() {
     return oid;
   }
@@ -133,7 +137,7 @@ public class Field {
     return positionInTable;
   }
 
-  public FieldMetadata getMetadata() {
+  public @Nullable FieldMetadata getMetadata() {
     return metadata;
   }
 

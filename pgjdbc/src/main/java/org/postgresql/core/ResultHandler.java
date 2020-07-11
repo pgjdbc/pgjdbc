@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
@@ -36,7 +38,8 @@ public interface ResultHandler {
    * @param cursor a cursor to use to fetch additional data; <code>null</code> if no further results
    *        are present.
    */
-  void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples, ResultCursor cursor);
+  void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+      @Nullable ResultCursor cursor);
 
   /**
    * Called when a query that did not return a resultset completes.
@@ -84,11 +87,11 @@ public interface ResultHandler {
    * Returns the first encountered exception. The rest are chained via {@link SQLException#setNextException(SQLException)}
    * @return the first encountered exception
    */
-  SQLException getException();
+  @Nullable SQLException getException();
 
   /**
    * Returns the first encountered warning. The rest are chained via {@link SQLException#setNextException(SQLException)}
    * @return the first encountered warning
    */
-  SQLWarning getWarning();
+  @Nullable SQLWarning getWarning();
 }

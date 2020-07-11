@@ -8,6 +8,8 @@ package org.postgresql.core.v3;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Purpose of this object is to support batched query re write behaviour. Responsibility for
  * tracking the batch size and implement the clean up of the query fragments after the batch execute
@@ -20,11 +22,11 @@ import org.postgresql.core.ParameterList;
  */
 public class BatchedQuery extends SimpleQuery {
 
-  private String sql;
+  private @Nullable String sql;
   private final int valuesBraceOpenPosition;
   private final int valuesBraceClosePosition;
   private final int batchSize;
-  private BatchedQuery[] blocks;
+  private BatchedQuery @Nullable [] blocks;
 
   public BatchedQuery(NativeQuery query, TypeTransferModeRegistry transferModeRegistry,
       int valuesBraceOpenPosition,
@@ -84,7 +86,7 @@ public class BatchedQuery extends SimpleQuery {
     return sql;
   }
 
-  private String buildNativeSql(ParameterList params) {
+  private String buildNativeSql(@Nullable ParameterList params) {
     String sql = null;
     // dynamically build sql with parameters for batches
     String nativeSql = super.getNativeSql();
@@ -172,7 +174,7 @@ public class BatchedQuery extends SimpleQuery {
   }
 
   @Override
-  public String toString(ParameterList params) {
+  public String toString(@Nullable ParameterList params) {
     if (getBatchSize() < 2) {
       return super.toString(params);
     }

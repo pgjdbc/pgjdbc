@@ -1,0 +1,15 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class SQLException {
+  public SQLException(@Nullable String reason, @Nullable String SQLState, int vendorCode);
+  public SQLException(@Nullable String reason, @Nullable String SQLState);
+  public SQLException(@Nullable String reason);
+  public SQLException(@Nullable Throwable cause);
+  public SQLException(@Nullable String reason, @Nullable Throwable cause);
+  public SQLException(@Nullable String reason, @Nullable String sqlState, @Nullable Throwable cause);
+  public SQLException(@Nullable String reason, @Nullable String sqlState, int vendorCode, @Nullable Throwable cause);
+  public @Nullable String getSQLState();
+  public @Nullable SQLException getNextException();
+}

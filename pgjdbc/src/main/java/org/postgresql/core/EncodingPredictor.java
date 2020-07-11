@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 
 /**
@@ -24,21 +26,22 @@ public class EncodingPredictor {
    */
   public static class DecodeResult {
     public final String result;
-    public final String encoding; // JVM name
+    public final @Nullable String encoding; // JVM name
 
-    DecodeResult(String result, String encoding) {
+    DecodeResult(String result, @Nullable String encoding) {
       this.result = result;
       this.encoding = encoding;
     }
   }
 
   static class Translation {
-    public final String fatalText;
-    private final String[] texts;
+    public final @Nullable String fatalText;
+    private final String @Nullable [] texts;
     public final String language;
     public final String[] encodings;
 
-    Translation(String fatalText, String[] texts, String language, String... encodings) {
+    Translation(@Nullable String fatalText, String @Nullable [] texts,
+        String language, String... encodings) {
       this.fatalText = fatalText;
       this.texts = texts;
       this.language = language;
@@ -58,7 +61,7 @@ public class EncodingPredictor {
               "LATIN7", "LATIN9"),
       };
 
-  public static DecodeResult decode(byte[] bytes, int offset, int length) {
+  public static @Nullable DecodeResult decode(byte[] bytes, int offset, int length) {
     Encoding defaultEncoding = Encoding.defaultEncoding();
     for (Translation tr : FATAL_TRANSLATIONS) {
       for (String encoding : tr.encodings) {

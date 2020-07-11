@@ -10,6 +10,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSCredential;
 
 import java.io.IOException;
@@ -25,8 +26,10 @@ import javax.security.auth.login.LoginContext;
 public class MakeGSS {
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
 
-  public static void authenticate(boolean encrypted, PGStream pgStream, String host, String user, String password,
-      String jaasApplicationName, String kerberosServerName, boolean useSpnego, boolean jaasLogin,
+  public static void authenticate(boolean encrypted,
+      PGStream pgStream, String host, String user, @Nullable String password,
+      @Nullable String jaasApplicationName, @Nullable String kerberosServerName,
+      boolean useSpnego, boolean jaasLogin,
       boolean logServerErrorDetail)
           throws IOException, PSQLException {
     LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
@@ -38,7 +41,7 @@ public class MakeGSS {
       kerberosServerName = "postgres";
     }
 
-    Exception result;
+    @Nullable Exception result;
     try {
       boolean performAuthentication = jaasLogin;
       GSSCredential gssCredential = null;
@@ -57,12 +60,12 @@ public class MakeGSS {
         sub = lc.getSubject();
       }
       if ( encrypted ) {
-        PrivilegedAction<Exception> action = new GssEncAction(pgStream, gssCredential, host, user,
+        PrivilegedAction<@Nullable Exception> action = new GssEncAction(pgStream, gssCredential, host, user,
             kerberosServerName, useSpnego, logServerErrorDetail);
 
         result = Subject.doAs(sub, action);
       } else {
-        PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user,
+        PrivilegedAction<@Nullable Exception> action = new GssAction(pgStream, gssCredential, host, user,
             kerberosServerName, useSpnego, logServerErrorDetail);
 
         result = Subject.doAs(sub, action);

@@ -12,6 +12,8 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -50,6 +52,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @param s Box definition in PostgreSQL syntax
    * @throws SQLException if definition is invalid
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGbox(String s) throws SQLException {
     this();
     setValue(s);
@@ -59,7 +62,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * Required constructor.
    */
   public PGbox() {
-    setType("box");
+    type = "box";
   }
 
   /**
@@ -96,7 +99,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @param obj Object to compare with
    * @return true if the two boxes are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGbox) {
       PGbox p = (PGbox) obj;
 

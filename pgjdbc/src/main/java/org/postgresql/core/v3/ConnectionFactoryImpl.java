@@ -6,6 +6,8 @@
 
 package org.postgresql.core.v3;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
@@ -31,6 +33,8 @@ import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -71,7 +75,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_SASL_FINAL = 12;
 
   private ISSPIClient createSSPI(PGStream pgStream,
-      String spnServiceClass,
+      @Nullable String spnServiceClass,
       boolean enableNegotiate) {
     try {
       @SuppressWarnings("unchecked")
@@ -160,7 +164,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     GSSEncMode gssEncMode = GSSEncMode.of(info);
 
     HostRequirement targetServerType;
-    String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
+    String targetServerTypeStr = castNonNull(PGProperty.TARGET_SERVER_TYPE.get(info));
     try {
       targetServerType = HostRequirement.getTargetServerType(targetServerTypeStr);
     } catch (IllegalArgumentException ex) {
@@ -257,6 +261,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         int cancelSignalTimeout = PGProperty.CANCEL_SIGNAL_TIMEOUT.getInt(info) * 1000;
 
+        // CheckerFramework can't infer newStream is non-nullable
+        castNonNull(newStream);
         // Do final startup.
         QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, user, database,
             cancelSignalTimeout, info);
@@ -690,9 +696,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * it's forced. Otherwise use gssapi. If the user has specified a Kerberos server
                  * name we'll always use JSSE GSSAPI.
                  */
-                if (gsslib.equals("gssapi")) {
+                if ("gssapi".equals(gsslib)) {
                   LOGGER.log(Level.FINE, "Using JSSE GSSAPI, param gsslib=gssapi");
-                } else if (areq == AUTH_REQ_GSS && !gsslib.equals("sspi")) {
+                } else if (areq == AUTH_REQ_GSS && !"sspi".equals(gsslib)) {
                   LOGGER.log(Level.FINE,
                       "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
                 } else {
@@ -708,7 +714,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     /* No need to dispose() if no SSPI used */
                     sspiClient = null;
 
-                    if (gsslib.equals("sspi")) {
+                    if ("sspi".equals(gsslib)) {
                       throw new PSQLException(
                           "SSPI forced with gsslib=sspi, but SSPI not available; set loglevel=2 for details",
                           PSQLState.CONNECTION_UNABLE_TO_CONNECT);
@@ -722,7 +728,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
                 if (useSSPI) {
                   /* SSPI requested and detected as available */
-                  sspiClient.startSSPI();
+                  castNonNull(sspiClient).startSSPI();
                 } else {
                   /* Use JGSS's GSSAPI for this request */
                   org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
@@ -737,14 +743,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 /*
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
-                sspiClient.continueSSPI(msgLen - 8);
+                castNonNull(sspiClient).continueSSPI(msgLen - 8);
                 break;
 
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
                 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, password, pgStream);
+                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
                 // This works as follows:
@@ -763,11 +769,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               case AUTH_REQ_SASL_CONTINUE:
-                scramAuthenticator.processServerFirstMessage(msgLen - 4 - 4);
+                castNonNull(scramAuthenticator).processServerFirstMessage(msgLen - 4 - 4);
                 break;
 
               case AUTH_REQ_SASL_FINAL:
-                scramAuthenticator.verifyServerSignature(msgLen - 4 - 4);
+                castNonNull(scramAuthenticator).verifyServerSignature(msgLen - 4 - 4);
                 break;
               //#endif
 
@@ -831,7 +837,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
     Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
-    String value = queryExecutor.getEncoding().decode(results.get(0));
+    Tuple nonNullResults = castNonNull(results);
+    String value = queryExecutor.getEncoding().decode(castNonNull(nonNullResults.get(0)));
     return value.equalsIgnoreCase("off");
   }
 }

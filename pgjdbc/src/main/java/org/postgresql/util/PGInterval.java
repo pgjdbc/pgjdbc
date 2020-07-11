@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -33,7 +35,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * required by the driver.
    */
   public PGInterval() {
-    setType("interval");
+    type = "interval";
   }
 
   /**
@@ -41,8 +43,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
-   * @see #setValue(String)
+   * @see PGobject#setValue(String)
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGInterval(String value) throws SQLException {
     this();
     setValue(value);
@@ -119,6 +122,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param seconds seconds
    * @see #setValue(int, int, int, int, int, double)
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGInterval(int years, int months, int days, int hours, int minutes, double seconds) {
     this();
     setValue(years, months, days, hours, minutes, seconds);
@@ -444,7 +448,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return integer parsed from string value
    * @throws NumberFormatException if the string contains invalid chars
    */
-  private static int nullSafeIntGet(String value) throws NumberFormatException {
+  private static int nullSafeIntGet(@Nullable String value) throws NumberFormatException {
     return (value == null) ? 0 : Integer.parseInt(value);
   }
 
@@ -455,7 +459,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return double parsed from string value
    * @throws NumberFormatException if the string contains invalid chars
    */
-  private static double nullSafeDoubleGet(String value) throws NumberFormatException {
+  private static double nullSafeDoubleGet(@Nullable String value) throws NumberFormatException {
     return (value == null) ? 0 : Double.parseDouble(value);
   }
 
@@ -465,7 +469,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two intervals are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj == null) {
       return false;
     }
