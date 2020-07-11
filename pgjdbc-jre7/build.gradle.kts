@@ -63,13 +63,24 @@ tasks.processResources {
     from("${project(":postgresql").projectDir}/src/main/resources")
 }
 
+val sourceWithoutCheckerAnnotations by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+dependencies {
+    sourceWithoutCheckerAnnotations(project(":postgresql", "sourceWithoutCheckerAnnotations"))
+}
+
 val preprocessMain by tasks.registering(JavaCommentPreprocessorTask::class) {
-    baseDir.set(project(":postgresql").projectDir)
+    dependsOn(sourceWithoutCheckerAnnotations)
+    baseDir.set(layout.file(provider { sourceWithoutCheckerAnnotations.singleFile }))
     sourceFolders.addAll("src/main/java", "src/main/version")
 }
 
 val preprocessTest by tasks.registering(JavaCommentPreprocessorTask::class) {
-    baseDir.set(project(":postgresql").projectDir)
+    dependsOn(sourceWithoutCheckerAnnotations)
+    baseDir.set(layout.file(provider { sourceWithoutCheckerAnnotations.singleFile }))
     sourceFolders.add("src/test/java")
 }
 

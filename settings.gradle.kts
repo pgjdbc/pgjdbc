@@ -20,6 +20,7 @@ pluginManagement {
         idv("com.github.vlsi.license-gather", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.stage-vote-release", "com.github.vlsi.vlsi-release-plugins")
         idv("me.champeau.gradle.jmh")
+        idv("org.checkerframework")
         idv("org.jetbrains.gradle.plugin.idea-ext")
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
