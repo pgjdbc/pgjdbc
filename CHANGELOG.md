@@ -11,6 +11,9 @@ are possible. Now the driver will attempt to connect to the server with a GSSAPI
 attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
 and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required.
 
+### Added
+- Verify nullness with CheckerFramework
+
 ## [42.2.15] (2020-06-19)
 ### Changed
 - Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact.  
