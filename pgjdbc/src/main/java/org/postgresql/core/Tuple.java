@@ -5,12 +5,16 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 /**
  * Class representing a row in a {@link java.sql.ResultSet}.
  */
 public class Tuple {
   private final boolean forUpdate;
-  final byte[][] data;
+  final byte[] @Nullable [] data;
 
   /**
    * Construct an empty tuple. Used in updatable result sets.
@@ -24,11 +28,11 @@ public class Tuple {
    * Construct a populated tuple. Used when returning results.
    * @param data the tuple data
    */
-  public Tuple(byte[][] data) {
+  public Tuple(byte[] @Nullable [] data) {
     this(data, false);
   }
 
-  private Tuple(byte[][] data, boolean forUpdate) {
+  private Tuple(byte[] @Nullable [] data, boolean forUpdate) {
     this.data = data;
     this.forUpdate = forUpdate;
   }
@@ -37,7 +41,7 @@ public class Tuple {
    * Number of fields in the tuple
    * @return number of fields
    */
-  public int fieldCount() {
+  public @NonNegative int fieldCount() {
     return data.length;
   }
 
@@ -45,7 +49,7 @@ public class Tuple {
    * Total length in bytes of the tuple data.
    * @return the number of bytes in this tuple
    */
-  public int length() {
+  public @NonNegative int length() {
     int length = 0;
     for (byte[] field : data) {
       if (field != null) {
@@ -60,7 +64,8 @@ public class Tuple {
    * @param index 0-based field position in the tuple
    * @return byte array of the data
    */
-  public byte[] get(int index) {
+  @Pure
+  public byte @Nullable [] get(@NonNegative int index) {
     return data[index];
   }
 
@@ -91,7 +96,7 @@ public class Tuple {
    * @param index 0-based field position
    * @param fieldData the data to set
    */
-  public void set(int index, byte[] fieldData) {
+  public void set(@NonNegative int index, byte @Nullable [] fieldData) {
     if (!forUpdate) {
       throw new IllegalArgumentException("Attempted to write to readonly tuple");
     }

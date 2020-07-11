@@ -14,6 +14,7 @@ import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.MessageProp;
 
@@ -51,7 +52,7 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private OutputStream pgOutput;
-  private byte[] streamBuffer;
+  private byte @Nullable [] streamBuffer;
 
   public boolean isGssEncrypted() {
     return gssEncrypted;
@@ -86,6 +87,7 @@ public class PGStream implements Closeable, Flushable {
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
@@ -98,6 +100,7 @@ public class PGStream implements Closeable, Flushable {
     int4Buf = new byte[4];
   }
 
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
   public PGStream(PGStream pgStream, int timeout ) throws IOException {
 
     /*
@@ -707,7 +710,7 @@ public class PGStream implements Closeable, Flushable {
    *              multiplier)
    * @throws PSQLException exception returned when occurred parsing problem.
    */
-  public void setMaxResultBuffer(String value) throws PSQLException {
+  public void setMaxResultBuffer(@Nullable String value) throws PSQLException {
     maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
   }
 

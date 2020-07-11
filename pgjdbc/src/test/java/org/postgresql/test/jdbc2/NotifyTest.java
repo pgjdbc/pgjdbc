@@ -7,7 +7,6 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
@@ -22,6 +21,7 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 
 public class NotifyTest {
   private Connection conn;
@@ -113,7 +113,8 @@ public class NotifyTest {
     PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications(500);
     long endMillis = System.currentTimeMillis();
     long runtime = endMillis - startMillis;
-    assertNull("There have been notifications, although none have been expected.",notifications);
+    assertEquals("There have been notifications, although none have been expected.",
+        "[]", Arrays.asList(notifications).toString());
     Assert.assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
 
     stmt.close();

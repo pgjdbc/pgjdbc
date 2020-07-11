@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -21,11 +24,11 @@ public class GT {
   private static final GT _gt = new GT();
   private static final Object[] noargs = new Object[0];
 
-  public static String tr(String message, Object... args) {
+  public static @Pure String tr(String message, @Nullable Object... args) {
     return _gt.translate(message, args);
   }
 
-  private ResourceBundle bundle;
+  private @Nullable ResourceBundle bundle;
 
   private GT() {
     try {
@@ -40,7 +43,7 @@ public class GT {
     }
   }
 
-  private String translate(String message, Object[] args) {
+  private String translate(String message, @Nullable Object[] args) {
     if (bundle != null && message != null) {
       try {
         message = bundle.getString(message);

@@ -5,6 +5,8 @@
 
 package org.postgresql.largeobject;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -16,7 +18,7 @@ public class BlobInputStream extends InputStream {
   /**
    * The parent LargeObject.
    */
-  private LargeObject lo;
+  private @Nullable LargeObject lo;
 
   /**
    * The absolute position.
@@ -26,7 +28,7 @@ public class BlobInputStream extends InputStream {
   /**
    * Buffer used to improve performance.
    */
-  private byte[] buffer;
+  private byte @Nullable [] buffer;
 
   /**
    * Position within buffer.
@@ -82,7 +84,7 @@ public class BlobInputStream extends InputStream {
    * The minimum required to implement input stream.
    */
   public int read() throws java.io.IOException {
-    checkClosed();
+    LargeObject lo = getLo();
     try {
       if (limit > 0 && apos >= limit) {
         return -1;
@@ -93,7 +95,7 @@ public class BlobInputStream extends InputStream {
       }
 
       // Handle EOF
-      if (bpos >= buffer.length) {
+      if (buffer == null || bpos >= buffer.length) {
         return -1;
       }
 
@@ -162,7 +164,7 @@ public class BlobInputStream extends InputStream {
    * @see java.io.IOException
    */
   public synchronized void reset() throws IOException {
-    checkClosed();
+    LargeObject lo = getLo();
     try {
       if (mpos <= Integer.MAX_VALUE) {
         lo.seek((int)mpos);
@@ -189,9 +191,10 @@ public class BlobInputStream extends InputStream {
     return true;
   }
 
-  private void checkClosed() throws IOException {
+  private LargeObject getLo() throws IOException {
     if (lo == null) {
       throw new IOException("BlobOutputStream is closed");
     }
+    return lo;
   }
 }

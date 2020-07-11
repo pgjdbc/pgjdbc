@@ -5,6 +5,8 @@
 
 package org.postgresql.ssl;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
@@ -12,6 +14,9 @@ import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Console;
 import java.io.FileInputStream;
@@ -40,10 +45,14 @@ import javax.security.auth.callback.UnsupportedCallbackException;
  */
 public class LibPQFactory extends WrappedFactory {
 
-  KeyManager km;
+  @Nullable KeyManager km;
   boolean defaultfile;
 
-  private CallbackHandler getCallbackHandler(Properties info) throws PSQLException {
+  private CallbackHandler getCallbackHandler(
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+      @UnderInitialization(WrappedFactory.class) LibPQFactory this,
+      //#endif
+      Properties info) throws PSQLException {
     // Determine the callback handler
     CallbackHandler cbh;
     String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
@@ -62,7 +71,11 @@ public class LibPQFactory extends WrappedFactory {
     return cbh;
   }
 
-  private void initPk8(String sslkeyfile, String defaultdir, Properties info) throws  PSQLException {
+  private void initPk8(
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+      @UnderInitialization(WrappedFactory.class) LibPQFactory this,
+      //#endif
+      String sslkeyfile, String defaultdir, Properties info) throws  PSQLException {
 
     // Load the client's certificate and key
     String sslcertfile = PGProperty.SSL_CERT.get(info);
@@ -76,7 +89,11 @@ public class LibPQFactory extends WrappedFactory {
       ("".equals(sslkeyfile) ? null : sslkeyfile), getCallbackHandler(info), defaultfile);
   }
 
-  private void initP12(String sslkeyfile, Properties info) throws PSQLException {
+  private void initP12(
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+      @UnderInitialization(WrappedFactory.class) LibPQFactory this,
+      //#endif
+      String sslkeyfile, Properties info) throws PSQLException {
     km = new PKCS12KeyManager(sslkeyfile, getCallbackHandler(info));
   }
 
@@ -171,7 +188,8 @@ public class LibPQFactory extends WrappedFactory {
 
       // finally we can initialize the context
       try {
-        ctx.init(new KeyManager[]{km}, tm, null);
+        KeyManager km = this.km;
+        ctx.init(km == null ? null : new KeyManager[]{km}, tm, null);
       } catch (KeyManagementException ex) {
         throw new PSQLException(GT.tr("Could not initialize SSL context."),
             PSQLState.CONNECTION_FAILURE, ex);
@@ -206,9 +224,9 @@ public class LibPQFactory extends WrappedFactory {
    */
   public static class ConsoleCallbackHandler implements CallbackHandler {
 
-    private char[] password = null;
+    private char @Nullable [] password = null;
 
-    ConsoleCallbackHandler(String password) {
+    ConsoleCallbackHandler(@Nullable String password) {
       if (password != null) {
         this.password = password.toCharArray();
       }
@@ -224,6 +242,7 @@ public class LibPQFactory extends WrappedFactory {
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
       Console cons = System.console();
+      char[] password = this.password;
       if (cons == null && password == null) {
         throw new UnsupportedCallbackException(callbacks[0], "Console is not available");
       }
@@ -238,7 +257,10 @@ public class LibPQFactory extends WrappedFactory {
         }
         // It is used instead of cons.readPassword(prompt), because the prompt may contain '%'
         // characters
-        pwdCallback.setPassword(cons.readPassword("%s", pwdCallback.getPrompt()));
+        pwdCallback.setPassword(
+            castNonNull(cons, "System.console()")
+                .readPassword("%s", pwdCallback.getPrompt())
+        );
       }
     }
   }

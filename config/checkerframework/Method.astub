@@ -1,0 +1,7 @@
+package java.lang.reflect;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class Method {
+  @Nullable Object invoke(@Nullable Object obj, @Nullable Object... args);
+}

@@ -9,6 +9,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -134,7 +136,7 @@ public class EscapedFunctions {
    * @param functionName name of the searched function
    * @return a Method object or null if not found
    */
-  public static Method getFunction(String functionName) {
+  public static @Nullable Method getFunction(String functionName) {
     return functionMap.get("sql" + functionName.toLowerCase(Locale.US));
   }
 
@@ -578,7 +580,8 @@ public class EscapedFunctions {
    * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static String sqltimestampadd(List<?> parsedArgs) throws SQLException {
+  @SuppressWarnings("TypeParameterExplicitlyExtendsObject")
+  public static String sqltimestampadd(List<? extends Object> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 3) {
       throw new PSQLException(
           GT.tr("{0} function takes three and only three arguments.", "timestampadd"),
@@ -630,7 +633,8 @@ public class EscapedFunctions {
    * @return sql call
    * @throws SQLException if something wrong happens
    */
-  public static String sqltimestampdiff(List<?> parsedArgs) throws SQLException {
+  @SuppressWarnings("TypeParameterExplicitlyExtendsObject")
+  public static String sqltimestampdiff(List<? extends Object> parsedArgs) throws SQLException {
     if (parsedArgs.size() != 3) {
       throw new PSQLException(
           GT.tr("{0} function takes three and only three arguments.", "timestampdiff"),

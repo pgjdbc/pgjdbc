@@ -12,6 +12,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -165,6 +166,10 @@ public class SslTest extends BaseTest4 {
     return tests;
   }
 
+  private static boolean contains(@Nullable String value, String substring) {
+    return value != null && value.contains(substring);
+  }
+
   @Override
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
@@ -218,7 +223,7 @@ public class SslTest extends BaseTest4 {
         PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
   }
 
-  private void checkErrorCodes(SQLException e) {
+  private void checkErrorCodes(@Nullable SQLException e) {
     if (e != null && e.getCause() instanceof FileNotFoundException
         && clientRootCertificate != ClientRootCertificate.EMPTY) {
       Assert.fail("FileNotFoundException => it looks like a configuration failure");
@@ -341,7 +346,7 @@ public class SslTest extends BaseTest4 {
     throw firstError;
   }
 
-  private List<AssertionError> addError(List<AssertionError> errors, AssertionError ae) {
+  private List<AssertionError> addError(@Nullable List<AssertionError> errors, AssertionError ae) {
     if (errors == null) {
       errors = new ArrayList<AssertionError>();
     }
@@ -400,9 +405,10 @@ public class SslTest extends BaseTest4 {
     }
     Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
         PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
-    if (!e.getMessage().contains("PgjdbcHostnameVerifier")) {
+    String message = e.getMessage();
+    if (message == null || !message.contains("PgjdbcHostnameVerifier")) {
       Assert.fail(caseName + " ==> message should contain"
-          + " 'PgjdbcHostnameVerifier'. Actual message is " + e.getMessage());
+          + " 'PgjdbcHostnameVerifier'. Actual message is " + message);
     }
     return true;
   }
@@ -448,7 +454,7 @@ public class SslTest extends BaseTest4 {
       Assert.fail(caseName + " ==> exception should be caused by SocketException(broken pipe)"
           + " or SSLHandshakeException. No exceptions of such kind are present in the getCause chain");
     }
-    if (brokenPipe != null && !brokenPipe.getMessage().contains("Broken pipe")) {
+    if (brokenPipe != null && !contains(brokenPipe.getMessage(), "Broken pipe")) {
       Assert.fail(
           caseName + " ==> server should have terminated the connection (broken pipe expected)"
               + ", actual exception was " + brokenPipe.getMessage());
@@ -456,7 +462,8 @@ public class SslTest extends BaseTest4 {
 
     if (handshakeException != null) {
       final String handshakeMessage = handshakeException.getMessage();
-      if (!handshakeMessage.contains("unknown_ca") && !handshakeMessage.contains("decrypt_error")) {
+      if (!contains(handshakeMessage, "unknown_ca")
+          && !contains(handshakeMessage, "decrypt_error")) {
         Assert.fail(
             caseName
                 + " ==> server should have terminated the connection (expected 'unknown_ca' or 'decrypt_error')"
@@ -466,7 +473,8 @@ public class SslTest extends BaseTest4 {
     return true;
   }
 
-  private static <T extends Throwable> T findCause(Throwable t, Class<T> cause) {
+  private static <@Nullable T extends Throwable> T findCause(@Nullable Throwable t,
+      Class<T> cause) {
     while (t != null) {
       if (cause.isInstance(t)) {
         return (T) t;

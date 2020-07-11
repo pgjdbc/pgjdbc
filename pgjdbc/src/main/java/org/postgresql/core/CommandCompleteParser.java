@@ -9,6 +9,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Parses {@code oid} and {@code rows} from a {@code CommandComplete (B)} message (end of Execute).
  */
@@ -83,7 +85,7 @@ public final class CommandCompleteParser {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

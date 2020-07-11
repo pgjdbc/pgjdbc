@@ -6,6 +6,10 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -148,7 +152,7 @@ public class StreamWrapper {
       return stream;
     }
 
-    return new java.io.ByteArrayInputStream(rawData, offset, length);
+    return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
   }
 
   public int getLength() {
@@ -159,7 +163,7 @@ public class StreamWrapper {
     return offset;
   }
 
-  public byte[] getBytes() {
+  public byte @Nullable [] getBytes() {
     return rawData;
   }
 
@@ -183,8 +187,8 @@ public class StreamWrapper {
     return totalLength;
   }
 
-  private final InputStream stream;
-  private final byte[] rawData;
+  private final @Nullable InputStream stream;
+  private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;
 }

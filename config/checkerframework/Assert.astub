@@ -1,0 +1,17 @@
+package org.junit;
+
+import org.checkerframework.checker.nullness.qual.*;
+import org.checkerframework.dataflow.qual.TerminatesExecution;
+
+class Assert {
+  static void assertEquals(String message, @Nullable Object expected, @Nullable Object actual);
+  static void assertEquals(@Nullable Object expected, @Nullable Object actual);
+  static void assertNotNull(String message, @Nullable Object object);
+  static void assertNotNull(@Nullable Object object);
+  static void assertNull(String message, @Nullable Object object);
+  static void assertNull(@Nullable Object object);
+  @TerminatesExecution
+  static void fail();
+  @TerminatesExecution
+  static void fail(@Nullable String message);
+}

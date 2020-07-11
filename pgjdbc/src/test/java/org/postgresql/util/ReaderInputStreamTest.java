@@ -31,6 +31,7 @@ public class ReaderInputStreamTest {
   private static final char TRAILING_SURROGATE = 0xdf0e;
 
   @Test(expected = IllegalArgumentException.class)
+  @SuppressWarnings("nullability")
   public void NullReaderTest() {
     new ReaderInputStream(null);
   }
@@ -123,6 +124,7 @@ public class ReaderInputStreamTest {
   }
 
   @Test(expected = NullPointerException.class)
+  @SuppressWarnings("nullness")
   public void nullArrayReadTest() throws IOException {
     Reader reader = new StringReader("abc");
     InputStream is = new ReaderInputStream(reader);

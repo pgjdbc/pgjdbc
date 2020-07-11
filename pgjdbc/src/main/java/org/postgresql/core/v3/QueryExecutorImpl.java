@@ -6,6 +6,8 @@
 
 package org.postgresql.core.v3;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
@@ -44,6 +46,8 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
@@ -75,15 +79,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
 
+  private static final Field[] NO_FIELDS = new Field[0];
+
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
    */
-  private TimeZone timeZone;
+  private @Nullable TimeZone timeZone;
 
   /**
    * application_name connection property.
    */
-  private String applicationName;
+  private @Nullable String applicationName;
 
   /**
    * True if server uses integers for date and time fields. False if server uses double.
@@ -104,6 +110,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * This is a fake query object so processResults can distinguish "ReadyForQuery" messages
    * from Sync messages vs from simple execute (aka 'Q').
    */
+  @SuppressWarnings("method.invocation.invalid")
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
   private short deallocateEpoch;
@@ -113,12 +120,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * statement cache can be skipped if using repeated calls for the same {@code set search_path}
    * value.
    */
-  private String lastSetSearchPathQuery;
+  private @Nullable String lastSetSearchPathQuery;
 
   /**
    * The exception that caused the last transaction to fail.
    */
-  private SQLException transactionFailCause;
+  private @Nullable SQLException transactionFailCause;
 
   private final ReplicationProtocol replicationProtocol;
 
@@ -127,12 +134,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
 
+  @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible",
+      "method.invocation.invalid"})
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info) throws SQLException, IOException {
     super(pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    // assignment.type.incompatible, argument.type.incompatible
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
   }
@@ -154,7 +164,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *
    * <p>See notes on related methods as well as currentCopy() below.</p>
    */
-  private Object lockedFor = null;
+  private @Nullable Object lockedFor;
 
   /**
    * Obtain lock over this connection for given object, blocking to wait if necessary.
@@ -208,7 +218,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @param holder object assumed to hold the lock
    * @return whether given object actually holds the lock
    */
-  boolean hasLock(Object holder) {
+  boolean hasLock(@Nullable Object holder) {
     return lockedFor == holder;
   }
 
@@ -273,7 +283,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
+  public synchronized void execute(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -459,7 +470,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int MAX_BUFFERED_RECV_BYTES = 64000;
   private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
-  public synchronized void execute(Query[] queries, ParameterList[] parameterLists,
+  public synchronized void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -557,7 +568,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       private boolean sawBegin = false;
 
       public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
-          ResultCursor cursor) {
+          @Nullable ResultCursor cursor) {
         if (sawBegin) {
           super.handleResultRows(fromQuery, fields, tuples, cursor);
         }
@@ -582,7 +593,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // Fastpath
   //
 
-  public synchronized byte[] fastpathCall(int fnid, ParameterList parameters, boolean suppressBegin)
+  public synchronized byte @Nullable [] fastpathCall(int fnid, ParameterList parameters,
+      boolean suppressBegin)
       throws SQLException {
     waitOnLock();
     if (!suppressBegin) {
@@ -789,7 +801,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private byte[] receiveFastpathResult() throws IOException, SQLException {
+  private byte @Nullable [] receiveFastpathResult() throws IOException, SQLException {
     boolean endQuery = false;
     SQLException error = null;
     byte[] returnValue = null;
@@ -879,7 +891,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendChar(0);
       pgStream.flush();
 
-      return processCopyResults(null, true);
+      return castNonNull(processCopyResults(null, true));
       // expect a CopyInResponse or CopyOutResponse to our query above
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when starting copy"),
@@ -1116,20 +1128,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @throws SQLException in case of misuse
    * @throws IOException from the underlying connection
    */
-  CopyOperationImpl processCopyResults(CopyOperationImpl op, boolean block)
+  @Nullable CopyOperationImpl processCopyResults(@Nullable CopyOperationImpl op, boolean block)
       throws SQLException, IOException {
 
     /*
     * fixes issue #1592 where one thread closes the stream and another is reading it
      */
     if (pgStream.isClosed()) {
-      throw new PSQLException(GT.tr("PGStream is closed",
-        op.getClass().getName()), PSQLState.CONNECTION_DOES_NOT_EXIST);
+      throw new PSQLException(GT.tr("PGStream is closed"),
+          PSQLState.CONNECTION_DOES_NOT_EXIST);
     }
     /*
     *  This is a hack as we should not end up here, but sometimes do with large copy operations.
      */
-    if ( processingCopyResults.compareAndSet(false,true) == false ) {
+    if (!processingCopyResults.compareAndSet(false, true)) {
       LOGGER.log(Level.INFO, "Ignoring request to process copy results, already processing");
       return null;
     }
@@ -1297,7 +1309,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           case 'Z': // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
 
             receiveRFQ();
-            if (hasLock(op)) {
+            if (op != null && hasLock(op)) {
               unlock(op);
             }
             op = null;
@@ -1354,7 +1366,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void flushIfDeadlockRisk(Query query, boolean disallowBatching,
       ResultHandler resultHandler,
-      BatchResultHandler batchHandler,
+      @Nullable BatchResultHandler batchHandler,
       final int flags) throws IOException {
     // Assume all statements need at least this much reply buffer space,
     // plus params
@@ -1403,7 +1415,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void sendQuery(Query query, V3ParameterList parameters, int maxRows, int fetchSize,
       int flags, ResultHandler resultHandler,
-      BatchResultHandler batchHandler) throws IOException, SQLException {
+      @Nullable BatchResultHandler batchHandler) throws IOException, SQLException {
     // Now the query itself.
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
@@ -1540,7 +1552,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pendingParseQueue.add(query);
   }
 
-  private void sendBind(SimpleQuery query, SimpleParameterList params, Portal portal,
+  private void sendBind(SimpleQuery query, SimpleParameterList params, @Nullable Portal portal,
       boolean noBinaryTransfer) throws IOException {
     //
     // Send Bind.
@@ -1576,7 +1588,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     Field[] fields = query.getFields();
-    if (!noBinaryTransfer && query.needUpdateFieldFormats()) {
+    if (!noBinaryTransfer && query.needUpdateFieldFormats() && fields != null) {
       for (Field field : fields) {
         if (useBinary(field)) {
           field.setFormat(Field.BINARY_FORMAT);
@@ -1586,7 +1598,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
     // If text-only results are required (e.g. updateable resultset), and the query has binary columns,
     // flip to text format.
-    if (noBinaryTransfer && query.hasBinaryFields()) {
+    if (noBinaryTransfer && query.hasBinaryFields() && fields != null) {
       for (Field field : fields) {
         if (field.getFormat() != Field.TEXT_FORMAT) {
           field.setFormat(Field.TEXT_FORMAT);
@@ -1599,7 +1611,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // This is not the number of binary fields, but the total number
     // of fields if any of them are binary or zero if all of them
     // are text.
-    int numBinaryFields = !noBinaryTransfer && query.hasBinaryFields() ? fields.length : 0;
+    int numBinaryFields = !noBinaryTransfer && query.hasBinaryFields() && fields != null
+        ? fields.length : 0;
 
     encodedSize = 4
         + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
@@ -1661,7 +1674,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     pgStream.sendInteger2(numBinaryFields); // # of result format codes
-    for (int i = 0; i < numBinaryFields; ++i) {
+    for (int i = 0; fields != null && i < numBinaryFields; ++i) {
       pgStream.sendInteger2(fields[i].getFormat());
     }
 
@@ -1684,7 +1697,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return useBinaryForReceive(oid);
   }
 
-  private void sendDescribePortal(SimpleQuery query, Portal portal) throws IOException {
+  private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
     //
     // Send Describe.
     //
@@ -1736,7 +1749,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     query.setPortalDescribed(true);
   }
 
-  private void sendExecute(SimpleQuery query, Portal portal, int limit) throws IOException {
+  private void sendExecute(SimpleQuery query, @Nullable Portal portal, int limit)
+      throws IOException {
     //
     // Send Execute.
     //
@@ -1867,7 +1881,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
-      int[] queryOIDs = query.getPrepareTypes();
+      int[] queryOIDs = castNonNull(query.getPrepareTypes());
       int[] paramOIDs = params.getTypeOIDs();
       for (int i = 0; i < paramOIDs.length; i++) {
         // Only supply type information when there isn't any
@@ -1981,7 +1995,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void processDeadParsedQueries() throws IOException {
     Reference<? extends SimpleQuery> deadQuery;
     while ((deadQuery = parsedQueryCleanupQueue.poll()) != null) {
-      String statementName = parsedQueryMap.remove(deadQuery);
+      String statementName = castNonNull(parsedQueryMap.remove(deadQuery));
       sendCloseStatement(statementName);
       deadQuery.clear();
     }
@@ -2017,7 +2031,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void processDeadPortals() throws IOException {
     Reference<? extends Portal> deadPortal;
     while ((deadPortal = openPortalCleanupQueue.poll()) != null) {
-      String portalName = openPortalMap.remove(deadPortal);
+      String portalName = castNonNull(openPortalMap.remove(deadPortal));
       sendClosePortal(portalName);
       deadPortal.clear();
     }
@@ -2146,7 +2160,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
           }
 
-          handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
+          if (fields != null && tuples != null) {
+            handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
+          }
           tuples = null;
           break;
         }
@@ -2161,7 +2177,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           doneAfterRowDescNoData = false;
 
-          ExecuteRequest executeData = pendingExecuteQueue.peekFirst();
+          ExecuteRequest executeData = castNonNull(pendingExecuteQueue.peekFirst());
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
@@ -2205,7 +2221,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 "Received resultset tuples, but no field structure for them");
           }
 
-          if (fields != null || tuples != null) {
+          if (fields != null && tuples != null) {
             // There was a resultset.
             handler.handleResultRows(currentQuery, fields, tuples, null);
             tuples = null;
@@ -2247,7 +2263,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (tuples == null) {
               tuples = new ArrayList<Tuple>();
             }
-            tuples.add(tuple);
+            if (tuple != null) {
+              tuples.add(tuple);
+            }
           }
 
           if (LOGGER.isLoggable(Level.FINEST)) {
@@ -2311,8 +2329,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Field[] fields = receiveFields();
           tuples = new ArrayList<Tuple>();
 
-          SimpleQuery query = pendingDescribePortalQueue.peekFirst();
-          if (!pendingExecuteQueue.isEmpty() && !pendingExecuteQueue.peekFirst().asSimple) {
+          SimpleQuery query = castNonNull(pendingDescribePortalQueue.peekFirst());
+          if (!pendingExecuteQueue.isEmpty()
+              && !castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
             pendingDescribePortalQueue.removeFirst();
           }
           query.setFields(fields);
@@ -2329,7 +2348,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'Z': // Ready For Query (eventual response to Sync)
           receiveRFQ();
-          if (!pendingExecuteQueue.isEmpty() && pendingExecuteQueue.peekFirst().asSimple) {
+          if (!pendingExecuteQueue.isEmpty()
+              && castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
             tuples = null;
             pgStream.clearResultBufferCount();
 
@@ -2441,10 +2461,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Insert a ResultHandler that turns bare command statuses into empty datasets
     // (if the fetch returns no rows, we see just a CommandStatus..)
     final ResultHandler delegateHandler = handler;
+    final SimpleQuery query = castNonNull(portal.getQuery());
     handler = new ResultHandlerDelegate(delegateHandler) {
       @Override
       public void handleCommandStatus(String status, long updateCount, long insertOID) {
-        handleResultRows(portal.getQuery(), null, new ArrayList<Tuple>(), null);
+        handleResultRows(query, NO_FIELDS, new ArrayList<Tuple>(), null);
       }
     };
 
@@ -2454,7 +2475,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       processDeadParsedQueries();
       processDeadPortals();
 
-      sendExecute(portal.getQuery(), portal, fetchSize);
+      sendExecute(query, portal, fetchSize);
       sendSync();
 
       processResults(handler, 0);
@@ -2745,7 +2766,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     this.timeZone = timeZone;
   }
 
-  public TimeZone getTimeZone() {
+  public @Nullable TimeZone getTimeZone() {
     return timeZone;
   }
 

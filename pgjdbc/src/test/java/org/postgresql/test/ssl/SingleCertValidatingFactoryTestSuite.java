@@ -7,6 +7,7 @@ package org.postgresql.test.ssl;
 
 import org.postgresql.test.TestUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,11 +79,11 @@ public class SingleCertValidatingFactoryTestSuite {
     return loadFile(badServerCertPath);
   }
 
-  protected String getUsername() {
+  protected @Nullable String getUsername() {
     return System.getProperty("username");
   }
 
-  protected String getPassword() {
+  protected @Nullable String getPassword() {
     return System.getProperty("password");
   }
 
@@ -112,7 +113,8 @@ public class SingleCertValidatingFactoryTestSuite {
   /**
    * Tests whether a given throwable or one of it's root causes matches of a given class.
    */
-  private boolean matchesExpected(Throwable t, Class<? extends Throwable> expectedThrowable)
+  private boolean matchesExpected(@Nullable Throwable t,
+      Class<? extends Throwable> expectedThrowable)
       throws SQLException {
     if (t == null || expectedThrowable == null) {
       return false;
@@ -132,7 +134,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * is using SSL.
    */
   protected void testConnect(Properties info, boolean sslExpected,
-      Class<? extends Throwable> expectedThrowable) throws SQLException {
+      @Nullable Class<? extends Throwable> expectedThrowable) throws SQLException {
     Connection conn = null;
     try {
       conn = getConnection(info);

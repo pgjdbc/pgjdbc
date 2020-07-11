@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.sql.Savepoint;
 
@@ -18,7 +20,7 @@ public class PSQLSavepoint implements Savepoint {
   private boolean isValid;
   private final boolean isNamed;
   private int id;
-  private String name;
+  private @Nullable String name;
 
   public PSQLSavepoint(int id) {
     this.isValid = true;
@@ -54,7 +56,7 @@ public class PSQLSavepoint implements Savepoint {
           PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
-    if (!isNamed) {
+    if (!isNamed || name == null) {
       throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."),
           PSQLState.WRONG_OBJECT_TYPE);
     }
@@ -72,7 +74,7 @@ public class PSQLSavepoint implements Savepoint {
           PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
-    if (isNamed) {
+    if (isNamed && name != null) {
       // We need to quote and escape the name in case it
       // contains spaces/quotes/etc.
       //

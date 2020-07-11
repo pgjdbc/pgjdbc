@@ -1,0 +1,9 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+interface PreparedStatement {
+  void setDate(int parameterIndex, java.sql.@Nullable Date x, @Nullable Calendar cal);
+  void setTime(int parameterIndex, java.sql.@Nullable Time x, @Nullable Calendar cal);
+  void setTimestamp(int parameterIndex, java.sql.@Nullable Timestamp x, @Nullable Calendar cal);
+}

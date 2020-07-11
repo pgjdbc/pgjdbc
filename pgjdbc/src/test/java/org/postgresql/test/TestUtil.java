@@ -14,6 +14,7 @@ import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.util.PSQLException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 
 import java.io.File;
@@ -371,7 +372,7 @@ public class TestUtil {
   /*
    * Helper - closes an open connection.
    */
-  public static void closeDB(Connection con) throws SQLException {
+  public static void closeDB(@Nullable Connection con) throws SQLException {
     if (con != null) {
       con.close();
     }
@@ -827,7 +828,7 @@ public class TestUtil {
   /**
    * Close a Connection and ignore any errors during closing.
    */
-  public static void closeQuietly(Connection conn) {
+  public static void closeQuietly(@Nullable Connection conn) {
     if (conn != null) {
       try {
         conn.close();
@@ -839,7 +840,7 @@ public class TestUtil {
   /**
    * Close a Statement and ignore any errors during closing.
    */
-  public static void closeQuietly(Statement stmt) {
+  public static void closeQuietly(@Nullable Statement stmt) {
     if (stmt != null) {
       try {
         stmt.close();
@@ -851,7 +852,7 @@ public class TestUtil {
   /**
    * Close a ResultSet and ignore any errors during closing.
    */
-  public static void closeQuietly(ResultSet rs) {
+  public static void closeQuietly(@Nullable ResultSet rs) {
     if (rs != null) {
       try {
         rs.close();

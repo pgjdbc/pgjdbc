@@ -8,6 +8,8 @@ package org.postgresql.geometric;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -18,7 +20,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   /**
    * The points defining the polygon.
    */
-  public PGpoint[] points;
+  public PGpoint @Nullable [] points;
 
   /**
    * Creates a polygon using an array of PGpoints.
@@ -34,6 +36,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
    * @param s definition of the polygon in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGpolygon(String s) throws SQLException {
     this();
     setValue(s);
@@ -43,7 +46,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
    * Required by the driver.
    */
   public PGpolygon() {
-    setType("polygon");
+    type = "polygon";
   }
 
   /**
@@ -53,7 +56,8 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   public void setValue(String s) throws SQLException {
     PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
     int npoints = t.getSize();
-    points = new PGpoint[npoints];
+    PGpoint[] points = new PGpoint[npoints];
+    this.points = points;
     for (int p = 0; p < npoints; p++) {
       points[p] = new PGpoint(t.getToken(p));
     }
@@ -63,9 +67,17 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two polygons are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpolygon) {
       PGpolygon p = (PGpolygon) obj;
+
+      if (points == null ^ p.points == null) {
+        return false;
+      }
+
+      if (points == null) {
+        return true;
+      }
 
       if (p.points.length != points.length) {
         return false;
@@ -85,8 +97,12 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   public int hashCode() {
     // XXX not very good..
     int hash = 0;
+    PGpoint[] points = this.points;
+    if (points == null) {
+      return hash;
+    }
     for (int i = 0; i < points.length && i < 5; ++i) {
-      hash = hash ^ points[i].hashCode();
+      hash = hash * 31 + points[i].hashCode();
     }
     return hash;
   }
@@ -94,10 +110,11 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   public Object clone() throws CloneNotSupportedException {
     PGpolygon newPGpolygon = (PGpolygon) super.clone();
     if (newPGpolygon.points != null) {
-      newPGpolygon.points = (PGpoint[]) newPGpolygon.points.clone();
+      PGpoint[] newPoints = newPGpolygon.points.clone();
+      newPGpolygon.points = newPoints;
       for (int i = 0; i < newPGpolygon.points.length; ++i) {
         if (newPGpolygon.points[i] != null) {
-          newPGpolygon.points[i] = (PGpoint) newPGpolygon.points[i].clone();
+          newPoints[i] = (PGpoint) newPGpolygon.points[i].clone();
         }
       }
     }
@@ -110,7 +127,8 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   public String getValue() {
     StringBuilder b = new StringBuilder();
     b.append("(");
-    for (int p = 0; p < points.length; p++) {
+    PGpoint[] points = this.points;
+    for (int p = 0; points != null && p < points.length; p++) {
       if (p > 0) {
         b.append(",");
       }

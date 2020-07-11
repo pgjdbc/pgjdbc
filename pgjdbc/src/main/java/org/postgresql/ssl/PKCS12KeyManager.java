@@ -9,6 +9,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.Socket;
@@ -29,7 +31,7 @@ import javax.security.auth.x500.X500Principal;
 public class PKCS12KeyManager implements X509KeyManager {
 
   private final CallbackHandler cbh;
-  private PSQLException error = null;
+  private @Nullable PSQLException error = null;
   private final String keyfile;
   private final KeyStore keyStore;
   boolean keystoreLoaded = false;
@@ -59,13 +61,14 @@ public class PKCS12KeyManager implements X509KeyManager {
   }
 
   @Override
-  public String[] getClientAliases(String keyType, Principal[] principals) {
+  public String @Nullable [] getClientAliases(String keyType, Principal @Nullable [] principals) {
     String alias = chooseClientAlias(new String[]{keyType}, principals, (Socket) null);
-    return (alias == null ? new String[]{} : new String[]{alias});
+    return alias == null ? null : new String[]{alias};
   }
 
   @Override
-  public String chooseClientAlias(String[] strings, Principal[] principals, Socket socket) {
+  public @Nullable String chooseClientAlias(String[] strings, Principal @Nullable [] principals,
+      @Nullable Socket socket) {
     if (principals == null || principals.length == 0) {
       // Postgres 8.4 and earlier do not send the list of accepted certificate authorities
       // to the client. See BUG #5468. We only hope, that our certificate will be accepted.
@@ -91,28 +94,32 @@ public class PKCS12KeyManager implements X509KeyManager {
   }
 
   @Override
-  public String[] getServerAliases(String s, Principal[] principals) {
+  public String @Nullable [] getServerAliases(String s, Principal @Nullable [] principals) {
     return new String[]{};
   }
 
   @Override
-  public String chooseServerAlias(String s, Principal[] principals, Socket socket) {
+  public @Nullable String chooseServerAlias(String s, Principal @Nullable [] principals,
+      @Nullable Socket socket) {
     // we are not a server
     return null;
   }
 
   @Override
-  public X509Certificate[] getCertificateChain(String alias) {
+  public X509Certificate @Nullable [] getCertificateChain(String alias) {
     try {
       loadKeyStore();
-      Certificate []certs = keyStore.getCertificateChain(alias);
-      X509Certificate [] x509Certificates = new X509Certificate[certs.length];
+      Certificate[] certs = keyStore.getCertificateChain(alias);
+      if (certs == null) {
+        return null;
+      }
+      X509Certificate[] x509Certificates = new X509Certificate[certs.length];
       int i = 0;
       for (Certificate cert : certs) {
         x509Certificates[i++] = (X509Certificate)cert;
       }
       return x509Certificates;
-    } catch (Exception kse ) {
+    } catch (Exception kse) {
       error = new PSQLException(GT.tr(
         "Could not find a java cryptographic algorithm: X.509 CertificateFactory not available."),
         PSQLState.CONNECTION_FAILURE, kse);
@@ -121,7 +128,7 @@ public class PKCS12KeyManager implements X509KeyManager {
   }
 
   @Override
-  public PrivateKey getPrivateKey(String s) {
+  public @Nullable PrivateKey getPrivateKey(String s) {
     try {
       loadKeyStore();
       PasswordCallback pwdcb = new PasswordCallback(GT.tr("Enter SSL password: "), false);
@@ -130,6 +137,9 @@ public class PKCS12KeyManager implements X509KeyManager {
       KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(pwdcb.getPassword());
       KeyStore.PrivateKeyEntry pkEntry =
           (KeyStore.PrivateKeyEntry) keyStore.getEntry("user", protParam);
+      if (pkEntry == null) {
+        return null;
+      }
       PrivateKey myPrivateKey = pkEntry.getPrivateKey();
       return myPrivateKey;
     } catch (Exception ioex ) {

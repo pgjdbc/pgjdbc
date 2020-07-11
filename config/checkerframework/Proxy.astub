@@ -1,0 +1,7 @@
+package java.lang.reflect;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class Proxy {
+    Object newProxyInstance(@Nullable ClassLoader loader, Class<?>[] interfaces, InvocationHandler h);
+}

@@ -1,0 +1,13 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+import java.io.InputStream;
+import java.io.Reader;
+import java.lang.Class;
+
+class SQLXML {
+    <T extends Source> @Nullable T getSource(Class<T> sourceClass);
+    @Nullable InputStream getBinaryStream();
+    @Nullable Reader getCharacterStream();
+    @Nullable String getString();
+}

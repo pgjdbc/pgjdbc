@@ -8,6 +8,8 @@ package org.postgresql.core.v3;
 
 import org.postgresql.core.ParameterList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 
 /**
@@ -38,23 +40,23 @@ interface V3ParameterList extends ParameterList {
    * @return an array of single-statement parameter lists, or <code>null</code> if this object is
    *         already a single-statement parameter list.
    */
-  SimpleParameterList[] getSubparams();
+  SimpleParameterList @Nullable [] getSubparams();
 
   /**
    * Return the parameter type information.
    * @return an array of {@link org.postgresql.core.Oid} type information
    */
-  int[] getParamTypes();
+  int @Nullable [] getParamTypes();
 
   /**
    * Return the flags for each parameter.
    * @return an array of bytes used to store flags.
    */
-  byte[] getFlags();
+  byte @Nullable [] getFlags();
 
   /**
    * Return the encoding for each parameter.
    * @return nested byte array of bytes with encoding information.
    */
-  byte[][] getEncoding();
+  byte @Nullable [] @Nullable [] getEncoding();
 }
