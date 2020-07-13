@@ -461,7 +461,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         } catch (PSQLException ex) {
           // allow the connection to proceed
           if ( gssEncMode == GSSEncMode.PREFER) {
-            return pgStream;
+            // we have to reconnect to continue
+            return new PGStream(pgStream, connectTimeout);
           }
         }
 
