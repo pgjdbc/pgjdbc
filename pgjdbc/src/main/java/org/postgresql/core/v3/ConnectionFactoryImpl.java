@@ -441,9 +441,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE GSSEncoding Refused");
 
-        // Server does not support ssl
+        // Server does not support gss encryption
         if (gssEncMode.requireEncryption()) {
-          throw new PSQLException(GT.tr("The server does not support SSL."),
+          throw new PSQLException(GT.tr("The server does not support GSS Encryption."),
               PSQLState.CONNECTION_REJECTED);
         }
 
@@ -451,13 +451,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       case 'G':
         LOGGER.log(Level.FINEST, " <=BE GSSENCOk");
-
-        org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
-            PGProperty.JAAS_APPLICATION_NAME.get(info),
-            PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
-            PGProperty.JAAS_LOGIN.getBoolean(info),
-            PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
-        return pgStream;
+        try {
+          org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+              PGProperty.JAAS_APPLICATION_NAME.get(info),
+              PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
+              PGProperty.JAAS_LOGIN.getBoolean(info),
+              PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+          return pgStream;
+        } catch (PSQLException ex) {
+          // allow the connection to proceed
+          if ( gssEncMode == GSSEncMode.PREFER) {
+            return pgStream;
+          }
+        }
 
       default:
         throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
