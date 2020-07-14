@@ -41,6 +41,7 @@ class TestPostgres {
             pgJDBC.addProperty(PGProperty.JAAS_APPLICATION_NAME, "pgjdbc")
             try {
                 pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
+                System.err.println 'Connection succeeded'
             } finally {
                 !p.destroy()
                 !kerberos.destroy()
