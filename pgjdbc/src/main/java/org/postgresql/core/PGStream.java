@@ -316,7 +316,6 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs
    */
   public void sendChar(int val) throws IOException {
-
     pgOutput.write(val);
   }
 

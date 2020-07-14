@@ -158,7 +158,6 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     int read = 0;
     try {
-
       read = wrapped.read(buffer, endIndex, canFit);
       if (!block && read == 0) {
         return false;
