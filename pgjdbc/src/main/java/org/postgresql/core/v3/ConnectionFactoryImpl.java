@@ -139,10 +139,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     newStream = enableGSSEncoded(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
 
-    /*
-    if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
-     */
-    if ( newStream.isGssEncrypted() == false ) {
+    // if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
+    if (!newStream.isGssEncrypted()) {
       // Construct and send an ssl startup packet if requested.
       newStream = enableSSL(newStream, sslMode, info, connectTimeout);
     }
