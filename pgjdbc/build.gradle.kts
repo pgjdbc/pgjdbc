@@ -240,7 +240,7 @@ val sourceDistribution by tasks.registering(Tar::class) {
     compression = Compression.GZIP
     includeEmptyDirs = false
 
-    into(provider { archiveBaseName.get() + "-" + archiveVersion.get() + "-" + archiveClassifier.get() } )
+    into(provider { archiveBaseName.get() + "-" + archiveVersion.get() + "-" + archiveClassifier.get() })
 
     from(rootDir) {
         include("build.properties")
