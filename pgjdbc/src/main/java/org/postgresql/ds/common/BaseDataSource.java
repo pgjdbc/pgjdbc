@@ -1057,6 +1057,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   *
+   * @return GSS encryption mode: disable, prefer or require
+   */
+  public String getGssEncMode() {
+    return PGProperty.GSS_ENC_MODE.get(properties);
+  }
+
+  /**
+   *
+   * @param mode encryption mode: disable, prefer or require
+   */
+  public void setGssEncMode(String mode) {
+    PGProperty.GSS_ENC_MODE.set(properties, mode);
+  }
+
+  /**
    * @return SSPI service class
    * @see PGProperty#SSPI_SERVICE_CLASS
    */

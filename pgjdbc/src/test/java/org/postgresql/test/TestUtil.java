@@ -10,7 +10,9 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
+import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
 
@@ -168,6 +170,13 @@ public class TestUtil {
   }
 
   /*
+   *  Return the GSSEncMode for the tests
+   */
+  public static GSSEncMode getGSSEncMode() throws PSQLException {
+    return GSSEncMode.of(System.getProperties());
+  }
+
+  /*
    * Returns the user for SSPI authentication tests
    */
   public static String getSSPIUser() {
@@ -296,6 +305,8 @@ public class TestUtil {
   public static Connection openPrivilegedDB() throws SQLException {
     initDriver();
     Properties properties = new Properties();
+
+    PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
     properties.setProperty("user", getPrivilegedUser());
     properties.setProperty("password", getPrivilegedPassword());
     return DriverManager.getConnection(getURL(), properties);
@@ -350,6 +361,9 @@ public class TestUtil {
     // Enable Base4 tests to override host,port,database
     String hostport = props.getProperty(SERVER_HOST_PORT_PROP, getServer() + ":" + getPort());
     String database = props.getProperty(DATABASE_PROP, getDatabase());
+
+    // Set GSSEncMode for tests
+    PGProperty.GSS_ENC_MODE.set(props,getGSSEncMode().value);
 
     return DriverManager.getConnection(getURL(hostport, database), props);
   }

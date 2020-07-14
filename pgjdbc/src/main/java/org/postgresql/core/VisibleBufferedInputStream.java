@@ -158,6 +158,7 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     int read = 0;
     try {
+
       read = wrapped.read(buffer, endIndex, canFit);
       if (!block && read == 0) {
         return false;
@@ -336,5 +337,13 @@ public class VisibleBufferedInputStream extends InputStream {
 
   public void setTimeoutRequested(boolean timeoutRequested) {
     this.timeoutRequested = timeoutRequested;
+  }
+
+  /**
+   *
+   * @return the wrapped stream
+   */
+  public InputStream getWrapped() {
+    return wrapped;
   }
 }

@@ -97,6 +97,7 @@ class GssAction implements PrivilegedAction<Exception> {
 
           pgStream.sendChar('p');
           pgStream.sendInteger4(4 + outToken.length);
+          pgStream.sendInteger4(outToken.length);
           pgStream.send(outToken);
           pgStream.flush();
         }
@@ -136,7 +137,6 @@ class GssAction implements PrivilegedAction<Exception> {
       return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
           gsse);
     }
-
     return null;
   }
 }

@@ -180,6 +180,14 @@ public enum PGProperty {
     false,
     new String[] {"select", "callIfNoReturn", "call"}),
 
+  GSS_ENC_MODE(
+      "gssEncMode",
+      "prefer",
+      "Force Encoded GSS Mode",
+      false,
+      new String[] {"disable", "prefer", "require"}
+  ),
+
   /**
    * Force one of
    * <ul>
