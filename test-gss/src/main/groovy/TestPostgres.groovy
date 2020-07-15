@@ -41,7 +41,15 @@ class TestPostgres {
             pgJDBC.addProperty(PGProperty.JAAS_APPLICATION_NAME, "pgjdbc")
             try {
                 pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
-                System.err.println 'Connection succeeded'
+                System.err.println 'GSS encrypted Connection succeeded'
+                postgres.enableGSS('127.0.0.1', 'hostgss', 'map=mymap')
+                postgres.reload()
+                pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.DISABLE.value)
+                pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
+                System.err.println 'GSS normal Connection succeeded'
+
+
+
             } finally {
                 !p.destroy()
                 !kerberos.destroy()
