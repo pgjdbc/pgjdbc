@@ -42,7 +42,7 @@ class TestPostgres {
             try {
                 pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
                 System.err.println 'GSS encrypted Connection succeeded'
-                postgres.enableGSS('127.0.0.1', 'hostgss', 'map=mymap')
+                postgres.enableGSS('127.0.0.1', 'host', 'map=mymap')
                 postgres.reload()
                 pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.DISABLE.value)
                 pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
