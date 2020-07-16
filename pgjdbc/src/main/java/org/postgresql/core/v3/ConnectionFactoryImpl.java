@@ -137,7 +137,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
     }
 
-    newStream = enableGSSEncoded(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
+    newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
 
     // if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
     if (!newStream.isGssEncrypted()) {
@@ -399,7 +399,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
-  private PGStream enableGSSEncoded(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
+  private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
                                     int connectTimeout)
       throws IOException, PSQLException {
 
@@ -424,7 +424,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int beresp = pgStream.receiveChar();
     switch (beresp) {
       case 'E':
-        LOGGER.log(Level.FINEST, " <=BE GSSEncoding Error");
+        LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");
 
         // Server doesn't even know about the SSL handshake protocol
         if (gssEncMode.requireEncryption()) {
@@ -437,7 +437,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
 
       case 'N':
-        LOGGER.log(Level.FINEST, " <=BE GSSEncoding Refused");
+        LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");
 
         // Server does not support gss encryption
         if (gssEncMode.requireEncryption()) {
@@ -448,9 +448,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return pgStream;
 
       case 'G':
-        LOGGER.log(Level.FINEST, " <=BE GSSENCOk");
+        LOGGER.log(Level.FINEST, " <=BE GSSEncryptedOk");
         try {
-          org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+          org.postgresql.gss.MakeGSS.authenticate(true, pgStream, host, user, password,
               PGProperty.JAAS_APPLICATION_NAME.get(info),
               PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
               PGProperty.JAAS_LOGIN.getBoolean(info),
@@ -725,7 +725,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   sspiClient.startSSPI();
                 } else {
                   /* Use JGSS's GSSAPI for this request */
-                  org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+                  org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
                       PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
                       PGProperty.JAAS_LOGIN.getBoolean(info),

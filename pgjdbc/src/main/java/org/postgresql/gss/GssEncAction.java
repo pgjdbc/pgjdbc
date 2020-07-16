@@ -95,9 +95,7 @@ public class GssEncAction implements PrivilegedAction<Exception> {
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
-          pgStream.sendChar('p');
-          pgStream.sendInteger4(4 + outToken.length);
-          //pgStream.sendInteger4(outToken.length);
+          pgStream.sendInteger4(outToken.length);
           pgStream.send(outToken);
           pgStream.flush();
         }

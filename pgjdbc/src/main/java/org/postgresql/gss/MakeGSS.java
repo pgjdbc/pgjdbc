@@ -25,7 +25,7 @@ import javax.security.auth.login.LoginContext;
 public class MakeGSS {
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
 
-  public static void authenticate(PGStream pgStream, String host, String user, String password,
+  public static void authenticate(boolean encrypted, PGStream pgStream, String host, String user, String password,
       String jaasApplicationName, String kerberosServerName, boolean useSpnego, boolean jaasLogin,
       boolean logServerErrorDetail)
           throws IOException, PSQLException {
@@ -56,10 +56,17 @@ public class MakeGSS {
         lc.login();
         sub = lc.getSubject();
       }
-      PrivilegedAction<Exception> action = new GssEncAction(pgStream, gssCredential, host, user,
-          kerberosServerName, useSpnego, logServerErrorDetail);
+      if ( encrypted ) {
+        PrivilegedAction<Exception> action = new GssEncAction(pgStream, gssCredential, host, user,
+            kerberosServerName, useSpnego, logServerErrorDetail);
 
-      result = Subject.doAs(sub, action);
+        result = Subject.doAs(sub, action);
+      } else {
+        PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user,
+            kerberosServerName, useSpnego, logServerErrorDetail);
+
+        result = Subject.doAs(sub, action);
+      }
     } catch (Exception e) {
       throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE, e);
     }
