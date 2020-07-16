@@ -44,7 +44,7 @@ public class PgJDBC {
         try {
             statement = connection.createStatement()
             ResultSet resultSet = statement.executeQuery(query)
-                return resultSet.next()
+            return resultSet.next()
         } finally {
             statement.close()
         }
