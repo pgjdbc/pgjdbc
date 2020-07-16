@@ -1,6 +1,8 @@
 import org.postgresql.PGProperty
 import org.postgresql.jdbc.GSSEncMode
 
+import java.sql.Connection
+
 @groovy.transform.CompileStatic
 class TestPostgres {
 
@@ -40,13 +42,24 @@ class TestPostgres {
             pgJDBC.addProperty(PGProperty.JAAS_LOGIN, true)
             pgJDBC.addProperty(PGProperty.JAAS_APPLICATION_NAME, "pgjdbc")
             try {
-                pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
-                System.err.println 'GSS encrypted Connection succeeded'
-                postgres.enableGSS('127.0.0.1', 'host', 'map=mymap')
+                try (Connection connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1') ) {
+                    if (pgJDBC.select(connection, "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
+                        System.err.println 'GSS authenticated and encrypted Connection succeeded'
+                    } else {
+                        System.err.println 'GSS authenticated and encrypted Connection failed'
+                    }
+                }
+
+                postgres.enableGSS('127.0.0.1', 'hostnogssenc', 'map=mymap')
                 postgres.reload()
                 pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.DISABLE.value)
-                pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
-                System.err.println 'GSS normal Connection succeeded'
+                try (Connection connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1') ) {
+                    if (pgJDBC.select(connection, "SELECT gss_authenticated AND not encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
+                        System.err.println 'GSS authenticated and not encrypted Connection succeeded'
+                    } else {
+                        System.err.println 'GSS authenticated and not encrypted Connection failed'
+                    }
+                }
 
 
 

@@ -30,13 +30,23 @@ public class PgJDBC {
 
     }
 
-    public void tryConnect(String dataBase, String host, int port, String user, String password) {
+    public Connection tryConnect(String dataBase, String host, int port, String user, String password) {
         String url = "jdbc:postgresql://$host:$port/$dataBase"
         PGProperty.USER.set(properties,user)
         PGProperty.PASSWORD.set(properties,password)
-        Connection conn = DriverManager.getConnection(url,properties)
-        conn.close()
+        DriverManager.getConnection(url,properties)
+
     }
+
+    public boolean select(Connection connection, String query ) throws Exception {
+        try (Statement statement = connection.createStatement() ) {
+            try ( ResultSet resultSet = statement.executeQuery(query) ){
+                return resultSet.next()
+            }
+        }
+        return false;
+    }
+
 
     public void createUser(String superuser, String superPass, String user, String password) {
         String url = "jdbc:postgresql://$host:$port/postgres"
@@ -49,6 +59,7 @@ public class PgJDBC {
         }
         conn.close()
     }
+
 
     public void createDatabase(String superuser, String superPass, String owner, String database) {
         String url = "jdbc:postgresql://$host:$port/postgres"
