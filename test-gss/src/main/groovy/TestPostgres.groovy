@@ -42,23 +42,32 @@ class TestPostgres {
             pgJDBC.addProperty(PGProperty.JAAS_LOGIN, true)
             pgJDBC.addProperty(PGProperty.JAAS_APPLICATION_NAME, "pgjdbc")
             try {
-                try (Connection connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1') ) {
+                Connection connection;
+                try {
+                    connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
+
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and encrypted Connection succeeded'
                     } else {
                         System.err.println 'GSS authenticated and encrypted Connection failed'
                     }
+                } finally {
+                    connection.close()
                 }
 
                 postgres.enableGSS('127.0.0.1', 'hostnogssenc', 'map=mymap')
                 postgres.reload()
                 pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.DISABLE.value)
-                try (Connection connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1') ) {
+
+                try {
+                    connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND not encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and not encrypted Connection succeeded'
                     } else {
                         System.err.println 'GSS authenticated and not encrypted Connection failed'
                     }
+                } finally {
+                    connection.close()
                 }
 
 

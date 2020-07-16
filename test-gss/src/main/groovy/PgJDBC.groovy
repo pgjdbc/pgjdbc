@@ -4,6 +4,7 @@ import javax.xml.transform.stream.StreamResult
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
+import java.sql.Statement
 
 @groovy.transform.CompileStatic
 public class PgJDBC {
@@ -39,10 +40,13 @@ public class PgJDBC {
     }
 
     public boolean select(Connection connection, String query ) throws Exception {
-        try (Statement statement = connection.createStatement() ) {
-            try ( ResultSet resultSet = statement.executeQuery(query) ){
+        Statement statement
+        try {
+            statement = connection.createStatement()
+            ResultSet resultSet = statement.executeQuery(query)
                 return resultSet.next()
-            }
+        } finally {
+            statement.close()
         }
         return false;
     }
