@@ -1,6 +1,7 @@
+import org.junit.Assert
 import org.postgresql.PGProperty
 import org.postgresql.jdbc.GSSEncMode
-import sun.jvm.hotspot.utilities.Assert
+
 
 import java.sql.Connection
 
@@ -50,7 +51,7 @@ class TestPostgres {
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and encrypted Connection succeeded'
                     } else {
-                        Assert.that(false, 'GSS authenticated and encrypted Connection failed')
+                        Assert 'GSS authenticated and encrypted Connection failed'
                     }
                 } finally {
                     connection.close()
@@ -65,7 +66,7 @@ class TestPostgres {
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND not encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and not encrypted Connection succeeded'
                     } else {
-                        Assert.that(false, 'GSS authenticated and not encrypted Connection failed')
+                        Assert.fail 'GSS authenticated and not encrypted Connection failed'
                     }
                 } finally {
                     connection.close()
