@@ -51,7 +51,7 @@ class TestPostgres {
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and encrypted Connection succeeded'
                     } else {
-                        Assert 'GSS authenticated and encrypted Connection failed'
+                        Assert.fail 'GSS authenticated and encrypted Connection failed'
                     }
                 } finally {
                     connection.close()
