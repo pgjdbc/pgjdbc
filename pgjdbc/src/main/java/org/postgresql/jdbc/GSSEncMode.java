@@ -13,18 +13,22 @@ import org.postgresql.util.PSQLState;
 import java.util.Properties;
 
 public enum GSSEncMode {
+
   /**
    * Do not use encrypted connections.
    */
   DISABLE("disable"),
+
   /**
    * Start with non-encrypted connection, then try encrypted one.
    */
   ALLOW("allow"),
+
   /**
    * Start with encrypted connection, fallback to non-encrypted (default).
    */
   PREFER("prefer"),
+
   /**
    * Ensure connection is encrypted.
    */
