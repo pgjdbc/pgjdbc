@@ -6,6 +6,7 @@
 package org.postgresql.test.ssl;
 
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
@@ -113,7 +114,10 @@ public class SslTest extends BaseTest4 {
   @Parameterized.Parameter(5)
   public String certdir;
 
-  @Parameterized.Parameters(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}")
+  @Parameterized.Parameter(6)
+  public GSSEncMode gssEncMode;
+
+  @Parameterized.Parameters(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}, gssEncMode={6}")
   public static Iterable<Object[]> data() {
     Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
     String enableSslTests = prop.getProperty("enable_ssl_tests");
@@ -147,9 +151,11 @@ public class SslTest extends BaseTest4 {
                 // DB would reject SSL connection, so it makes no sense to test cases like verify-full
                 continue;
               }
-              tests.add(
-                  new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate,
-                      certdir});
+              for (GSSEncMode gssEncMode : GSSEncMode.values()) {
+                tests.add(
+                    new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate,
+                        certdir, gssEncMode});
+              }
             }
           }
         }
@@ -165,6 +171,7 @@ public class SslTest extends BaseTest4 {
     props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
     props.put(TestUtil.DATABASE_PROP, db.toString());
     PGProperty.SSL_MODE.set(props, sslmode.value);
+    PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
     if (clientCertificate == ClientCertificate.EMPTY) {
       PGProperty.SSL_CERT.set(props, "");
       PGProperty.SSL_KEY.set(props, "");
