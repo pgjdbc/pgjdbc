@@ -113,7 +113,7 @@ Connection conn = DriverManager.getConnection(url);
 	. `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
 	validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
 	verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
-	host connected to has the same hostname as the certificate.
+	host connected to has the same hostname as the certificate. Default is `prefer`
 
 	Setting these will necessitate storing the server certificate on the client machine see
 	["Configuring the client"](ssl-client.html) for details.
@@ -352,6 +352,12 @@ Connection conn = DriverManager.getConnection(url);
 	you are unable to change the application to use an appropriate method
 	such as `setInt()`.
 
+* **ApplicationName** = String
+
+    Specifies the name of the application that is using the connection.
+    This allows a database administrator to see what applications are
+    connected to the server and what resources they are using through views like pg_stat_activity.
+
 * **kerberosServerName** = String
 
 	The Kerberos service name to use when authenticating with GSSAPI. This
@@ -370,11 +376,15 @@ Connection conn = DriverManager.getConnection(url);
 	authenticating. To skip the JAAS login, for example if the native GSS
 	implementation is being used to obtain credentials, set this to `false`.
 
-* **ApplicationName** = String
+* **gssEncMode** = String
 
-	Specifies the name of the application that is using the connection. 
-	This allows a database administrator to see what applications are 
-	connected to the server and what resources they are using through views like pg_stat_activity.
+    PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
+    enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
+    `disable` is obvious and disables any attempt to connect using GSS encrypted mode
+    `allow` will connect in plain text then if the server requests it will switch to encrypted mode
+    `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
+    an encrypted connection
+    `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
 
 * **gsslib** = String
 

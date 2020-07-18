@@ -22,6 +22,7 @@ import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
+import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
@@ -86,7 +87,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private PGStream tryConnect(String user, String database,
       Properties info, SocketFactory socketFactory, HostSpec hostSpec,
-      SslMode sslMode)
+      SslMode sslMode, GSSEncMode gssEncMode)
       throws SQLException, IOException {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
@@ -136,9 +137,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
     }
 
-    // Construct and send an ssl startup packet if requested.
-    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+    newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
 
+    // if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
+    if (!newStream.isGssEncrypted()) {
+      // Construct and send an ssl startup packet if requested.
+      newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+    }
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
 
@@ -152,6 +157,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
       Properties info) throws SQLException {
     SslMode sslMode = SslMode.of(info);
+    GSSEncMode gssEncMode = GSSEncMode.of(info);
 
     HostRequirement targetServerType;
     String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
@@ -194,7 +200,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       PGStream newStream = null;
       try {
         try {
-          newStream = tryConnect(user, database, info, socketFactory, hostSpec, sslMode);
+          newStream = tryConnect(user, database, info, socketFactory, hostSpec, sslMode, gssEncMode);
         } catch (SQLException e) {
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
@@ -203,7 +209,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.DISABLE);
+                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.DISABLE,gssEncMode);
               LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException ee) {
@@ -226,7 +232,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.REQUIRE);
+                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode);
               LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException ee) {
@@ -391,6 +397,77 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     return start + tz.substring(4);
+  }
+
+  private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
+                                    int connectTimeout)
+      throws IOException, PSQLException {
+
+    if ( gssEncMode == GSSEncMode.DISABLE ) {
+      return pgStream;
+    }
+
+    if (gssEncMode == GSSEncMode.ALLOW ) {
+      // start with plain text and let the server request it
+      return pgStream;
+    }
+
+    String password = PGProperty.PASSWORD.get(info);
+    LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
+
+    // Send SSL request packet
+    pgStream.sendInteger4(8);
+    pgStream.sendInteger2(1234);
+    pgStream.sendInteger2(5680);
+    pgStream.flush();
+    // Now get the response from the backend, one of N, E, S.
+    int beresp = pgStream.receiveChar();
+    switch (beresp) {
+      case 'E':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");
+
+        // Server doesn't even know about the SSL handshake protocol
+        if (gssEncMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support GSS Encoding."),
+              PSQLState.CONNECTION_REJECTED);
+        }
+
+        // We have to reconnect to continue.
+        pgStream.close();
+        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+
+      case 'N':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");
+
+        // Server does not support gss encryption
+        if (gssEncMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support GSS Encryption."),
+              PSQLState.CONNECTION_REJECTED);
+        }
+
+        return pgStream;
+
+      case 'G':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncryptedOk");
+        try {
+          org.postgresql.gss.MakeGSS.authenticate(true, pgStream, host, user, password,
+              PGProperty.JAAS_APPLICATION_NAME.get(info),
+              PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
+              PGProperty.JAAS_LOGIN.getBoolean(info),
+              PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+          return pgStream;
+        } catch (PSQLException ex) {
+          // allow the connection to proceed
+          if ( gssEncMode == GSSEncMode.PREFER) {
+            // we have to reconnect to continue
+            return new PGStream(pgStream, connectTimeout);
+          }
+        }
+
+      default:
+        throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
+            PSQLState.PROTOCOL_VIOLATION);
+    }
   }
 
   private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
@@ -648,7 +725,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   sspiClient.startSSPI();
                 } else {
                   /* Use JGSS's GSSAPI for this request */
-                  org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+                  org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
                       PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
                       PGProperty.JAAS_LOGIN.getBoolean(info),

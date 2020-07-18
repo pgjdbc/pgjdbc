@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 - Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder
+- add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
+are possible. Now the driver will attempt to connect to the server with a GSSAPI encrypted connection. If that fails then
+attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
+and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required.
 
 ## [42.2.15] (2020-06-19)
 ### Changed

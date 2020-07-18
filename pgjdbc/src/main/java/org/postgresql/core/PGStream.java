@@ -5,12 +5,17 @@
 
 package org.postgresql.core;
 
+import org.postgresql.gss.GSSInputStream;
+import org.postgresql.gss.GSSOutputStream;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.MessageProp;
 
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
@@ -47,6 +52,20 @@ public class PGStream implements Closeable, Flushable {
   private VisibleBufferedInputStream pgInput;
   private OutputStream pgOutput;
   private byte[] streamBuffer;
+
+  public boolean isGssEncrypted() {
+    return gssEncrypted;
+  }
+
+  boolean gssEncrypted = false;
+
+  public void setSecContext(GSSContext secContext) {
+    MessageProp messageProp =  new MessageProp(0, true);
+    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput.getWrapped(), secContext, messageProp ), 8192);
+    pgOutput = new GSSOutputStream(pgOutput, secContext, messageProp, 16384);
+    gssEncrypted = true;
+
+  }
 
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
@@ -324,7 +343,6 @@ public class PGStream implements Closeable, Flushable {
     if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
       throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
     }
-
     int2Buf[0] = (byte) (val >>> 8);
     int2Buf[1] = (byte) val;
     pgOutput.write(int2Buf);
