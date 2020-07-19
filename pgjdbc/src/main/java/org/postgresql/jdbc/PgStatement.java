@@ -92,7 +92,7 @@ public class PgStatement implements Statement, BaseStatement {
    * {@link StatementCancelState#IN_QUERY} during execute. {@link #cancel()}
    * ignores cancel request if state is {@link StatementCancelState#IDLE}.
    * In case {@link #execute(String)} observes non-{@link StatementCancelState#IDLE} state as it
-   * completes the query, it waits till {@link StatementCancelState#CANCELLED}. Note: the field must be
+   * completes the query, it waits till {@link StatementCancelState#IDLE}. Note: the field must be
    * set/get/compareAndSet via {@link #STATE_UPDATER} as per {@link AtomicIntegerFieldUpdater}
    * javadoc.
    */
@@ -979,7 +979,7 @@ public class PgStatement implements Statement, BaseStatement {
       try {
         connection.cancelQuery();
       } finally {
-        STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
+        STATE_UPDATER.set(this, StatementCancelState.IDLE);
         connection.lockCondition().signalAll(); // wake-up killTimerTask
       }
     }
@@ -1093,12 +1093,12 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Being here means someone managed to call .cancel() and our connection did not receive
     // "timeout error"
-    // We wait till state becomes "cancelled"
+    // We wait till state becomes "IDLE"
     boolean interrupted = false;
     try (ResourceLock connectionLock = connection.obtainLock()) {
-      // state check is performed with connection lock so it detects "cancelled" state faster
+      // state check is performed with connection lock so it detects the "IDLE" state faster
       // In other words, it prevents unnecessary ".wait()" call
-      while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
+      while (STATE_UPDATER.get(this) != StatementCancelState.IDLE) {
         try {
           // Note: wait timeout here is irrelevant since connection.obtainLock() would block until
           // .cancel finishes
