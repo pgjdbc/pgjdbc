@@ -80,7 +80,8 @@ install: true
 cache:
   directories:
     - $HOME/.gradle/caches/
-    - $HOME/.gradle/wrapper/
+    # Gradle can be downloaded via wrapper, so no need to download it from the cache and upload as cache changes
+    # - $HOME/.gradle/wrapper/
     - $HOME/.m2/repository
     - $HOME/.ivy2/cache
     - $HOME/.sbt/boot/
