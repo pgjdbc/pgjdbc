@@ -102,6 +102,7 @@ matrix:
         - PG_VERSION=10
         - JDK=12
         - TZ=America/New_York # flips between −05:00 and −04:00
+        - BUILD_SCAN=Y
     - jdk: openjdk-ea
       sudo: required
       addons:
@@ -134,6 +135,7 @@ matrix:
         - NO_HSTORE=Y
         - PLPGSQL_EXTENSION=Y
         - JDK=8
+        - BUILD_SCAN=Y
     - jdk: oraclejdk11
       sudo: required
       addons:

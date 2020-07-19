@@ -24,6 +24,7 @@ plugins {
     id("org.owasp.dependencycheck")
     id("org.checkerframework") apply false
     id("com.github.johnrengelman.shadow") apply false
+    id("org.nosphere.gradle.github.actions")
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
     id("com.github.vlsi.ide")

@@ -50,6 +50,11 @@ then
     GRADLE_ARGS="$GRADLE_ARGS -Dcurrent.jdk=1.9 -Djavac.target=1.9"
 fi
 
+if [[ $BUILD_SCAN == "Y" ]];
+then
+    GRADLE_ARGS="$GRADLE_ARGS --scan"
+fi
+
 if [[ $JDOC == "Y" ]];
 then
     # Build javadocs for Java 8 only

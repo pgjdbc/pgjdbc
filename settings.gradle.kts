@@ -23,12 +23,14 @@ pluginManagement {
         idv("me.champeau.gradle.jmh")
         idv("org.checkerframework")
         idv("org.jetbrains.gradle.plugin.idea-ext")
+        idv("org.nosphere.gradle.github.actions")
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
     }
 }
 
 plugins {
+    `gradle-enterprise`
     id("com.github.burrunan.s3-build-cache")
 }
 
@@ -57,6 +59,16 @@ fun property(name: String) =
     }
 
 val isCiServer = System.getenv().containsKey("CI")
+
+if (isCiServer) {
+    gradleEnterprise {
+        buildScan {
+            termsOfServiceUrl = "https://gradle.com/terms-of-service"
+            termsOfServiceAgree = "yes"
+            tag("CI")
+        }
+    }
+}
 
 // Cache build artifacts, so expensive operations do not need to be re-computed
 buildCache {

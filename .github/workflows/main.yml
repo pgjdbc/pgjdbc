@@ -83,7 +83,7 @@ jobs:
       run: |
         echo enable_ssl_tests=true > ssltest.local.properties
         # '-PincludeTestTags=!org.postgresql.test.SlowTests'
-        ./gradlew --no-parallel --no-daemon -PskipReplicationTests -Pport=${{ job.services.postgres.ports['5432'] }} test
+        ./gradlew --scan --no-parallel --no-daemon -PskipReplicationTests -Pport=${{ job.services.postgres.ports['5432'] }} test
         # test javadoc -Pport=${{ job.services.postgres.ports['5432'] }}
 
   linux-checkerframework:
