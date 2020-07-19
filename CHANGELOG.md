@@ -12,7 +12,10 @@ attempt an SSL connection, finally falling back to a plain text connection. All 
 and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required.
 
 ### Added
-- Verify nullness with CheckerFramework
+- Verify nullness with CheckerFramework [PR 1814](https://github.com/pgjdbc/pgjdbc/pull/1814).
+
+### Fixed
+- Simplify implementation of Statement#cancel [PR 1827](https://github.com/pgjdbc/pgjdbc/pull/1827).
 
 ## [42.2.15] (2020-06-19)
 ### Changed
