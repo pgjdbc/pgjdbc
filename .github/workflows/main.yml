@@ -23,7 +23,16 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
+    - uses: actions/cache@v2
+      name: Cache ./gradle/caches/
+      with:
+        path: |
+          ~/.gradle/caches/
+        key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
     - name: 'Verify code style'
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       run: ./gradlew autostyleCheck checkstyleAll
 
   ubuntu-latest:
@@ -61,7 +70,16 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
+    - uses: actions/cache@v2
+      name: Cache ./gradle/caches/
+      with:
+        path: |
+          ~/.gradle/caches/
+        key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
     - name: 'Test'
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       run: |
         echo enable_ssl_tests=true > ssltest.local.properties
         # '-PincludeTestTags=!org.postgresql.test.SlowTests'
@@ -79,7 +97,16 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - uses: actions/cache@v2
+        name: Cache ./gradle/caches/
+        with:
+          path: |
+            ~/.gradle/caches/
+          key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
       - name: 'Run CheckerFramework'
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         run: |
           ./gradlew --no-parallel --no-daemon -PenableCheckerframework classes
 
@@ -97,6 +124,12 @@ jobs:
       run: sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
     - name: 'Update hosts'
       run: sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com >> /etc/hosts"
+    - uses: actions/cache@v2
+      name: Cache ./gradle/caches/
+      with:
+        path: |
+          ~/.gradle/caches/
+        key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
     - name: 'Build pgjdbc'
       run:  ./gradlew publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: 'Run tests'

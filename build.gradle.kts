@@ -211,9 +211,6 @@ allprojects {
             // TOOD: move to /config
             configDirectory.set(File(rootDir, "pgjdbc/src/main/checkstyle"))
             configFile = configDirectory.get().file("checks.xml").asFile
-            configProperties = mapOf(
-                "base_dir" to rootDir.toString()
-            )
         }
         tasks.register("checkstyleAll") {
             dependsOn(tasks.withType<Checkstyle>())

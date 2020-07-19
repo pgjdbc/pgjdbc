@@ -10,6 +10,7 @@ pluginManagement {
 
         idv("biz.aQute.bnd.builder")
         idv("com.github.autostyle")
+        idv("com.github.burrunan.s3-build-cache")
         idv("com.github.johnrengelman.shadow")
         idv("com.github.lburgazzoli.karaf")
         idv("com.github.spotbugs")
@@ -25,6 +26,10 @@ pluginManagement {
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
     }
+}
+
+plugins {
+    id("com.github.burrunan.s3-build-cache")
 }
 
 // This is the name of a current project
@@ -50,6 +55,25 @@ fun property(name: String) =
         true -> extra.get(name) as? String
         else -> null
     }
+
+val isCiServer = System.getenv().containsKey("CI")
+
+// Cache build artifacts, so expensive operations do not need to be re-computed
+buildCache {
+    local {
+        // Local build cache is dangerous as it might produce inconsistent results
+        // in case developer modifies files while the build is running
+        isEnabled = false
+    }
+    if (property("s3.build.cache")?.ifBlank { "true" }?.toBoolean() == true) {
+        val pushAllowed = property("s3.build.cache.push")?.ifBlank { "true" }?.toBoolean() ?: true
+        remote<com.github.burrunan.s3cache.AwsS3BuildCache> {
+            region = "us-east-2"
+            bucket = "pgjdbc-gradle-cache"
+            isPush = isCiServer && pushAllowed && !awsAccessKeyId.isNullOrBlank()
+        }
+    }
+}
 
 // By default, Java7-processed sourcse are attached to IDE.
 // However, it might be confusing as IDE always suggests multiple files for a class like PgConnection

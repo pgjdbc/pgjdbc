@@ -74,6 +74,12 @@ if (skipReplicationTests) {
     }
 }
 
+tasks.configureEach<Test> {
+    outputs.cacheIf("test results on the database configuration, so we can't cache it") {
+        false
+    }
+}
+
 val preprocessVersion by tasks.registering(org.postgresql.buildtools.JavaCommentPreprocessorTask::class) {
     baseDir.set(projectDir)
     sourceFolders.add("src/main/version")
