@@ -207,6 +207,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return getTime(columnIndex);
       case Types.TIMESTAMP:
         return getTimestamp(columnIndex, null);
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+        return  getTimestamp(columnIndex, null);
+      //#endif
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
