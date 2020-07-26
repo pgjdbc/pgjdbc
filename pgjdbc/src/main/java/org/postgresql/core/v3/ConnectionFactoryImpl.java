@@ -100,7 +100,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // Set the socket timeout if the "socketTimeout" property has been set.
     int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
     if (socketTimeout > 0) {
-      newStream.getSocket().setSoTimeout(socketTimeout * 1000);
+      newStream.setNetworkTimeout(socketTimeout * 1000);
     }
 
     String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
@@ -148,6 +148,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // Construct and send an ssl startup packet if requested.
       newStream = enableSSL(newStream, sslMode, info, connectTimeout);
     }
+
+    // Make sure to set network timeout again, in case the stream changed due to GSS or SSL
+    if (socketTimeout > 0) {
+      newStream.setNetworkTimeout(socketTimeout * 1000);
+    }
+
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
 
