@@ -52,8 +52,9 @@ class TestPostgres {
                     } else {
                         Assert.fail 'GSS authenticated and encrypted Connection failed'
                     }
-                } finally {
+                } catch( Exception ex ) {
                     System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
+                } finally {
                     connection?.close()
 
                 }

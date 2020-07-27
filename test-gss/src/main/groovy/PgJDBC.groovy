@@ -31,7 +31,7 @@ public class PgJDBC {
 
     }
 
-    public Connection tryConnect(String dataBase, String host, int port, String user, String password) {
+    public Connection tryConnect(String dataBase, String host, int port, String user, String password) throws Exception {
         String url = "jdbc:postgresql://$host:$port/$dataBase"
         PGProperty.USER.set(properties,user)
         PGProperty.PASSWORD.set(properties,password)
