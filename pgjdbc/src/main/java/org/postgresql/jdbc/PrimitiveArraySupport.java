@@ -9,6 +9,9 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.ByteConverter;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashMap;
@@ -482,7 +485,8 @@ abstract class PrimitiveArraySupport<A> {
     return obj != null && ARRAY_CLASS_TO_SUPPORT.containsKey(obj.getClass());
   }
 
-  public static <A> PrimitiveArraySupport<A> getArraySupport(A array) {
+  public static <A extends @NonNull Object> @Nullable PrimitiveArraySupport<A> getArraySupport(
+      A array) {
     return ARRAY_CLASS_TO_SUPPORT.get(array.getClass());
   }
 }

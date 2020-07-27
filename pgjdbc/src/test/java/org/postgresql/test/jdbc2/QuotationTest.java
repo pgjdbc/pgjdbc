@@ -5,10 +5,12 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -112,6 +114,7 @@ public class QuotationTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void quotedString() throws SQLException {
     PreparedStatement ps = con.prepareStatement("select " + expr);
     try {
@@ -125,6 +128,7 @@ public class QuotationTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void bindInTheMiddle() throws SQLException {
     PreparedStatement ps = con.prepareStatement("select " + expr + ", ?, " + expr);
     try {

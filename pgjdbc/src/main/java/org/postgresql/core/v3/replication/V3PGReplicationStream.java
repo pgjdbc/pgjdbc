@@ -13,6 +13,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
@@ -64,7 +66,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   }
 
   @Override
-  public ByteBuffer read() throws SQLException {
+  public @Nullable ByteBuffer read() throws SQLException {
     checkClose();
 
     ByteBuffer payload = null;
@@ -75,7 +77,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return payload;
   }
 
-  public ByteBuffer readPending() throws SQLException {
+  public @Nullable ByteBuffer readPending() throws SQLException {
     checkClose();
     return readInternal(false);
   }
@@ -116,7 +118,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return closeFlag || !copyDual.isActive();
   }
 
-  private ByteBuffer readInternal(boolean block) throws SQLException {
+  private @Nullable ByteBuffer readInternal(boolean block) throws SQLException {
     boolean updateStatusRequired = false;
     while (copyDual.isActive()) {
 
@@ -153,7 +155,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return null;
   }
 
-  private ByteBuffer receiveNextData(boolean block) throws SQLException {
+  private @Nullable ByteBuffer receiveNextData(boolean block) throws SQLException {
     try {
       byte[] message = copyDual.readFromCopy(block);
       if (message != null) {

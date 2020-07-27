@@ -9,6 +9,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -46,13 +48,13 @@ import javax.security.auth.x500.X500Principal;
  * A Key manager that only loads the keys, if necessary.
  */
 public class LazyKeyManager implements X509KeyManager {
-  private X509Certificate[] cert = null;
-  private PrivateKey key = null;
-  private String certfile;
-  private String keyfile;
-  private CallbackHandler cbh;
-  private boolean defaultfile;
-  private PSQLException error = null;
+  private X509Certificate @Nullable [] cert = null;
+  private @Nullable PrivateKey key = null;
+  private final @Nullable String certfile;
+  private final @Nullable String keyfile;
+  private final CallbackHandler cbh;
+  private final boolean defaultfile;
+  private @Nullable PSQLException error = null;
 
   /**
    * Constructor. certfile and keyfile can be null, in that case no certificate is presented to the
@@ -63,7 +65,7 @@ public class LazyKeyManager implements X509KeyManager {
    * @param cbh callback handler
    * @param defaultfile default file
    */
-  public LazyKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
+  public LazyKeyManager(@Nullable String certfile, @Nullable String keyfile, CallbackHandler cbh, boolean defaultfile) {
     this.certfile = certfile;
     this.keyfile = keyfile;
     this.cbh = cbh;
@@ -83,7 +85,8 @@ public class LazyKeyManager implements X509KeyManager {
   }
 
   @Override
-  public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
+  public @Nullable String chooseClientAlias(String[] keyType,
+      Principal @Nullable [] issuers, @Nullable Socket socket) {
     if (certfile == null) {
       return null;
     } else {
@@ -113,12 +116,13 @@ public class LazyKeyManager implements X509KeyManager {
   }
 
   @Override
-  public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
+  public @Nullable String chooseServerAlias(String keyType,
+      Principal @Nullable [] issuers, @Nullable Socket socket) {
     return null; // We are not a server
   }
 
   @Override
-  public X509Certificate[] getCertificateChain(String alias) {
+  public X509Certificate @Nullable [] getCertificateChain(String alias) {
     if (cert == null && certfile != null) {
       // If certfile is null, we do not load the certificate
       // The certificate must be loaded
@@ -154,7 +158,8 @@ public class LazyKeyManager implements X509KeyManager {
   }
 
   @Override
-  public String[] getClientAliases(String keyType, Principal[] issuers) {
+  public String @Nullable [] getClientAliases(String keyType,
+      Principal @Nullable [] issuers) {
     String alias = chooseClientAlias(new String[]{keyType}, issuers, (Socket) null);
     return (alias == null ? new String[]{} : new String[]{alias});
   }
@@ -171,15 +176,14 @@ public class LazyKeyManager implements X509KeyManager {
   }
 
   @Override
-  public PrivateKey getPrivateKey(String alias) {
+  public @Nullable PrivateKey getPrivateKey(String alias) {
     try {
       if (key == null && keyfile != null) {
         // If keyfile is null, we do not load the key
         // The private key must be loaded
-        if (cert == null) { // We need the certificate for the algorithm
-          if (getCertificateChain("user") == null) {
-            return null; // getCertificateChain failed...
-          }
+        X509Certificate[] cert = getCertificateChain("user");
+        if (cert == null || cert.length == 0) { // We need the certificate for the algorithm
+          return null;
         }
 
         byte[] keydata;
@@ -259,7 +263,7 @@ public class LazyKeyManager implements X509KeyManager {
   }
 
   @Override
-  public String[] getServerAliases(String keyType, Principal[] issuers) {
+  public String @Nullable [] getServerAliases(String keyType, Principal @Nullable [] issuers) {
     return new String[]{};
   }
 }

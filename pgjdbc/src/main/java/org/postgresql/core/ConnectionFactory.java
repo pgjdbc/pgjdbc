@@ -13,6 +13,8 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -81,7 +83,7 @@ public abstract class ConnectionFactory {
    *
    * @param newStream The stream to close.
    */
-  protected void closeStream(PGStream newStream) {
+  protected void closeStream(@Nullable PGStream newStream) {
     if (newStream != null) {
       try {
         newStream.close();

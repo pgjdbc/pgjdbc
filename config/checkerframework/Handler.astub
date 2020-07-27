@@ -1,0 +1,7 @@
+package java.util.logging;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class Handler {
+    void setFilter(@Nullable Filter newFilter);
+}

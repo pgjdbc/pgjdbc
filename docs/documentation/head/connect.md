@@ -113,7 +113,7 @@ Connection conn = DriverManager.getConnection(url);
 	. `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
 	validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
 	verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
-	host connected to has the same hostname as the certificate.
+	host connected to has the same hostname as the certificate. Default is `prefer`
 
 	Setting these will necessitate storing the server certificate on the client machine see
 	["Configuring the client"](ssl-client.html) for details.
@@ -132,7 +132,9 @@ Connection conn = DriverManager.getConnection(url);
 	
 	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
-	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
+	`openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+
+	If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 
     *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
     by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
@@ -350,6 +352,12 @@ Connection conn = DriverManager.getConnection(url);
 	you are unable to change the application to use an appropriate method
 	such as `setInt()`.
 
+* **ApplicationName** = String
+
+    Specifies the name of the application that is using the connection.
+    This allows a database administrator to see what applications are
+    connected to the server and what resources they are using through views like pg_stat_activity.
+
 * **kerberosServerName** = String
 
 	The Kerberos service name to use when authenticating with GSSAPI. This
@@ -368,11 +376,15 @@ Connection conn = DriverManager.getConnection(url);
 	authenticating. To skip the JAAS login, for example if the native GSS
 	implementation is being used to obtain credentials, set this to `false`.
 
-* **ApplicationName** = String
+* **gssEncMode** = String
 
-	Specifies the name of the application that is using the connection. 
-	This allows a database administrator to see what applications are 
-	connected to the server and what resources they are using through views like pg_stat_activity.
+    PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
+    enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
+    `disable` is obvious and disables any attempt to connect using GSS encrypted mode
+    `allow` will connect in plain text then if the server requests it will switch to encrypted mode
+    `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
+    an encrypted connection
+    `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
 
 * **gsslib** = String
 
@@ -421,6 +433,17 @@ Connection conn = DriverManager.getConnection(url);
 * **readOnly** = boolean
 
 	Put the connection in read-only mode
+
+* **readOnlyMode** = String
+	
+	Controls the behavior when a connection is set to read only, one of 'ignore', 'transaction', or 'always'. 
+	When set to 'ignore' then the `readOnly` setting has no effect. 
+	When set to 'transaction' and `readOnly` is set to 'true' and autocommit is 'false' the driver will set the transaction to
+	readonly  by sending `BEGIN READ ONLY`.
+	When set to 'always' and `readOnly` is set to 'true' the session will be to READ ONLY if autoCommit is 'true'. 
+	If autocommit is false the driver set the transaction to read only by sending `BEGIN READ ONLY` .
+	
+	The default the value is 'transaction'
 
 * **disableColumnSanitiser** = boolean
 
@@ -559,12 +582,6 @@ And read pool balances connections between secondary nodes, but allows connectio
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
-<<<<<<< HEAD
-If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
-the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
-will be made to connect to all of the hosts in the URL in order.
-=======
-If a secondary fails, all secondaries in the list will be tried first. If the case that there are no available secondaries
+If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
 the primary will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
 will be made to connect to all of the hosts in the URL in order.
->>>>>>> 263d23605b9e4900fc161da165829a6b2ae168fc

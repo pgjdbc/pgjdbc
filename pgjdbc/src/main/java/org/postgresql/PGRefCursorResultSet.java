@@ -5,6 +5,8 @@
 
 package org.postgresql;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A ref cursor based result set.
  *
@@ -21,5 +23,5 @@ public interface PGRefCursorResultSet {
    *             was obtained from.
    */
   @Deprecated
-  String getRefCursor();
+  @Nullable String getRefCursor();
 }

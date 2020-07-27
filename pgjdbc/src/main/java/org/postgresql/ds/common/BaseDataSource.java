@@ -5,6 +5,8 @@
 
 package org.postgresql.ds.common;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -13,6 +15,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.URLCoder;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,9 +50,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   // Standard properties, defined in the JDBC 2.0 Optional Package spec
   private String[] serverNames = new String[] {"localhost"};
-  private String databaseName = "";
-  private String user;
-  private String password;
+  private @Nullable String databaseName = "";
+  private @Nullable String user;
+  private @Nullable String password;
   private int[] portNumbers = new int[] {0};
 
   // Map for all other properties
@@ -93,7 +97,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
    */
-  public Connection getConnection(String user, String password) throws SQLException {
+  public Connection getConnection(@Nullable String user, @Nullable String password)
+      throws SQLException {
     try {
       Connection con = DriverManager.getConnection(getUrl(), user, password);
       if (LOGGER.isLoggable(Level.FINE)) {
@@ -112,7 +117,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * This implementation don't use a LogWriter.
    */
   @Override
-  public PrintWriter getLogWriter() {
+  public @Nullable PrintWriter getLogWriter() {
     return null;
   }
 
@@ -122,7 +127,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param printWriter Not used
    */
   @Override
-  public void setLogWriter(PrintWriter printWriter) {
+  public void setLogWriter(@Nullable PrintWriter printWriter) {
     // NOOP
   }
 
@@ -148,7 +153,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Sets the name of the host the PostgreSQL database is running on. If this is changed, it will
-   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   * only affect future calls to getConnection. The default value is {@code localhost}.
    *
    * @param serverName name of the host the PostgreSQL database is running on
    * @deprecated use {@link #setServerNames(String[])}
@@ -160,17 +165,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Sets the name of the host(s) the PostgreSQL database is running on. If this is changed, it will
-   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
+   * only affect future calls to getConnection. The default value is {@code localhost}.
    *
    * @param serverNames name of the host(s) the PostgreSQL database is running on
    */
-  public void setServerNames(String[] serverNames) {
+  @SuppressWarnings("nullness")
+  public void setServerNames(@Nullable String @Nullable [] serverNames) {
     if (serverNames == null || serverNames.length == 0) {
       this.serverNames = new String[] {"localhost"};
     } else {
-      serverNames = Arrays.copyOf(serverNames, serverNames.length);
+      serverNames = serverNames.clone();
       for (int i = 0; i < serverNames.length; i++) {
-        if (serverNames[i] == null || serverNames[i].equals("")) {
+        String serverName = serverNames[i];
+        if (serverName == null || serverName.equals("")) {
           serverNames[i] = "localhost";
         }
       }
@@ -184,7 +191,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @return name of the PostgreSQL database
    */
-  public String getDatabaseName() {
+  public @Nullable String getDatabaseName() {
     return databaseName;
   }
 
@@ -194,7 +201,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @param databaseName name of the PostgreSQL database
    */
-  public void setDatabaseName(String databaseName) {
+  public void setDatabaseName(@Nullable String databaseName) {
     this.databaseName = databaseName;
   }
 
@@ -211,7 +218,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @return user to connect as by default
    */
-  public String getUser() {
+  public @Nullable String getUser() {
     return user;
   }
 
@@ -222,7 +229,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @param user user to connect as by default
    */
-  public void setUser(String user) {
+  public void setUser(@Nullable String user) {
     this.user = user;
   }
 
@@ -232,7 +239,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @return password to connect with by default
    */
-  public String getPassword() {
+  public @Nullable String getPassword() {
     return password;
   }
 
@@ -243,7 +250,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @param password password to connect with by default
    */
-  public void setPassword(String password) {
+  public void setPassword(@Nullable String password) {
     this.password = password;
   }
 
@@ -290,7 +297,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @param portNumbers port(s) which the PostgreSQL server is listening on for TCP/IP
    */
-  public void setPortNumbers(int[] portNumbers) {
+  public void setPortNumbers(int @Nullable [] portNumbers) {
     if (portNumbers == null || portNumbers.length == 0) {
       portNumbers = new int[] { 0 };
     }
@@ -300,7 +307,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   /**
    * @return command line options for this connection
    */
-  public String getOptions() {
+  public @Nullable String getOptions() {
     return PGProperty.OPTIONS.get(properties);
   }
 
@@ -309,7 +316,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @param options string to set options to
    */
-  public void setOptions(String options) {
+  public void setOptions(@Nullable String options) {
     PGProperty.OPTIONS.set(properties, options);
   }
 
@@ -580,7 +587,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL factory class name
    * @see PGProperty#SSL_FACTORY
    */
-  public String getSslfactory() {
+  public @Nullable String getSslfactory() {
     return PGProperty.SSL_FACTORY.get(properties);
   }
 
@@ -588,7 +595,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL mode
    * @see PGProperty#SSL_MODE
    */
-  public String getSslMode() {
+  public @Nullable String getSslMode() {
     return PGProperty.SSL_MODE.get(properties);
   }
 
@@ -596,7 +603,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param mode SSL mode
    * @see PGProperty#SSL_MODE
    */
-  public void setSslMode(String mode) {
+  public void setSslMode(@Nullable String mode) {
     PGProperty.SSL_MODE.set(properties, mode);
   }
 
@@ -604,7 +611,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL mode
    * @see PGProperty#SSL_FACTORY_ARG
    */
-  public String getSslFactoryArg() {
+  public @Nullable String getSslFactoryArg() {
     return PGProperty.SSL_FACTORY_ARG.get(properties);
   }
 
@@ -612,7 +619,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param arg argument forwarded to SSL factory
    * @see PGProperty#SSL_FACTORY_ARG
    */
-  public void setSslFactoryArg(String arg) {
+  public void setSslFactoryArg(@Nullable String arg) {
     PGProperty.SSL_FACTORY_ARG.set(properties, arg);
   }
 
@@ -620,7 +627,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return argument forwarded to SSL factory
    * @see PGProperty#SSL_HOSTNAME_VERIFIER
    */
-  public String getSslHostnameVerifier() {
+  public @Nullable String getSslHostnameVerifier() {
     return PGProperty.SSL_HOSTNAME_VERIFIER.get(properties);
   }
 
@@ -628,7 +635,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param className SSL hostname verifier
    * @see PGProperty#SSL_HOSTNAME_VERIFIER
    */
-  public void setSslHostnameVerifier(String className) {
+  public void setSslHostnameVerifier(@Nullable String className) {
     PGProperty.SSL_HOSTNAME_VERIFIER.set(properties, className);
   }
 
@@ -636,7 +643,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return className SSL hostname verifier
    * @see PGProperty#SSL_CERT
    */
-  public String getSslCert() {
+  public @Nullable String getSslCert() {
     return PGProperty.SSL_CERT.get(properties);
   }
 
@@ -644,7 +651,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param file SSL certificate
    * @see PGProperty#SSL_CERT
    */
-  public void setSslCert(String file) {
+  public void setSslCert(@Nullable String file) {
     PGProperty.SSL_CERT.set(properties, file);
   }
 
@@ -652,7 +659,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL certificate
    * @see PGProperty#SSL_KEY
    */
-  public String getSslKey() {
+  public @Nullable String getSslKey() {
     return PGProperty.SSL_KEY.get(properties);
   }
 
@@ -660,7 +667,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param file SSL key
    * @see PGProperty#SSL_KEY
    */
-  public void setSslKey(String file) {
+  public void setSslKey(@Nullable String file) {
     PGProperty.SSL_KEY.set(properties, file);
   }
 
@@ -668,7 +675,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL root certificate
    * @see PGProperty#SSL_ROOT_CERT
    */
-  public String getSslRootCert() {
+  public @Nullable String getSslRootCert() {
     return PGProperty.SSL_ROOT_CERT.get(properties);
   }
 
@@ -676,7 +683,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param file SSL root certificate
    * @see PGProperty#SSL_ROOT_CERT
    */
-  public void setSslRootCert(String file) {
+  public void setSslRootCert(@Nullable String file) {
     PGProperty.SSL_ROOT_CERT.set(properties, file);
   }
 
@@ -684,7 +691,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL password
    * @see PGProperty#SSL_PASSWORD
    */
-  public String getSslPassword() {
+  public @Nullable String getSslPassword() {
     return PGProperty.SSL_PASSWORD.get(properties);
   }
 
@@ -692,7 +699,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param password SSL password
    * @see PGProperty#SSL_PASSWORD
    */
-  public void setSslPassword(String password) {
+  public void setSslPassword(@Nullable String password) {
     PGProperty.SSL_PASSWORD.set(properties, password);
   }
 
@@ -700,7 +707,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL password callback
    * @see PGProperty#SSL_PASSWORD_CALLBACK
    */
-  public String getSslPasswordCallback() {
+  public @Nullable String getSslPasswordCallback() {
     return PGProperty.SSL_PASSWORD_CALLBACK.get(properties);
   }
 
@@ -708,7 +715,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param className SSL password callback class name
    * @see PGProperty#SSL_PASSWORD_CALLBACK
    */
-  public void setSslPasswordCallback(String className) {
+  public void setSslPasswordCallback(@Nullable String className) {
     PGProperty.SSL_PASSWORD_CALLBACK.set(properties, className);
   }
 
@@ -716,7 +723,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param applicationName application name
    * @see PGProperty#APPLICATION_NAME
    */
-  public void setApplicationName(String applicationName) {
+  public void setApplicationName(@Nullable String applicationName) {
     PGProperty.APPLICATION_NAME.set(properties, applicationName);
   }
 
@@ -725,14 +732,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#APPLICATION_NAME
    */
   public String getApplicationName() {
-    return PGProperty.APPLICATION_NAME.get(properties);
+    return castNonNull(PGProperty.APPLICATION_NAME.get(properties));
   }
 
   /**
    * @param targetServerType target server type
    * @see PGProperty#TARGET_SERVER_TYPE
    */
-  public void setTargetServerType(String targetServerType) {
+  public void setTargetServerType(@Nullable String targetServerType) {
     PGProperty.TARGET_SERVER_TYPE.set(properties, targetServerType);
   }
 
@@ -741,7 +748,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#TARGET_SERVER_TYPE
    */
   public String getTargetServerType() {
-    return PGProperty.TARGET_SERVER_TYPE.get(properties);
+    return castNonNull(PGProperty.TARGET_SERVER_TYPE.get(properties));
   }
 
   /**
@@ -812,7 +819,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param oidList list of OIDs that are allowed to use binary transfer
    * @see PGProperty#BINARY_TRANSFER_ENABLE
    */
-  public void setBinaryTransferEnable(String oidList) {
+  public void setBinaryTransferEnable(@Nullable String oidList) {
     PGProperty.BINARY_TRANSFER_ENABLE.set(properties, oidList);
   }
 
@@ -821,14 +828,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#BINARY_TRANSFER_ENABLE
    */
   public String getBinaryTransferEnable() {
-    return PGProperty.BINARY_TRANSFER_ENABLE.get(properties);
+    return castNonNull(PGProperty.BINARY_TRANSFER_ENABLE.get(properties));
   }
 
   /**
    * @param oidList list of OIDs that are not allowed to use binary transfer
    * @see PGProperty#BINARY_TRANSFER_DISABLE
    */
-  public void setBinaryTransferDisable(String oidList) {
+  public void setBinaryTransferDisable(@Nullable String oidList) {
     PGProperty.BINARY_TRANSFER_DISABLE.set(properties, oidList);
   }
 
@@ -837,14 +844,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#BINARY_TRANSFER_DISABLE
    */
   public String getBinaryTransferDisable() {
-    return PGProperty.BINARY_TRANSFER_DISABLE.get(properties);
+    return castNonNull(PGProperty.BINARY_TRANSFER_DISABLE.get(properties));
   }
 
   /**
    * @return string type
    * @see PGProperty#STRING_TYPE
    */
-  public String getStringType() {
+  public @Nullable String getStringType() {
     return PGProperty.STRING_TYPE.get(properties);
   }
 
@@ -852,7 +859,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param stringType string type
    * @see PGProperty#STRING_TYPE
    */
-  public void setStringType(String stringType) {
+  public void setStringType(@Nullable String stringType) {
     PGProperty.STRING_TYPE.set(properties, stringType);
   }
 
@@ -884,7 +891,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return current schema
    * @see PGProperty#CURRENT_SCHEMA
    */
-  public String getCurrentSchema() {
+  public @Nullable String getCurrentSchema() {
     return PGProperty.CURRENT_SCHEMA.get(properties);
   }
 
@@ -892,7 +899,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param currentSchema current schema
    * @see PGProperty#CURRENT_SCHEMA
    */
-  public void setCurrentSchema(String currentSchema) {
+  public void setCurrentSchema(@Nullable String currentSchema) {
     PGProperty.CURRENT_SCHEMA.set(properties, currentSchema);
   }
 
@@ -917,14 +924,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#READ_ONLY_MODE
    */
   public String getReadOnlyMode() {
-    return PGProperty.READ_ONLY_MODE.get(properties);
+    return castNonNull(PGProperty.READ_ONLY_MODE.get(properties));
   }
 
   /**
    * @param mode the behavior when set read only
    * @see PGProperty#READ_ONLY_MODE
    */
-  public void setReadOnlyMode(String mode) {
+  public void setReadOnlyMode(@Nullable String mode) {
     PGProperty.READ_ONLY_MODE.set(properties, mode);
   }
 
@@ -964,7 +971,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return assumed minimal server version
    * @see PGProperty#ASSUME_MIN_SERVER_VERSION
    */
-  public String getAssumeMinServerVersion() {
+  public @Nullable String getAssumeMinServerVersion() {
     return PGProperty.ASSUME_MIN_SERVER_VERSION.get(properties);
   }
 
@@ -972,7 +979,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param minVersion assumed minimal server version
    * @see PGProperty#ASSUME_MIN_SERVER_VERSION
    */
-  public void setAssumeMinServerVersion(String minVersion) {
+  public void setAssumeMinServerVersion(@Nullable String minVersion) {
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, minVersion);
   }
 
@@ -980,7 +987,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return JAAS application name
    * @see PGProperty#JAAS_APPLICATION_NAME
    */
-  public String getJaasApplicationName() {
+  public @Nullable String getJaasApplicationName() {
     return PGProperty.JAAS_APPLICATION_NAME.get(properties);
   }
 
@@ -988,7 +995,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param name JAAS application name
    * @see PGProperty#JAAS_APPLICATION_NAME
    */
-  public void setJaasApplicationName(String name) {
+  public void setJaasApplicationName(@Nullable String name) {
     PGProperty.JAAS_APPLICATION_NAME.set(properties, name);
   }
 
@@ -1012,7 +1019,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return Kerberos server name
    * @see PGProperty#KERBEROS_SERVER_NAME
    */
-  public String getKerberosServerName() {
+  public @Nullable String getKerberosServerName() {
     return PGProperty.KERBEROS_SERVER_NAME.get(properties);
   }
 
@@ -1020,7 +1027,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param serverName Kerberos server name
    * @see PGProperty#KERBEROS_SERVER_NAME
    */
-  public void setKerberosServerName(String serverName) {
+  public void setKerberosServerName(@Nullable String serverName) {
     PGProperty.KERBEROS_SERVER_NAME.set(properties, serverName);
   }
 
@@ -1044,7 +1051,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return GSS mode: auto, sspi, or gssapi
    * @see PGProperty#GSS_LIB
    */
-  public String getGssLib() {
+  public @Nullable String getGssLib() {
     return PGProperty.GSS_LIB.get(properties);
   }
 
@@ -1052,15 +1059,31 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param lib GSS mode: auto, sspi, or gssapi
    * @see PGProperty#GSS_LIB
    */
-  public void setGssLib(String lib) {
+  public void setGssLib(@Nullable String lib) {
     PGProperty.GSS_LIB.set(properties, lib);
+  }
+
+  /**
+   *
+   * @return GSS encryption mode: disable, prefer or require
+   */
+  public String getGssEncMode() {
+    return castNonNull(PGProperty.GSS_ENC_MODE.get(properties));
+  }
+
+  /**
+   *
+   * @param mode encryption mode: disable, prefer or require
+   */
+  public void setGssEncMode(@Nullable String mode) {
+    PGProperty.GSS_ENC_MODE.set(properties, mode);
   }
 
   /**
    * @return SSPI service class
    * @see PGProperty#SSPI_SERVICE_CLASS
    */
-  public String getSspiServiceClass() {
+  public @Nullable String getSspiServiceClass() {
     return PGProperty.SSPI_SERVICE_CLASS.get(properties);
   }
 
@@ -1068,7 +1091,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param serviceClass SSPI service class
    * @see PGProperty#SSPI_SERVICE_CLASS
    */
-  public void setSspiServiceClass(String serviceClass) {
+  public void setSspiServiceClass(@Nullable String serviceClass) {
     PGProperty.SSPI_SERVICE_CLASS.set(properties, serviceClass);
   }
 
@@ -1092,7 +1115,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return socket factory class name
    * @see PGProperty#SOCKET_FACTORY
    */
-  public String getSocketFactory() {
+  public @Nullable String getSocketFactory() {
     return PGProperty.SOCKET_FACTORY.get(properties);
   }
 
@@ -1100,7 +1123,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param socketFactoryClassName socket factory class name
    * @see PGProperty#SOCKET_FACTORY
    */
-  public void setSocketFactory(String socketFactoryClassName) {
+  public void setSocketFactory(@Nullable String socketFactoryClassName) {
     PGProperty.SOCKET_FACTORY.set(properties, socketFactoryClassName);
   }
 
@@ -1108,7 +1131,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return socket factory argument
    * @see PGProperty#SOCKET_FACTORY_ARG
    */
-  public String getSocketFactoryArg() {
+  public @Nullable String getSocketFactoryArg() {
     return PGProperty.SOCKET_FACTORY_ARG.get(properties);
   }
 
@@ -1116,7 +1139,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param socketFactoryArg socket factory argument
    * @see PGProperty#SOCKET_FACTORY_ARG
    */
-  public void setSocketFactoryArg(String socketFactoryArg) {
+  public void setSocketFactoryArg(@Nullable String socketFactoryArg) {
     PGProperty.SOCKET_FACTORY_ARG.set(properties, socketFactoryArg);
   }
 
@@ -1124,7 +1147,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param replication set to 'database' for logical replication or 'true' for physical replication
    * @see PGProperty#REPLICATION
    */
-  public void setReplication(String replication) {
+  public void setReplication(@Nullable String replication) {
     PGProperty.REPLICATION.set(properties, replication);
   }
 
@@ -1133,14 +1156,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
    */
   public String getEscapeSyntaxCallMode() {
-    return PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(properties);
+    return castNonNull(PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(properties));
   }
 
   /**
    * @param callMode the call mode to use for JDBC escape call syntax
    * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
    */
-  public void setEscapeSyntaxCallMode(String callMode) {
+  public void setEscapeSyntaxCallMode(@Nullable String callMode) {
     PGProperty.ESCAPE_SYNTAX_CALL_MODE.set(properties, callMode);
   }
 
@@ -1148,7 +1171,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return null, 'database', or 'true
    * @see PGProperty#REPLICATION
    */
-  public String getReplication() {
+  public @Nullable String getReplication() {
     return PGProperty.REPLICATION.get(properties);
   }
 
@@ -1156,7 +1179,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return Logger Level of the JDBC Driver
    * @see PGProperty#LOGGER_LEVEL
    */
-  public String getLoggerLevel() {
+  public @Nullable String getLoggerLevel() {
     return PGProperty.LOGGER_LEVEL.get(properties);
   }
 
@@ -1164,7 +1187,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param loggerLevel of the JDBC Driver
    * @see PGProperty#LOGGER_LEVEL
    */
-  public void setLoggerLevel(String loggerLevel) {
+  public void setLoggerLevel(@Nullable String loggerLevel) {
     PGProperty.LOGGER_LEVEL.set(properties, loggerLevel);
   }
 
@@ -1172,7 +1195,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return File output of the Logger.
    * @see PGProperty#LOGGER_FILE
    */
-  public String getLoggerFile() {
+  public @Nullable String getLoggerFile() {
     ExpressionProperties exprProps = new ExpressionProperties(properties, System.getProperties());
     return PGProperty.LOGGER_FILE.get(exprProps);
   }
@@ -1181,7 +1204,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param loggerFile File output of the Logger.
    * @see PGProperty#LOGGER_LEVEL
    */
-  public void setLoggerFile(String loggerFile) {
+  public void setLoggerFile(@Nullable String loggerFile) {
     PGProperty.LOGGER_FILE.set(properties, loggerFile);
   }
 
@@ -1202,7 +1225,10 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         url.append(":").append(portNumbers[i]);
       }
     }
-    url.append("/").append(URLCoder.encode(databaseName));
+    url.append("/");
+    if (databaseName != null) {
+      url.append(URLCoder.encode(databaseName));
+    }
 
     StringBuilder query = new StringBuilder(100);
     for (PGProperty property : PGProperty.values()) {
@@ -1212,7 +1238,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         }
         query.append(property.getName());
         query.append("=");
-        query.append(URLCoder.encode(property.get(properties)));
+        String value = castNonNull(property.get(properties));
+        query.append(URLCoder.encode(value));
       }
     }
 
@@ -1262,7 +1289,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     setUrl(url);
   }
 
-  public String getProperty(String name) throws SQLException {
+  public @Nullable String getProperty(String name) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
       return getProperty(pgProperty);
@@ -1272,7 +1299,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
   }
 
-  public void setProperty(String name, String value) throws SQLException {
+  public void setProperty(String name, @Nullable String value) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
       setProperty(pgProperty, value);
@@ -1282,12 +1309,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
   }
 
-  public String getProperty(PGProperty property) {
+  public @Nullable String getProperty(PGProperty property) {
     return property.get(properties);
   }
 
-  public void setProperty(PGProperty property, String value) {
+  public void setProperty(PGProperty property, @Nullable String value) {
     if (value == null) {
+      // TODO: this is not consistent with PGProperty.PROPERTY.set(prop, null)
+      // PGProperty removes an entry for put(null) call, however here we just ignore null
       return;
     }
     switch (property) {
@@ -1360,7 +1389,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
     for (PGProperty property : PGProperty.values()) {
       if (property.isPresent(properties)) {
-        ref.add(new StringRefAddr(property.getName(), property.get(properties)));
+        String value = castNonNull(property.get(properties));
+        ref.add(new StringRefAddr(property.getName(), value));
       }
     }
 
@@ -1384,14 +1414,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     } else {
       setPortNumbers(null);
     }
-    setServerNames(getReferenceProperty(ref, "serverName").split(","));
+    String serverName = castNonNull(getReferenceProperty(ref, "serverName"));
+    setServerNames(serverName.split(","));
 
     for (PGProperty property : PGProperty.values()) {
       setProperty(property, getReferenceProperty(ref, property.getName()));
     }
   }
 
-  private static String getReferenceProperty(Reference ref, String propertyName) {
+  private static @Nullable String getReferenceProperty(Reference ref, String propertyName) {
     RefAddr addr = ref.get(propertyName);
     if (addr == null) {
       return null;
@@ -1434,7 +1465,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#PREFER_QUERY_MODE
    */
   public PreferQueryMode getPreferQueryMode() {
-    return PreferQueryMode.of(PGProperty.PREFER_QUERY_MODE.get(properties));
+    return PreferQueryMode.of(castNonNull(PGProperty.PREFER_QUERY_MODE.get(properties)));
   }
 
   /**
@@ -1450,7 +1481,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#AUTOSAVE
    */
   public AutoSave getAutosave() {
-    return AutoSave.of(PGProperty.AUTOSAVE.get(properties));
+    return AutoSave.of(castNonNull(PGProperty.AUTOSAVE.get(properties)));
   }
 
   /**
@@ -1511,19 +1542,28 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
   }
 
-  public String getMaxResultBuffer() {
+  public @Nullable String getMaxResultBuffer() {
     return PGProperty.MAX_RESULT_BUFFER.get(properties);
   }
 
-  public void setMaxResultBuffer(String maxResultBuffer) {
+  public void setMaxResultBuffer(@Nullable String maxResultBuffer) {
     PGProperty.MAX_RESULT_BUFFER.set(properties, maxResultBuffer);
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
+  //#endif
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
   }
-  //#endif
+
+  public String getXmlFactoryFactory() {
+    return castNonNull(PGProperty.XML_FACTORY_FACTORY.get(properties));
+  }
+
+  public void setXmlFactoryFactory(@Nullable String xmlFactoryFactory) {
+    PGProperty.XML_FACTORY_FACTORY.set(properties, xmlFactoryFactory);
+  }
 
   /*
    * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
@@ -1534,63 +1574,63 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return getSsl();
   }
 
-  public String getSslfactoryarg() {
+  public @Nullable String getSslfactoryarg() {
     return getSslFactoryArg();
   }
 
-  public void setSslfactoryarg(final String arg) {
+  public void setSslfactoryarg(final @Nullable String arg) {
     setSslFactoryArg(arg);
   }
 
-  public String getSslcert() {
+  public @Nullable String getSslcert() {
     return getSslCert();
   }
 
-  public void setSslcert(final String file) {
+  public void setSslcert(final @Nullable String file) {
     setSslCert(file);
   }
 
-  public String getSslmode() {
+  public @Nullable String getSslmode() {
     return getSslMode();
   }
 
-  public void setSslmode(final String mode) {
+  public void setSslmode(final @Nullable String mode) {
     setSslMode(mode);
   }
 
-  public String getSslhostnameverifier() {
+  public @Nullable String getSslhostnameverifier() {
     return getSslHostnameVerifier();
   }
 
-  public void setSslhostnameverifier(final String className) {
+  public void setSslhostnameverifier(final @Nullable String className) {
     setSslHostnameVerifier(className);
   }
 
-  public String getSslkey() {
+  public @Nullable String getSslkey() {
     return getSslKey();
   }
 
-  public void setSslkey(final String file) {
+  public void setSslkey(final @Nullable String file) {
     setSslKey(file);
   }
 
-  public String getSslrootcert() {
+  public @Nullable String getSslrootcert() {
     return getSslRootCert();
   }
 
-  public void setSslrootcert(final String file) {
+  public void setSslrootcert(final @Nullable String file) {
     setSslRootCert(file);
   }
 
-  public String getSslpasswordcallback() {
+  public @Nullable String getSslpasswordcallback() {
     return getSslPasswordCallback();
   }
 
-  public void setSslpasswordcallback(final String className) {
+  public void setSslpasswordcallback(final @Nullable String className) {
     setSslPasswordCallback(className);
   }
 
-  public String getSslpassword() {
+  public @Nullable String getSslpassword() {
     return getSslPassword();
   }
 

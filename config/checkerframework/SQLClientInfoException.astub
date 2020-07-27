@@ -1,0 +1,10 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class SQLClientInfoException {
+    SQLClientInfoException(@Nullable String reason,
+                           @Nullable String SQLState,
+                           Map<String, ClientInfoStatus> failedProperties,
+                           @Nullable Throwable cause);
+}

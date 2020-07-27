@@ -7,6 +7,8 @@ package org.postgresql.util;
 
 import org.postgresql.core.Encoding;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -15,8 +17,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class HStoreConverter {
-  public static Map<String, String> fromBytes(byte[] b, Encoding encoding) throws SQLException {
-    Map<String, String> m = new HashMap<String, String>();
+  public static Map<String, @Nullable String> fromBytes(byte[] b, Encoding encoding)
+      throws SQLException {
+    Map<String, @Nullable String> m = new HashMap<String, @Nullable String>();
     int pos = 0;
     int numElements = ByteConverter.int4(b, pos);
     pos += 4;
@@ -53,7 +56,12 @@ public class HStoreConverter {
       ByteConverter.int4(lenBuf, 0, m.size());
       baos.write(lenBuf);
       for (Entry<?, ?> e : m.entrySet()) {
-        byte[] key = encoding.encode(e.getKey().toString());
+        Object mapKey = e.getKey();
+        if (mapKey == null) {
+          throw new PSQLException(GT.tr("hstore key must not be null"),
+              PSQLState.INVALID_PARAMETER_VALUE);
+        }
+        byte[] key = encoding.encode(mapKey.toString());
         ByteConverter.int4(lenBuf, 0, key.length);
         baos.write(lenBuf);
         baos.write(key);
@@ -92,7 +100,7 @@ public class HStoreConverter {
     return sb.toString();
   }
 
-  private static void appendEscaped(StringBuilder sb, Object val) {
+  private static void appendEscaped(StringBuilder sb, @Nullable Object val) {
     if (val != null) {
       sb.append('"');
       String s = val.toString();
@@ -109,8 +117,8 @@ public class HStoreConverter {
     }
   }
 
-  public static Map<String, String> fromString(String s) {
-    Map<String, String> m = new HashMap<String, String>();
+  public static Map<String, @Nullable String> fromString(String s) {
+    Map<String, @Nullable String> m = new HashMap<String, @Nullable String>();
     int pos = 0;
     StringBuilder sb = new StringBuilder();
     while (pos < s.length()) {

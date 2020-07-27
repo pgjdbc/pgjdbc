@@ -53,12 +53,10 @@ before_install:
 script:
   # make sure previous build artifacts are not used for subsequent builds
   - rm -rf $HOME/.m2/repository/org/postgresql || true
-  - test -d "${JDK6_HOME}" || export JDK6_HOME=$(jdk_switcher home openjdk6)
   - test -d "${JDK7_HOME}" || export JDK7_HOME=$(jdk_switcher home openjdk7)
   - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home oraclejdk8)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
-  - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
   - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
   - if [[ $TRAVIS_BRANCH == release/* ]]; then .travis/travis_release.sh; else ./.travis/travis_build.sh; fi
@@ -68,10 +66,12 @@ script:
   #- mv $HOME/.m2/repository/org/postgresql /tmp/cache-trick/
 
 before_cache:
-  # No sense in caching current build artifacts
-  - rm -rf $HOME/.m2/repository/org/postgresql
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
+  # No sense in caching current build artifacts
+  - rm -rf $HOME/.m2/repository/org/postgresql
 
 # Skip default "mvn install" issued by Travis
 # Root project cannot be compiled with older JDKs, so it makes sense to just skip the step
@@ -79,6 +79,8 @@ install: true
 
 cache:
   directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
     - $HOME/.m2/repository
     - $HOME/.ivy2/cache
     - $HOME/.sbt/boot/
@@ -87,10 +89,7 @@ matrix:
   fast_finish: true
   include:
     - stage: test
-      jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
-    - env:
+      env:
         - FEDORA_CI=Y
       services:
         - docker
@@ -100,9 +99,10 @@ matrix:
       addons:
         postgresql: "10"
       env:
-      - PG_VERSION=10
-      - JDK=12
-      - TZ=America/New_York # flips between −05:00 and −04:00
+        - PG_VERSION=10
+        - JDK=12
+        - TZ=America/New_York # flips between −05:00 and −04:00
+        - BUILD_SCAN=Y
     - jdk: openjdk-ea
       sudo: required
       addons:
@@ -135,14 +135,16 @@ matrix:
         - NO_HSTORE=Y
         - PLPGSQL_EXTENSION=Y
         - JDK=8
+        - BUILD_SCAN=Y
     - jdk: oraclejdk11
       sudo: required
       addons:
         postgresql: "10"
       env:
-      - PG_VERSION=10
-      - JDK=11
-      - TZ=America/New_York # flips between −05:00 and −04:00
+        - PG_VERSION=10
+        - JDK=11
+        - TZ=America/New_York # flips between −05:00 and −04:00
+        - SLOW_TESTS=Y
     - jdk: oraclejdk9
       addons:
         postgresql: "9.6"
@@ -160,6 +162,7 @@ matrix:
         - TEST_CLIENTS=Y
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
         - JDK=8
+        - SLOW_TESTS=Y
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -209,6 +212,8 @@ matrix:
         - MCENTRAL=Y
         - COVERAGE=Y
         - TZ=UTC
+# Java 1.6 is no longer supported
+# Do we need to test PostgreSQL 9.1?
     - jdk: openjdk7
       sudo: required
       addons:
@@ -249,26 +254,6 @@ matrix:
         - PG_VERSION=9.4
         - NO_WAFFLE_NO_OSGI=Y
         - JDK=8
-    - stage: release
-      jdk: oraclejdk8
-      env:
-        - PG_VERSION=9.6
-    - stage: release_prev
-      jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=7
-    - stage: release_prev
-      jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
 
 # Deploy snapshots to Maven Central
 after_success:

@@ -9,6 +9,8 @@ import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.fluent.AbstractStreamBuilder;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 
 public class PhysicalStreamBuilder extends AbstractStreamBuilder<ChainedPhysicalStreamBuilder>
@@ -35,7 +37,7 @@ public class PhysicalStreamBuilder extends AbstractStreamBuilder<ChainedPhysical
   }
 
   @Override
-  public String getSlotName() {
+  public @Nullable String getSlotName() {
     return slotName;
   }
 

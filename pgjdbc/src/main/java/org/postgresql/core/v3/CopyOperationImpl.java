@@ -5,17 +5,21 @@
 
 package org.postgresql.core.v3;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 
 public abstract class CopyOperationImpl implements CopyOperation {
-  QueryExecutorImpl queryExecutor;
+  @Nullable QueryExecutorImpl queryExecutor;
   int rowFormat;
-  int[] fieldFormats;
+  int @Nullable [] fieldFormats;
   long handledRowCount = -1;
 
   void init(QueryExecutorImpl q, int fmt, int[] fmts) {
@@ -24,16 +28,20 @@ public abstract class CopyOperationImpl implements CopyOperation {
     fieldFormats = fmts;
   }
 
+  protected QueryExecutorImpl getQueryExecutor() {
+    return castNonNull(queryExecutor);
+  }
+
   public void cancelCopy() throws SQLException {
-    queryExecutor.cancelCopy(this);
+    castNonNull(queryExecutor).cancelCopy(this);
   }
 
   public int getFieldCount() {
-    return fieldFormats.length;
+    return castNonNull(fieldFormats).length;
   }
 
   public int getFieldFormat(int field) {
-    return fieldFormats[field];
+    return castNonNull(fieldFormats)[field];
   }
 
   public int getFormat() {
@@ -41,7 +49,7 @@ public abstract class CopyOperationImpl implements CopyOperation {
   }
 
   public boolean isActive() {
-    synchronized (queryExecutor) {
+    synchronized (castNonNull(queryExecutor)) {
       return queryExecutor.hasLock(this);
     }
   }

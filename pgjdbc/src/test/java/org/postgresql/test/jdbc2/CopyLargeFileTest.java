@@ -24,6 +24,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Random;
 
 /**
  * @author amozhenin on 30.09.2015.
@@ -80,26 +81,51 @@ public class CopyLargeFileTest {
   }
 
   @Test
-  public void testFeedTableSeveralTimesTest() throws Exception {
+  public void testFeedTableSeveralTimesTest() throws Throwable {
     for (int i = 1; i <= FEED_COUNT; i++) {
       feedTableAndCheckTableFeedIsOk(con);
       cleanupTable(con);
     }
   }
 
-  private void feedTableAndCheckTableFeedIsOk(Connection conn) throws Exception {
+  private void feedTableAndCheckTableFeedIsOk(Connection conn) throws Throwable {
+    Long seed = Long.getLong("StrangeInputStream.seed");
+    if (seed == null) {
+      seed = new Random().nextLong();
+    }
     InputStream in = null;
     try {
-      in = new StrangeInputStream(new FileInputStream("target/buffer.txt"));
+      in = new StrangeInputStream(new FileInputStream("target/buffer.txt"), seed);
       long size = copyAPI.copyIn(
           "COPY pgjdbc_issue366_test_data(data_text_id, glossary_text_id, value) FROM STDIN", in);
       assertEquals(BufferGenerator.ROW_COUNT, size);
+    } catch (Throwable t) {
+      String message = "Using seed = " + seed + " for StrangeInputStream. Set -DStrangeInputStream.seed="
+          + seed + " to reproduce the test";
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+      t.addSuppressed(new Throwable(message) {
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+          return this;
+        }
+      });
+      //#else
+      if (t.getCause() != null) {
+        System.err.println(message);
+      } else {
+        t.initCause(new Throwable(message) {
+          @Override
+          public synchronized Throwable fillInStackTrace() {
+            return this;
+          }
+        });
+      }
+      //#endif
     } finally {
       if (in != null) {
         in.close();
       }
     }
-
   }
 
   private void cleanupTable(Connection conn) throws Exception {

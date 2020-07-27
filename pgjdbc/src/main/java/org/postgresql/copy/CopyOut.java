@@ -5,6 +5,8 @@
 
 package org.postgresql.copy;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 
 public interface CopyOut extends CopyOperation {
@@ -14,7 +16,7 @@ public interface CopyOut extends CopyOperation {
    * @return byte array received from server, null if server complete copy operation
    * @throws SQLException if something goes wrong for example socket timeout
    */
-  byte[] readFromCopy() throws SQLException;
+  byte @Nullable [] readFromCopy() throws SQLException;
 
   /**
    * Wait for a row of data to be received from server on an active copy operation.
@@ -25,5 +27,5 @@ public interface CopyOut extends CopyOperation {
    *         blocking mode return null
    * @throws SQLException if something goes wrong for example socket timeout
    */
-  byte[] readFromCopy(boolean block) throws SQLException;
+  byte @Nullable [] readFromCopy(boolean block) throws SQLException;
 }

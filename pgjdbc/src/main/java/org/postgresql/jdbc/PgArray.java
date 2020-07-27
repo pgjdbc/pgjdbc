@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
@@ -17,6 +19,8 @@ import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -50,7 +54,7 @@ public class PgArray implements java.sql.Array {
   /**
    * Array list implementation specific for storing PG array elements.
    */
-  private static class PgArrayList extends ArrayList<Object> {
+  private static class PgArrayList extends ArrayList<@Nullable Object> {
 
     private static final long serialVersionUID = 2052783752654562677L;
 
@@ -64,17 +68,17 @@ public class PgArray implements java.sql.Array {
   /**
    * A database connection.
    */
-  protected BaseConnection connection = null;
+  protected @Nullable BaseConnection connection;
 
   /**
    * The OID of this field.
    */
-  private int oid;
+  private final int oid;
 
   /**
    * Field value as String.
    */
-  protected String fieldString = null;
+  protected @Nullable String fieldString;
 
   /**
    * Whether Object[] should be used instead primitive arrays. Object[] can contain null elements.
@@ -88,9 +92,9 @@ public class PgArray implements java.sql.Array {
    * Value of field as {@link PgArrayList}. Will be initialized only once within
    * {@link #buildArrayList()}.
    */
-  protected PgArrayList arrayList;
+  protected @Nullable PgArrayList arrayList;
 
-  protected byte[] fieldBytes;
+  protected byte @Nullable [] fieldBytes;
 
   private PgArray(BaseConnection connection, int oid) throws SQLException {
     this.connection = connection;
@@ -106,7 +110,8 @@ public class PgArray implements java.sql.Array {
    * @param fieldString the array data in string form
    * @throws SQLException if something wrong happens
    */
-  public PgArray(BaseConnection connection, int oid, String fieldString) throws SQLException {
+  public PgArray(BaseConnection connection, int oid, @Nullable String fieldString)
+      throws SQLException {
     this(connection, oid);
     this.fieldString = fieldString;
   }
@@ -119,32 +124,44 @@ public class PgArray implements java.sql.Array {
    * @param fieldBytes the array data in byte form
    * @throws SQLException if something wrong happens
    */
-  public PgArray(BaseConnection connection, int oid, byte[] fieldBytes) throws SQLException {
+  public PgArray(BaseConnection connection, int oid, byte @Nullable [] fieldBytes)
+      throws SQLException {
     this(connection, oid);
     this.fieldBytes = fieldBytes;
   }
 
+  private BaseConnection getConnection() {
+    return castNonNull(connection);
+  }
+
+  @SuppressWarnings("return.type.incompatible")
   public Object getArray() throws SQLException {
     return getArrayImpl(1, 0, null);
   }
 
+  @SuppressWarnings("return.type.incompatible")
   public Object getArray(long index, int count) throws SQLException {
     return getArrayImpl(index, count, null);
   }
 
+  @SuppressWarnings("return.type.incompatible")
   public Object getArrayImpl(Map<String, Class<?>> map) throws SQLException {
     return getArrayImpl(1, 0, map);
   }
 
+  @SuppressWarnings("return.type.incompatible")
   public Object getArray(Map<String, Class<?>> map) throws SQLException {
     return getArrayImpl(map);
   }
 
-  public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+  @SuppressWarnings("return.type.incompatible")
+  public Object getArray(long index, int count, @Nullable Map<String, Class<?>> map)
+      throws SQLException {
     return getArrayImpl(index, count, map);
   }
 
-  public Object getArrayImpl(long index, int count, Map<String, Class<?>> map) throws SQLException {
+  public @Nullable Object getArrayImpl(long index, int count, @Nullable Map<String, Class<?>> map)
+      throws SQLException {
 
     // for now maps aren't supported.
     if (map != null && !map.isEmpty()) {
@@ -158,14 +175,14 @@ public class PgArray implements java.sql.Array {
     }
 
     if (fieldBytes != null) {
-      return readBinaryArray((int) index, count);
+      return readBinaryArray(fieldBytes, (int) index, count);
     }
 
     if (fieldString == null) {
       return null;
     }
 
-    buildArrayList();
+    PgArrayList arrayList = buildArrayList();
 
     if (count == 0) {
       count = arrayList.size();
@@ -182,7 +199,8 @@ public class PgArray implements java.sql.Array {
     return buildArray(arrayList, (int) index, count);
   }
 
-  private Object readBinaryArray(int index, int count) throws SQLException {
+  private Object readBinaryArray(byte[] fieldBytes, int index, int count)
+      throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
@@ -202,7 +220,7 @@ public class PgArray implements java.sql.Array {
     }
     Object arr = java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), dims);
     try {
-      storeValues((Object[]) arr, elementOid, dims, pos, 0, index);
+      storeValues(fieldBytes, (Object[]) arr, elementOid, dims, pos, 0, index);
     } catch (IOException ioe) {
       throw new PSQLException(
           GT.tr(
@@ -212,7 +230,8 @@ public class PgArray implements java.sql.Array {
     return arr;
   }
 
-  private int storeValues(final Object[] arr, int elementOid, final int[] dims, int pos,
+  private int storeValues(byte[] fieldBytes,
+      final Object[] arr, int elementOid, final int[] dims, int pos,
       final int thisDimension, int index) throws SQLException, IOException {
     if (thisDimension == dims.length - 1) {
       for (int i = 1; i < index; ++i) {
@@ -249,7 +268,7 @@ public class PgArray implements java.sql.Array {
             break;
           case Oid.TEXT:
           case Oid.VARCHAR:
-            Encoding encoding = connection.getEncoding();
+            Encoding encoding = getConnection().getEncoding();
             arr[i] = encoding.decode(fieldBytes, pos, len);
             break;
           case Oid.BOOL:
@@ -265,13 +284,14 @@ public class PgArray implements java.sql.Array {
       }
     } else {
       for (int i = 0; i < dims[thisDimension]; ++i) {
-        pos = storeValues((Object[]) arr[i], elementOid, dims, pos, thisDimension + 1, 0);
+        pos = storeValues(fieldBytes, (Object[]) arr[i], elementOid, dims, pos, thisDimension + 1, 0);
       }
     }
     return pos;
   }
 
-  private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
+  private ResultSet readBinaryResultSet(byte[] fieldBytes, int index, int count)
+      throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
     // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
@@ -289,14 +309,15 @@ public class PgArray implements java.sql.Array {
     List<Tuple> rows = new ArrayList<Tuple>();
     Field[] fields = new Field[2];
 
-    storeValues(rows, fields, elementOid, dims, pos, 0, index);
+    storeValues(fieldBytes, rows, fields, elementOid, dims, pos, 0, index);
 
-    BaseStatement stat = (BaseStatement) connection
+    BaseStatement stat = (BaseStatement) getConnection()
         .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     return stat.createDriverResultSet(fields, rows);
   }
 
-  private int storeValues(List<Tuple> rows, Field[] fields, int elementOid, final int[] dims,
+  private int storeValues(byte[] fieldBytes, List<Tuple> rows, Field[] fields, int elementOid,
+      final int[] dims,
       int pos, final int thisDimension, int index) throws SQLException {
     // handle an empty array
     if (dims.length == 0) {
@@ -345,14 +366,14 @@ public class PgArray implements java.sql.Array {
       int nextDimension = thisDimension + 1;
       int dimensionsLeft = dims.length - nextDimension;
       for (int i = 1; i < index; ++i) {
-        pos = calcRemainingDataLength(dims, pos, elementOid, nextDimension);
+        pos = calcRemainingDataLength(fieldBytes, dims, pos, elementOid, nextDimension);
       }
       for (int i = 0; i < dims[thisDimension]; ++i) {
         byte[][] rowData = new byte[2][];
         rowData[0] = new byte[4];
         ByteConverter.int4(rowData[0], 0, i + index);
         rows.add(new Tuple(rowData));
-        int dataEndPos = calcRemainingDataLength(dims, pos, elementOid, nextDimension);
+        int dataEndPos = calcRemainingDataLength(fieldBytes, dims, pos, elementOid, nextDimension);
         int dataLength = dataEndPos - pos;
         rowData[1] = new byte[12 + 8 * dimensionsLeft + dataLength];
         ByteConverter.int4(rowData[1], 0, dimensionsLeft);
@@ -365,7 +386,8 @@ public class PgArray implements java.sql.Array {
     return pos;
   }
 
-  private int calcRemainingDataLength(int[] dims, int pos, int elementOid, int thisDimension) {
+  private int calcRemainingDataLength(byte[] fieldBytes,
+      int[] dims, int pos, int elementOid, int thisDimension) {
     if (thisDimension == dims.length - 1) {
       for (int i = 0; i < dims[thisDimension]; ++i) {
         int len = ByteConverter.int4(fieldBytes, pos);
@@ -376,7 +398,7 @@ public class PgArray implements java.sql.Array {
         pos += len;
       }
     } else {
-      pos = calcRemainingDataLength(dims, elementOid, pos, thisDimension + 1);
+      pos = calcRemainingDataLength(fieldBytes, dims, elementOid, pos, thisDimension + 1);
     }
     return pos;
   }
@@ -415,14 +437,15 @@ public class PgArray implements java.sql.Array {
    * {@link #arrayList} is build. Method can be called many times in order to make sure that array
    * list is ready to use, however {@link #arrayList} will be set only once during first call.
    */
-  private synchronized void buildArrayList() throws SQLException {
+  private synchronized PgArrayList buildArrayList() throws SQLException {
+    PgArrayList arrayList = this.arrayList;
     if (arrayList != null) {
-      return;
+      return arrayList;
     }
 
-    arrayList = new PgArrayList();
+    this.arrayList = arrayList = new PgArrayList();
 
-    char delim = connection.getTypeInfo().getArrayDelimiter(oid);
+    char delim = getConnection().getTypeInfo().getArrayDelimiter(oid);
 
     if (fieldString != null) {
 
@@ -532,6 +555,7 @@ public class PgArray implements java.sql.Array {
         }
       }
     }
+    return arrayList;
   }
 
   /**
@@ -554,7 +578,7 @@ public class PgArray implements java.sql.Array {
     // dimensions length array (to be used with java.lang.reflect.Array.newInstance(Class<?>,
     // int[]))
     int[] dimsLength = dims > 1 ? new int[dims] : null;
-    if (dims > 1) {
+    if (dimsLength != null) {
       for (int i = 0; i < dims; i++) {
         dimsLength[i] = (i == 0 ? count : 0);
       }
@@ -565,14 +589,15 @@ public class PgArray implements java.sql.Array {
 
     // array elements type
     final int type =
-        connection.getTypeInfo().getSQLType(connection.getTypeInfo().getPGArrayElement(oid));
+        getConnection().getTypeInfo().getSQLType(
+            getConnection().getTypeInfo().getPGArrayElement(oid));
 
     if (type == Types.BIT) {
       boolean[] pa = null; // primitive array
-      Object[] oa = null; // objects array
+      @Nullable Object @Nullable [] oa = null; // objects array
 
-      if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1
+      if (dimsLength != null || useObjects) {
+        ret = oa = (dimsLength != null
             ? (Object[]) java.lang.reflect.Array
                 .newInstance(useObjects ? Boolean.class : boolean.class, dimsLength)
             : new Boolean[count]);
@@ -584,20 +609,20 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object o = input.get(index++);
 
-        if (dims > 1 || useObjects) {
+        if (oa != null) {
           oa[length++] = o == null ? null
-            : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : BooleanTypeUtil.castToBoolean((String) o));
-        } else {
-          pa[length++] = o == null ? false : BooleanTypeUtil.castToBoolean((String) o);
+            : (dimsLength != null ? buildArray((PgArrayList) o, 0, -1) : BooleanTypeUtil.castToBoolean((String) o));
+        } else if (pa != null) {
+          pa[length++] = o != null && BooleanTypeUtil.castToBoolean(o);
         }
       }
     } else if (type == Types.SMALLINT) {
       short[] pa = null;
-      Object[] oa = null;
+      @Nullable Object @Nullable [] oa = null;
 
-      if (dims > 1 || useObjects) {
+      if (dimsLength != null || useObjects) {
         ret =
-            oa = (dims > 1
+            oa = (dimsLength != null
                 ? (Object[]) java.lang.reflect.Array
                     .newInstance(useObjects ? Short.class : short.class, dimsLength)
                 : new Short[count]);
@@ -608,20 +633,20 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object o = input.get(index++);
 
-        if (dims > 1 || useObjects) {
+        if (oa != null) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
-        } else {
+              : (dimsLength != null ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toShort((String) o));
+        } else if (pa != null) {
           pa[length++] = o == null ? 0 : PgResultSet.toShort((String) o);
         }
       }
     } else if (type == Types.INTEGER) {
       int[] pa = null;
-      Object[] oa = null;
+      @Nullable Object @Nullable [] oa = null;
 
-      if (dims > 1 || useObjects) {
+      if (dimsLength != null || useObjects) {
         ret =
-            oa = (dims > 1
+            oa = (dimsLength != null
                 ? (Object[]) java.lang.reflect.Array
                     .newInstance(useObjects ? Integer.class : int.class, dimsLength)
                 : new Integer[count]);
@@ -632,20 +657,20 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object o = input.get(index++);
 
-        if (dims > 1 || useObjects) {
+        if (oa != null) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toInt((String) o));
-        } else {
+              : (dimsLength != null ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toInt((String) o));
+        } else if (pa != null) {
           pa[length++] = o == null ? 0 : PgResultSet.toInt((String) o);
         }
       }
     } else if (type == Types.BIGINT) {
       long[] pa = null;
-      Object[] oa = null;
+      @Nullable Object @Nullable [] oa = null;
 
-      if (dims > 1 || useObjects) {
+      if (dimsLength != null || useObjects) {
         ret =
-            oa = (dims > 1
+            oa = (dimsLength != null
                 ? (Object[]) java.lang.reflect.Array
                     .newInstance(useObjects ? Long.class : long.class, dimsLength)
                 : new Long[count]);
@@ -656,31 +681,31 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object o = input.get(index++);
 
-        if (dims > 1 || useObjects) {
+        if (oa != null) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toLong((String) o));
-        } else {
+              : (dimsLength != null ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toLong((String) o));
+        } else if (pa != null) {
           pa[length++] = o == null ? 0L : PgResultSet.toLong((String) o);
         }
       }
     } else if (type == Types.NUMERIC) {
-      Object[] oa = null;
+      @Nullable Object[] oa;
       ret = oa =
-          (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(BigDecimal.class, dimsLength)
+          (dimsLength != null ? (Object[]) java.lang.reflect.Array.newInstance(BigDecimal.class, dimsLength)
               : new BigDecimal[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
+        oa[length++] = dimsLength != null && v != null ? buildArray((PgArrayList) v, 0, -1)
             : (v == null ? null : PgResultSet.toBigDecimal((String) v));
       }
     } else if (type == Types.REAL) {
       float[] pa = null;
-      Object[] oa = null;
+      @Nullable Object @Nullable [] oa = null;
 
-      if (dims > 1 || useObjects) {
+      if (dimsLength != null || useObjects) {
         ret =
-            oa = (dims > 1
+            oa = (dimsLength != null
                 ? (Object[]) java.lang.reflect.Array
                     .newInstance(useObjects ? Float.class : float.class, dimsLength)
                 : new Float[count]);
@@ -691,19 +716,19 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object o = input.get(index++);
 
-        if (dims > 1 || useObjects) {
+        if (oa != null) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toFloat((String) o));
-        } else {
+              : (dimsLength != null ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toFloat((String) o));
+        } else if (pa != null) {
           pa[length++] = o == null ? 0f : PgResultSet.toFloat((String) o);
         }
       }
     } else if (type == Types.DOUBLE) {
       double[] pa = null;
-      Object[] oa = null;
+      @Nullable Object[] oa = null;
 
-      if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1
+      if (dimsLength != null || useObjects) {
+        ret = oa = (dimsLength != null
             ? (Object[]) java.lang.reflect.Array
                 .newInstance(useObjects ? Double.class : double.class, dimsLength)
             : new Double[count]);
@@ -714,78 +739,78 @@ public class PgArray implements java.sql.Array {
       for (; count > 0; count--) {
         Object o = input.get(index++);
 
-        if (dims > 1 || useObjects) {
+        if (oa != null) {
           oa[length++] = o == null ? null
-              : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toDouble((String) o));
-        } else {
+              : (dimsLength != null ? buildArray((PgArrayList) o, 0, -1) : PgResultSet.toDouble((String) o));
+        } else if (pa != null) {
           pa[length++] = o == null ? 0d : PgResultSet.toDouble((String) o);
         }
       }
     } else if (type == Types.CHAR || type == Types.VARCHAR || oid == Oid.JSONB_ARRAY) {
-      Object[] oa = null;
+      @Nullable Object[] oa;
       ret =
-          oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(String.class, dimsLength)
+          oa = (dimsLength != null ? (Object[]) java.lang.reflect.Array.newInstance(String.class, dimsLength)
               : new String[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1) : v;
+        oa[length++] = dimsLength != null && v != null ? buildArray((PgArrayList) v, 0, -1) : v;
       }
     } else if (type == Types.DATE) {
-      Object[] oa = null;
-      ret = oa = (dims > 1
+      @Nullable Object[] oa;
+      ret = oa = (dimsLength != null
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Date.class, dimsLength)
           : new java.sql.Date[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : connection.getTimestampUtils().toDate(null, (String) v));
+        oa[length++] = dimsLength != null && v != null ? buildArray((PgArrayList) v, 0, -1)
+            : (v == null ? null : getConnection().getTimestampUtils().toDate(null, (String) v));
       }
     } else if (type == Types.TIME) {
-      Object[] oa = null;
-      ret = oa = (dims > 1
+      @Nullable Object[] oa;
+      ret = oa = (dimsLength != null
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Time.class, dimsLength)
           : new java.sql.Time[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : connection.getTimestampUtils().toTime(null, (String) v));
+        oa[length++] = dimsLength != null && v != null ? buildArray((PgArrayList) v, 0, -1)
+            : (v == null ? null : getConnection().getTimestampUtils().toTime(null, (String) v));
       }
     } else if (type == Types.TIMESTAMP) {
-      Object[] oa = null;
-      ret = oa = (dims > 1
+      @Nullable Object[] oa;
+      ret = oa = (dimsLength != null
           ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Timestamp.class, dimsLength)
           : new java.sql.Timestamp[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1)
-            : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
+        oa[length++] = dimsLength != null && v != null ? buildArray((PgArrayList) v, 0, -1)
+            : (v == null ? null : getConnection().getTimestampUtils().toTimestamp(null, (String) v));
       }
     } else if (ArrayAssistantRegistry.getAssistant(oid) != null) {
-      ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
+      ArrayAssistant arrAssistant = castNonNull(ArrayAssistantRegistry.getAssistant(oid));
 
-      Object[] oa = null;
-      ret = oa = (dims > 1)
+      @Nullable Object[] oa;
+      ret = oa = (dimsLength != null)
           ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), dimsLength)
           : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
-        oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1)
+        oa[length++] = (dimsLength != null && v != null) ? buildArray((PgArrayList) v, 0, -1)
             : (v == null ? null : arrAssistant.buildElement((String) v));
       }
     } else if (dims == 1) {
-      Object[] oa = new Object[count];
+      @Nullable Object[] oa = new Object[count];
       String typeName = getBaseTypeName();
       for (; count > 0; count--) {
         Object v = input.get(index++);
         if (v instanceof String) {
-          oa[length++] = connection.getObject(typeName, (String) v, null);
+          oa[length++] = getConnection().getObject(typeName, (String) v, null);
         } else if (v instanceof byte[]) {
-          oa[length++] = connection.getObject(typeName, null, (byte[]) v);
+          oa[length++] = getConnection().getObject(typeName, null, (byte[]) v);
         } else if (v == null) {
           oa[length++] = null;
         } else {
@@ -795,7 +820,7 @@ public class PgArray implements java.sql.Array {
       ret = oa;
     } else {
       // other datatypes not currently supported
-      connection.getLogger().log(Level.FINEST, "getArrayImpl(long,int,Map) with {0}", getBaseTypeName());
+      getConnection().getLogger().log(Level.FINEST, "getArrayImpl(long,int,Map) with {0}", getBaseTypeName());
 
       throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
     }
@@ -804,13 +829,13 @@ public class PgArray implements java.sql.Array {
   }
 
   public int getBaseType() throws SQLException {
-    return connection.getTypeInfo().getSQLType(getBaseTypeName());
+    return getConnection().getTypeInfo().getSQLType(getBaseTypeName());
   }
 
   public String getBaseTypeName() throws SQLException {
     buildArrayList();
-    int elementOID = connection.getTypeInfo().getPGArrayElement(oid);
-    return connection.getTypeInfo().getPGType(elementOID);
+    int elementOID = getConnection().getTypeInfo().getPGArrayElement(oid);
+    return castNonNull(getConnection().getTypeInfo().getPGType(elementOID));
   }
 
   public java.sql.ResultSet getResultSet() throws SQLException {
@@ -821,20 +846,20 @@ public class PgArray implements java.sql.Array {
     return getResultSetImpl(index, count, null);
   }
 
-  public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+  public ResultSet getResultSet(@Nullable Map<String, Class<?>> map) throws SQLException {
     return getResultSetImpl(map);
   }
 
-  public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map)
+  public ResultSet getResultSet(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     return getResultSetImpl(index, count, map);
   }
 
-  public ResultSet getResultSetImpl(Map<String, Class<?>> map) throws SQLException {
+  public ResultSet getResultSetImpl(@Nullable Map<String, Class<?>> map) throws SQLException {
     return getResultSetImpl(1, 0, map);
   }
 
-  public ResultSet getResultSetImpl(long index, int count, Map<String, Class<?>> map)
+  public ResultSet getResultSetImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
 
     // for now maps aren't supported.
@@ -849,10 +874,10 @@ public class PgArray implements java.sql.Array {
     }
 
     if (fieldBytes != null) {
-      return readBinaryResultSet((int) index, count);
+      return readBinaryResultSet(fieldBytes, (int) index, count);
     }
 
-    buildArrayList();
+    PgArrayList arrayList = buildArrayList();
 
     if (count == 0) {
       count = arrayList.size();
@@ -873,16 +898,16 @@ public class PgArray implements java.sql.Array {
     // one dimensional array
     if (arrayList.dimensionsCount <= 1) {
       // array element type
-      final int baseOid = connection.getTypeInfo().getPGArrayElement(oid);
+      final int baseOid = getConnection().getTypeInfo().getPGArrayElement(oid);
       fields[0] = new Field("INDEX", Oid.INT4);
       fields[1] = new Field("VALUE", baseOid);
 
       for (int i = 0; i < count; i++) {
         int offset = (int) index + i;
-        byte[][] t = new byte[2][0];
+        byte[] @Nullable [] t = new byte[2][0];
         String v = (String) arrayList.get(offset);
-        t[0] = connection.encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : connection.encodeString(v);
+        t[0] = getConnection().encodeString(Integer.toString(offset + 1));
+        t[1] = v == null ? null : getConnection().encodeString(v);
         rows.add(new Tuple(t));
       }
     } else {
@@ -891,31 +916,32 @@ public class PgArray implements java.sql.Array {
       fields[1] = new Field("VALUE", oid);
       for (int i = 0; i < count; i++) {
         int offset = (int) index + i;
-        byte[][] t = new byte[2][0];
+        byte[] @Nullable [] t = new byte[2][0];
         Object v = arrayList.get(offset);
 
-        t[0] = connection.encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : connection.encodeString(toString((PgArrayList) v));
+        t[0] = getConnection().encodeString(Integer.toString(offset + 1));
+        t[1] = v == null ? null : getConnection().encodeString(toString((PgArrayList) v));
         rows.add(new Tuple(t));
       }
     }
 
-    BaseStatement stat = (BaseStatement) connection
+    BaseStatement stat = (BaseStatement) getConnection()
         .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     return stat.createDriverResultSet(fields, rows);
   }
 
-  public String toString() {
+  @SuppressWarnings("nullness")
+  public @Nullable String toString() {
     if (fieldString == null && fieldBytes != null) {
       try {
-        Object array = readBinaryArray(1, 0);
+        Object array = readBinaryArray(fieldBytes, 1, 0);
 
         final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(array);
         if (arraySupport != null) {
           fieldString =
-            arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+            arraySupport.toArrayString(getConnection().getTypeInfo().getArrayDelimiter(oid), array);
         } else {
-          java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
+          java.sql.Array tmpArray = getConnection().createArrayOf(getBaseTypeName(), (Object[]) array);
           fieldString = tmpArray.toString();
         }
       } catch (SQLException e) {
@@ -935,7 +961,7 @@ public class PgArray implements java.sql.Array {
 
     StringBuilder b = new StringBuilder().append('{');
 
-    char delim = connection.getTypeInfo().getArrayDelimiter(oid);
+    char delim = getConnection().getTypeInfo().getArrayDelimiter(oid);
 
     for (int i = 0; i < list.size(); i++) {
       Object v = list.get(i);
@@ -975,7 +1001,7 @@ public class PgArray implements java.sql.Array {
     return fieldBytes != null;
   }
 
-  public byte[] toBytes() {
+  public byte @Nullable [] toBytes() {
     return fieldBytes;
   }
 

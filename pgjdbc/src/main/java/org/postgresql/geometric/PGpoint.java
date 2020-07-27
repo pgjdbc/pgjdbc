@@ -13,6 +13,8 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.awt.Point;
 import java.io.Serializable;
 import java.sql.SQLException;
@@ -50,6 +52,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param value Definition of this point in PostgreSQL's syntax
    * @throws SQLException if something goes wrong
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGpoint(String value) throws SQLException {
     this();
     setValue(value);
@@ -59,7 +62,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * Required by the driver.
    */
   public PGpoint() {
-    setType("point");
+    type = "point";
   }
 
   /**
@@ -90,7 +93,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param obj Object to compare with
    * @return true if the two points are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpoint) {
       PGpoint p = (PGpoint) obj;
       return x == p.x && y == p.y;
