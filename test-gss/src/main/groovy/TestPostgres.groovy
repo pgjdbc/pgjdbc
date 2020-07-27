@@ -48,7 +48,7 @@ class TestPostgres {
                 try {
                     connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
                     if (!connection) {
-                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA}"
+                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
                         Assert.fail 'Unable to acquire connection'
 
                     }
