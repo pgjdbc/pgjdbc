@@ -55,7 +55,7 @@ class TestPostgres {
                         Assert.fail 'GSS authenticated and encrypted Connection failed'
                     }
                 } finally {
-                    !connection.close()
+                    connection?.close()
                 }
 
                 postgres.enableGSS('127.0.0.1', 'hostnogssenc', 'map=mymap')
@@ -72,7 +72,7 @@ class TestPostgres {
                         Assert.fail 'GSS authenticated and not encrypted Connection failed'
                     }
                 } finally {
-                    !connection.close()
+                    connection?.close()
                 }
 
 
