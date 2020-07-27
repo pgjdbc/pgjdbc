@@ -20,4 +20,7 @@ public class Util {
             f.append("$text\n ")
         }
     }
+    public static String readFile(String fileName) {
+        new FileInputStream(fileName).text
+    }
 }

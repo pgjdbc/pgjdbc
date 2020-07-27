@@ -65,6 +65,9 @@ class Postgres {
     public void writePgHBA(String text) {
         Util.appendToFile("$dataPath/pg_hba.conf", text, true)
     }
+    public String readPgHBA() {
+        Util.readPgHBA("$dataPath/pg_hba.conf")
+    }
     public void writePgConf(String text) {
         Util.appendToFile("$dataPath/postgresql.conf", text, false)
     }

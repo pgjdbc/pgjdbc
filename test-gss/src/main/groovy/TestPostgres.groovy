@@ -47,7 +47,11 @@ class TestPostgres {
                 Connection connection;
                 try {
                     connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
-                    Assert.assertNull('Unable to acquire connection', connection)
+                    if (!connection) {
+                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA}"
+                        Assert.fail 'Unable to acquire connection'
+
+                    }
 
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and encrypted Connection succeeded'
