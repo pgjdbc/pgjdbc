@@ -47,19 +47,17 @@ class TestPostgres {
                 Connection connection;
                 try {
                     connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
-                    if (!connection) {
-                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
-                        Assert.fail 'Unable to acquire connection'
-
-                    }
-
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and encrypted Connection succeeded'
                     } else {
                         Assert.fail 'GSS authenticated and encrypted Connection failed'
                     }
                 } finally {
+                    if (!connection) {
+                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
+                    }
                     connection?.close()
+
                 }
 
                 postgres.enableGSS('127.0.0.1', 'hostnogssenc', 'map=mymap')
@@ -76,6 +74,9 @@ class TestPostgres {
                         Assert.fail 'GSS authenticated and not encrypted Connection failed'
                     }
                 } finally {
+                    if (!connection) {
+                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
+                    }
                     connection?.close()
                 }
 
