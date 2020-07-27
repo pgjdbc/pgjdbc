@@ -1808,10 +1808,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           } else {
             try {
               rowBuffer.set(columnIndex,
-                  PGbytea.toPGString((byte[]) valueObject).getBytes("ISO-8859-1"));
+                  PGbytea.toPGString((byte[]) valueObject).getBytes(connection.getEncoding().name()));
             } catch (UnsupportedEncodingException e) {
               throw new PSQLException(
-                  GT.tr("The JVM claims not to support the encoding: {0}", "ISO-8859-1"),
+                  GT.tr("The JVM claims not to support the encoding: {0}", connection.getEncoding().name()),
                   PSQLState.UNEXPECTED_ERROR, e);
             }
           }
