@@ -80,7 +80,7 @@ class TestPostgres {
                 }catch( Exception ex ) {
                         System.err.println( "Exception ${ex.getMessage()}")
                         System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
-                    }
+                    
                 } finally {
                     if (!connection) {
                         System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
