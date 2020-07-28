@@ -57,8 +57,8 @@ class TestPostgres {
                         Assert.fail 'GSS authenticated and encrypted Connection failed'
                     }
                 } catch( Exception ex ) {
-                    System.err.println( "Exception ${ex.getMessage()}")
                     System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
+                    ex.printStackTrace()
                 } finally {
                     connection?.close()
 
@@ -78,9 +78,10 @@ class TestPostgres {
                         Assert.fail 'GSS authenticated and not encrypted Connection failed'
                     }
                 }catch( Exception ex ) {
-                        System.err.println( "Exception ${ex.getMessage()}")
-                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
-                    
+                    System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
+                    ex.printStackTrace()
+
+
                 } finally {
                     if (!connection) {
                         System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
