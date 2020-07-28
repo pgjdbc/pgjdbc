@@ -138,8 +138,10 @@ public class LazyKeyManager implements X509KeyManager {
         return null;
       }
       Collection<? extends Certificate> certs;
+      FileInputStream certfileStream = null;
       try {
-        certs = cf.generateCertificates(new FileInputStream(certfile));
+        certfileStream = new FileInputStream(certfile);
+        certs = cf.generateCertificates(certfileStream);
       } catch (FileNotFoundException ioex) {
         if (!defaultfile) { // It is not an error if there is no file at the default location
           error = new PSQLException(
@@ -151,6 +153,18 @@ public class LazyKeyManager implements X509KeyManager {
         error = new PSQLException(GT.tr("Loading the SSL certificate {0} into a KeyManager failed.",
             certfile), PSQLState.CONNECTION_FAILURE, gsex);
         return null;
+      } finally {
+        if (certfileStream != null) {
+          try {
+            certfileStream.close();
+          } catch (IOException ioex) {
+            if (!defaultfile) { // It is not an error if there is no file at the default location
+              error = new PSQLException(
+                  GT.tr("Could not close SSL certificate file {0}.", certfile),
+                  PSQLState.CONNECTION_FAILURE, ioex);
+            }
+          }
+        }
       }
       cert = certs.toArray(new X509Certificate[0]);
     }
