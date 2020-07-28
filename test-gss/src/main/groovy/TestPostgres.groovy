@@ -31,7 +31,7 @@ class TestPostgres {
 
         Postgres postgres = new Postgres('/usr/lib/postgresql/12/bin/', '/tmp/pggss')
         /*
-        make sure we can connect 
+        make sure we can connect
          */
         postgres.writePgHBA("host    all             all             127.0.0.1/32            trust")
         if (postgres.waitForHBA(5000) ) {
@@ -57,6 +57,7 @@ class TestPostgres {
                         Assert.fail 'GSS authenticated and encrypted Connection failed'
                     }
                 } catch( Exception ex ) {
+                    System.err.println( "Exception ${ex.getMessage()}")
                     System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
                 } finally {
                     connection?.close()
@@ -75,6 +76,10 @@ class TestPostgres {
                         System.err.println 'GSS authenticated and not encrypted Connection succeeded'
                     } else {
                         Assert.fail 'GSS authenticated and not encrypted Connection failed'
+                    }
+                }catch( Exception ex ) {
+                        System.err.println( "Exception ${ex.getMessage()}")
+                        System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
                     }
                 } finally {
                     if (!connection) {
