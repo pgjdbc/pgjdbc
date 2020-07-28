@@ -70,7 +70,6 @@ class TestPostgres {
 
                 try {
                     connection = pgJDBC.tryConnect('test', 'auth-test-localhost.postgresql.example.com', postgres.getPort(), 'test1', 'secret1')
-                    Assert.assertNull('Unable to acquire connection', connection)
 
                     if (pgJDBC.select(connection, "SELECT gss_authenticated AND not encrypted from pg_stat_gssapi where pid = pg_backend_pid()")) {
                         System.err.println 'GSS authenticated and not encrypted Connection succeeded'
