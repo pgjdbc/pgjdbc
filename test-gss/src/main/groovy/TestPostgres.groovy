@@ -30,6 +30,10 @@ class TestPostgres {
         currentEnvironment[environment.size() + 1] = kerberos.env[1]
 
         Postgres postgres = new Postgres('/usr/lib/postgresql/12/bin/', '/tmp/pggss')
+        /*
+        make sure we can connect 
+         */
+        postgres.writePgHBA("host    all             all             127.0.0.1/32            trust")
         if (postgres.waitForHBA(5000) ) {
             Process p = postgres.startPostgres(currentEnvironment)
             pgJDBC = new PgJDBC(host, postgres.getPort());
