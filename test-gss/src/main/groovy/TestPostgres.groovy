@@ -44,7 +44,7 @@ class TestPostgres {
             postgres.enableMyMap('EXAMPLE.COM')
             postgres.setKeyTabLocation(kerberos.getKeytab())
             postgres.reload()
-            pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.PREFER.value)
+            pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.REQUIRE.value)
             pgJDBC.addProperty(PGProperty.JAAS_LOGIN, true)
             pgJDBC.addProperty(PGProperty.JAAS_APPLICATION_NAME, "pgjdbc")
             try {
