@@ -252,39 +252,38 @@ public class PgArray implements java.sql.Array {
           continue;
         }
         switch (elementOid) {
-
-        case Oid.INT2:
-          arr[i] = ByteConverter.int2(fieldBytes, pos);
-          break;
-        case Oid.INT4:
-          arr[i] = ByteConverter.int4(fieldBytes, pos);
-          break;
-        case Oid.INT8:
-          arr[i] = ByteConverter.int8(fieldBytes, pos);
-          break;
-        case Oid.FLOAT4:
-          arr[i] = ByteConverter.float4(fieldBytes, pos);
-          break;
-        case Oid.FLOAT8:
-          arr[i] = ByteConverter.float8(fieldBytes, pos);
-          break;
-        case Oid.TEXT:
-        case Oid.VARCHAR:
-          Encoding encoding = connection.getEncoding();
-          arr[i] = encoding.decode(fieldBytes, pos, len);
-          break;
-        case Oid.BOOL:
-          arr[i] = ByteConverter.bool(fieldBytes, pos);
-          break;
-        case Oid.BYTEA:
-          arr[i] = new byte[len];
-          System.arraycopy(fieldBytes, pos, arr[i], 0, len);
-          break;
-        default:
-          ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
-          if (arrAssistant != null) {
-            arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
-          }
+          case Oid.INT2:
+            arr[i] = ByteConverter.int2(fieldBytes, pos);
+            break;
+          case Oid.INT4:
+            arr[i] = ByteConverter.int4(fieldBytes, pos);
+            break;
+          case Oid.INT8:
+            arr[i] = ByteConverter.int8(fieldBytes, pos);
+            break;
+          case Oid.FLOAT4:
+            arr[i] = ByteConverter.float4(fieldBytes, pos);
+            break;
+          case Oid.FLOAT8:
+            arr[i] = ByteConverter.float8(fieldBytes, pos);
+            break;
+          case Oid.TEXT:
+          case Oid.VARCHAR:
+            Encoding encoding = connection.getEncoding();
+            arr[i] = encoding.decode(fieldBytes, pos, len);
+            break;
+          case Oid.BOOL:
+            arr[i] = ByteConverter.bool(fieldBytes, pos);
+            break;
+          case Oid.BYTEA:
+            arr[i] = new byte[len];
+            System.arraycopy(fieldBytes, pos, arr[i], 0, len);
+            break;
+          default:
+            ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
+            if (arrAssistant != null) {
+              arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
+            }
         }
         pos += len;
       }
