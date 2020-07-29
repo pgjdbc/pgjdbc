@@ -59,6 +59,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -705,20 +706,27 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+
   private <A> void setPrimitiveArray(@Positive int parameterIndex, A in) throws SQLException {
     // TODO: move to method parameter?
-    final Arrays.ArraySupport<A> arrayToString =
+    final Arrays.ArraySupport<A> arraySupport =
         castNonNull(Arrays.getArraySupport(in));
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 
-    final int oid = arrayToString.getDefaultArrayTypeOid();
+    final int oid = arraySupport.getDefaultArrayTypeOid();
 
-    if (arrayToString.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in, oid), oid);
+    if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
     } else {
-      final char delim = typeInfo.getArrayDelimiter(oid);
-      setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
+      if (oid == Oid.UNSPECIFIED) {
+        throw new SQLFeatureNotSupportedException();
+      }
+      final int baseOid = typeInfo.getPGArrayElement(oid);
+      final String baseType = typeInfo.getPGType(baseOid);
+
+      final Array array = getPGConnection().createArrayOf(baseType, in);
+      this.setArray(parameterIndex, array);
     }
   }
 

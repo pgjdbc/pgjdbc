@@ -393,16 +393,27 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSetObjectFromJavaArray() throws SQLException {
-    String[] strArray = new String[]{"a", "b", "c"};
+    String[] strArray = new String[] { "a", "b", "c" };
     Object[] objCopy = Arrays.copyOf(strArray, strArray.length, Object[].class);
 
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
 
-    pstmt.setObject(1, objCopy, Types.ARRAY);
-    pstmt.executeUpdate();
+    // cannot handle generic Object[]
+    try {
+      pstmt.setObject(1, objCopy, Types.ARRAY);
+      pstmt.executeUpdate();
+      Assert.fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
+    } catch (org.postgresql.util.PSQLException ex) {
+      // Expected failure.
+    }
 
-    pstmt.setObject(1, objCopy);
-    pstmt.executeUpdate();
+    try {
+      pstmt.setObject(1, objCopy);
+      pstmt.executeUpdate();
+      Assert.fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
+    } catch (org.postgresql.util.PSQLException ex) {
+      // Expected failure.
+    }
 
     pstmt.setObject(1, strArray);
     pstmt.executeUpdate();

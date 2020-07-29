@@ -204,8 +204,9 @@ public class PgArray implements java.sql.Array {
   private Object readBinaryArray(byte[] fieldBytes, int index, int count)
       throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
-    // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls,
-    // 1=has-nulls
+    // next 4 bytes indicate if null values are present or not
+    // 0=no-nulls, 1=has-nulls
+    // skip because it does not affect how we handle the data
     int elementOid = ByteConverter.int4(fieldBytes, 8);
     int pos = 12;
     int[] dims = new int[dimensions];
