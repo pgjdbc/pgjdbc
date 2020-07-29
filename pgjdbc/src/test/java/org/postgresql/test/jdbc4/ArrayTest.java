@@ -5,11 +5,6 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.jdbc.PgConnection;
@@ -19,6 +14,12 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.util.RegexMatcher;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
+
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -592,11 +593,10 @@ public class ArrayTest extends BaseTest4 {
         if (actual != null) {
           // if a binary array is provided, the string representation looks like [0:1][0:1]={{1,2},{3,4}}
           int idx = actual.indexOf('=');
-          if (idx > 0)
-          {
-            actual = actual.substring(idx + 1); 
+          if (idx > 0) {
+            actual = actual.substring(idx + 1);
           }
-          
+
           // Remove all double quotes. They do not make a difference here.
           actual = actual.replaceAll("\"", "");
         }
@@ -645,9 +645,8 @@ public class ArrayTest extends BaseTest4 {
     String stringValue = resArray.toString();
     // if a binary array is provided, the string representation looks like [0:1][0:1]={{1,2},{3,4}}
     int idx = stringValue.indexOf('=');
-    if (idx > 0)
-    {
-      stringValue = stringValue.substring(idx + 1); 
+    if (idx > 0) {
+      stringValue = stringValue.substring(idx + 1);
     }
     // Both {{"1","2"},{"3","4"}} and {{1,2},{3,4}} are the same array representation
     stringValue = stringValue.replaceAll("\"", "");

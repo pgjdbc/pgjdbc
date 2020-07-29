@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.jdbc;
 
@@ -27,37 +31,37 @@ final class Arrays {
 
     /**
      * The default array type oid supported by this instance.
-     * 
+     *
      * @param tiCache
      * @return The default array type oid supported by this instance.
      */
-    public abstract int getDefaultArrayTypeOid(TypeInfo tiCache);
+    abstract int getDefaultArrayTypeOid(TypeInfo tiCache);
 
     /**
      * Creates {@code String} representation of the <i>array</i>.
-     * 
+     *
      * @param delim
      *          The character to use to delimit between elements.
      * @param array
      *          The array to represent as a {@code String}.
      * @return {@code String} representation of the <i>array</i>.
      */
-    public abstract String toArrayString(char delim, A array);
+    abstract String toArrayString(char delim, A array);
 
     /**
      * Indicates if an array can be encoded in binary form to array <i>oid</i>.
-     * 
+     *
      * @param oid
      *          The array oid to see check for binary support.
      * @return Indication of whether
      *         {@link #toBinaryRepresentation(BaseConnection, Object, int)} is
      *         supported for <i>oid</i>.
      */
-    public boolean supportBinaryRepresentation(int oid);
+    boolean supportBinaryRepresentation(int oid);
 
     /**
      * Creates binary representation of the <i>array</i>.
-     * 
+     *
      * @param connection
      *          The connection the binary representation will be used on. Attributes
      *          from the connection might impact how values are translated to
@@ -70,17 +74,18 @@ final class Arrays {
      *          {@link #supportBinaryRepresentation(int)} must have returned
      *          {@code true}.
      * @return The binary representation of <i>array</i>.
-     * @throws SQLException
      * @throws SQLFeatureNotSupportedException
+     *           If {@link #supportBinaryRepresentation(int)} is false for
+     *           <i>oid</i>.
      */
-    public abstract byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
+    abstract byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
         throws SQLException, SQLFeatureNotSupportedException;
   }
 
   /**
    * Base class to implement {@link Arrays.ArraySupport} and provide
    * multi-dimensional support.
-   * 
+   *
    * @param <A>
    *          Base array type supported.
    */
@@ -91,7 +96,7 @@ final class Arrays {
     final int arrayOid;
 
     /**
-     * 
+     *
      * @param oid
      *          The default/primary base oid type.
      * @param arrayOid
@@ -103,7 +108,7 @@ final class Arrays {
     }
 
     /**
-     * 
+     *
      * @param arrayOid
      * @return The base oid type for the given array oid type given to
      *         {@link #toBinaryRepresentation(BaseConnection, Object, int)}.
@@ -122,7 +127,7 @@ final class Arrays {
 
     /**
      * Counts the number of {@code null} elements in <i>array</i>.
-     * 
+     *
      * @param array
      *          The array to count {@code null} elements in.
      * @return The number of {@code null} elements in <i>array</i>.
@@ -140,7 +145,7 @@ final class Arrays {
 
     /**
      * Creates {@code byte[]} of just the raw data (no metadata).
-     * 
+     *
      * @param connection
      * @param array
      *          The array to create binary representation of. Will not be
@@ -164,7 +169,7 @@ final class Arrays {
 
     /**
      * Append {@code String} representation of <i>array</i> to <i>sb</i>.
-     * 
+     *
      * @param sb
      *          The {@link StringBuilder} to append to.
      * @param delim
@@ -187,16 +192,16 @@ final class Arrays {
 
   /**
    * Base class to provide support for {@code Number} based arrays.
-   * 
+   *
    * @param <N>
    *          The base type of array.
    */
-  private static abstract class NumberArraySupport<N extends Number> extends AbstractArraySupport<N[]> {
+  private abstract static class NumberArraySupport<N extends Number> extends AbstractArraySupport<N[]> {
 
     private final int fieldSize;
 
     /**
-     * 
+     *
      * @param fieldSize
      *          The fixed size to represent each value in binary.
      * @param oid
@@ -259,7 +264,7 @@ final class Arrays {
       return writeBytes(array, nullCount, 0);
     }
 
-    private final byte[] writeBytes(final N[] array, final int nullCount, final int offset) {
+    private byte[] writeBytes(final N[] array, final int nullCount, final int offset) {
       final int length = offset + (4 * array.length) + (fieldSize * (array.length - nullCount));
       final byte[] bytes = new byte[length];
 
@@ -282,7 +287,7 @@ final class Arrays {
     /**
      * Write single value (<i>number</i>) to <i>bytes</i> beginning at
      * <i>offset</i>.
-     * 
+     *
      * @param number
      *          The value to write to <i>bytes</i>. This will never be {@code null}.
      * @param bytes
@@ -319,11 +324,11 @@ final class Arrays {
 
   /**
    * Base support for primitive arrays.
-   * 
+   *
    * @param <A>
    *          The primitive array to support.
    */
-  private static abstract class FixedSizePrimitiveArraySupport<A> extends AbstractArraySupport<A> {
+  private abstract static class FixedSizePrimitiveArraySupport<A> extends AbstractArraySupport<A> {
 
     private final int fieldSize;
 
@@ -334,7 +339,7 @@ final class Arrays {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * Always returns {@code 0}.
      */
     @Override
@@ -384,7 +389,7 @@ final class Arrays {
     /**
      * Write the entire contents of <i>array</i> to <i>bytes</i> starting at
      * <i>offset</i> without metadata describing type or length.
-     * 
+     *
      * @param array
      *          The array to write.
      * @param bytes
@@ -674,7 +679,7 @@ final class Arrays {
       return bytes;
     }
 
-    private final byte[] writeBytes(final Boolean[] array, final int nullCount, final int offset) {
+    private byte[] writeBytes(final Boolean[] array, final int nullCount, final int offset) {
       final int length = offset + (4 * array.length) + (array.length - nullCount);
       final byte[] bytes = new byte[length];
 
@@ -914,7 +919,7 @@ final class Arrays {
      * {@inheritDoc}
      */
     @Override
-    public final byte[] toBinaryRepresentation(BaseConnection connection, byte[][] array, int oid)
+    public byte[] toBinaryRepresentation(BaseConnection connection, byte[][] array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
 
       assert oid == arrayOid;
@@ -975,7 +980,7 @@ final class Arrays {
       return nulls;
     }
 
-    private final void write(byte[][] array, byte[] bytes, int offset) {
+    private void write(byte[][] array, byte[] bytes, int offset) {
       int idx = offset;
       for (int i = 0; i < array.length; ++i) {
         if (array[i] != null) {
@@ -1090,7 +1095,7 @@ final class Arrays {
 
   /**
    * Returns support for encoding <i>array</i>.
-   * 
+   *
    * @param array
    *          The array to encode. Must not be {@code null}.
    * @return An instance capable of encoding <i>array</i> as a {@code String} at
@@ -1149,6 +1154,7 @@ final class Arrays {
 
     /**
      * @param support
+     *          The instance providing support for the base array type.
      */
     TwoDimensionPrimitiveArraySupport(AbstractArraySupport<A> support) {
       super();
@@ -1255,6 +1261,7 @@ final class Arrays {
 
     /**
      * @param support
+     *          The instance providing support for the base array type.
      */
     RecursiveArraySupport(AbstractArraySupport support, int dimensions) {
       super();
@@ -1281,7 +1288,7 @@ final class Arrays {
       return sb.toString();
     }
 
-    final void arrayString(StringBuilder sb, Object array, char delim, int depth) {
+    private void arrayString(StringBuilder sb, Object array, char delim, int depth) {
 
       if (depth > 1) {
         sb.append('{');
@@ -1305,7 +1312,7 @@ final class Arrays {
       return support.supportBinaryRepresentation(oid);
     }
 
-    private final boolean hasNulls(Object array, int depth) {
+    private boolean hasNulls(Object array, int depth) {
       if (depth > 1) {
         for (int i = 0, j = Array.getLength(array); i < j; ++i) {
           if (hasNulls(Array.get(array, i), depth - 1)) {
@@ -1359,7 +1366,7 @@ final class Arrays {
       }
     }
 
-    private final void writeArray(BaseConnection connection, byte[] buffer, ByteArrayOutputStream baos, Object array,
+    private void writeArray(BaseConnection connection, byte[] buffer, ByteArrayOutputStream baos, Object array,
         int depth, boolean first) throws IOException, SQLException {
       final int length = Array.getLength(array);
 

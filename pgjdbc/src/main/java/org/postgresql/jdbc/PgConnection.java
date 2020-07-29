@@ -384,6 +384,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.removeAll(getOidSet(oids));
     }
     binaryOids.retainAll(SUPPORTED_BINARY_OIDS);
+
     return binaryOids;
   }
 
@@ -1389,9 +1390,8 @@ public class PgConnection implements BaseConnection {
     }
 
     final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(elements);
-    if (arraySupport.supportBinaryRepresentation(oid)
-          && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
+    if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
     final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);

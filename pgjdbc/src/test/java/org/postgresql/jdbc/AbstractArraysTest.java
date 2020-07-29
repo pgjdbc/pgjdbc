@@ -1,8 +1,12 @@
+/*
+ * Copyright (c) 2018, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
 import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
@@ -19,6 +23,8 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
+
+import org.junit.Test;
 
 import java.lang.reflect.Array;
 import java.sql.Blob;
@@ -50,7 +56,11 @@ public abstract class AbstractArraysTest<A> {
   private final boolean binarySupported;
 
   /**
+   *
    * @param testData
+   *          3 dimensional array to use for testing.
+   * @param binarySupported
+   *          Indicates if binary support is epxected for the type.
    */
   public AbstractArraysTest(A[][] testData, boolean binarySupported) {
     super();

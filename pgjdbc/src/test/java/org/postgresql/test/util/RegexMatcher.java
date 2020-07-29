@@ -15,6 +15,7 @@ public final class RegexMatcher extends TypeSafeMatcher<String> {
 
   /**
    * @param pattern
+   *          The pattern to match items on.
    */
   private RegexMatcher(Pattern pattern) {
     this.pattern = pattern;
