@@ -11,13 +11,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -30,20 +34,43 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  *
  */
+@RunWith(Parameterized.class)
 public class DatabaseMetaDataTest {
   private Connection con;
+  private final BinaryMode binaryMode;
+
+  public DatabaseMetaDataTest(BinaryMode binaryMode) {
+    this.binaryMode = binaryMode;
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Before
   public void setUp() throws Exception {
-    con = TestUtil.openDB();
+    if (binaryMode == BinaryMode.FORCE) {
+      final Properties props = new Properties();
+      PGProperty.PREPARE_THRESHOLD.set(props, -1);
+      con = TestUtil.openDB(props);
+    } else {
+      con = TestUtil.openDB();
+    }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
