@@ -469,6 +469,7 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
+
     public byte[] toBinaryRepresentation(BaseConnection connection, String[] array) throws SQLException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
 
@@ -511,7 +512,6 @@ abstract class PrimitiveArraySupport<A> {
             baos.write(buffer);
           }
         }
-
         return baos.toByteArray();
       } catch (IOException e) {
         //this IO exception is from writing to baos, which will never throw an IOException
