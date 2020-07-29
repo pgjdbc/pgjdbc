@@ -70,7 +70,7 @@ public class PgArray implements java.sql.Array {
    * Value of field as {@link PgArrayList}. Will be initialized only once within
    * {@link #buildArrayList()}.
    */
-  protected @Nullable ArrayDecoding.PgArrayList arrayList;
+  protected ArrayDecoding.PgArrayList arrayList;
 
   protected byte @Nullable [] fieldBytes;
 
