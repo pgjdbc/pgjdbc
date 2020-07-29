@@ -36,6 +36,7 @@ class TestPostgres {
         postgres.writePgHBA("host    all             all             127.0.0.1/32            trust")
         if (postgres.waitForHBA(5000) ) {
             Process p = postgres.startPostgres(currentEnvironment)
+            sleep(2000)
             pgJDBC = new PgJDBC(host, postgres.getPort());
             pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.DISABLE.value)
             pgJDBC.createUser(superUser, superPass, 'test1', 'secret1')
@@ -47,6 +48,7 @@ class TestPostgres {
             pgJDBC.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.REQUIRE.value)
             pgJDBC.addProperty(PGProperty.JAAS_LOGIN, true)
             pgJDBC.addProperty(PGProperty.JAAS_APPLICATION_NAME, "pgjdbc")
+
             try {
                 Connection connection;
                 try {
@@ -87,9 +89,6 @@ class TestPostgres {
                     }
                     connection?.close()
                 }
-
-
-
             } finally {
                 !p.destroy()
                 !kerberos.destroy()
