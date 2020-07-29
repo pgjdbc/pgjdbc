@@ -71,6 +71,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 class PgPreparedStatement extends PgStatement implements PreparedStatement {
+
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
