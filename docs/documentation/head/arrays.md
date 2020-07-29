@@ -16,7 +16,7 @@ The [java.sql.Connection.createArrayOf(String, Object\[\])](https://docs.oracle.
 A similar method `org.postgresql.PGConnection.createArrayOf(String, Object)` provides support for primitive array types.
 The `java.sql.Array` object returned from these methods can be used in other methods, such as [PreparedStatement.setArray(int, Array)](https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#setArray-int-java.sql.Array-).
 
-Additionally, the following types of arrays can be used in `PreparedStatement.setObject` methods and will use the defined type mapping:
+The following types of arrays support binary representation in requests and can be used in `PreparedStatement.setObject`:
 
 Java Type | Default PostgreSQL™ Type
 --- | ---

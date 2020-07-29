@@ -407,8 +407,13 @@ public class ArrayTest extends BaseTest4 {
       // Expected failure.
     }
 
-    pstmt.setObject(1, objCopy);
-    pstmt.executeUpdate();
+    try {
+      pstmt.setObject(1, objCopy);
+      pstmt.executeUpdate();
+      Assert.fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
+    } catch (org.postgresql.util.PSQLException ex) {
+      // Expected failure.
+    }
 
     pstmt.setObject(1, strArray);
     pstmt.executeUpdate();
