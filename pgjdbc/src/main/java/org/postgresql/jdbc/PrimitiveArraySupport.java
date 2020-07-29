@@ -5,15 +5,24 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,7 +38,7 @@ abstract class PrimitiveArraySupport<A> {
     return true;
   }
 
-  public abstract byte[] toBinaryRepresentation(Connection connection, A array) throws SQLFeatureNotSupportedException;
+  public abstract byte[] toBinaryRepresentation(BaseConnection connection, A array) throws SQLException, SQLFeatureNotSupportedException;
 
   private static final PrimitiveArraySupport<long[]> LONG_ARRAY = new PrimitiveArraySupport<long[]>() {
 
@@ -67,7 +76,7 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(Connection connection, long[] array) {
+    public byte[] toBinaryRepresentation(BaseConnection connection, long[] array) {
 
       int length = 20 + (12 * array.length);
       final byte[] bytes = new byte[length];
@@ -128,7 +137,7 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(Connection connection, int[] array) {
+    public byte[] toBinaryRepresentation(BaseConnection connection, int[] array) {
 
       int length = 20 + (8 * array.length);
       final byte[] bytes = new byte[length];
@@ -189,7 +198,7 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(Connection connection, short[] array) {
+    public byte[] toBinaryRepresentation(BaseConnection connection, short[] array) {
 
       int length = 20 + (6 * array.length);
       final byte[] bytes = new byte[length];
@@ -254,7 +263,7 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(Connection connection, double[] array) {
+    public byte[] toBinaryRepresentation(BaseConnection connection, double[] array) {
 
       int length = 20 + (12 * array.length);
       final byte[] bytes = new byte[length];
@@ -319,7 +328,7 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(Connection connection, float[] array) {
+    public byte[] toBinaryRepresentation(BaseConnection connection, float[] array) {
 
       int length = 20 + (8 * array.length);
       final byte[] bytes = new byte[length];
@@ -384,7 +393,7 @@ abstract class PrimitiveArraySupport<A> {
      *           Because this feature is not supported.
      */
     @Override
-    public byte[] toBinaryRepresentation(Connection connection, boolean[] array) throws SQLFeatureNotSupportedException {
+    public byte[] toBinaryRepresentation(BaseConnection connection, boolean[] array) throws SQLFeatureNotSupportedException {
       int length = 20 + (5 * array.length);
       final byte[] bytes = new byte[length];
 
@@ -453,20 +462,62 @@ abstract class PrimitiveArraySupport<A> {
      */
     @Override
     public boolean supportBinaryRepresentation() {
-      return false;
+      return true;
     }
 
     /**
      * {@inheritDoc}
-     *
-     * @throws SQLFeatureNotSupportedException
-     *           Because this feature is not supported.
      */
     @Override
-    public byte[] toBinaryRepresentation(Connection connection, String[] array) throws SQLFeatureNotSupportedException {
-      throw new SQLFeatureNotSupportedException();
-    }
+    public byte[] toBinaryRepresentation(BaseConnection connection, String[] array) throws SQLException{
+      final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
 
+      final byte[] buffer = new byte[4];
+
+      try {
+        //1 dimension
+        ByteConverter.int4(buffer, 0, 1);
+        baos.write(buffer);
+        // no null
+        Arrays.fill(buffer, (byte) 0);
+        baos.write(buffer);
+        // oid
+        ByteConverter.int4(buffer, 0, Oid.VARCHAR);
+        baos.write(buffer);
+        // length
+        ByteConverter.int4(buffer, 0, array.length);
+        baos.write(buffer);
+
+        //write 4 empty bytes
+        Arrays.fill(buffer, (byte) 0);
+        baos.write(buffer);
+
+        final Encoding encoding = connection.getEncoding();
+        for (int i=0; i<array.length; ++i) {
+          final String string = array[i];
+          if (string != null) {
+            final byte[] encoded;
+            try {
+              encoded = encoding.encode(string);
+            } catch (IOException e) {
+              throw new PSQLException(GT.tr("Unable to translate data into the desired encoding."),
+                  PSQLState.DATA_ERROR, e);
+            }
+            ByteConverter.int4(buffer, 0, encoded.length);
+            baos.write(buffer);
+            baos.write(encoded);
+          } else {
+            ByteConverter.int4(buffer, 0, -1);
+            baos.write(buffer);
+          }
+        }
+
+        return baos.toByteArray();
+      } catch (IOException e) {
+        //this IO exception is from writing to baos, which will never throw an IOException
+        throw new java.lang.AssertionError(e);
+      }
+    }
   };
 
   private static final Map<Class, PrimitiveArraySupport> ARRAY_CLASS_TO_SUPPORT = new HashMap<Class, PrimitiveArraySupport>((int) (7 / .75) + 1);
