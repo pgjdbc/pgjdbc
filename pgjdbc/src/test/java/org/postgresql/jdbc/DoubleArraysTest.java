@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.Oid;
+
 public class DoubleArraysTest extends AbstractArraysTest<double[]> {
 
   private static final double[][][] doubles = new double[][][] {
@@ -12,6 +14,6 @@ public class DoubleArraysTest extends AbstractArraysTest<double[]> {
       { { 13, 14, 15, 16 }, { 17, 18, 19, 20 }, { 21, 22, 23, 24 } } };
 
   public DoubleArraysTest() {
-    super(doubles, true);
+    super(doubles, true, Oid.FLOAT8_ARRAY);
   }
 }

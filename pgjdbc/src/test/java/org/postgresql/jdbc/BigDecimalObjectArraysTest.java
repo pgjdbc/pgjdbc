@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import static java.math.BigDecimal.valueOf;
 
+import org.postgresql.core.Oid;
+
 import java.math.BigDecimal;
 
 public class BigDecimalObjectArraysTest extends AbstractArraysTest<BigDecimal[]> {
@@ -19,7 +21,7 @@ public class BigDecimalObjectArraysTest extends AbstractArraysTest<BigDecimal[]>
           { valueOf(21D), valueOf(22D), valueOf(23D), valueOf(24D) } } };
 
   public BigDecimalObjectArraysTest() {
-    super(doubles, false);
+    super(doubles, false, Oid.NUMERIC_ARRAY);
   }
 
 }

@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.Oid;
+
 public class IntegerObjectArraysTest extends AbstractArraysTest<Integer[]> {
 
   private static final Integer[][][] ints = new Integer[][][] {
@@ -12,6 +14,6 @@ public class IntegerObjectArraysTest extends AbstractArraysTest<Integer[]> {
       { { 13, 14, 15, 16 }, { 17, 18, 19, 20 }, { 21, 22, 23, 24 } } };
 
   public IntegerObjectArraysTest() {
-    super(ints, true);
+    super(ints, true, Oid.INT4_ARRAY);
   }
 }

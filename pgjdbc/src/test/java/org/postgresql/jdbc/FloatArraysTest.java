@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.Oid;
+
 public class FloatArraysTest extends AbstractArraysTest<float[]> {
 
   private static final float[][][] floats = new float[][][] {
@@ -12,6 +14,6 @@ public class FloatArraysTest extends AbstractArraysTest<float[]> {
       { { 13, 14, 15, 16 }, { 17, 18, 19, 20 }, { 21, 22, 23, 24 } } };
 
   public FloatArraysTest() {
-    super(floats, true);
+    super(floats, true, Oid.FLOAT4_ARRAY);
   }
 }

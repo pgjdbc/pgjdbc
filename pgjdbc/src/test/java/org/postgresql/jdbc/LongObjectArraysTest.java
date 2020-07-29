@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.Oid;
+
 public class LongObjectArraysTest extends AbstractArraysTest<Long[]> {
 
   private static final Long[][][] longs = new Long[][][] {
@@ -12,7 +14,7 @@ public class LongObjectArraysTest extends AbstractArraysTest<Long[]> {
       { { 13L, 14L, 15L, 16L }, { 17L, 18L, 19L, 20L }, { 21L, 22L, 23L, 24L } } };
 
   public LongObjectArraysTest() {
-    super(longs, true);
+    super(longs, true, Oid.INT8_ARRAY);
   }
 
 }

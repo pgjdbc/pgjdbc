@@ -55,6 +55,8 @@ public abstract class AbstractArraysTest<A> {
 
   private final boolean binarySupported;
 
+  private final int arrayTypeOid;
+
   /**
    *
    * @param testData
@@ -62,10 +64,11 @@ public abstract class AbstractArraysTest<A> {
    * @param binarySupported
    *          Indicates if binary support is epxected for the type.
    */
-  public AbstractArraysTest(A[][] testData, boolean binarySupported) {
+  public AbstractArraysTest(A[][] testData, boolean binarySupported, int arrayTypeOid) {
     super();
     this.testData = testData;
     this.binarySupported = binarySupported;
+    this.arrayTypeOid = arrayTypeOid;
   }
 
   protected void assertArraysEquals(String message, A expected, Object actual) {
@@ -74,26 +77,6 @@ public abstract class AbstractArraysTest<A> {
     for (int i = 0; i < expectedLength; ++i) {
       assertEquals(message + " value at " + i, Array.get(expected, i), Array.get(actual, i));
     }
-  }
-
-  protected String getExpectedString(A expected, char delim) {
-    final StringBuilder sb = new StringBuilder();
-    sb.append('{');
-    for (int i = 0; i < Array.getLength(expected); ++i) {
-      if (i > 0) {
-        sb.append(delim);
-      }
-      if (Array.get(expected, i) == null) {
-        sb.append('N');
-        sb.append('U');
-        sb.append('L');
-        sb.append('L');
-      } else {
-        PgArray.escapeArrayElement(sb, Array.get(expected, i).toString());
-      }
-    }
-    sb.append('}');
-    return sb.toString();
   }
 
   @Test
@@ -127,11 +110,11 @@ public abstract class AbstractArraysTest<A> {
 
     final String arrayString = support.toArrayString(',', data);
 
-    assertEquals(getExpectedString(data, ','), arrayString);
+    final PgArray pgArray = new PgArray(ENCODING_CONNECTION, arrayTypeOid, arrayString);
 
-    final String altArrayString = support.toArrayString(';', data);
+    Object actual = pgArray.getArray();
 
-    assertEquals(getExpectedString(data, ';'), altArrayString);
+    assertArraysEquals("", data, actual);
   }
 
   @Test
@@ -163,21 +146,21 @@ public abstract class AbstractArraysTest<A> {
   @Test
   public void test2dString() throws Exception {
 
-    A[] data = testData[0];
+    final A[] data = testData[0];
 
-    ArrayEncoding.ArrayEncoder<A[]> support = ArrayEncoding.getArrayEncoder(data);
+    final ArrayEncoding.ArrayEncoder<A[]> support = ArrayEncoding.getArrayEncoder(data);
 
-    final StringBuilder sb = new StringBuilder(1024);
-    sb.append('{');
+    final String arrayString = support.toArrayString(',', data);
+
+    final PgArray pgArray = new PgArray(ENCODING_CONNECTION, arrayTypeOid, arrayString);
+
+    Object[] actual = (Object[]) pgArray.getArray();
+
+    assertEquals(data.length, actual.length);
+
     for (int i = 0; i < data.length; ++i) {
-      if (i != 0) {
-        sb.append(',');
-      }
-      sb.append(getExpectedString(data[i], ','));
+      assertArraysEquals("array at position " + i, data[i], actual[i]);
     }
-    sb.append('}');
-
-    assertEquals(sb.toString(), support.toArrayString(',', data));
   }
 
   @Test
@@ -209,30 +192,28 @@ public abstract class AbstractArraysTest<A> {
 
   @Test
   public void test3dString() throws Exception {
-    ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
 
-    final StringBuilder sb = new StringBuilder(1024);
-    sb.append('{');
+    final ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
+
+    final String arrayString = support.toArrayString(',', testData);
+
+    final PgArray pgArray = new PgArray(ENCODING_CONNECTION, arrayTypeOid, arrayString);
+
+    Object[][] actual = (Object[][]) pgArray.getArray();
+
+    assertEquals(testData.length, actual.length);
+
     for (int i = 0; i < testData.length; ++i) {
-      if (i != 0) {
-        sb.append(',');
-      }
-      sb.append('{');
+      assertEquals("array length at " + i, testData[i].length, actual[i].length);
       for (int j = 0; j < testData[i].length; ++j) {
-        if (j != 0) {
-          sb.append(',');
-        }
-        sb.append(getExpectedString(testData[i][j], ','));
+        assertArraysEquals("array at " + i + ',' + j, testData[i][j], actual[i][j]);
       }
-      sb.append('}');
     }
-    sb.append('}');
-
-    assertEquals(sb.toString(), support.toArrayString(',', testData));
   }
 
   private static final class EncodingConnection implements BaseConnection {
     private final Encoding encoding;
+    private final TypeInfo typeInfo = new TypeInfoCache(this, -1);
 
     EncodingConnection(Encoding encoding) {
       this.encoding = encoding;
@@ -243,6 +224,13 @@ public abstract class AbstractArraysTest<A> {
      */
     public Encoding getEncoding() throws SQLException {
       return encoding;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public TypeInfo getTypeInfo() {
+      return typeInfo;
     }
 
     /**
@@ -291,13 +279,6 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
-      throw new UnsupportedOperationException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public TypeInfo getTypeInfo() {
       throw new UnsupportedOperationException();
     }
 
