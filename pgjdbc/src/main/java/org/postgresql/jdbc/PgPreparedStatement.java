@@ -708,7 +708,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private <A> void setObjectArray(int parameterIndex, A in) throws SQLException {
-    final Arrays.ArraySupport<A> arraySupport = Arrays.getArraySupport(in);
+    final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 

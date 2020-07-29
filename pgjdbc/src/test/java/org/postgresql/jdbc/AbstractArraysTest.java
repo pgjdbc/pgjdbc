@@ -23,6 +23,7 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
+import org.postgresql.xml.PGXmlFactoryFactory;
 
 import org.junit.Test;
 
@@ -923,6 +924,14 @@ public abstract class AbstractArraysTest<A> {
      */
     @Override
     public String getParameterStatus(String parameterName) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException {
       throw new UnsupportedOperationException();
     }
 
