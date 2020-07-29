@@ -204,7 +204,8 @@ public class PgArray implements java.sql.Array {
   private Object readBinaryArray(byte[] fieldBytes, int index, int count)
       throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
-    // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
+    // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls,
+    // 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
     int pos = 12;
     int[] dims = new int[dimensions];
@@ -220,21 +221,22 @@ public class PgArray implements java.sql.Array {
     if (count > 0) {
       dims[0] = Math.min(count, dims[0]);
     }
+    // in case of multi-dimensional array, an index greater than 1 indicates number
+    // of outer level values to skip.
+    final int toSkip = dims.length == 1 ? 0 : index - 1;
     Object arr = java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), dims);
     try {
-      storeValues(fieldBytes, (Object[]) arr, elementOid, dims, pos, 0, index);
+      storeValues((Object[]) arr, elementOid, dims, pos, 0, index, toSkip);
     } catch (IOException ioe) {
-      throw new PSQLException(
-          GT.tr(
-              "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
+      throw new PSQLException(GT.tr(
+          "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
           PSQLState.DATA_ERROR, ioe);
     }
     return arr;
   }
 
-  private int storeValues(byte[] fieldBytes,
-      final Object[] arr, int elementOid, final int[] dims, int pos,
-      final int thisDimension, int index) throws SQLException, IOException {
+  private int storeValues(final Object[] arr, int elementOid, final int[] dims, int pos, final int thisDimension,
+      int index, int toSkip) throws SQLException, IOException {
     if (thisDimension == dims.length - 1) {
       for (int i = 1; i < index; ++i) {
         int len = ByteConverter.int4(fieldBytes, pos);
@@ -250,47 +252,48 @@ public class PgArray implements java.sql.Array {
           continue;
         }
         switch (elementOid) {
-          case Oid.INT2:
-            arr[i] = ByteConverter.int2(fieldBytes, pos);
-            break;
-          case Oid.INT4:
-            arr[i] = ByteConverter.int4(fieldBytes, pos);
-            break;
-          case Oid.INT8:
-            arr[i] = ByteConverter.int8(fieldBytes, pos);
-            break;
-          case Oid.FLOAT4:
-            arr[i] = ByteConverter.float4(fieldBytes, pos);
-            break;
-          case Oid.FLOAT8:
-            arr[i] = ByteConverter.float8(fieldBytes, pos);
-            break;
-          case Oid.NUMERIC:
-            arr[i] = ByteConverter.numeric(fieldBytes, pos, len);
-            break;
-          case Oid.TEXT:
-          case Oid.VARCHAR:
-            Encoding encoding = getConnection().getEncoding();
-            arr[i] = encoding.decode(fieldBytes, pos, len);
-            break;
-          case Oid.BOOL:
-            arr[i] = ByteConverter.bool(fieldBytes, pos);
-            break;
-          case Oid.BYTEA:
-            arr[i] = new byte[len];
-            System.arraycopy(fieldBytes, pos, arr[i], 0, len);
-            break;
-          default:
-            ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
-            if (arrAssistant != null) {
-              arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
-            }
+
+        case Oid.INT2:
+          arr[i] = ByteConverter.int2(fieldBytes, pos);
+          break;
+        case Oid.INT4:
+          arr[i] = ByteConverter.int4(fieldBytes, pos);
+          break;
+        case Oid.INT8:
+          arr[i] = ByteConverter.int8(fieldBytes, pos);
+          break;
+        case Oid.FLOAT4:
+          arr[i] = ByteConverter.float4(fieldBytes, pos);
+          break;
+        case Oid.FLOAT8:
+          arr[i] = ByteConverter.float8(fieldBytes, pos);
+          break;
+        case Oid.TEXT:
+        case Oid.VARCHAR:
+          Encoding encoding = connection.getEncoding();
+          arr[i] = encoding.decode(fieldBytes, pos, len);
+          break;
+        case Oid.BOOL:
+          arr[i] = ByteConverter.bool(fieldBytes, pos);
+          break;
+        case Oid.BYTEA:
+          arr[i] = new byte[len];
+          System.arraycopy(fieldBytes, pos, arr[i], 0, len);
+          break;
+        default:
+          ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
+          if (arrAssistant != null) {
+            arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
+          }
         }
         pos += len;
       }
     } else {
+      for (int i = 0; i < toSkip; ++i) {
+        pos = storeValues((Object[]) arr[0], elementOid, dims, pos, thisDimension + 1, 0, 0);
+      }
       for (int i = 0; i < dims[thisDimension]; ++i) {
-        pos = storeValues(fieldBytes, (Object[]) arr[i], elementOid, dims, pos, thisDimension + 1, 0);
+        pos = storeValues((Object[]) arr[i], elementOid, dims, pos, thisDimension + 1, 0, 0);
       }
     }
     return pos;
