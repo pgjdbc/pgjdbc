@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, PostgreSQL Global Development Group
+ * Copyright (c) 2020, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -27,6 +27,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Utility for decoding arrays.
+ *
+ * <p>
+ * See {@code ArrayEncoding} for description of the binary format of arrays.
+ * </p>
+ *
+ * @author Brett Okken
+ */
 final class ArrayDecoding {
 
   /**
@@ -560,7 +569,7 @@ final class ArrayDecoding {
    * @param fieldString
    *          The array value to parse.
    * @param delim
-   *          The delimitter character appropriate for the data type.
+   *          The delimiter character appropriate for the data type.
    * @return A {@link PgArrayList} representing the parsed <i>fieldString</i>.
    */
   static PgArrayList buildArrayList(String fieldString, char delim) {

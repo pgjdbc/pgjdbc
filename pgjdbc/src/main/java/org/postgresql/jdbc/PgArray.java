@@ -12,20 +12,15 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Tuple;
-import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc.ArrayDecoding.PgArrayList;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -404,8 +399,9 @@ public class PgArray implements java.sql.Array {
         byte[] @Nullable [] t = new byte[2][0];
         Object v = arrayList.get(offset);
 
+
         t[0] = getConnection().encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : getConnection().encodeString(toString((PgArrayList) v));
+        t[1] = v == null ? null : getConnection().encodeString(toString((ArrayDecoding.PgArrayList) v));
         rows.add(new Tuple(t));
       }
     }
