@@ -1266,33 +1266,6 @@ public class PgConnection implements BaseConnection {
     return new PGReplicationConnectionImpl(this);
   }
 
-  private static void appendArray(StringBuilder sb, Object elements, char delim) {
-    sb.append('{');
-
-    int nElements = java.lang.reflect.Array.getLength(elements);
-    for (int i = 0; i < nElements; i++) {
-      if (i > 0) {
-        sb.append(delim);
-      }
-
-      Object o = java.lang.reflect.Array.get(elements, i);
-      if (o == null) {
-        sb.append("NULL");
-      } else if (o.getClass().isArray()) {
-        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(o);
-        if (arraySupport != null) {
-          arraySupport.appendArray(sb, delim, o);
-        } else {
-          appendArray(sb, o, delim);
-        }
-      } else {
-        String s = o.toString();
-        PgArray.escapeArrayElement(sb, s);
-      }
-    }
-    sb.append('}');
-  }
-
   // Parse a "dirty" integer surrounded by non-numeric characters
   private static int integerPart(String dirtyString) {
     int start = 0;
@@ -1415,28 +1388,12 @@ public class PgConnection implements BaseConnection {
       return makeArray(oid, null);
     }
 
-    final String arrayString;
-
-    final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(elements);
-
-    if (arraySupport != null) {
-      // if the oid for the given type matches the default type, we might be
-      // able to go straight to binary representation
-      if (oid == arraySupport.getDefaultArrayTypeOid(typeInfo) && arraySupport.supportBinaryRepresentation()
+    final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(elements);
+    if (arraySupport.supportBinaryRepresentation(oid)
           && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements));
-      }
-      arrayString = arraySupport.toArrayString(delim, elements);
-    } else {
-      final Class<?> clazz = elements.getClass();
-      if (!clazz.isArray()) {
-        throw new PSQLException(GT.tr("Invalid elements {0}", elements), PSQLState.INVALID_PARAMETER_TYPE);
-      }
-      StringBuilder sb = new StringBuilder();
-      appendArray(sb, elements, delim);
-      arrayString = sb.toString();
+        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
-
+    final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
   }
 

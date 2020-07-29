@@ -18,7 +18,7 @@ The `java.sql.Array` object returned from these methods can be used in other met
 
 Additionally, the following types of arrays can be used in `PreparedStatement.setObject` methods and will use the defined type mapping:
 
-Java Type | Default PostgreSQL™  Type
+Java Type | Default PostgreSQL™ Type
 --- | ---
 `short[]` | `int2[]`
 `int[]` | `int4[]`
@@ -27,3 +27,17 @@ Java Type | Default PostgreSQL™  Type
 `double[]` | `float8[]`
 `boolean[]` | `bool[]`
 `String[]` | `varchar[]`
+`byte[][]` | `bytea[]`
+
+Binary support in requests is supported and will be used by default for the following java array types (including multi-dimensional variants) when mapping to the specified PostgreSQL™ data types:
+
+Java Type | PostgreSQL™ Type
+--- | ---
+`short[]`, `Short[]` | `int2[]`
+`int[]`, `Integer[]` | `int4[]`
+`long[]`, `Long[]` | `int8[]`
+`float[]`, `Float[]` | `float4[]`
+`double[]`, `Double[]` | `float8[]`
+`boolean[]`, `Boolean[]` | `bool[]`
+`String[]` | `varchar[]`, `text[]`
+`byte[][]` | `bytea[]`
