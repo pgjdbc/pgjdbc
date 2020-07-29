@@ -17,7 +17,6 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.sql.Connection;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -469,7 +468,6 @@ abstract class PrimitiveArraySupport<A> {
      * {@inheritDoc}
      */
     @Override
-
     public byte[] toBinaryRepresentation(BaseConnection connection, String[] array) throws SQLException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
 
