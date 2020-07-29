@@ -5,6 +5,11 @@
 
 package org.postgresql.test.jdbc4;
 
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.jdbc.PgConnection;
@@ -14,12 +19,6 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.util.RegexMatcher;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -407,13 +406,8 @@ public class ArrayTest extends BaseTest4 {
       // Expected failure.
     }
 
-    try {
-      pstmt.setObject(1, objCopy);
-      pstmt.executeUpdate();
-      Assert.fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
-    } catch (org.postgresql.util.PSQLException ex) {
-      // Expected failure.
-    }
+    pstmt.setObject(1, objCopy);
+    pstmt.executeUpdate();
 
     pstmt.setObject(1, strArray);
     pstmt.executeUpdate();
@@ -607,7 +601,6 @@ public class ArrayTest extends BaseTest4 {
           if (idx > 0) {
             actual = actual.substring(idx + 1);
           }
-
           // Remove all double quotes. They do not make a difference here.
           actual = actual.replaceAll("\"", "");
         }

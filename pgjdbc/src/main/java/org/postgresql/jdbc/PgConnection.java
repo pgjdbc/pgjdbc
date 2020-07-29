@@ -1371,6 +1371,7 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Override
   public Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException {
     checkClosed();
@@ -1393,32 +1394,14 @@ public class PgConnection implements BaseConnection {
     if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
+
     final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
   }
 
   @Override
-  public Array createArrayOf(String typeName, @Nullable Object @Nullable [] elements)
-      throws SQLException {
-    checkClosed();
-
-    int oid = getTypeInfo().getPGArrayType(typeName);
-
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(
-          GT.tr("Unable to find server array type for provided name {0}.", typeName),
-          PSQLState.INVALID_NAME);
-    }
-
-    if (elements == null) {
-      return makeArray(oid, null);
-    }
-
-    char delim = getTypeInfo().getArrayDelimiter(oid);
-    StringBuilder sb = new StringBuilder();
-    appendArray(sb, elements, delim);
-
-    return makeArray(oid, sb.toString());
+  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+      return createArrayOf(typeName, (Object) elements);
   }
 
   @Override

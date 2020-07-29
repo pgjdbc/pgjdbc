@@ -9,6 +9,8 @@ import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
@@ -32,9 +34,6 @@ import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.ReaderInputStreamTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for JDBC2 and includes some utility methods.

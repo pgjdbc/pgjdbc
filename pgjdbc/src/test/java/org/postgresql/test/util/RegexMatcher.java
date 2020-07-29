@@ -20,7 +20,10 @@ public final class RegexMatcher extends TypeSafeMatcher<String> {
 
   /**
    * @param pattern
+<<<<<<< HEAD
    *          The pattern to match items on.
+=======
+>>>>>>> feat: expand binary array support
    */
   private RegexMatcher(Pattern pattern) {
     this.pattern = pattern;

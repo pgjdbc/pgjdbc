@@ -909,5 +909,29 @@ public abstract class AbstractArraysTest<A> {
     public PGReplicationConnection getReplicationAPI() {
       throw new UnsupportedOperationException();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, String> getParameterStatuses() {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getParameterStatus(String parameterName) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean hintReadOnly() {
+      return false;
+    }
   }
 }
