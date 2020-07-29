@@ -152,14 +152,14 @@ public class PgArray implements java.sql.Array {
     }
 
     if (fieldBytes != null) {
-      return readBinaryArray(fieldBytes, (int) index, count);
+      return readBinaryArray((int) index, count);
     }
 
     if (fieldString == null) {
       return null;
     }
 
-    PgArrayList arrayList = buildArrayList();
+    buildArrayList();
 
     if (count == 0) {
       count = arrayList.size();
