@@ -18,26 +18,13 @@ The `java.sql.Array` object returned from these methods can be used in other met
 
 The following types of arrays support binary representation in requests and can be used in `PreparedStatement.setObject`:
 
-Java Type | Default PostgreSQL™ Type
---- | ---
-`short[]` | `int2[]`
-`int[]` | `int4[]`
-`long[]` | `int8[]`
-`float[]` | `float4[]`
-`double[]` | `float8[]`
-`boolean[]` | `bool[]`
-`String[]` | `varchar[]`
-`byte[][]` | `bytea[]`
-
-Binary support in requests is supported and will be used by default for the following java array types (including multi-dimensional variants) when mapping to the specified PostgreSQL™ data types:
-
-Java Type | PostgreSQL™ Type
---- | ---
-`short[]`, `Short[]` | `int2[]`
-`int[]`, `Integer[]` | `int4[]`
-`long[]`, `Long[]` | `int8[]`
-`float[]`, `Float[]` | `float4[]`
-`double[]`, `Double[]` | `float8[]`
-`boolean[]`, `Boolean[]` | `bool[]`
-`String[]` | `varchar[]`, `text[]`
-`byte[][]` | `bytea[]`
+Java Type | Supported binary PostgreSQL™ Types | Default PostgreSQL™ Type
+--- | --- | ---
+`short[]`, `Short[]` | `int2[]` | `int2[]`
+`int[]`, `Integer[]` | `int4[]` | `int4[]`
+`long[]`, `Long[]` | `int8[]` | `int8[]`
+`float[]`, `Float[]` | `float4[]` | `float4[]`
+`double[]`, `Double[]` | `float8[]` | `float8[]`
+`boolean[]`, `Boolean[]` | `bool[]` | `bool[]`
+`String[]` | `varchar[]`, `text[]` | `varchar[]`
+`byte[][]` | `bytea[]` | `bytea[]`
