@@ -101,7 +101,7 @@ public abstract class AbstractArraysTest<A> {
 
     A data = testData[0][0];
 
-    Arrays.ArraySupport<A> support = Arrays.getArraySupport(data);
+    ArrayEncoding.ArrayEncoder<A> support = ArrayEncoding.getArrayEncoder(data);
 
     final int defaultArrayTypeOid = support.getDefaultArrayTypeOid();
 
@@ -123,7 +123,7 @@ public abstract class AbstractArraysTest<A> {
 
     A data = testData[0][0];
 
-    Arrays.ArraySupport<A> support = Arrays.getArraySupport(data);
+    ArrayEncoding.ArrayEncoder<A> support = ArrayEncoding.getArrayEncoder(data);
 
     final String arrayString = support.toArrayString(',', data);
 
@@ -139,7 +139,7 @@ public abstract class AbstractArraysTest<A> {
 
     A[] data = testData[0];
 
-    Arrays.ArraySupport<A[]> support = Arrays.getArraySupport(data);
+    ArrayEncoding.ArrayEncoder<A[]> support = ArrayEncoding.getArrayEncoder(data);
 
     final int defaultArrayTypeOid = support.getDefaultArrayTypeOid();
 
@@ -165,7 +165,7 @@ public abstract class AbstractArraysTest<A> {
 
     A[] data = testData[0];
 
-    Arrays.ArraySupport<A[]> support = Arrays.getArraySupport(data);
+    ArrayEncoding.ArrayEncoder<A[]> support = ArrayEncoding.getArrayEncoder(data);
 
     final StringBuilder sb = new StringBuilder(1024);
     sb.append('{');
@@ -183,7 +183,7 @@ public abstract class AbstractArraysTest<A> {
   @Test
   public void test3dBinary() throws Exception {
 
-    Arrays.ArraySupport<A[][]> support = Arrays.getArraySupport(testData);
+    ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
 
     final int defaultArrayTypeOid = support.getDefaultArrayTypeOid();
 
@@ -209,7 +209,7 @@ public abstract class AbstractArraysTest<A> {
 
   @Test
   public void test3dString() throws Exception {
-    Arrays.ArraySupport<A[][]> support = Arrays.getArraySupport(testData);
+    ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
 
     final StringBuilder sb = new StringBuilder(1024);
     sb.append('{');

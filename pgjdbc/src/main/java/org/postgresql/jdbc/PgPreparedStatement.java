@@ -706,11 +706,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-
   private <A> void setPrimitiveArray(@Positive int parameterIndex, A in) throws SQLException {
     // TODO: move to method parameter?
-    final Arrays.ArraySupport<A> arraySupport =
-        castNonNull(Arrays.getArraySupport(in));
+    final ArrayEncoding.ArrayEncoder<A> arraySupport = castNonNull(ArrayEncoding.getArrayEncoder(in));
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 

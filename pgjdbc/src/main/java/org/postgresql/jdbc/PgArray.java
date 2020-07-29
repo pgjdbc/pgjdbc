@@ -962,7 +962,7 @@ public class PgArray implements java.sql.Array {
       try {
         Object array = readBinaryArray(fieldBytes, 1, 0);
 
-        final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(array);
+        final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(array);
         assert arraySupport != null;
         fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
       } catch (SQLException e) {

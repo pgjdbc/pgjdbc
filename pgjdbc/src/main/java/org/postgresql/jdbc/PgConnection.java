@@ -1389,7 +1389,7 @@ public class PgConnection implements BaseConnection {
       return makeArray(oid, null);
     }
 
-    final Arrays.ArraySupport arraySupport = Arrays.getArraySupport(elements);
+    final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(elements);
     if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
