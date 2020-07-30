@@ -1154,7 +1154,7 @@ final class ArrayEncoding {
    * Wraps an {@link AbstractArrayEncoder} implementation and provides optimized
    * support for 2 dimensions.
    */
-  private static final class TwoDimensionPrimitiveArrayEncoder<A> implements ArrayEncoder<A[]> {
+  private static final class TwoDimensionPrimitiveArrayEncoder<A> implements ArrayEncoder<@NonNull A[]> {
     private final AbstractArrayEncoder<A> support;
 
     /**

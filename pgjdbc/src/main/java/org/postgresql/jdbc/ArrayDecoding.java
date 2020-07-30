@@ -113,7 +113,7 @@ final class ArrayDecoding {
      */
     @Override
     public void populateFromString(@NonNull A arr, List<@Nullable String> strings, @NonNull BaseConnection connection) throws SQLException {
-      final Object[] array = (Object[]) arr;
+      final @Nullable Object[] array = (Object[]) arr;
 
       for (int i = 0, j = strings.size(); i < j; ++i) {
         final String stringVal = strings.get(i);
@@ -141,7 +141,7 @@ final class ArrayDecoding {
     @Override
     public void populateFromBinary(@NonNull A arr, @NonNegative int index, @NonNegative int count, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection)
         throws SQLException {
-      final Object[] array = (Object[]) arr;
+      final @Nullable Object[] array = (Object[]) arr;
 
       // skip through to the requested index
       for (int i = 0; i < index; ++i) {
@@ -554,7 +554,7 @@ final class ArrayDecoding {
       if (dim == dimensionLengths.length - 2) {
         decoder.populateFromBinary(array[0], 0, dimensionLengths[dim + 1], bytes, connection);
       } else {
-        storeValues((A[]) array[0], decoder, bytes, 0, dimensionLengths, dim + 1, connection);
+        storeValues((@NonNull A @NonNull[]) array[0], decoder, bytes, 0, dimensionLengths, dim + 1, connection);
       }
     }
 
@@ -562,7 +562,7 @@ final class ArrayDecoding {
       if (dim == dimensionLengths.length - 2) {
         decoder.populateFromBinary(array[i], 0, dimensionLengths[dim + 1], bytes, connection);
       } else {
-        storeValues((A[]) array[i], decoder, bytes, 0, dimensionLengths, dim + 1, connection);
+        storeValues((@NonNull A @NonNull[]) array[i], decoder, bytes, 0, dimensionLengths, dim + 1, connection);
       }
     }
   }
@@ -784,7 +784,7 @@ final class ArrayDecoding {
       if (dim == dimensionLengths.length - 2) {
         decoder.populateFromString(array[i], (List<String>) list.get(i), connection);
       } else {
-        storeStringValues((A[]) array[i], decoder, (List) list.get(i), dimensionLengths, dim + 1, connection);
+        storeStringValues((@NonNull A @NonNull[]) array[i], decoder, (List) list.get(i), dimensionLengths, dim + 1, connection);
       }
     }
   }
