@@ -48,7 +48,7 @@ final class ArrayDecoding {
    * {@link String}. For all larger <i>dimensionsCount</i>, the values will be
    * {@link PgArrayList} instances.
    */
-  static final class PgArrayList extends ArrayList<Object> {
+  static final class PgArrayList extends ArrayList<@Nullable Object> {
 
     private static final long serialVersionUID = 1L;
 
@@ -63,7 +63,7 @@ final class ArrayDecoding {
 
     A createArray(@NonNegative int size);
 
-    @Nullable Object[] createMultiDimensionalArray(@NonNegative int[] sizes);
+    @NonNull Object[] createMultiDimensionalArray(@NonNegative int[] sizes);
 
     boolean supportBinary();
 
@@ -546,8 +546,8 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings("unchecked")
-  private static <A> void storeValues(A[] array, ArrayDecoder<A> decoder, ByteBuffer bytes, int skip,
-      int[] dimensionLengths, int dim, BaseConnection connection) throws SQLException {
+  private static <A> void storeValues(@NonNull A @NonNull[] array, @NonNull ArrayDecoder<A> decoder, @NonNull ByteBuffer bytes,
+      int skip, int @NonNull[] dimensionLengths, int dim, @NonNull BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 
     for (int i = 0; i < skip; ++i) {
@@ -776,7 +776,7 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private static <A> void storeStringValues(A @NonNull[] array, @NonNull ArrayDecoder<A> decoder, @NonNull List list, int[] dimensionLengths,
+  private static <A> void storeStringValues(@NonNull A @NonNull[] array, @NonNull ArrayDecoder<A> decoder, @NonNull List list, int @NonNull[] dimensionLengths,
       int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 

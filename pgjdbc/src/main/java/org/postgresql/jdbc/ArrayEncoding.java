@@ -5,8 +5,6 @@
 
 package org.postgresql.jdbc;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
@@ -17,7 +15,6 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -189,7 +186,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, A array) {
+    public String toArrayString(char delim, @NonNull A array) {
       final StringBuilder sb = new StringBuilder(1024);
       appendArray(sb, delim, array);
       return sb.toString();
@@ -378,7 +375,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public final byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
+    public final byte[] toBinaryRepresentation(BaseConnection connection, @NonNull A array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
       assert oid == arrayOid;
 
@@ -404,7 +401,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    final byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, A array)
+    final byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, @NonNull A array)
         throws SQLException, SQLFeatureNotSupportedException {
       final int length = ((fieldSize + 4) * Array.getLength(array));
       final byte[] bytes = new byte[length];
@@ -1081,7 +1078,7 @@ final class ArrayEncoding {
   };
 
   @SuppressWarnings("rawtypes")
-  private static final Map<@Nullable Class, @NonNull AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<@Nullable Class, @NonNull AbstractArrayEncoder>(
+  private static final Map<@NonNull Class, @NonNull AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<@NonNull Class, @NonNull AbstractArrayEncoder>(
       (int) (14 / .75) + 1);
 
   static {
@@ -1116,12 +1113,12 @@ final class ArrayEncoding {
   public static <A> ArrayEncoder<A> getArrayEncoder(@NonNull A array) throws PSQLException {
     final Class<? extends Object> arrayClazz = array.getClass();
     Class<?> subClazz = arrayClazz.getComponentType();
+    if (subClazz == null) {
+      throw new PSQLException(GT.tr("Invalid elements {0}", array), PSQLState.INVALID_PARAMETER_TYPE);
+    }
     AbstractArrayEncoder<A> support = ARRAY_CLASS_TO_ENCODER.get(subClazz);
     if (support != null) {
       return support;
-    }
-    if (subClazz == null) {
-      throw new PSQLException(GT.tr("Invalid elements {0}", array), PSQLState.INVALID_PARAMETER_TYPE);
     }
     Class<?> subSubClazz = subClazz.getComponentType();
     if (subSubClazz == null) {
@@ -1181,7 +1178,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, A[] array) {
+    public String toArrayString(char delim, @NonNull A @NonNull[] array) {
       final StringBuilder sb = new StringBuilder(1024);
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
@@ -1207,7 +1204,7 @@ final class ArrayEncoding {
      * dimension length
      */
     @Override
-    public byte[] toBinaryRepresentation(@NonNull BaseConnection connection, A[] array, int oid)
+    public byte[] toBinaryRepresentation(@NonNull BaseConnection connection, @NonNull A @NonNull[] array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
       final byte[] buffer = new byte[4];

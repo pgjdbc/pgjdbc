@@ -172,7 +172,7 @@ public class PgArray implements java.sql.Array {
   }
 
   private Object readBinaryArray(byte[] fieldBytes, int index, int count) throws SQLException {
-    return ArrayDecoding.readBinaryArray(index, count, fieldBytes, connection);
+    return ArrayDecoding.readBinaryArray(index, count, fieldBytes, getConnection());
   }
 
   private ResultSet readBinaryResultSet(byte[] fieldBytes, int index, int count)
