@@ -121,12 +121,11 @@ public class LibPQFactory extends WrappedFactory {
         defaultfile = true;
         sslkeyfile = defaultdir + "postgresql.pk8";
       }
-      if (sslkeyfile.endsWith("pk8")) {
-        initPk8(sslkeyfile, defaultdir, info);
-      }
 
-      if (sslkeyfile.endsWith("p12")) {
+      if (sslkeyfile.endsWith(".p12") || sslkeyfile.endsWith(".pfx")) {
         initP12(sslkeyfile, info);
+      } else {
+        initPk8(sslkeyfile, defaultdir, info);
       }
 
       TrustManager[] tm;
