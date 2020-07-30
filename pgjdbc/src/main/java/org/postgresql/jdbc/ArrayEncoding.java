@@ -15,6 +15,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.io.ByteArrayOutputStream;
@@ -1205,7 +1206,7 @@ final class ArrayEncoding {
      * dimension length
      */
     @Override
-    public byte[] toBinaryRepresentation(BaseConnection connection, A[] array, int oid)
+    public byte[] toBinaryRepresentation(@NonNull BaseConnection connection, A[] array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
       final byte[] buffer = new byte[4];
@@ -1262,14 +1263,14 @@ final class ArrayEncoding {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   private static final class RecursiveArrayEncoder implements ArrayEncoder {
 
-    private final AbstractArrayEncoder support;
-    private final int dimensions;
+    private final @NonNull AbstractArrayEncoder support;
+    private final @Positive int dimensions;
 
     /**
      * @param support
      *          The instance providing support for the base array type.
      */
-    RecursiveArrayEncoder(AbstractArrayEncoder support, int dimensions) {
+    RecursiveArrayEncoder(@NonNull AbstractArrayEncoder support, @Positive int dimensions) {
       super();
       this.support = support;
       this.dimensions = dimensions;
@@ -1318,7 +1319,7 @@ final class ArrayEncoding {
       return support.supportBinaryRepresentation(oid);
     }
 
-    private boolean hasNulls(Object array, int depth) {
+    private boolean hasNulls(@NonNull Object array, int depth) {
       if (depth > 1) {
         for (int i = 0, j = Array.getLength(array); i < j; ++i) {
           if (hasNulls(Array.get(array, i), depth - 1)) {
@@ -1335,7 +1336,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(BaseConnection connection, Object array, int oid)
+    public byte[] toBinaryRepresentation(@NonNull BaseConnection connection, @NonNull Object array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
 
       final boolean hasNulls = hasNulls(array, dimensions);
@@ -1372,8 +1373,8 @@ final class ArrayEncoding {
       }
     }
 
-    private void writeArray(BaseConnection connection, byte[] buffer, ByteArrayOutputStream baos, Object array,
-        int depth, boolean first) throws IOException, SQLException {
+    private void writeArray(@NonNull BaseConnection connection, byte @NonNull[] buffer, @NonNull ByteArrayOutputStream baos,
+        @NonNull Object array, int depth, boolean first) throws IOException, SQLException {
       final int length = Array.getLength(array);
 
       if (first) {
