@@ -17,6 +17,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -1080,7 +1081,7 @@ final class ArrayEncoding {
   };
 
   @SuppressWarnings("rawtypes")
-  private static final Map<Class, AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<Class, AbstractArrayEncoder>(
+  private static final Map<@Nullable Class, @NonNull AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<@Nullable Class, @NonNull AbstractArrayEncoder>(
       (int) (14 / .75) + 1);
 
   static {
@@ -1114,7 +1115,7 @@ final class ArrayEncoding {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public static <A> ArrayEncoder<A> getArrayEncoder(@NonNull A array) throws PSQLException {
     final Class<? extends Object> arrayClazz = array.getClass();
-    Class<?> subClazz = castNonNull(arrayClazz.getComponentType());
+    Class<?> subClazz = arrayClazz.getComponentType();
     AbstractArrayEncoder<A> support = ARRAY_CLASS_TO_ENCODER.get(subClazz);
     if (support != null) {
       return support;
