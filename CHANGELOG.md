@@ -10,9 +10,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 are possible. Now the driver will attempt to connect to the server with a GSSAPI encrypted connection. If that fails then
 attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
 and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required.
+- Use connection encoding instead of hard coding ISO-8859-1
 
 ### Added
 - Verify nullness with CheckerFramework
+- Gss encrypted mode. This was added in PostgreSQL 12
+After creating an initial socket we then try to elevate the connection to GSS encrypted,If this fails we then try ssl
+All of this is dependent on the gssEncMode
+
+### Fixed
+- Assume PKCS-8 SSL key format by default fixes Issue #1819 check for the most common PKCS-12 extensions (.p12, .pfx)
+and assume PKCS-8 if these do not match
+- Closing certificate file stream
+- Make sure socketTimeout is enforced fixes Issue #1816
+- Remove code borrowed from apache cxf project fixes Issue #1812
+- New PGStream constructor which copies settings from old pgstream
 
 ## [42.2.15] (2020-06-19)
 ### Changed
