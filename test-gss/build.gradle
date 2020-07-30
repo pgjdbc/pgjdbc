@@ -19,6 +19,6 @@ dependencies {
 }
 application {
     mainClassName = 'TestPostgres'
-    applicationDefaultJvmArgs = ['-Djava.security.auth.login.config=jaas.conf', '-Dsun.security.krb5.debug=true']
+    applicationDefaultJvmArgs = ['-Djava.security.auth.login.config=jaas.conf']
 }
 
