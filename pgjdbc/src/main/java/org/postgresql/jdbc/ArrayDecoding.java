@@ -67,10 +67,10 @@ final class ArrayDecoding {
 
     boolean supportBinary();
 
-    void populateFromBinary(A array, @NonNegative int index, @NonNegative int count, ByteBuffer bytes, BaseConnection connection)
+    void populateFromBinary(@NonNull A array, @NonNegative int index, @NonNegative int count, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection)
         throws SQLException;
 
-    void populateFromString(A array, List<@Nullable String> strings, BaseConnection connection) throws SQLException;
+    void populateFromString(@NonNull A array, List<@Nullable String> strings, @NonNull BaseConnection connection) throws SQLException;
   }
 
   private abstract static class AbstractObjectStringArrayDecoder<A> implements ArrayDecoder<A> {
@@ -121,7 +121,7 @@ final class ArrayDecoding {
       }
     }
 
-    abstract Object parseValue(String stringVal, BaseConnection connection) throws SQLException;
+    abstract Object parseValue(@NonNull String stringVal, @NonNull BaseConnection connection) throws SQLException;
   }
 
   private abstract static class AbstractObjectArrayDecoder<A> extends AbstractObjectStringArrayDecoder<A> {
@@ -162,7 +162,7 @@ final class ArrayDecoding {
       }
     }
 
-    abstract Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException;
+    abstract Object parseValue(int length, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection) throws SQLException;
   }
 
   private static final ArrayDecoder<Long[]> LONG_OBJ_ARRAY = new AbstractObjectArrayDecoder<Long[]>(Long.class) {
@@ -451,7 +451,7 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings("unchecked")
-  private static <A> ArrayDecoder<A> getDecoder(int oid, BaseConnection connection) throws SQLException {
+  private static <A> ArrayDecoder<A> getDecoder(int oid, @NonNull BaseConnection connection) throws SQLException {
     final Integer key = oid;
     @SuppressWarnings("rawtypes")
     final ArrayDecoder decoder = OID_TO_DECODER.get(key);
@@ -490,7 +490,7 @@ final class ArrayDecoding {
    *           For failures encountered during parsing.
    */
   @SuppressWarnings("unchecked")
-  public static Object readBinaryArray(int index, int count, byte[] bytes, BaseConnection connection)
+  public static Object readBinaryArray(int index, int count, @NonNull byte[] bytes, @NonNull BaseConnection connection)
       throws SQLException {
     final ByteBuffer buffer = ByteBuffer.wrap(bytes);
     buffer.order(ByteOrder.BIG_ENDIAN);
@@ -576,7 +576,7 @@ final class ArrayDecoding {
    *          The delimiter character appropriate for the data type.
    * @return A {@link PgArrayList} representing the parsed <i>fieldString</i>.
    */
-  static PgArrayList buildArrayList(String fieldString, char delim) {
+  static PgArrayList buildArrayList(@NonNull String fieldString, char delim) {
 
     final PgArrayList arrayList = new PgArrayList();
 
@@ -717,7 +717,7 @@ final class ArrayDecoding {
    *           For failures encountered during parsing.
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static Object readStringArray(int index, int count, int oid, final PgArrayList list, BaseConnection connection)
+  public static Object readStringArray(int index, int count, int oid, @NonNull PgArrayList list, @NonNull BaseConnection connection)
       throws SQLException {
 
     final ArrayDecoder decoder = getDecoder(oid, connection);
@@ -776,7 +776,7 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private static <A> void storeStringValues(A[] array, ArrayDecoder<A> decoder, List list, int[] dimensionLengths,
+  private static <A> void storeStringValues(A @NonNull[] array, @NonNull ArrayDecoder<A> decoder, @NonNull List list, int[] dimensionLengths,
       int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 

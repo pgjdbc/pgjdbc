@@ -33,6 +33,7 @@ import org.postgresql.util.ReaderInputStream;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.value.qual.IntRange;
 
@@ -707,7 +708,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private <A> void setObjectArray(int parameterIndex, A in) throws SQLException {
+  private <A> void setObjectArray(int parameterIndex, @NonNull A in) throws SQLException {
     final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();

@@ -306,7 +306,8 @@ public class PgArray implements java.sql.Array {
    * @param input list to be converted into array
    */
   private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count) throws SQLException {
-    return ArrayDecoding.readStringArray(index, count, getConnection().getTypeInfo().getPGArrayElement(oid), input, connection);
+    final BaseConnection connection = getConnection();
+    return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
   }
 
   public int getBaseType() throws SQLException {
