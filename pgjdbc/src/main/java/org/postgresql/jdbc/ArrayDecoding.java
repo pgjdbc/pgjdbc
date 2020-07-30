@@ -59,7 +59,7 @@ final class ArrayDecoding {
 
   }
 
-  private interface ArrayDecoder<A> {
+  private interface ArrayDecoder<@NonNull A> {
 
     A createArray(@NonNegative int size);
 
@@ -782,7 +782,7 @@ final class ArrayDecoding {
 
     for (int i = 0; i < dimensionLengths[dim]; ++i) {
       if (dim == dimensionLengths.length - 2) {
-        decoder.populateFromString(array[i], (List<String>) list.get(i), connection);
+        decoder.populateFromString(array[i], (List<@Nullable String>) list.get(i), connection);
       } else {
         storeStringValues((@NonNull A @NonNull[]) array[i], decoder, (List) list.get(i), dimensionLengths, dim + 1, connection);
       }
