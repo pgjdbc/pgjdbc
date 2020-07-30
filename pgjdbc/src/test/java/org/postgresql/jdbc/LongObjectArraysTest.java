@@ -16,5 +16,4 @@ public class LongObjectArraysTest extends AbstractArraysTest<Long[]> {
   public LongObjectArraysTest() {
     super(longs, true, Oid.INT8_ARRAY);
   }
-
 }

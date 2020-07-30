@@ -399,7 +399,6 @@ public class PgArray implements java.sql.Array {
         byte[] @Nullable [] t = new byte[2][0];
         Object v = arrayList.get(offset);
 
-
         t[0] = getConnection().encodeString(Integer.toString(offset + 1));
         t[1] = v == null ? null : getConnection().encodeString(toString((ArrayDecoding.PgArrayList) v));
         rows.add(new Tuple(t));

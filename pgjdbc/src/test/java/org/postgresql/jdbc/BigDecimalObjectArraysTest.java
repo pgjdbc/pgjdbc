@@ -23,5 +23,4 @@ public class BigDecimalObjectArraysTest extends AbstractArraysTest<BigDecimal[]>
   public BigDecimalObjectArraysTest() {
     super(doubles, false, Oid.NUMERIC_ARRAY);
   }
-
 }

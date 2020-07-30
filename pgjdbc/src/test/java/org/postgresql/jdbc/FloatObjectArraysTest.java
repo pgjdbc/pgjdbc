@@ -16,5 +16,4 @@ public class FloatObjectArraysTest extends AbstractArraysTest<Float[]> {
   public FloatObjectArraysTest() {
     super(floats, true, Oid.FLOAT4_ARRAY);
   }
-
 }

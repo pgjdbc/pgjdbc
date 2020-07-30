@@ -16,5 +16,4 @@ public class DoubleObjectArraysTest extends AbstractArraysTest<Double[]> {
   public DoubleObjectArraysTest() {
     super(doubles, true, Oid.FLOAT8_ARRAY);
   }
-
 }

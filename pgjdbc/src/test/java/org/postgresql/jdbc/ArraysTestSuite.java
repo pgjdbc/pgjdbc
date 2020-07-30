@@ -27,5 +27,4 @@ import org.junit.runners.Suite;
     StringArraysTest.class
 })
 public class ArraysTestSuite {
-
 }

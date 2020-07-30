@@ -17,5 +17,4 @@ public class StringArraysTest extends AbstractArraysTest<String[]> {
   public StringArraysTest() {
     super(strings, true, Oid.VARCHAR_ARRAY);
   }
-
 }
