@@ -123,7 +123,10 @@ jobs:
     - name: 'Install software'
       run: sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
     - name: 'Update hosts'
-      run: sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com >> /etc/hosts"
+      run: |
+        sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
+        cat /etc/hosts
+
     - uses: actions/cache@v2
       name: Cache ./gradle/caches/
       with:
