@@ -14,6 +14,10 @@ import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
@@ -57,16 +61,16 @@ final class ArrayDecoding {
 
   private interface ArrayDecoder<A> {
 
-    A createArray(int size);
+    A createArray(@NonNegative int size);
 
-    Object[] createMultiDimensionalArray(int[] sizes);
+    @Nullable Object[] createMultiDimensionalArray(@NonNegative int[] sizes);
 
     boolean supportBinary();
 
-    void populateFromBinary(A array, int index, int count, ByteBuffer bytes, BaseConnection connection)
+    void populateFromBinary(A array, @NonNegative int index, @NonNegative int count, ByteBuffer bytes, BaseConnection connection)
         throws SQLException;
 
-    void populateFromString(A array, List<String> strings, BaseConnection connection) throws SQLException;
+    void populateFromString(A array, List<@Nullable String> strings, BaseConnection connection) throws SQLException;
   }
 
   private abstract static class AbstractObjectStringArrayDecoder<A> implements ArrayDecoder<A> {

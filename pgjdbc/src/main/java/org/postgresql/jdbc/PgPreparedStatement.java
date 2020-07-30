@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
@@ -719,7 +721,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         throw new SQLFeatureNotSupportedException();
       }
       final int baseOid = typeInfo.getPGArrayElement(oid);
-      final String baseType = typeInfo.getPGType(baseOid);
+      final String baseType = castNonNull(typeInfo.getPGType(baseOid));
 
       final Array array = getPGConnection().createArrayOf(baseType, in);
       this.setArray(parameterIndex, array);

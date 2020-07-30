@@ -147,14 +147,14 @@ public class PgArray implements java.sql.Array {
     }
 
     if (fieldBytes != null) {
-      return readBinaryArray((int) index, count);
+      return readBinaryArray(fieldBytes, (int) index, count);
     }
 
     if (fieldString == null) {
       return null;
     }
 
-    buildArrayList();
+    final PgArrayList arrayList = buildArrayList(fieldString);
 
     if (count == 0) {
       count = arrayList.size();
@@ -171,7 +171,7 @@ public class PgArray implements java.sql.Array {
     return buildArray(arrayList, (int) index, count);
   }
 
-  private Object readBinaryArray(int index, int count) throws SQLException {
+  private Object readBinaryArray(byte[] fieldBytes, int index, int count) throws SQLException {
     return ArrayDecoding.readBinaryArray(index, count, fieldBytes, connection);
   }
 
@@ -293,10 +293,11 @@ public class PgArray implements java.sql.Array {
    * {@link #arrayList} is build. Method can be called many times in order to make sure that array
    * list is ready to use, however {@link #arrayList} will be set only once during first call.
    */
-  private synchronized void buildArrayList() throws SQLException {
+  private synchronized PgArrayList buildArrayList(String fieldString) throws SQLException {
     if (arrayList == null) {
-      arrayList = ArrayDecoding.buildArrayList(fieldString, connection.getTypeInfo().getArrayDelimiter(oid));
+      arrayList = ArrayDecoding.buildArrayList(fieldString, getConnection().getTypeInfo().getArrayDelimiter(oid));
     }
+    return arrayList;
   }
 
   /**
@@ -305,7 +306,7 @@ public class PgArray implements java.sql.Array {
    * @param input list to be converted into array
    */
   private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count) throws SQLException {
-    return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
+    return ArrayDecoding.readStringArray(index, count, getConnection().getTypeInfo().getPGArrayElement(oid), input, connection);
   }
 
   public int getBaseType() throws SQLException {
@@ -313,7 +314,6 @@ public class PgArray implements java.sql.Array {
   }
 
   public String getBaseTypeName() throws SQLException {
-    buildArrayList();
     int elementOID = getConnection().getTypeInfo().getPGArrayElement(oid);
     return castNonNull(getConnection().getTypeInfo().getPGType(elementOID));
   }
@@ -357,7 +357,7 @@ public class PgArray implements java.sql.Array {
       return readBinaryResultSet(fieldBytes, (int) index, count);
     }
 
-    buildArrayList();
+    final PgArrayList arrayList = buildArrayList(castNonNull(fieldString));
 
     if (count == 0) {
       count = arrayList.size();
@@ -414,7 +414,7 @@ public class PgArray implements java.sql.Array {
   public @Nullable String toString() {
     if (fieldString == null && fieldBytes != null) {
       try {
-        Object array = readBinaryArray(1, 0);
+        Object array = readBinaryArray(fieldBytes, 1, 0);
 
         final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(array);
         assert arraySupport != null;

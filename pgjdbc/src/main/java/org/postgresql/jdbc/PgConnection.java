@@ -1402,7 +1402,8 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+  public Array createArrayOf(String typeName, @Nullable Object @Nullable [] elements)
+      throws SQLException {
     return createArrayOf(typeName, (Object) elements);
   }
 

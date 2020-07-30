@@ -13,6 +13,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -65,7 +67,7 @@ final class ArrayEncoding {
      *          The array to represent as a {@code String}.
      * @return {@code String} representation of the <i>array</i>.
      */
-    String toArrayString(char delim, A array);
+    @NonNull String toArrayString(char delim, A array);
 
     /**
      * Indicates if an array can be encoded in binary form to array <i>oid</i>.
@@ -97,7 +99,7 @@ final class ArrayEncoding {
      *           If {@link #supportBinaryRepresentation(int)} is false for
      *           <i>oid</i>.
      */
-    byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
+    byte @NonNull[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
         throws SQLException, SQLFeatureNotSupportedException;
   }
 
@@ -152,7 +154,7 @@ final class ArrayEncoding {
      *          The array to count {@code null} elements in.
      * @return The number of {@code null} elements in <i>array</i>.
      */
-    int countNulls(A array) {
+    int countNulls(@NonNull A array) {
       int nulls = 0;
       final int arrayLength = Array.getLength(array);
       for (int i = 0; i < arrayLength; ++i) {
@@ -176,14 +178,14 @@ final class ArrayEncoding {
      *           If {@link #supportBinaryRepresentation(int)} is false for
      *           <i>oid</i>.
      */
-    abstract byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, A array)
+    abstract byte[] toSingleDimensionBinaryRepresentation(@NonNull BaseConnection connection, @NonNull A array)
         throws SQLException, SQLFeatureNotSupportedException;
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, A array) {
+    public String toArrayString(char delim, @NonNull A array) {
       final StringBuilder sb = new StringBuilder(1024);
       appendArray(sb, delim, array);
       return sb.toString();
@@ -200,7 +202,7 @@ final class ArrayEncoding {
      *          The array to represent. Will not be {@code null}, but may contain
      *          {@code null} elements.
      */
-    abstract void appendArray(StringBuilder sb, char delim, A array);
+    abstract void appendArray(@NonNull StringBuilder sb, char delim, @NonNull A array);
 
     /**
      * By default returns {@code true} if <i>oid</i> matches the <i>arrayOid</i>
@@ -1107,7 +1109,7 @@ final class ArrayEncoding {
    * @see ArrayEncoding.ArrayEncoder#supportBinaryRepresentation(int)
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static <A> ArrayEncoder<A> getArrayEncoder(A array) throws PSQLException {
+  public static <A> ArrayEncoder<A> getArrayEncoder(@NonNull A array) throws PSQLException {
     final Class<? extends Object> arrayClazz = array.getClass();
     Class<?> subClazz = arrayClazz.getComponentType();
     AbstractArrayEncoder<A> support = ARRAY_CLASS_TO_ENCODER.get(subClazz);
@@ -1201,7 +1203,7 @@ final class ArrayEncoding {
      * dimension length
      */
     @Override
-    public byte[] toBinaryRepresentation(BaseConnection connection, A[] array, int oid)
+    public byte[] toBinaryRepresentation(@NonNull BaseConnection connection, @NonNull A @NonNull[] array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
       final byte[] buffer = new byte[4];
