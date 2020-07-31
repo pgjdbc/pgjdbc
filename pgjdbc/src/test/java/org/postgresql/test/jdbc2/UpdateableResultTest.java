@@ -669,4 +669,16 @@ public class UpdateableResultTest extends BaseTest4 {
     //rs.refreshRow(); //fetches the value stored
     assertTrue(rs.getBoolean("b"));
   }
+
+  @Test
+  public void testOidUpdatable() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT oid,* FROM pg_class WHERE relname = 'pg_class'");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    rs.updateString("relname", "pg_class");
+    rs.close();
+    st.close();
+  }
 }

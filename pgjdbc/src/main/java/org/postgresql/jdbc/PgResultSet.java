@@ -1636,11 +1636,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     rs.close();
     connection.getLogger().log(Level.FINE, "no of keys={0}", i);
 
-    if (i < 1) {
-      throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
-          PSQLState.DATA_ERROR);
-    }
-
     /*
     it is only updatable if the primary keys are available in the resultset
      */
@@ -1663,6 +1658,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         updateable = true;
       }
     }
+
+    if (!updateable) {
+      throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
+          PSQLState.DATA_ERROR);
+    }
+
     return updateable;
   }
 
