@@ -1661,7 +1661,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (!updateable) {
       throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
-          PSQLState.DATA_ERROR);
+          PSQLState.INVALID_CURSOR_STATE);
     }
 
     return updateable;

@@ -587,7 +587,7 @@ public class UpdateableResultTest extends BaseTest4 {
       fail("Move to insert row succeeded. It should not");
     } catch (SQLException sqle) {
       // Ensure we're reporting that the RS is not updatable.
-      assertEquals("22000", sqle.getSQLState());
+      assertEquals("24000", sqle.getSQLState());
     } finally {
       TestUtil.closeQuietly(rs);
       TestUtil.closeQuietly(st);
