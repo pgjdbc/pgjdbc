@@ -11,6 +11,8 @@ are possible. Now the driver will attempt to connect to the server with a GSSAPI
 attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
 and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required.
 - Use connection encoding instead of hard coding ISO-8859-1
+- UpdatedResultSets used to check for oids first. They now check for it after checking for primary keys. 
+Previously no primary keys would set the SqlState to 22000, it now sets it to 24000 
 
 ### Added
 - Verify nullness with CheckerFramework
