@@ -1600,6 +1600,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return false;
     }
 
+    usingOID = false;
+
     connection.getLogger().log(Level.FINE, "getting primary keys");
 
     //
@@ -1609,56 +1611,58 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     List<PrimaryKey> primaryKeys = new ArrayList<PrimaryKey>();
     this.primaryKeys = primaryKeys;
 
-    // this is not strictly jdbc spec, but it will make things much faster if used
-    // the user has to select oid, * from table and then we will just use oid
-    // with oids has been removed in version 12
-    // FIXME: with oids does not automatically create an index, should check for primary keys first
-
-    usingOID = false;
-    int oidIndex = findColumnIndex("oid"); // 0 if not present
-
     int i = 0;
     int numPKcolumns = 0;
 
-    // if we find the oid then just use it
+    // otherwise go and get the primary keys and create a list of keys
+    @Nullable String[] s = quotelessTableName(castNonNull(tableName));
+    String quotelessTableName = castNonNull(s[0]);
+    @Nullable String quotelessSchemaName = s[1];
+    java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
+        quotelessSchemaName, quotelessTableName);
 
-    // oidIndex will be >0 if the oid was in the select list
-    if (oidIndex > 0) {
-      i++;
+    while (rs.next()) {
       numPKcolumns++;
-      primaryKeys.add(new PrimaryKey(oidIndex, "oid"));
-      usingOID = true;
-    } else {
-      // otherwise go and get the primary keys and create a list of keys
-      @Nullable String[] s = quotelessTableName(castNonNull(tableName));
-      String quotelessTableName = castNonNull(s[0]);
-      @Nullable String quotelessSchemaName = s[1];
-      java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
-          quotelessSchemaName, quotelessTableName);
-      while (rs.next()) {
-        numPKcolumns++;
-        String columnName = castNonNull(rs.getString(4)); // get the columnName
-        int index = findColumnIndex(columnName);
+      String columnName = castNonNull(rs.getString(4)); // get the columnName
+      int index = findColumnIndex(columnName);
 
-        if (index > 0) {
-          i++;
-          primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
-        }
+      /* make sure that the user has included the primary key in the resultset */
+      if (index > 0) {
+        i++;
+        primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
       }
-
-      rs.close();
     }
 
+    rs.close();
     connection.getLogger().log(Level.FINE, "no of keys={0}", i);
 
-    if (i < 1) {
-      throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
-          PSQLState.DATA_ERROR);
-    }
-
+    /*
+    it is only updatable if the primary keys are available in the resultset
+     */
     updateable = (i == numPKcolumns);
 
     connection.getLogger().log(Level.FINE, "checking primary key {0}", updateable);
+
+    /*
+      if we haven't found a primary key we can check to see if the query includes the oid
+      This is now a questionable check as oid's have been deprecated. Might still be useful for
+      catalog tables, but again the query would have to include the oid.
+     */
+    if (!updateable) {
+      int oidIndex = findColumnIndex("oid"); // 0 if not present
+
+      // oidIndex will be >0 if the oid was in the select list
+      if (oidIndex > 0) {
+        primaryKeys.add(new PrimaryKey(oidIndex, "oid"));
+        usingOID = true;
+        updateable = true;
+      }
+    }
+
+    if (!updateable) {
+      throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
+          PSQLState.INVALID_CURSOR_STATE);
+    }
 
     return updateable;
   }
