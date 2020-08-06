@@ -59,21 +59,21 @@ final class ArrayDecoding {
 
   }
 
-  private interface ArrayDecoder<@NonNull A> {
+  private interface ArrayDecoder<A extends @NonNull Object> {
 
     A createArray(@NonNegative int size);
 
-    @NonNull Object[] createMultiDimensionalArray(@NonNegative int[] sizes);
+    Object[] createMultiDimensionalArray(@NonNegative int[] sizes);
 
     boolean supportBinary();
 
-    void populateFromBinary(@NonNull A array, @NonNegative int index, @NonNegative int count, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection)
+    void populateFromBinary(A array, @NonNegative int index, @NonNegative int count, ByteBuffer bytes, BaseConnection connection)
         throws SQLException;
 
-    void populateFromString(@NonNull A array, List<@Nullable String> strings, @NonNull BaseConnection connection) throws SQLException;
+    void populateFromString(A array, List<@Nullable String> strings, BaseConnection connection) throws SQLException;
   }
 
-  private abstract static class AbstractObjectStringArrayDecoder<A> implements ArrayDecoder<A> {
+  private abstract static class AbstractObjectStringArrayDecoder<A extends @NonNull Object> implements ArrayDecoder<A> {
     final Class<?> baseClazz;
 
     AbstractObjectStringArrayDecoder(Class<?> baseClazz) {
@@ -112,7 +112,7 @@ final class ArrayDecoding {
      * {@inheritDoc}
      */
     @Override
-    public void populateFromString(@NonNull A arr, List<@Nullable String> strings, @NonNull BaseConnection connection) throws SQLException {
+    public void populateFromString(A arr, List<@Nullable String> strings, BaseConnection connection) throws SQLException {
       final @Nullable Object[] array = (Object[]) arr;
 
       for (int i = 0, j = strings.size(); i < j; ++i) {
@@ -121,10 +121,10 @@ final class ArrayDecoding {
       }
     }
 
-    abstract Object parseValue(@NonNull String stringVal, @NonNull BaseConnection connection) throws SQLException;
+    abstract Object parseValue(String stringVal, BaseConnection connection) throws SQLException;
   }
 
-  private abstract static class AbstractObjectArrayDecoder<A> extends AbstractObjectStringArrayDecoder<A> {
+  private abstract static class AbstractObjectArrayDecoder<A extends @NonNull Object> extends AbstractObjectStringArrayDecoder<A> {
 
     AbstractObjectArrayDecoder(Class<?> baseClazz) {
       super(baseClazz);
@@ -139,7 +139,7 @@ final class ArrayDecoding {
     }
 
     @Override
-    public void populateFromBinary(@NonNull A arr, @NonNegative int index, @NonNegative int count, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection)
+    public void populateFromBinary(A arr, @NonNegative int index, @NonNegative int count, ByteBuffer bytes, BaseConnection connection)
         throws SQLException {
       final @Nullable Object[] array = (Object[]) arr;
 
@@ -162,18 +162,18 @@ final class ArrayDecoding {
       }
     }
 
-    abstract Object parseValue(int length, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection) throws SQLException;
+    abstract Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException;
   }
 
   private static final ArrayDecoder<Long[]> LONG_OBJ_ARRAY = new AbstractObjectArrayDecoder<Long[]>(Long.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
       return bytes.getLong();
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toLong(stringVal);
     }
   };
@@ -182,13 +182,13 @@ final class ArrayDecoding {
       Long.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
       final long value = bytes.getInt() & 0xFFFFFFFFL;
       return value;
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toLong(stringVal);
     }
   };
@@ -197,12 +197,12 @@ final class ArrayDecoding {
       Integer.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
       return bytes.getInt();
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toInt(stringVal);
     }
   };
@@ -210,12 +210,12 @@ final class ArrayDecoding {
   private static final ArrayDecoder<Short[]> SHORT_OBJ_ARRAY = new AbstractObjectArrayDecoder<Short[]>(Short.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
       return bytes.getShort();
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toShort(stringVal);
     }
   };
@@ -224,12 +224,12 @@ final class ArrayDecoding {
       Double.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
       return bytes.getDouble();
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toDouble(stringVal);
     }
   };
@@ -237,12 +237,12 @@ final class ArrayDecoding {
   private static final ArrayDecoder<Float[]> FLOAT_OBJ_ARRAY = new AbstractObjectArrayDecoder<Float[]>(Float.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
       return bytes.getFloat();
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toFloat(stringVal);
     }
   };
@@ -251,12 +251,12 @@ final class ArrayDecoding {
       Boolean.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
       return bytes.get() == 1;
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return BooleanTypeUtil.fromString(stringVal);
     }
   };
@@ -264,7 +264,7 @@ final class ArrayDecoding {
   private static final ArrayDecoder<String[]> STRING_ARRAY = new AbstractObjectArrayDecoder<String[]>(String.class) {
 
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       assert bytes.hasArray();
       final byte[] byteArray = bytes.array();
       final int offset = bytes.arrayOffset() + bytes.position();
@@ -282,7 +282,7 @@ final class ArrayDecoding {
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return stringVal;
     }
   };
@@ -294,14 +294,14 @@ final class ArrayDecoding {
      * {@inheritDoc}
      */
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, BaseConnection connection) throws SQLException {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] array = new byte[length];
       bytes.get(array);
       return array;
     }
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       try {
         return PGbytea.toBytes(stringVal.getBytes("ascii"));
       } catch (UnsupportedEncodingException e) {
@@ -314,7 +314,7 @@ final class ArrayDecoding {
       BigDecimal.class) {
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return PgResultSet.toBigDecimal(stringVal);
     }
   };
@@ -323,7 +323,7 @@ final class ArrayDecoding {
       String.class) {
 
     @Override
-    Object parseValue(@NonNull String stringVal, BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return stringVal;
     }
   };
@@ -332,7 +332,7 @@ final class ArrayDecoding {
       java.sql.Date.class) {
 
     @Override
-    Object parseValue(@NonNull String stringVal, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toDate(null, stringVal);
     }
   };
@@ -341,7 +341,7 @@ final class ArrayDecoding {
       java.sql.Time.class) {
 
     @Override
-    Object parseValue(@NonNull String stringVal, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTime(null, stringVal);
     }
   };
@@ -350,7 +350,7 @@ final class ArrayDecoding {
       java.sql.Timestamp.class) {
 
     @Override
-    Object parseValue(@NonNull String stringVal, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTimestamp(null, stringVal);
     }
   };
@@ -389,10 +389,10 @@ final class ArrayDecoding {
 
   @SuppressWarnings("rawtypes")
   private static final class ArrayAssistantObjectArrayDecoder extends AbstractObjectArrayDecoder {
-    private final @NonNull ArrayAssistant arrayAssistant;
+    private final ArrayAssistant arrayAssistant;
 
     @SuppressWarnings("unchecked")
-    ArrayAssistantObjectArrayDecoder(@NonNull ArrayAssistant arrayAssistant) {
+    ArrayAssistantObjectArrayDecoder(ArrayAssistant arrayAssistant) {
       super(arrayAssistant.baseType());
       this.arrayAssistant = arrayAssistant;
     }
@@ -401,7 +401,7 @@ final class ArrayDecoding {
      * {@inheritDoc}
      */
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
 
       assert bytes.hasArray();
       final byte[] byteArray = bytes.array();
@@ -417,7 +417,7 @@ final class ArrayDecoding {
      * {@inheritDoc}
      */
     @Override
-    Object parseValue(@NonNull String stringVal, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return arrayAssistant.buildElement(stringVal);
     }
   }
@@ -435,7 +435,7 @@ final class ArrayDecoding {
      * {@inheritDoc}
      */
     @Override
-    Object parseValue(int length, @NonNull ByteBuffer bytes, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] copy = new byte[length];
       bytes.get(copy);
       return connection.getObject(typeName, null, copy);
@@ -445,13 +445,13 @@ final class ArrayDecoding {
      * {@inheritDoc}
      */
     @Override
-    Object parseValue(@NonNull String stringVal, @NonNull BaseConnection connection) throws SQLException {
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getObject(typeName, stringVal, null);
     }
   }
 
   @SuppressWarnings("unchecked")
-  private static <A> ArrayDecoder<A> getDecoder(int oid, @NonNull BaseConnection connection) throws SQLException {
+  private static <A extends @NonNull Object> ArrayDecoder<A> getDecoder(int oid, BaseConnection connection) throws SQLException {
     final Integer key = oid;
     @SuppressWarnings("rawtypes")
     final ArrayDecoder decoder = OID_TO_DECODER.get(key);
@@ -490,7 +490,7 @@ final class ArrayDecoding {
    *           For failures encountered during parsing.
    */
   @SuppressWarnings("unchecked")
-  public static Object readBinaryArray(int index, int count, @NonNull byte[] bytes, @NonNull BaseConnection connection)
+  public static Object readBinaryArray(int index, int count, byte[] bytes, BaseConnection connection)
       throws SQLException {
     final ByteBuffer buffer = ByteBuffer.wrap(bytes);
     buffer.order(ByteOrder.BIG_ENDIAN);
@@ -546,8 +546,8 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings("unchecked")
-  private static <A> void storeValues(@NonNull A @NonNull[] array, @NonNull ArrayDecoder<A> decoder, @NonNull ByteBuffer bytes,
-      int skip, int @NonNull[] dimensionLengths, int dim, @NonNull BaseConnection connection) throws SQLException {
+  private static <A extends @NonNull Object> void storeValues(A[] array, ArrayDecoder<A> decoder, ByteBuffer bytes,
+      int skip, int[] dimensionLengths, int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 
     for (int i = 0; i < skip; ++i) {
@@ -576,7 +576,7 @@ final class ArrayDecoding {
    *          The delimiter character appropriate for the data type.
    * @return A {@link PgArrayList} representing the parsed <i>fieldString</i>.
    */
-  static PgArrayList buildArrayList(@NonNull String fieldString, char delim) {
+  static PgArrayList buildArrayList(String fieldString, char delim) {
 
     final PgArrayList arrayList = new PgArrayList();
 
@@ -717,7 +717,7 @@ final class ArrayDecoding {
    *           For failures encountered during parsing.
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static Object readStringArray(int index, int count, int oid, @NonNull PgArrayList list, @NonNull BaseConnection connection)
+  public static Object readStringArray(int index, int count, int oid, PgArrayList list, BaseConnection connection)
       throws SQLException {
 
     final ArrayDecoder decoder = getDecoder(oid, connection);
@@ -776,7 +776,7 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private static <A> void storeStringValues(@NonNull A @NonNull[] array, @NonNull ArrayDecoder<A> decoder, @NonNull List list, int @NonNull[] dimensionLengths,
+  private static <A extends @NonNull Object> void storeStringValues(A[] array, ArrayDecoder<A> decoder, List list, int @NonNull[] dimensionLengths,
       int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 

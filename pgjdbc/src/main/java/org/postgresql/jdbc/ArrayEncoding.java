@@ -68,7 +68,7 @@ final class ArrayEncoding {
      *          The array to represent as a {@code String}.
      * @return {@code String} representation of the <i>array</i>.
      */
-    @NonNull String toArrayString(char delim, @NonNull A array);
+    String toArrayString(char delim, A array);
 
     /**
      * Indicates if an array can be encoded in binary form to array <i>oid</i>.
@@ -100,7 +100,7 @@ final class ArrayEncoding {
      *           If {@link #supportBinaryRepresentation(int)} is false for
      *           <i>oid</i>.
      */
-    byte @NonNull[] toBinaryRepresentation(@NonNull BaseConnection connection, @NonNull A array, int oid)
+    byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
         throws SQLException, SQLFeatureNotSupportedException;
   }
 
@@ -111,7 +111,8 @@ final class ArrayEncoding {
    * @param <A>
    *          Base array type supported.
    */
-  private abstract static class AbstractArrayEncoder<A> implements ArrayEncoder<A> {
+  private abstract static class AbstractArrayEncoder<A extends @NonNull Object>
+      implements ArrayEncoder<A> {
 
     private final int oid;
 
@@ -155,7 +156,7 @@ final class ArrayEncoding {
      *          The array to count {@code null} elements in.
      * @return The number of {@code null} elements in <i>array</i>.
      */
-    int countNulls(@NonNull A array) {
+    int countNulls(A array) {
       int nulls = 0;
       final int arrayLength = Array.getLength(array);
       for (int i = 0; i < arrayLength; ++i) {
@@ -179,14 +180,14 @@ final class ArrayEncoding {
      *           If {@link #supportBinaryRepresentation(int)} is false for
      *           <i>oid</i>.
      */
-    abstract byte[] toSingleDimensionBinaryRepresentation(@NonNull BaseConnection connection, @NonNull A array)
+    abstract byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, A array)
         throws SQLException, SQLFeatureNotSupportedException;
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, @NonNull A array) {
+    public String toArrayString(char delim, A array) {
       final StringBuilder sb = new StringBuilder(1024);
       appendArray(sb, delim, array);
       return sb.toString();
@@ -203,7 +204,7 @@ final class ArrayEncoding {
      *          The array to represent. Will not be {@code null}, but may contain
      *          {@code null} elements.
      */
-    abstract void appendArray(@NonNull StringBuilder sb, char delim, @NonNull A array);
+    abstract void appendArray(StringBuilder sb, char delim, A array);
 
     /**
      * By default returns {@code true} if <i>oid</i> matches the <i>arrayOid</i>
@@ -221,7 +222,7 @@ final class ArrayEncoding {
    * @param <N>
    *          The base type of array.
    */
-  private abstract static class NumberArrayEncoder<N extends Number> extends AbstractArrayEncoder<N[]> {
+  private abstract static class NumberArrayEncoder<N extends Number> extends AbstractArrayEncoder<N @NonNull []> {
 
     private final int fieldSize;
 
@@ -350,7 +351,8 @@ final class ArrayEncoding {
    * @param <A>
    *          The primitive array to support.
    */
-  private abstract static class FixedSizePrimitiveArrayEncoder<A> extends AbstractArrayEncoder<A> {
+  private abstract static class FixedSizePrimitiveArrayEncoder<A extends @NonNull Object>
+      extends AbstractArrayEncoder<A> {
 
     private final int fieldSize;
 
@@ -375,7 +377,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public final byte[] toBinaryRepresentation(BaseConnection connection, @NonNull A array, int oid)
+    public final byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
       assert oid == arrayOid;
 
@@ -401,7 +403,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    final byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, @NonNull A array)
+    final byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, A array)
         throws SQLException, SQLFeatureNotSupportedException {
       final int length = ((fieldSize + 4) * Array.getLength(array));
       final byte[] bytes = new byte[length];
@@ -424,7 +426,7 @@ final class ArrayEncoding {
     protected abstract void write(A array, byte[] bytes, int offset);
   }
 
-  private static final AbstractArrayEncoder<long[]> LONG_ARRAY = new FixedSizePrimitiveArrayEncoder<long[]>(8, Oid.INT8,
+  private static final AbstractArrayEncoder<long @NonNull []> LONG_ARRAY = new FixedSizePrimitiveArrayEncoder<long @NonNull []>(8, Oid.INT8,
       Oid.INT8_ARRAY) {
 
     /**
@@ -456,7 +458,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Long[]> LONG_OBJ_ARRAY = new NumberArrayEncoder<Long>(8, Oid.INT8,
+  private static final AbstractArrayEncoder<Long @NonNull []> LONG_OBJ_ARRAY = new NumberArrayEncoder<Long>(8, Oid.INT8,
       Oid.INT8_ARRAY) {
 
     @Override
@@ -465,7 +467,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<int[]> INT_ARRAY = new FixedSizePrimitiveArrayEncoder<int[]>(4, Oid.INT4,
+  private static final AbstractArrayEncoder<int @NonNull []> INT_ARRAY = new FixedSizePrimitiveArrayEncoder<int @NonNull []>(4, Oid.INT4,
       Oid.INT4_ARRAY) {
 
     /**
@@ -497,7 +499,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Integer[]> INT_OBJ_ARRAY = new NumberArrayEncoder<Integer>(4, Oid.INT4,
+  private static final AbstractArrayEncoder<Integer @NonNull []> INT_OBJ_ARRAY = new NumberArrayEncoder<Integer>(4, Oid.INT4,
       Oid.INT4_ARRAY) {
 
     @Override
@@ -506,7 +508,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<short[]> SHORT_ARRAY = new FixedSizePrimitiveArrayEncoder<short[]>(2,
+  private static final AbstractArrayEncoder<short @NonNull []> SHORT_ARRAY = new FixedSizePrimitiveArrayEncoder<short @NonNull []>(2,
       Oid.INT2, Oid.INT2_ARRAY) {
 
     /**
@@ -538,7 +540,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Short[]> SHORT_OBJ_ARRAY = new NumberArrayEncoder<Short>(2, Oid.INT2,
+  private static final AbstractArrayEncoder<Short @NonNull []> SHORT_OBJ_ARRAY = new NumberArrayEncoder<Short>(2, Oid.INT2,
       Oid.INT2_ARRAY) {
 
     /**
@@ -550,7 +552,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<double[]> DOUBLE_ARRAY = new FixedSizePrimitiveArrayEncoder<double[]>(8,
+  private static final AbstractArrayEncoder<double @NonNull []> DOUBLE_ARRAY = new FixedSizePrimitiveArrayEncoder<double @NonNull []>(8,
       Oid.FLOAT8, Oid.FLOAT8_ARRAY) {
 
     /**
@@ -585,7 +587,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Double[]> DOUBLE_OBJ_ARRAY = new NumberArrayEncoder<Double>(8, Oid.FLOAT8,
+  private static final AbstractArrayEncoder<Double @NonNull []> DOUBLE_OBJ_ARRAY = new NumberArrayEncoder<Double>(8, Oid.FLOAT8,
       Oid.FLOAT8_ARRAY) {
 
     /**
@@ -597,7 +599,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<float[]> FLOAT_ARRAY = new FixedSizePrimitiveArrayEncoder<float[]>(4,
+  private static final AbstractArrayEncoder<float @NonNull []> FLOAT_ARRAY = new FixedSizePrimitiveArrayEncoder<float @NonNull []>(4,
       Oid.FLOAT4, Oid.FLOAT4_ARRAY) {
 
     /**
@@ -632,7 +634,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Float[]> FLOAT_OBJ_ARRAY = new NumberArrayEncoder<Float>(4, Oid.FLOAT4,
+  private static final AbstractArrayEncoder<Float @NonNull []> FLOAT_OBJ_ARRAY = new NumberArrayEncoder<Float>(4, Oid.FLOAT4,
       Oid.FLOAT4_ARRAY) {
 
     /**
@@ -644,7 +646,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<boolean[]> BOOLEAN_ARRAY = new FixedSizePrimitiveArrayEncoder<boolean[]>(1,
+  private static final AbstractArrayEncoder<boolean @NonNull []> BOOLEAN_ARRAY = new FixedSizePrimitiveArrayEncoder<boolean @NonNull []>(1,
       Oid.BOOL, Oid.BOOL_ARRAY) {
 
     /**
@@ -676,7 +678,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Boolean[]> BOOLEAN_OBJ_ARRAY = new AbstractArrayEncoder<Boolean[]>(Oid.BOOL,
+  private static final AbstractArrayEncoder<Boolean @NonNull []> BOOLEAN_OBJ_ARRAY = new AbstractArrayEncoder<Boolean @NonNull []>(Oid.BOOL,
       Oid.BOOL_ARRAY) {
 
     /**
@@ -757,7 +759,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<String[]> STRING_ARRAY = new AbstractArrayEncoder<String[]>(Oid.VARCHAR,
+  private static final AbstractArrayEncoder<String @NonNull []> STRING_ARRAY = new AbstractArrayEncoder<String @NonNull []>(Oid.VARCHAR,
       Oid.VARCHAR_ARRAY) {
 
     /**
@@ -914,7 +916,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<byte[][]> BYTEA_ARRAY = new AbstractArrayEncoder<byte[][]>(Oid.BYTEA,
+  private static final AbstractArrayEncoder<byte[] @NonNull []> BYTEA_ARRAY = new AbstractArrayEncoder<byte[] @NonNull []>(Oid.BYTEA,
       Oid.BYTEA_ARRAY) {
 
     /**
@@ -1033,7 +1035,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Object[]> OBJECT_ARRAY = new AbstractArrayEncoder<Object[]>(0, 0) {
+  private static final AbstractArrayEncoder<Object @NonNull []> OBJECT_ARRAY = new AbstractArrayEncoder<Object @NonNull []>(0, 0) {
 
     @Override
     public int getDefaultArrayTypeOid() {
@@ -1110,8 +1112,8 @@ final class ArrayEncoding {
    * @see ArrayEncoding.ArrayEncoder#supportBinaryRepresentation(int)
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static <A> ArrayEncoder<A> getArrayEncoder(@NonNull A array) throws PSQLException {
-    final Class<? extends Object> arrayClazz = array.getClass();
+  public static <A extends @NonNull Object> ArrayEncoder<A> getArrayEncoder(A array) throws PSQLException {
+    final Class<?> arrayClazz = array.getClass();
     Class<?> subClazz = arrayClazz.getComponentType();
     if (subClazz == null) {
       throw new PSQLException(GT.tr("Invalid elements {0}", array), PSQLState.INVALID_PARAMETER_TYPE);
@@ -1133,14 +1135,18 @@ final class ArrayEncoding {
     while (subClazz != null) {
       support = ARRAY_CLASS_TO_ENCODER.get(subClazz);
       if (support != null) {
-        return dimensions == 2 ? new TwoDimensionPrimitiveArrayEncoder(support)
-            : new RecursiveArrayEncoder(support, dimensions);
+        if (dimensions == 2) {
+          return new TwoDimensionPrimitiveArrayEncoder(support);
+        }
+        return new RecursiveArrayEncoder(support, dimensions);
       }
       subSubClazz = subClazz.getComponentType();
       if (subSubClazz == null) {
         if (Object.class.isAssignableFrom(subClazz)) {
-          return dimensions == 2 ? new TwoDimensionPrimitiveArrayEncoder(OBJECT_ARRAY)
-              : new RecursiveArrayEncoder(OBJECT_ARRAY, dimensions);
+          if (dimensions == 2) {
+            return new TwoDimensionPrimitiveArrayEncoder(OBJECT_ARRAY);
+          }
+          return new RecursiveArrayEncoder(OBJECT_ARRAY, dimensions);
         }
       }
       ++dimensions;
@@ -1154,7 +1160,7 @@ final class ArrayEncoding {
    * Wraps an {@link AbstractArrayEncoder} implementation and provides optimized
    * support for 2 dimensions.
    */
-  private static final class TwoDimensionPrimitiveArrayEncoder<A> implements ArrayEncoder<@NonNull A[]> {
+  private static final class TwoDimensionPrimitiveArrayEncoder<A extends @NonNull Object> implements ArrayEncoder<A @NonNull []> {
     private final AbstractArrayEncoder<A> support;
 
     /**
@@ -1178,7 +1184,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, @NonNull A @NonNull[] array) {
+    public String toArrayString(char delim, A @NonNull[] array) {
       final StringBuilder sb = new StringBuilder(1024);
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
@@ -1204,7 +1210,7 @@ final class ArrayEncoding {
      * dimension length
      */
     @Override
-    public byte[] toBinaryRepresentation(@NonNull BaseConnection connection, @NonNull A @NonNull[] array, int oid)
+    public byte[] toBinaryRepresentation(BaseConnection connection, A[] array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
       final byte[] buffer = new byte[4];
@@ -1261,14 +1267,14 @@ final class ArrayEncoding {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   private static final class RecursiveArrayEncoder implements ArrayEncoder {
 
-    private final @NonNull AbstractArrayEncoder support;
+    private final AbstractArrayEncoder support;
     private final @Positive int dimensions;
 
     /**
      * @param support
      *          The instance providing support for the base array type.
      */
-    RecursiveArrayEncoder(@NonNull AbstractArrayEncoder support, @Positive int dimensions) {
+    RecursiveArrayEncoder(AbstractArrayEncoder support, @Positive int dimensions) {
       super();
       this.support = support;
       this.dimensions = dimensions;
@@ -1293,7 +1299,7 @@ final class ArrayEncoding {
       return sb.toString();
     }
 
-    private void arrayString(@NonNull StringBuilder sb, @NonNull Object array, char delim, int depth) {
+    private void arrayString(StringBuilder sb, Object array, char delim, int depth) {
 
       if (depth > 1) {
         sb.append('{');
@@ -1317,7 +1323,7 @@ final class ArrayEncoding {
       return support.supportBinaryRepresentation(oid);
     }
 
-    private boolean hasNulls(@NonNull Object array, int depth) {
+    private boolean hasNulls(Object array, int depth) {
       if (depth > 1) {
         for (int i = 0, j = Array.getLength(array); i < j; ++i) {
           if (hasNulls(Array.get(array, i), depth - 1)) {
@@ -1334,7 +1340,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public byte[] toBinaryRepresentation(@NonNull BaseConnection connection, @NonNull Object array, int oid)
+    public byte[] toBinaryRepresentation(BaseConnection connection, Object array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
 
       final boolean hasNulls = hasNulls(array, dimensions);
@@ -1371,8 +1377,8 @@ final class ArrayEncoding {
       }
     }
 
-    private void writeArray(@NonNull BaseConnection connection, byte @NonNull[] buffer, @NonNull ByteArrayOutputStream baos,
-        @NonNull Object array, int depth, boolean first) throws IOException, SQLException {
+    private void writeArray(BaseConnection connection, byte[] buffer, ByteArrayOutputStream baos,
+        Object array, int depth, boolean first) throws IOException, SQLException {
       final int length = Array.getLength(array);
 
       if (first) {
