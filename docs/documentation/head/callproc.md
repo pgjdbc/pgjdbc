@@ -1,7 +1,7 @@
 ---
 layout: default_docs
-title: Chapter 6. Calling Stored Functions
-header: Chapter 6. Calling Stored Functions
+title: Chapter 6. Calling Stored Functions and Procedures
+header: Chapter 6. Calling Stored Functions and Procedures
 resource: media
 previoustitle: Creating and Modifying Database Objects
 previous: ddl.html
@@ -11,9 +11,24 @@ next: binary-data.html
 
 **Table of Contents**
 
-* [Obtaining a `ResultSet` from a stored function](callproc.html#callproc-resultset)
-	* [From a Function Returning `SETOF` type](callproc.html#callproc-resultset-setof)
-	* [From a Function Returning a refcursor](callproc.html#callproc-resultset-refcursor)
+* [Obtaining a `ResultSet` from a stored function](callproc.html#callfunc-resultset)
+	* [From a Function Returning `SETOF` type](callproc.html#callfunc-resultset-setof)
+	* [From a Function Returning a refcursor](callproc.html#callfunc-resultset-refcursor)
+* [Calling stored procedure with transaction control](callproc.html#call-procedure-example)
+
+PostgreSQL™ supports two types of stored objects, functions that can return a
+result value and - starting from v11 - procedures that can perform transaction
+control. Both types of stored objects are invoked using `CallableStatement` and
+the standard JDBC escape call syntax `{call storedobject(?)}`. The
+`escapeSyntaxCallMode` connection property controls how the driver transforms the
+call syntax to invoke functions or procedures.
+
+The default mode, `select`, supports backwards compatibility for existing
+applications and supports function invocation only. This is required to invoke
+a void returning function. For new applications, use
+`escapeSyntaxCallMode=callIfNoReturn` to map `CallableStatement`s with return
+values to stored functions and `CallableStatement`s without return values to
+stored procedures.
 
 <a name="call-function-example"></a>
 **Example 6.1. Calling a built in stored function**
@@ -22,15 +37,15 @@ This example shows how to call a PostgreSQL™ built in function, `upper`, which
 simply converts the supplied string argument to uppercase.
 
 ```java
-CallableStatement upperProc = conn.prepareCall("{? = call upper( ? ) }");
-upperProc.registerOutParameter(1, Types.VARCHAR);
-upperProc.setString(2, "lowercase to uppercase");
-upperProc.execute();
-String upperCased = upperProc.getString(1);
-upperProc.close();
+CallableStatement upperFunc = conn.prepareCall("{? = call upper( ? ) }");
+upperFunc.registerOutParameter(1, Types.VARCHAR);
+upperFunc.setString(2, "lowercase to uppercase");
+upperFunc.execute();
+String upperCased = upperFunc.getString(1);
+upperFunc.close();
 ```
 
-<a name="callproc-resultset"></a>
+<a name="callfunc-resultset"></a>
 # Obtaining a `ResultSet` from a stored function
 
 PostgreSQL's™ stored functions can return results in two different ways. The
@@ -38,7 +53,7 @@ function may return either a refcursor value or a `SETOF` some datatype.  Depend
 on which of these return methods are used determines how the function should be
 called.
 
-<a name="callproc-resultset-setof"></a>
+<a name="callfunc-resultset-setof"></a>
 ## From a Function Returning `SETOF` type
 
 Functions that return data as a set should not be called via the `CallableStatement`
@@ -61,7 +76,7 @@ rs.close();
 stmt.close();
 ```
 
-<a name="callproc-resultset-refcursor"></a>
+<a name="callfunc-resultset-refcursor"></a>
 ## From a Function Returning a refcursor
 
 When calling a function that returns a refcursor you must cast the return type of
@@ -94,17 +109,17 @@ stmt.close();
 // We must be inside a transaction for cursors to work.
 conn.setAutoCommit(false);
 
-// Procedure call.
-CallableStatement proc = conn.prepareCall("{? = call refcursorfunc() }");
-proc.registerOutParameter(1, Types.OTHER);
-proc.execute();
-ResultSet results = (ResultSet) proc.getObject(1);
+// Function call.
+CallableStatement func = conn.prepareCall("{? = call refcursorfunc() }");
+func.registerOutParameter(1, Types.OTHER);
+func.execute();
+ResultSet results = (ResultSet) func.getObject(1);
 while (results.next())
 {
     // do something with the results.
 }
 results.close();
-proc.close();
+func.close();
 ```
 
 It is also possible to treat the refcursor return value as a cursor name directly.
@@ -116,9 +131,43 @@ you are free to directly use cursor commands on it, such as `FETCH` and `MOVE`.
 
 ```java
 conn.setAutoCommit(false);
-CallableStatement proc = conn.prepareCall("{? = call refcursorfunc() }");
-proc.registerOutParameter(1, Types.OTHER);
+CallableStatement func = conn.prepareCall("{? = call refcursorfunc() }");
+func.registerOutParameter(1, Types.OTHER);
+func.execute();
+String cursorName = func.getString(1);
+func.close();
+```
+
+<a name="call-procedure-example"></a>
+**Example 6.5. Calling a stored procedure
+
+This example shows how to call a PostgreSQL™ procedure that uses transaction control.
+
+```java
+// set up a connection
+String url = "jdbc:postgresql://localhost/test";
+Properties props = new Properties();
+... other properties ...
+// Ensure EscapeSyntaxCallmode property set to support procedures if no return value
+props.setProperty("escapeSyntaxCallMode", "callIfNoReturn");
+Connection con = DriverManager.getConnection(url, props);
+
+// Setup procedure to call.
+Statement stmt = con.createStatement();
+stmt.execute("CREATE TEMP TABLE temp_val ( some_val bigint )");
+stmt.execute("CREATE OR REPLACE PROCEDURE commitproc(a INOUT bigint) AS '"
+    + " BEGIN "
+    + "    INSERT INTO temp_val values(a); "
+    + "    COMMIT; "
+    + " END;' LANGUAGE plpgsql");
+stmt.close();
+
+// As of v11, we must be outside a transaction for procedures with transactions to work.
+con.setAutoCommit(true);
+
+// Procedure call with transaction
+CallableStatement proc = con.prepareCall("{call commitproc( ? )}");
+proc.setInt(1, 100);
 proc.execute();
-String cursorName = proc.getString(1);
 proc.close();
 ```

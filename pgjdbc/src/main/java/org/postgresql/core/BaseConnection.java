@@ -6,9 +6,15 @@
 package org.postgresql.core;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
+import org.postgresql.xml.PGXmlFactoryFactory;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -71,14 +77,17 @@ public interface BaseConnection extends PGConnection, Connection {
    * <p>If no class is registered as handling the given type, then a generic
    * {@link org.postgresql.util.PGobject} instance is returned.</p>
    *
+   * <p>value or byteValue must be non-null</p>
    * @param type the backend typename
    * @param value the type-specific string representation of the value
    * @param byteValue the type-specific binary representation of the value
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
    */
-  Object getObject(String type, String value, byte[] byteValue) throws SQLException;
+  Object getObject(String type, @Nullable String value, byte @Nullable [] byteValue)
+      throws SQLException;
 
+  @Pure
   Encoding getEncoding() throws SQLException;
 
   TypeInfo getTypeInfo();
@@ -114,7 +123,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return an encoded representation of the string
    * @throws SQLException if something goes wrong.
    */
-  byte[] encodeString(String str) throws SQLException;
+  byte @PolyNull [] encodeString(@PolyNull String str) throws SQLException;
 
   /**
    * Escapes a string for use as string-literal within an SQL command. The method chooses the
@@ -122,7 +131,7 @@ public interface BaseConnection extends PGConnection, Connection {
    *
    * @param str a string value
    * @return the escaped representation of the string
-   * @throws SQLException if the string contains a <tt>\0</tt> character
+   * @throws SQLException if the string contains a {@code \0} character
    */
   String escapeString(String str) throws SQLException;
 
@@ -130,7 +139,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * Returns whether the server treats string-literals according to the SQL standard or if it uses
    * traditional PostgreSQL escaping rules. Versions up to 8.1 always treated backslashes as escape
    * characters in string-literals. Since 8.2, this depends on the value of the
-   * <tt>standard_conforming_strings</tt> server variable.
+   * {@code standard_conforming_strings} server variable.
    *
    * @return true if the server treats string literals according to the SQL standard
    * @see QueryExecutor#getStandardConformingStrings()
@@ -202,4 +211,21 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param flushCacheOnDeallocate true if statement cache should be reset when "deallocate/discard" message observed
    */
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
+
+  /**
+   * Indicates if statements to backend should be hinted as read only.
+   *
+   * @return Indication if hints to backend (such as when transaction begins)
+   *         should be read only.
+   * @see PGProperty#READ_ONLY_MODE
+   */
+  boolean hintReadOnly();
+
+  /**
+   * Retrieve the factory to instantiate XML processing factories.
+   *
+   * @return The factory to use to instantiate XML processing factories
+   * @throws SQLException if the class cannot be found or instantiated.
+   */
+  PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
 }

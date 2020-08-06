@@ -3,8 +3,9 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * This class is used for holding SQLState codes.
@@ -59,6 +60,12 @@ public enum PSQLState {
   MOST_SPECIFIC_TYPE_DOES_NOT_MATCH("2200G"),
   INVALID_PARAMETER_VALUE("22023"),
 
+  NOT_NULL_VIOLATION("23502"),
+  FOREIGN_KEY_VIOLATION("23503"),
+  UNIQUE_VIOLATION("23505"),
+  CHECK_VIOLATION("23514"),
+  EXCLUSION_VIOLATION("23P01"),
+
   INVALID_CURSOR_STATE("24000"),
 
   TRANSACTION_STATE_INVALID("25000"),
@@ -68,6 +75,9 @@ public enum PSQLState {
 
   INVALID_SQL_STATEMENT_NAME("26000"),
   INVALID_AUTHORIZATION_SPECIFICATION("28000"),
+  INVALID_PASSWORD("28P01"),
+
+  INVALID_TRANSACTION_TERMINATION("2D000"),
 
   STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL("2F003"),
 
@@ -84,6 +94,7 @@ public enum PSQLState {
   INVALID_NAME("42602"),
   DATATYPE_MISMATCH("42804"),
   CANNOT_COERCE("42846"),
+  UNDEFINED_TABLE("42P01"),
 
   OUT_OF_MEMORY("53200"),
   OBJECT_NOT_IN_STATE("55000"),
@@ -106,7 +117,7 @@ public enum PSQLState {
     return this.state;
   }
 
-  public static boolean isConnectionError(String psqlState) {
+  public static boolean isConnectionError(@Nullable String psqlState) {
     return PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(psqlState)
         || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
         || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)

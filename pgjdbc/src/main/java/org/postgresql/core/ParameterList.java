@@ -6,6 +6,12 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.ByteStreamWriter;
+
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.InputStream;
 import java.sql.SQLException;
 
@@ -23,9 +29,7 @@ import java.sql.SQLException;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface ParameterList {
-
-
-  void registerOutParameter(int index, int sqlType) throws SQLException;
+  void registerOutParameter(@Positive int index, int sqlType) throws SQLException;
 
   /**
    * Get the number of parameters in this list. This value never changes for a particular instance,
@@ -33,21 +37,21 @@ public interface ParameterList {
    *
    * @return the number of parameters in this list.
    */
-  int getParameterCount();
+  @NonNegative int getParameterCount();
 
   /**
    * Get the number of IN parameters in this list.
    *
    * @return the number of IN parameters in this list
    */
-  int getInParameterCount();
+  @NonNegative int getInParameterCount();
 
   /**
    * Get the number of OUT parameters in this list.
    *
    * @return the number of OUT parameters in this list
    */
-  int getOutParameterCount();
+  @NonNegative int getOutParameterCount();
 
   /**
    * Return the oids of the parameters in this list. May be null for a ParameterList that does not
@@ -64,7 +68,7 @@ public interface ParameterList {
    * @param value the integer value to use.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setIntParameter(int index, int value) throws SQLException;
+  void setIntParameter(@Positive int index, int value) throws SQLException;
 
   /**
    * Binds a String value that is an unquoted literal to the server's query parser (for example, a
@@ -76,7 +80,8 @@ public interface ParameterList {
    * @param oid the type OID of the parameter, or <code>0</code> to infer the type.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setLiteralParameter(int index, String value, int oid) throws SQLException;
+  void setLiteralParameter(@Positive int index,
+      String value, int oid) throws SQLException;
 
   /**
    * Binds a String value that needs to be quoted for the server's parser to understand (for
@@ -88,7 +93,7 @@ public interface ParameterList {
    * @param oid the type OID of the parameter, or <code>0</code> to infer the type.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setStringParameter(int index, String value, int oid) throws SQLException;
+  void setStringParameter(@Positive int index, String value, int oid) throws SQLException;
 
   /**
    * Binds a binary bytea value stored as a bytearray to a parameter. The parameter's type is
@@ -101,7 +106,8 @@ public interface ParameterList {
    * @param length the number of bytes of parameter data within <code>data</code> to use.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBytea(int index, byte[] data, int offset, int length) throws SQLException;
+  void setBytea(@Positive int index, byte[] data,
+      @NonNegative int offset, @NonNegative int length) throws SQLException;
 
   /**
    * Binds a binary bytea value stored as an InputStream. The parameter's type is implicitly set to
@@ -112,7 +118,7 @@ public interface ParameterList {
    * @param length the number of bytes of parameter data to read from <code>stream</code>.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBytea(int index, InputStream stream, int length) throws SQLException;
+  void setBytea(@Positive int index, InputStream stream, @NonNegative int length) throws SQLException;
 
   /**
    * Binds a binary bytea value stored as an InputStream. The parameter's type is implicitly set to
@@ -122,7 +128,17 @@ public interface ParameterList {
    * @param stream a stream containing the parameter data.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBytea(int index, InputStream stream) throws SQLException;
+  void setBytea(@Positive int index, InputStream stream) throws SQLException;
+
+  /**
+   * Binds a binary bytea value stored as a ByteStreamWriter. The parameter's type is implicitly set to
+   * 'bytea'. The stream should remain valid until query execution has completed.
+   *
+   * @param index the 1-based parameter index to bind.
+   * @param writer a writer that can write the bytes for the parameter
+   * @throws SQLException on error or if <code>index</code> is out of range
+   */
+  void setBytea(@Positive int index, ByteStreamWriter writer) throws SQLException;
 
   /**
    * Binds a text value stored as an InputStream that is a valid UTF-8 byte stream.
@@ -134,7 +150,7 @@ public interface ParameterList {
    * @param stream a stream containing the parameter data.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setText(int index, InputStream stream) throws SQLException;
+  void setText(@Positive int index, InputStream stream) throws SQLException;
 
   /**
    * Binds given byte[] value to a parameter. The bytes must already be in correct format matching
@@ -145,7 +161,7 @@ public interface ParameterList {
    * @param oid the type OID of the parameter.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setBinaryParameter(int index, byte[] value, int oid) throws SQLException;
+  void setBinaryParameter(@Positive int index, byte[] value, int oid) throws SQLException;
 
   /**
    * Binds a SQL NULL value to a parameter. Associated with the parameter is a typename for the
@@ -155,7 +171,7 @@ public interface ParameterList {
    * @param oid the type OID of the parameter, or <code>0</code> to infer the type.
    * @throws SQLException on error or if <code>index</code> is out of range
    */
-  void setNull(int index, int oid) throws SQLException;
+  void setNull(@Positive int index, int oid) throws SQLException;
 
   /**
    * Perform a shallow copy of this ParameterList, returning a new instance (still suitable for
@@ -179,7 +195,7 @@ public interface ParameterList {
    * @param standardConformingStrings true if \ is not an escape character in strings literals
    * @return a string representation of the parameter.
    */
-  String toString(int index, boolean standardConformingStrings);
+  String toString(@Positive int index, boolean standardConformingStrings);
 
   /**
    * Use this operation to append more parameters to the current list.
@@ -192,5 +208,5 @@ public interface ParameterList {
    * Returns the bound parameter values.
    * @return Object array containing the parameter values.
    */
-  Object[] getValues();
+  @Nullable Object @Nullable [] getValues();
 }

@@ -71,7 +71,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
 
   /**
    * Gets whether connections supplied by this pool will have autoCommit turned on by default. The
-   * default value is <tt>true</tt>, so that autoCommit will be turned on by default.
+   * default value is {@code true}, so that autoCommit will be turned on by default.
    *
    * @return true if connections supplied by this pool will have autoCommit
    */
@@ -81,7 +81,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
 
   /**
    * Sets whether connections supplied by this pool will have autoCommit turned on by default. The
-   * default value is <tt>false</tt>, so that autoCommit will be turned off by default.
+   * default value is {@code true}, so that autoCommit will be turned on by default.
    *
    * @param defaultAutoCommit whether connections supplied by this pool will have autoCommit
    */

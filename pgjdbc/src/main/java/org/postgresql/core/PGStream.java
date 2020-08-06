@@ -5,10 +5,18 @@
 
 package org.postgresql.core;
 
+import org.postgresql.gss.GSSInputStream;
+import org.postgresql.gss.GSSOutputStream;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.MessageProp;
 
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
@@ -21,8 +29,10 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
+
 import javax.net.SocketFactory;
 
 /**
@@ -42,7 +52,21 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private OutputStream pgOutput;
-  private byte[] streamBuffer;
+  private byte @Nullable [] streamBuffer;
+
+  public boolean isGssEncrypted() {
+    return gssEncrypted;
+  }
+
+  boolean gssEncrypted = false;
+
+  public void setSecContext(GSSContext secContext) {
+    MessageProp messageProp =  new MessageProp(0, true);
+    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput.getWrapped(), secContext, messageProp ), 8192);
+    pgOutput = new GSSOutputStream(pgOutput, secContext, messageProp, 16384);
+    gssEncrypted = true;
+
+  }
 
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
@@ -52,6 +76,9 @@ public class PGStream implements Closeable, Flushable {
   private Encoding encoding;
   private Writer encodingWriter;
 
+  private long maxResultBuffer = -1;
+  private long resultBufferByteCount = 0;
+
   /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
@@ -60,25 +87,59 @@ public class PGStream implements Closeable, Flushable {
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
 
-    Socket socket = socketFactory.createSocket();
-    if (!socket.isConnected()) {
-      // When using a SOCKS proxy, the host might not be resolvable locally,
-      // thus we defer resolution until the traffic reaches the proxy. If there
-      // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = hostSpec.shouldResolve()
-          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
-          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
-      socket.connect(address, timeout);
-    }
+    Socket socket = createSocket(timeout);
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
     int2Buf = new byte[2];
     int4Buf = new byte[4];
+  }
+
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
+  public PGStream(PGStream pgStream, int timeout ) throws IOException {
+
+    /*
+    Some defaults
+     */
+    int sendBufferSize = 1024;
+    int receiveBufferSize = 1024;
+    int soTimeout = 0;
+    boolean keepAlive = false;
+
+    /*
+    Get the existing values before closing the stream
+     */
+    try {
+      sendBufferSize = pgStream.getSocket().getSendBufferSize();
+      receiveBufferSize = pgStream.getSocket().getReceiveBufferSize();
+      soTimeout = pgStream.getSocket().getSoTimeout();
+      keepAlive = pgStream.getSocket().getKeepAlive();
+
+    } catch ( SocketException ex ) {
+      // ignore it
+    }
+    //close the existing stream
+    pgStream.close();
+
+    this.socketFactory = pgStream.socketFactory;
+    this.hostSpec = pgStream.hostSpec;
+
+    Socket socket = createSocket(timeout);
+
+    // set the buffer sizes and timeout
+    socket.setReceiveBufferSize(receiveBufferSize);
+    socket.setSendBufferSize(sendBufferSize);
+    setNetworkTimeout(soTimeout);
+    socket.setKeepAlive(keepAlive);
+
+    int2Buf = new byte[2];
+    int4Buf = new byte[4];
+
   }
 
   /**
@@ -115,29 +176,63 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public boolean hasMessagePending() throws IOException {
+
+    boolean available = false;
+
+    // In certain cases, available returns 0, yet there are bytes
     if (pgInput.available() > 0) {
       return true;
     }
-    // In certain cases, available returns 0, yet there are bytes
-    long now = System.currentTimeMillis();
+    long now = System.nanoTime() / 1000000;
+
     if (now < nextStreamAvailableCheckTime && minStreamAvailableCheckDelay != 0) {
       // Do not use ".peek" too often
       return false;
     }
-    nextStreamAvailableCheckTime = now + minStreamAvailableCheckDelay;
+
     int soTimeout = getNetworkTimeout();
-    setNetworkTimeout(1);
+    connection.setSoTimeout(1);
     try {
-      return pgInput.peek() != -1;
+      if (!pgInput.ensureBytes(1, false)) {
+        return false;
+      }
+      available = (pgInput.peek() != -1);
     } catch (SocketTimeoutException e) {
       return false;
     } finally {
-      setNetworkTimeout(soTimeout);
+      connection.setSoTimeout(soTimeout);
     }
+
+    /*
+    If none available then set the next check time
+    In the event that there more async bytes available we will continue to get them all
+    see issue 1547 https://github.com/pgjdbc/pgjdbc/issues/1547
+     */
+    if (!available) {
+      nextStreamAvailableCheckTime = now + minStreamAvailableCheckDelay;
+    }
+    return available;
   }
 
   public void setMinStreamAvailableCheckDelay(int delay) {
     this.minStreamAvailableCheckDelay = delay;
+  }
+
+  private Socket createSocket(int timeout) throws IOException {
+
+    Socket socket = socketFactory.createSocket();
+    if (!socket.isConnected()) {
+      // When using a SOCKS proxy, the host might not be resolvable locally,
+      // thus we defer resolution until the traffic reaches the proxy. If there
+      // is no proxy, we must resolve the host to an IP to connect the socket.
+      InetSocketAddress address = hostSpec.shouldResolve()
+          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      socket.connect(address, timeout);
+    }
+    changeSocket(socket);
+    setEncoding(Encoding.getJVMEncoding("UTF-8"));
+    return socket;
   }
 
   /**
@@ -251,7 +346,6 @@ public class PGStream implements Closeable, Flushable {
     if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
       throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
     }
-
     int2Buf[0] = (byte) (val >>> 8);
     int2Buf[1] = (byte) val;
     pgOutput.write(int2Buf);
@@ -292,6 +386,32 @@ public class PGStream implements Closeable, Flushable {
     int bufamt = buf.length - off;
     pgOutput.write(buf, off, bufamt < siz ? bufamt : siz);
     for (int i = bufamt; i < siz; ++i) {
+      pgOutput.write(0);
+    }
+  }
+
+  /**
+   * Send a fixed-size array of bytes to the backend. If {@code length < siz}, pad with zeros. If
+   * {@code length > siz}, truncate the array.
+   *
+   * @param writer the stream writer to invoke to send the bytes
+   * @throws IOException if an I/O error occurs
+   */
+  public void send(ByteStreamWriter writer) throws IOException {
+    final FixedLengthOutputStream fixedLengthStream = new FixedLengthOutputStream(writer.getLength(), pgOutput);
+    try {
+      writer.writeTo(new ByteStreamWriter.ByteStreamTarget() {
+        @Override
+        public OutputStream getOutputStream() {
+          return fixedLengthStream;
+        }
+      });
+    } catch (IOException ioe) {
+      throw ioe;
+    } catch (Exception re) {
+      throw new IOException("Error writing bytes to stream", re);
+    }
+    for (int i = fixedLengthStream.remaining(); i > 0; i--) {
       pgOutput.write(0);
     }
   }
@@ -421,13 +541,16 @@ public class PGStream implements Closeable, Flushable {
    *
    * @return tuple from the back end
    * @throws IOException if a data I/O error occurs
+   * @throws SQLException if read more bytes than set maxResultBuffer
    */
-  public byte[][] receiveTupleV3() throws IOException, OutOfMemoryError {
-    // TODO: use msgSize
-    int msgSize = receiveInteger4();
+  public Tuple receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
+    int messageSize = receiveInteger4(); // MESSAGE SIZE
     int nf = receiveInteger2();
+    //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
+    int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
     byte[][] answer = new byte[nf][];
 
+    increaseByteCounter(dataToReadSize);
     OutOfMemoryError oom = null;
     for (int i = 0; i < nf; ++i) {
       int size = receiveInteger4();
@@ -446,7 +569,7 @@ public class PGStream implements Closeable, Flushable {
       throw oom;
     }
 
-    return answer;
+    return new Tuple(answer);
   }
 
   /**
@@ -527,7 +650,6 @@ public class PGStream implements Closeable, Flushable {
     }
   }
 
-
   /**
    * Flush any pending output to the backend.
    *
@@ -574,9 +696,51 @@ public class PGStream implements Closeable, Flushable {
 
   public void setNetworkTimeout(int milliseconds) throws IOException {
     connection.setSoTimeout(milliseconds);
+    pgInput.setTimeoutRequested(milliseconds != 0);
   }
 
   public int getNetworkTimeout() throws IOException {
     return connection.getSoTimeout();
+  }
+
+  /**
+   * Method to set MaxResultBuffer inside PGStream.
+   *
+   * @param value value of new max result buffer as string (cause we can expect % or chars to use
+   *              multiplier)
+   * @throws PSQLException exception returned when occurred parsing problem.
+   */
+  public void setMaxResultBuffer(@Nullable String value) throws PSQLException {
+    maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
+  }
+
+  /**
+   * Method to clear count of byte buffer.
+   */
+  public void clearResultBufferCount() {
+    resultBufferByteCount = 0;
+  }
+
+  /**
+   * Method to increase actual count of buffer. If buffer count is bigger than max result buffer
+   * limit, then gonna return an exception.
+   *
+   * @param value size of bytes to add to byte buffer.
+   * @throws SQLException exception returned when result buffer count is bigger than max result
+   *                          buffer.
+   */
+  private void increaseByteCounter(long value) throws SQLException {
+    if (maxResultBuffer != -1) {
+      resultBufferByteCount += value;
+      if (resultBufferByteCount > maxResultBuffer) {
+        throw new PSQLException(GT.tr(
+          "Result set exceeded maxResultBuffer limit. Received:  {0}; Current limit: {1}",
+          String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)),PSQLState.COMMUNICATION_ERROR);
+      }
+    }
+  }
+
+  public boolean isClosed() {
+    return connection.isClosed();
   }
 }

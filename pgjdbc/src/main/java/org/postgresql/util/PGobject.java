@@ -3,8 +3,11 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
+
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
@@ -14,8 +17,8 @@ import java.sql.SQLException;
  * JDBC Standards.
  */
 public class PGobject implements Serializable, Cloneable {
-  protected String type;
-  protected String value;
+  protected @Nullable String type;
+  protected @Nullable String value;
 
   /**
    * This is called by org.postgresql.Connection.getObject() to create the object.
@@ -50,7 +53,7 @@ public class PGobject implements Serializable, Cloneable {
    * @return the type name of this object
    */
   public final String getType() {
-    return type;
+    return castNonNull(type);
   }
 
   /**
@@ -59,7 +62,7 @@ public class PGobject implements Serializable, Cloneable {
    *
    * @return the value of this object
    */
-  public String getValue() {
+  public @Nullable String getValue() {
     return value;
   }
 
@@ -69,7 +72,7 @@ public class PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two boxes are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGobject) {
       final Object otherValue = ((PGobject) obj).getValue();
 
@@ -93,6 +96,7 @@ public class PGobject implements Serializable, Cloneable {
    *
    * @return the value of this object, in the syntax expected by org.postgresql
    */
+  @SuppressWarnings("nullness")
   public String toString() {
     return getValue();
   }
@@ -104,6 +108,11 @@ public class PGobject implements Serializable, Cloneable {
    */
   @Override
   public int hashCode() {
-    return getValue() != null ? getValue().hashCode() : 0;
+    String value = getValue();
+    return value != null ? value.hashCode() : 0;
+  }
+
+  protected static boolean equals(@Nullable Object a, @Nullable Object b) {
+    return a == b || a != null && a.equals(b);
   }
 }

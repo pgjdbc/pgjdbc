@@ -27,10 +27,10 @@ package org.postgresql.util;
  * <li>v2.0 - I got rid of methods that used booleans to set options. Now everything is more
  * consolidated and cleaner. The code now detects when data that's being decoded is gzip-compressed
  * and will decompress it automatically. Generally things are cleaner. You'll probably have to
- * change some method calls that you were making to support the new options format (<tt>int</tt>s
+ * change some method calls that you were making to support the new options format ({@code int}s
  * that you "OR" together).</li>
  * <li>v1.5.1 - Fixed bug when decompressing and decoding to a byte[] using
- * <tt>decode( String s, boolean gzipCompressed )</tt>. Added the ability to "suspend" encoding in
+ * {@code decode( String s, boolean gzipCompressed )}. Added the ability to "suspend" encoding in
  * the Output Stream so you can turn on and off the encoding if you need to embed base64 data in an
  * otherwise "normal" stream (like an XML file).</li>
  * <li>v1.5 - Output stream pases on flush() command but doesn't do anything itself. This helps when
@@ -55,9 +55,7 @@ package org.postgresql.util;
  * @version 2.1
  */
 public class Base64 {
-
   /* ******** P U B L I C F I E L D S ******** */
-
   /**
    * No options specified. Value is zero.
    */
@@ -78,9 +76,7 @@ public class Base64 {
    */
   public static final int DONT_BREAK_LINES = 8;
 
-
   /* ******** P R I V A T E F I E L D S ******** */
-
   /**
    * Maximum line length (76) of Base64 output.
    */
@@ -180,9 +176,7 @@ public class Base64 {
   private Base64() {
   }
 
-
   /* ******** E N C O D I N G M E T H O D S ******** */
-
   /**
    * Encodes up to three bytes of the array <var>source</var> and writes the resulting four Base64
    * bytes to <var>destination</var>. The source and destination arrays can be manipulated anywhere
@@ -350,21 +344,16 @@ public class Base64 {
         e += 4;
       } // end if: some padding needed
 
-
       // Return value according to relevant encoding.
       try {
         return new String(outBuff, 0, e, PREFERRED_ENCODING);
       } catch (java.io.UnsupportedEncodingException uue) {
         return new String(outBuff, 0, e);
       }
-
     }
-
   }
 
-
   /* ******** D E C O D I N G M E T H O D S ******** */
-
   /**
    * Decodes four bytes from array <var>source</var> and writes the resulting bytes (up to three of
    * them) to <var>destination</var>. The source and destination arrays can be manipulated anywhere
@@ -417,7 +406,6 @@ public class Base64 {
             | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
             | ((DECODABET[source[srcOffset + 2]] & 0xFF) << 6)
             | ((DECODABET[source[srcOffset + 3]] & 0xFF));
-
 
         destination[destOffset] = (byte) (outBuff >> 16);
         destination[destOffset + 1] = (byte) (outBuff >> 8);
@@ -475,8 +463,8 @@ public class Base64 {
 
       } else {
         // end if: white space, equals sign or better
-        System.err.println("Bad Base64 input character at " + i + ": " + source[i] + "(decimal)");
-        return null;
+        throw new IllegalArgumentException("Bad Base64 input character at "
+            + i + ": " + source[i] + "(decimal)");
       } // end else:
     } // each input character
 

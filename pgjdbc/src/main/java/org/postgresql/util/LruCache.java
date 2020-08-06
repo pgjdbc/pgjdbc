@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -13,7 +16,8 @@ import java.util.Map;
 /**
  * Caches values in simple least-recently-accessed order.
  */
-public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Key, Value> {
+public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEstimateSize>
+    implements Gettable<Key, Value> {
   /**
    * Action that is invoked when the entry is removed from the cache.
    *
@@ -32,8 +36,8 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
     Value create(Key key) throws SQLException;
   }
 
-  private final EvictAction<Value> onEvict;
-  private final CreateAction<Key, Value> createAction;
+  private final @Nullable EvictAction<Value> onEvict;
+  private final @Nullable CreateAction<Key, Value> createAction;
   private final int maxSizeEntries;
   private final long maxSizeBytes;
   private long currentSize;
@@ -72,19 +76,21 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
 
   private void evictValue(Value value) {
     try {
-      onEvict.evict(value);
+      if (onEvict != null) {
+        onEvict.evict(value);
+      }
     } catch (SQLException e) {
       /* ignore */
     }
   }
 
   public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder) {
-    this(maxSizeEntries, maxSizeBytes, accessOrder, NOOP_CREATE_ACTION, NOOP_EVICT_ACTION);
+    this(maxSizeEntries, maxSizeBytes, accessOrder, null, null);
   }
 
   public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder,
-      CreateAction<Key, Value> createAction,
-      EvictAction<Value> onEvict) {
+      @Nullable CreateAction<Key, Value> createAction,
+      @Nullable EvictAction<Value> onEvict) {
     this.maxSizeEntries = maxSizeEntries;
     this.maxSizeBytes = maxSizeBytes;
     this.createAction = createAction;
@@ -98,7 +104,7 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
    * @param key cache key
    * @return entry from cache or null if cache does not contain given key.
    */
-  public synchronized Value get(Key key) {
+  public synchronized @Nullable Value get(Key key) {
     return cache.get(key);
   }
 
@@ -112,6 +118,9 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
   public synchronized Value borrow(Key key) throws SQLException {
     Value value = cache.remove(key);
     if (value == null) {
+      if (createAction == null) {
+        throw new UnsupportedOperationException("createAction == null, so can't create object");
+      }
       return createAction.create(key);
     }
     currentSize -= value.getSize();
@@ -133,7 +142,7 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
       return;
     }
     currentSize += valueSize;
-    Value prev = cache.put(key, value);
+    @Nullable Value prev = cache.put(key, value);
     if (prev == null) {
       return;
     }
@@ -154,18 +163,4 @@ public class LruCache<Key, Value extends CanEstimateSize> implements Gettable<Ke
       this.put(entry.getKey(), entry.getValue());
     }
   }
-
-  public static final CreateAction NOOP_CREATE_ACTION = new CreateAction() {
-    @Override
-    public Object create(Object o) throws SQLException {
-      return null;
-    }
-  };
-
-  public static final EvictAction NOOP_EVICT_ACTION = new EvictAction() {
-    @Override
-    public void evict(Object o) throws SQLException {
-      return;
-    }
-  };
 }

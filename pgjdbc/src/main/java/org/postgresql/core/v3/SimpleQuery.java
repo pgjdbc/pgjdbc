@@ -15,6 +15,8 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.PgResultSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.ref.PhantomReference;
 import java.util.BitSet;
 import java.util.Map;
@@ -35,7 +37,7 @@ class SimpleQuery implements Query {
     this(src.nativeQuery, src.transferModeRegistry, src.sanitiserDisabled);
   }
 
-  SimpleQuery(NativeQuery query, TypeTransferModeRegistry transferModeRegistry,
+  SimpleQuery(NativeQuery query, @Nullable TypeTransferModeRegistry transferModeRegistry,
       boolean sanitiserDisabled) {
     this.nativeQuery = query;
     this.transferModeRegistry = transferModeRegistry;
@@ -50,7 +52,7 @@ class SimpleQuery implements Query {
     return new SimpleParameterList(getBindCount(), transferModeRegistry);
   }
 
-  public String toString(ParameterList parameters) {
+  public String toString(@Nullable ParameterList parameters) {
     return nativeQuery.toString(parameters);
   }
 
@@ -62,7 +64,7 @@ class SimpleQuery implements Query {
     unprepare();
   }
 
-  public SimpleQuery[] getSubqueries() {
+  public SimpleQuery @Nullable [] getSubqueries() {
     return null;
   }
 
@@ -140,11 +142,11 @@ class SimpleQuery implements Query {
     System.arraycopy(paramTypes, 0, this.preparedTypes, 0, paramTypes.length);
   }
 
-  int[] getPrepareTypes() {
+  int @Nullable [] getPrepareTypes() {
     return preparedTypes;
   }
 
-  String getStatementName() {
+  @Nullable String getStatementName() {
     return statementName;
   }
 
@@ -204,7 +206,7 @@ class SimpleQuery implements Query {
     return this.unspecifiedParams != null && !this.unspecifiedParams.isEmpty();
   }
 
-  byte[] getEncodedStatementName() {
+  byte @Nullable [] getEncodedStatementName() {
     return encodedStatementName;
   }
 
@@ -213,7 +215,7 @@ class SimpleQuery implements Query {
    *
    * @param fields The fields that this query will return.
    */
-  void setFields(Field[] fields) {
+  void setFields(Field @Nullable [] fields) {
     this.fields = fields;
     this.resultSetColumnNameIndexMap = null;
     this.cachedMaxResultRowSize = null;
@@ -227,7 +229,7 @@ class SimpleQuery implements Query {
    *
    * @return the fields that this query will return.
    */
-  Field[] getFields() {
+  Field @Nullable [] getFields() {
     return fields;
   }
 
@@ -323,10 +325,10 @@ class SimpleQuery implements Query {
     return nativeQuery.bindPositions.length * getBatchSize();
   }
 
-  private Map<String, Integer> resultSetColumnNameIndexMap;
+  private @Nullable Map<String, Integer> resultSetColumnNameIndexMap;
 
   @Override
-  public Map<String, Integer> getResultSetColumnNameIndexMap() {
+  public @Nullable Map<String, Integer> getResultSetColumnNameIndexMap() {
     Map<String, Integer> columnPositions = this.resultSetColumnNameIndexMap;
     if (columnPositions == null && fields != null) {
       columnPositions =
@@ -346,25 +348,25 @@ class SimpleQuery implements Query {
 
   private final NativeQuery nativeQuery;
 
-  private final TypeTransferModeRegistry transferModeRegistry;
-  private String statementName;
-  private byte[] encodedStatementName;
+  private final @Nullable TypeTransferModeRegistry transferModeRegistry;
+  private @Nullable String statementName;
+  private byte @Nullable [] encodedStatementName;
   /**
    * The stored fields from previous execution or describe of a prepared statement. Always null for
    * non-prepared statements.
    */
-  private Field[] fields;
+  private Field @Nullable [] fields;
   private boolean needUpdateFieldFormats;
   private boolean hasBinaryFields;
   private boolean portalDescribed;
   private boolean statementDescribed;
   private final boolean sanitiserDisabled;
-  private PhantomReference<?> cleanupRef;
-  private int[] preparedTypes;
-  private BitSet unspecifiedParams;
+  private @Nullable PhantomReference<?> cleanupRef;
+  private int @Nullable [] preparedTypes;
+  private @Nullable BitSet unspecifiedParams;
   private short deallocateEpoch;
 
-  private Integer cachedMaxResultRowSize;
+  private @Nullable Integer cachedMaxResultRowSize;
 
   static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }

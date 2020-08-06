@@ -5,15 +5,24 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.Tuple;
+import org.postgresql.core.TypeInfo;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,6 +33,8 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -36,7 +47,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     this.connection = conn;
   }
 
-  private String keywords;
+  private @Nullable String keywords;
 
   protected final PgConnection connection; // The connection association
 
@@ -90,7 +101,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     return nameDataLength - 1;
   }
-
 
   public boolean allProceduresAreCallable() throws SQLException {
     return true; // For now...
@@ -252,6 +262,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public String getSQLKeywords() throws SQLException {
     connection.checkClosed();
+    String keywords = this.keywords;
     if (keywords == null) {
       if (connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
         // Exclude SQL:2003 keywords (https://github.com/ronsavage/SQL/blob/master/sql-2003-2.bnf)
@@ -339,6 +350,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "statistics,stdin,stdout,storage,strict,sysid,tablespace,temp,template,truncate,trusted,"
             + "unencrypted,unlisten,until,vacuum,valid,validator,verbose,volatile";
       }
+      this.keywords = castNonNull(keywords);
     }
     return keywords;
   }
@@ -1020,7 +1032,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return sb.toString();
   }
 
-  public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
+  public ResultSet getProcedures(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String procedureNamePattern)
       throws SQLException {
     String sql;
     sql = "SELECT NULL AS PROCEDURE_CAT, n.nspname AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, "
@@ -1032,23 +1045,34 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') "
           + " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') "
           + " WHERE p.pronamespace=n.oid ";
+
+    if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
+      sql += " AND p.prokind='p'";
+    }
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    } else {
+      /* limit to current schema if no schema given */
+      sql += "and pg_function_is_visible(p.oid)";
     }
     if (procedureNamePattern != null && !procedureNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
     }
     sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
 
     return createMetaDataStatement().executeQuery(sql);
   }
 
-  public ResultSet getProcedureColumns(String catalog, String schemaPattern,
-      String procedureNamePattern, String columnNamePattern) throws SQLException {
+  public ResultSet getProcedureColumns(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String procedureNamePattern, @Nullable String columnNamePattern)
+      throws SQLException {
     int columns = 20;
 
     Field[] f = new Field[columns];
-    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
+    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
     f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
@@ -1097,7 +1121,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String returnTypeType = rs.getString("typtype");
       int returnTypeRelid = (int) rs.getLong("typrelid");
 
-      String strArgTypes = rs.getString("proargtypes");
+      String strArgTypes = castNonNull(rs.getString("proargtypes"));
       StringTokenizer st = new StringTokenizer(strArgTypes);
       List<Long> argTypes = new ArrayList<Long>();
       while (st.hasMoreTokens()) {
@@ -1126,9 +1150,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       // decide if we are returning a single column result.
-      if (returnTypeType.equals("b") || returnTypeType.equals("d") || returnTypeType.equals("e")
-          || (returnTypeType.equals("p") && argModesArray == null)) {
-        byte[][] tuple = new byte[columns][];
+      if ("b".equals(returnTypeType) || "d".equals(returnTypeType) || "e".equals(returnTypeType)
+          || ("p".equals(returnTypeType) && argModesArray == null)) {
+        byte[] @Nullable [] tuple = new byte[columns][];
         tuple[0] = null;
         tuple[1] = schema;
         tuple[2] = procedureName;
@@ -1149,12 +1173,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[18] = isnullableUnknown;
         tuple[19] = specificName;
 
-        v.add(tuple);
+        v.add(new Tuple(tuple));
       }
 
       // Add a row for each argument.
       for (int i = 0; i < numArgs; i++) {
-        byte[][] tuple = new byte[columns][];
+        byte[] @Nullable [] tuple = new byte[columns][];
         tuple[0] = null;
         tuple[1] = schema;
         tuple[2] = procedureName;
@@ -1184,7 +1208,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         }
 
         tuple[5] =
-            connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(argOid)));
+            connection.encodeString(Integer.toString(
+                castNonNull(connection.getTypeInfo().getSQLType(argOid))));
         tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(argOid));
         tuple[7] = null;
         tuple[8] = null;
@@ -1197,11 +1222,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[18] = isnullableUnknown;
         tuple[19] = specificName;
 
-        v.add(tuple);
+        v.add(new Tuple(tuple));
       }
 
       // if we are returning a multi-column result.
-      if (returnTypeType.equals("c") || (returnTypeType.equals("p") && argModesArray != null)) {
+      if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
         String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
                            + " WHERE a.attrelid = " + returnTypeRelid
                            + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
@@ -1209,7 +1234,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         ResultSet columnrs = columnstmt.executeQuery(columnsql);
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
-          byte[][] tuple = new byte[columns][];
+          byte[] @Nullable [] tuple = new byte[columns][];
           tuple[0] = null;
           tuple[1] = schema;
           tuple[2] = procedureName;
@@ -1230,7 +1255,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[18] = isnullableUnknown;
           tuple[19] = specificName;
 
-          v.add(tuple);
+          v.add(new Tuple(tuple));
         }
         columnrs.close();
         columnstmt.close();
@@ -1243,8 +1268,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
-                             String[] types) throws SQLException {
+  public ResultSet getTables(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String tableNamePattern, String @Nullable [] types) throws SQLException {
     String select;
     String orderby;
     String useSchemas = "SCHEMAS";
@@ -1273,7 +1298,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " END "
              + " WHEN false THEN CASE c.relkind "
              + " WHEN 'r' THEN 'TABLE' "
-             + " WHEN 'p' THEN 'TABLE' "
+             + " WHEN 'p' THEN 'PARTITIONED TABLE' "
              + " WHEN 'i' THEN 'INDEX' "
              + " WHEN 'S' THEN 'SEQUENCE' "
              + " WHEN 'v' THEN 'VIEW' "
@@ -1295,6 +1320,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      select += " AND has_table_privilege(c.oid, "
+        + " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
     }
     orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
 
@@ -1324,9 +1353,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tableTypeClauses = new HashMap<String, Map<String, String>>();
     Map<String, String> ht = new HashMap<String, String>();
     tableTypeClauses.put("TABLE", ht);
-    ht.put("SCHEMAS",
-        "c.relkind IN ('r','p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-    ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname !~ '^pg_'");
+    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("PARTITIONED TABLE", ht);
+    ht.put("SCHEMAS", "c.relkind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'p' AND c.relname !~ '^pg_'");
     ht = new HashMap<String, String>();
     tableTypeClauses.put("VIEW", ht);
     ht.put("SCHEMAS",
@@ -1403,7 +1435,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
+  public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
+      throws SQLException {
     String sql;
     sql = "SELECT nspname AS TABLE_SCHEM, NULL AS TABLE_CATALOG FROM pg_catalog.pg_namespace "
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
@@ -1411,6 +1444,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
     }
     sql += " ORDER BY TABLE_SCHEM";
 
@@ -1424,11 +1460,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getCatalogs() throws SQLException {
     Field[] f = new Field[1];
-    List<byte[][]> v = new ArrayList<byte[][]>();
+    List<Tuple> v = new ArrayList<Tuple>();
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
-    byte[][] tuple = new byte[1][];
+    byte[] @Nullable [] tuple = new byte[1][];
     tuple[0] = connection.encodeString(connection.getCatalog());
-    v.add(tuple);
+    v.add(new Tuple(tuple));
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
@@ -1439,22 +1475,23 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Arrays.sort(types);
 
     Field[] f = new Field[1];
-    List<byte[][]> v = new ArrayList<byte[][]>();
+    List<Tuple> v = new ArrayList<Tuple>();
     f[0] = new Field("TABLE_TYPE", Oid.VARCHAR);
     for (String type : types) {
-      byte[][] tuple = new byte[1][];
+      byte[] @Nullable [] tuple = new byte[1][];
       tuple[0] = connection.encodeString(type);
-      v.add(tuple);
+      v.add(new Tuple(tuple));
     }
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
-                              String columnNamePattern) throws SQLException {
+  public ResultSet getColumns(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String tableNamePattern,
+      @Nullable String columnNamePattern) throws SQLException {
 
     int numberOfFields = 24; // JDBC4
-    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
+    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
     Field[] f = new Field[numberOfFields]; // The field descriptors for the new ResultSet
 
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -1480,7 +1517,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[20] = new Field("SCOPE_TABLE", Oid.VARCHAR);
     f[21] = new Field("SOURCE_DATA_TYPE", Oid.INT2);
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
-    f[23] = new Field( "IS_GENERATED", Oid.VARCHAR);
+    f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
     String sql;
     // a.attnum isn't decremented when preceding columns are dropped,
@@ -1498,7 +1535,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,";
+           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
@@ -1539,7 +1576,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
-      byte[][] tuple = new byte[numberOfFields][];
+      byte[] @Nullable [] tuple = new byte[numberOfFields][];
       int typeOid = (int) rs.getLong("atttypid");
       int typeMod = rs.getInt("atttypmod");
 
@@ -1565,15 +1602,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[5] = connection.encodeString(pgType); // Type name
       tuple[7] = null; // Buffer length
 
-
       String defval = rs.getString("adsrc");
 
       if (defval != null) {
-        if (pgType.equals("int4")) {
+        if ("int4".equals(pgType)) {
           if (defval.contains("nextval(")) {
             tuple[5] = connection.encodeString("serial"); // Type name == serial
           }
-        } else if (pgType.equals("int8")) {
+        } else if ("int8".equals(pgType)) {
           if (defval.contains("nextval(")) {
             tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
           }
@@ -1581,19 +1617,52 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
       String identity = rs.getString("attidentity");
 
-      int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
-      int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-      if (columnSize == 0) {
-        columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
-      }
+      int baseTypeOid = (int) rs.getLong("typbasetype");
 
+      int decimalDigits;
+      int columnSize;
+
+      /* this is really a DOMAIN type not sure where DISTINCT came from */
+      if ( sqlType == Types.DISTINCT ) {
+        /*
+        From the docs if typtypmod is -1
+         */
+        int typtypmod = rs.getInt("typtypmod");
+        decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typeMod);
+        /*
+        From the postgres docs:
+        Domains use typtypmod to record the typmod to be applied to their
+        base type (-1 if base type does not use a typmod). -1 if this type is not a domain.
+        if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
+        a domain, but for actual types this will return the correct value.
+         */
+        if ( typtypmod == -1 ) {
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typeMod);
+        } else if (baseTypeOid == Oid.NUMERIC ) {
+          decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typtypmod);
+          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typtypmod);
+        } else {
+          columnSize = typtypmod;
+        }
+      } else {
+        decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
+        columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
+        if (columnSize == 0) {
+          columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
+        }
+      }
       tuple[6] = connection.encodeString(Integer.toString(columnSize));
-      tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+      // Give null for an unset scale on Decimal and Numeric columns
+      if (((sqlType == Types.NUMERIC) || (sqlType == Types.DECIMAL)) && (typeMod == -1)) {
+        tuple[8] = null;
+      } else {
+        tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+      }
 
       // Everything is base 10 unless we override later.
       tuple[9] = connection.encodeString("10");
 
-      if (pgType.equals("bit") || pgType.equals("varbit")) {
+      if ("bit".equals(pgType) || "varbit".equals(pgType)) {
         tuple[9] = connection.encodeString("2");
       }
 
@@ -1607,8 +1676,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
       // Is nullable
       tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
-
-      int baseTypeOid = (int) rs.getLong("typbasetype");
 
       tuple[18] = null; // SCOPE_CATLOG
       tuple[19] = null; // SCOPE_SCHEMA
@@ -1625,7 +1692,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // there is no way to tell if the value was actually autogenerated.
       tuple[23] = connection.encodeString("");
 
-      v.add(tuple);
+      v.add(new Tuple(tuple));
     }
     rs.close();
     stmt.close();
@@ -1634,10 +1701,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getColumnPrivileges(String catalog, String schema, String table,
-      String columnNamePattern) throws SQLException {
+  public ResultSet getColumnPrivileges(@Nullable String catalog, @Nullable String schema,
+      String table, @Nullable String columnNamePattern) throws SQLException {
     Field[] f = new Field[8];
-    List<byte[][]> v = new ArrayList<byte[][]>();
+    List<Tuple> v = new ArrayList<Tuple>();
 
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
     f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
@@ -1677,28 +1744,28 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       byte[] schemaName = rs.getBytes("nspname");
       byte[] tableName = rs.getBytes("relname");
       byte[] column = rs.getBytes("attname");
-      String owner = rs.getString("rolname");
+      String owner = castNonNull(rs.getString("rolname"));
       String relAcl = rs.getString("relacl");
 
       // For instance: SELECT -> user1 -> list of [grantor, grantable]
-      Map<String, Map<String, List<String[]>>> permissions = parseACL(relAcl, owner);
+      Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(relAcl, owner);
 
       if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
         String acl = rs.getString("attacl");
-        Map<String, Map<String, List<String[]>>> relPermissions = parseACL(acl, owner);
+        Map<String, Map<String, List<@Nullable String[]>>> relPermissions = parseACL(acl, owner);
         permissions.putAll(relPermissions);
       }
-      String[] permNames = permissions.keySet().toArray(new String[0]);
+      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);
-        Map<String, List<String[]>> grantees = permissions.get(permName);
-        for (Map.Entry<String, List<String[]>> userToGrantable : grantees.entrySet()) {
-          List<String[]> grantor = userToGrantable.getValue();
+        Map<String, List<@Nullable String[]>> grantees = permissions.get(permName);
+        for (Map.Entry<String, List<@Nullable String[]>> userToGrantable : grantees.entrySet()) {
+          List<@Nullable String[]> grantor = userToGrantable.getValue();
           String grantee = userToGrantable.getKey();
-          for (String[] grants : grantor) {
+          for (@Nullable String[] grants : grantor) {
             String grantable = owner.equals(grantee) ? "YES" : grants[1];
-            byte[][] tuple = new byte[8][];
+            byte[] @Nullable [] tuple = new byte[8][];
             tuple[0] = null;
             tuple[1] = schemaName;
             tuple[2] = tableName;
@@ -1707,7 +1774,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             tuple[5] = connection.encodeString(grantee);
             tuple[6] = privilege;
             tuple[7] = connection.encodeString(grantable);
-            v.add(tuple);
+            v.add(new Tuple(tuple));
           }
         }
       }
@@ -1719,10 +1786,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getTablePrivileges(String catalog, String schemaPattern,
-      String tableNamePattern) throws SQLException {
+  public ResultSet getTablePrivileges(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String tableNamePattern) throws SQLException {
     Field[] f = new Field[7];
-    List<byte[][]> v = new ArrayList<byte[][]>();
+    List<Tuple> v = new ArrayList<Tuple>();
 
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
     f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
@@ -1753,23 +1820,23 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     while (rs.next()) {
       byte[] schema = rs.getBytes("nspname");
       byte[] table = rs.getBytes("relname");
-      String owner = rs.getString("rolname");
+      String owner = castNonNull(rs.getString("rolname"));
       String acl = rs.getString("relacl");
-      Map<String, Map<String, List<String[]>>> permissions = parseACL(acl, owner);
-      String[] permNames = permissions.keySet().toArray(new String[0]);
+      Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(acl, owner);
+      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);
-        Map<String, List<String[]>> grantees = permissions.get(permName);
-        for (Map.Entry<String, List<String[]>> userToGrantable : grantees.entrySet()) {
-          List<String[]> grants = userToGrantable.getValue();
+        Map<String, List<@Nullable String[]>> grantees = permissions.get(permName);
+        for (Map.Entry<String, List<@Nullable String[]>> userToGrantable : grantees.entrySet()) {
+          List<@Nullable String[]> grants = userToGrantable.getValue();
           String granteeUser = userToGrantable.getKey();
-          for (String[] grantTuple : grants) {
+          for (@Nullable String[] grantTuple : grants) {
             // report the owner as grantor if it's missing
             String grantor = grantTuple[0] == null ? owner : grantTuple[0];
             // owner always has grant privileges
             String grantable = owner.equals(granteeUser) ? "YES" : grantTuple[1];
-            byte[][] tuple = new byte[7][];
+            byte[] @Nullable [] tuple = new byte[7][];
             tuple[0] = null;
             tuple[1] = schema;
             tuple[2] = table;
@@ -1777,7 +1844,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             tuple[4] = connection.encodeString(granteeUser);
             tuple[5] = privilege;
             tuple[6] = connection.encodeString(grantable);
-            v.add(tuple);
+            v.add(new Tuple(tuple));
           }
         }
       }
@@ -1829,7 +1896,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * Add the user described by the given acl to the Lists of users with the privileges described by
    * the acl.
    */
-  private static void addACLPrivileges(String acl, Map<String, Map<String, List<String[]>>> privileges) {
+  private static void addACLPrivileges(String acl,
+      Map<String, Map<String, List<@Nullable String[]>>> privileges) {
     int equalIndex = acl.lastIndexOf("=");
     int slashIndex = acl.lastIndexOf("/");
     if (equalIndex == -1) {
@@ -1903,25 +1971,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             sqlpriv = "UNKNOWN";
         }
 
-        Map<String, List<String[]>> usersWithPermission = privileges.get(sqlpriv);
-        String[] grant = {grantor, grantable};
-
+        Map<String, List<@Nullable String[]>> usersWithPermission = privileges.get(sqlpriv);
+        //noinspection Java8MapApi
         if (usersWithPermission == null) {
-          usersWithPermission = new HashMap<String, List<String[]>>();
-          List<String[]> permissionByGrantor = new ArrayList<String[]>();
-          permissionByGrantor.add(grant);
-          usersWithPermission.put(user, permissionByGrantor);
+          usersWithPermission = new HashMap<String, List<@Nullable String[]>>();
           privileges.put(sqlpriv, usersWithPermission);
-        } else {
-          List<String[]> permissionByGrantor = usersWithPermission.get(user);
-          if (permissionByGrantor == null) {
-            permissionByGrantor = new ArrayList<String[]>();
-            permissionByGrantor.add(grant);
-            usersWithPermission.put(user, permissionByGrantor);
-          } else {
-            permissionByGrantor.add(grant);
-          }
         }
+
+        List<@Nullable String[]> permissionByGrantor = usersWithPermission.get(user);
+        //noinspection Java8MapApi
+        if (permissionByGrantor == null) {
+          permissionByGrantor = new ArrayList<@Nullable String[]>();
+          usersWithPermission.put(user, permissionByGrantor);
+        }
+
+        @Nullable String[] grant = {grantor, grantable};
+        permissionByGrantor.add(grant);
       }
     }
   }
@@ -1935,7 +2000,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * @param owner owner
    * @return a Map mapping the SQL permission name
    */
-  public Map<String, Map<String, List<String[]>>> parseACL(String aclArray, String owner) {
+  public Map<String, Map<String, List<@Nullable String[]>>> parseACL(@Nullable String aclArray,
+      String owner) {
     if (aclArray == null) {
       // arwdxt -- 8.2 Removed the separate RULE permission
       // arwdDxt -- 8.4 Added a separate TRUNCATE permission
@@ -1945,18 +2011,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     List<String> acls = parseACLArray(aclArray);
-    Map<String, Map<String, List<String[]>>> privileges =
-        new HashMap<String, Map<String, List<String[]>>>();
+    Map<String, Map<String, List<@Nullable String[]>>> privileges =
+        new HashMap<String, Map<String, List<@Nullable String[]>>>();
     for (String acl : acls) {
       addACLPrivileges(acl, privileges);
     }
     return privileges;
   }
 
-  public ResultSet getBestRowIdentifier(String catalog, String schema, String table,
+  public ResultSet getBestRowIdentifier(
+      @Nullable String catalog, @Nullable String schema, String table,
       int scope, boolean nullable) throws SQLException {
     Field[] f = new Field[8];
-    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
+    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("SCOPE", Oid.INT2);
     f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -1994,7 +2061,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
-      byte[][] tuple = new byte[8][];
+      byte[] @Nullable [] tuple = new byte[8][];
       int typeOid = (int) rs.getLong("atttypid");
       int typeMod = rs.getInt("atttypmod");
       int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
@@ -2012,7 +2079,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[6] = connection.encodeString(Integer.toString(decimalDigits));
       tuple[7] =
           connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo));
-      v.add(tuple);
+      v.add(new Tuple(tuple));
     }
     rs.close();
     stmt.close();
@@ -2020,10 +2087,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public ResultSet getVersionColumns(String catalog, String schema, String table)
+  public ResultSet getVersionColumns(
+      @Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     Field[] f = new Field[8];
-    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
+    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("SCOPE", Oid.INT2);
     f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -2034,7 +2102,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
-    byte[][] tuple = new byte[8][];
+    byte[] @Nullable [] tuple = new byte[8][];
 
     /*
      * Postgresql does not have any column types that are automatically updated like some databases'
@@ -2054,7 +2122,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tuple[6] = null;
     tuple[7] =
         connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.versionColumnPseudo));
-    v.add(tuple);
+    v.add(new Tuple(tuple));
 
     /*
      * Perhaps we should check that the given catalog.schema.table actually exists. -KJ
@@ -2062,19 +2130,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public ResultSet getPrimaryKeys(String catalog, String schema, String table)
+  public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     String sql;
     sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
-          + "  (i.keys).n AS KEY_SEQ, ci.relname AS PK_NAME "
+          + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
+          + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM "
           + "FROM pg_catalog.pg_class ct "
           + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-          + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, "
-          + "             information_schema._pg_expandarray(i.indkey) AS keys "
-          + "        FROM pg_catalog.pg_index i) i "
-          + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
+          + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
           + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
           + "WHERE true ";
 
@@ -2086,8 +2152,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql += " AND ct.relname = " + escapeQuotes(table);
     }
 
-    sql += " AND i.indisprimary "
-        + " ORDER BY table_name, pk_name, key_seq";
+    sql += " AND i.indisprimary ";
+    sql = "SELECT "
+            + "       result.TABLE_CAT, "
+            + "       result.TABLE_SCHEM, "
+            + "       result.TABLE_NAME, "
+            + "       result.COLUMN_NAME, "
+            + "       result.KEY_SEQ, "
+            + "       result.PK_NAME "
+            + "FROM "
+            + "     (" + sql + " ) result"
+            + " where "
+            + " result.A_ATTNUM = (result.KEYS).x ";
+    sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
 
     return createMetaDataStatement().executeQuery(sql);
   }
@@ -2102,8 +2179,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * @return ResultSet
    * @throws SQLException if something wrong happens
    */
-  protected ResultSet getImportedExportedKeys(String primaryCatalog, String primarySchema,
-      String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
+  protected ResultSet getImportedExportedKeys(
+      @Nullable String primaryCatalog, @Nullable String primarySchema, @Nullable String primaryTable,
+      @Nullable String foreignCatalog, @Nullable String foreignSchema, @Nullable String foreignTable)
           throws SQLException {
 
     /*
@@ -2185,18 +2263,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return createMetaDataStatement().executeQuery(sql);
   }
 
-  public ResultSet getImportedKeys(String catalog, String schema, String table)
+  public ResultSet getImportedKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     return getImportedExportedKeys(null, null, null, catalog, schema, table);
   }
 
-  public ResultSet getExportedKeys(String catalog, String schema, String table)
+  public ResultSet getExportedKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     return getImportedExportedKeys(catalog, schema, table, null, null, null);
   }
 
-  public ResultSet getCrossReference(String primaryCatalog, String primarySchema,
-      String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
+  public ResultSet getCrossReference(
+      @Nullable String primaryCatalog, @Nullable String primarySchema, String primaryTable,
+      @Nullable String foreignCatalog, @Nullable String foreignSchema, String foreignTable)
           throws SQLException {
     return getImportedExportedKeys(primaryCatalog, primarySchema, primaryTable, foreignCatalog,
         foreignSchema, foreignTable);
@@ -2205,7 +2284,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getTypeInfo() throws SQLException {
 
     Field[] f = new Field[18];
-    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
+    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("TYPE_NAME", Oid.VARCHAR);
     f[1] = new Field("DATA_TYPE", Oid.INT2);
@@ -2233,6 +2312,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " AND "
           + " (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))";
 
+    if (connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
+
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     // cache some results, this will keep memory usage down, and speed
@@ -2247,15 +2330,24 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     byte[] bSearchable =
               connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
+    TypeInfo ti = connection.getTypeInfo();
+    if (ti instanceof TypeInfoCache) {
+      ((TypeInfoCache) ti).cacheSQLTypes();
+    }
+
     while (rs.next()) {
-      byte[][] tuple = new byte[18][];
-      String typname = rs.getString(1);
+      byte[] @Nullable [] tuple = new byte[19][];
+      String typname = castNonNull(rs.getString(1));
       int typeOid = (int) rs.getLong(2);
 
       tuple[0] = connection.encodeString(typname);
       int sqlType = connection.getTypeInfo().getSQLType(typname);
       tuple[1] =
           connection.encodeString(Integer.toString(sqlType));
+
+      /* this is just for sorting below, the result set never sees this */
+      tuple[18] = BigInteger.valueOf(sqlType).toByteArray();
+
       tuple[2] = connection
           .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
 
@@ -2280,31 +2372,40 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // 12 - LOCAL_TYPE_NAME is null
       // 15 & 16 are unused so we return null
       tuple[17] = b10; // everything is base 10
-      v.add(tuple);
+      v.add(new Tuple(tuple));
 
       // add pseudo-type serial, bigserial
       if (typname.equals("int4")) {
-        byte[][] tuple1 = tuple.clone();
+        byte[] @Nullable [] tuple1 = tuple.clone();
 
         tuple1[0] = connection.encodeString("serial");
         tuple1[11] = bt;
-        v.add(tuple1);
+        v.add(new Tuple(tuple1));
       } else if (typname.equals("int8")) {
-        byte[][] tuple1 = tuple.clone();
+        byte[] @Nullable [] tuple1 = tuple.clone();
 
         tuple1[0] = connection.encodeString("bigserial");
         tuple1[11] = bt;
-        v.add(tuple1);
+        v.add(new Tuple(tuple1));
       }
 
     }
     rs.close();
     stmt.close();
 
+    Collections.sort(v, new Comparator<Tuple>() {
+      @Override
+      public int compare(Tuple o1, Tuple o2) {
+        int i1 = ByteConverter.bytesToInt(castNonNull(o1.get(18)));
+        int i2 = ByteConverter.bytesToInt(castNonNull(o2.get(18)));
+        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+      }
+    });
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public ResultSet getIndexInfo(String catalog, String schema, String tableName,
+  public ResultSet getIndexInfo(
+      @Nullable String catalog, @Nullable String schema, String tableName,
       boolean unique, boolean approximate) throws SQLException {
     /*
      * This is a complicated function because we have three possible situations: <= 7.2 no schemas,
@@ -2327,34 +2428,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther
             + "    END "
             + "  END AS TYPE, "
-            + "  (i.keys).n AS ORDINAL_POSITION, "
-            + "  trim(both '\"' from pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false)) AS COLUMN_NAME, "
-            + (connection.haveMinimumServerVersion(ServerVersion.v9_6)
-               ? "  CASE am.amname "
-                 + "    WHEN 'btree' THEN CASE i.indoption[(i.keys).n - 1] & 1 "
-                 + "      WHEN 1 THEN 'D' "
-                 + "      ELSE 'A' "
-                 + "    END "
-                 + "    ELSE NULL "
-                 + "  END AS ASC_OR_DESC, "
-               : "  CASE am.amcanorder "
-                 + "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 "
-                 + "      WHEN 1 THEN 'D' "
-                 + "      ELSE 'A' "
-                 + "    END "
-                 + "    ELSE NULL "
-                 + "  END AS ASC_OR_DESC, ")
+            + "  (information_schema._pg_expandarray(i.indkey)).n AS ORDINAL_POSITION, "
             + "  ci.reltuples AS CARDINALITY, "
             + "  ci.relpages AS PAGES, "
-            + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION "
+            + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION, "
+            + "  ci.oid AS CI_OID, "
+            + "  i.indoption AS I_INDOPTION, "
+            + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME " : "  am.amcanorder AS AM_CANORDER ")
             + "FROM pg_catalog.pg_class ct "
             + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-            + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indoption, "
-            + "          i.indisunique, i.indisclustered, i.indpred, "
-            + "          i.indexprs, "
-            + "          information_schema._pg_expandarray(i.indkey) AS keys "
-            + "        FROM pg_catalog.pg_index i) i "
-            + "    ON (ct.oid = i.indrelid) "
+            + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
             + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
             + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
             + "WHERE true ";
@@ -2362,6 +2445,44 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if (schema != null && !schema.isEmpty()) {
         sql += " AND n.nspname = " + escapeQuotes(schema);
       }
+
+      sql += " AND ct.relname = " + escapeQuotes(tableName);
+
+      if (unique) {
+        sql += " AND i.indisunique ";
+      }
+
+      sql = "SELECT "
+                + "    tmp.TABLE_CAT, "
+                + "    tmp.TABLE_SCHEM, "
+                + "    tmp.TABLE_NAME, "
+                + "    tmp.NON_UNIQUE, "
+                + "    tmp.INDEX_QUALIFIER, "
+                + "    tmp.INDEX_NAME, "
+                + "    tmp.TYPE, "
+                + "    tmp.ORDINAL_POSITION, "
+                + "    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS COLUMN_NAME, "
+                + (connection.haveMinimumServerVersion(ServerVersion.v9_6)
+                        ? "  CASE tmp.AM_NAME "
+                        + "    WHEN 'btree' THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+                        + "      WHEN 1 THEN 'D' "
+                        + "      ELSE 'A' "
+                        + "    END "
+                        + "    ELSE NULL "
+                        + "  END AS ASC_OR_DESC, "
+                        : "  CASE tmp.AM_CANORDER "
+                        + "    WHEN true THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+                        + "      WHEN 1 THEN 'D' "
+                        + "      ELSE 'A' "
+                        + "    END "
+                        + "    ELSE NULL "
+                        + "  END AS ASC_OR_DESC, ")
+                + "    tmp.CARDINALITY, "
+                + "    tmp.PAGES, "
+                + "    tmp.FILTER_CONDITION "
+                + "FROM ("
+                + sql
+                + ") AS tmp";
     } else {
       String select;
       String from;
@@ -2396,13 +2517,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + from
             + " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid "
             + where;
+
+      sql += " AND ct.relname = " + escapeQuotes(tableName);
+
+      if (unique) {
+        sql += " AND i.indisunique ";
+      }
     }
 
-    sql += " AND ct.relname = " + escapeQuotes(tableName);
-
-    if (unique) {
-      sql += " AND i.indisunique ";
-    }
     sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
 
     return createMetaDataStatement().executeQuery(sql);
@@ -2414,7 +2536,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     // The only type we don't support
     return type != ResultSet.TYPE_SCROLL_SENSITIVE;
   }
-
 
   public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
     // These combinations are not supported!
@@ -2473,8 +2594,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
-      int[] types) throws SQLException {
+  public ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String typeNamePattern, int @Nullable [] types) throws SQLException {
     String sql = "select "
         + "null as type_cat, n.nspname as type_schem, t.typname as type_name,  null as class_name, "
         + "CASE WHEN t.typtype='c' then " + java.sql.Types.STRUCT + " else "
@@ -2493,7 +2614,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
         + "else null end as base_type "
         + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
-
 
     StringBuilder toAdd = new StringBuilder();
     if (types != null) {
@@ -2540,10 +2660,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       toAdd.append(" and n.nspname like ").append(escapeQuotes(schemaPattern));
     }
     sql += toAdd.toString();
+
+    if (connection.getHideUnprivilegedObjects()
+        && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
+
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }
-
 
   @Override
   public Connection getConnection() throws SQLException {
@@ -2586,16 +2711,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[2] = new Field("DEFAULT_VALUE", Oid.VARCHAR);
     f[3] = new Field("DESCRIPTION", Oid.VARCHAR);
 
-    List<byte[][]> v = new ArrayList<byte[][]>();
+    List<Tuple> v = new ArrayList<Tuple>();
 
     if (connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      byte[][] tuple = new byte[4][];
+      byte[] @Nullable [] tuple = new byte[4][];
       tuple[0] = connection.encodeString("ApplicationName");
       tuple[1] = connection.encodeString(Integer.toString(getMaxNameLength()));
       tuple[2] = connection.encodeString("");
       tuple[3] = connection
           .encodeString("The name of the application currently utilizing the connection.");
-      v.add(tuple);
+      v.add(new Tuple(tuple));
     }
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
@@ -2612,7 +2737,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
-  public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
+  public ResultSet getFunctions(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String functionNamePattern)
       throws SQLException {
 
     // The pg_get_function_result only exists 8.4 or later
@@ -2639,25 +2765,38 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "FROM pg_catalog.pg_proc p "
         + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
         + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
-        + "WHERE pg_function_is_visible(p.oid) ";
+        + "WHERE true  ";
+
+    if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
+      sql += " AND p.prokind='f'";
+    }
+    /*
+    if the user provides a schema then search inside the schema for it
+     */
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+    } else {
+      /* if no schema is provided then limit the search inside the search_path */
+      sql += "and pg_function_is_visible(p.oid)";
     }
     if (functionNamePattern != null && !functionNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+    }
+    if (connection.getHideUnprivilegedObjects()) {
+      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
     }
     sql += " ORDER BY FUNCTION_SCHEM, FUNCTION_NAME, p.oid::text ";
 
     return createMetaDataStatement().executeQuery(sql);
   }
 
-  public ResultSet getFunctionColumns(String catalog, String schemaPattern,
-      String functionNamePattern, String columnNamePattern)
+  public ResultSet getFunctionColumns(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String functionNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
     int columns = 17;
 
     Field[] f = new Field[columns];
-    List<byte[][]> v = new ArrayList<byte[][]>();
+    List<Tuple> v = new ArrayList<Tuple>();
 
     f[0] = new Field("FUNCTION_CAT", Oid.VARCHAR);
     f[1] = new Field("FUNCTION_SCHEM", Oid.VARCHAR);
@@ -2703,7 +2842,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String returnTypeType = rs.getString("typtype");
       int returnTypeRelid = (int) rs.getLong("typrelid");
 
-      String strArgTypes = rs.getString("proargtypes");
+      String strArgTypes = castNonNull(rs.getString("proargtypes"));
       StringTokenizer st = new StringTokenizer(strArgTypes);
       List<Long> argTypes = new ArrayList<Long>();
       while (st.hasMoreTokens()) {
@@ -2732,9 +2871,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       // decide if we are returning a single column result.
-      if (returnTypeType.equals("b") || returnTypeType.equals("d") || returnTypeType.equals("e")
-          || (returnTypeType.equals("p") && argModesArray == null)) {
-        byte[][] tuple = new byte[columns][];
+      if ("b".equals(returnTypeType) || "d".equals(returnTypeType) || "e".equals(returnTypeType)
+          || ("p".equals(returnTypeType) && argModesArray == null)) {
+        byte[] @Nullable [] tuple = new byte[columns][];
         tuple[0] = null;
         tuple[1] = schema;
         tuple[2] = functionName;
@@ -2755,12 +2894,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[15] = isnullableUnknown;
         tuple[16] = specificName;
 
-        v.add(tuple);
+        v.add(new Tuple(tuple));
       }
 
       // Add a row for each argument.
       for (int i = 0; i < numArgs; i++) {
-        byte[][] tuple = new byte[columns][];
+        byte[] @Nullable [] tuple = new byte[columns][];
         tuple[0] = null;
         tuple[1] = schema;
         tuple[2] = functionName;
@@ -2805,11 +2944,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[15] = isnullableUnknown;
         tuple[16] = specificName;
 
-        v.add(tuple);
+        v.add(new Tuple(tuple));
       }
 
       // if we are returning a multi-column result.
-      if (returnTypeType.equals("c") || (returnTypeType.equals("p") && argModesArray != null)) {
+      if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
         String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
             + " WHERE a.attrelid = " + returnTypeRelid
             + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
@@ -2817,7 +2956,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         ResultSet columnrs = columnstmt.executeQuery(columnsql);
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
-          byte[][] tuple = new byte[columns][];
+          byte[] @Nullable [] tuple = new byte[columns][];
           tuple[0] = null;
           tuple[1] = schema;
           tuple[2] = functionName;
@@ -2838,7 +2977,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[15] = isnullableUnknown;
           tuple[16] = specificName;
 
-          v.add(tuple);
+          v.add(new Tuple(tuple));
         }
         columnrs.close();
         columnstmt.close();
@@ -2850,8 +2989,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
-      String columnNamePattern) throws SQLException {
+  public ResultSet getPseudoColumns(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String tableNamePattern, @Nullable String columnNamePattern)
+      throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
         "getPseudoColumns(String, String, String, String)");
   }
@@ -2879,20 +3019,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern)
+  public ResultSet getSuperTypes(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String typeNamePattern)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
         "getSuperTypes(String,String,String)");
   }
 
-  public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern)
+  public ResultSet getSuperTables(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String tableNamePattern)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
         "getSuperTables(String,String,String,String)");
   }
 
-  public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern,
-      String attributeNamePattern) throws SQLException {
+  public ResultSet getAttributes(@Nullable String catalog, @Nullable String schemaPattern,
+      @Nullable String typeNamePattern, @Nullable String attributeNamePattern) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
         "getAttributes(String,String,String,String)");
   }

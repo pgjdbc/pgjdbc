@@ -5,6 +5,8 @@
 
 package org.postgresql.xa;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TransactionState;
@@ -12,6 +14,8 @@ import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -50,10 +54,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    */
   private final BaseConnection conn;
 
-  private Xid currentXid;
+  private @Nullable Xid currentXid;
 
   private State state;
-  private Xid preparedXid;
+  private @Nullable Xid preparedXid;
   private boolean committedOrRolledBack;
 
   /*
@@ -116,13 +120,14 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    @SuppressWarnings("throwing.nullable")
+    public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
       if (state != State.IDLE) {
         String methodName = method.getName();
         if (methodName.equals("commit")
             || methodName.equals("rollback")
             || methodName.equals("setSavePoint")
-            || (methodName.equals("setAutoCommit") && (Boolean) args[0])) {
+            || (methodName.equals("setAutoCommit") && castNonNull((Boolean) args[0]))) {
           throw new PSQLException(
               GT.tr(
                   "Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
@@ -276,7 +281,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
     }
 
-    if (state != State.ACTIVE || !currentXid.equals(xid)) {
+    if (state != State.ACTIVE || !xid.equals(currentXid)) {
       throw new PGXAException(GT.tr("tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}", state, xid, currentXid, preparedXid),
           XAException.XAER_PROTO);
     }
@@ -401,7 +406,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
               "SELECT gid FROM pg_prepared_xacts where database = current_database()");
           LinkedList<Xid> l = new LinkedList<Xid>();
           while (rs.next()) {
-            Xid recoveredXid = RecoveredXid.stringToXid(rs.getString(1));
+            Xid recoveredXid = RecoveredXid.stringToXid(castNonNull(rs.getString(1)));
             if (recoveredXid != null) {
               l.add(recoveredXid);
             }
@@ -573,7 +578,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       if (state != State.IDLE
           || conn.getTransactionState() != TransactionState.IDLE) {
         throw new PGXAException(
-            GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}", xid, currentXid, state, conn.getTransactionState()),
+            GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}", xid, currentXid, state, conn.getTransactionState()),
             XAException.XAER_RMERR);
       }
 
@@ -652,9 +657,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   private boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
-    return sqlException instanceof PSQLException
-        && sqlException.getSQLState().length() == 5
-        && sqlException.getSQLState().startsWith("23"); // Class 23 - Integrity Constraint Violation
+    if (!(sqlException instanceof PSQLException)) {
+      return false;
+    }
+    String sqlState = sqlException.getSQLState();
+    return sqlState != null
+        && sqlState.length() == 5
+        && sqlState.startsWith("23"); // Class 23 - Integrity Constraint Violation
   }
 
   private enum State {

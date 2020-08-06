@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -37,7 +39,7 @@ public interface Query {
    *        or <code>null</code> to leave the parameter placeholders unsubstituted.
    * @return a human-readable representation of this query
    */
-  String toString(ParameterList parameters);
+  String toString(@Nullable ParameterList parameters);
 
   /**
    * Returns SQL in native for database format.
@@ -49,7 +51,7 @@ public interface Query {
    * Returns properties of the query (sql keyword, and some other parsing info).
    * @return returns properties of the query (sql keyword, and some other parsing info) or null if not applicable
    */
-  SqlCommand getSqlCommand();
+  @Nullable SqlCommand getSqlCommand();
 
   /**
    * <p>Close this query and free any server-side resources associated with it. The resources may not
@@ -74,7 +76,7 @@ public interface Query {
    *
    * @return null if the query implementation does not support this method.
    */
-  Map<String, Integer> getResultSetColumnNameIndexMap();
+  @Nullable Map<String, Integer> getResultSetColumnNameIndexMap();
 
   /**
    * Return a list of the Query objects that make up this query. If this object is already a
@@ -83,5 +85,5 @@ public interface Query {
    * @return an array of single-statement queries, or <code>null</code> if this object is already a
    *         single-statement query.
    */
-  Query[] getSubqueries();
+  Query @Nullable [] getSubqueries();
 }

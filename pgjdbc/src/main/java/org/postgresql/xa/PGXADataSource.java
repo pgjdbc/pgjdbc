@@ -8,6 +8,8 @@ package org.postgresql.xa;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.ds.common.BaseDataSource;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -42,7 +44,8 @@ public class PGXADataSource extends BaseDataSource implements XADataSource {
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
    */
-  public XAConnection getXAConnection(String user, String password) throws SQLException {
+  public XAConnection getXAConnection(@Nullable String user, @Nullable String password)
+      throws SQLException {
     Connection con = super.getConnection(user, password);
     return new PGXAConnection((BaseConnection) con);
   }

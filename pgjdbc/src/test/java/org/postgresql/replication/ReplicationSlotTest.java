@@ -17,6 +17,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -26,6 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -34,6 +36,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.Properties;
 
+@Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
 public class ReplicationSlotTest {
   @Rule
@@ -58,7 +61,6 @@ public class ReplicationSlotTest {
     slotName = null;
     sqlConnection.close();
   }
-
 
   @Test(expected = IllegalArgumentException.class)
   public void testNotAvailableCreatePhysicalSlotWithoutSlotName() throws Exception {
@@ -398,7 +400,6 @@ public class ReplicationSlotTest {
       TestUtil.dropReplicationSlot(sqlConnection, slotName);
     }
   }
-
 
   private Connection openReplicationConnection() throws Exception {
     Properties properties = new Properties();

@@ -15,6 +15,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 import org.postgresql.xa.PGXADataSource;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,7 +33,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-
 public class XADataSourceTest {
 
   private XADataSource xaDs;
@@ -43,7 +43,6 @@ public class XADataSourceTest {
   private XAConnection xaconn;
   private XAResource xaRes;
   private Connection conn;
-
 
   public XADataSourceTest() {
     xaDs = new PGXADataSource();
@@ -142,7 +141,6 @@ public class XADataSourceTest {
       return 0;
     }
 
-
     @Override
     public byte[] getGlobalTransactionId() {
       return gtrid;
@@ -154,7 +152,7 @@ public class XADataSourceTest {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
       if (!(o instanceof Xid)) {
         return false;
       }

@@ -5,21 +5,26 @@
 
 package org.postgresql.copy;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * InputStream for reading from a PostgreSQL COPY TO STDOUT operation.
  */
 public class PGCopyInputStream extends InputStream implements CopyOut {
-  private CopyOut op;
-  private byte[] buf;
+  private @Nullable CopyOut op;
+  private byte @Nullable [] buf;
   private int at;
   private int len;
 
@@ -43,23 +48,25 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     this.op = op;
   }
 
-  private boolean gotBuf() throws IOException {
+  private CopyOut getOp() {
+    return castNonNull(op);
+  }
+
+  private byte @Nullable [] fillBuffer() throws IOException {
     if (at >= len) {
       try {
-        buf = op.readFromCopy();
+        buf = getOp().readFromCopy();
       } catch (SQLException sqle) {
-        throw new IOException(GT.tr("Copying from database failed: {0}", sqle));
+        throw new IOException(GT.tr("Copying from database failed: {0}", sqle.getMessage()), sqle);
       }
       if (buf == null) {
         at = -1;
-        return false;
       } else {
         at = 0;
         len = buf.length;
-        return true;
       }
     }
-    return buf != null;
+    return buf;
   }
 
   private void checkClosed() throws IOException {
@@ -68,7 +75,6 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     }
   }
 
-
   public int available() throws IOException {
     checkClosed();
     return (buf != null ? len - at : 0);
@@ -76,7 +82,8 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public int read() throws IOException {
     checkClosed();
-    return gotBuf() ? (buf[at++] & 0xFF)  : -1;
+    byte[] buf = fillBuffer();
+    return buf != null ? (buf[at++] & 0xFF)  : -1;
   }
 
   public int read(byte[] buf) throws IOException {
@@ -86,34 +93,37 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   public int read(byte[] buf, int off, int siz) throws IOException {
     checkClosed();
     int got = 0;
-    boolean didReadSomething = false;
-    while (got < siz && (didReadSomething = gotBuf())) {
-      buf[off + got++] = this.buf[at++];
+    byte[] data = fillBuffer();
+    for (; got < siz && data != null; data = fillBuffer()) {
+      int length = Math.min(siz - got, len - at);
+      System.arraycopy(data, at, buf, off + got, length);
+      at += length;
+      got += length;
     }
-    return got == 0 && !didReadSomething ? -1 : got;
+    return got == 0 && data == null ? -1 : got;
   }
 
-  public byte[] readFromCopy() throws SQLException {
+  public byte @Nullable [] readFromCopy() throws SQLException {
     byte[] result = buf;
     try {
-      if (gotBuf()) {
+      byte[] buf = fillBuffer();
+      if (buf != null) {
         if (at > 0 || len < buf.length) {
-          byte[] ba = new byte[len - at];
-          for (int i = at; i < len; i++) {
-            ba[i - at] = buf[i];
-          }
-          result = ba;
+          result = Arrays.copyOfRange(buf, at, len);
+        } else {
+          result = buf;
         }
-        at = len; // either partly or fully returned, buffer is exhausted
+        // Mark the buffer as fully read
+        at = len;
       }
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr("Read from copy failed."), PSQLState.CONNECTION_FAILURE);
+      throw new PSQLException(GT.tr("Read from copy failed."), PSQLState.CONNECTION_FAILURE, ioe);
     }
     return result;
   }
 
   @Override
-  public byte[] readFromCopy(boolean block) throws SQLException {
+  public byte @Nullable [] readFromCopy(boolean block) throws SQLException {
     return readFromCopy();
   }
 
@@ -127,28 +137,26 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
       try {
         op.cancelCopy();
       } catch (SQLException se) {
-        IOException ioe = new IOException("Failed to close copy reader.");
-        ioe.initCause(se);
-        throw ioe;
+        throw new IOException("Failed to close copy reader.", se);
       }
     }
     op = null;
   }
 
   public void cancelCopy() throws SQLException {
-    op.cancelCopy();
+    getOp().cancelCopy();
   }
 
   public int getFormat() {
-    return op.getFormat();
+    return getOp().getFormat();
   }
 
   public int getFieldFormat(int field) {
-    return op.getFieldFormat(field);
+    return getOp().getFieldFormat(field);
   }
 
   public int getFieldCount() {
-    return op.getFieldCount();
+    return getOp().getFieldCount();
   }
 
   public boolean isActive() {
@@ -156,6 +164,6 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   }
 
   public long getHandledRowCount() {
-    return op.getHandledRowCount();
+    return getOp().getHandledRowCount();
   }
 }

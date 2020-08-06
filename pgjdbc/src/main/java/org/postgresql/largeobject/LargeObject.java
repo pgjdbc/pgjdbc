@@ -5,11 +5,15 @@
 
 package org.postgresql.largeobject;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,12 +67,12 @@ public class LargeObject
   private final int mode; // read/write mode of this object
   private final int fd; // the descriptor of the open large object
 
-  private BlobOutputStream os; // The current output stream
+  private @Nullable BlobOutputStream os; // The current output stream
 
   private boolean closed = false; // true when we are closed
 
-  private BaseConnection conn; // Only initialized when open a LOB with CommitOnClose
-  private boolean commitOnClose; // Only initialized when open a LOB with CommitOnClose
+  private @Nullable BaseConnection conn; // Only initialized when open a LOB with CommitOnClose
+  private final boolean commitOnClose; // Only initialized when open a LOB with CommitOnClose
 
   /**
    * <p>This opens a large object.</p>
@@ -84,7 +88,8 @@ public class LargeObject
    * @throws SQLException if a database-access error occurs.
    * @see org.postgresql.largeobject.LargeObjectManager
    */
-  protected LargeObject(Fastpath fp, long oid, int mode, BaseConnection conn, boolean commitOnClose)
+  protected LargeObject(Fastpath fp, long oid, int mode,
+      @Nullable BaseConnection conn, boolean commitOnClose)
       throws SQLException {
     this.fp = fp;
     this.oid = oid;
@@ -172,8 +177,9 @@ public class LargeObject
       args[0] = new FastpathArg(fd);
       fp.fastpath("lo_close", args); // true here as we dont care!!
       closed = true;
-      if (this.commitOnClose) {
-        this.conn.commit();
+      BaseConnection conn = this.conn;
+      if (this.commitOnClose && conn != null) {
+        conn.commit();
       }
     }
   }
@@ -191,7 +197,7 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(len);
-    return fp.getData("loread", args);
+    return castNonNull(fp.getData("loread", args));
   }
 
   /**
@@ -205,6 +211,9 @@ public class LargeObject
    */
   public int read(byte[] buf, int off, int len) throws SQLException {
     byte[] b = read(len);
+    if (b == null) {
+      return 0;
+    }
     if (b.length < len) {
       len = b.length;
     }

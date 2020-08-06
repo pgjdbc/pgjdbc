@@ -349,7 +349,6 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(3, resultCount);
   }
 
-
   /**
    * Starting with 8.0 non-standard (beginning index isn't 1) bounds the dimensions are returned in
    * the data. The following should return "[0:3]={0,1,2,3,4}" when queried. Older versions simply
@@ -649,4 +648,3 @@ public class ArrayTest extends BaseTest4 {
   }
 
 }
-

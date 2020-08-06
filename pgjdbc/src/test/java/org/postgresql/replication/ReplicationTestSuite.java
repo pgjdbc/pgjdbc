@@ -7,7 +7,6 @@ package org.postgresql.replication;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.CopyBothResponseTest;
 
 import org.junit.AssumptionViolatedException;
 import org.junit.BeforeClass;
@@ -22,12 +21,13 @@ import java.sql.Statement;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     CopyBothResponseTest.class,
+    LogicalReplicationStatusTest.class,
     LogicalReplicationTest.class,
     LogSequenceNumberTest.class,
     PhysicalReplicationTest.class,
-    LogicalReplicationStatusTest.class,
     ReplicationConnectionTest.class,
-    ReplicationSlotTest.class})
+    ReplicationSlotTest.class,
+})
 public class ReplicationTestSuite {
 
   @BeforeClass

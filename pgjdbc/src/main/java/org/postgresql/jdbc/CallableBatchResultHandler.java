@@ -9,15 +9,20 @@ import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
+import org.postgresql.core.Tuple;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
 class CallableBatchResultHandler extends BatchResultHandler {
-  CallableBatchResultHandler(PgStatement statement, Query[] queries, ParameterList[] parameterLists) {
+  CallableBatchResultHandler(PgStatement statement, Query[] queries,
+      @Nullable ParameterList[] parameterLists) {
     super(statement, queries, parameterLists, false);
   }
 
-  public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
+  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+      @Nullable ResultCursor cursor) {
     /* ignore */
   }
 }

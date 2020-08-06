@@ -6,6 +6,8 @@ public class messages_tr extends java.util.ResourceBundle {
     java.lang.String[] t = new java.lang.String[794];
     t[0] = "";
     t[1] = "Project-Id-Version: jdbc-tr\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2009-05-31 21:47+0200\nLast-Translator: Devrim GÜNDÜZ <devrim@gunduz.org>\nLanguage-Team: Turkish <pgsql-tr-genel@PostgreSQL.org>\nLanguage: tr\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.3.1\nX-Poedit-Language: Turkish\nX-Poedit-Country: TURKEY\n";
+    t[2] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
+    t[3] = "Desteklenmiyor: 2nd phase commit, atıl bir bağlantıdan başlatılmalıdır. commit xid={0}, currentXid={1}, state={2}, transactionState={3}";
     t[4] = "DataSource has been closed.";
     t[5] = "DataSource kapatıldı.";
     t[8] = "Invalid flags {0}";
@@ -188,8 +190,6 @@ public class messages_tr extends java.util.ResourceBundle {
     t[443] = "String parametrelerinde sıfır bayt olamaz.";
     t[444] = "A result was returned when none was expected.";
     t[445] = "Hiçbir sonuç kebklenimezken sonuç getirildi.";
-    t[446] = "Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
-    t[447] = "Desteklenmiyor: 2nd phase commit, atıl bir bağlantıdan başlatılmalıdır. commit xid={0}, currentXid={1}, state={2], transactionState={3}";
     t[450] = "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details.";
     t[451] = "ResultSet değiştirilemez. Bu sonucu üreten sorgu tek bir tablodan sorgulamalı ve tablonun tüm primary key alanları belirtmelidir. Daha fazla bilgi için bk. JDBC 2.1 API Specification, section 5.6.";
     t[454] = "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.";
@@ -304,8 +304,6 @@ public class messages_tr extends java.util.ResourceBundle {
     t[719] = "Bağlanırken kesildi.";
     t[722] = "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to.";
     t[723] = "Güvenlik politikanız bağlantının kurulmasını engelledi. java.net.SocketPermission'a veritabanına ve de bağlanacağı porta bağlantı izni vermelisiniz.";
-    t[728] = "Failed to initialize LargeObject API";
-    t[729] = "LArgeObject API ilklendirme hatası";
     t[734] = "No function outputs were registered.";
     t[735] = "Hiçbir fonksiyon çıktısı kaydedilmedi.";
     t[736] = "{0} function takes one and only one argument.";

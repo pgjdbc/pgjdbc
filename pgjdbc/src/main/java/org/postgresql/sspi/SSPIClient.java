@@ -6,6 +6,8 @@
 
 package org.postgresql.sspi;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.PGStream;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -16,6 +18,7 @@ import com.sun.jna.Platform;
 import com.sun.jna.platform.win32.Sspi;
 import com.sun.jna.platform.win32.Sspi.SecBufferDesc;
 import com.sun.jna.platform.win32.Win32Exception;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import waffle.windows.auth.IWindowsCredentialsHandle;
 import waffle.windows.auth.impl.WindowsCredentialsHandleImpl;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
@@ -42,9 +45,9 @@ public class SSPIClient implements ISSPIClient {
   private final String spnServiceClass;
   private final boolean enableNegotiate;
 
-  private IWindowsCredentialsHandle clientCredentials;
-  private WindowsSecurityContextImpl sspiContext;
-  private String targetName;
+  private @Nullable IWindowsCredentialsHandle clientCredentials;
+  private @Nullable WindowsSecurityContextImpl sspiContext;
+  private @Nullable String targetName;
 
   /**
    * <p>Instantiate an SSPIClient for authentication of a connection.</p>
@@ -103,14 +106,18 @@ public class SSPIClient implements ISSPIClient {
     final HostSpec hs = pgStream.getHostSpec();
 
     try {
+      /*
+      The GSSAPI implementation does not use the port in the service name.
+      Force the port number to 0
+      Fixes issue 1482
+      */
       return NTDSAPIWrapper.instance.DsMakeSpn(spnServiceClass, hs.getHost(), null,
-          (short) hs.getPort(), null);
+          (short) 0, null);
     } catch (LastErrorException ex) {
       throw new PSQLException("SSPI setup failed to determine SPN",
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ex);
     }
   }
-
 
   /**
    * Respond to an authentication request from the back-end for SSPI authentication (AUTH_REQ_SSPI).
@@ -138,8 +145,10 @@ public class SSPIClient implements ISSPIClient {
        *
        * This corresponds to pg_SSPI_startup in libpq/fe-auth.c .
        */
+      IWindowsCredentialsHandle clientCredentials;
       try {
         clientCredentials = WindowsCredentialsHandleImpl.getCurrent(securityPackage);
+        this.clientCredentials = clientCredentials;
         clientCredentials.initialize();
       } catch (Win32Exception ex) {
         throw new PSQLException("Could not obtain local Windows credentials for SSPI",
@@ -147,7 +156,8 @@ public class SSPIClient implements ISSPIClient {
       }
 
       try {
-        targetName = makeSPN();
+        String targetName = makeSPN();
+        this.targetName = targetName;
 
         LOGGER.log(Level.FINEST, "SSPI target name: {0}", targetName);
 
@@ -171,7 +181,7 @@ public class SSPIClient implements ISSPIClient {
   }
 
   /**
-   * Continue an existing authentication conversation with the back-end in resonse to an
+   * Continue an existing authentication conversation with the back-end in response to an
    * authentication request of type AUTH_REQ_GSS_CONT.
    *
    * @param msgLength Length of message to read, excluding length word and message type word
@@ -180,6 +190,7 @@ public class SSPIClient implements ISSPIClient {
    */
   @Override
   public void continueSSPI(int msgLength) throws SQLException, IOException {
+    WindowsSecurityContextImpl sspiContext = this.sspiContext;
 
     if (sspiContext == null) {
       throw new IllegalStateException("Cannot continue SSPI authentication that we didn't begin");
@@ -192,7 +203,7 @@ public class SSPIClient implements ISSPIClient {
 
     SecBufferDesc continueToken = new SecBufferDesc(Sspi.SECBUFFER_TOKEN, receivedToken);
 
-    sspiContext.initialize(sspiContext.getHandle(), continueToken, targetName);
+    sspiContext.initialize(sspiContext.getHandle(), continueToken, castNonNull(targetName));
 
     /*
      * Now send the response token. If negotiation is complete there may be zero bytes to send, in

@@ -3,29 +3,39 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.sql.SQLException;
 
 public class PSQLException extends SQLException {
 
-  private ServerErrorMessage serverError;
+  private @Nullable ServerErrorMessage serverError;
 
-  public PSQLException(String msg, PSQLState state, Throwable cause) {
+  @Pure
+  public PSQLException(@Nullable String msg, @Nullable PSQLState state, @Nullable Throwable cause) {
     super(msg, state == null ? null : state.getState(), cause);
   }
 
-  public PSQLException(String msg, PSQLState state) {
+  @Pure
+  public PSQLException(@Nullable String msg, @Nullable PSQLState state) {
     super(msg, state == null ? null : state.getState());
   }
 
+  @Pure
   public PSQLException(ServerErrorMessage serverError) {
-    super(serverError.toString(), serverError.getSQLState());
+    this(serverError, true);
+  }
+
+  @Pure
+  public PSQLException(ServerErrorMessage serverError, boolean detail) {
+    super(detail ? serverError.toString() : serverError.getNonSensitiveErrorMessage(), serverError.getSQLState());
     this.serverError = serverError;
   }
 
-  public ServerErrorMessage getServerErrorMessage() {
+  public @Pure @Nullable ServerErrorMessage getServerErrorMessage() {
     return serverError;
   }
 }

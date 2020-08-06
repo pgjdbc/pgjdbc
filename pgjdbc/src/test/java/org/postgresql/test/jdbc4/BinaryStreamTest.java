@@ -5,11 +5,13 @@
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
@@ -113,6 +115,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testKnownLength100Kb() throws Exception {
     byte[] data = getTestData(100 * 1024);
     insertStreamKownLength(data);
@@ -120,6 +123,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testKnownLength200Kb() throws Exception {
     byte[] data = getTestData(200 * 1024);
     insertStreamKownLength(data);
@@ -148,6 +152,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testUnknownLength100Kb() throws Exception {
     byte[] data = getTestData(100 * 1024);
     insertStreamUnkownLength(data);
@@ -155,6 +160,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testUnknownLength200Kb() throws Exception {
     byte[] data = getTestData(200 * 1024);
     insertStreamUnkownLength(data);

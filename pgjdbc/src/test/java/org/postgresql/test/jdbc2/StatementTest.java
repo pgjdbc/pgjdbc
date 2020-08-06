@@ -68,8 +68,8 @@ public class StatementTest {
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
     TestUtil.dropTable(con, "test_lock");
-    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_loop()");
-    con.createStatement().execute("DROP FUNCTION IF EXISTS notify_then_sleep()");
+    TestUtil.execute("DROP FUNCTION IF EXISTS notify_loop()",con);
+    TestUtil.execute("DROP FUNCTION IF EXISTS notify_then_sleep()",con);
     con.close();
   }
 
@@ -209,7 +209,6 @@ public class StatementTest {
     assertTrue(rs.next());
     assertEquals("%found", rs.getString(1));
   }
-
 
   @Test
   public void testPreparedFunction() throws SQLException {
@@ -517,7 +516,6 @@ public class StatementTest {
     }
   }
 
-
   /**
    * <p>Demonstrates a safe approach to concurrently reading the latest
    * warnings while periodically clearing them.</p>
@@ -690,7 +688,7 @@ public class StatementTest {
     boolean cancelReceived = false;
     try {
       stmt.setQueryTimeout(1);
-      start = System.currentTimeMillis();
+      start = System.nanoTime();
       stmt.execute("select pg_sleep(10)");
     } catch (SQLException sqle) {
       // state for cancel
@@ -698,8 +696,8 @@ public class StatementTest {
         cancelReceived = true;
       }
     }
-    long duration = System.currentTimeMillis() - start;
-    if (!cancelReceived || duration > 5000) {
+    long duration = System.nanoTime() - start;
+    if (!cancelReceived || duration > TimeUnit.SECONDS.toNanos(5)) {
       fail("Query should have been cancelled since the timeout was set to 1 sec."
           + " Cancel state: " + cancelReceived + ", duration: " + duration);
     }
@@ -724,17 +722,27 @@ public class StatementTest {
   public void testShortQueryTimeout() throws SQLException {
     assumeLongTest();
 
-    long deadLine = System.currentTimeMillis() + 10000;
+    long deadLine = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
     Statement stmt = con.createStatement();
     ((PgStatement) stmt).setQueryTimeoutMs(1);
     Statement stmt2 = con.createStatement();
-    while (System.currentTimeMillis() < deadLine) {
+    while (System.nanoTime() < deadLine) {
       try {
-        stmt.execute("select 1");
+        // This usually won't time out but scheduler jitter, server load
+        // etc can cause a timeout.
+        stmt.executeQuery("select 1;");
       } catch (SQLException e) {
-        // ignore "statement cancelled"
+        // Expect "57014 query_canceled" (en-msg is "canceling statement due to statement timeout")
+        // but anything else is fatal. We can't differentiate other causes of statement cancel like
+        // "canceling statement due to user request" without error message matching though, and we
+        // don't want to do that.
+        Assert.assertEquals(
+            "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+            PSQLState.QUERY_CANCELED.getState(),
+            e.getSQLState());
       }
-      stmt2.executeQuery("select 1");
+      // Must never time out.
+      stmt2.executeQuery("select 1;");
     }
   }
 
@@ -861,10 +869,10 @@ public class StatementTest {
         executor.submit(new Callable<Void>() {
           @Override
           public Void call() throws Exception {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             while (st.getWarnings() == null) {
-              long dt = System.currentTimeMillis() - start;
-              if (dt > 10000) {
+              long dt = System.nanoTime() - start;
+              if (dt > TimeUnit.SECONDS.toNanos(10)) {
                 throw new IllegalStateException("Expected to receive a notice within 10 seconds");
               }
             }
@@ -916,7 +924,12 @@ public class StatementTest {
         public Void call() throws Exception {
           int s = rnd.nextInt(10);
           if (s > 8) {
-            Thread.sleep(s - 9);
+            try {
+              Thread.sleep(s - 9);
+            } catch (InterruptedException ex ) {
+              // don't execute the close here as this thread was cancelled below in shutdownNow
+              return null;
+            }
           }
           st.close();
           return null;
@@ -955,12 +968,12 @@ public class StatementTest {
    */
   @Test
   public void testSideStatementFinalizers() throws SQLException {
-    long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(2);
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
 
     final AtomicInteger leaks = new AtomicInteger();
     final AtomicReference<Throwable> cleanupFailure = new AtomicReference<Throwable>();
 
-    for (int q = 0; System.currentTimeMillis() < deadline || leaks.get() < 10000; q++) {
+    for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {
       for (int i = 0; i < 100; i++) {
         PreparedStatement ps = con.prepareStatement("select " + (i + q));
         ps.close();

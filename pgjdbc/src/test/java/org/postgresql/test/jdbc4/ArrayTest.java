@@ -11,6 +11,7 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.test.util.RegexMatcher;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
@@ -110,6 +111,66 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(0, out[0].intValue());
     Assert.assertEquals(-1, out[1].intValue());
     Assert.assertEquals(2, out[2].intValue());
+  }
+
+  @Test
+  public void testCreateArrayOfBytes() throws SQLException {
+
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::bytea[]");
+    final byte[][] in = new byte[][] { { 0x01, (byte) 0xFF, (byte) 0x12 }, {}, { (byte) 0xAC, (byte) 0xE4 }, null };
+    final Array createdArray = conn.createArrayOf("bytea", in);
+
+    byte[][] inCopy = (byte[][]) createdArray.getArray();
+
+    Assert.assertEquals(4, inCopy.length);
+
+    Assert.assertArrayEquals(in[0], inCopy[0]);
+    Assert.assertArrayEquals(in[1], inCopy[1]);
+    Assert.assertArrayEquals(in[2], inCopy[2]);
+    Assert.assertArrayEquals(in[3], inCopy[3]);
+    Assert.assertNull(inCopy[3]);
+
+    pstmt.setArray(1, createdArray);
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+
+    byte[][] out = (byte[][]) arr.getArray();
+
+    Assert.assertEquals(4, out.length);
+
+    Assert.assertArrayEquals(in[0], out[0]);
+    Assert.assertArrayEquals(in[1], out[1]);
+    Assert.assertArrayEquals(in[2], out[2]);
+    Assert.assertArrayEquals(in[3], out[3]);
+    Assert.assertNull(out[3]);
+  }
+
+  @Test
+  public void testCreateArrayOfBytesFromString() throws SQLException {
+
+    assumeMinimumServerVersion("support for bytea[] as string requires hex string support from 9.0",
+        ServerVersion.v9_0);
+
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::bytea[]");
+    final byte[][] in = new byte[][] { { 0x01, (byte) 0xFF, (byte) 0x12 }, {}, { (byte) 0xAC, (byte) 0xE4 }, null };
+
+    pstmt.setString(1, "{\"\\\\x01ff12\",\"\\\\x\",\"\\\\xace4\",NULL}");
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+
+    byte[][] out = (byte[][]) arr.getArray();
+
+    Assert.assertEquals(4, out.length);
+
+    Assert.assertArrayEquals(in[0], out[0]);
+    Assert.assertArrayEquals(in[1], out[1]);
+    Assert.assertArrayEquals(in[2], out[2]);
+    Assert.assertArrayEquals(in[3], out[3]);
+    Assert.assertNull(out[3]);
   }
 
   @Test
@@ -332,12 +393,12 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSetObjectFromJavaArray() throws SQLException {
-    String[] strArray = new String[]{"a", "b", "c"};
+    String[] strArray = new String[] { "a", "b", "c" };
     Object[] objCopy = Arrays.copyOf(strArray, strArray.length, Object[].class);
 
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
 
-    //cannot handle generic Object[]
+    // cannot handle generic Object[]
     try {
       pstmt.setObject(1, objCopy, Types.ARRAY);
       pstmt.executeUpdate();
@@ -541,13 +602,16 @@ public class ArrayTest extends BaseTest4 {
         Array doubles = rs.getArray(1);
         String actual = doubles.toString();
         if (actual != null) {
+          // if a binary array is provided, the string representation looks like [0:1][0:1]={{1,2},{3,4}}
+          int idx = actual.indexOf('=');
+          if (idx > 0) {
+            actual = actual.substring(idx + 1);
+          }
           // Remove all double quotes. They do not make a difference here.
           actual = actual.replaceAll("\"", "");
-          // Replace X.0 with just X
-          actual = actual.replaceAll("\\.0+([^0-9])", "$1");
         }
-        Assert.assertEquals("Array.toString should use square braces",
-            "{3.5,-4.5,NULL,77}", actual);
+        //the string format may vary based on how data stored
+        Assert.assertThat(actual, RegexMatcher.matchesPattern("\\{3\\.5,-4\\.5,NULL,77(.0)?\\}"));
       }
 
     } finally {
@@ -589,10 +653,34 @@ public class ArrayTest extends BaseTest4 {
     rs.next();
     Array resArray = rs.getArray(1);
     String stringValue = resArray.toString();
+    // if a binary array is provided, the string representation looks like [0:1][0:1]={{1,2},{3,4}}
+    int idx = stringValue.indexOf('=');
+    if (idx > 0) {
+      stringValue = stringValue.substring(idx + 1);
+    }
     // Both {{"1","2"},{"3","4"}} and {{1,2},{3,4}} are the same array representation
     stringValue = stringValue.replaceAll("\"", "");
     Assert.assertEquals("{{1,2},{3,4}}", stringValue);
     TestUtil.closeQuietly(rs);
     TestUtil.closeQuietly(ps);
+  }
+
+  @Test
+  public void insertAndQueryMultiDimArray() throws SQLException {
+    Array arr = con.createArrayOf("int4", new int[][] { { 1, 2 }, { 3, 4 } });
+    PreparedStatement insertPs = con.prepareStatement("INSERT INTO arrtest(intarr2) VALUES (?)");
+    insertPs.setArray(1, arr);
+    insertPs.execute();
+    insertPs.close();
+
+    PreparedStatement selectPs = con.prepareStatement("SELECT intarr2 FROM arrtest");
+    ResultSet rs = selectPs.executeQuery();
+    rs.next();
+
+    Array array = rs.getArray(1);
+    Integer[][] secondRowValues = (Integer[][]) array.getArray(2, 1);
+
+    Assert.assertEquals(3, secondRowValues[0][0].intValue());
+    Assert.assertEquals(4, secondRowValues[0][1].intValue());
   }
 }

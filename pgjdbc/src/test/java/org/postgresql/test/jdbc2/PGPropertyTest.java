@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
-
 public class PGPropertyTest {
 
   /**
@@ -75,6 +74,18 @@ public class PGPropertyTest {
           assertEquals(choice, property.get(properties));
         }
       }
+    }
+  }
+
+  @Test
+  public void testSortOrder() {
+    String prevName = null;
+    for (PGProperty property : PGProperty.values()) {
+      String name = property.name();
+      if (prevName != null) {
+        assertTrue("PGProperty names should be sorted in ascending order: " + name + " < " + prevName, name.compareTo(prevName) > 0);
+      }
+      prevName = name;
     }
   }
 

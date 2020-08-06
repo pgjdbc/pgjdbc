@@ -5,6 +5,8 @@
 
 package org.postgresql.core.v3.replication;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.copy.CopyDual;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
@@ -58,7 +60,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
 
     return new V3PGReplicationStream(
-        copyDual,
+        castNonNull(copyDual),
         options.getStartLSNPosition(),
         options.getStatusInterval(),
         replicationType
@@ -136,6 +138,4 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
     }
   }
-
-
 }

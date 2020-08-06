@@ -13,6 +13,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
@@ -25,6 +27,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private static final Logger LOGGER = Logger.getLogger(V3PGReplicationStream.class.getName());
   public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
+  private static final long NANOS_PER_MILLISECOND = 1000000L;
+
   private final CopyDual copyDual;
   private final long updateInterval;
   private final ReplicationType replicationType;
@@ -55,14 +59,14 @@ public class V3PGReplicationStream implements PGReplicationStream {
       ReplicationType replicationType
   ) {
     this.copyDual = copyDual;
-    this.updateInterval = updateIntervalMs;
-    this.lastStatusUpdate = System.currentTimeMillis() - updateIntervalMs;
+    this.updateInterval = updateIntervalMs * NANOS_PER_MILLISECOND;
+    this.lastStatusUpdate = System.nanoTime() - (updateIntervalMs * NANOS_PER_MILLISECOND);
     this.lastReceiveLSN = startLSN;
     this.replicationType = replicationType;
   }
 
   @Override
-  public ByteBuffer read() throws SQLException {
+  public @Nullable ByteBuffer read() throws SQLException {
     checkClose();
 
     ByteBuffer payload = null;
@@ -73,7 +77,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return payload;
   }
 
-  public ByteBuffer readPending() throws SQLException {
+  public @Nullable ByteBuffer readPending() throws SQLException {
     checkClose();
     return readInternal(false);
   }
@@ -114,14 +118,15 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return closeFlag || !copyDual.isActive();
   }
 
-  private ByteBuffer readInternal(boolean block) throws SQLException {
+  private @Nullable ByteBuffer readInternal(boolean block) throws SQLException {
     boolean updateStatusRequired = false;
     while (copyDual.isActive()) {
+
+      ByteBuffer buffer = receiveNextData(block);
+
       if (updateStatusRequired || isTimeUpdate()) {
         timeUpdateStatus();
       }
-
-      ByteBuffer buffer = receiveNextData(block);
 
       if (buffer == null) {
         return null;
@@ -150,7 +155,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return null;
   }
 
-  private ByteBuffer receiveNextData(boolean block) throws SQLException {
+  private @Nullable ByteBuffer receiveNextData(boolean block) throws SQLException {
     try {
       byte[] message = copyDual.readFromCopy(block);
       if (message != null) {
@@ -173,7 +178,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if ( updateInterval == 0 ) {
       return false;
     }
-    long diff = System.currentTimeMillis() - lastStatusUpdate;
+    long diff = System.nanoTime() - lastStatusUpdate;
     return diff >= updateInterval;
   }
 
@@ -189,14 +194,14 @@ public class V3PGReplicationStream implements PGReplicationStream {
     copyDual.writeToCopy(reply, 0, reply.length);
     copyDual.flushCopy();
 
-    lastStatusUpdate = System.currentTimeMillis();
+    lastStatusUpdate = System.nanoTime();
   }
 
   private byte[] prepareUpdateStatus(LogSequenceNumber received, LogSequenceNumber flushed,
       LogSequenceNumber applied, boolean replyRequired) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + 8 + 8 + 8 + 1);
 
-    long now = System.currentTimeMillis();
+    long now = System.nanoTime() / NANOS_PER_MILLISECOND;
     long systemClock = TimeUnit.MICROSECONDS.convert((now - POSTGRES_EPOCH_2000_01_01),
         TimeUnit.MICROSECONDS);
 

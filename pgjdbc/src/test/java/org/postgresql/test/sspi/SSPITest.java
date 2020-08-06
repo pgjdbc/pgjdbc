@@ -7,7 +7,6 @@ package org.postgresql.test.sspi;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
@@ -15,7 +14,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -44,9 +45,11 @@ public class SSPITest {
    * Tests that SSPI login succeeds and a query can be run.
    */
   @Test
+  @Ignore
   public void testAuthorized() throws Exception {
     Properties props = new Properties();
     props.setProperty("username", TestUtil.getSSPIUser());
+
     Connection con = TestUtil.openDB(props);
 
     Statement stmt = con.createStatement();
@@ -69,7 +72,7 @@ public class SSPITest {
       TestUtil.closeDB(con);
       fail("Expected a PSQLException");
     } catch (PSQLException e) {
-      assertThat(e.getSQLState(), is(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState()));
+      MatcherAssert.assertThat(e.getSQLState(), is(PSQLState.INVALID_PASSWORD.getState()));
     }
   }
 

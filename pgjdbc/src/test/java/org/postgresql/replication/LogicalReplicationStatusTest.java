@@ -13,6 +13,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -21,6 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+@Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
 public class LogicalReplicationStatusTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
@@ -335,7 +338,6 @@ public class LogicalReplicationStatusTest {
 
     receiveMessageWithoutBlock(stream, 1);
     stream.forceUpdateStatus();
-
 
     LogSequenceNumber flushed = getFlushLocationOnView();
     LogSequenceNumber applied = getReplayLocationOnView();

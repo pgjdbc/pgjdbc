@@ -5,8 +5,8 @@ header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
 resource: media
 previoustitle: Listen / Notify
 previous: listennotify.html
-nexttitle: Physical and Logical replication API
-next: replication.html
+nexttitle: Parameter Status Messages
+next: parameterstatus.html
 ---
 
 ### Motivation
@@ -24,6 +24,7 @@ sent (the query will be planned at execution), except if the query is executed s
 the planner decides that the generic plan is not too much more expensive than the specific plans.
 
 Server side prepared statements can improve execution speed as
+
 1. It sends just statement handle (e.g. `S_1`) instead of full SQL text
 1. It enables use of binary transfer (e.g. binary int4, binary timestamps, etc); the parameters and results are much faster to parse
 1. It enables the reuse server-side execution plan
@@ -100,6 +101,7 @@ That creates a problem for cases like
 That results in `cached plan must not change result type` error, and it causes the transaction to fail.
 
 The recommendation is:
+
 1. Use explicit column names in the SELECT list
 1. Avoid column type alters
 
@@ -110,6 +112,7 @@ the following server-side error message: `prepared statement name is invalid`.
 Of course it could defeat pgjdbc, however there are cases when you need to discard statements (e.g. after lots of DDLs)
 
 The recommendation is:
+
 1. Use simple `DEALLOCATE ALL` and/or `DISCARD ALL` commands, avoid nesting the commands into pl/pgsql or alike. The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalidates client-side cache as well
 1. Reconnect. The cache is per connection, so it would get invalidated if you reconnect
 
@@ -128,6 +131,7 @@ Server side prepared statements are linked to database object IDs, so it could f
 `search_path` changes, and it invalidates prepare cache accordingly.
 
 The recommendation is:
+
 1. Avoid changing `search_path` often, as it invalidates server side prepared statements
 1. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise
 pgjdbc won't be able to identify `search_path` change

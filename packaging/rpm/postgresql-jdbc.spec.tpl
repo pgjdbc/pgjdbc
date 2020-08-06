@@ -36,11 +36,6 @@
 
 %global section		devel
 %global source_path	pgjdbc/src/main/java/org/postgresql
-%global parent_ver	GENERATED
-%global parent_poms_builddir	./pgjdbc-parent-poms
-
-%global pgjdbc_mvn_options -DwaffleEnabled=false -DosgiEnabled=false \\\
-	-DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi
 
 Summary:	JDBC driver for PostgreSQL
 Name:		postgresql-jdbc
@@ -49,26 +44,24 @@ Release:	GENERATED
 License:	BSD
 URL:		http://jdbc.postgresql.org/
 
-Source0:	https://github.com/pgjdbc/pgjdbc/archive/REL%{version}/pgjdbc-REL%{version}.tar.gz
+# This archive contains the minimal set of files + pom.xml that can be used to build postgresql.jar
+Source0:    https://repo1.maven.org/maven2/org/postgresql/postgresql/%{version}/postgresql-%{version}-jdbc-src.tar.gz
 Provides:	pgjdbc = %version-%release
-
-# Upstream moved parent pom.xml into separate project (even though there is only
-# one dependant project on it?).  Let's try to not complicate packaging by
-# having separate spec file for it, too.
-Source1:	https://github.com/pgjdbc/pgjdbc-parent-poms/archive/REL%parent_ver/pgjdbc-parent-poms-REL%{parent_ver}.tar.gz
 
 BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
 BuildRequires:	java-comment-preprocessor
-BuildRequires:	properties-maven-plugin
-BuildRequires:	maven-enforcer-plugin
 BuildRequires:	maven-plugin-bundle
-BuildRequires:	maven-plugin-build-helper
 BuildRequires:	classloader-leak-test-framework
 
 BuildRequires:	mvn(com.ongres.scram:client)
 BuildRequires:	mvn(org.apache.maven.plugins:maven-clean-plugin)
+BuildRequires:	mvn(org.apache.maven.surefire:surefire-junit-platform)
+BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-api)
+BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-engine)
+BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-params)
+BuildRequires:	mvn(org.junit.vintage:junit-vintage-engine)
 
 %if %runselftest
 BuildRequires:	postgresql-contrib
@@ -94,35 +87,21 @@ This package contains the API Documentation for %{name}.
 
 
 %prep
-%setup -c -q -a 1
+%setup -c -q
 
-mv pgjdbc-REL%version/* .
-mv pgjdbc-parent-poms-REL%parent_ver pgjdbc-parent-poms
+mv postgresql-%{version}-jdbc-src/* .
 
 # remove any binary libs
-find -name "*.jar" -or -name "*.class" | xargs rm -f
+find -type f \( -name "*.jar" -or -name "*.class" \) | xargs rm -f
 
-# Build parent POMs in the same Maven call.
-%pom_xpath_inject pom:modules "<module>%parent_poms_builddir</module>"
-%pom_xpath_inject pom:parent "<relativePath>pgjdbc-parent-poms/pgjdbc-versions</relativePath>"
-%pom_xpath_set pom:relativePath ../pgjdbc-parent-poms/pgjdbc-core-parent pgjdbc
-%pom_xpath_remove "pom:plugin[pom:artifactId = 'maven-shade-plugin']" pgjdbc
+%pom_xpath_remove "pom:plugin[pom:artifactId = 'maven-shade-plugin']"
 
 # compat symlink: requested by dtardon (libreoffice), reverts part of
 # 0af97ce32de877 commit.
 %mvn_file org.postgresql:postgresql %{name}/postgresql %{name} postgresql
 
-# Parent POMs should not be installed.
-%mvn_package ":*{parent,versions,prevjre}*" __noinstall
-
 # For compat reasons, make Maven artifact available under older coordinates.
 %mvn_alias org.postgresql:postgresql postgresql:postgresql
-
-# Hack #1!  This directory is missing for some reason, it is most probably some
-# misunderstanding between maven, maven-compiler-plugin and
-# java-comment-preprocessor?  Not solved yet.  See rhbz#1325060.
-mkdir -p pgjdbc/target/generated-sources/annotations
-
 
 %build
 # Ideally we would run "sh update-translations.sh" here, but that results
@@ -157,7 +136,7 @@ EOF
 opts="-f"
 %endif
 
-%mvn_build $opts -- %pgjdbc_mvn_options
+%mvn_build $opts
 
 
 %install
@@ -174,5 +153,7 @@ opts="-f"
 
 
 %changelog
+* Tue Mar 03 2020 Vladimir Sitnikov <sitnikov.vladimir@gmail.com>
+- Adapted to building from the source release
 * Wed Nov 29 2017 Pavel Raiskup <praiskup@redhat.com> - 9.5.git
 - no changelog in this spec file (upstream git)

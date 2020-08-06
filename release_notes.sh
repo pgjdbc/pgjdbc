@@ -1,8 +1,8 @@
 #!/bin/bash
 
 
-CURRENT_VERSION=`mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\['`
-VERS=${CURRENT_VERSION/-SNAPSHOT}
+CURRENT_VERSION=`grep pgjdbc.version gradle.properties`
+VERS=${CURRENT_VERSION#"pgjdbc.version="}
 DATE_YMD=$(date '+%Y-%m-%d')
 RELEASE_FILE=$(find docs/_posts -name "*-$VERS-release.md" | head -n 1)
 if [[ "x$RELEASE_FILE" == "x" ]]; then

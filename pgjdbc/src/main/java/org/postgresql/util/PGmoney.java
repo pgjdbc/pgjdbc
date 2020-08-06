@@ -3,8 +3,9 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
@@ -26,6 +27,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     val = value;
   }
 
+  @SuppressWarnings("method.invocation.invalid")
   public PGmoney(String value) throws SQLException {
     this();
     setValue(value);
@@ -35,7 +37,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
    * Required by the driver
    */
   public PGmoney() {
-    setType("money");
+    type = "money";
   }
 
   public void setValue(String s) throws SQLException {
@@ -74,7 +76,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     return result;
   }
 
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGmoney) {
       PGmoney p = (PGmoney) obj;
       return val == p.val;

@@ -21,7 +21,6 @@ public class ReplaceProcessingTest extends BaseTest4 {
   @Parameterized.Parameter(1)
   public String expected;
 
-
   @Parameterized.Parameters(name = "input={0}, expected={1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
@@ -39,7 +38,6 @@ public class ReplaceProcessingTest extends BaseTest4 {
         // {"{fn timestampadd(SQL_TSI_FRAC_SECOND, ?, {fn now()})}", "(CAST( $1||' second' as interval)+ now())"},
     });
   }
-
 
   @Test
   public void run() throws SQLException {

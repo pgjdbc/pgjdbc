@@ -24,7 +24,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
-  ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples) throws SQLException;
+  ResultSet createDriverResultSet(Field[] fields, List<Tuple> tuples) throws SQLException;
 
   /**
    * Create a resultset from data retrieved from the server.
@@ -38,7 +38,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
-  ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
+  ResultSet createResultSet(Query originalQuery, Field[] fields, List<Tuple> tuples,
       ResultCursor cursor) throws SQLException;
 
   /**

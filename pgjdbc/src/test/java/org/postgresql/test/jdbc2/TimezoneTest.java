@@ -417,7 +417,6 @@ public class TimezoneTest {
     }
   }
 
-
   @Test
   public void testSetTimestamp() throws Exception {
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
@@ -836,6 +835,9 @@ public class TimezoneTest {
         "2000-03-26 01:59:59", "2000-03-26 02:00:00", "2000-03-26 02:00:01", "2000-03-26 02:59:59",
         "2000-03-26 03:00:00", "2000-03-26 03:00:01", "2000-03-26 03:59:59", "2000-03-26 04:00:00",
         "2000-03-26 04:00:01",
+
+        // This is a pre-1970 date, so check if it is rounded properly
+        "1950-07-20 02:00:00",
 
         // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
         "2000-10-29 01:59:59", "2000-10-29 02:00:00", "2000-10-29 02:00:01", "2000-10-29 02:59:59",

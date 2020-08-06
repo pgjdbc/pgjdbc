@@ -6,10 +6,15 @@
 package org.postgresql.test;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
+import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.PSQLException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 
 import java.io.File;
@@ -166,6 +171,13 @@ public class TestUtil {
   }
 
   /*
+   *  Return the GSSEncMode for the tests
+   */
+  public static GSSEncMode getGSSEncMode() throws PSQLException {
+    return GSSEncMode.of(System.getProperties());
+  }
+
+  /*
    * Returns the user for SSPI authentication tests
    */
   public static String getSSPIUser() {
@@ -294,6 +306,8 @@ public class TestUtil {
   public static Connection openPrivilegedDB() throws SQLException {
     initDriver();
     Properties properties = new Properties();
+
+    PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
     properties.setProperty("user", getPrivilegedUser());
     properties.setProperty("password", getPrivilegedPassword());
     return DriverManager.getConnection(getURL(), properties);
@@ -349,13 +363,16 @@ public class TestUtil {
     String hostport = props.getProperty(SERVER_HOST_PORT_PROP, getServer() + ":" + getPort());
     String database = props.getProperty(DATABASE_PROP, getDatabase());
 
+    // Set GSSEncMode for tests
+    PGProperty.GSS_ENC_MODE.set(props,getGSSEncMode().value);
+
     return DriverManager.getConnection(getURL(hostport, database), props);
   }
 
   /*
    * Helper - closes an open connection.
    */
-  public static void closeDB(Connection con) throws SQLException {
+  public static void closeDB(@Nullable Connection con) throws SQLException {
     if (con != null) {
       con.close();
     }
@@ -437,6 +454,26 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a unlogged table for use by a test.
+   * Unlogged tables works from PostgreSQL 9.1+
+   */
+  public static void createUnloggedTable(Connection con, String table, String columns)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the table
+      dropTable(con, table);
+
+      String unlogged = haveMinimumServerVersion(con, ServerVersion.v9_1) ? "UNLOGGED" : "";
+
+      // Now create the table
+      st.executeUpdate("CREATE " + unlogged + " TABLE " + table + " (" + columns + ")");
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
   /**
    * Helper creates an enum type.
    *
@@ -450,7 +487,6 @@ public class TestUtil {
     Statement st = con.createStatement();
     try {
       dropType(con, name);
-
 
       // Now create the table
       st.executeUpdate("create type " + name + " as enum (" + values + ")");
@@ -599,6 +635,11 @@ public class TestUtil {
       closeQuietly(rs);
       closeQuietly(ps);
     }
+  }
+
+  public static void assertTransactionState(String message, Connection con, TransactionState expected) {
+    TransactionState actual = TestUtil.getTransactionState(con);
+    Assert.assertEquals(message, expected, actual);
   }
 
   /*
@@ -787,7 +828,7 @@ public class TestUtil {
   /**
    * Close a Connection and ignore any errors during closing.
    */
-  public static void closeQuietly(Connection conn) {
+  public static void closeQuietly(@Nullable Connection conn) {
     if (conn != null) {
       try {
         conn.close();
@@ -799,7 +840,7 @@ public class TestUtil {
   /**
    * Close a Statement and ignore any errors during closing.
    */
-  public static void closeQuietly(Statement stmt) {
+  public static void closeQuietly(@Nullable Statement stmt) {
     if (stmt != null) {
       try {
         stmt.close();
@@ -811,7 +852,7 @@ public class TestUtil {
   /**
    * Close a ResultSet and ignore any errors during closing.
    */
-  public static void closeQuietly(ResultSet rs) {
+  public static void closeQuietly(@Nullable ResultSet rs) {
     if (rs != null) {
       try {
         rs.close();
@@ -897,6 +938,73 @@ public class TestUtil {
     }
   }
 
+  /**
+   * Execute a SQL query with a given connection and return whether any rows were
+   * returned. No column data is fetched.
+   */
+  public static boolean executeQuery(Connection conn, String sql) throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery(sql);
+    boolean hasNext = rs.next();
+    rs.close();
+    stmt.close();
+    return hasNext;
+  }
+
+  /**
+   * Retrieve the backend process id for a given connection.
+   */
+  public static int getBackendPid(Connection conn) throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid()");
+    rs.next();
+    int pid = rs.getInt(1);
+    rs.close();
+    stmt.close();
+    return pid;
+  }
+
+  /**
+   * Executed pg_terminate_backend(...) to terminate the server process for
+   * a given process id with the given connection.
+   */
+  public static boolean terminateBackend(Connection conn, int backendPid) throws SQLException {
+    PreparedStatement stmt = conn.prepareStatement("SELECT pg_terminate_backend(?)");
+    stmt.setInt(1, backendPid);
+    ResultSet rs = stmt.executeQuery();
+    rs.next();
+    boolean wasTerminated = rs.getBoolean(1);
+    rs.close();
+    stmt.close();
+    return wasTerminated;
+  }
+
+  /**
+   * Create a new connection using the default test credentials and use it to
+   * attempt to terminate the specified backend process.
+   */
+  public static boolean terminateBackend(int backendPid) throws SQLException {
+    Connection conn = TestUtil.openPrivilegedDB();
+    try {
+      return terminateBackend(conn, backendPid);
+    } finally {
+      conn.close();
+    }
+  }
+
+  /**
+   * Retrieve the given connection backend process id, then create a new connection
+   * using the default test credentials and attempt to terminate the process.
+   */
+  public static boolean terminateBackend(Connection conn) throws SQLException {
+    int pid = getBackendPid(conn);
+    return terminateBackend(pid);
+  }
+
+  public static TransactionState getTransactionState(Connection conn) {
+    return ((BaseConnection) conn).getTransactionState();
+  }
+
   private static void waitStopReplicationSlot(Connection connection, String slotName)
       throws InterruptedException, TimeoutException, SQLException {
     long startWaitTime = System.currentTimeMillis();
@@ -913,6 +1021,18 @@ public class TestUtil {
 
     if (stillActive) {
       throw new TimeoutException("Wait stop replication slot " + timeInWait + " timeout occurs");
+    }
+  }
+
+  public static void execute(String sql, Connection connection) throws SQLException {
+    Statement stmt = connection.createStatement();
+    try {
+      stmt.execute(sql);
+    } finally {
+      try {
+        stmt.close();
+      } catch (SQLException e) {
+      }
     }
   }
 }

@@ -9,6 +9,8 @@ package org.postgresql.core.v3;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.Utils;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.ref.PhantomReference;
 
 /**
@@ -18,7 +20,7 @@ import java.lang.ref.PhantomReference;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class Portal implements ResultCursor {
-  Portal(SimpleQuery query, String portalName) {
+  Portal(@Nullable SimpleQuery query, String portalName) {
     this.query = query;
     this.portalName = portalName;
     this.encodedName = Utils.encodeUTF8(portalName);
@@ -40,7 +42,7 @@ class Portal implements ResultCursor {
     return encodedName;
   }
 
-  SimpleQuery getQuery() {
+  @Nullable SimpleQuery getQuery() {
     return query;
   }
 
@@ -58,8 +60,8 @@ class Portal implements ResultCursor {
   // be closed while the portal is open (the backend closes
   // all open portals when the statement is closed)
 
-  private final SimpleQuery query;
+  private final @Nullable SimpleQuery query;
   private final String portalName;
   private final byte[] encodedName;
-  private PhantomReference<?> cleanupRef;
+  private @Nullable PhantomReference<?> cleanupRef;
 }

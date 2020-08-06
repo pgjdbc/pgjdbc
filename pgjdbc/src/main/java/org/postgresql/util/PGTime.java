@@ -3,8 +3,9 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.PreparedStatement;
 import java.sql.Time;
@@ -22,7 +23,7 @@ public class PGTime extends Time {
   /**
    * The optional calendar for this time.
    */
-  private Calendar calendar;
+  private @Nullable Calendar calendar;
 
   /**
    * Constructs a <code>PGTime</code> without a time zone.
@@ -47,9 +48,9 @@ public class PGTime extends Time {
    * @param calendar the calendar object containing the time zone or <code>null</code>.
    * @see Time#Time(long)
    */
-  public PGTime(long time, Calendar calendar) {
+  public PGTime(long time, @Nullable Calendar calendar) {
     super(time);
-    this.setCalendar(calendar);
+    this.calendar = calendar;
   }
 
   /**
@@ -57,7 +58,7 @@ public class PGTime extends Time {
    *
    * @param calendar the calendar object or <code>null</code>.
    */
-  public void setCalendar(Calendar calendar) {
+  public void setCalendar(@Nullable Calendar calendar) {
     this.calendar = calendar;
   }
 
@@ -66,7 +67,7 @@ public class PGTime extends Time {
    *
    * @return the calendar or <code>null</code>.
    */
-  public Calendar getCalendar() {
+  public @Nullable Calendar getCalendar() {
     return calendar;
   }
 
@@ -79,32 +80,28 @@ public class PGTime extends Time {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
+  public boolean equals(@Nullable Object o) {
+    if (this == o) {
       return true;
     }
-    if (!super.equals(obj)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    if (!(obj instanceof PGTime)) {
+    if (!super.equals(o)) {
       return false;
     }
-    PGTime other = (PGTime) obj;
-    if (calendar == null) {
-      if (other.calendar != null) {
-        return false;
-      }
-    } else if (!calendar.equals(other.calendar)) {
-      return false;
-    }
-    return true;
+
+    PGTime pgTime = (PGTime) o;
+
+    return calendar != null ? calendar.equals(pgTime.calendar) : pgTime.calendar == null;
   }
 
   @Override
   public Object clone() {
     PGTime clone = (PGTime) super.clone();
-    if (getCalendar() != null) {
-      clone.setCalendar((Calendar) getCalendar().clone());
+    Calendar calendar = getCalendar();
+    if (calendar != null) {
+      clone.setCalendar((Calendar) calendar.clone());
     }
     return clone;
   }

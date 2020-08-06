@@ -16,6 +16,7 @@ next: geometric.html
 * [Large Objects](largeobjects.html)
 * [Listen / Notify](listennotify.html)
 * [Server Prepared Statements](server-prepare.html)
+* [Parameter Status Messages](parameterstatus.html)
 * [Physical and Logical replication API](replication.html)
 * [Arrays](arrays.html)
 
@@ -29,7 +30,7 @@ actually use these extensions to implement Large Objects, etc.
 # Accessing the Extensions
 
 To access some of the extensions, you need to use some extra methods in the
-`org.postgresql.PGConnection` class. In this case, you would need to case the
+`org.postgresql.PGConnection` class. In this case, you would need to cast the
 return value of `Driver.getConnection()`. For example:
 
 ```java

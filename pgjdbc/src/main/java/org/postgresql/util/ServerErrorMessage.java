@@ -3,10 +3,11 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 import org.postgresql.core.EncodingPredictor;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -15,7 +16,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerErrorMessage implements Serializable {
-
   private static final Logger LOGGER = Logger.getLogger(ServerErrorMessage.class.getName());
 
   private static final Character SEVERITY = 'S';
@@ -68,23 +68,23 @@ public class ServerErrorMessage implements Serializable {
     }
   }
 
-  public String getSQLState() {
+  public @Nullable String getSQLState() {
     return mesgParts.get(SQLSTATE);
   }
 
-  public String getMessage() {
+  public @Nullable String getMessage() {
     return mesgParts.get(MESSAGE);
   }
 
-  public String getSeverity() {
+  public @Nullable String getSeverity() {
     return mesgParts.get(SEVERITY);
   }
 
-  public String getDetail() {
+  public @Nullable String getDetail() {
     return mesgParts.get(DETAIL);
   }
 
-  public String getHint() {
+  public @Nullable String getHint() {
     return mesgParts.get(HINT);
   }
 
@@ -92,31 +92,31 @@ public class ServerErrorMessage implements Serializable {
     return getIntegerPart(POSITION);
   }
 
-  public String getWhere() {
+  public @Nullable String getWhere() {
     return mesgParts.get(WHERE);
   }
 
-  public String getSchema() {
+  public @Nullable String getSchema() {
     return mesgParts.get(SCHEMA);
   }
 
-  public String getTable() {
+  public @Nullable String getTable() {
     return mesgParts.get(TABLE);
   }
 
-  public String getColumn() {
+  public @Nullable String getColumn() {
     return mesgParts.get(COLUMN);
   }
 
-  public String getDatatype() {
+  public @Nullable String getDatatype() {
     return mesgParts.get(DATATYPE);
   }
 
-  public String getConstraint() {
+  public @Nullable String getConstraint() {
     return mesgParts.get(CONSTRAINT);
   }
 
-  public String getFile() {
+  public @Nullable String getFile() {
     return mesgParts.get(FILE);
   }
 
@@ -124,11 +124,11 @@ public class ServerErrorMessage implements Serializable {
     return getIntegerPart(LINE);
   }
 
-  public String getRoutine() {
+  public @Nullable String getRoutine() {
     return mesgParts.get(ROUTINE);
   }
 
-  public String getInternalQuery() {
+  public @Nullable String getInternalQuery() {
     return mesgParts.get(INTERNAL_QUERY);
   }
 
@@ -142,6 +142,19 @@ public class ServerErrorMessage implements Serializable {
       return 0;
     }
     return Integer.parseInt(s);
+  }
+
+  String getNonSensitiveErrorMessage() {
+    StringBuilder totalMessage = new StringBuilder();
+    String message = mesgParts.get(SEVERITY);
+    if (message != null) {
+      totalMessage.append(message).append(": ");
+    }
+    message = mesgParts.get(MESSAGE);
+    if (message != null) {
+      totalMessage.append(message);
+    }
+    return totalMessage.toString();
   }
 
   public String toString() {

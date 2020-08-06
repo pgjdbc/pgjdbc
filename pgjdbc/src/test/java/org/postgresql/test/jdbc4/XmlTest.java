@@ -15,7 +15,6 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
-
 import org.w3c.dom.Node;
 
 import java.io.IOException;
@@ -58,7 +57,6 @@ public class XmlTest extends BaseTest4 {
 
   private final Transformer xslTransformer;
   private final Transformer identityTransformer;
-
 
   public XmlTest() throws Exception {
     TransformerFactory factory = TransformerFactory.newInstance();
@@ -396,4 +394,3 @@ public class XmlTest extends BaseTest4 {
   }
 
 }
-

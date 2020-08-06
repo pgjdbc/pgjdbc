@@ -6,6 +6,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.copy.CopyIn;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -32,17 +33,20 @@ import java.sql.SQLException;
  * CopyInImpl.getUpdatedRowCount()</p>
  */
 public class CopyInImpl extends CopyOperationImpl implements CopyIn {
-
   public void writeToCopy(byte[] data, int off, int siz) throws SQLException {
-    queryExecutor.writeToCopy(this, data, off, siz);
+    getQueryExecutor().writeToCopy(this, data, off, siz);
+  }
+
+  public void writeToCopy(ByteStreamWriter from) throws SQLException {
+    getQueryExecutor().writeToCopy(this, from);
   }
 
   public void flushCopy() throws SQLException {
-    queryExecutor.flushCopy(this);
+    getQueryExecutor().flushCopy(this);
   }
 
   public long endCopy() throws SQLException {
-    return queryExecutor.endCopy(this);
+    return getQueryExecutor().endCopy(this);
   }
 
   protected void handleCopydata(byte[] data) throws PSQLException {

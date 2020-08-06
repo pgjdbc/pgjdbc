@@ -14,10 +14,15 @@ import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
+
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +43,7 @@ class SimpleParameterList implements V3ParameterList {
   private static final byte TEXT = 0;
   private static final byte BINARY = 4;
 
-  SimpleParameterList(int paramCount, TypeTransferModeRegistry transferModeRegistry) {
+  SimpleParameterList(int paramCount, @Nullable TypeTransferModeRegistry transferModeRegistry) {
     this.paramValues = new Object[paramCount];
     this.paramTypes = new int[paramCount];
     this.encoded = new byte[paramCount][];
@@ -84,11 +89,11 @@ class SimpleParameterList implements V3ParameterList {
     pos = index + 1;
   }
 
-  public int getParameterCount() {
+  public @NonNegative int getParameterCount() {
     return paramValues.length;
   }
 
-  public int getOutParameterCount() {
+  public @NonNegative int getOutParameterCount() {
     int count = 0;
     for (int i = 0; i < paramTypes.length; i++) {
       if ((direction(i) & OUT) == OUT) {
@@ -103,7 +108,7 @@ class SimpleParameterList implements V3ParameterList {
 
   }
 
-  public int getInParameterCount() {
+  public @NonNegative int getInParameterCount() {
     int count = 0;
     for (int i = 0; i < paramTypes.length; i++) {
       if (direction(i) != OUT) {
@@ -113,87 +118,93 @@ class SimpleParameterList implements V3ParameterList {
     return count;
   }
 
-  public void setIntParameter(int index, int value) throws SQLException {
+  public void setIntParameter(@Positive int index, int value) throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, value);
     bind(index, data, Oid.INT4, BINARY);
   }
 
-  public void setLiteralParameter(int index, String value, int oid) throws SQLException {
+  public void setLiteralParameter(@Positive int index, String value, int oid) throws SQLException {
     bind(index, value, oid, TEXT);
   }
 
-  public void setStringParameter(int index, String value, int oid) throws SQLException {
+  public void setStringParameter(@Positive int index, String value, int oid) throws SQLException {
     bind(index, value, oid, TEXT);
   }
 
-  public void setBinaryParameter(int index, byte[] value, int oid) throws SQLException {
+  public void setBinaryParameter(@Positive int index, byte[] value, int oid) throws SQLException {
     bind(index, value, oid, BINARY);
   }
 
   @Override
-  public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
+  public void setBytea(@Positive int index, byte[] data, int offset, @NonNegative int length) throws SQLException {
     bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA, BINARY);
   }
 
   @Override
-  public void setBytea(int index, InputStream stream, int length) throws SQLException {
+  public void setBytea(@Positive int index, InputStream stream, @NonNegative int length) throws SQLException {
     bind(index, new StreamWrapper(stream, length), Oid.BYTEA, BINARY);
   }
 
   @Override
-  public void setBytea(int index, InputStream stream) throws SQLException {
+  public void setBytea(@Positive int index, InputStream stream) throws SQLException {
     bind(index, new StreamWrapper(stream), Oid.BYTEA, BINARY);
   }
 
   @Override
-  public void setText(int index, InputStream stream) throws SQLException {
+  public void setBytea(@Positive int index, ByteStreamWriter writer) throws SQLException {
+    bind(index, writer, Oid.BYTEA, BINARY);
+  }
+
+  @Override
+  public void setText(@Positive int index, InputStream stream) throws SQLException {
     bind(index, new StreamWrapper(stream), Oid.TEXT, TEXT);
   }
 
   @Override
-  public void setNull(int index, int oid) throws SQLException {
+  public void setNull(@Positive int index, int oid) throws SQLException {
 
     byte binaryTransfer = TEXT;
 
-    if (transferModeRegistry.useBinaryForReceive(oid)) {
+    if (transferModeRegistry != null && transferModeRegistry.useBinaryForReceive(oid)) {
       binaryTransfer = BINARY;
     }
     bind(index, NULL_OBJECT, oid, binaryTransfer);
   }
 
   @Override
-  public String toString(int index, boolean standardConformingStrings) {
+  public String toString(@Positive int index, boolean standardConformingStrings) {
     --index;
-    if (paramValues[index] == null) {
+    Object paramValue = paramValues[index];
+    if (paramValue == null) {
       return "?";
-    } else if (paramValues[index] == NULL_OBJECT) {
+    } else if (paramValue == NULL_OBJECT) {
       return "NULL";
     } else if ((flags[index] & BINARY) == BINARY) {
       // handle some of the numeric types
 
       switch (paramTypes[index]) {
         case Oid.INT2:
-          short s = ByteConverter.int2((byte[]) paramValues[index], 0);
+          short s = ByteConverter.int2((byte[]) paramValue, 0);
           return Short.toString(s);
 
         case Oid.INT4:
-          int i = ByteConverter.int4((byte[]) paramValues[index], 0);
+          int i = ByteConverter.int4((byte[]) paramValue, 0);
           return Integer.toString(i);
 
         case Oid.INT8:
-          long l = ByteConverter.int8((byte[]) paramValues[index], 0);
+          long l = ByteConverter.int8((byte[]) paramValue, 0);
           return Long.toString(l);
 
         case Oid.FLOAT4:
-          float f = ByteConverter.float4((byte[]) paramValues[index], 0);
+          float f = ByteConverter.float4((byte[]) paramValue, 0);
           if (Float.isNaN(f)) {
             return "'NaN'::real";
           }
           return Float.toString(f);
 
         case Oid.FLOAT8:
-          double d = ByteConverter.float8((byte[]) paramValues[index], 0);
+          double d = ByteConverter.float8((byte[]) paramValue, 0);
           if (Double.isNaN(d)) {
             return "'NaN'::double precision";
           }
@@ -201,22 +212,22 @@ class SimpleParameterList implements V3ParameterList {
 
         case Oid.UUID:
           String uuid =
-              new UUIDArrayAssistant().buildElement((byte[]) paramValues[index], 0, 16).toString();
+              new UUIDArrayAssistant().buildElement((byte[]) paramValue, 0, 16).toString();
           return "'" + uuid + "'::uuid";
 
         case Oid.POINT:
           PGpoint pgPoint = new PGpoint();
-          pgPoint.setByteValue((byte[]) paramValues[index], 0);
+          pgPoint.setByteValue((byte[]) paramValue, 0);
           return "'" + pgPoint.toString() + "'::point";
 
         case Oid.BOX:
           PGbox pgBox = new PGbox();
-          pgBox.setByteValue((byte[]) paramValues[index], 0);
+          pgBox.setByteValue((byte[]) paramValue, 0);
           return "'" + pgBox.toString() + "'::box";
       }
       return "?";
     } else {
-      String param = paramValues[index].toString();
+      String param = paramValue.toString();
 
       // add room for quotes + potential escaping.
       StringBuilder p = new StringBuilder(3 + (param.length() + 10) / 10 * 11);
@@ -291,6 +302,14 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
   }
 
+  //
+  // byte stream writer support
+  //
+
+  private static void streamBytea(PGStream pgStream, ByteStreamWriter writer) throws IOException {
+    pgStream.send(writer);
+  }
+
   public int[] getTypeOIDs() {
     return paramTypes;
   }
@@ -299,7 +318,7 @@ class SimpleParameterList implements V3ParameterList {
   // Package-private V3 accessors
   //
 
-  int getTypeOID(int index) {
+  int getTypeOID(@Positive int index) {
     return paramTypes[index - 1];
   }
 
@@ -312,7 +331,7 @@ class SimpleParameterList implements V3ParameterList {
     return false;
   }
 
-  void setResolvedType(int index, int oid) {
+  void setResolvedType(@Positive int index, int oid) {
     // only allow overwriting an unknown value
     if (paramTypes[index - 1] == Oid.UNSPECIFIED) {
       paramTypes[index - 1] = oid;
@@ -322,72 +341,85 @@ class SimpleParameterList implements V3ParameterList {
     }
   }
 
-  boolean isNull(int index) {
+  boolean isNull(@Positive int index) {
     return (paramValues[index - 1] == NULL_OBJECT);
   }
 
-  boolean isBinary(int index) {
+  boolean isBinary(@Positive int index) {
     return (flags[index - 1] & BINARY) != 0;
   }
 
-  private byte direction(int index) {
+  private byte direction(@Positive int index) {
     return (byte) (flags[index] & INOUT);
   }
 
-  int getV3Length(int index) {
+  int getV3Length(@Positive int index) {
     --index;
 
     // Null?
-    if (paramValues[index] == NULL_OBJECT) {
+    Object value = paramValues[index];
+    if (value == null || value == NULL_OBJECT) {
       throw new IllegalArgumentException("can't getV3Length() on a null parameter");
     }
 
     // Directly encoded?
-    if (paramValues[index] instanceof byte[]) {
-      return ((byte[]) paramValues[index]).length;
+    if (value instanceof byte[]) {
+      return ((byte[]) value).length;
     }
 
     // Binary-format bytea?
-    if (paramValues[index] instanceof StreamWrapper) {
-      return ((StreamWrapper) paramValues[index]).getLength();
+    if (value instanceof StreamWrapper) {
+      return ((StreamWrapper) value).getLength();
+    }
+
+    // Binary-format bytea?
+    if (value instanceof ByteStreamWriter) {
+      return ((ByteStreamWriter) value).getLength();
     }
 
     // Already encoded?
-    if (encoded[index] == null) {
+    byte[] encoded = this.encoded[index];
+    if (encoded == null) {
       // Encode value and compute actual length using UTF-8.
-      encoded[index] = Utils.encodeUTF8(paramValues[index].toString());
+      this.encoded[index] = encoded = Utils.encodeUTF8(value.toString());
     }
 
-    return encoded[index].length;
+    return encoded.length;
   }
 
-  void writeV3Value(int index, PGStream pgStream) throws IOException {
+  void writeV3Value(@Positive int index, PGStream pgStream) throws IOException {
     --index;
 
     // Null?
-    if (paramValues[index] == NULL_OBJECT) {
+    Object paramValue = paramValues[index];
+    if (paramValue == null || paramValue == NULL_OBJECT) {
       throw new IllegalArgumentException("can't writeV3Value() on a null parameter");
     }
 
     // Directly encoded?
-    if (paramValues[index] instanceof byte[]) {
-      pgStream.send((byte[]) paramValues[index]);
+    if (paramValue instanceof byte[]) {
+      pgStream.send((byte[]) paramValue);
       return;
     }
 
     // Binary-format bytea?
-    if (paramValues[index] instanceof StreamWrapper) {
-      streamBytea(pgStream, (StreamWrapper) paramValues[index]);
+    if (paramValue instanceof StreamWrapper) {
+      streamBytea(pgStream, (StreamWrapper) paramValue);
+      return;
+    }
+
+    // Streamed bytea?
+    if (paramValue instanceof ByteStreamWriter) {
+      streamBytea(pgStream, (ByteStreamWriter) paramValue);
       return;
     }
 
     // Encoded string.
     if (encoded[index] == null) {
-      encoded[index] = Utils.encodeUTF8((String) paramValues[index]);
+      encoded[index] = Utils.encodeUTF8((String) paramValue);
     }
     pgStream.send(encoded[index]);
   }
-
 
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
@@ -406,11 +438,11 @@ class SimpleParameterList implements V3ParameterList {
     pos = 0;
   }
 
-  public SimpleParameterList[] getSubparams() {
+  public SimpleParameterList @Nullable [] getSubparams() {
     return null;
   }
 
-  public Object[] getValues() {
+  public @Nullable Object[] getValues() {
     return paramValues;
   }
 
@@ -422,7 +454,7 @@ class SimpleParameterList implements V3ParameterList {
     return flags;
   }
 
-  public byte[][] getEncoding() {
+  public byte[] @Nullable [] getEncoding() {
     return encoded;
   }
 
@@ -464,11 +496,11 @@ class SimpleParameterList implements V3ParameterList {
     return ts.toString();
   }
 
-  private final Object[] paramValues;
+  private final @Nullable Object[] paramValues;
   private final int[] paramTypes;
   private final byte[] flags;
-  private final byte[][] encoded;
-  private final TypeTransferModeRegistry transferModeRegistry;
+  private final byte[] @Nullable [] encoded;
+  private final @Nullable TypeTransferModeRegistry transferModeRegistry;
 
   /**
    * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
@@ -478,4 +510,3 @@ class SimpleParameterList implements V3ParameterList {
 
   private int pos = 0;
 }
-

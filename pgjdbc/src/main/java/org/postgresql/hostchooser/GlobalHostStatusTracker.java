@@ -5,9 +5,9 @@
 
 package org.postgresql.hostchooser;
 
-import static java.lang.System.currentTimeMillis;
-
 import org.postgresql.util.HostSpec;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,7 +28,7 @@ public class GlobalHostStatusTracker {
    * @param hostStatus Latest known status for the host.
    */
   public static void reportHostStatus(HostSpec hostSpec, HostStatus hostStatus) {
-    long now = currentTimeMillis();
+    long now = System.nanoTime() / 1000000;
     synchronized (hostStatusMap) {
       HostSpecStatus hostSpecStatus = hostStatusMap.get(hostSpec);
       if (hostSpecStatus == null) {
@@ -51,7 +51,7 @@ public class GlobalHostStatusTracker {
   static List<HostSpec> getCandidateHosts(HostSpec[] hostSpecs,
       HostRequirement targetServerType, long hostRecheckMillis) {
     List<HostSpec> candidates = new ArrayList<HostSpec>(hostSpecs.length);
-    long latestAllowedUpdate = currentTimeMillis() - hostRecheckMillis;
+    long latestAllowedUpdate = System.nanoTime() / 1000000 - hostRecheckMillis;
     synchronized (hostStatusMap) {
       for (HostSpec hostSpec : hostSpecs) {
         HostSpecStatus hostInfo = hostStatusMap.get(hostSpec);
@@ -68,7 +68,7 @@ public class GlobalHostStatusTracker {
 
   static class HostSpecStatus {
     final HostSpec host;
-    HostStatus status;
+    @Nullable HostStatus status;
     long lastUpdated;
 
     HostSpecStatus(HostSpec host) {

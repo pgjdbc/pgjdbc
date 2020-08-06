@@ -1,78 +1,88 @@
 #!/usr/bin/env bash
 set -x -e
 
-if [[ "${FEDORA_CI}" == *"Y" ]];
+if [[ $FEDORA_CI == "Y" ]];
 then
+  # Prepare "source release" archive
+  ./gradlew :postgresql:sourceDistribution -Prelease
+
+  # Copy file to packaging directory, so rpm_ci would use it rather that downloading it from release URL
+  cp pgjdbc/build/distributions/postgresql-*-src.tar.gz packaging/rpm
+
   # Try to prevent "stdout: write error"
   # WA is taken from https://github.com/travis-ci/travis-ci/issues/4704#issuecomment-348435959
   python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-  export PROJECT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\[')
-  export PARENT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.parent.version | grep -v '\[')
+  export PROJECT_VERSION=$(grep pgjdbc.version gradle.properties | cut -d "=" -f2-)
+  # Removal of PARENT_VERSION requires rebuild of praiskup/copr-and-jdbc-ci Docker image
+  export PARENT_VERSION=unused_but_passed_to_make_script_inside_docker_happy
+
   exec ./packaging/rpm_ci
 fi
 
 # Build project
-MVN_ARGS="clean package -B -V $MVN_CUSTOM_ARGS"
+# TODO: run SlowTests as well
+GRADLE_ARGS="--no-daemon -PskipAutostyle -PskipCheckstyle build $MVN_CUSTOM_ARGS"
 MVN_PROFILES="release"
 
-if [[ "${NO_WAFFLE_NO_OSGI}" == *"Y"* ]];
+if [[ $REPLICATION != "Y" ]];
 then
-    MVN_ARGS="$MVN_ARGS -DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi"
+    GRADLE_ARGS="$GRADLE_ARGS -PskipReplicationTests"
 fi
 
-if [[ "x${QUERY_MODE}" == *"x"* ]];
+if [[ $SLOW_TESTS != "Y" ]];
 then
-    MVN_ARGS="$MVN_ARGS -DpreferQueryMode=$QUERY_MODE"
+    GRADLE_ARGS="$GRADLE_ARGS -PincludeTestTags=!org.postgresql.test.SlowTests"
 fi
 
-if [[ "${COVERAGE}" == *"Y"* ]];
+if [[ $QUERY_MODE != "" ]];
 then
-    MVN_PROFILES="$MVN_PROFILES,coverage"
+    GRADLE_ARGS="$GRADLE_ARGS -DpreferQueryMode=$QUERY_MODE"
 fi
 
-if [[ "${JDK}" == *"9"* ]];
+if [[ $COVERAGE == "Y" ]];
+then
+    GRADLE_ARGS="$GRADLE_ARGS jacocoReport"
+fi
+
+if [[ $JDK == "9" ]];
 then
     export MAVEN_SKIP_RC=true
-    MVN_ARGS="$MVN_ARGS -Dcurrent.jdk=1.9 -Djavac.target=1.9"
+    GRADLE_ARGS="$GRADLE_ARGS -Dcurrent.jdk=1.9 -Djavac.target=1.9"
 fi
 
-if [[ "$JDOC" == *"Y"* ]];
+if [[ $BUILD_SCAN == "Y" ]];
+then
+    GRADLE_ARGS="$GRADLE_ARGS --scan"
+fi
+
+if [[ $JDOC == "Y" ]];
 then
     # Build javadocs for Java 8 only
-    mvn ${MVN_ARGS} -P ${MVN_PROFILES},release-artifacts
-elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk6"* ]];
-then
-    git clone --depth=50 https://github.com/pgjdbc/pgjdbc-jre6.git pgjdbc-jre6
-    cd pgjdbc-jre6
-    mvn ${MVN_ARGS} -P ${MVN_PROFILES},skip-unzip-jdk
-elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk7"* ]];
-then
-    git clone --depth=50 https://github.com/pgjdbc/pgjdbc-jre7.git pgjdbc-jre7
-    cd pgjdbc-jre7
-    mvn ${MVN_ARGS} -P ${MVN_PROFILES},skip-unzip-jdk
+    ./gradlew $GRADLE_ARGS javadoc
+# We can't execute tests with Java 1.7 yet :(
+#elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk7"* ]];
+#then
 else
-    mvn ${MVN_ARGS} -P ${MVN_PROFILES}
+    ./gradlew $GRADLE_ARGS
 fi
 
-if [[ "${COVERAGE}" == "Y" ]];
+if [[ $COVERAGE == "Y" ]];
 then
     pip install --user codecov
     codecov
 fi
 
 # Run Scala-based and Clojure-based tests
-if [[ "${TEST_CLIENTS}" == *"Y" ]];
+if [[ $TEST_CLIENTS == "Y" ]];
 then
-  # Pgjdbc should be in "local maven repository" so the clients can use it. Mvn commands above just package it.
-  mvn -DskipTests install
+  # Pgjdbc should be in "local maven repository" so the clients can use it
+  ./gradlew publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
 
   mkdir -p $HOME/.sbt/launchers/0.13.12
   curl -L -o $HOME/.sbt/launchers/0.13.12/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.12/sbt-launch.jar
 
-  PROJECT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\[')
-
   cd test-anorm-sbt
-  sed -i "s/\"org.postgresql\" % \"postgresql\" % \"[^\"]*\"/\"org.postgresql\" % \"postgresql\" % \"${PROJECT_VERSION}\"/" build.sbt
+  sed -i "s/\"org.postgresql\" % \"postgresql\" % \"[^\"]*\"/\"org.postgresql\" % \"postgresql\" % \"1.0.0-dev-master-SNAPSHOT\"/" build.sbt
   sbt test
 
   cd ..

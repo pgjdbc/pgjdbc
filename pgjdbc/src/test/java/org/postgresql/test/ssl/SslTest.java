@@ -6,11 +6,13 @@
 package org.postgresql.test.ssl;
 
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
 import javax.net.ssl.SSLHandshakeException;
 
 @RunWith(Parameterized.class)
@@ -112,17 +115,19 @@ public class SslTest extends BaseTest4 {
   @Parameterized.Parameter(5)
   public String certdir;
 
-  @Parameterized.Parameters(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}")
+  @Parameterized.Parameter(6)
+  public GSSEncMode gssEncMode;
+
+  @Parameterized.Parameters(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}, gssEncMode={6}")
   public static Iterable<Object[]> data() {
     Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
     String enableSslTests = prop.getProperty("enable_ssl_tests");
-    if (!Boolean.valueOf(enableSslTests)) {
+    if (!Boolean.parseBoolean(enableSslTests)) {
       System.out.println("enableSslTests is " + enableSslTests + ", skipping SSL tests");
       return Collections.emptyList();
     }
 
     Collection<Object[]> tests = new ArrayList<Object[]>();
-
 
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();
@@ -147,9 +152,11 @@ public class SslTest extends BaseTest4 {
                 // DB would reject SSL connection, so it makes no sense to test cases like verify-full
                 continue;
               }
-              tests.add(
-                  new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate,
-                      certdir});
+              for (GSSEncMode gssEncMode : GSSEncMode.values()) {
+                tests.add(
+                    new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate,
+                        certdir, gssEncMode});
+              }
             }
           }
         }
@@ -159,12 +166,17 @@ public class SslTest extends BaseTest4 {
     return tests;
   }
 
+  private static boolean contains(@Nullable String value, String substring) {
+    return value != null && value.contains(substring);
+  }
+
   @Override
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
     props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
     props.put(TestUtil.DATABASE_PROP, db.toString());
     PGProperty.SSL_MODE.set(props, sslmode.value);
+    PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
     if (clientCertificate == ClientCertificate.EMPTY) {
       PGProperty.SSL_CERT.set(props, "");
       PGProperty.SSL_KEY.set(props, "");
@@ -211,7 +223,12 @@ public class SslTest extends BaseTest4 {
         PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
   }
 
-  private void checkErrorCodes(SQLException e) {
+  private void checkErrorCodes(@Nullable SQLException e) {
+    if (e != null && e.getCause() instanceof FileNotFoundException
+        && clientRootCertificate != ClientRootCertificate.EMPTY) {
+      Assert.fail("FileNotFoundException => it looks like a configuration failure");
+    }
+
     if (e == null && sslmode == SslMode.ALLOW && !db.requiresSsl()) {
       // allowed to connect with plain connection
       return;
@@ -272,7 +289,6 @@ public class SslTest extends BaseTest4 {
       errors = addError(errors, ae);
     }
 
-
     try {
       if (assertClientCertificate(e)) {
         return;
@@ -323,13 +339,14 @@ public class SslTest extends BaseTest4 {
       //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
       firstError.addSuppressed(error);
       //#endif
-      error.printStackTrace();
+      // TODO: this is needed for Java < 1.7. Should it be just removed?
+      // error.printStackTrace();
     }
 
     throw firstError;
   }
 
-  private List<AssertionError> addError(List<AssertionError> errors, AssertionError ae) {
+  private List<AssertionError> addError(@Nullable List<AssertionError> errors, AssertionError ae) {
     if (errors == null) {
       errors = new ArrayList<AssertionError>();
     }
@@ -388,9 +405,10 @@ public class SslTest extends BaseTest4 {
     }
     Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
         PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
-    if (!e.getMessage().contains("PgjdbcHostnameVerifier")) {
+    String message = e.getMessage();
+    if (message == null || !message.contains("PgjdbcHostnameVerifier")) {
       Assert.fail(caseName + " ==> message should contain"
-          + " 'PgjdbcHostnameVerifier'. Actual message is " + e.getMessage());
+          + " 'PgjdbcHostnameVerifier'. Actual message is " + message);
     }
     return true;
   }
@@ -426,6 +444,9 @@ public class SslTest extends BaseTest4 {
     // SSLHandshakeException: Received fatal alert: unknown_ca
     // SocketException: broken pipe (write failed)
 
+    // decrypt_error does not look to be a valid case, however, we allow it for now
+    // SSLHandshakeException: Received fatal alert: decrypt_error
+
     SocketException brokenPipe = findCause(e, SocketException.class);
     SSLHandshakeException handshakeException = findCause(e, SSLHandshakeException.class);
 
@@ -433,20 +454,27 @@ public class SslTest extends BaseTest4 {
       Assert.fail(caseName + " ==> exception should be caused by SocketException(broken pipe)"
           + " or SSLHandshakeException. No exceptions of such kind are present in the getCause chain");
     }
-    if (brokenPipe != null && !brokenPipe.getMessage().contains("Broken pipe")) {
+    if (brokenPipe != null && !contains(brokenPipe.getMessage(), "Broken pipe")) {
       Assert.fail(
           caseName + " ==> server should have terminated the connection (broken pipe expected)"
               + ", actual exception was " + brokenPipe.getMessage());
     }
-    if (handshakeException != null && !handshakeException.getMessage().contains("unknown_ca")) {
-      Assert.fail(
-          caseName + " ==> server should have terminated the connection (expected 'unknown_ca')"
-              + ", actual exception was " + handshakeException.getMessage());
+
+    if (handshakeException != null) {
+      final String handshakeMessage = handshakeException.getMessage();
+      if (!contains(handshakeMessage, "unknown_ca")
+          && !contains(handshakeMessage, "decrypt_error")) {
+        Assert.fail(
+            caseName
+                + " ==> server should have terminated the connection (expected 'unknown_ca' or 'decrypt_error')"
+                + ", actual exception was " + handshakeMessage);
+      }
     }
     return true;
   }
 
-  private static <T extends Throwable> T findCause(Throwable t, Class<T> cause) {
+  private static <@Nullable T extends Throwable> T findCause(@Nullable Throwable t,
+      Class<T> cause) {
     while (t != null) {
       if (cause.isInstance(t)) {
         return (T) t;
@@ -455,7 +483,6 @@ public class SslTest extends BaseTest4 {
     }
     return null;
   }
-
 
   @Test
   public void run() throws SQLException {

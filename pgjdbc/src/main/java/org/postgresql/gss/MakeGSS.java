@@ -10,12 +10,12 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSCredential;
 
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.sql.SQLException;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,14 +23,15 @@ import java.util.logging.Logger;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 
-
 public class MakeGSS {
-
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
 
-  public static void authenticate(PGStream pgStream, String host, String user, String password,
-      String jaasApplicationName, String kerberosServerName, boolean useSpnego, boolean jaasLogin)
-          throws IOException, SQLException {
+  public static void authenticate(boolean encrypted,
+      PGStream pgStream, String host, String user, @Nullable String password,
+      @Nullable String jaasApplicationName, @Nullable String kerberosServerName,
+      boolean useSpnego, boolean jaasLogin,
+      boolean logServerErrorDetail)
+          throws IOException, PSQLException {
     LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
 
     if (jaasApplicationName == null) {
@@ -40,7 +41,7 @@ public class MakeGSS {
       kerberosServerName = "postgres";
     }
 
-    Exception result;
+    @Nullable Exception result;
     try {
       boolean performAuthentication = jaasLogin;
       GSSCredential gssCredential = null;
@@ -58,18 +59,25 @@ public class MakeGSS {
         lc.login();
         sub = lc.getSubject();
       }
-      PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user,
-          kerberosServerName, useSpnego);
+      if ( encrypted ) {
+        PrivilegedAction<@Nullable Exception> action = new GssEncAction(pgStream, gssCredential, host, user,
+            kerberosServerName, useSpnego, logServerErrorDetail);
 
-      result = Subject.doAs(sub, action);
+        result = Subject.doAs(sub, action);
+      } else {
+        PrivilegedAction<@Nullable Exception> action = new GssAction(pgStream, gssCredential, host, user,
+            kerberosServerName, useSpnego, logServerErrorDetail);
+
+        result = Subject.doAs(sub, action);
+      }
     } catch (Exception e) {
       throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE, e);
     }
 
     if (result instanceof IOException) {
       throw (IOException) result;
-    } else if (result instanceof SQLException) {
-      throw (SQLException) result;
+    } else if (result instanceof PSQLException) {
+      throw (PSQLException) result;
     } else if (result != null) {
       throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
           result);

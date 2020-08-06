@@ -11,6 +11,7 @@ import com.sun.jna.Native;
 import com.sun.jna.WString;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.StdCallLibrary;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 interface NTDSAPI extends StdCallLibrary {
 
@@ -41,9 +42,9 @@ interface NTDSAPI extends StdCallLibrary {
    */
   int DsMakeSpnW(WString serviceClass, /* in */
       WString serviceName, /* in */
-      WString instanceName, /* in, optional, may be null */
+      @Nullable WString instanceName, /* in, optional, may be null */
       short instancePort, /* in */
-      WString referrer, /* in, optional, may be null */
+      @Nullable WString referrer, /* in, optional, may be null */
       IntByReference spnLength, /* in: length of buffer spn; out: chars written */
       char[] spn /* out string */
   ) throws LastErrorException;

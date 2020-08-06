@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
@@ -12,6 +14,8 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,7 +31,7 @@ import java.util.ArrayList;
 public abstract class AbstractBlobClob {
   protected BaseConnection conn;
 
-  private LargeObject currentLo;
+  private @Nullable LargeObject currentLo;
   private boolean currentLoIsWriteable;
   private boolean support64bit;
 
@@ -35,19 +39,16 @@ public abstract class AbstractBlobClob {
    * We create separate LargeObjects for methods that use streams so they won't interfere with each
    * other.
    */
-  private ArrayList<LargeObject> subLOs;
+  private @Nullable ArrayList<LargeObject> subLOs = new ArrayList<LargeObject>();
 
   private final long oid;
 
   public AbstractBlobClob(BaseConnection conn, long oid) throws SQLException {
     this.conn = conn;
     this.oid = oid;
-    this.currentLo = null;
     this.currentLoIsWriteable = false;
 
     support64bit = conn.haveMinimumServerVersion(90300);
-
-    subLOs = new ArrayList<LargeObject>();
   }
 
   public synchronized void free() throws SQLException {
@@ -56,8 +57,10 @@ public abstract class AbstractBlobClob {
       currentLo = null;
       currentLoIsWriteable = false;
     }
-    for (LargeObject subLO : subLOs) {
-      subLO.close();
+    if (subLOs != null) {
+      for (LargeObject subLO : subLOs) {
+        subLO.close();
+      }
     }
     subLOs = null;
   }
@@ -108,7 +111,6 @@ public abstract class AbstractBlobClob {
     getLo(false).seek((int) (pos - 1), LargeObject.SEEK_SET);
     return getLo(false).read(length);
   }
-
 
   public synchronized InputStream getBinaryStream() throws SQLException {
     checkFreed();
@@ -166,7 +168,7 @@ public abstract class AbstractBlobClob {
    */
   private class LOIterator  {
     private static final int BUFFER_SIZE = 8096;
-    private byte[] buffer = new byte[BUFFER_SIZE];
+    private final byte[] buffer = new byte[BUFFER_SIZE];
     private int idx = BUFFER_SIZE;
     private int numBytes = BUFFER_SIZE;
 
@@ -247,32 +249,32 @@ public abstract class AbstractBlobClob {
   }
 
   protected synchronized LargeObject getLo(boolean forWrite) throws SQLException {
-
-
-    if (this.currentLo != null) {
+    LargeObject currentLo = this.currentLo;
+    if (currentLo != null) {
       if (forWrite && !currentLoIsWriteable) {
         // Reopen the stream in read-write, at the same pos.
-        int currentPos = this.currentLo.tell();
+        int currentPos = currentLo.tell();
 
         LargeObjectManager lom = conn.getLargeObjectAPI();
         LargeObject newLo = lom.open(oid, LargeObjectManager.READWRITE);
-        this.subLOs.add(this.currentLo);
-        this.currentLo = newLo;
+        castNonNull(subLOs).add(currentLo);
+        this.currentLo = currentLo = newLo;
 
         if (currentPos != 0) {
-          this.currentLo.seek(currentPos);
+          currentLo.seek(currentPos);
         }
       }
 
-      return this.currentLo;
+      return currentLo;
     }
     LargeObjectManager lom = conn.getLargeObjectAPI();
-    currentLo = lom.open(oid, forWrite ? LargeObjectManager.READWRITE : LargeObjectManager.READ);
+    this.currentLo = currentLo =
+        lom.open(oid, forWrite ? LargeObjectManager.READWRITE : LargeObjectManager.READ);
     currentLoIsWriteable = forWrite;
     return currentLo;
   }
 
   protected void addSubLO(LargeObject subLO) {
-    subLOs.add(subLO);
+    castNonNull(subLOs).add(subLO);
   }
 }

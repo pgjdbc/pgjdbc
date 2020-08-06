@@ -13,9 +13,12 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.PGobject;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 
 /**
  * This interface defines the public PostgreSQL extensions to java.sql.Connection. All Connections
@@ -39,7 +42,7 @@ public interface PGConnection {
    *           If for some reason the array cannot be created.
    * @see java.sql.Connection#createArrayOf(String, Object[])
    */
-  Array createArrayOf(String typeName, Object elements) throws SQLException;
+  Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException;
 
   /**
    * This method returns any notifications that have been received since the last call to this
@@ -165,7 +168,6 @@ public interface PGConnection {
    */
   void setDefaultFetchSize(int fetchSize) throws SQLException;
 
-
   /**
    * Get the default fetch size for statements created from this connection.
    *
@@ -181,6 +183,12 @@ public interface PGConnection {
    * @return PID of backend server process.
    */
   int getBackendPID();
+
+  /**
+   * Sends a query cancellation for this connection.
+   * @throws SQLException if there are problems cancelling the query
+   */
+  void cancelQuery() throws SQLException;
 
   /**
    * Return the given string suitably quoted to be used as an identifier in an SQL statement string.
@@ -216,7 +224,6 @@ public interface PGConnection {
    */
   PreferQueryMode getPreferQueryMode();
 
-
   /**
    * Connection configuration regarding automatic per-query savepoints.
    *
@@ -236,4 +243,76 @@ public interface PGConnection {
    * @return replication API for the current connection
    */
   PGReplicationConnection getReplicationAPI();
+
+  /**
+   * <p>Returns the current values of all parameters reported by the server.</p>
+   *
+   * <p>PostgreSQL reports values for a subset of parameters (GUCs) to the client
+   * at connect-time, then sends update messages whenever the values change
+   * during a session. PgJDBC records the latest values and exposes it to client
+   * applications via <code>getParameterStatuses()</code>.</p>
+   *
+   * <p>PgJDBC exposes individual accessors for some of these parameters as
+   * listed below. They are more backwarrds-compatible and should be preferred
+   * where possible.</p>
+   *
+   * <p>Not all parameters are reported, only those marked
+   * <code>GUC_REPORT</code> in the source code. The <code>pg_settings</code>
+   * view does not expose information about which parameters are reportable.
+   * PgJDBC's map will only contain the parameters the server reports values
+   * for, so you cannot use this method as a substitute for running a
+   * <code>SHOW paramname;</code> or <code>SELECT
+   * current_setting('paramname');</code> query for arbitrary parameters.</p>
+   *
+   * <p>Parameter names are <i>case-insensitive</i> and <i>case-preserving</i>
+   * in this map, like in PostgreSQL itself. So <code>DateStyle</code> and
+   * <code>datestyle</code> are the same key.</p>
+   *
+   * <p>
+   *  As of PostgreSQL 11 the reportable parameter list, and related PgJDBC
+   *  interfaces or accesors, are:
+   * </p>
+   *
+   * <ul>
+   *  <li>
+   *    <code>application_name</code> -
+   *    {@link java.sql.Connection#getClientInfo()},
+   *    {@link java.sql.Connection#setClientInfo(java.util.Properties)}
+   *    and <code>ApplicationName</code> connection property.
+   *  </li>
+   *  <li>
+   *    <code>client_encoding</code> - PgJDBC always sets this to <code>UTF8</code>.
+   *    See <code>allowEncodingChanges</code> connection property.
+   *  </li>
+   *  <li><code>DateStyle</code> - PgJDBC requires this to always be set to <code>ISO</code></li>
+   *  <li><code>standard_conforming_strings</code> - indirectly via {@link #escapeLiteral(String)}</li>
+   *  <li>
+   *    <code>TimeZone</code> - set from JDK timezone see {@link java.util.TimeZone#getDefault()}
+   *    and {@link java.util.TimeZone#setDefault(TimeZone)}
+   *  </li>
+   *  <li><code>integer_datetimes</code></li>
+   *  <li><code>IntervalStyle</code></li>
+   *  <li><code>server_encoding</code></li>
+   *  <li><code>server_version</code></li>
+   *  <li><code>is_superuser</code> </li>
+   *  <li><code>session_authorization</code></li>
+   * </ul>
+   *
+   * <p>Note that some PgJDBC operations will change server parameters
+   * automatically.</p>
+   *
+   * @return unmodifiable map of case-insensitive parameter names to parameter values
+   * @since 42.2.6
+   */
+  Map<String,String> getParameterStatuses();
+
+  /**
+   * Shorthand for getParameterStatuses().get(...) .
+   *
+   * @param parameterName case-insensitive parameter name
+   * @return parameter value if defined, or null if no parameter known
+   * @see #getParameterStatuses
+   * @since 42.2.6
+   */
+  @Nullable String getParameterStatus(String parameterName);
 }

@@ -3,8 +3,9 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
+
+import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.sql.SQLException;
 
@@ -18,7 +19,7 @@ public class PGbytea {
    * Converts a PG bytea raw value (i.e. the raw binary representation of the bytea data type) into
    * a java byte[]
    */
-  public static byte[] toBytes(byte[] s) throws SQLException {
+  public static byte @PolyNull [] toBytes(byte @PolyNull[] s) throws SQLException {
     if (s == null) {
       return null;
     }
@@ -117,7 +118,7 @@ public class PGbytea {
    * Converts a java byte[] into a PG bytea string (i.e. the text representation of the bytea data
    * type)
    */
-  public static String toPGString(byte[] buf) {
+  public static @PolyNull String toPGString(byte @PolyNull[] buf) {
     if (buf == null) {
       return null;
     }

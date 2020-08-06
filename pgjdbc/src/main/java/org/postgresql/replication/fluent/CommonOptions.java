@@ -7,6 +7,8 @@ package org.postgresql.replication.fluent;
 
 import org.postgresql.replication.LogSequenceNumber;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Common parameters for logical and physical replication.
  */
@@ -18,7 +20,7 @@ public interface CommonOptions {
    *
    * @return nullable replication slot name that already exists on server and free.
    */
-  String getSlotName();
+  @Nullable String getSlotName();
 
   /**
    * @return the position to start replication. This cannot be null.

@@ -20,7 +20,6 @@ import java.sql.Types;
 import java.time.LocalTime;
 import java.util.Properties;
 
-
 public class PreparedStatementTest extends BaseTest4 {
   protected void updateProperties(Properties props) {
     PGProperty.PREFER_QUERY_MODE.set(props, "simple");
@@ -97,17 +96,11 @@ public class PreparedStatementTest extends BaseTest4 {
 
     ResultSet rs = con.createStatement().executeQuery("select tt from timetable order by id asc");
     Assert.assertTrue(rs.next());
-
     LocalTime localTime = (LocalTime)rs.getObject(1,LocalTime.class);
-
-
     Assert.assertEquals( LocalTime.MAX, localTime);
 
     Assert.assertTrue(rs.next());
-
     localTime = (LocalTime)rs.getObject(1, LocalTime.class);
-
     Assert.assertEquals( LocalTime.MIN, localTime);
-
   }
 }

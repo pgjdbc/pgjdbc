@@ -8,6 +8,7 @@ package org.postgresql.core;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -15,11 +16,17 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,24 +41,31 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private int cancelPid;
   private int cancelKey;
   private boolean closed = false;
-  private String serverVersion;
+  private @MonotonicNonNull String serverVersion;
   private int serverVersionNum = 0;
-  private TransactionState transactionState;
+  private TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
+  private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
+  protected final boolean logServerErrorDetail;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
 
-  private SQLWarning warnings;
+  private @Nullable SQLWarning warnings;
   private final ArrayList<PGNotification> notifications = new ArrayList<PGNotification>();
 
   private final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
 
+  // For getParameterStatuses(), GUC_REPORT tracking
+  private final TreeMap<String,String> parameterStatuses
+      = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
+
+  @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible"})
   protected QueryExecutorBase(PGStream pgStream, String user,
       String database, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
@@ -60,9 +74,13 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
+    String callMode = PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(info);
+    this.escapeSyntaxCallMode = EscapeSyntaxCallMode.of(callMode);
     String preferMode = PGProperty.PREFER_QUERY_MODE.get(info);
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
+    this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
+    // assignment.type.incompatible, argument.type.incompatible
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
@@ -207,7 +225,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public synchronized SQLWarning getWarnings() {
+  public synchronized @Nullable SQLWarning getWarnings() {
     SQLWarning chain = warnings;
     warnings = null;
     return chain;
@@ -215,6 +233,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public String getServerVersion() {
+    String serverVersion = this.serverVersion;
+    if (serverVersion == null) {
+      throw new IllegalStateException("serverVersion must not be null");
+    }
     return serverVersion;
   }
 
@@ -223,7 +245,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     if (serverVersionNum != 0) {
       return serverVersionNum;
     }
-    return serverVersionNum = Utils.parseServerVersionStr(serverVersion);
+    return serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
   }
 
   public void setServerVersion(String serverVersion) {
@@ -277,7 +299,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final CachedQuery borrowReturningQuery(String sql, String[] columnNames) throws SQLException {
+  public final CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
+      throws SQLException {
     return statementCache.borrow(new QueryWithReturningColumnsKey(sql, true, true,
         columnNames
     ));
@@ -295,7 +318,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public final Object createQueryKey(String sql, boolean escapeProcessing,
-      boolean isParameterized, String... columnNames) {
+      boolean isParameterized, String @Nullable ... columnNames) {
     Object key;
     if (columnNames == null || columnNames.length != 0) {
       // Null means "return whatever sensible columns are" (e.g. primary key, or serial, or something like that)
@@ -316,7 +339,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public final CachedQuery createQuery(String sql, boolean escapeProcessing,
-      boolean isParameterized, String... columnNames)
+      boolean isParameterized, String @Nullable ... columnNames)
       throws SQLException {
     Object key = createQueryKey(sql, escapeProcessing, isParameterized, columnNames);
     // Note: cache is not reused here for two reasons:
@@ -328,6 +351,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public boolean isColumnSanitiserDisabled() {
     return columnSanitiserDisabled;
+  }
+
+  @Override
+  public EscapeSyntaxCallMode getEscapeSyntaxCallMode() {
+    return escapeSyntaxCallMode;
   }
 
   @Override
@@ -344,6 +372,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   protected boolean willHealViaReparse(SQLException e) {
+    if (e == null || e.getSQLState() == null) {
+      return false;
+    }
+
     // "prepared statement \"S_2\" does not exist"
     if (PSQLState.INVALID_SQL_STATEMENT_NAME.getState().equals(e.getSQLState())) {
       return true;
@@ -363,7 +395,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       return false;
     }
     // "cached plan must not change result type"
-    String routine = pe.getServerErrorMessage().getRoutine();
+    String routine = serverErrorMessage.getRoutine();
     return "RevalidateCachedQuery".equals(routine) // 9.2+
         || "RevalidateCachedPlan".equals(routine); // <= 9.1
   }
@@ -388,5 +420,43 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   protected boolean hasNotifications() {
     return notifications.size() > 0;
+  }
+
+  @Override
+  public final Map<String,String> getParameterStatuses() {
+    return Collections.unmodifiableMap(parameterStatuses);
+  }
+
+  @Override
+  public final @Nullable String getParameterStatus(String parameterName) {
+    return parameterStatuses.get(parameterName);
+  }
+
+  /**
+   * Update the parameter status map in response to a new ParameterStatus
+   * wire protocol message.
+   *
+   * <p>The server sends ParameterStatus messages when GUC_REPORT settings are
+   * initially assigned and whenever they change.</p>
+   *
+   * <p>A future version may invoke a client-defined listener class at this point,
+   * so this should be the only access path.</p>
+   *
+   * <p>Keys are case-insensitive and case-preserving.</p>
+   *
+   * <p>The server doesn't provide a way to report deletion of a reportable
+   * parameter so we don't expose one here.</p>
+   *
+   * @param parameterName case-insensitive case-preserving name of parameter to create or update
+   * @param parameterStatus new value of parameter
+   * @see org.postgresql.PGConnection#getParameterStatuses
+   * @see org.postgresql.PGConnection#getParameterStatus
+   */
+  protected void onParameterStatus(String parameterName, String parameterStatus) {
+    if (parameterName == null || parameterName.equals("")) {
+      throw new IllegalStateException("attempt to set GUC_REPORT parameter with null or empty-string name");
+    }
+
+    parameterStatuses.put(parameterName, parameterStatus);
   }
 }

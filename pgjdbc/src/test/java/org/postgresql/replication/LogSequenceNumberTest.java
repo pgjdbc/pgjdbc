@@ -10,9 +10,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
+import org.postgresql.test.Replication;
+
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
-
+@Category(Replication.class)
 public class LogSequenceNumberTest {
   @Test
   public void testNotNullWhenCreateFromStr() throws Exception {
@@ -96,5 +99,50 @@ public class LogSequenceNumberTest {
     LogSequenceNumber second = LogSequenceNumber.valueOf("0/15D690F8");
 
     assertThat(first.hashCode(), equalTo(second.hashCode()));
+  }
+
+  @Test
+  public void testCompareToSameValue() throws Exception {
+    LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
+    LogSequenceNumber second = LogSequenceNumber.valueOf("0/15D690F8");
+
+    assertThat(first.compareTo(second), equalTo(0));
+    assertThat(second.compareTo(first), equalTo(0));
+  }
+
+  @Test
+  public void testCompareToPositiveValues() throws Exception {
+    LogSequenceNumber first = LogSequenceNumber.valueOf(1234);
+    LogSequenceNumber second = LogSequenceNumber.valueOf(4321);
+
+    assertThat(first.compareTo(second), equalTo(-1));
+    assertThat(second.compareTo(first), equalTo(1));
+  }
+
+  @Test
+  public void testCompareToNegativeValues() throws Exception {
+    LogSequenceNumber first = LogSequenceNumber.valueOf(0x8000000000000000L);
+    LogSequenceNumber second = LogSequenceNumber.valueOf(0x8000000000000001L);
+
+    assertThat(first.compareTo(second), equalTo(-1));
+    assertThat(second.compareTo(first), equalTo(1));
+  }
+
+  @Test
+  public void testCompareToMixedSign() throws Exception {
+    LogSequenceNumber first = LogSequenceNumber.valueOf(1);
+    LogSequenceNumber second = LogSequenceNumber.valueOf(0x8000000000000001L);
+
+    assertThat(first.compareTo(second), equalTo(-1));
+    assertThat(second.compareTo(first), equalTo(1));
+  }
+
+  @Test
+  public void testCompareToWithInvalid() throws Exception {
+    LogSequenceNumber first = LogSequenceNumber.INVALID_LSN;
+    LogSequenceNumber second = LogSequenceNumber.valueOf(1);
+
+    assertThat(first.compareTo(second), equalTo(-1));
+    assertThat(second.compareTo(first), equalTo(1));
   }
 }

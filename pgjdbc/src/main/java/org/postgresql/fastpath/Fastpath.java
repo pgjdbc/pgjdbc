@@ -5,6 +5,8 @@
 
 package org.postgresql.fastpath;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.QueryExecutor;
@@ -12,6 +14,8 @@ import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -66,7 +70,8 @@ public class Fastpath {
    * @deprecated please use {@link #fastpath(int, FastpathArg[])}
    */
   @Deprecated
-  public Object fastpath(int fnId, boolean resultType, FastpathArg[] args) throws SQLException {
+  public @Nullable Object fastpath(int fnId, boolean resultType, FastpathArg[] args)
+      throws SQLException {
     // Run it.
     byte[] returnValue = fastpath(fnId, args);
 
@@ -94,7 +99,7 @@ public class Fastpath {
    * @return null if no data, byte[] otherwise
    * @throws SQLException if a database-access error occurs.
    */
-  public byte[] fastpath(int fnId, FastpathArg[] args) throws SQLException {
+  public byte @Nullable [] fastpath(int fnId, FastpathArg[] args) throws SQLException {
     // Turn fastpath array into a parameter list.
     ParameterList params = executor.createFastpathParameters(args.length);
     for (int i = 0; i < args.length; ++i) {
@@ -119,7 +124,8 @@ public class Fastpath {
    *             {@link #getLong(String, FastpathArg[])} if you expect a numeric one
    */
   @Deprecated
-  public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException {
+  public @Nullable Object fastpath(String name, boolean resulttype, FastpathArg[] args)
+      throws SQLException {
     connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), resulttype, args);
   }
@@ -141,7 +147,7 @@ public class Fastpath {
    * @throws SQLException if name is unknown or if a database-access error occurs.
    * @see org.postgresql.largeobject.LargeObject
    */
-  public byte[] fastpath(String name, FastpathArg[] args) throws SQLException {
+  public byte @Nullable [] fastpath(String name, FastpathArg[] args) throws SQLException {
     connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), args);
   }
@@ -221,7 +227,7 @@ public class Fastpath {
    * @return byte[] array containing result
    * @throws SQLException if a database-access error occurs or no result
    */
-  public byte[] getData(String name, FastpathArg[] args) throws SQLException {
+  public byte @Nullable [] getData(String name, FastpathArg[] args) throws SQLException {
     return fastpath(name, args);
   }
 
@@ -269,7 +275,7 @@ public class Fastpath {
    */
   public void addFunctions(ResultSet rs) throws SQLException {
     while (rs.next()) {
-      func.put(rs.getString(1), rs.getInt(2));
+      func.put(castNonNull(rs.getString(1)), rs.getInt(2));
     }
   }
 
@@ -317,4 +323,3 @@ public class Fastpath {
   }
 
 }
-

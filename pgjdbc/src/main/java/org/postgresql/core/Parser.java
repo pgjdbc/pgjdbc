@@ -5,10 +5,13 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.EscapedFunctions2;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -297,7 +300,7 @@ public class Parser {
     return nativeQueries;
   }
 
-  private static SqlCommandType parseWithCommandType(char[] aChars, int i, int keywordStart,
+  private static @Nullable SqlCommandType parseWithCommandType(char[] aChars, int i, int keywordStart,
       int wordLength) {
     // This parses `with x as (...) ...`
     // Corner case is `with select as (insert ..) select * from select
@@ -372,7 +375,7 @@ public class Parser {
    * @param list input list
    * @return output array
    */
-  private static int[] toIntArray(List<Integer> list) {
+  private static int[] toIntArray(@Nullable List<Integer> list) {
     if (list == null || list.isEmpty()) {
       return NO_BINDS;
     }
@@ -386,8 +389,8 @@ public class Parser {
   /**
    * <p>Find the end of the single-quoted string starting at the given offset.</p>
    *
-   * <p>Note: for <tt>'single '' quote in string'</tt>, this method currently returns the offset of
-   * first <tt>'</tt> character after the initial one. The caller must call the method a second time
+   * <p>Note: for {@code 'single '' quote in string'}, this method currently returns the offset of
+   * first {@code '} character after the initial one. The caller must call the method a second time
    * for the second part of the quoted string.</p>
    *
    * @param query                     query
@@ -436,8 +439,8 @@ public class Parser {
   /**
    * <p>Find the end of the double-quoted string starting at the given offset.</p>
    *
-   * <p>Note: for <tt>&quot;double &quot;&quot; quote in string&quot;</tt>, this method currently
-   * returns the offset of first <tt>&quot;</tt> character after the initial one. The caller must
+   * <p>Note: for {@code "double "" quote in string"}, this method currently
+   * returns the offset of first {@code &quot;} character after the initial one. The caller must
    * call the method a second time for the second part of the quoted string.</p>
    *
    * @param query  query
@@ -452,7 +455,7 @@ public class Parser {
   }
 
   /**
-   * Test if the dollar character (<tt>$</tt>) at the given offset starts a dollar-quoted string and
+   * Test if the dollar character ({@code $}) at the given offset starts a dollar-quoted string and
    * return the offset of the ending dollar character.
    *
    * @param query  query
@@ -493,12 +496,12 @@ public class Parser {
   }
 
   /**
-   * Test if the <tt>-</tt> character at <tt>offset</tt> starts a <tt>--</tt> style line comment,
-   * and return the position of the first <tt>\r</tt> or <tt>\n</tt> character.
+   * Test if the {@code -} character at {@code offset} starts a {@code --} style line comment,
+   * and return the position of the first {@code \r} or {@code \n} character.
    *
    * @param query  query
    * @param offset start offset
-   * @return position of the first <tt>\r</tt> or <tt>\n</tt> character
+   * @return position of the first {@code \r} or {@code \n} character
    */
   public static int parseLineComment(final char[] query, int offset) {
     if (offset + 1 < query.length && query[offset + 1] == '-') {
@@ -513,12 +516,12 @@ public class Parser {
   }
 
   /**
-   * Test if the <tt>/</tt> character at <tt>offset</tt> starts a block comment, and return the
-   * position of the last <tt>/</tt> character.
+   * Test if the {@code /} character at {@code offset} starts a block comment, and return the
+   * position of the last {@code /} character.
    *
    * @param query  query
    * @param offset start offset
-   * @return position of the last <tt>/</tt> character
+   * @return position of the last {@code /} character
    */
   public static int parseBlockComment(final char[] query, int offset) {
     if (offset + 1 < query.length && query[offset + 1] == '*') {
@@ -917,15 +920,16 @@ public class Parser {
    * [?,..])] }} into the PostgreSQL format which is {@code select <some_function> (?, [?, ...]) as
    * result} or {@code select * from <some_function> (?, [?, ...]) as result} (7.3)
    *
-   * @param jdbcSql         sql text with JDBC escapes
-   * @param stdStrings      if backslash in single quotes should be regular character or escape one
-   * @param serverVersion   server version
-   * @param protocolVersion protocol version
+   * @param jdbcSql              sql text with JDBC escapes
+   * @param stdStrings           if backslash in single quotes should be regular character or escape one
+   * @param serverVersion        server version
+   * @param protocolVersion      protocol version
+   * @param escapeSyntaxCallMode mode specifying whether JDBC escape call syntax is transformed into a CALL/SELECT statement
    * @return SQL in appropriate for given server format
    * @throws SQLException if given SQL is malformed
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
-      int serverVersion, int protocolVersion) throws SQLException {
+      int serverVersion, int protocolVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1063,6 +1067,21 @@ public class Parser {
     if (i == len && !syntaxError) {
       if (state == 1) {
         // Not an escaped syntax.
+
+        // Detect PostgreSQL native CALL.
+        // (OUT parameter registration, needed for stored procedures with INOUT arguments, will fail without this)
+        i = 0;
+        while (i < len && Character.isWhitespace(jdbcSql.charAt(i))) {
+          i++; // skip any preceding whitespace
+        }
+        if (i < len - 5) { // 5 == length of "call" + 1 whitespace
+          //Check for CALL followed by whitespace
+          char ch = jdbcSql.charAt(i);
+          if ((ch == 'c' || ch == 'C') && jdbcSql.substring(i, i + 4).equalsIgnoreCase("call")
+               && Character.isWhitespace(jdbcSql.charAt(i + 4))) {
+            isFunction = true;
+          }
+        }
         return new JdbcCallParseInfo(sql, isFunction);
       }
       if (state != 8) {
@@ -1076,8 +1095,16 @@ public class Parser {
           PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
     }
 
-    String prefix = "select * from ";
-    String suffix = " as result";
+    String prefix;
+    String suffix;
+    if (escapeSyntaxCallMode == EscapeSyntaxCallMode.SELECT || serverVersion < 110000
+        || (outParamBeforeFunc && escapeSyntaxCallMode == EscapeSyntaxCallMode.CALL_IF_NO_RETURN)) {
+      prefix = "select * from ";
+      suffix = " as result";
+    } else {
+      prefix = "call ";
+      suffix = "";
+    }
 
     String s = jdbcSql.substring(startIndex, endIndex);
     int prefixLength = prefix.length();
@@ -1116,7 +1143,11 @@ public class Parser {
       }
     }
 
-    sql = sb.append(suffix).toString();
+    if (!suffix.isEmpty()) {
+      sql = sb.append(suffix).toString();
+    } else {
+      sql = sb.toString();
+    }
     return new JdbcCallParseInfo(sql, isFunction);
   }
 
@@ -1279,7 +1310,6 @@ public class Parser {
     return i;
   }
 
-
   private static int findOpenBrace(char[] sql, int i) {
     int posArgs = i;
     while (posArgs < sql.length && sql[posArgs] != '(') {
@@ -1358,7 +1388,8 @@ public class Parser {
       if (targetException instanceof SQLException) {
         throw (SQLException) targetException;
       } else {
-        throw new PSQLException(targetException.getMessage(), PSQLState.SYSTEM_ERROR);
+        String message = targetException == null ? "no message" : targetException.getMessage();
+        throw new PSQLException(message, PSQLState.SYSTEM_ERROR);
       }
     } catch (IllegalAccessException e) {
       throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR);
@@ -1385,13 +1416,14 @@ public class Parser {
 
     private final char[] escapeKeyword;
     private final char[] allowedValues;
-    private final String replacementKeyword;
+    private final @Nullable String replacementKeyword;
 
     SqlParseState() {
       this("", new char[0], null);
     }
 
-    SqlParseState(String escapeKeyword, char[] allowedValues, String replacementKeyword) {
+    SqlParseState(String escapeKeyword, char[] allowedValues,
+        @Nullable String replacementKeyword) {
       this.escapeKeyword = escapeKeyword.toCharArray();
       this.allowedValues = allowedValues;
       this.replacementKeyword = replacementKeyword;

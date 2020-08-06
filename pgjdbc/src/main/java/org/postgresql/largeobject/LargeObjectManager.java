@@ -77,12 +77,6 @@ public class LargeObjectManager {
   public static final int READWRITE = READ | WRITE;
 
   /**
-   * This prevents us being created by mere mortals.
-   */
-  private LargeObjectManager() {
-  }
-
-  /**
    * <p>Constructs the LargeObject API.</p>
    *
    * <p><b>Important Notice</b> <br>
@@ -131,11 +125,6 @@ public class LargeObjectManager {
 
     Statement stmt = conn.createStatement();
     ResultSet res = stmt.executeQuery(sql);
-
-    if (res == null) { // NOSONAR
-      throw new PSQLException(GT.tr("Failed to initialize LargeObject API"),
-          PSQLState.SYSTEM_ERROR);
-    }
 
     fp.addFunctions(res);
     res.close();

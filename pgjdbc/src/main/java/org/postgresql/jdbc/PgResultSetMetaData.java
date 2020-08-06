@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
@@ -15,6 +17,8 @@ import org.postgresql.util.GettableHashMap;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -106,14 +110,15 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public boolean isCurrency(int column) throws SQLException {
     String typeName = getPGType(column);
 
-    return typeName.equals("cash") || typeName.equals("money");
+    return "cash".equals(typeName) || "money".equals(typeName);
   }
 
   @Override
   public int isNullable(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().nullable;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? ResultSetMetaData.columnNullable : metadata.nullable;
   }
 
   /**
@@ -145,14 +150,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return getColumnLabel(column);
   }
 
-
   public String getBaseColumnName(int column) throws SQLException {
     Field field = getField(column);
     if (field.getTableOid() == 0) {
       return "";
     }
     fetchFieldMetaData();
-    return field.getMetadata().columnName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.columnName;
   }
 
   public String getSchemaName(int column) throws SQLException {
@@ -247,9 +252,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       while (rs.next()) {
         int table = (int) rs.getLong(1);
         int column = (int) rs.getLong(2);
-        String columnName = rs.getString(3);
-        String tableName = rs.getString(4);
-        String schemaName = rs.getString(5);
+        String columnName = castNonNull(rs.getString(3));
+        String tableName = castNonNull(rs.getString(4));
+        String schemaName = castNonNull(rs.getString(5));
         int nullable =
             rs.getBoolean(6) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
         boolean autoIncrement = rs.getBoolean(7);
@@ -269,7 +274,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getBaseSchemaName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().schemaName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.schemaName;
   }
 
   public int getPrecision(int column) throws SQLException {
@@ -289,7 +295,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getBaseTableName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().tableName;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.tableName;
   }
 
   /**
@@ -310,7 +317,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return getSQLType(column);
   }
 
-
   public int getFormat(int column) throws SQLException {
     return getField(column).getFormat();
   }
@@ -325,7 +331,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       }
     }
 
-    return type;
+    return castNonNull(type);
   }
 
   /**
@@ -395,14 +401,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return fields[columnIndex - 1];
   }
 
-  protected String getPGType(int columnIndex) throws SQLException {
+  protected @Nullable String getPGType(int columnIndex) throws SQLException {
     return connection.getTypeInfo().getPGType(getField(columnIndex).getOID());
   }
 
   protected int getSQLType(int columnIndex) throws SQLException {
     return connection.getTypeInfo().getSQLType(getField(columnIndex).getOID());
   }
-
 
   // ** JDBC 2 Extensions **
 
