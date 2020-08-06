@@ -22,12 +22,10 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.jdk }}
-      - uses: actions/cache@v2
-        name: Cache ./gradle/caches/
+      - uses: burrunan/gradle-cache-action@v1
+        name: Cache .gradle
         with:
-          path: |
-            ~/.gradle/caches/
-          key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          job-id: jdk${{ matrix.jdk }}
       - name: Build pgjdbc
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}

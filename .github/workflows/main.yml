@@ -23,12 +23,10 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
-    - uses: actions/cache@v2
-      name: Cache ./gradle/caches/
+    - uses: burrunan/gradle-cache-action@v1
+      name: Cache .gradle
       with:
-        path: |
-          ~/.gradle/caches/
-        key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+        job-id: jdk8
     - name: 'Verify code style'
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -70,12 +68,10 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
-    - uses: actions/cache@v2
-      name: Cache ./gradle/caches/
+    - uses: burrunan/gradle-cache-action@v1
+      name: Cache .gradle
       with:
-        path: |
-          ~/.gradle/caches/
-        key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+        job-id: jdk${{ matrix.jdk }}
     - name: 'Test'
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -97,12 +93,10 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
-      - uses: actions/cache@v2
-        name: Cache ./gradle/caches/
+      - uses: burrunan/gradle-cache-action@v1
+        name: Cache .gradle
         with:
-          path: |
-            ~/.gradle/caches/
-          key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          job-id: checker-jdk11
       - name: 'Run CheckerFramework'
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -127,12 +121,10 @@ jobs:
         sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
         cat /etc/hosts
 
-    - uses: actions/cache@v2
-      name: Cache ./gradle/caches/
+    - uses: burrunan/gradle-cache-action@v1
+      name: Cache .gradle
       with:
-        path: |
-          ~/.gradle/caches/
-        key: gradle-${{ runner.os }}-caches-${{ hashFiles('build.properties', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+        job-id: gss-jdk8
     - name: 'Build pgjdbc'
       run:  ./gradlew publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: 'Run tests'
