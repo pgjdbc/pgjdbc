@@ -13,6 +13,7 @@ and sslMode parameters which, in concert with pg_hba.conf, determine if a partic
 - Use connection encoding instead of hard coding ISO-8859-1
 - UpdatedResultSets used to check for oids first. They now check for it after checking for primary keys. 
 Previously no primary keys would set the SqlState to 22000, it now sets it to 24000 
+- Drop jdk 9 from travis builds and use jdk 14 instead #1844
 
 ### Added
 - Verify nullness with CheckerFramework
@@ -23,7 +24,7 @@ All of this is dependent on the gssEncMode
 ### Fixed
 - Assume PKCS-8 SSL key format by default fixes Issue #1819 check for the most common PKCS-12 extensions (.p12, .pfx)
 and assume PKCS-8 if these do not match
-- Closing certificate file stream
+- Closing certificate file stream #1837
 - Make sure socketTimeout is enforced fixes Issue #1816
 - Remove code borrowed from apache cxf project fixes Issue #1812
 - New PGStream constructor which copies settings from old pgstream
