@@ -355,9 +355,11 @@ public class PgConnection implements BaseConnection {
         Oid.TIMETZ,
         Oid.TIMESTAMP,
         Oid.TIMESTAMPTZ,
+        Oid.BYTEA_ARRAY,
         Oid.INT2_ARRAY,
         Oid.INT4_ARRAY,
         Oid.INT8_ARRAY,
+        Oid.OID_ARRAY,
         Oid.FLOAT4_ARRAY,
         Oid.FLOAT8_ARRAY,
         Oid.VARCHAR_ARRAY,
@@ -384,6 +386,7 @@ public class PgConnection implements BaseConnection {
       binaryOids.removeAll(getOidSet(oids));
     }
     binaryOids.retainAll(SUPPORTED_BINARY_OIDS);
+
     return binaryOids;
   }
 
@@ -1266,33 +1269,6 @@ public class PgConnection implements BaseConnection {
     return new PGReplicationConnectionImpl(this);
   }
 
-  private static void appendArray(StringBuilder sb, Object elements, char delim) {
-    sb.append('{');
-
-    int nElements = java.lang.reflect.Array.getLength(elements);
-    for (int i = 0; i < nElements; i++) {
-      if (i > 0) {
-        sb.append(delim);
-      }
-
-      Object o = java.lang.reflect.Array.get(elements, i);
-      if (o == null) {
-        sb.append("NULL");
-      } else if (o.getClass().isArray()) {
-        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(o);
-        if (arraySupport != null) {
-          arraySupport.appendArray(sb, delim, o);
-        } else {
-          appendArray(sb, o, delim);
-        }
-      } else {
-        String s = o.toString();
-        PgArray.escapeArrayElement(sb, s);
-      }
-    }
-    sb.append('}');
-  }
-
   // Parse a "dirty" integer surrounded by non-numeric characters
   private static int integerPart(String dirtyString) {
     int start = 0;
@@ -1397,6 +1373,7 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Override
   public Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException {
     checkClosed();
@@ -1415,53 +1392,19 @@ public class PgConnection implements BaseConnection {
       return makeArray(oid, null);
     }
 
-    final String arrayString;
-
-    final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(elements);
-
-    if (arraySupport != null) {
-      // if the oid for the given type matches the default type, we might be
-      // able to go straight to binary representation
-      if (oid == arraySupport.getDefaultArrayTypeOid(typeInfo) && arraySupport.supportBinaryRepresentation()
-          && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements));
-      }
-      arrayString = arraySupport.toArrayString(delim, elements);
-    } else {
-      final Class<?> clazz = elements.getClass();
-      if (!clazz.isArray()) {
-        throw new PSQLException(GT.tr("Invalid elements {0}", elements), PSQLState.INVALID_PARAMETER_TYPE);
-      }
-      StringBuilder sb = new StringBuilder();
-      appendArray(sb, elements, delim);
-      arrayString = sb.toString();
+    final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(elements);
+    if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
 
+    final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
   }
 
   @Override
   public Array createArrayOf(String typeName, @Nullable Object @Nullable [] elements)
       throws SQLException {
-    checkClosed();
-
-    int oid = getTypeInfo().getPGArrayType(typeName);
-
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(
-          GT.tr("Unable to find server array type for provided name {0}.", typeName),
-          PSQLState.INVALID_NAME);
-    }
-
-    if (elements == null) {
-      return makeArray(oid, null);
-    }
-
-    char delim = getTypeInfo().getArrayDelimiter(oid);
-    StringBuilder sb = new StringBuilder();
-    appendArray(sb, elements, delim);
-
-    return makeArray(oid, sb.toString());
+    return createArrayOf(typeName, (Object) elements);
   }
 
   @Override

@@ -33,6 +33,7 @@ import org.postgresql.util.ReaderInputStream;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.value.qual.IntRange;
 
@@ -59,6 +60,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -70,6 +72,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 class PgPreparedStatement extends PgStatement implements PreparedStatement {
+
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
@@ -677,13 +680,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.ARRAY:
         if (in instanceof Array) {
           setArray(parameterIndex, (Array) in);
-        } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(in)) {
-          setPrimitiveArray(parameterIndex, in);
         } else {
-          throw new PSQLException(
-              GT.tr("Cannot cast an instance of {0} to type {1}",
-                  in.getClass().getName(), "Types.ARRAY"),
-              PSQLState.INVALID_PARAMETER_TYPE);
+          try {
+            setObjectArray(parameterIndex, in);
+          } catch (Exception e) {
+            throw new PSQLException(
+                GT.tr("Cannot cast an instance of {0} to type {1}", in.getClass().getName(), "Types.ARRAY"),
+                PSQLState.INVALID_PARAMETER_TYPE, e);
+          }
         }
         break;
       case Types.DISTINCT:
@@ -704,20 +708,24 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private <A> void setPrimitiveArray(@Positive int parameterIndex, A in) throws SQLException {
-    // TODO: move to method parameter?
-    final PrimitiveArraySupport<A> arrayToString =
-        castNonNull(PrimitiveArraySupport.getArraySupport(in));
+  private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in) throws SQLException {
+    final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 
-    final int oid = arrayToString.getDefaultArrayTypeOid(typeInfo);
+    final int oid = arraySupport.getDefaultArrayTypeOid();
 
-    if (arrayToString.supportBinaryRepresentation() && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      bindBytes(parameterIndex, arrayToString.toBinaryRepresentation(connection, in), oid);
+    if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
     } else {
-      final char delim = typeInfo.getArrayDelimiter(oid);
-      setString(parameterIndex, arrayToString.toArrayString(delim, in), oid);
+      if (oid == Oid.UNSPECIFIED) {
+        throw new SQLFeatureNotSupportedException();
+      }
+      final int baseOid = typeInfo.getPGArrayElement(oid);
+      final String baseType = castNonNull(typeInfo.getPGType(baseOid));
+
+      final Array array = getPGConnection().createArrayOf(baseType, in);
+      this.setArray(parameterIndex, array);
     }
   }
 
@@ -985,8 +993,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
-    } else if (PrimitiveArraySupport.isSupportedPrimitiveArray(x)) {
-      setPrimitiveArray(parameterIndex, x);
+    } else if (x.getClass().isArray()) {
+      try {
+        setObjectArray(parameterIndex, x);
+      } catch (Exception e) {
+        throw new PSQLException(
+            GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.ARRAY"),
+            PSQLState.INVALID_PARAMETER_TYPE, e);
+      }
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
