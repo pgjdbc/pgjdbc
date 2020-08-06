@@ -22,23 +22,25 @@ programs that use the JDBC interface.
 <a name="build"></a>
 # Getting the Driver
 
-Precompiled versions of the driver can be downloaded from the [PostgreSQL™ JDBC web site](http://jdbc.postgresql.org).
+Precompiled versions of the driver can be downloaded from the [PostgreSQL™ JDBC web site](https://jdbc.postgresql.org).
    
 Alternatively you can build the driver from source, but you should only need to
 do this if you are making changes to the source code. To build the JDBC driver,
-you need Ant 1.5 or higher and a JDK. Ant is a special tool for building Java-based
-packages. It can be downloaded from the [Ant web site](http://ant.apache.org/index.html).
+you need gradle and a JDK (currently at least jdk1.8) .
     
-If you have several Java compilers installed, it depends on the Ant configuration
-which one gets used. Precompiled Ant distributions are typically set up to read
-a file `.antrc` in the current user's home directory for configuration. For example,
+If you have several Java compilers installed, maven will use the first one on the path. 
+To use a different one set JAVA_HOME to the Java version you wish to use For example,
 to use a different JDK than the default, this may work:
 
-`JAVA_HOME=/usr/local/jdk1.6.0_07`  
-`JAVACMD=$JAVA_HOME/bin/java`
+`JAVA_HOME=/usr/local/jdk1.8.0_45`  
 
-To compile the driver simply run **ant** in the top level directory. The compiled
-driver will be placed in `jars/postgresql.jar`. The resulting driver will be built
-for the version of Java you are running. If you build with a 1.4 or 1.5 JDK you
-will build a version that supports the JDBC 3 specification and if you build with
-a 1.6 or higher JDK you will build a version that supports the JDBC 4 specification.
+To compile the driver simply run **gradlew assemble** or **gradlew build** if you want to run the tests
+in the top level directory. 
+Note: if you want to skip test execution, add the option -DskipTests.
+This will build 3 versions of the driver; pgjdbc, pgjdbc-jre7, and pgjdbc-jre6
+The compiled driver will be placed in `pgjdbc/build/libs/postgresql-MM.nn.pp.jar`, 
+`pgjdbc-jre7/build/libs/postgresql-MM.nn.pp.jar` and `pgjdbc-jre7/build/libs/postgresql-MM.nn.pp.jar` 
+Where MM is the major version, nn is the minor version and pp is the patch version. 
+Versions for JDBC3 and lower can be found [here](https://jdbc.postgresql.org/download.html#others)
+This is a very brief outline of how to build the driver. Much more detailed information can be 
+found on the [github repo](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md)
