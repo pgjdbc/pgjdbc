@@ -7,8 +7,8 @@ package org.postgresql.jdbc2;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Array assistants register here.
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Minglei Tu
  */
 public class ArrayAssistantRegistry {
-  private static final Map<Integer, ArrayAssistant> ARRAY_ASSISTANT_MAP =
+  private static final ConcurrentMap<Integer, ArrayAssistant> ARRAY_ASSISTANT_MAP =
       new ConcurrentHashMap<Integer, ArrayAssistant>();
 
   public static @Nullable ArrayAssistant getAssistant(int oid) {

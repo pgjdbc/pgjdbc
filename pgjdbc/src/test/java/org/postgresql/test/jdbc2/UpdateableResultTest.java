@@ -584,9 +584,13 @@ public class UpdateableResultTest extends BaseTest4 {
     ResultSet rs = st.executeQuery("select id1,val from multicol");
     try {
       rs.moveToInsertRow();
+      fail("Move to insert row succeeded. It should not");
     } catch (SQLException sqle) {
       // Ensure we're reporting that the RS is not updatable.
       assertEquals("24000", sqle.getSQLState());
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(st);
     }
   }
 
@@ -607,7 +611,6 @@ public class UpdateableResultTest extends BaseTest4 {
     assertTrue(rs.next());
     assertEquals("newval", rs.getString("val"));
     rs.close();
-
     st.close();
   }
 
@@ -668,5 +671,17 @@ public class UpdateableResultTest extends BaseTest4 {
     rs.updateRow();
     //rs.refreshRow(); //fetches the value stored
     assertTrue(rs.getBoolean("b"));
+  }
+
+  @Test
+  public void testOidUpdatable() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT oid,* FROM pg_class WHERE relname = 'pg_class'");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    rs.updateString("relname", "pg_class");
+    rs.close();
+    st.close();
   }
 }

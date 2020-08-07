@@ -55,9 +55,8 @@ script:
   - rm -rf $HOME/.m2/repository/org/postgresql || true
   - test -d "${JDK7_HOME}" || export JDK7_HOME=$(jdk_switcher home openjdk7)
   - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home oraclejdk8)
-  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
-  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
-  - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
+  - test -d "${JDK14_HOME}" || export JDK14_HOME=$(jdk_switcher home oraclejdk14)
+  - test ${JDK} -eq 7 || jdk_switcher use oraclejdk8 # Run Gradle with Java 8, build with Toolchains.
   - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
   - if [[ $TRAVIS_BRANCH == release/* ]]; then .travis/travis_release.sh; else ./.travis/travis_build.sh; fi
   - ./.travis/travis_check_postgres_health.sh
@@ -113,7 +112,7 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - PLPGSQL_EXTENSION=Y
-    - jdk: oraclejdk9
+    - jdk: oraclejdk14
       sudo: required
       addons:
         postgresql: "11"
@@ -123,7 +122,7 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - PLPGSQL_EXTENSION=Y
-        - JDK=9
+        - JDK=14
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -145,12 +144,12 @@ matrix:
         - JDK=11
         - TZ=America/New_York # flips between −05:00 and −04:00
         - SLOW_TESTS=Y
-    - jdk: oraclejdk9
+    - jdk: oraclejdk14
       addons:
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
-        - JDK=9
+        - JDK=14
         - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk8
       sudo: required

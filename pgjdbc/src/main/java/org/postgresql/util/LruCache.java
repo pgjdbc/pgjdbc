@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * Caches values in simple least-recently-accessed order.
  */
-public class LruCache<@NonNull Key, @NonNull Value extends CanEstimateSize>
+public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEstimateSize>
     implements Gettable<Key, Value> {
   /**
    * Action that is invoked when the entry is removed from the cache.
@@ -104,7 +104,7 @@ public class LruCache<@NonNull Key, @NonNull Value extends CanEstimateSize>
    * @param key cache key
    * @return entry from cache or null if cache does not contain given key.
    */
-  public synchronized @Nullable Value get(@NonNull Key key) {
+  public synchronized @Nullable Value get(Key key) {
     return cache.get(key);
   }
 
@@ -115,7 +115,7 @@ public class LruCache<@NonNull Key, @NonNull Value extends CanEstimateSize>
    * @return entry from cache or newly created entry if cache does not contain given key.
    * @throws SQLException if entry creation fails
    */
-  public synchronized Value borrow(@NonNull Key key) throws SQLException {
+  public synchronized Value borrow(Key key) throws SQLException {
     Value value = cache.remove(key);
     if (value == null) {
       if (createAction == null) {
@@ -142,7 +142,7 @@ public class LruCache<@NonNull Key, @NonNull Value extends CanEstimateSize>
       return;
     }
     currentSize += valueSize;
-    Value prev = cache.put(key, value);
+    @Nullable Value prev = cache.put(key, value);
     if (prev == null) {
       return;
     }

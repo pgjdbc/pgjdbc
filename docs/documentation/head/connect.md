@@ -120,19 +120,21 @@ Connection conn = DriverManager.getConnection(url);
 
 * **sslcert** = String
 
-	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
+	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt, where defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows.
 
     It can be a PEM encoded X509v3 certificate
 
-	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
+	*Note:* This parameter is ignored when using PKCS-12 keys, since in that case the certificate is also retrieved from the same keyfile.
 
 * **sslkey** = String
 
 	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
 	
-	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	*Note:* The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
 	`openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+
+	PKCS-12 key files are only recognized if they have the ".p12" (42.2.9+) or the ".pfx" (42.2.16+) extension.
 
 	If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 

@@ -73,9 +73,7 @@ if (isCiServer) {
 // Cache build artifacts, so expensive operations do not need to be re-computed
 buildCache {
     local {
-        // Local build cache is dangerous as it might produce inconsistent results
-        // in case developer modifies files while the build is running
-        isEnabled = false
+        isEnabled = !isCiServer || System.getenv().containsKey("GITHUB_ACTIONS")
     }
     if (property("s3.build.cache")?.ifBlank { "true" }?.toBoolean() == true) {
         val pushAllowed = property("s3.build.cache.push")?.ifBlank { "true" }?.toBoolean() ?: true
