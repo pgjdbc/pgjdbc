@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Oid;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -87,10 +88,11 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSetPrimitiveObjects() throws SQLException {
+    final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
-    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY);
+    pstmt.setObject(1, new int[]{1, 2, 3}, Types.ARRAY);
     pstmt.setObject(2, new double[]{3.1d, 1.4d}, Types.ARRAY);
-    pstmt.setObject(3, new String[]{"abc", "f'a", "fa\"b"}, Types.ARRAY);
+    pstmt.setObject(3, new String[]{stringWithNonAsciiWhiteSpace, "f'a", " \tfa\"b  "}, Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -118,7 +120,10 @@ public class ArrayTest extends BaseTest4 {
     String[] strarr = (String[]) arr.getArray(2, 2);
     assertEquals(2, strarr.length);
     assertEquals("f'a", strarr[0]);
-    assertEquals("fa\"b", strarr[1]);
+    assertEquals(" \tfa\"b  ", strarr[1]);
+
+    strarr = (String[]) arr.getArray();
+    assertEquals(stringWithNonAsciiWhiteSpace, strarr[0]);
 
     rs.close();
   }
@@ -207,7 +212,7 @@ public class ArrayTest extends BaseTest4 {
 
     // you need a lot of backslashes to get a double quote in.
     stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '"
-        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
+        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def, un  quot\u000B \u2001 \r}") + "')");
 
     ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
     Assert.assertTrue(rs.next());
@@ -234,6 +239,10 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals("f'a", strarr[0]);
     Assert.assertEquals("fa\"b", strarr[1]);
 
+    strarr = (String[]) arr.getArray();
+    assertEquals(5, strarr.length);
+    assertEquals("un  quot\u000B \u2001", strarr[4]);
+
     rs.close();
     stmt.close();
   }
@@ -242,9 +251,10 @@ public class ArrayTest extends BaseTest4 {
   public void testRetrieveResultSets() throws SQLException {
     Statement stmt = conn.createStatement();
 
+    final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     // you need a lot of backslashes to get a double quote in.
     stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '"
-        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
+        + TestUtil.escapeString(conn, "{\"a\u2001b\",f'a,\"fa\\\"b\",def}") + "')");
 
     ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
     Assert.assertTrue(rs.next());
@@ -287,6 +297,13 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(3, arrrs.getInt(1));
     Assert.assertEquals("fa\"b", arrrs.getString(2));
     Assert.assertTrue(!arrrs.next());
+    arrrs.close();
+
+    arrrs = arr.getResultSet(1, 1);
+    Assert.assertTrue(arrrs.next());
+    Assert.assertEquals(1, arrrs.getInt(1));
+    Assert.assertEquals(stringWithNonAsciiWhiteSpace, arrrs.getString(2));
+    Assert.assertFalse(arrrs.next());
     arrrs.close();
 
     rs.close();
@@ -389,6 +406,63 @@ public class ArrayTest extends BaseTest4 {
   public void testNullFieldString() throws SQLException {
     Array arr = new PgArray((BaseConnection) conn, 1, (String) null);
     Assert.assertNull(arr.toString());
+  }
+
+  @Test
+  public void testDirectFieldString() throws SQLException {
+    Array arr = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY,
+        "{\" lead\t\",  unquot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
+    final String[] array = (String[]) arr.getArray();
+    assertEquals(4, array.length);
+    assertEquals(" lead\t", array[0]);
+    assertEquals(" \fnew \n ", array[2]);
+    assertEquals(" ", array[3]);
+
+    // PostgreSQL drops leading and trailing whitespace, so does the driver
+    assertEquals("unquot\u2001", array[1]);
+  }
+
+  @Test
+  public void testStringEscaping() throws SQLException {
+
+    final String stringArray = "{f'a,\"fa\\\"b\",def, un  quot\u000B \u2001 \r, someString }";
+
+    final Statement stmt = conn.createStatement();
+    try {
+
+      stmt.executeUpdate("INSERT INTO arrtest VALUES (NULL, NULL, '" + TestUtil.escapeString(conn, stringArray) + "')");
+
+      final ResultSet rs = stmt.executeQuery("SELECT strarr FROM arrtest");
+      Assert.assertTrue(rs.next());
+
+      Array arr = rs.getArray(1);
+      Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+      String[] strarr = (String[]) arr.getArray();
+      assertEquals(5, strarr.length);
+      assertEquals("f'a", strarr[0]);
+      assertEquals("fa\"b", strarr[1]);
+      assertEquals("def", strarr[2]);
+      assertEquals("un  quot\u000B \u2001", strarr[3]);
+      assertEquals("someString", strarr[4]);
+
+      rs.close();
+    } finally {
+      stmt.close();
+    }
+
+    final Array directArray = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, stringArray);
+    final String[] actual = (String[]) directArray.getArray();
+    assertEquals(5, actual.length);
+    assertEquals("f'a", actual[0]);
+    assertEquals("fa\"b", actual[1]);
+    assertEquals("def", actual[2]);
+    assertEquals("someString", actual[4]);
+
+    // the driver strips out ascii white spaces from an unescaped string, even in
+    // the middle of the value. while this does not exactly match the behavior of
+    // the backend, it will always quote values where ascii white spaces are
+    // present, making this difference not worth the complexity involved addressing.
+    assertEquals("unquot\u2001", actual[3]);
   }
 
   @Test
