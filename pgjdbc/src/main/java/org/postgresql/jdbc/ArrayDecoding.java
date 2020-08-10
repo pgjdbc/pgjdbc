@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Parser;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.GT;
@@ -654,7 +655,7 @@ final class ArrayDecoding {
         insideString = !insideString;
         wasInsideString = true;
         continue;
-      } else if (!insideString && Character.isWhitespace(chars[i])) {
+      } else if (!insideString && Parser.isArrayWhiteSpace(chars[i])) {
         // white space
         continue;
       } else if ((!insideString && (chars[i] == delim || chars[i] == '}')) || i == chars.length - 1) {

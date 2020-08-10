@@ -776,11 +776,34 @@ public class Parser {
   }
 
   /**
+   * Identifies characters which the backend scanner considers to be whitespace.
+   *
+   * <p>
+   * https://github.com/postgres/postgres/blob/17bb62501787c56e0518e61db13a523d47afd724/src/backend/parser/scan.l#L194-L198
+   * </p>
+   *
    * @param c character
    * @return true if the character is a whitespace character as defined in the backend's parser
    */
   public static boolean isSpace(char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+  }
+
+  /**
+   * Identifies white space characters which the backend uses to determine if a
+   * {@code String} value needs to be quoted in array representation.
+   *
+   * <p>
+   * https://github.com/postgres/postgres/blob/f2c587067a8eb9cf1c8f009262381a6576ba3dd0/src/backend/utils/adt/arrayfuncs.c#L421-L438
+   * </p>
+   *
+   * @param c
+   *          Character to examine.
+   * @return Indication if the character is a whitespace which back end will
+   *         escape.
+   */
+  public static boolean isArrayWhiteSpace(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == 0x0B;
   }
 
   /**
