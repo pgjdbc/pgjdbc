@@ -212,6 +212,9 @@ public class PgStatement implements Statement, BaseStatement {
     public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
         @Nullable ResultCursor cursor) {
       try {
+        if (PgStatement.this.isClosed()) {
+          return;
+        }
         ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
         append(new ResultWrapper(rs));
       } catch (SQLException e) {
@@ -233,7 +236,12 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
-    if (!executeWithFlags(sql, 0)) {
+    return executeQueryWithFlags(sql, 0);
+  }
+
+  @Override
+  public ResultSet executeQueryWithFlags(String sql, int flags) throws SQLException {
+    if (!executeWithFlags(sql, flags)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -349,9 +357,6 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected void closeForNextExecution() throws SQLException {
 
-    // Every statement execution clears any previous warnings.
-    clearWarnings();
-
     // Close any existing resultsets associated with this statement.
     synchronized (this) {
       closeUnclosedResults();
@@ -366,6 +371,10 @@ public class PgStatement implements Statement, BaseStatement {
         this.generatedKeys = null;
       }
     }
+    connection.getQueryExecutor().finishReadingPendingProtocolEvents(true);
+
+    // Every statement execution clears any previous warnings.
+    clearWarnings();
   }
 
   /**
@@ -457,23 +466,41 @@ public class PgStatement implements Statement, BaseStatement {
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
-          flags2);
+          flags2, null);
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
         castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
       }
     }
 
+    if ((flags & (QueryExecutor.QUERY_FORWARD_CURSOR | QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS
+                  | QueryExecutor.QUERY_DESCRIBE_ONLY | QueryExecutor.QUERY_NO_RESULTS
+                  | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE)) == 0
+        && resultsettype == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY
+        && queryToExecute.getSubqueries() == null && connection.streamResults()) {
+      flags |= QueryExecutor.QUERY_STREAM_ROWS;
+    }
+
     StatementResultHandler handler = new StatementResultHandler();
     synchronized (this) {
       result = null;
     }
+    boolean streamingResults = false;
     try {
       startTimer();
-      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
-          fetchSize, flags);
+      if (!connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
+          fetchSize, flags, new Runnable() {
+            @Override
+            public void run() {
+              PgStatement.this.killTimerTask();
+            }
+          })) {
+        streamingResults = true;
+      }
     } finally {
-      killTimerTask();
+      if (!streamingResults) {
+        killTimerTask();
+      }
     }
     synchronized (this) {
       checkClosed();
@@ -848,7 +875,7 @@ public class PgStatement implements Statement, BaseStatement {
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
       try {
-        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
+        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2, null);
       } catch (SQLException e) {
         // Unable to parse the first statement -> throw BatchUpdateException
         handler.handleError(e);

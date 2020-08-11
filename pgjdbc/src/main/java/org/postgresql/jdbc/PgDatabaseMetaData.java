@@ -2396,9 +2396,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Collections.sort(v, new Comparator<Tuple>() {
       @Override
       public int compare(Tuple o1, Tuple o2) {
-        int i1 = ByteConverter.bytesToInt(castNonNull(o1.get(18)));
-        int i2 = ByteConverter.bytesToInt(castNonNull(o2.get(18)));
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+        int i1 = ByteConverter.bytesToInt(o1.get(18));
+        int i2 = ByteConverter.bytesToInt(o2.get(18));
+        return Integer.compare(i1, i2);
       }
     });
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);

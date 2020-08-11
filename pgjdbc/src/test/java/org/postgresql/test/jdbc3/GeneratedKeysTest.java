@@ -466,20 +466,18 @@ public class GeneratedKeysTest extends BaseTest4 {
   public void selectWithGeneratedKeysViaNonPrepared() throws SQLException {
     Statement s = con.createStatement();
     String sql = "select c from genkeys";
-    ResultSet rs;
     switch (returningInQuery) {
       case NO:
         s.execute(sql);
-        rs = s.getResultSet();
         break;
       case STAR:
         s.execute(sql, Statement.RETURN_GENERATED_KEYS);
-        rs = s.getResultSet();
         break;
       default:
         s.execute(sql, returningInQuery.columns);
-        rs = s.getResultSet();
+
     }
+    ResultSet rs = s.getResultSet();
     assertNotNull("SELECT statement should return results via getResultSet, not getGeneratedKeys", rs);
     assertFalse("genkeys table is empty, thus rs.next() should return false", rs.next());
     s.close();

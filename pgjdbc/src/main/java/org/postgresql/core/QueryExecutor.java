@@ -35,7 +35,7 @@ import java.util.TimeZone;
  * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
  * {@link #createQuery(String, boolean, boolean, String...)})
  * <li>execution methods for created Query objects (
- * {@link #execute(Query, ParameterList, ResultHandler, int, int, int)} for single queries and
+ * {@link #execute(Query, ParameterList, ResultHandler, int, int, int, Runnable)} for single queries and
  * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
  * <li>a fastpath call interface ({@link #createFastpathParameters} and {@link #fastpathCall}).
  * </ul>
@@ -130,6 +130,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_READ_ONLY_HINT = 2048;
 
   /**
+   * Flag indicating to delay processing of rows.
+   */
+  int QUERY_STREAM_ROWS = 4096;
+
+  /**
    * Execute a Query, passing results to a provided ResultHandler.
    *
    * @param query the query to execute; must be a query returned from calling
@@ -142,10 +147,13 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param fetchSize if QUERY_FORWARD_CURSOR is set, the preferred number of rows to retrieve
    *        before suspending
    * @param flags a combination of QUERY_* flags indicating how to handle the query.
+   * @param onFinished If asynchronous streaming is initiated, this method is called when the full results has been
+   *        processed to do the proper cleanup.
+   * @return true if operation was fininshed synchronously
    * @throws SQLException if query execution fails
    */
-  void execute(Query query, @Nullable ParameterList parameters, ResultHandler handler, int maxRows,
-      int fetchSize, int flags) throws SQLException;
+  boolean execute(Query query, @Nullable  ParameterList parameters, ResultHandler handler, int maxRows,
+      int fetchSize, int flags, @Nullable Runnable onFinished) throws SQLException;
 
   /**
    * Execute several Query, passing results to a provided ResultHandler.
@@ -470,4 +478,6 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   Map<String,String> getParameterStatuses();
 
   @Nullable String getParameterStatus(String parameterName);
+
+  void finishReadingPendingProtocolEvents(boolean buffer) throws SQLException;
 }

@@ -621,6 +621,15 @@ public enum PGProperty {
     "The Windows SSPI service class for SPN"),
 
   /**
+   * Prefer streaming of ResultSet rows instead of buffering all of them first in memory. This only works for TYPE_FORWARD_ONLY
+   * statements with fetch size of 0.
+   */
+  STREAM_RESULTS(
+      "streamResults",
+      "true",
+      "Streams ResultSet rows instead of buffering all of them first in memory"),
+
+  /**
    * Bind String to either {@code unspecified} or {@code varchar}. Default is {@code varchar} for
    * 8.0+ backends.
    */
