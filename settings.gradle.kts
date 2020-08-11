@@ -85,7 +85,6 @@ buildCache {
     }
 }
 
-
 // This enables to use local clone of vlsi-release-plugins for debugging purposes
 property("localReleasePlugins")?.ifBlank { "../vlsi-release-plugins" }?.let {
     println("Importing project '$it'")
