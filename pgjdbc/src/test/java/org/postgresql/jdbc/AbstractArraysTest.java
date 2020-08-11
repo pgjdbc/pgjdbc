@@ -935,6 +935,11 @@ public abstract class AbstractArraysTest<A> {
       throw new UnsupportedOperationException();
     }
 
+    @Override
+    public boolean streamResults() {
+      return false;
+    }
+
     /**
      * {@inheritDoc}
      */
