@@ -335,12 +335,7 @@ public class SslTest extends BaseTest4 {
 
     for (int i = 1; i < errors.size(); i++) {
       AssertionError error = errors.get(i);
-      // addSuppressed is Java 1.7+
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
       firstError.addSuppressed(error);
-      //#endif
-      // TODO: this is needed for Java < 1.7. Should it be just removed?
-      // error.printStackTrace();
     }
 
     throw firstError;
@@ -379,11 +374,8 @@ public class SslTest extends BaseTest4 {
       Assert.fail(caseName + " ==> exception should be caused by CertPathValidatorException,"
           + " but no CertPathValidatorException is present in the getCause chain");
     }
-    // getReason is Java 1.7+
-    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     Assert.assertEquals(caseName + " ==> CertPathValidatorException.getReason",
         "NO_TRUST_ANCHOR", validatorEx.getReason().toString());
-    //#endif
     return true;
   }
 

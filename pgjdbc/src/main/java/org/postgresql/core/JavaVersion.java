@@ -7,8 +7,6 @@ package org.postgresql.core;
 
 public enum JavaVersion {
   // Note: order is important,
-  v1_6,
-  v1_7,
   v1_8,
   other;
 
@@ -31,13 +29,6 @@ public enum JavaVersion {
    * @return JavaVersion enum
    */
   public static JavaVersion from(String version) {
-    // Minimum supported is Java 1.6
-    if (version.startsWith("1.6")) {
-      return v1_6;
-    }
-    if (version.startsWith("1.7")) {
-      return v1_7;
-    }
     if (version.startsWith("1.8")) {
       return v1_8;
     }

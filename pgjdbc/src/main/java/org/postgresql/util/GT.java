@@ -32,11 +32,7 @@ public class GT {
 
   private GT() {
     try {
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
-      //#else
       bundle = ResourceBundle.getBundle("org.postgresql.translation.messages", Locale.getDefault(Locale.Category.DISPLAY));
-      //#endif
     } catch (MissingResourceException mre) {
       // translation files have not been installed
       bundle = null;

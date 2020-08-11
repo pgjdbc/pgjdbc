@@ -1550,9 +1550,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.MAX_RESULT_BUFFER.set(properties, maxResultBuffer);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
-  //#endif
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
   }

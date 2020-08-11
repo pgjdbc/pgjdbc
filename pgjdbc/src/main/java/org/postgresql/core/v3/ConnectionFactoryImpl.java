@@ -230,10 +230,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             if (ex != null) {
               log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", ex);
               // non-SSL failed as well, so re-throw original exception
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               // Add non-SSL exception as suppressed
               e.addSuppressed(ex);
-              //#endif
               throw e;
             }
           } else if (sslMode == SslMode.ALLOW
@@ -253,10 +251,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             if (ex != null) {
               log(Level.FINE, "sslMode==ALLOW, however SSL connection failed as well", ex);
               // non-SSL failed as well, so re-throw original exception
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               // Add SSL exception as suppressed
               e.addSuppressed(ex);
-              //#endif
               throw e;
             }
 
@@ -588,10 +584,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /* SSPI negotiation state, if used */
     ISSPIClient sspiClient = null;
 
-    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     /* SCRAM authentication state, if used */
     org.postgresql.jre7.sasl.ScramAuthenticator scramAuthenticator = null;
-    //#endif
 
     try {
       authloop: while (true) {
@@ -755,7 +749,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
-                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
                 scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
@@ -763,17 +756,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 // 1. When tests is run from IDE, it is assumed SCRAM library is on the classpath
                 // 2. In regular build for Java < 8 this `if` is deactivated and the code always throws
                 if (false) {
-                  //#else
                   throw new PSQLException(GT.tr(
                           "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" versions)",
                           areq), PSQLState.CONNECTION_REJECTED);
-                  //#endif
-                  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
                 }
                 break;
-                //#endif
 
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               case AUTH_REQ_SASL_CONTINUE:
                 castNonNull(scramAuthenticator).processServerFirstMessage(msgLen - 4 - 4);
                 break;
@@ -781,7 +769,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL_FINAL:
                 castNonNull(scramAuthenticator).verifyServerSignature(msgLen - 4 - 4);
                 break;
-              //#endif
 
               case AUTH_REQ_OK:
                 /* Cleanup after successful authentication */

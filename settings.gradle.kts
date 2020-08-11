@@ -85,21 +85,6 @@ buildCache {
     }
 }
 
-// By default, Java7-processed sourcse are attached to IDE.
-// However, it might be confusing as IDE always suggests multiple files for a class like PgConnection
-// Note: IDEA caches after_sync task names.
-// If you face "project :postgresql-jre7 is not found" issues when reimport
-// you might need to remove items like :postgresql-jre7:preprocessMain from .idea/workspace.xml
-
-if (property("pgjdbc.skip.jre6")?.ifBlank { "true" }?.toBoolean() != true) {
-    include("postgresql-jre6")
-    project(":postgresql-jre6").projectDir = file("pgjdbc-jre6")
-}
-
-if (property("pgjdbc.skip.jre7")?.ifBlank { "true" }?.toBoolean() != true) {
-    include("postgresql-jre7")
-    project(":postgresql-jre7").projectDir = file("pgjdbc-jre7")
-}
 
 // This enables to use local clone of vlsi-release-plugins for debugging purposes
 property("localReleasePlugins")?.ifBlank { "../vlsi-release-plugins" }?.let {

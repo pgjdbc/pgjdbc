@@ -157,17 +157,10 @@ public class BatchResultHandler extends ResultHandlerBase {
       }
 
       BatchUpdateException batchException;
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       batchException = new BatchUpdateException(
           GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see other errors in the batch.",
               resultIndex, queryString, newError.getMessage()),
           newError.getSQLState(), 0, uncompressLongUpdateCount(), newError);
-      //#else
-      batchException = new BatchUpdateException(
-          GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see other errors in the batch.",
-              resultIndex, queryString, newError.getMessage()),
-          newError.getSQLState(), 0, uncompressUpdateCount(), newError);
-      //#endif
 
       super.handleError(batchException);
     }
@@ -184,21 +177,12 @@ public class BatchResultHandler extends ResultHandlerBase {
       if (isAutoCommit()) {
         // Re-create batch exception since rows after exception might indeed succeed.
         BatchUpdateException newException;
-        //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
         newException = new BatchUpdateException(
             batchException.getMessage(),
             batchException.getSQLState(), 0,
             uncompressLongUpdateCount(),
             batchException.getCause()
         );
-        //#else
-        newException = new BatchUpdateException(
-            batchException.getMessage(),
-            batchException.getSQLState(), 0,
-            uncompressUpdateCount(),
-            batchException.getCause()
-        );
-        //#endif
 
         SQLException next = batchException.getNextException();
         if (next != null) {
