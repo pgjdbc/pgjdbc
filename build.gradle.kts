@@ -423,7 +423,7 @@ allprojects {
                 // extraJavacArgs.add("-Alint=redundantNullComparison")
             }
         }
-        
+
         if (jacocoEnabled) {
             // Add each project to combined report
             val mainCode = sourceSets["main"]
@@ -433,6 +433,7 @@ allprojects {
                 classDirectories.from(mainCode.output)
             }
         }
+
         if (enableSpotBugs) {
             apply(plugin = "com.github.spotbugs")
             spotbugs {
