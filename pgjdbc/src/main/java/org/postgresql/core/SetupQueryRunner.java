@@ -52,7 +52,10 @@ public class SetupQueryRunner {
     }
 
     try {
-      executor.execute(query, null, handler, 0, 0, flags);
+      executor.execute(
+          ExecuteOptions.builder(query, handler)
+              .flags(flags)
+              .build());
     } finally {
       query.close();
     }

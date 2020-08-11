@@ -15,6 +15,8 @@ import org.postgresql.copy.CopyOut;
 import org.postgresql.core.CommandCompleteParser;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
+import org.postgresql.core.ExecuteManyOptions;
+import org.postgresql.core.ExecuteOptions;
 import org.postgresql.core.Field;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
@@ -283,9 +285,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  public synchronized void execute(Query query, @Nullable ParameterList parameters,
-      ResultHandler handler,
-      int maxRows, int fetchSize, int flags) throws SQLException {
+  public synchronized void execute(ExecuteOptions options) throws SQLException {
+    Query query = options.getQuery();
+    ParameterList parameters = options.getParameters();
+    ResultHandler handler = options.getHandler();
+    int maxRows = options.getMaxRows();
+    int fetchSize = options.getFetchSize();
+    int flags = options.getFlags();
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -410,8 +416,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
       try {
         // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
-        execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
-            1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+        execute(
+            ExecuteOptions.builder(restoreToAutoSave, new ResultHandlerDelegate(null))
+                .parameters(SimpleQuery.NO_PARAMETERS)
+                .maxRows(1)
+                .flags(QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE)
+                .build());
       } catch (SQLException e2) {
         // That's O(N), sorry
         e.setNextException(e2);
@@ -470,8 +480,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int MAX_BUFFERED_RECV_BYTES = 64000;
   private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
-  public synchronized void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
-      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
+  public synchronized void execute(ExecuteManyOptions options) throws SQLException {
+    Query[] queries = options.getQueries();
+    @Nullable ParameterList[] parameterLists = options.getParameterLists();
+    BatchResultHandler batchHandler = options.getHandler();
+    int maxRows = options.getMaxRows();
+    int fetchSize = options.getFetchSize();
+    int flags = options.getFlags();
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  batch execute {0} queries, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",

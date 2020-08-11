@@ -16,6 +16,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.ExecuteOptions;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
@@ -853,8 +854,12 @@ public class PgConnection implements BaseConnection {
       flags |= QueryExecutor.QUERY_ONESHOT;
     }
 
+    ExecuteOptions options =
+        ExecuteOptions.builder(query, new TransactionCommandHandler())
+            .flags(flags)
+            .build();
     try {
-      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+      getQueryExecutor().execute(options);
     } catch (SQLException e) {
       // Don't retry composite queries as it might get partially executed
       if (query.getSubqueries() != null || !queryExecutor.willHealOnRetry(e)) {
@@ -862,7 +867,7 @@ public class PgConnection implements BaseConnection {
       }
       query.close();
       // retry
-      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+      getQueryExecutor().execute(options);
     }
   }
 
