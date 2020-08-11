@@ -14,6 +14,7 @@ and sslMode parameters which, in concert with pg_hba.conf, determine if a partic
 - UpdatedResultSets used to check for oids first. They now check for it after checking for primary keys. 
 Previously no primary keys would set the SqlState to 22000, it now sets it to 24000 
 - Drop jdk 9 from travis builds and use jdk 14 instead #1844
+- remove postgresql-jre6 and postgresql-jre7 projects (#1848)
 
 ### Added
 - Verify nullness with CheckerFramework
