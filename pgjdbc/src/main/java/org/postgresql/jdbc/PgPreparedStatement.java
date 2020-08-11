@@ -132,14 +132,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return getUpdateCount();
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
   public long executeLargeUpdate() throws SQLException {
     executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
     checkNoResultUpdate();
     return getLargeUpdateCount();
   }
-  //#endif
 
   @Override
   public boolean execute(String sql) throws SQLException {
@@ -233,10 +231,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         oid = Oid.DATE;
         break;
       case Types.TIME:
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       case Types.TIME_WITH_TIMEZONE:
       case Types.TIMESTAMP_WITH_TIMEZONE:
-      //#endif
       case Types.TIMESTAMP:
         oid = Oid.UNSPECIFIED;
         break;
@@ -582,11 +578,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           java.sql.Date tmpd;
           if (in instanceof java.util.Date) {
             tmpd = new java.sql.Date(((java.util.Date) in).getTime());
-            //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           } else if (in instanceof java.time.LocalDate) {
             setDate(parameterIndex, (java.time.LocalDate) in);
             break;
-            //#endif
           } else {
             tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
           }
@@ -600,11 +594,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           java.sql.Time tmpt;
           if (in instanceof java.util.Date) {
             tmpt = new java.sql.Time(((java.util.Date) in).getTime());
-            //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           } else if (in instanceof java.time.LocalTime) {
             setTime(parameterIndex, (java.time.LocalTime) in);
             break;
-            //#endif
           } else {
             tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
           }
@@ -620,18 +612,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           java.sql.Timestamp tmpts;
           if (in instanceof java.util.Date) {
             tmpts = new java.sql.Timestamp(((java.util.Date) in).getTime());
-            //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
           } else if (in instanceof java.time.LocalDateTime) {
             setTimestamp(parameterIndex, (java.time.LocalDateTime) in);
             break;
-            //#endif
           } else {
             tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
           }
           setTimestamp(parameterIndex, tmpts);
         }
         break;
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       case Types.TIMESTAMP_WITH_TIMEZONE:
         if (in instanceof java.time.OffsetDateTime) {
           setTimestamp(parameterIndex, (java.time.OffsetDateTime) in);
@@ -644,7 +633,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
-      //#endif
       case Types.BOOLEAN:
       case Types.BIT:
         setBoolean(parameterIndex, BooleanTypeUtil.castToBoolean(in));
@@ -979,7 +967,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setPGobject(parameterIndex, (PGobject) x);
     } else if (x instanceof Character) {
       setString(parameterIndex, ((Character) x).toString());
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     } else if (x instanceof java.time.LocalDate) {
       setDate(parameterIndex, (java.time.LocalDate) x);
     } else if (x instanceof java.time.LocalTime) {
@@ -988,7 +975,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setTimestamp(parameterIndex, (java.time.LocalDateTime) x);
     } else if (x instanceof java.time.OffsetDateTime) {
       setTimestamp(parameterIndex, (java.time.OffsetDateTime) x);
-      //#endif
     } else if (x instanceof Map) {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
@@ -1426,7 +1412,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   private void setDate(@Positive int i, java.time.LocalDate localDate) throws SQLException {
     int oid = Oid.DATE;
     bindString(i, connection.getTimestampUtils().toString(localDate), oid);
@@ -1448,14 +1433,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     int oid = Oid.TIMESTAMPTZ;
     bindString(i, connection.getTimestampUtils().toString(offsetDateTime), oid);
   }
-  //#endif
 
   public ParameterMetaData createParameterMetaData(BaseConnection conn, int[] oids)
       throws SQLException {
     return new PgParameterMetaData(conn, oids);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
       java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
@@ -1467,7 +1450,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
-  //#endif
 
   public void setRowId(@Positive int parameterIndex, @Nullable RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRowId(int, RowId)");

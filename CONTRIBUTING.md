@@ -6,7 +6,7 @@ The purpose of the *Guidelines for Contributing* is to create a collaboration ba
 **Do NOT** blindly obey these guidelines, use them (after understanding) where they make sense.
 
 Currently the PgJDBC driver supports the Oracle and OpenJDK Java implementations of
-versions **6**, **7**, **8** and **9**; and PostgreSQL server versions from **8.2** and higher.
+versions **8** and **higher**; and PostgreSQL server versions from **8.4** and higher.
 
 Some PostgreSQL forks *might* work but are not officially supported, we support vendors of forks
 that want to improve this driver by sending us pull requests that are not disruptive to the
@@ -22,7 +22,7 @@ If you find a bug in the PgJDBC driver please use an issue to report it, try to 
 and detailed in your report, please ensure to specify at least the following:
 
   * Use a concise subject.
-  * PgJDBC driver version (e.g. 42.0.0.jre7)
+  * PgJDBC driver version (e.g. 42.2.14)
   * JDK/JRE version or the output of `java -version` (e.g. OpenJDK Java 8u144, Oracle Java 7u79)
   * PostgreSQL server version or the output of `select version()` (e.g. PostgreSQL 9.6.2)
   * Context information: what you were trying to achieve with PgJDBC.

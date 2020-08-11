@@ -699,9 +699,7 @@ public class Driver implements java.sql.Driver {
         PSQLState.NOT_IMPLEMENTED.getState());
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
-  //#endif
   public java.util.logging.Logger getParentLogger() {
     return PARENT_LOGGER;
   }

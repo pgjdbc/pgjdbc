@@ -61,10 +61,6 @@ public class FinalizeStatement {
 
   private Connection connection;
 
-  //#if mvn.project.property.current.jdk < "1.7"
-  private Random random = new Random();
-  //#endif
-
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
     Properties props = ConnectionUtil.getProperties();
@@ -82,11 +78,7 @@ public class FinalizeStatement {
   public Statement createAndLeak() throws SQLException {
     Statement statement = connection.createStatement();
     Random rnd;
-    //#if mvn.project.property.current.jdk < "1.7"
-    rnd = random;
-    //#else
     rnd = java.util.concurrent.ThreadLocalRandom.current();
-    //#endif
     if (rnd.nextFloat() >= leakPctFloat) {
       statement.close();
     }

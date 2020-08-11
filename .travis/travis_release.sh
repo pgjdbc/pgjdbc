@@ -41,12 +41,6 @@ RELEASE_VERSION=${CURRENT_VERSION/-SNAPSHOT}
 ORIGINAL_BRANCH=${TRAVIS_BRANCH#release/}
 
 REPO=$TRAVIS_REPO_SLUG
-JRE=
-if [[ "${TRAVIS_JDK_VERSION}" == *"jdk7"* ]]; then
-  JRE=-jre7
-elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk6"* ]]; then
-  JRE=-jre6
-fi
 
 # Remove tmp branch if exists
 git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git ":$TMP_BRANCH" || true
@@ -60,35 +54,7 @@ if [[ "x$JRE" == "x" ]]; then
   git push --dry-run git@github.com:$TRAVIS_REPO_SLUG.git "HEAD:$ORIGINAL_BRANCH"
 
   git checkout -b "$TMP_BRANCH"
-else
-  git fetch --unshallow
-  # Use RELx.y.z.jreN
-  RELEASE_TAG=$RELEASE_TAG.${JRE#-}
-  # The following updates pgjdbc submodule of pgjdbc-jreX to the relevant RELx.y.z release tag
-  git clone -b "$ORIGINAL_BRANCH" --depth=50 https://github.com/$TRAVIS_REPO_SLUG$JRE.git pgjdbc$JRE
 
-  cd pgjdbc$JRE
-
-  # Use tmp branch for the release, so mvn release would use that
-  git checkout -b "$TMP_BRANCH"
-
-  git submodule update --init
-
-  # Force relevant version for jreN repository
-  mvn -DnewVersion=$RELEASE_VERSION.${JRE#-}-SNAPSHOT versions:set versions:commit
-  # Add all known pom.xml files in the repository
-  git add -u \*pom.xml
-
-  cd pgjdbc
-  git fetch
-  git checkout "$ORIGINAL_BRANCH"
-  git reset --hard REL$RELEASE_VERSION
-  cd ..
-  git add pgjdbc
-  git commit -m "Update pgjdbc to $RELEASE_VERSION"
-
-  # Note: we are IN pgjdbc-jreX sub-folder, and the subsequent release would release "jre-specific" version
-fi
 
 # Remove release tag if exists just in case
 git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git :$RELEASE_TAG || true
@@ -98,6 +64,6 @@ MVN_SETTINGS=$(pwd)/settings.xml
 mvn -B --settings settings.xml -Darguments="--settings '${MVN_SETTINGS}' -Dskip.unzip-jdk-src=false" -Dskip.unzip-jdk-src=false release:prepare release:perform -Darguments=-Dgpg.passphrase=$GPG_PASSPHRASE
 
 # Point "master" branch to "next development snapshot commit"
-git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git "HEAD:$ORIGINAL_BRANCH"
+git push git@github.com:$TRAVIS_REPO_SLUG.git "HEAD:$ORIGINAL_BRANCH"
 # Removal of the temporary branch is a separate command, so it left behind for the analysis in case "push to master" fails
-git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git ":$TMP_BRANCH"
+git push git@github.com:$TRAVIS_REPO_SLUG.git ":$TMP_BRANCH"
