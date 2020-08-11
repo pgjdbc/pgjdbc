@@ -423,8 +423,7 @@ allprojects {
                 // extraJavacArgs.add("-Alint=redundantNullComparison")
             }
         }
-
-
+        
         if (jacocoEnabled) {
             // Add each project to combined report
             val mainCode = sourceSets["main"]
