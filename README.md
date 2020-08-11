@@ -14,9 +14,9 @@ PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a P
 [![Join the chat at https://gitter.im/pgjdbc/pgjdbc](https://badges.gitter.im/pgjdbc/pgjdbc.svg)](https://gitter.im/pgjdbc/pgjdbc?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Supported PostgreSQL and Java versions
-The current version of the driver should be compatible with **PostgreSQL 8.2 and higher** using the version 3.0 of the protocol, and **Java 6** (JDBC 4.0), **Java 7** (JDBC 4.1) and **Java 8** (JDBC 4.2). Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
+The current version of the driver should be compatible with **PostgreSQL 8.4 and higher** using the version 3.0 of the protocol and **Java 8** (JDBC 4.2) or above. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
 
-PgJDBC regression tests are run against all PostgreSQL versions since 8.2, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please fill an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
+PgJDBC regression tests are run against all PostgreSQL versions since 8.4, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please fill an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
 
 ## Get the Driver
 Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
@@ -33,27 +33,8 @@ You can search on The Central Repository with GroupId and ArtifactId [![Maven Se
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-42.2.15.jre7-blue.svg)][mvn-jre7]
-```xml
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>42.2.15.jre7</version>
-</dependency>
-```
-
-[![Java 6](https://img.shields.io/badge/Java_6-42.2.15.jre6-blue.svg)][mvn-jre6]
-```xml
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>42.2.15.jre6</version>
-</dependency>
-```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.15.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.15.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.15|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.14|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -62,8 +43,6 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
   <version>42.2.16-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.2.16.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.2.16.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
@@ -162,4 +141,3 @@ For information on how to contribute to the project see the [Contributing Guidel
 ### Sponsors
 
 * [PostgreSQL International](http://www.postgresintl.com)
-* [YourKit](https://www.yourkit.com/)

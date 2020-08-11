@@ -42,7 +42,6 @@ public class TimestampUtils {
   private static final char[][] NUMBERS;
   private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<String, TimeZone>();
   private static final int MAX_NANOS_BEFORE_WRAP_ON_ROUND = 999999500;
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   private static final java.time.Duration ONE_MICROSECOND = java.time.Duration.ofNanos(1000);
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
   // since PostgreSQL has microsecond resolution only
@@ -53,7 +52,6 @@ public class TimestampUtils {
   private static final java.time.LocalDate MIN_LOCAL_DATE = java.time.LocalDate.of(4713, 1, 1).with(java.time.temporal.ChronoField.ERA, java.time.chrono.IsoEra.BCE.getValue());
   private static final java.time.LocalDateTime MIN_LOCAL_DATETIME = MIN_LOCAL_DATE.atStartOfDay();
   private static final java.time.OffsetDateTime MIN_OFFSET_DATETIME = MIN_LOCAL_DATETIME.atOffset(java.time.ZoneOffset.UTC);
-  //#endif
 
   private static final @Nullable Field DEFAULT_TIME_ZONE_FIELD;
 
@@ -407,7 +405,6 @@ public class TimestampUtils {
     return result;
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   /**
    * Parse a string and return a LocalTime representing its value.
    *
@@ -545,8 +542,6 @@ public class TimestampUtils {
     java.time.Instant instant = java.time.Instant.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos);
     return java.time.OffsetDateTime.ofInstant(instant, java.time.ZoneOffset.UTC);
   }
-
-  //#endif
 
   public synchronized @PolyNull Time toTime(
       @Nullable Calendar cal, @PolyNull String s) throws SQLException {
@@ -833,7 +828,6 @@ public class TimestampUtils {
     }
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public synchronized String toString(java.time.LocalDate localDate) {
     if (java.time.LocalDate.MAX.equals(localDate)) {
       return "infinity";
@@ -938,7 +932,6 @@ public class TimestampUtils {
       sb.append(" BC");
     }
   }
-  //#endif
 
   private static int skipWhitespace(char[] s, int start) {
     int slen = s.length;
@@ -1081,7 +1074,6 @@ public class TimestampUtils {
     return convertToTime(millis, tz); // Ensure date part is 1970-01-01
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   /**
    * Returns the SQL Time object matching the given bytes with {@link Oid#TIME}.
    *
@@ -1107,7 +1099,6 @@ public class TimestampUtils {
 
     return java.time.LocalTime.ofNanoOfDay(micros * 1000);
   }
-  //#endif
 
   /**
    * Returns the SQL Timestamp object matching the given bytes with {@link Oid#TIMESTAMP} or
@@ -1234,7 +1225,6 @@ public class TimestampUtils {
     return ts;
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   /**
    * Returns the local date time object matching the given bytes with {@link Oid#TIMESTAMP} or
    * {@link Oid#TIMESTAMPTZ}.
@@ -1256,7 +1246,6 @@ public class TimestampUtils {
     // Postgres is always UTC
     return java.time.LocalDateTime.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos, java.time.ZoneOffset.UTC);
   }
-  //#endif
 
   /**
    * <p>Given a UTC timestamp {@code millis} finds another point in time that is rendered in given time

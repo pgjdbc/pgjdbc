@@ -138,12 +138,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           if (result != null) {
             callResult[j] = ((Double) result).floatValue();
           }
-          //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
         } else if (columnType == Types.REF_CURSOR && functionReturnType[j] == Types.OTHER) {
           // For backwards compatibility reasons we support that ref cursors can be
           // registered with both Types.OTHER and Types.REF_CURSOR so we allow
           // this specific mismatch
-          //#endif
         } else {
           throw new PSQLException(GT.tr(
               "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
@@ -484,7 +482,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public void setObject(String parameterName, @Nullable Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
@@ -524,7 +521,6 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
-  //#endif
 
   public @Nullable RowId getRowId(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getRowId(int)");

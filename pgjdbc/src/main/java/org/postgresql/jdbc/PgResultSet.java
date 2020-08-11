@@ -548,7 +548,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return connection.getTimestampUtils().toTime(cal, string);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   private java.time.@Nullable LocalTime getLocalTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
@@ -571,7 +570,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     String string = getString(i);
     return connection.getTimestampUtils().toLocalTime(string);
   }
-  //#endif
 
   @Pure
   @Override
@@ -628,7 +626,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return connection.getTimestampUtils().toTimestamp(cal, string);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   private java.time.@Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
@@ -691,7 +688,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     String string = castNonNull(getString(i));
     return connection.getTimestampUtils().toLocalDateTime(string);
   }
-  //#endif
 
   public java.sql.@Nullable Date getDate(
       String c, java.util.@Nullable Calendar cal) throws SQLException {
@@ -3467,9 +3463,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     } else if (type == Timestamp.class) {
       if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
               || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      //#endif
       ) {
         return type.cast(getTimestamp(columnIndex));
       } else {
@@ -3478,9 +3472,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     } else if (type == Calendar.class) {
       if (sqlType == Types.TIMESTAMP
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
               || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      //#endif
       ) {
         Timestamp timestampValue = getTimestamp(columnIndex);
         if (timestampValue == null) {
@@ -3546,7 +3538,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, ex);
       }
       // JSR-310 support
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
     } else if (type == java.time.LocalDate.class) {
       if (sqlType == Types.DATE) {
         Date dateValue = getDate(columnIndex);
@@ -3593,7 +3584,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
-      //#endif
     } else if (PGobject.class.isAssignableFrom(type)) {
       Object object;
       if (isBinary(columnIndex)) {
@@ -3620,7 +3610,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getObjectImpl(i, map);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   public void updateObject(@Positive int columnIndex, @Nullable Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
@@ -3640,7 +3629,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
   }
-  //#endif
 
   public @Nullable RowId getRowId(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getRowId columnIndex: {0}", columnIndex);
