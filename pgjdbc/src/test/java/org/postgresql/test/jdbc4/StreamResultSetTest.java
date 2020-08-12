@@ -6,7 +6,7 @@
 package org.postgresql.test.jdbc4;
 
 import static java.lang.Math.max;
-import static java.lang.System.currentTimeMillis;
+import static java.lang.System.nanoTime;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
@@ -20,6 +20,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.Constants;
 
 import org.junit.Test;
 
@@ -130,21 +131,21 @@ public class StreamResultSetTest extends BaseTest4 {
       int count = 0;
       long serverFirstRowTime = 0;
       long serverLastRowTime = 0;
-      startTime = currentTimeMillis();
+      startTime = nanoTime()/Constants.NANOS_PER_MILLISECOND;
       try (ResultSet results = statement.executeQuery()) {
         while (results.next()) {
           int value = results.getInt(1);
           long serverTime = results.getTimestamp(3).getTime();
-          long delta = currentTimeMillis() - serverTime;
+          long delta = nanoTime()/Constants.NANOS_PER_MILLISECOND - serverTime;
           maxDeltaBetweenServerAndLocal = max(delta, maxDeltaBetweenServerAndLocal);
           if (firstRowTime == 0) {
-            firstRowTime = currentTimeMillis();
+            firstRowTime = nanoTime()/Constants.NANOS_PER_MILLISECOND;
             serverFirstRowTime = serverTime;
           }
           serverLastRowTime = serverTime;
           assertThat(value, is(++count));
         }
-        timeBetweenFirstAndLastRow = currentTimeMillis() - firstRowTime;
+        timeBetweenFirstAndLastRow = nanoTime()/Constants.NANOS_PER_MILLISECOND - firstRowTime;
         timeToFirstRow = firstRowTime - startTime;
       }
       assertThat(count, is(GENERATED_ROWS));
