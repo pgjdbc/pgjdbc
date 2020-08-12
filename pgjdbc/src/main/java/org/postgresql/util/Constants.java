@@ -6,6 +6,6 @@
 package org.postgresql.util;
 
 public interface Constants {
-  final long NANOS_PER_MILLISECOND = 1000000L;
+  long NANOS_PER_MILLISECOND = 1000000L;
 
 }
