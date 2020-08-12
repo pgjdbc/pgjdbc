@@ -137,6 +137,19 @@ public class StatementTest {
   }
 
   @Test
+  public void testSecondQueryClosesFirstResultSet() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      ResultSet rs = stmt.executeQuery("select 1 as one");
+      assertNotNull(rs);
+      assertTrue(rs.next());
+      try (ResultSet rs2 = stmt.executeQuery("select 2 as two")) {
+        assertNotNull(rs2);
+        assertTrue(rs.isClosed());
+      }
+    }
+  }
+
+  @Test
   public void testUpdateCount() throws SQLException {
     Statement stmt = con.createStatement();
     int count;

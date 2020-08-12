@@ -57,8 +57,9 @@ public class PgStatement implements Statement, BaseStatement {
   private final int rsHoldability;
   private boolean poolable;
   private boolean closeOnCompletion = false;
-  protected int fetchdirection = ResultSet.FETCH_FORWARD;
   // fetch direction hint (currently ignored)
+  protected int fetchdirection = ResultSet.FETCH_FORWARD;
+  private ResultSet currentResultSet = null;
 
   /**
    * Protects current statement from cancelTask starting, waiting for a bit, and waking up exactly
@@ -160,12 +161,17 @@ public class PgStatement implements Statement, BaseStatement {
   @SuppressWarnings("method.invocation.invalid")
   public ResultSet createResultSet(@Nullable Query originalQuery, Field[] fields, List<Tuple> tuples,
       @Nullable ResultCursor cursor) throws SQLException {
-    PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
+    synchronized (this) {
+      if ( currentResultSet != null && !currentResultSet.isClosed() ) {
+        currentResultSet.close();
+      }
+    }
+    currentResultSet = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
         getResultSetHoldability());
-    newResult.setFetchSize(getFetchSize());
-    newResult.setFetchDirection(getFetchDirection());
-    return newResult;
+    currentResultSet.setFetchSize(getFetchSize());
+    currentResultSet.setFetchDirection(getFetchDirection());
+    return currentResultSet;
   }
 
   public BaseConnection getPGConnection() {
@@ -653,6 +659,10 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       if (isClosed) {
         return;
+      }
+      if ( currentResultSet != null && !currentResultSet.isClosed() ) {
+        currentResultSet.close();
+        currentResultSet = null;
       }
       isClosed = true;
     }
