@@ -8,8 +8,6 @@ package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
@@ -51,6 +49,7 @@ import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.StreamingList;
 import org.postgresql.util.Supplier;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;

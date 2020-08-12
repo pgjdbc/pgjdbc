@@ -6,8 +6,6 @@
 
 package org.postgresql.core;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
