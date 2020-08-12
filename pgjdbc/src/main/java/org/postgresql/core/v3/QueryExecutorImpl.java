@@ -8,6 +8,8 @@ package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
@@ -130,7 +132,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private @Nullable SQLException transactionFailCause;
 
-  private final ReplicationProtocol replicationProtocol;
+  private final @NonNull ReplicationProtocol replicationProtocol;
 
   /**
    * {@code CommandComplete(B)} messages are quite common, so we reuse instance to parse those
@@ -287,7 +289,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   public synchronized boolean execute(Query query, @Nullable ParameterList parameters, ResultHandler handler,
-      int maxRows, int fetchSize, int flags, final Runnable finallyHandler) throws SQLException {
+      int maxRows, int fetchSize, int flags, final @Nullable Runnable finallyHandler) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -314,8 +316,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     boolean autosave = false;
-    SQLThrowingRunnable onFinished = null;
-    Consumer<IOException> onIOError = null;
+    @Nullable SQLThrowingRunnable onFinished = null;
+    @Nullable Consumer<IOException> onIOError = null;
     try {
       try {
         handler = sendQueryPreamble(handler, flags);
@@ -338,7 +340,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               try {
                 QueryExecutorImpl.this.processResultsCleanup(handler0, flags0, autosave0);
               } finally {
-                finallyHandler.run();
+                if (finallyHandler != null ) {
+                  finallyHandler.run();
+                }
               }
             }
           };
@@ -353,7 +357,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                   throw new SQLRuntimeException(ex);
                 }
               } finally {
-                finallyHandler.run();
+                if ( finallyHandler != null ) {
+                  finallyHandler.run();
+                }
               }
             }
           };
@@ -2117,9 +2123,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   static class ProcessState {
     final boolean noResults;
     final boolean bothRowsAndStatus;
-    final ResultHandler handler;
-    final SQLThrowingRunnable onFinishedContext;
-    final Consumer<IOException> onIOError;
+    final @NonNull ResultHandler handler;
+    final @Nullable SQLThrowingRunnable onFinishedContext;
+    final @NonNull Consumer<IOException> onIOError;
     public Thread reader;
     boolean streamRows;
     boolean streamingSwitchedToBuffer;
@@ -2137,7 +2143,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // from there.
     boolean doneAfterRowDescNoData = false;
 
-    ProcessState(ResultHandler handler, int flags, SQLThrowingRunnable onFinishedContext, Consumer<IOException> onIOError) {
+    ProcessState(@NonNull ResultHandler handler, int flags, @Nullable SQLThrowingRunnable onFinishedContext, @Nullable Consumer<IOException> onIOError) {
       this.noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
       this.bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
       this.streamRows = (flags & QueryExecutor.QUERY_STREAM_ROWS) != 0;
@@ -2160,7 +2166,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @return True if the results were handled synchronously
    * @throws IOException if IO error occurs during synchronous processing
    */
-  protected boolean processResults(ResultHandler handler, int flags, SQLThrowingRunnable onFinished, Consumer<IOException> onIOError) throws IOException {
+  protected boolean processResults(ResultHandler handler, int flags, @Nullable SQLThrowingRunnable onFinished, @Nullable Consumer<IOException> onIOError) throws IOException {
     if (streamingState != null) {
       throw new IOException("Previous result is still streaming");
     }
@@ -2676,8 +2682,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.skip(len - 4);
   }
 
-  public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
+  public synchronized void fetch(@Nullable ResultCursor cursor, ResultHandler handler, int fetchSize)
       throws SQLException {
+
+    if ( cursor == null ) {
+      throw new IllegalArgumentException("cursor cannot be null");
+    }
+
     waitOnLock();
     final Portal portal = (Portal) cursor;
 
@@ -3046,7 +3057,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
-  private ProcessState streamingState;
+  private @Nullable ProcessState streamingState = null;
 
   /**
    * <p>The estimated server response size since we last consumed the input stream from the server, in

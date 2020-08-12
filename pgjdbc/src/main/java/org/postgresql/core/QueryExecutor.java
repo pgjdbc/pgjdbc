@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
@@ -184,7 +186,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param fetchSize the preferred number of rows to retrieve before suspending
    * @throws SQLException if query execution fails
    */
-  void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize) throws SQLException;
+  void fetch(@Nullable ResultCursor cursor, ResultHandler handler, int fetchSize) throws SQLException;
 
   /**
    * Create an unparameterized Query object suitable for execution by this QueryExecutor. The
