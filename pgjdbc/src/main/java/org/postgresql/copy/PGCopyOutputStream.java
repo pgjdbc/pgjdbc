@@ -144,6 +144,11 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   public void writeToCopy(ByteStreamWriter from) throws SQLException {
+    if (at > 0) {
+      // flush existing buffer so order is preserved
+      getOp().writeToCopy(copyBuffer, 0, at);
+      at = 0;
+    }
     getOp().writeToCopy(from);
   }
 
