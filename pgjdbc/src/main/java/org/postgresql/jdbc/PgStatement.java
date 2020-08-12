@@ -80,7 +80,7 @@ public class PgStatement implements Statement, BaseStatement {
    * {@link StatementCancelState#IN_QUERY} during execute. {@link #cancel()}
    * ignores cancel request if state is {@link StatementCancelState#IDLE}.
    * In case {@link #execute(String)} observes non-{@link StatementCancelState#IDLE} state as it
-   * completes the query, it waits till {@link StatementCancelState#CANCELLED}. Note: the field must be
+   * completes the query, it waits till {@link StatementCancelState#IDLE}. Note: the field must be
    * set/get/compareAndSet via {@link #STATE_UPDATER} as per {@link AtomicIntegerFieldUpdater}
    * javadoc.
    */
@@ -894,9 +894,6 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public void cancel() throws SQLException {
-    if (statementState == StatementCancelState.IDLE) {
-      return;
-    }
     if (!STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY,
         StatementCancelState.CANCELING)) {
       // Not in query, there's nothing to cancel
@@ -907,7 +904,7 @@ public class PgStatement implements Statement, BaseStatement {
       try {
         connection.cancelQuery();
       } finally {
-        STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
+        STATE_UPDATER.set(this, StatementCancelState.IDLE);
         connection.notifyAll(); // wake-up killTimerTask
       }
     }
@@ -985,46 +982,46 @@ public class PgStatement implements Statement, BaseStatement {
    * Clears {@link #cancelTimerTask} if any. Returns true if and only if "cancel" timer task would
    * never invoke {@link #cancel()}.
    */
-  private boolean cleanupTimer() {
+  private void cleanupTimer() {
     TimerTask timerTask = CANCEL_TIMER_UPDATER.get(this);
     if (timerTask == null) {
       // If timeout is zero, then timer task did not exist, so we safely report "all clear"
-      return timeout == 0;
+      return;
     }
     if (!CANCEL_TIMER_UPDATER.compareAndSet(this, timerTask, null)) {
       // Failed to update reference -> timer has just fired, so we must wait for the query state to
       // become "cancelling".
-      return false;
+      return;
     }
     timerTask.cancel();
     connection.purgeTimerTasks();
-    // All clear
-    return true;
   }
 
   private void killTimerTask() {
-    boolean timerTaskIsClear = cleanupTimer();
-    // The order is important here: in case we need to wait for the cancel task, the state must be
-    // kept StatementCancelState.IN_QUERY, so cancelTask would be able to cancel the query.
-    // It is believed that this case is very rare, so "additional cancel and wait below" would not
-    // harm it.
-    if (timerTaskIsClear && STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY, StatementCancelState.IDLE)) {
+    // We are here, so the query is likely executed, so we need to prevent cancels
+    boolean done = STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY,
+        StatementCancelState.IDLE);
+
+    cleanupTimer();
+    if (done) {
+      // We've successfully updated the query state to IDLE, so it won't be unexpectedly
+      // cancelled by the timer or by another thread
       return;
     }
 
     // Being here means someone managed to call .cancel() and our connection did not receive
     // "timeout error"
-    // We wait till state becomes "cancelled"
+    // We wait till state becomes "IDLE"
     boolean interrupted = false;
     synchronized (connection) {
       // state check is performed under synchronized so it detects "cancelled" state faster
       // In other words, it prevents unnecessary ".wait()" call
-      while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
+      while (STATE_UPDATER.get(this) != StatementCancelState.IDLE) {
         try {
           // Note: wait timeout here is irrelevant since synchronized(connection) would block until
           // .cancel finishes
           connection.wait(10);
-        } catch (InterruptedException e) { // NOSONAR
+        } catch (InterruptedException ignore) { // NOSONAR
           // Either re-interrupt this method or rethrow the "InterruptedException"
           interrupted = true;
         }
