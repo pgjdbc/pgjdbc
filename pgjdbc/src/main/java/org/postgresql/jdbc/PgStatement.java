@@ -59,7 +59,7 @@ public class PgStatement implements Statement, BaseStatement {
   private boolean closeOnCompletion = false;
   // fetch direction hint (currently ignored)
   protected int fetchdirection = ResultSet.FETCH_FORWARD;
-  private ResultSet currentResultSet = null;
+  private @Nullable ResultSet currentResultSet = null;
 
   /**
    * Protects current statement from cancelTask starting, waiting for a bit, and waking up exactly
