@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc4;
 
 import static java.lang.Math.max;
+import static java.lang.System.currentTimeMillis;
 import static java.lang.System.nanoTime;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
@@ -131,22 +132,22 @@ public class StreamResultSetTest extends BaseTest4 {
       int count = 0;
       long serverFirstRowTime = 0;
       long serverLastRowTime = 0;
-      startTime = nanoTime()/Constants.NANOS_PER_MILLISECOND;
+      startTime = nanoTime();
       try (ResultSet results = statement.executeQuery()) {
         while (results.next()) {
           int value = results.getInt(1);
           long serverTime = results.getTimestamp(3).getTime();
-          long delta = nanoTime()/Constants.NANOS_PER_MILLISECOND - serverTime;
+          long delta = currentTimeMillis() - serverTime;
           maxDeltaBetweenServerAndLocal = max(delta, maxDeltaBetweenServerAndLocal);
           if (firstRowTime == 0) {
-            firstRowTime = nanoTime()/Constants.NANOS_PER_MILLISECOND;
+            firstRowTime = nanoTime();
             serverFirstRowTime = serverTime;
           }
           serverLastRowTime = serverTime;
           assertThat(value, is(++count));
         }
-        timeBetweenFirstAndLastRow = nanoTime()/Constants.NANOS_PER_MILLISECOND - firstRowTime;
-        timeToFirstRow = firstRowTime - startTime;
+        timeBetweenFirstAndLastRow = (nanoTime() - firstRowTime)/Constants.NANOS_PER_MILLISECOND;
+        timeToFirstRow = (firstRowTime - startTime)/Constants.NANOS_PER_MILLISECOND;
       }
       assertThat(count, is(GENERATED_ROWS));
       // verify that our query actually caused a delay between rows on the server side

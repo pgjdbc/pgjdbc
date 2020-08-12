@@ -1993,7 +1993,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       try {
         connection.getQueryExecutor().finishReadingPendingProtocolEvents(false);
       } catch (SQLRuntimeException ex) {
-        throw (SQLException) ex.getCause();
+        if ( ex.getCause() != null ) {
+          throw (SQLException) ex.getCause();
+        } else {
+          throw ex;
+        }
       }
     }
     rows = null;
