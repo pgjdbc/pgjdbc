@@ -146,8 +146,8 @@ public class StreamResultSetTest extends BaseTest4 {
           serverLastRowTime = serverTime;
           assertThat(value, is(++count));
         }
-        timeBetweenFirstAndLastRow = (nanoTime() - firstRowTime)/Constants.NANOS_PER_MILLISECOND;
-        timeToFirstRow = (firstRowTime - startTime)/Constants.NANOS_PER_MILLISECOND;
+        timeBetweenFirstAndLastRow = (nanoTime() - firstRowTime) / Constants.NANOS_PER_MILLISECOND;
+        timeToFirstRow = (firstRowTime - startTime) / Constants.NANOS_PER_MILLISECOND;
       }
       assertThat(count, is(GENERATED_ROWS));
       // verify that our query actually caused a delay between rows on the server side

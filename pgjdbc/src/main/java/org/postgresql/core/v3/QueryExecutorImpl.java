@@ -2130,7 +2130,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean streamRows;
     boolean streamingSwitchedToBuffer;
 
-    List<Tuple> tuples = null;
+    @Nullable  List<Tuple> tuples = null;
 
     boolean endQuery = false;
 

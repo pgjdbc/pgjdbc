@@ -1932,7 +1932,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       size = rows.size();
     } catch (SQLRuntimeException e) {
       // when using the the StreamingList the wire-protocol handling is done every time the list is advanced and we can get an exception
-      throw (SQLException) e.getCause();
+      if ( e.getCause() != null ) {
+        throw (SQLException) e.getCause();
+      } else {
+        throw e;
+      }
     }
     if (currentRow + 1 >= size) {
       if (cursor == null || (maxRows > 0 && rowOffset + size >= maxRows)) {
