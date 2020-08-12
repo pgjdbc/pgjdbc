@@ -9,6 +9,7 @@ import org.postgresql.copy.CopyDual;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.ReplicationType;
+import org.postgresql.util.Constants;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -27,7 +28,6 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private static final Logger LOGGER = Logger.getLogger(V3PGReplicationStream.class.getName());
   public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
-  private static final long NANOS_PER_MILLISECOND = 1000000L;
 
   private final CopyDual copyDual;
   private final long updateInterval;
@@ -59,8 +59,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
       ReplicationType replicationType
   ) {
     this.copyDual = copyDual;
-    this.updateInterval = updateIntervalMs * NANOS_PER_MILLISECOND;
-    this.lastStatusUpdate = System.nanoTime() - (updateIntervalMs * NANOS_PER_MILLISECOND);
+    this.updateInterval = updateIntervalMs * Constants.NANOS_PER_MILLISECOND;
+    this.lastStatusUpdate = System.nanoTime() - (updateIntervalMs * Constants.NANOS_PER_MILLISECOND);
     this.lastReceiveLSN = startLSN;
     this.replicationType = replicationType;
   }
@@ -201,7 +201,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
       LogSequenceNumber applied, boolean replyRequired) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + 8 + 8 + 8 + 1);
 
-    long now = System.nanoTime() / NANOS_PER_MILLISECOND;
+    long now = System.nanoTime() / Constants.NANOS_PER_MILLISECOND;
     long systemClock = TimeUnit.MICROSECONDS.convert((now - POSTGRES_EPOCH_2000_01_01),
         TimeUnit.MICROSECONDS);
 
