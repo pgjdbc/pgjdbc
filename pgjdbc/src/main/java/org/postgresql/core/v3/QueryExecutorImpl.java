@@ -2089,6 +2089,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  @SuppressWarnings("nullness")
   @Override
   public void finishReadingPendingProtocolEvents(boolean buffer) throws SQLException {
     synchronized (this) {
