@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLXML;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -356,6 +357,17 @@ final class ArrayDecoding {
     }
   };
 
+  private static final ArrayDecoder<java.sql.SQLXML[]> XML_DECODER = new AbstractObjectStringArrayDecoder<java.sql.SQLXML[]>(
+      java.sql.SQLXML.class) {
+
+    @Override
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
+      SQLXML xml = connection.createSQLXML();
+      xml.setString(stringVal);
+      return xml;
+    }
+  };
+
   /**
    * Maps from base type oid to {@link ArrayDecoder} capable of processing
    * entries.
@@ -386,6 +398,7 @@ final class ArrayDecoding {
     OID_TO_DECODER.put(Oid.TIMETZ, TIME_DECODER);
     OID_TO_DECODER.put(Oid.TIMESTAMP, TIMESTAMP_DECODER);
     OID_TO_DECODER.put(Oid.TIMESTAMPTZ, TIMESTAMP_DECODER);
+    OID_TO_DECODER.put(Oid.XML, XML_DECODER);
   }
 
   @SuppressWarnings("rawtypes")
