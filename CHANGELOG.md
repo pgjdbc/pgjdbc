@@ -4,19 +4,21 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [42.2.15] (2020-08-14)
 ### Changed
-- Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder
-- add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
+- Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder [ba017507](https://github.com/pgjdbc/pgjdbc/commit/ba0175072ee9c751c1496d2fe170f4af7256f1a5)
+- Add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
 are possible. Now the driver will attempt to connect to the server with a GSSAPI encrypted connection. If that fails then
 attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
-and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required.
+and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required. [PR 1821](https://github.com/pgjdbc/pgjdbc/pull/1821) [ad921b9e](https://github.com/pgjdbc/pgjdbc/commit/ad921b9e3563b28b9a03b1e2dfaad0e34efc02f1)
+- Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact [f0301eb9](https://github.com/pgjdbc/pgjdbc/commit/f0301eb901f880059b00b0fb0a3ee93ef7d749a8)
 
 ### Added
-- Verify nullness with CheckerFramework
+- Verify nullness with CheckerFramework [6e524ae5](https://github.com/pgjdbc/pgjdbc/commit/6e524ae51cee67b25426c09a7083465c820c0a0d)
 
-## [42.2.15] (2020-06-19)
-### Changed
-- Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact.  
+### Fixed
+- Avoid preparedStatement leak when using updateable ResultSet via insert/update/refreshRow [PR 1815](https://github.com/pgjdbc/pgjdbc/pull/1815) [9a0d2b18](https://github.com/pgjdbc/pgjdbc/commit/9a0d2b18a81c7ec5974d4caf2ff2d218312da25f)
 
 ## [42.2.14] (2020-06-10)
 ### Changed
@@ -378,6 +380,7 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.10]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...REL42.2.10
 [42.2.11]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.10...REL42.2.11
 [42.2.12]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...REL42.2.12
-[42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...HEAD
+[42.2.13]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...REL42.2.13
+[42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
 [42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
 [Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...HEAD
