@@ -13,12 +13,17 @@ are possible. Now the driver will attempt to connect to the server with a GSSAPI
 attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
 and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required. [PR 1821](https://github.com/pgjdbc/pgjdbc/pull/1821) [ad921b9e](https://github.com/pgjdbc/pgjdbc/commit/ad921b9e3563b28b9a03b1e2dfaad0e34efc02f1)
 - Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact [f0301eb9](https://github.com/pgjdbc/pgjdbc/commit/f0301eb901f880059b00b0fb0a3ee93ef7d749a8)
+- Refactor decoding arrays [PR 1194](https://github.com/pgjdbc/pgjdbc/pull/1194)
 
 ### Added
 - Verify nullness with CheckerFramework [6e524ae5](https://github.com/pgjdbc/pgjdbc/commit/6e524ae51cee67b25426c09a7083465c820c0a0d)
 
 ### Fixed
 - Avoid preparedStatement leak when using updateable ResultSet via insert/update/refreshRow [PR 1815](https://github.com/pgjdbc/pgjdbc/pull/1815) [9a0d2b18](https://github.com/pgjdbc/pgjdbc/commit/9a0d2b18a81c7ec5974d4caf2ff2d218312da25f)
+- Change order of checks for oid vs primary keys. OID's have been deprecated. [PR 1613](https://github.com/pgjdbc/pgjdbc/pull/1613)
+- Close certificate file stream. [PR 1837](https://github.com/pgjdbc/pgjdbc/pull/1837)
+- Make sure socketTimeout is enforced [PR 1831](https://github.com/pgjdbc/pgjdbc/pull/1831)
+- Assume PKCS-8 SSL key format by default [PR 1819](https://github.com/pgjdbc/pgjdbc/pull/1819)
 
 ## [42.2.14] (2020-06-10)
 ### Changed
