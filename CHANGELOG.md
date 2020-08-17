@@ -24,6 +24,7 @@ and sslMode parameters which, in concert with pg_hba.conf, determine if a partic
 - Close certificate file stream. [PR 1837](https://github.com/pgjdbc/pgjdbc/pull/1837)
 - Make sure socketTimeout is enforced [PR 1831](https://github.com/pgjdbc/pgjdbc/pull/1831)
 - Assume PKCS-8 SSL key format by default [PR 1819](https://github.com/pgjdbc/pgjdbc/pull/1819)
+- Preserve unquoted unicode whitespace in array literals [PR 1266](https://github.com/pgjdbc/pgjdbc/pull/1266)
 
 ## [42.2.14] (2020-06-10)
 ### Changed
@@ -45,8 +46,6 @@ Sehrope Sarkuni reworked the XML parsing to provide a solution in commit [14b62a
 - jre-6 was added back to allow us to release fixes for all artifacts in the 42.2.x branch [PR 1787](https://github.com/pgjdbc/pgjdbc/pull/1787)
 
 ### Fixed
-- fix: preserve unquoted unicode whitespace in array literals [PR 1266](https://github.com/pgjdbc/pgjdbc/pull/1266)
-- Fixed async copy performance regression [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
 - I/O error ru translation [PR 1756](https://github.com/pgjdbc/pgjdbc/pull/1756)
 - Issue [1771](https://github.com/pgjdbc/pgjdbc/issues/1771)  PgDatabaseMetaData.getFunctions() returns
  procedures fixed in [PR 1774](https://github.com/pgjdbc/pgjdbc/pull/1774)
