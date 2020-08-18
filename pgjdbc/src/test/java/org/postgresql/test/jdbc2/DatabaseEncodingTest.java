@@ -49,7 +49,7 @@ public class DatabaseEncodingTest {
   // Tear down the fixture for this test case.
   @After
   public void tearDown() throws Exception {
-    con.setAutoCommit(true);
+    TestUtil.enableAutoCommit(con);
     TestUtil.dropTable(con, "testdbencoding");
     TestUtil.closeDB(con);
   }

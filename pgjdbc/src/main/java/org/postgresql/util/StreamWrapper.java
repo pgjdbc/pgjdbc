@@ -116,24 +116,6 @@ public class StreamWrapper {
               closed = true;
             }
           }
-
-          protected void finalize() throws IOException {
-            // forcibly close it because super.finalize() may keep the FD open, which may prevent
-            // file deletion
-            close();
-            // javac 13 assumes it can throw Throwable
-            try {
-              super.finalize();
-            } catch (RuntimeException e) {
-              throw e;
-            } catch (Error e) {
-              throw e;
-            } catch (IOException e) {
-              throw e;
-            } catch (Throwable e) {
-              throw new RuntimeException("Unexpected exception from finalize", e);
-            }
-          }
         };
       } else {
         this.rawData = rawData;

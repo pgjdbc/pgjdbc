@@ -409,6 +409,7 @@ public class CopyTest {
 
     CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
     CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with " + copyParams);
+    boolean failed = true;
     try {
       TestUtil.terminateBackend(pid);
       byte[] bunchOfNulls = ",,\n".getBytes();
@@ -417,8 +418,9 @@ public class CopyTest {
       }
     } catch (SQLException e) {
       acceptIOCause(e);
+      failed = false;
     } finally {
-      if (copyIn.isActive()) {
+      if (!failed && copyIn.isActive()) {
         try {
           copyIn.cancelCopy();
           fail("cancelCopy should have thrown an exception");

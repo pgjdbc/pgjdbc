@@ -20,6 +20,7 @@ import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.core.v3.SQLRuntimeException;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -29,6 +30,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.StreamingList;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
@@ -1925,9 +1927,19 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    if (currentRow + 1 >= rows.size()) {
-      ResultCursor cursor = this.cursor;
-      if (cursor == null || (maxRows > 0 && rowOffset + rows.size() >= maxRows)) {
+    int size;
+    try {
+      size = rows.size();
+    } catch (SQLRuntimeException e) {
+      // when using the the StreamingList the wire-protocol handling is done every time the list is advanced and we can get an exception
+      if ( e.getCause() != null ) {
+        throw (SQLException) e.getCause();
+      } else {
+        throw e;
+      }
+    }
+    if (currentRow + 1 >= size) {
+      if (cursor == null || (maxRows > 0 && rowOffset + size >= maxRows)) {
         currentRow = rows.size();
         thisRow = null;
         rowBuffer = null;
@@ -1980,6 +1992,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    */
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
+    if (rows instanceof StreamingList) {
+      // this reads the line protocol forward until the full request is handled
+      try {
+        connection.getQueryExecutor().finishReadingPendingProtocolEvents(false);
+      } catch (SQLRuntimeException ex) {
+        if ( ex.getCause() != null ) {
+          throw (SQLException) ex.getCause();
+        } else {
+          throw ex;
+        }
+      }
+    }
     rows = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;

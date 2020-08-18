@@ -228,4 +228,12 @@ public interface BaseConnection extends PGConnection, Connection {
    * @throws SQLException if the class cannot be found or instantiated.
    */
   PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
+
+  /**
+   * Prefer streaming ResultSet rows instead of buffering them.
+   *
+   * @return Stream results instead of buffering.
+   * @see PGProperty#STREAM_RESULTS
+   */
+  boolean streamResults();
 }
