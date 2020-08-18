@@ -10,6 +10,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
+import org.postgresql.core.ExecuteOptions;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
@@ -1088,8 +1089,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
           | QueryExecutor.QUERY_SUPPRESS_BEGIN;
       StatementResultHandler handler = new StatementResultHandler();
-      connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
-          flags);
+      connection.getQueryExecutor().execute(
+          ExecuteOptions.builder(preparedQuery.query, handler)
+              .parameters(preparedParameters)
+              .flags(flags)
+              .build());
       ResultWrapper wrapper = handler.getResults();
       if (wrapper != null) {
         rs = wrapper.getResultSet();
@@ -1640,8 +1644,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
         | QueryExecutor.QUERY_SUPPRESS_BEGIN;
     StatementResultHandler handler = new StatementResultHandler();
-    connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
-        flags);
+    connection.getQueryExecutor().execute(
+        ExecuteOptions.builder(preparedQuery.query, handler)
+            .parameters(preparedParameters)
+            .flags(flags)
+            .build());
 
     int[] oids = preparedParameters.getTypeOIDs();
     return createParameterMetaData(connection, oids);

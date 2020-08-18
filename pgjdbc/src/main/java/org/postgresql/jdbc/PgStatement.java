@@ -11,6 +11,8 @@ import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
+import org.postgresql.core.ExecuteManyOptions;
+import org.postgresql.core.ExecuteOptions;
 import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
@@ -456,8 +458,11 @@ public class PgStatement implements Statement, BaseStatement {
       // thus sending a describe request.
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
-      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
-          flags2);
+      connection.getQueryExecutor().execute(
+          ExecuteOptions.builder(queryToExecute, handler2)
+          .parameters(queryParameters)
+          .flags(flags2)
+          .build());
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
         castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
@@ -470,8 +475,13 @@ public class PgStatement implements Statement, BaseStatement {
     }
     try {
       startTimer();
-      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
-          fetchSize, flags);
+      connection.getQueryExecutor().execute(
+          ExecuteOptions.builder(queryToExecute, handler)
+              .parameters(queryParameters)
+              .maxRows(maxrows)
+              .fetchSize(fetchSize)
+              .flags(flags)
+              .build());
     } finally {
       killTimerTask();
     }
@@ -848,7 +858,11 @@ public class PgStatement implements Statement, BaseStatement {
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
       try {
-        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
+        connection.getQueryExecutor().execute(
+            ExecuteOptions.builder(queries[0], handler2)
+                .parameters(parameterLists[0])
+                .flags(flags2)
+                .build());
       } catch (SQLException e) {
         // Unable to parse the first statement -> throw BatchUpdateException
         handler.handleError(e);
@@ -867,8 +881,12 @@ public class PgStatement implements Statement, BaseStatement {
 
     try {
       startTimer();
-      connection.getQueryExecutor().execute(queries, parameterLists, handler, maxrows, fetchSize,
-          flags);
+      connection.getQueryExecutor().execute(
+          ExecuteManyOptions.builder(queries, handler, parameterLists)
+              .maxRows(maxrows)
+              .fetchSize(fetchSize)
+              .flags(flags)
+              .build());
     } finally {
       killTimerTask();
       // There might be some rows generated even in case of failures
