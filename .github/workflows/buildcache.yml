@@ -23,11 +23,10 @@ jobs:
         with:
           java-version: ${{ matrix.jdk }}
       - uses: burrunan/gradle-cache-action@v1
-        name: Cache .gradle
-        with:
-          job-id: jdk${{ matrix.jdk }}
-      - name: Build pgjdbc
+        name: Build pgjdbc
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        run: ./gradlew build -x test
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          arguments: build -x test --scan -i

@@ -24,14 +24,13 @@ jobs:
       with:
         java-version: 8
     - uses: burrunan/gradle-cache-action@v1
-      name: Cache .gradle
-      with:
-        job-id: jdk8
-    - name: 'Verify code style'
+      name: Verify code style
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-      run: ./gradlew autostyleCheck checkstyleAll
+      with:
+        job-id: jdk8
+        arguments: autostyleCheck checkstyleAll
 
   ubuntu-latest:
     name: 'Ubuntu, PG latest (JDK 8)'
@@ -68,19 +67,19 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
+    - name: Prepare ssltest.local.properties
+      run: echo enable_ssl_tests=true > ssltest.local.properties
     - uses: burrunan/gradle-cache-action@v1
-      name: Cache .gradle
-      with:
-        job-id: jdk${{ matrix.jdk }}
-    - name: 'Test'
+      name: Test
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-      run: |
-        echo enable_ssl_tests=true > ssltest.local.properties
-        # '-PincludeTestTags=!org.postgresql.test.SlowTests'
-        ./gradlew --scan --no-parallel --no-daemon -PskipReplicationTests -Pport=${{ job.services.postgres.ports['5432'] }} test
-        # test javadoc -Pport=${{ job.services.postgres.ports['5432'] }}
+      with:
+        job-id: jdk${{ matrix.jdk }}
+        arguments: --scan --no-parallel --no-daemon test
+        properties: |
+          skipReplicationTests=
+          port=${{ job.services.postgres.ports['5432'] }}
 
   linux-checkerframework:
     name: 'CheckerFramework (JDK 11)'
@@ -94,15 +93,13 @@ jobs:
         with:
           java-version: 11
       - uses: burrunan/gradle-cache-action@v1
-        name: Cache .gradle
-        with:
-          job-id: checker-jdk11
-      - name: 'Run CheckerFramework'
+        name: Run CheckerFramework
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        run: |
-          ./gradlew --no-parallel --no-daemon -PenableCheckerframework classes
+        with:
+          job-id: checker-jdk11
+          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
 
   gss-encryption:
     name: 'Ubuntu, gss encryption (JDK 8)'
@@ -122,12 +119,11 @@ jobs:
         cat /etc/hosts
 
     - uses: burrunan/gradle-cache-action@v1
-      name: Cache .gradle
+      name: Build pgjdbc
       with:
         job-id: gss-jdk8
-    - name: 'Build pgjdbc'
-      run:  ./gradlew publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
-    - name: 'Run tests'
+        arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
+    - name: Run tests
       run: |
         cd test-gss
         ./gradlew assemble
