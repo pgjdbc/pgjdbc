@@ -27,6 +27,7 @@ and sslMode parameters which, in concert with pg_hba.conf, determine if a partic
 - Close certificate file stream. [PR 1837](https://github.com/pgjdbc/pgjdbc/pull/1837)
 - Make sure socketTimeout is enforced [PR 1831](https://github.com/pgjdbc/pgjdbc/pull/1831)
 - Assume PKCS-8 SSL key format by default [PR 1819](https://github.com/pgjdbc/pgjdbc/pull/1819)
+- Preserve unquoted unicode whitespace in array literals [PR 1266](https://github.com/pgjdbc/pgjdbc/pull/1266)
 
 ## [42.2.14] (2020-06-10)
 ### Changed
