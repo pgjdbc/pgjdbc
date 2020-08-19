@@ -4,6 +4,11 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+### Fixed
+- Arrays sent in binary format are now sent as 1 based. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
+
+## [42.2.15] (2020-08-14)
 ### Changed
 - Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder
 - add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
