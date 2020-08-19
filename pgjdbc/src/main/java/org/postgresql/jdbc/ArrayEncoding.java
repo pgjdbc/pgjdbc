@@ -274,6 +274,8 @@ final class ArrayEncoding {
       ByteConverter.int4(bytes, 8, getTypeOID(oid));
       // length
       ByteConverter.int4(bytes, 12, array.length);
+      // postgresql uses 1 base by default
+      ByteConverter.int4(bytes, 16, 1);
 
       return bytes;
     }
@@ -393,6 +395,8 @@ final class ArrayEncoding {
       ByteConverter.int4(bytes, 8, getTypeOID(oid));
       // length
       ByteConverter.int4(bytes, 12, arrayLength);
+      // postgresql uses 1 base by default
+      ByteConverter.int4(bytes, 16, 1);
 
       write(array, bytes, 20);
 
@@ -701,6 +705,8 @@ final class ArrayEncoding {
       ByteConverter.int4(bytes, 8, getTypeOID(oid));
       // length
       ByteConverter.int4(bytes, 12, array.length);
+      // postgresql uses 1 base by default
+      ByteConverter.int4(bytes, 16, 1);
 
       return bytes;
     }
@@ -846,8 +852,8 @@ final class ArrayEncoding {
         ByteConverter.int4(buffer, 0, array.length);
         baos.write(buffer);
 
-        // write 4 empty bytes
-        java.util.Arrays.fill(buffer, (byte) 0);
+        // postgresql uses 1 base by default
+        ByteConverter.int4(buffer, 0, 1);
         baos.write(buffer);
 
         final Encoding encoding = connection.getEncoding();
@@ -951,6 +957,8 @@ final class ArrayEncoding {
       ByteConverter.int4(bytes, 8, getTypeOID(oid));
       // length
       ByteConverter.int4(bytes, 12, array.length);
+      // postgresql uses 1 base by default
+      ByteConverter.int4(bytes, 16, 1);
 
       write(array, bytes, 20);
 
@@ -1236,14 +1244,14 @@ final class ArrayEncoding {
         // length
         ByteConverter.int4(buffer, 0, array.length);
         baos.write(buffer);
-        // write 4 empty bytes
-        java.util.Arrays.fill(buffer, (byte) 0);
+        // postgres defaults to 1 based lower bound
+        ByteConverter.int4(buffer, 0, 1);
         baos.write(buffer);
 
         ByteConverter.int4(buffer, 0, array.length > 0 ? Array.getLength(array[0]) : 0);
         baos.write(buffer);
-        // write 4 empty bytes
-        java.util.Arrays.fill(buffer, (byte) 0);
+        // postgresql uses 1 base by default
+        ByteConverter.int4(buffer, 0, 1);
         baos.write(buffer);
 
         for (int i = 0; i < array.length; ++i) {
@@ -1362,8 +1370,8 @@ final class ArrayEncoding {
         // length
         ByteConverter.int4(buffer, 0, Array.getLength(array));
         baos.write(buffer);
-        // write 4 empty bytes for lower bounds value. this is
-        java.util.Arrays.fill(buffer, (byte) 0);
+        // postgresql uses 1 base by default
+        ByteConverter.int4(buffer, 0, 1);
         baos.write(buffer);
 
         writeArray(connection, buffer, baos, array, dimensions, true);
@@ -1384,8 +1392,8 @@ final class ArrayEncoding {
       if (first) {
         ByteConverter.int4(buffer, 0, length > 0 ? Array.getLength(Array.get(array, 0)) : 0);
         baos.write(buffer);
-        // write 4 empty bytes
-        java.util.Arrays.fill(buffer, (byte) 0);
+        // postgresql uses 1 base by default
+        ByteConverter.int4(buffer, 0, 1);
         baos.write(buffer);
       }
 
