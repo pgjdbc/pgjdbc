@@ -88,10 +88,11 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSetPrimitiveObjects() throws SQLException {
+    final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
-    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY);
+    pstmt.setObject(1, new int[]{1, 2, 3}, Types.ARRAY);
     pstmt.setObject(2, new double[]{3.1d, 1.4d}, Types.ARRAY);
-    pstmt.setObject(3, new String[]{"abc", "f'a", "fa\"b"}, Types.ARRAY);
+    pstmt.setObject(3, new String[]{stringWithNonAsciiWhiteSpace, "f'a", " \tfa\"b  "}, Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -119,7 +120,10 @@ public class ArrayTest extends BaseTest4 {
     String[] strarr = (String[]) arr.getArray(2, 2);
     assertEquals(2, strarr.length);
     assertEquals("f'a", strarr[0]);
-    assertEquals("fa\"b", strarr[1]);
+    assertEquals(" \tfa\"b  ", strarr[1]);
+
+    strarr = (String[]) arr.getArray();
+    assertEquals(stringWithNonAsciiWhiteSpace, strarr[0]);
 
     rs.close();
   }
