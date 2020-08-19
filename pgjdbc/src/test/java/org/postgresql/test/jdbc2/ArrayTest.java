@@ -88,12 +88,10 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSetPrimitiveObjects() throws SQLException {
-
-    final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
-    pstmt.setObject(1, new int[] { 1, 2, 3 }, Types.ARRAY);
-    pstmt.setObject(2, new double[] { 3.1d, 1.4d }, Types.ARRAY);
-    pstmt.setObject(3, new String[] { stringWithNonAsciiWhiteSpace, "f'a", "fa\"b" }, Types.ARRAY);
+    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY);
+    pstmt.setObject(2, new double[]{3.1d, 1.4d}, Types.ARRAY);
+    pstmt.setObject(3, new String[]{"abc", "f'a", "fa\"b"}, Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -122,9 +120,6 @@ public class ArrayTest extends BaseTest4 {
     assertEquals(2, strarr.length);
     assertEquals("f'a", strarr[0]);
     assertEquals("fa\"b", strarr[1]);
-
-    strarr = (String[]) arr.getArray();
-    assertEquals(stringWithNonAsciiWhiteSpace, strarr[0]);
 
     rs.close();
   }
@@ -252,10 +247,9 @@ public class ArrayTest extends BaseTest4 {
   public void testRetrieveResultSets() throws SQLException {
     Statement stmt = conn.createStatement();
 
-    final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     // you need a lot of backslashes to get a double quote in.
     stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '"
-        + TestUtil.escapeString(conn, "{\"a\u2001b\",f'a,\"fa\\\"b\",def}") + "')");
+        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
 
     ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
     Assert.assertTrue(rs.next());
@@ -298,13 +292,6 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(3, arrrs.getInt(1));
     Assert.assertEquals("fa\"b", arrrs.getString(2));
     Assert.assertTrue(!arrrs.next());
-    arrrs.close();
-
-    arrrs = arr.getResultSet(1, 1);
-    Assert.assertTrue(arrrs.next());
-    Assert.assertEquals(1, arrrs.getInt(1));
-    Assert.assertEquals(stringWithNonAsciiWhiteSpace, arrrs.getString(2));
-    Assert.assertFalse(arrrs.next());
     arrrs.close();
 
     rs.close();
