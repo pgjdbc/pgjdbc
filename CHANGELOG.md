@@ -14,6 +14,9 @@ and sslMode parameters which, in concert with pg_hba.conf, determine if a partic
 ### Added
 - Verify nullness with CheckerFramework
 
+### Fixed
+- Arrays sent in binary format are now sent as 1 based. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
+
 ## [42.2.15] (2020-06-19)
 ### Changed
 - Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact.  
