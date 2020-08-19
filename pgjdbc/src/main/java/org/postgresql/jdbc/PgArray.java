@@ -301,6 +301,30 @@ public class PgArray implements java.sql.Array {
   }
 
   /**
+   * Is whitespace which postgresql will force quotes.
+   *
+   * https://github.com/postgres/postgres/blob/f2c587067a8eb9cf1c8f009262381a6576ba3dd0/src/backend/utils/adt/arrayfuncs.c#L421-L438
+   *
+   * @param c
+   *          Character to examine.
+   * @return Indication if the character is a whitespace which back end will
+   *         escape.
+   */
+  private static boolean isArrayWhiteSpace(char c) {
+    switch (c) {
+      case '\t':
+      case '\n':
+        // vertical tab
+      case 0x0B:
+      case '\f':
+      case '\r':
+      case ' ':
+        return true;
+    }
+    return false;
+  }
+
+  /**
    * Convert {@link ArrayList} to array.
    *
    * @param input list to be converted into array
