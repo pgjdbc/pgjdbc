@@ -129,6 +129,165 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
+  public void testIndexAccess() throws SQLException {
+    final int[][][] origIntArray = new int[2][2][2];
+    final double[][][] origDblArray = new double[2][2][2];
+    final String[][][] origStringArray = new String[2][2][2];
+    final Object[][][] origIntObjArray = new Object[2][2][2];
+    final Object[][][] origDblObjArray = new Object[2][2][2];
+    final Object[][][] origStringObjArray = new Object[2][2][2];
+    int i = 0;
+    for (int x = 0; x < 2; ++x) {
+      for (int y = 0; y < 2; ++y) {
+        for (int z = 0; z < 2; ++z) {
+          origIntArray[x][y][z] = i;
+          origDblArray[x][y][z] = i / 10;
+          origStringArray[x][y][z] = Integer.toString(i);
+          origIntObjArray[x][y][z] = i;
+          origDblObjArray[x][y][z] = i / 10;
+          origStringObjArray[x][y][z] = Integer.toString(i);
+          i++;
+        }
+      }
+    }
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, origIntArray[0][0], Types.ARRAY);
+    pstmt.setObject(2, origDblArray[0][0], Types.ARRAY);
+    pstmt.setObject(3, origStringArray[0][0], Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT intarr[1], decarr[1], strarr[1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray[0][0]), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray[0][0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray[0][0]), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1], decarr[1], strarr[1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntArray[0]), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblArray[0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringArray[0]), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1], decarr[1][1], strarr[1][1], intarr[2][1], decarr[2][1], strarr[2][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[0][1][0], rs.getInt(4));
+    assertEquals(origDblArray[0][1][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[0][1][0], rs.getString(6));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray[0]), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray[0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray[0]), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1], decarr[1][1], strarr[1][1], intarr[2][1], decarr[2][1], strarr[2][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[0][1][0], rs.getInt(4));
+    assertEquals(origDblArray[0][1][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[0][1][0], rs.getString(6));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntArray), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblArray), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringArray), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1][1], decarr[1][1][1], strarr[1][1][1], intarr[2][1][1], decarr[2][1][1], strarr[2][1][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[1][0][0], rs.getInt(4));
+    assertEquals(origDblArray[1][0][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[1][0][0], rs.getString(6));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1][1], decarr[1][1][1], strarr[1][1][1], intarr[2][1][1], decarr[2][1][1], strarr[2][1][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[1][0][0], rs.getInt(4));
+    assertEquals(origDblArray[1][0][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[1][0][0], rs.getString(6));
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
   public void testSetPrimitiveArraysObjects() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
 
