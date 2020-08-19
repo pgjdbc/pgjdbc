@@ -133,12 +133,9 @@ public class ArrayTest extends BaseTest4 {
     final Object[][][] origDblObjArray = new Object[2][2][2];
     final Object[][][] origStringObjArray = new Object[2][2][2];
     int i = 0;
-    for (int x=0; x<2; ++x)
-    {
-      for (int y=0; y<2; ++y)
-      {
-        for (int z=0; z<2; ++z)
-        {
+    for (int x = 0; x < 2; ++x) {
+      for (int y = 0; y < 2; ++y) {
+        for (int z = 0; z < 2; ++z) {
           origIntArray[x][y][z] = i;
           origDblArray[x][y][z] = i / 10;
           origStringArray[x][y][z] = Integer.toString(i);
