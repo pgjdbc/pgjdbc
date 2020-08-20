@@ -4,6 +4,13 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+
+### Added
+
+### Fixed
+
+## [42.2.16] (2020-08-20)
 
 ### Fixed
 - Arrays sent in binary format are now sent as 1 based. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
@@ -390,4 +397,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.13]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...REL42.2.13
 [42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
 [42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...HEAD
+[42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...HEAD
