@@ -256,6 +256,7 @@ val hiddenAnnotation = Regex(
             "GuardedBy|UnderInitialization|" +
             "DefaultQualifier)(?:\\([^)]*\\))?")
 val hiddenImports = Regex("import org.checkerframework")
+val thisReferences = Regex("\\w+\\s+this\\s+,?")
 
 val removeTypeAnnotations by tasks.registering(Sync::class) {
     destinationDir = withoutAnnotations
@@ -264,6 +265,7 @@ val removeTypeAnnotations by tasks.registering(Sync::class) {
         filter { x: String ->
             x.replace(hiddenAnnotation, "/* $0 */")
                 .replace(hiddenImports, "// $0")
+                .replace(thisReferences, "/* $0 */")
         }
         include("src/**")
     }
