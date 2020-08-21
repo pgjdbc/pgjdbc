@@ -4,9 +4,18 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+
+### Added
 
 ### Fixed
-- Arrays sent in binary format are now sent as 1 based. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
+
+## [42.2.16] (2020-08-20)
+
+### Fixed
+- - Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
+  Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default 
+  for Postgres when sent as strings such as '{1,2,3}'. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
 
 ## [42.2.15] (2020-08-14)
 ### Changed
@@ -49,8 +58,6 @@ Sehrope Sarkuni reworked the XML parsing to provide a solution in commit [14b62a
 - jre-6 was added back to allow us to release fixes for all artifacts in the 42.2.x branch [PR 1787](https://github.com/pgjdbc/pgjdbc/pull/1787)
 
 ### Fixed
-- fix: preserve unquoted unicode whitespace in array literals [PR 1266](https://github.com/pgjdbc/pgjdbc/pull/1266)
-- Fixed async copy performance regression [PR 1314](https://github.com/pgjdbc/pgjdbc/pull/1314)
 - I/O error ru translation [PR 1756](https://github.com/pgjdbc/pgjdbc/pull/1756)
 - Issue [1771](https://github.com/pgjdbc/pgjdbc/issues/1771)  PgDatabaseMetaData.getFunctions() returns
  procedures fixed in [PR 1774](https://github.com/pgjdbc/pgjdbc/pull/1774)
@@ -392,4 +399,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.13]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...REL42.2.13
 [42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
 [42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...HEAD
+[42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...HEAD
