@@ -1039,7 +1039,6 @@ public class PgStatement implements Statement, BaseStatement {
     return forceBinaryTransfers;
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
   public long getLargeUpdateCount() throws SQLException {
     synchronized (this) {
@@ -1110,7 +1109,6 @@ public class PgStatement implements Statement, BaseStatement {
     }
     return getLargeUpdateCount();
   }
-  //#endif
 
   public boolean isClosed() throws SQLException {
     return isClosed;

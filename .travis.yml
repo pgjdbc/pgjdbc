@@ -53,7 +53,6 @@ before_install:
 script:
   # make sure previous build artifacts are not used for subsequent builds
   - rm -rf $HOME/.m2/repository/org/postgresql || true
-  - test -d "${JDK7_HOME}" || export JDK7_HOME=$(jdk_switcher home openjdk7)
   - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home oraclejdk8)
   - test -d "${JDK14_HOME}" || export JDK14_HOME=$(jdk_switcher home oraclejdk14)
   - test ${JDK} -eq 7 || jdk_switcher use oraclejdk8 # Run Gradle with Java 8, build with Toolchains.
@@ -201,26 +200,6 @@ matrix:
         - SSLTEST=Y
         - COVERAGE=Y
         - JDK=8
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=7
-        - MCENTRAL=Y
-        - COVERAGE=Y
-        - TZ=UTC
-# Java 1.6 is no longer supported
-# Do we need to test PostgreSQL 9.1?
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
-        - MCENTRAL=Y
     - jdk: oraclejdk8
       sudo: required
       env:

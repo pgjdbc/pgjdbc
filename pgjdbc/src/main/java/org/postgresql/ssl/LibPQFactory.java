@@ -49,9 +49,7 @@ public class LibPQFactory extends WrappedFactory {
   boolean defaultfile;
 
   private CallbackHandler getCallbackHandler(
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       @UnderInitialization(WrappedFactory.class) LibPQFactory this,
-      //#endif
       Properties info) throws PSQLException {
     // Determine the callback handler
     CallbackHandler cbh;
@@ -72,9 +70,7 @@ public class LibPQFactory extends WrappedFactory {
   }
 
   private void initPk8(
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       @UnderInitialization(WrappedFactory.class) LibPQFactory this,
-      //#endif
       String sslkeyfile, String defaultdir, Properties info) throws  PSQLException {
 
     // Load the client's certificate and key
@@ -90,9 +86,7 @@ public class LibPQFactory extends WrappedFactory {
   }
 
   private void initP12(
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       @UnderInitialization(WrappedFactory.class) LibPQFactory this,
-      //#endif
       String sslkeyfile, Properties info) throws PSQLException {
     km = new PKCS12KeyManager(sslkeyfile, getCallbackHandler(info));
   }

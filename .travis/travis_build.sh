@@ -59,9 +59,6 @@ if [[ $JDOC == "Y" ]];
 then
     # Build javadocs for Java 8 only
     ./gradlew $GRADLE_ARGS javadoc
-# We can't execute tests with Java 1.7 yet :(
-#elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk7"* ]];
-#then
 else
     ./gradlew $GRADLE_ARGS
 fi

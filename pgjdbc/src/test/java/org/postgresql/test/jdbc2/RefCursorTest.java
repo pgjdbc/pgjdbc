@@ -45,9 +45,7 @@ public class RefCursorTest extends BaseTest4 {
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"OTHER", Types.OTHER},
-        //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
         {"REF_CURSOR", Types.REF_CURSOR},
-        //#endif
     });
   }
 
