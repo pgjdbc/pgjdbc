@@ -213,8 +213,15 @@ allprojects {
             configDirectory.set(File(rootDir, "pgjdbc/src/main/checkstyle"))
             configFile = configDirectory.get().file("checks.xml").asFile
         }
+
+        val checkstyleTasks = tasks.withType<Checkstyle>()
+        checkstyleTasks.configureEach {
+            // Checkstyle 8.26 does not need classpath, see https://github.com/gradle/gradle/issues/14227
+            classpath = files()
+        }
+
         tasks.register("checkstyleAll") {
-            dependsOn(tasks.withType<Checkstyle>())
+            dependsOn(checkstyleTasks)
         }
     }
     if (!skipAutostyle || !skipCheckstyle) {
