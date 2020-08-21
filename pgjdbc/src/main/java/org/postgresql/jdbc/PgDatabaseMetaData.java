@@ -2392,7 +2392,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             tuple[17] = b10; // everything is base 10
             v.add(new Tuple(tuple));
 
-
           }
         }
       }

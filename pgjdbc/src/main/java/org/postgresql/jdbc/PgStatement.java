@@ -356,6 +356,8 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void closeForNextExecution() throws SQLException {
+
+    // Close any existing resultsets associated with this statement.
     synchronized (this) {
       closeUnclosedResults();
       result = null;
