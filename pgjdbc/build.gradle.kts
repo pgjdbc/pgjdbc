@@ -256,16 +256,15 @@ val hiddenAnnotation = Regex(
             "GuardedBy|UnderInitialization|" +
             "DefaultQualifier)(?:\\([^)]*\\))?")
 val hiddenImports = Regex("import org.checkerframework")
-val thisReferences = Regex("\\w+\\s+this\\s+,?")
 
 val removeTypeAnnotations by tasks.registering(Sync::class) {
     destinationDir = withoutAnnotations
+    inputs.property("regexpsUpdatedOn", "2020-08-25")
     from(projectDir) {
         filteringCharset = `java.nio.charset`.StandardCharsets.UTF_8.name()
         filter { x: String ->
             x.replace(hiddenAnnotation, "/* $0 */")
                 .replace(hiddenImports, "// $0")
-                .replace(thisReferences, "/* $0 */")
         }
         include("src/**")
     }
