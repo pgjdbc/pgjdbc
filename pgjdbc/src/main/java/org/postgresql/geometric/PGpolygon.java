@@ -53,11 +53,17 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
    * @param s Definition of the polygon in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
-  public void setValue(String s) throws SQLException {
+  public void setValue(@Nullable String s) throws SQLException {
+    if (s == null) {
+      points = null;
+      return;
+    }
     PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
     int npoints = t.getSize();
-    PGpoint[] points = new PGpoint[npoints];
-    this.points = points;
+    PGpoint[] points = this.points;
+    if (points == null || points.length != npoints) {
+      this.points = points = new PGpoint[npoints];
+    }
     for (int p = 0; p < npoints; p++) {
       points[p] = new PGpoint(t.getToken(p));
     }
@@ -71,20 +77,20 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
     if (obj instanceof PGpolygon) {
       PGpolygon p = (PGpolygon) obj;
 
-      if (points == null ^ p.points == null) {
+      PGpoint[] points = this.points;
+      PGpoint[] pPoints = p.points;
+      if (points == null) {
+        return pPoints == null;
+      } else if (pPoints == null) {
         return false;
       }
 
-      if (points == null) {
-        return true;
-      }
-
-      if (p.points.length != points.length) {
+      if (pPoints.length != points.length) {
         return false;
       }
 
       for (int i = 0; i < points.length; i++) {
-        if (!points[i].equals(p.points[i])) {
+        if (!points[i].equals(pPoints[i])) {
           return false;
         }
       }
@@ -95,7 +101,6 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   }
 
   public int hashCode() {
-    // XXX not very good..
     int hash = 0;
     PGpoint[] points = this.points;
     if (points == null) {
@@ -124,11 +129,14 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGpolygon in the syntax expected by org.postgresql
    */
-  public String getValue() {
+  public @Nullable String getValue() {
+    PGpoint[] points = this.points;
+    if (points == null) {
+      return null;
+    }
     StringBuilder b = new StringBuilder();
     b.append("(");
-    PGpoint[] points = this.points;
-    for (int p = 0; points != null && p < points.length; p++) {
+    for (int p = 0; p < points.length; p++) {
       if (p > 0) {
         b.append(",");
       }

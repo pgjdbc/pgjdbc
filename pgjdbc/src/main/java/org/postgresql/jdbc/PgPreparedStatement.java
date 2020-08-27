@@ -484,7 +484,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)) {
       PGBinaryObject binObj = (PGBinaryObject) x;
-      byte[] data = new byte[binObj.lengthInBytes()];
+      int length = binObj.lengthInBytes();
+      if (length == 0) {
+        preparedParameters.setNull(parameterIndex, oid);
+        return;
+      }
+      byte[] data = new byte[length];
       binObj.toBytes(data, 0);
       bindBytes(parameterIndex, data, oid);
     } else {

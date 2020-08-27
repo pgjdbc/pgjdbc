@@ -36,6 +36,11 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   public double y;
 
   /**
+   * True if the point represents {@code null::point}.
+   */
+  public boolean isNull;
+
+  /**
    * @param x coordinate
    * @param y coordinate
    */
@@ -70,7 +75,11 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @throws SQLException on conversion failure
    */
   @Override
-  public void setValue(String s) throws SQLException {
+  public void setValue(@Nullable String s) throws SQLException {
+    isNull = s == null;
+    if (s == null) {
+      return;
+    }
     PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
     try {
       x = Double.parseDouble(t.getToken(0));
@@ -85,6 +94,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param b Definition of this point in PostgreSQL's binary syntax
    */
   public void setByteValue(byte[] b, int offset) {
+    this.isNull = false;
     x = ByteConverter.float8(b, offset);
     y = ByteConverter.float8(b, offset + 8);
   }
@@ -96,12 +106,20 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpoint) {
       PGpoint p = (PGpoint) obj;
+      if (isNull) {
+        return p.isNull;
+      } else if (p.isNull) {
+        return false;
+      }
       return x == p.x && y == p.y;
     }
     return false;
   }
 
   public int hashCode() {
+    if (isNull) {
+      return 0;
+    }
     long v1 = Double.doubleToLongBits(x);
     long v2 = Double.doubleToLongBits(y);
     return (int) (v1 ^ v2 ^ (v1 >>> 32) ^ (v2 >>> 32));
@@ -110,18 +128,21 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   /**
    * @return the PGpoint in the syntax expected by org.postgresql
    */
-  public String getValue() {
-    return "(" + x + "," + y + ")";
+  public @Nullable String getValue() {
+    return isNull ? null : "(" + x + "," + y + ")";
   }
 
   public int lengthInBytes() {
-    return 16;
+    return isNull ? 0 : 16;
   }
 
   /**
    * Populate the byte array with PGpoint in the binary syntax expected by org.postgresql.
    */
   public void toBytes(byte[] b, int offset) {
+    if (isNull) {
+      return;
+    }
     ByteConverter.float8(b, offset, x);
     ByteConverter.float8(b, offset + 8, y);
   }
@@ -143,6 +164,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param y double amount to add on the y axis
    */
   public void translate(double x, double y) {
+    this.isNull = false;
     this.x += x;
     this.y += y;
   }
@@ -164,6 +186,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param y double coordinate
    */
   public void move(double x, double y) {
+    this.isNull = false;
     this.x = x;
     this.y = y;
   }
