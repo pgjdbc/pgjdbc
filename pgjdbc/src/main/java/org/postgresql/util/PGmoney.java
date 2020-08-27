@@ -20,6 +20,11 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
   public double val;
 
   /**
+   * If the object represents {@code null::money}
+   */
+  public boolean isNull;
+
+  /**
    * @param value of field
    */
   public PGmoney(double value) {
@@ -40,7 +45,11 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     type = "money";
   }
 
-  public void setValue(String s) throws SQLException {
+  public void setValue(@Nullable String s) throws SQLException {
+    isNull = s == null;
+    if (s == null) {
+      return;
+    }
     try {
       String s1;
       boolean negative;
@@ -68,6 +77,9 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
 
   @Override
   public int hashCode() {
+    if (isNull) {
+      return 0;
+    }
     final int prime = 31;
     int result = super.hashCode();
     long temp;
@@ -79,12 +91,20 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGmoney) {
       PGmoney p = (PGmoney) obj;
+      if (isNull) {
+        return p.isNull;
+      } else if (p.isNull) {
+        return false;
+      }
       return val == p.val;
     }
     return false;
   }
 
-  public String getValue() {
+  public @Nullable String getValue() {
+    if (isNull) {
+      return null;
+    }
     if (val < 0) {
       return "-$" + (-val);
     } else {

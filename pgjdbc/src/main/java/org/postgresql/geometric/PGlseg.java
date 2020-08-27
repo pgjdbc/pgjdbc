@@ -23,7 +23,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   /**
    * These are the two points.
    */
-  public PGpoint[] point = new PGpoint[2];
+  public PGpoint @Nullable [] point;
 
   /**
    * @param x1 coordinate for first point
@@ -41,8 +41,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    */
   public PGlseg(PGpoint p1, PGpoint p2) {
     this();
-    this.point[0] = p1;
-    this.point[1] = p2;
+    point = new PGpoint[]{p1, p2};
   }
 
   /**
@@ -67,13 +66,21 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * @throws SQLException on conversion failure
    */
   @Override
-  public void setValue(String s) throws SQLException {
+  public void setValue(@Nullable String s) throws SQLException {
+    if (s == null) {
+      point = null;
+      return;
+    }
     PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
     if (t.getSize() != 2) {
       throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 
+    PGpoint[] point = this.point;
+    if (point == null) {
+      this.point = point = new PGpoint[2];
+    }
     point[0] = new PGpoint(t.getToken(0));
     point[1] = new PGpoint(t.getToken(1));
   }
@@ -85,13 +92,24 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGlseg) {
       PGlseg p = (PGlseg) obj;
-      return (p.point[0].equals(point[0]) && p.point[1].equals(point[1]))
-          || (p.point[0].equals(point[1]) && p.point[1].equals(point[0]));
+      PGpoint[] point = this.point;
+      PGpoint[] pPoint = p.point;
+      if (point == null) {
+        return pPoint == null;
+      } else if (pPoint == null) {
+        return false;
+      }
+      return (pPoint[0].equals(point[0]) && pPoint[1].equals(point[1]))
+          || (pPoint[0].equals(point[1]) && pPoint[1].equals(point[0]));
     }
     return false;
   }
 
   public int hashCode() {
+    PGpoint[] point = this.point;
+    if (point == null) {
+      return 0;
+    }
     return point[0].hashCode() ^ point[1].hashCode();
   }
 
@@ -111,7 +129,11 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGlseg in the syntax expected by org.postgresql
    */
-  public String getValue() {
+  public @Nullable String getValue() {
+    PGpoint[] point = this.point;
+    if (point == null) {
+      return null;
+    }
     return "[" + point[0] + "," + point[1] + "]";
   }
 }
