@@ -3,10 +3,11 @@ name: Seed build cache
 on:
   push:
     branches:
-      - '*'
+      - '**'
 
 jobs:
   ubuntu-code-style:
+    if: github.repository == 'pgjdbc/pgjdbc'
     strategy:
       matrix:
         os: [ubuntu, macos, windows]
