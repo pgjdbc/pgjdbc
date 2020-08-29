@@ -9,16 +9,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
-- Handle nulls when the following clasess are used: PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney.
+- Avoid NullPointerException when receiving PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney.
+- The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) [PR 1879](https://github.com/pgjdbc/pgjdbc/pull/1879). 
 
 ## [42.2.16] (2020-08-20)
+### Known issues
+- The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)
 
 ### Fixed
-- - Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
+- Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
   Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default 
   for Postgres when sent as strings such as '{1,2,3}'. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
 
 ## [42.2.15] (2020-08-14)
+### Known issues
+- The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)
+
 ### Changed
 - Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder [ba017507](https://github.com/pgjdbc/pgjdbc/commit/ba0175072ee9c751c1496d2fe170f4af7256f1a5)
 - Add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
