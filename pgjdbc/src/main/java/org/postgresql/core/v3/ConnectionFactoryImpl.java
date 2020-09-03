@@ -8,6 +8,11 @@ package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.Oid;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
@@ -407,6 +412,32 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
+  private boolean credentialCacheExists() {
+
+    /*
+    Need to set this to false to get the creds instead of doing a login
+     */
+    System.setProperty("javax.security.auth.useSubjectCredsOnly","false");
+
+    GSSManager manager = GSSManager.getInstance();
+    try {
+      /*
+      We want the kerberos credentials here
+       */
+      Oid krb5Oid = new Oid("1.2.840.113554.1.2.2");
+      /*
+      Any credentials will do. We are just confirming there is a cache locally
+       */
+      manager.createCredential(null, GSSContext.DEFAULT_LIFETIME, krb5Oid, GSSCredential.INITIATE_ONLY);
+      return true;
+    } catch( Exception ex ){
+      return false;
+    } finally {
+      System.setProperty("javax.security.auth.useSubjectCredsOnly","true");
+    }
+
+
+  }
   private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
                                     int connectTimeout)
       throws IOException, PSQLException {
@@ -420,10 +451,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return pgStream;
     }
 
+    // If there is not credential cache there is little point in attempting this
+    if (!credentialCacheExists()) {
+      if ( gssEncMode == GSSEncMode.REQUIRE ) {
+        throw new PSQLException("GSSAPI encryption required but was impossible (possibly no credential cache)", PSQLState.CONNECTION_REJECTED);
+      } else {
+        return pgStream;
+      }
+    }
+
+    // attempt to acquire a GSS encrypted connection
     String password = PGProperty.PASSWORD.get(info);
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
 
-    // Send SSL request packet
+    // Send GSSEncryption request packet
     pgStream.sendInteger4(8);
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5680);
