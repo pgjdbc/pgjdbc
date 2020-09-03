@@ -8,11 +8,6 @@ package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.ietf.jgss.GSSContext;
-import org.ietf.jgss.GSSCredential;
-import org.ietf.jgss.GSSManager;
-import org.ietf.jgss.Oid;
-
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
@@ -40,6 +35,10 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.Oid;
 
 import java.io.IOException;
 import java.net.ConnectException;
