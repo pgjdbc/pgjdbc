@@ -413,6 +413,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private boolean credentialCacheExists() {
 
+    String useSubjectCredsOnly = System.getProperty("javax.security.auth.useSubjectCredsOnly");
     /*
     Need to set this to false to get the creds instead of doing a login
      */
@@ -429,14 +430,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
        */
       manager.createCredential(null, GSSContext.DEFAULT_LIFETIME, krb5Oid, GSSCredential.INITIATE_ONLY);
       return true;
-    } catch( Exception ex ){
+    } catch ( Exception ex ) {
       return false;
     } finally {
-      System.setProperty("javax.security.auth.useSubjectCredsOnly","true");
+      //reset it
+      System.setProperty("javax.security.auth.useSubjectCredsOnly",useSubjectCredsOnly);
     }
-
-
   }
+
   private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
                                     int connectTimeout)
       throws IOException, PSQLException {
