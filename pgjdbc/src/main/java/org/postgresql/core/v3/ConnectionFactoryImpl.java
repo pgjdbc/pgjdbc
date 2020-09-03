@@ -434,7 +434,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return false;
     } finally {
       //reset it
-      System.setProperty("javax.security.auth.useSubjectCredsOnly",useSubjectCredsOnly);
+      if ( useSubjectCredsOnly == null ) {
+        System.clearProperty("javax.security.auth.useSubjectCredsOnly");
+      } else {
+        System.setProperty("javax.security.auth.useSubjectCredsOnly", useSubjectCredsOnly);
+      }
     }
   }
 
