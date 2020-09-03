@@ -93,7 +93,7 @@ public class PGtokenizer {
     if (s < string.length()) {
       tokens.add(string.substring(s));
     }
-    
+
     // check for last token empty
     if ( s == string.length() && c == delim) {
       tokens.add("");
