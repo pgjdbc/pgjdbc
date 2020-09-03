@@ -59,7 +59,7 @@ public class PGtokenizer {
     int s;
     boolean skipChar = false;
     boolean nestedDoubleQuote = false;
-    char c=(char)0;
+    char c = (char)0;
     for (p = 0, s = 0; p < string.length(); p++) {
       c = string.charAt(p);
 
@@ -93,9 +93,12 @@ public class PGtokenizer {
     if (s < string.length()) {
       tokens.add(string.substring(s));
     }
-    if ( s == string.length() && c==delim) {
+    
+    // check for last token empty
+    if ( s == string.length() && c == delim) {
       tokens.add("");
     }
+
     return tokens.size();
   }
 
