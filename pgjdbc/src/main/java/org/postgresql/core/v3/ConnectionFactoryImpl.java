@@ -410,7 +410,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private boolean credentialCacheExists() {
     try {
-      @SuppressWarnings({"unchecked"})
+      @SuppressWarnings({"nullness"})
       Credentials credentials = Credentials.acquireTGTFromCache(null, null);
       return credentials != null;
     } catch ( Exception ex ) {
