@@ -35,10 +35,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.ietf.jgss.GSSContext;
-import org.ietf.jgss.GSSCredential;
-import org.ietf.jgss.GSSManager;
-import org.ietf.jgss.Oid;
+import sun.security.krb5.Credentials;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -412,33 +409,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private boolean credentialCacheExists() {
-
-    String useSubjectCredsOnly = System.getProperty("javax.security.auth.useSubjectCredsOnly");
-    /*
-    Need to set this to false to get the creds instead of doing a login
-     */
-    System.setProperty("javax.security.auth.useSubjectCredsOnly","false");
-
-    GSSManager manager = GSSManager.getInstance();
     try {
-      /*
-      We want the kerberos credentials here
-       */
-      Oid krb5Oid = new Oid("1.2.840.113554.1.2.2");
-      /*
-      Any credentials will do. We are just confirming there is a cache locally
-       */
-      manager.createCredential(null, GSSContext.DEFAULT_LIFETIME, krb5Oid, GSSCredential.INITIATE_ONLY);
-      return true;
+      Credentials credentials = Credentials.acquireTGTFromCache(null, null);
+      return credentials != null;
     } catch ( Exception ex ) {
       return false;
-    } finally {
-      //reset it
-      if ( useSubjectCredsOnly == null ) {
-        System.clearProperty("javax.security.auth.useSubjectCredsOnly");
-      } else {
-        System.setProperty("javax.security.auth.useSubjectCredsOnly", useSubjectCredsOnly);
-      }
     }
   }
 
