@@ -102,4 +102,14 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
     cs.setLong(4, 3000);
     cs.setNull(5, Types.NUMERIC);
   }
+
+  @Test
+  public void testRegisterInoutParameter() throws SQLException {
+
+    CallableStatement cs = null;
+
+    cs = con.prepareCall("{call xxxx.yyyy (?)}");
+    cs.setNull(1, Types.REF_CURSOR);
+    cs.registerOutParameter(1, Types.REF_CURSOR);
+  }
 }
