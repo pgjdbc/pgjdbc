@@ -35,6 +35,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import sun.security.krb5.Credentials;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -407,6 +408,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
+  private boolean credentialCacheExists() {
+    try {
+      @SuppressWarnings({"nullness"})
+      Credentials credentials = Credentials.acquireTGTFromCache(null, null);
+      return credentials != null;
+    } catch ( Exception ex ) {
+      return false;
+    }
+  }
+
   private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
                                     int connectTimeout)
       throws IOException, PSQLException {
@@ -420,10 +431,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return pgStream;
     }
 
+    // If there is not credential cache there is little point in attempting this
+    if (!credentialCacheExists()) {
+      if ( gssEncMode == GSSEncMode.REQUIRE ) {
+        throw new PSQLException("GSSAPI encryption required but was impossible (possibly no credential cache)", PSQLState.CONNECTION_REJECTED);
+      } else {
+        return pgStream;
+      }
+    }
+
+    // attempt to acquire a GSS encrypted connection
     String password = PGProperty.PASSWORD.get(info);
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
 
-    // Send SSL request packet
+    // Send GSSEncryption request packet
     pgStream.sendInteger4(8);
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5680);
