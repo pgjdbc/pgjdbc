@@ -59,9 +59,9 @@ public class PGtokenizer {
     int s;
     boolean skipChar = false;
     boolean nestedDoubleQuote = false;
-
+    char c = (char)0;
     for (p = 0, s = 0; p < string.length(); p++) {
-      char c = string.charAt(p);
+      c = string.charAt(p);
 
       // increase nesting if an open character is found
       if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
@@ -92,6 +92,11 @@ public class PGtokenizer {
     // Don't forget the last token ;-)
     if (s < string.length()) {
       tokens.add(string.substring(s));
+    }
+
+    // check for last token empty
+    if ( s == string.length() && c == delim) {
+      tokens.add("");
     }
 
     return tokens.size();
