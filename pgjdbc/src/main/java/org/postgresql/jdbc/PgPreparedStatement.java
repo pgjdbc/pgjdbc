@@ -249,6 +249,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.CLOB:
         oid = Oid.OID;
         break;
+      case Types.REF_CURSOR:
+        oid = Oid.REF_CURSOR;
+        break;
       case Types.ARRAY:
       case Types.DISTINCT:
       case Types.STRUCT:
