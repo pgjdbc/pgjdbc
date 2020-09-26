@@ -252,6 +252,16 @@ public enum PGProperty {
     "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   /**
+   * Use the Clob/Blob API for text/bytea fields (if true) or for Postgres
+   * Large Objects (if false). Default is false.
+   */
+  LOB_VARLENA(
+              "lobVarlena",
+              null,
+              "Treat CLOB/BLOB as text/bytea rather than as PostgreSQL Large Objects",
+              false),
+
+  /**
    * <p>File name output of the Logger, if set, the Logger will use a
    * {@link java.util.logging.FileHandler} to write to a specified file. If the parameter is not set
    * or the file can't be created the {@link java.util.logging.ConsoleHandler} will be used instead.</p>

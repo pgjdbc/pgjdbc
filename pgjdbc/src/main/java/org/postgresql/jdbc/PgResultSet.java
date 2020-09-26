@@ -425,7 +425,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    return makeBlob(getLong(i));
+    if (connection.getLobVarlena()) {
+      return new PgBlobBytea(value);
+    } else {
+      return makeBlob(getLong(i));
+    }
   }
 
   public java.io.@Nullable Reader getCharacterStream(String columnName) throws SQLException {
@@ -457,12 +461,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   @Pure
   public @Nullable Clob getClob(int i) throws SQLException {
-    byte[] value = getRawValue(i);
-    if (value == null) {
-      return null;
-    }
+    if (connection.getLobVarlena()) {
+      return new PgClobText(getString(i));
+    } else {
+      byte[] value = getRawValue(i);
+      if (value == null) {
+        return null;
+      }
 
-    return makeClob(getLong(i));
+      return makeClob(getLong(i));
+    }
   }
 
   public int getConcurrency() throws SQLException {
@@ -3493,7 +3501,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Clob.class) {
-      if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
+      if (sqlType == Types.CLOB || (sqlType == Types.BIGINT && ! connection.getLobVarlena())) {
         return type.cast(getClob(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),

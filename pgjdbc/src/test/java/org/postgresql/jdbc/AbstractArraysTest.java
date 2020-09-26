@@ -942,5 +942,9 @@ public abstract class AbstractArraysTest<A> {
     public boolean hintReadOnly() {
       return false;
     }
+
+    public boolean getLobVarlena() {
+      return false;
+    }
   }
 }

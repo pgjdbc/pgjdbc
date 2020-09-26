@@ -532,6 +532,12 @@ Connection conn = DriverManager.getConnection(url);
     A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
     
 	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
+
+* **lobVarlena** = boolean
+
+    When true, Clobs are treated as text/varchar fields, and Blobs as bytea fields, instead of treating both as Large Objects,
+
+    By default lobVarlena is false.
 	
 <a name="unix sockets"></a>
 ## Unix sockets

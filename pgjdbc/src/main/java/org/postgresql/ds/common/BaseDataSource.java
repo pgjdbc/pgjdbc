@@ -864,6 +864,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true iff using varlena types for Clob/Blob API instead of LOs
+   * @see PGProperty#LOB_VARLENA
+   */
+  public boolean getLobVarlena() {
+    return PGProperty.LOB_VARLENA.getBoolean(properties);
+  }
+
+  /**
+   * @param useVarlena use varlena types for Clob/Blob API instead of LOs
+   * @see PGProperty#LOB_VARLENA
+   */
+  public void setLobVarlena(boolean useVarlena) {
+    PGProperty.LOB_VARLENA.set(properties, useVarlena);
+  }
+
+  /**
    * @return true if column sanitizer is disabled
    * @see PGProperty#DISABLE_COLUMN_SANITISER
    */

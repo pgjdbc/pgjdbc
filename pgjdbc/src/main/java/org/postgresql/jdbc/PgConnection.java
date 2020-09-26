@@ -148,6 +148,8 @@ public class PgConnection implements BaseConnection {
   private boolean  hideUnprivilegedObjects ;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
+  // use varlena type LOBs instead of Postgres LOs?
+  private boolean lobVarlena = false;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -278,6 +280,11 @@ public class PgConnection implements BaseConnection {
       }
     } else {
       bindStringAsVarchar = true;
+    }
+
+    // lob_varlena?
+    if (PGProperty.LOB_VARLENA.getBoolean(info)) {
+      this.lobVarlena = true;
     }
 
     // Initialize timestamp stuff
@@ -602,6 +609,11 @@ public class PgConnection implements BaseConnection {
       largeobject = new LargeObjectManager(this);
     }
     return largeobject;
+  }
+
+  // lob_varlena getter
+  public boolean getLobVarlena() {
+    return this.lobVarlena;
   }
 
   // This holds a reference to the LargeObject API if already open
@@ -1345,14 +1357,22 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public Clob createClob() throws SQLException {
-    checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
+    if (lobVarlena) {
+      return new PgClobText();
+    } else {
+      checkClosed();
+      throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
+    }
   }
 
   @Override
   public Blob createBlob() throws SQLException {
-    checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
+    if (lobVarlena) {
+      return new PgBlobBytea();
+    } else {
+      checkClosed();
+      throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
+    }
   }
 
   @Override
