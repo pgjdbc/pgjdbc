@@ -5,14 +5,13 @@
 
 package org.postgresql.core;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.gss.GSSInputStream;
 import org.postgresql.gss.GSSOutputStream;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -31,6 +30,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 
 import javax.net.SocketFactory;
@@ -283,9 +283,11 @@ public class PGStream implements Closeable, Flushable {
     // Intercept flush() downcalls from the writer; our caller
     // will call PGStream.flush() as needed.
     OutputStream interceptor = new FilterOutputStream(pgOutput) {
+      @Override
       public void flush() throws IOException {
       }
 
+      @Override
       public void close() throws IOException {
         super.flush();
       }
@@ -674,8 +676,8 @@ public class PGStream implements Closeable, Flushable {
     if (c < 0) {
       return;
     }
-    throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
-        PSQLState.COMMUNICATION_ERROR);
+    throw new SQLException(GT.tr("Expected an EOF from server, got: {0}", c),
+        PgSqlState.PROTOCOL_VIOLATION);
   }
 
   /**
@@ -708,9 +710,9 @@ public class PGStream implements Closeable, Flushable {
    *
    * @param value value of new max result buffer as string (cause we can expect % or chars to use
    *              multiplier)
-   * @throws PSQLException exception returned when occurred parsing problem.
+   * @throws SQLDataException exception returned when occurred parsing problem.
    */
-  public void setMaxResultBuffer(@Nullable String value) throws PSQLException {
+  public void setMaxResultBuffer(@Nullable String value) throws SQLDataException {
     maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
   }
 
@@ -733,9 +735,10 @@ public class PGStream implements Closeable, Flushable {
     if (maxResultBuffer != -1) {
       resultBufferByteCount += value;
       if (resultBufferByteCount > maxResultBuffer) {
-        throw new PSQLException(GT.tr(
+        throw new SQLException(GT.tr(
           "Result set exceeded maxResultBuffer limit. Received:  {0}; Current limit: {1}",
-          String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)),PSQLState.COMMUNICATION_ERROR);
+          String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)),
+            PgSqlState.CONFIGURATION_LIMIT_EXCEEDED);
       }
     }
   }

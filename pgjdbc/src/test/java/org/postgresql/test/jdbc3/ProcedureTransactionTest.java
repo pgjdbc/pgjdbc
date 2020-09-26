@@ -5,16 +5,17 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
 
@@ -140,7 +141,7 @@ public class ProcedureTransactionTest extends BaseTest4 {
       fail("Should throw an exception");
     } catch (SQLException ex) {
       //2D000 invalid_transaction_termination
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.INVALID_TRANSACTION_TERMINATION.getState()));
+      assertEquals(PgSqlState.INVALID_TRANSACTION_TERMINATION, ex.getSQLState());
       con.rollback();
     }
 

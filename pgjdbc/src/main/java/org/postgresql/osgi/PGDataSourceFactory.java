@@ -8,17 +8,17 @@ package org.postgresql.osgi;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 import org.postgresql.xa.PGXADataSource;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.osgi.service.jdbc.DataSourceFactory;
 
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -81,10 +81,11 @@ public class PGDataSourceFactory implements DataSourceFactory {
     }
   }
 
+  @Override
   public java.sql.Driver createDriver(Properties props) throws SQLException {
     if (props != null && !props.isEmpty()) {
-      throw new PSQLException(GT.tr("Unsupported properties: {0}", props.stringPropertyNames()),
-          PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("Unsupported properties: {0}", props.stringPropertyNames()),
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
     return new org.postgresql.Driver();
   }
@@ -117,6 +118,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
    * depending on the presence in the supplied properties of any pool-related property (eg.: {@code
    * JDBC_INITIAL_POOL_SIZE} or {@code JDBC_MAX_POOL_SIZE}).
    */
+  @Override
   public DataSource createDataSource(Properties props) throws SQLException {
     props = new SingleUseProperties(props);
     if (props.containsKey(JDBC_INITIAL_POOL_SIZE)
@@ -130,6 +132,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     }
   }
 
+  @Override
   public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props)
       throws SQLException {
     props = new SingleUseProperties(props);
@@ -138,6 +141,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     return dataSource;
   }
 
+  @Override
   public XADataSource createXADataSource(Properties props) throws SQLException {
     props = new SingleUseProperties(props);
     PGXADataSource dataSource = new PGXADataSource();

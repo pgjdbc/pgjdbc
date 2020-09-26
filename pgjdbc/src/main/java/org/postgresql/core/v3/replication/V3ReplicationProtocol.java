@@ -11,17 +11,17 @@ import org.postgresql.copy.CopyDual;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.ReplicationType;
 import org.postgresql.replication.fluent.CommonOptions;
 import org.postgresql.replication.fluent.logical.LogicalReplicationOptions;
 import org.postgresql.replication.fluent.physical.PhysicalReplicationOptions;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,6 +37,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     this.pgStream = pgStream;
   }
 
+  @Override
   public PGReplicationStream startLogical(LogicalReplicationOptions options)
       throws SQLException {
 
@@ -44,6 +45,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     return initializeReplication(query, options, ReplicationType.LOGICAL);
   }
 
+  @Override
   public PGReplicationStream startPhysical(PhysicalReplicationOptions options)
       throws SQLException {
 
@@ -115,7 +117,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     return builder.toString();
   }
 
-  private void configureSocketTimeout(CommonOptions options) throws PSQLException {
+  private void configureSocketTimeout(CommonOptions options) throws SQLException {
     if (options.getStatusInterval() == 0) {
       return;
     }
@@ -134,8 +136,8 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
       // Use blocking 1ms reads for `available()` checks
       pgStream.setMinStreamAvailableCheckDelay(0);
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr("The connection attempt failed."),
-          PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
+      throw new SQLNonTransientConnectionException(GT.tr("The connection attempt failed."),
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION, ioe);
     }
   }
 }

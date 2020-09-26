@@ -7,14 +7,13 @@ package org.postgresql.core;
 
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgServerException;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -56,14 +55,14 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private boolean standardConformingStrings = false;
 
   private @Nullable SQLWarning warnings;
-  private final ArrayList<PGNotification> notifications = new ArrayList<PGNotification>();
+  private final ArrayList<PGNotification> notifications = new ArrayList<>();
 
   private final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
 
   // For getParameterStatuses(), GUC_REPORT tracking
   private final TreeMap<String,String> parameterStatuses
-      = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
+      = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
   @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible"})
   protected QueryExecutorBase(PGStream pgStream, String user,
@@ -82,7 +81,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     // assignment.type.incompatible, argument.type.incompatible
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
-    statementCache = new LruCache<Object, CachedQuery>(
+    statementCache = new LruCache<>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
         false,
@@ -363,10 +362,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return preferQueryMode;
   }
 
+  @Override
   public AutoSave getAutoSave() {
     return autoSave;
   }
 
+  @Override
   public void setAutoSave(AutoSave autoSave) {
     this.autoSave = autoSave;
   }
@@ -377,27 +378,21 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     }
 
     // "prepared statement \"S_2\" does not exist"
-    if (PSQLState.INVALID_SQL_STATEMENT_NAME.getState().equals(e.getSQLState())) {
+    if (PgSqlState.INVALID_SQL_STATEMENT_NAME.equals(e.getSQLState())) {
       return true;
     }
-    if (!PSQLState.NOT_IMPLEMENTED.getState().equals(e.getSQLState())) {
+    if (!PgSqlState.FEATURE_NOT_SUPPORTED.equals(e.getSQLState())) {
       return false;
     }
 
-    if (!(e instanceof PSQLException)) {
-      return false;
+    if (e.getCause() instanceof PgServerException) {
+      PgServerException serverErrorMessage = (PgServerException) e.getCause();
+      // "cached plan must not change result type"
+      String routine = serverErrorMessage.getRoutine();
+      return "RevalidateCachedQuery".equals(routine) // 9.2+
+          || "RevalidateCachedPlan".equals(routine); // <= 9.1
     }
-
-    PSQLException pe = (PSQLException) e;
-
-    ServerErrorMessage serverErrorMessage = pe.getServerErrorMessage();
-    if (serverErrorMessage == null) {
-      return false;
-    }
-    // "cached plan must not change result type"
-    String routine = serverErrorMessage.getRoutine();
-    return "RevalidateCachedQuery".equals(routine) // 9.2+
-        || "RevalidateCachedPlan".equals(routine); // <= 9.1
+    return false;
   }
 
   @Override
@@ -414,6 +409,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return flushCacheOnDeallocate;
   }
 
+  @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
   }

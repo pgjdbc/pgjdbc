@@ -12,7 +12,6 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.PgConnection;
-import org.postgresql.util.PSQLException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
@@ -173,7 +172,7 @@ public class TestUtil {
   /*
    *  Return the GSSEncMode for the tests
    */
-  public static GSSEncMode getGSSEncMode() throws PSQLException {
+  public static GSSEncMode getGSSEncMode() throws SQLException {
     return GSSEncMode.of(System.getProperties());
   }
 
@@ -780,7 +779,7 @@ public class TestUtil {
   }
 
   public static List<String> resultSetToLines(ResultSet rs) throws SQLException {
-    List<String> res = new ArrayList<String>();
+    List<String> res = new ArrayList<>();
     ResultSetMetaData rsmd = rs.getMetaData();
     StringBuilder sb = new StringBuilder();
     while (rs.next()) {

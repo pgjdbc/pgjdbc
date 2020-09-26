@@ -5,15 +5,15 @@
 
 package org.postgresql;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.sql.SQLDataException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -832,17 +832,17 @@ public enum PGProperty {
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to int
-   * @throws PSQLException if it cannot be converted to int.
+   * @throws SQLDataException if it cannot be converted to int.
    */
   @SuppressWarnings("nullness:argument.type.incompatible")
-  public int getInt(Properties properties) throws PSQLException {
+  public int getInt(Properties properties) throws SQLDataException {
     String value = get(properties);
     try {
       //noinspection ConstantConditions
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
-      throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
-          getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+      throw new SQLDataException(GT.tr("{0} parameter value must be an integer but was: {1}",
+          getName(), value), PgSqlState.INVALID_PARAMETER_VALUE, nfe);
     }
   }
 
@@ -851,9 +851,9 @@ public enum PGProperty {
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to Integer or null
-   * @throws PSQLException if unable to parse property as integer
+   * @throws SQLDataException if unable to parse property as integer
    */
-  public @Nullable Integer getInteger(Properties properties) throws PSQLException {
+  public @Nullable Integer getInteger(Properties properties) throws SQLDataException {
     String value = get(properties);
     if (value == null) {
       return null;
@@ -861,8 +861,8 @@ public enum PGProperty {
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
-      throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
-          getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+      throw new SQLDataException(GT.tr("{0} parameter value must be an integer but was: {1}",
+          getName(), value), PgSqlState.INVALID_PARAMETER_VALUE, nfe);
     }
   }
 

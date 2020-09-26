@@ -8,7 +8,6 @@ package org.postgresql.test.util;
 import static org.junit.Assert.fail;
 
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
-import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -16,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.lang.management.ManagementFactory;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -54,14 +54,14 @@ public class PGPropertyMaxResultBufferParserTest {
     try {
       long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);
       Assert.assertEquals(expectedResult, result);
-    } catch (PSQLException e) {
+    } catch (SQLException e) {
       //shouldn't occur
       fail();
     }
   }
 
-  @Test(expected = PSQLException.class)
-  public void testGetMaxResultBufferValueException() throws PSQLException {
+  @Test(expected = SQLException.class)
+  public void testGetMaxResultBufferValueException() throws SQLException {
     long result = PGPropertyMaxResultBufferParser.parseProperty("abc");
     fail();
   }

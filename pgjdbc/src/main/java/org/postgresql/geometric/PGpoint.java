@@ -5,19 +5,19 @@
 
 package org.postgresql.geometric;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.awt.Point;
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 
 /**
  * <p>It maps to the point datatype in org.postgresql.</p>
@@ -76,14 +76,15 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
       x = Double.parseDouble(t.getToken(0));
       y = Double.parseDouble(t.getToken(1));
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
-          PSQLState.DATA_TYPE_MISMATCH, e);
+      throw new SQLSyntaxErrorException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
+          PgSqlState.DATATYPE_MISMATCH, e);
     }
   }
 
   /**
    * @param b Definition of this point in PostgreSQL's binary syntax
    */
+  @Override
   public void setByteValue(byte[] b, int offset) {
     x = ByteConverter.float8(b, offset);
     y = ByteConverter.float8(b, offset + 8);
@@ -93,6 +94,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param obj Object to compare with
    * @return true if the two points are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpoint) {
       PGpoint p = (PGpoint) obj;
@@ -101,6 +103,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     return false;
   }
 
+  @Override
   public int hashCode() {
     long v1 = Double.doubleToLongBits(x);
     long v2 = Double.doubleToLongBits(y);
@@ -110,10 +113,12 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   /**
    * @return the PGpoint in the syntax expected by org.postgresql
    */
+  @Override
   public String getValue() {
     return "(" + x + "," + y + ")";
   }
 
+  @Override
   public int lengthInBytes() {
     return 16;
   }
@@ -121,6 +126,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   /**
    * Populate the byte array with PGpoint in the binary syntax expected by org.postgresql.
    */
+  @Override
   public void toBytes(byte[] b, int offset) {
     ByteConverter.float8(b, offset, x);
     ByteConverter.float8(b, offset + 8, y);

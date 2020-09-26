@@ -10,14 +10,13 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Utils;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
 
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -26,6 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Arrays;
 
@@ -54,10 +54,10 @@ class SimpleParameterList implements V3ParameterList {
   @Override
   public void registerOutParameter(int index, int sqlType) throws SQLException {
     if (index < 1 || index > paramValues.length) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
               index, paramValues.length),
-          PSQLState.INVALID_PARAMETER_VALUE);
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
 
     flags[index - 1] |= OUT;
@@ -65,10 +65,10 @@ class SimpleParameterList implements V3ParameterList {
 
   private void bind(int index, Object value, int oid, byte binary) throws SQLException {
     if (index < 1 || index > paramValues.length) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
               index, paramValues.length),
-          PSQLState.INVALID_PARAMETER_VALUE);
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
 
     --index;
@@ -89,10 +89,12 @@ class SimpleParameterList implements V3ParameterList {
     pos = index + 1;
   }
 
+  @Override
   public @NonNegative int getParameterCount() {
     return paramValues.length;
   }
 
+  @Override
   public @NonNegative int getOutParameterCount() {
     int count = 0;
     for (int i = 0; i < paramTypes.length; i++) {
@@ -108,6 +110,7 @@ class SimpleParameterList implements V3ParameterList {
 
   }
 
+  @Override
   public @NonNegative int getInParameterCount() {
     int count = 0;
     for (int i = 0; i < paramTypes.length; i++) {
@@ -118,20 +121,24 @@ class SimpleParameterList implements V3ParameterList {
     return count;
   }
 
+  @Override
   public void setIntParameter(@Positive int index, int value) throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, value);
     bind(index, data, Oid.INT4, BINARY);
   }
 
+  @Override
   public void setLiteralParameter(@Positive int index, String value, int oid) throws SQLException {
     bind(index, value, oid, TEXT);
   }
 
+  @Override
   public void setStringParameter(@Positive int index, String value, int oid) throws SQLException {
     bind(index, value, oid, TEXT);
   }
 
+  @Override
   public void setBinaryParameter(@Positive int index, byte[] value, int oid) throws SQLException {
     bind(index, value, oid, BINARY);
   }
@@ -269,11 +276,11 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
-  public void checkAllParametersSet() throws SQLException {
+  public void checkAllParametersSet() throws SQLDataException {
     for (int i = 0; i < paramTypes.length; ++i) {
       if (direction(i) != OUT && paramValues[i] == null) {
-        throw new PSQLException(GT.tr("No value specified for parameter {0}.", i + 1),
-            PSQLState.INVALID_PARAMETER_VALUE);
+        throw new SQLDataException(GT.tr("No value specified for parameter {0}.", i + 1),
+            PgSqlState.INVALID_PARAMETER_VALUE);
       }
     }
   }
@@ -310,6 +317,7 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.send(writer);
   }
 
+  @Override
   public int[] getTypeOIDs() {
     return paramTypes;
   }
@@ -421,6 +429,7 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.send(encoded[index]);
   }
 
+  @Override
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
@@ -430,6 +439,7 @@ class SimpleParameterList implements V3ParameterList {
     return newCopy;
   }
 
+  @Override
   public void clear() {
     Arrays.fill(paramValues, null);
     Arrays.fill(paramTypes, 0);
@@ -438,38 +448,43 @@ class SimpleParameterList implements V3ParameterList {
     pos = 0;
   }
 
+  @Override
   public SimpleParameterList @Nullable [] getSubparams() {
     return null;
   }
 
+  @Override
   public @Nullable Object[] getValues() {
     return paramValues;
   }
 
+  @Override
   public int[] getParamTypes() {
     return paramTypes;
   }
 
+  @Override
   public byte[] getFlags() {
     return flags;
   }
 
+  @Override
   public byte[] @Nullable [] getEncoding() {
     return encoded;
   }
 
   @Override
-  public void appendAll(ParameterList list) throws SQLException {
+  public void appendAll(ParameterList list) throws SQLDataException {
     if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
       /* only v3.SimpleParameterList is compatible with this type
       we need to create copies of our parameters, otherwise the values can be changed */
       SimpleParameterList spl = (SimpleParameterList) list;
       int inParamCount = spl.getInParameterCount();
       if ((pos + inParamCount) > paramValues.length) {
-        throw new PSQLException(
+        throw new SQLDataException(
           GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
               (pos + inParamCount), paramValues.length),
-              PSQLState.INVALID_PARAMETER_VALUE);
+              PgSqlState.INVALID_PARAMETER_VALUE);
       }
       System.arraycopy(spl.getValues(), 0, this.paramValues, pos, inParamCount);
       System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, inParamCount);

@@ -8,15 +8,15 @@ package org.postgresql.copy;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Arrays;
 
 /**
@@ -75,21 +75,25 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     }
   }
 
+  @Override
   public int available() throws IOException {
     checkClosed();
     return (buf != null ? len - at : 0);
   }
 
+  @Override
   public int read() throws IOException {
     checkClosed();
     byte[] buf = fillBuffer();
     return buf != null ? (buf[at++] & 0xFF)  : -1;
   }
 
+  @Override
   public int read(byte[] buf) throws IOException {
     return read(buf, 0, buf.length);
   }
 
+  @Override
   public int read(byte[] buf, int off, int siz) throws IOException {
     checkClosed();
     int got = 0;
@@ -103,6 +107,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     return got == 0 && data == null ? -1 : got;
   }
 
+  @Override
   public byte @Nullable [] readFromCopy() throws SQLException {
     byte[] result = buf;
     try {
@@ -117,7 +122,8 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
         at = len;
       }
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr("Read from copy failed."), PSQLState.CONNECTION_FAILURE, ioe);
+      throw new SQLNonTransientConnectionException(GT.tr("Read from copy failed."),
+          PgSqlState.CONNECTION_FAILURE, ioe);
     }
     return result;
   }
@@ -127,6 +133,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     return readFromCopy();
   }
 
+  @Override
   public void close() throws IOException {
     // Don't complain about a double close.
     if (op == null) {
@@ -143,26 +150,32 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     op = null;
   }
 
+  @Override
   public void cancelCopy() throws SQLException {
     getOp().cancelCopy();
   }
 
+  @Override
   public int getFormat() {
     return getOp().getFormat();
   }
 
+  @Override
   public int getFieldFormat(int field) {
     return getOp().getFieldFormat(field);
   }
 
+  @Override
   public int getFieldCount() {
     return getOp().getFieldCount();
   }
 
+  @Override
   public boolean isActive() {
     return op != null && op.isActive();
   }
 
+  @Override
   public long getHandledRowCount() {
     return getOp().getHandledRowCount();
   }

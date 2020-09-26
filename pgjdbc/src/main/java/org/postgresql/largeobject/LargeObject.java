@@ -8,10 +8,9 @@ package org.postgresql.largeobject;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -156,6 +155,7 @@ public class LargeObject
    *
    * @throws SQLException if a database-access error occurs.
    */
+  @Override
   public void close() throws SQLException {
     if (!closed) {
       // flush any open output streams
@@ -164,7 +164,7 @@ public class LargeObject
           // we can't call os.close() otherwise we go into an infinite loop!
           os.flush();
         } catch (IOException ioe) {
-          throw new PSQLException("Exception flushing output stream", PSQLState.DATA_ERROR, ioe);
+          throw new SQLException("Exception flushing output stream", PgSqlState.DATA_EXCEPTION, ioe);
         } finally {
           os = null;
         }

@@ -5,16 +5,16 @@
 
 package org.postgresql.geometric;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 
 /**
  * This implements a lseg (line segment) consisting of two points.
@@ -70,8 +70,8 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   public void setValue(String s) throws SQLException {
     PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
     if (t.getSize() != 2) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw new SQLSyntaxErrorException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
+          PgSqlState.DATATYPE_MISMATCH);
     }
 
     point[0] = new PGpoint(t.getToken(0));
@@ -82,6 +82,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two line segments are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGlseg) {
       PGlseg p = (PGlseg) obj;
@@ -91,14 +92,16 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public int hashCode() {
     return point[0].hashCode() ^ point[1].hashCode();
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGlseg newPGlseg = (PGlseg) super.clone();
     if (newPGlseg.point != null) {
-      newPGlseg.point = (PGpoint[]) newPGlseg.point.clone();
+      newPGlseg.point = newPGlseg.point.clone();
       for (int i = 0; i < newPGlseg.point.length; ++i) {
         if (newPGlseg.point[i] != null) {
           newPGlseg.point[i] = (PGpoint) newPGlseg.point[i].clone();
@@ -111,6 +114,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGlseg in the syntax expected by org.postgresql
    */
+  @Override
   public String getValue() {
     return "[" + point[0] + "," + point[1] + "]";
   }

@@ -10,10 +10,9 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -44,7 +43,7 @@ public class Fastpath {
 
   // This maps the functions names to their id's (possible unique just
   // to a connection).
-  private final Map<String, Integer> func = new HashMap<String, Integer>();
+  private final Map<String, Integer> func = new HashMap<>();
   private final QueryExecutor executor;
   private final BaseConnection connection;
 
@@ -85,9 +84,9 @@ public class Fastpath {
     } else if (returnValue.length == 8) {
       return ByteConverter.int8(returnValue, 0);
     } else {
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr("Fastpath call {0} - No result was returned and we expected a numeric.", fnId),
-          PSQLState.NO_DATA);
+          PgSqlState.NO_DATA);
     }
   }
 
@@ -163,17 +162,17 @@ public class Fastpath {
   public int getInteger(String name, FastpathArg[] args) throws SQLException {
     byte[] returnValue = fastpath(name, args);
     if (returnValue == null) {
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", name),
-          PSQLState.NO_DATA);
+          PgSqlState.NO_DATA);
     }
 
     if (returnValue.length == 4) {
       return ByteConverter.int4(returnValue, 0);
     } else {
-      throw new PSQLException(GT.tr(
+      throw new SQLException(GT.tr(
           "Fastpath call {0} - No result was returned or wrong size while expecting an integer.",
-          name), PSQLState.NO_DATA);
+          name), PgSqlState.NO_DATA);
     }
   }
 
@@ -188,18 +187,18 @@ public class Fastpath {
   public long getLong(String name, FastpathArg[] args) throws SQLException {
     byte[] returnValue = fastpath(name, args);
     if (returnValue == null) {
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr("Fastpath call {0} - No result was returned and we expected a long.", name),
-          PSQLState.NO_DATA);
+          PgSqlState.NO_DATA);
     }
     if (returnValue.length == 8) {
       return ByteConverter.int8(returnValue, 0);
 
     } else {
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr("Fastpath call {0} - No result was returned or wrong size while expecting a long.",
               name),
-          PSQLState.NO_DATA);
+          PgSqlState.NO_DATA);
     }
   }
 
@@ -300,8 +299,8 @@ public class Fastpath {
     // so, until we know we can do this (needs testing, on the TODO list)
     // for now, we throw the exception and do no lookups.
     if (id == null) {
-      throw new PSQLException(GT.tr("The fastpath function {0} is unknown.", name),
-          PSQLState.UNEXPECTED_ERROR);
+      throw new SQLException(GT.tr("The fastpath function {0} is unknown.", name),
+          PgSqlState.UNDEFINED_FUNCTION);
     }
 
     return id;

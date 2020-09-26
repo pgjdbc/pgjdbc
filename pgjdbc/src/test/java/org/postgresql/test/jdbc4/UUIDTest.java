@@ -9,10 +9,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -38,7 +38,7 @@ public class UUIDTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary={0}, stringType={1}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       for (StringType stringType : StringType.values()) {
         ids.add(new Object[]{binaryMode, stringType});
@@ -99,7 +99,7 @@ public class UUIDTest extends BaseTest4 {
       }
     } catch (SQLException e) {
       if (getStringType() == StringType.VARCHAR
-          && PSQLState.DATATYPE_MISMATCH.getState().equals(e.getSQLState())) {
+          && PgSqlState.DATATYPE_MISMATCH.equals(e.getSQLState())) {
         // The following error is expected in stringType=varchar mode
         // ERROR: column "id" is of type uuid but expression is of type character varying
         return;

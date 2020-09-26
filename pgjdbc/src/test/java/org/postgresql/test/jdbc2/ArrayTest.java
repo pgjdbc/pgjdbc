@@ -16,7 +16,6 @@ import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -45,7 +44,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -329,7 +328,7 @@ public class ArrayTest extends BaseTest4 {
     try {
       arraySupport.createArrayOf("int4", Integer.valueOf(1));
       fail("not an array");
-    } catch (PSQLException e) {
+    } catch (SQLException e) {
 
     }
 

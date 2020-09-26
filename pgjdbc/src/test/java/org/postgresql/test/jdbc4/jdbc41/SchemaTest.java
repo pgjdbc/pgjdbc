@@ -12,9 +12,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -248,15 +247,15 @@ public class SchemaTest {
       TestUtil.execute("create or replace function schema2.check_fun (txt text) returns text as $$"
           + " select test_col from check_table"
           + "$$ language sql immutable", connection);
-    } catch (PSQLException e) {
+    } catch (SQLException e) {
       String sqlState = e.getSQLState();
       String message = e.getMessage();
       assertThat("Test creates function in schema 'schema2' and this function try use table \"check_table\" "
             + "from schema 'schema1'. We expect here sql error code - "
-            + PSQLState.UNDEFINED_TABLE + ", because search_path does not contains schema 'schema1' and "
+            + PgSqlState.UNDEFINED_TABLE + ", because search_path does not contains schema 'schema1' and "
             + "postgres does not see table \"check_table\"",
             sqlState,
-            equalTo(PSQLState.UNDEFINED_TABLE.getState())
+            equalTo(PgSqlState.UNDEFINED_TABLE)
       );
       assertThat(
           "Test creates function in schema 'schema2' and this function try use table \"check_table\" "
@@ -288,14 +287,14 @@ public class SchemaTest {
 
     try (Connection connection = TestUtil.openDB(properties)) {
       TestUtil.execute("select check_fun()", connection);
-    } catch (PSQLException e) {
+    } catch (SQLException e) {
       String sqlState = e.getSQLState();
       String message = e.getMessage();
       assertThat("Test call function in schema 'schema2' and this function uses table \"check_table\" "
-            + "from schema 'schema1'. We expect here sql error code - " + PSQLState.UNDEFINED_TABLE + ", "
+            + "from schema 'schema1'. We expect here sql error code - " + PgSqlState.UNDEFINED_TABLE + ", "
             + "because search_path does not contains schema 'schema1' and postgres does not see table \"check_table\".",
             sqlState,
-            equalTo(PSQLState.UNDEFINED_TABLE.getState())
+            equalTo(PgSqlState.UNDEFINED_TABLE)
       );
       assertThat(
           "Test call function in schema 'schema2' and this function uses table \"check_table\" "

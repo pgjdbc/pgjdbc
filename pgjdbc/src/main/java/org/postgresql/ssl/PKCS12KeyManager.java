@@ -5,21 +5,24 @@
 
 package org.postgresql.ssl;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.sql.SQLException;
 
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.callback.Callback;
@@ -31,20 +34,20 @@ import javax.security.auth.x500.X500Principal;
 public class PKCS12KeyManager implements X509KeyManager {
 
   private final CallbackHandler cbh;
-  private @Nullable PSQLException error = null;
+  private @Nullable SQLException error = null;
   private final String keyfile;
   private final KeyStore keyStore;
   boolean keystoreLoaded = false;
 
-  public PKCS12KeyManager(String pkcsFile, CallbackHandler cbh) throws PSQLException {
+  public PKCS12KeyManager(String pkcsFile, CallbackHandler cbh) throws SQLException {
     try {
       keyStore = KeyStore.getInstance("pkcs12");
       keyfile = pkcsFile;
       this.cbh = cbh;
-    } catch ( KeyStoreException kse ) {
-      throw new PSQLException(GT.tr(
-        "Unable to find pkcs12 keystore."),
-        PSQLState.CONNECTION_FAILURE, kse);
+    } catch (KeyStoreException kse) {
+      throw new SQLException(GT.tr(
+          "Unable to find pkcs12 keystore."),
+          PgSqlState.CONNECTION_EXCEPTION, kse);
     }
   }
 
@@ -52,9 +55,9 @@ public class PKCS12KeyManager implements X509KeyManager {
    * getCertificateChain and getPrivateKey cannot throw exeptions, therefore any exception is stored
    * in {@link #error} and can be raised by this method.
    *
-   * @throws PSQLException if any exception is stored in {@link #error} and can be raised
+   * @throws SQLException if any exception is stored in {@link #error} and can be raised
    */
-  public void throwKeyManagerException() throws PSQLException {
+  public void throwKeyManagerException() throws SQLException {
     if (error != null) {
       throw error;
     }
@@ -62,8 +65,8 @@ public class PKCS12KeyManager implements X509KeyManager {
 
   @Override
   public String @Nullable [] getClientAliases(String keyType, Principal @Nullable [] principals) {
-    String alias = chooseClientAlias(new String[]{keyType}, principals, (Socket) null);
-    return alias == null ? null : new String[]{alias};
+    String alias = chooseClientAlias(new String[] {keyType}, principals, (Socket) null);
+    return alias == null ? null : new String[] {alias};
   }
 
   @Override
@@ -95,7 +98,7 @@ public class PKCS12KeyManager implements X509KeyManager {
 
   @Override
   public String @Nullable [] getServerAliases(String s, Principal @Nullable [] principals) {
-    return new String[]{};
+    return new String[] {};
   }
 
   @Override
@@ -116,13 +119,13 @@ public class PKCS12KeyManager implements X509KeyManager {
       X509Certificate[] x509Certificates = new X509Certificate[certs.length];
       int i = 0;
       for (Certificate cert : certs) {
-        x509Certificates[i++] = (X509Certificate)cert;
+        x509Certificates[i++] = (X509Certificate) cert;
       }
       return x509Certificates;
     } catch (Exception kse) {
-      error = new PSQLException(GT.tr(
-        "Could not find a java cryptographic algorithm: X.509 CertificateFactory not available."),
-        PSQLState.CONNECTION_FAILURE, kse);
+      error = new SQLException(GT.tr(
+          "Could not find a java cryptographic algorithm: X.509 CertificateFactory not available."),
+          PgSqlState.CONNECTION_EXCEPTION, kse);
     }
     return null;
   }
@@ -132,7 +135,7 @@ public class PKCS12KeyManager implements X509KeyManager {
     try {
       loadKeyStore();
       PasswordCallback pwdcb = new PasswordCallback(GT.tr("Enter SSL password: "), false);
-      cbh.handle(new Callback[]{pwdcb});
+      cbh.handle(new Callback[] {pwdcb});
 
       KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(pwdcb.getPassword());
       KeyStore.PrivateKeyEntry pkEntry =
@@ -142,14 +145,15 @@ public class PKCS12KeyManager implements X509KeyManager {
       }
       PrivateKey myPrivateKey = pkEntry.getPrivateKey();
       return myPrivateKey;
-    } catch (Exception ioex ) {
-      error = new PSQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
-        PSQLState.CONNECTION_FAILURE, ioex);
+    } catch (Exception ioex) {
+      error = new SQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
+          PgSqlState.CONNECTION_EXCEPTION, ioex);
     }
     return null;
   }
 
-  private synchronized void loadKeyStore() throws Exception {
+  private synchronized void loadKeyStore()
+      throws SQLException, IOException, NoSuchAlgorithmException, CertificateException {
 
     if (keystoreLoaded) {
       return;
@@ -157,19 +161,19 @@ public class PKCS12KeyManager implements X509KeyManager {
     // We call back for the password
     PasswordCallback pwdcb = new PasswordCallback(GT.tr("Enter SSL password: "), false);
     try {
-      cbh.handle(new Callback[]{pwdcb});
+      cbh.handle(new Callback[] {pwdcb});
     } catch (UnsupportedCallbackException ucex) {
       if ((cbh instanceof LibPQFactory.ConsoleCallbackHandler)
           && ("Console is not available".equals(ucex.getMessage()))) {
-        error = new PSQLException(GT
-          .tr("Could not read password for SSL key file, console is not available."),
-          PSQLState.CONNECTION_FAILURE, ucex);
+        error = new SQLException(GT
+            .tr("Could not read password for SSL key file, console is not available."),
+            PgSqlState.CONNECTION_EXCEPTION, ucex);
       } else {
         error =
-          new PSQLException(
-            GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
-              cbh.getClass().getName()),
-            PSQLState.CONNECTION_FAILURE, ucex);
+            new SQLException(
+                GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
+                    cbh.getClass().getName()),
+                PgSqlState.CONNECTION_EXCEPTION, ucex);
       }
 
     }

@@ -18,6 +18,8 @@ import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
+import org.postgresql.exception.PgServerException;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.hostchooser.CandidateHost;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
@@ -30,16 +32,16 @@ import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import sun.security.krb5.Credentials;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLInvalidAuthorizationSpecException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -84,7 +86,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {
-      // This catched quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
+      // This catched quite a lot exceptions, but until Java 7 there is no
+      // ReflectiveOperationException
       throw new IllegalStateException("Unable to load org.postgresql.sspi.SSPIClient."
           + " Please check that SSPIClient is included in your pgjdbc distribution.", e);
     }
@@ -123,7 +126,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       if (receiveBufferSize > 0) {
         newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
       } else {
-        LOGGER.log(Level.WARNING, "Ignore invalid value for receiveBufferSize: {0}", receiveBufferSize);
+        LOGGER.log(Level.WARNING, "Ignore invalid value for receiveBufferSize: {0}",
+            receiveBufferSize);
       }
     }
 
@@ -138,11 +142,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
+      LOGGER.log(Level.FINE, "Receive Buffer Size is {0}",
+          newStream.getSocket().getReceiveBufferSize());
       LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
     }
 
-    newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
+    newStream =
+        enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
 
     // if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
     if (!newStream.isGssEncrypted()) {
@@ -175,9 +181,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     try {
       targetServerType = HostRequirement.getTargetServerType(targetServerTypeStr);
     } catch (IllegalArgumentException ex) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("Invalid targetServerType value: {0}", targetServerTypeStr),
-          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
 
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
@@ -185,21 +191,24 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
-    Map<HostSpec, HostStatus> knownStates = new HashMap<HostSpec, HostStatus>();
+    Map<HostSpec, HostStatus> knownStates = new HashMap<>();
     while (hostIter.hasNext()) {
       CandidateHost candidateHost = hostIter.next();
       HostSpec hostSpec = candidateHost.hostSpec;
-      LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}", hostSpec);
+      LOGGER.log(Level.FINE, "Trying to establish a protocol version 3 connection to {0}",
+          hostSpec);
 
       // Note: per-connect-attempt status map is used here instead of GlobalHostStatusTracker
       // for the case when "no good hosts" match (e.g. all the hosts are known as "connectfail")
-      // In that case, the system tries to connect to each host in order, thus it should not look into
+      // In that case, the system tries to connect to each host in order, thus it should not look
+      // into
       // GlobalHostStatusTracker
       HostStatus knownStatus = knownStates.get(hostSpec);
       if (knownStatus != null && !candidateHost.targetServerType.allowConnectingTo(knownStatus)) {
         if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.log(Level.FINER, "Known status of host {0} is {1}, and required status was {2}. Will try next host",
-                     new Object[]{hostSpec, knownStatus, candidateHost.targetServerType});
+          LOGGER.log(Level.FINER,
+              "Known status of host {0} is {1}, and required status was {2}. Will try next host",
+              new Object[] {hostSpec, knownStatus, candidateHost.targetServerType});
         }
         continue;
       }
@@ -211,16 +220,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       PGStream newStream = null;
       try {
         try {
-          newStream = tryConnect(user, database, info, socketFactory, hostSpec, sslMode, gssEncMode);
+          newStream =
+              tryConnect(user, database, info, socketFactory, hostSpec, sslMode, gssEncMode);
         } catch (SQLException e) {
           if (sslMode == SslMode.PREFER
-              && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
+              && PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION.equals(e.getSQLState())) {
             // Try non-SSL connection to cover case like "non-ssl only db"
             // Note: PREFER allows loss of encryption, so no significant harm is made
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.DISABLE,gssEncMode);
+                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.DISABLE,
+                      gssEncMode);
               LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException ee) {
@@ -236,12 +247,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               throw e;
             }
           } else if (sslMode == SslMode.ALLOW
-              && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
+              && PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION.equals(e.getSQLState())) {
             // Try using SSL
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode);
+                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.REQUIRE,
+                      gssEncMode);
               LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException ee) {
@@ -297,9 +309,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           // still more addresses to try
           continue;
         }
-        throw new PSQLException(GT.tr(
+        throw new SQLNonTransientConnectionException(GT.tr(
             "Connection to {0} refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.",
-            hostSpec), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
+            hostSpec), PgSqlState.SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION, cex);
       } catch (IOException ioe) {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
@@ -309,8 +321,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           // still more addresses to try
           continue;
         }
-        throw new PSQLException(GT.tr("The connection attempt failed."),
-            PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
+        throw new SQLNonTransientConnectionException(GT.tr("The connection attempt failed."),
+            PgSqlState.CONNECTION_FAILURE, ioe);
       } catch (SQLException se) {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
@@ -323,46 +335,47 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         throw se;
       }
     }
-    throw new PSQLException(GT
+    throw new SQLNonTransientConnectionException(GT
         .tr("Could not find a server with specified targetServerType: {0}", targetServerType),
-        PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+        PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION);
   }
 
   private List<String[]> getParametersForStartup(String user, String database, Properties info) {
-    List<String[]> paramList = new ArrayList<String[]>();
-    paramList.add(new String[]{"user", user});
-    paramList.add(new String[]{"database", database});
-    paramList.add(new String[]{"client_encoding", "UTF8"});
-    paramList.add(new String[]{"DateStyle", "ISO"});
-    paramList.add(new String[]{"TimeZone", createPostgresTimeZone()});
+    List<String[]> paramList = new ArrayList<>();
+    paramList.add(new String[] {"user", user});
+    paramList.add(new String[] {"database", database});
+    paramList.add(new String[] {"client_encoding", "UTF8"});
+    paramList.add(new String[] {"DateStyle", "ISO"});
+    paramList.add(new String[] {"TimeZone", createPostgresTimeZone()});
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.get(info));
 
     if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
       // User is explicitly telling us this is a 9.0+ server so set properties here:
-      paramList.add(new String[]{"extra_float_digits", "3"});
+      paramList.add(new String[] {"extra_float_digits", "3"});
       String appName = PGProperty.APPLICATION_NAME.get(info);
       if (appName != null) {
-        paramList.add(new String[]{"application_name", appName});
+        paramList.add(new String[] {"application_name", appName});
       }
     } else {
       // User has not explicitly told us that this is a 9.0+ server so stick to old default:
-      paramList.add(new String[]{"extra_float_digits", "2"});
+      paramList.add(new String[] {"extra_float_digits", "2"});
     }
 
     String replication = PGProperty.REPLICATION.get(info);
-    if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
-      paramList.add(new String[]{"replication", replication});
+    if (replication != null
+        && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
+      paramList.add(new String[] {"replication", replication});
     }
 
     String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
     if (currentSchema != null) {
-      paramList.add(new String[]{"search_path", currentSchema});
+      paramList.add(new String[] {"search_path", currentSchema});
     }
 
     String options = PGProperty.OPTIONS.get(info);
     if (options != null) {
-      paramList.add(new String[]{"options", options});
+      paramList.add(new String[] {"options", options});
     }
 
     return paramList;
@@ -420,13 +433,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
                                     int connectTimeout)
-      throws IOException, PSQLException {
+      throws IOException, SQLException {
 
-    if ( gssEncMode == GSSEncMode.DISABLE ) {
+    if (gssEncMode == GSSEncMode.DISABLE) {
       return pgStream;
     }
 
-    if (gssEncMode == GSSEncMode.ALLOW ) {
+    if (gssEncMode == GSSEncMode.ALLOW) {
       // start with plain text and let the server request it
       return pgStream;
     }
@@ -434,7 +447,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // If there is not credential cache there is little point in attempting this
     if (!credentialCacheExists()) {
       if ( gssEncMode == GSSEncMode.REQUIRE ) {
-        throw new PSQLException("GSSAPI encryption required but was impossible (possibly no credential cache)", PSQLState.CONNECTION_REJECTED);
+        throw new SQLNonTransientConnectionException("GSSAPI encryption required but was impossible (possibly no credential cache)", PgSqlState.CONNECTION_FAILURE);
       } else {
         return pgStream;
       }
@@ -457,8 +470,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // Server doesn't even know about the SSL handshake protocol
         if (gssEncMode.requireEncryption()) {
-          throw new PSQLException(GT.tr("The server does not support GSS Encoding."),
-              PSQLState.CONNECTION_REJECTED);
+          throw new SQLNonTransientConnectionException(
+              GT.tr("The server does not support GSS Encoding."),
+              PgSqlState.SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION);
         }
 
         // We have to reconnect to continue.
@@ -470,8 +484,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // Server does not support gss encryption
         if (gssEncMode.requireEncryption()) {
-          throw new PSQLException(GT.tr("The server does not support GSS Encryption."),
-              PSQLState.CONNECTION_REJECTED);
+          throw new SQLNonTransientConnectionException(
+              GT.tr("The server does not support GSS Encryption."),
+              PgSqlState.SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION);
         }
 
         return pgStream;
@@ -485,23 +500,24 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               PGProperty.JAAS_LOGIN.getBoolean(info),
               PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
           return pgStream;
-        } catch (PSQLException ex) {
+        } catch (SQLException ex) {
           // allow the connection to proceed
-          if ( gssEncMode == GSSEncMode.PREFER) {
+          if (gssEncMode == GSSEncMode.PREFER) {
             // we have to reconnect to continue
             return new PGStream(pgStream, connectTimeout);
           }
         }
 
       default:
-        throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
-            PSQLState.PROTOCOL_VIOLATION);
+        throw new SQLException(
+            GT.tr("An error occurred while setting up the GSS Encoded connection."),
+            PgSqlState.PROTOCOL_VIOLATION);
     }
   }
 
   private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
       int connectTimeout)
-      throws IOException, PSQLException {
+      throws IOException, SQLException {
     if (sslMode == SslMode.DISABLE) {
       return pgStream;
     }
@@ -526,8 +542,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // Server doesn't even know about the SSL handshake protocol
         if (sslMode.requireEncryption()) {
-          throw new PSQLException(GT.tr("The server does not support SSL."),
-              PSQLState.CONNECTION_REJECTED);
+          throw new SQLNonTransientConnectionException(GT.tr("The server does not support SSL."),
+              PgSqlState.SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION);
         }
 
         // We have to reconnect to continue.
@@ -538,8 +554,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // Server does not support ssl
         if (sslMode.requireEncryption()) {
-          throw new PSQLException(GT.tr("The server does not support SSL."),
-              PSQLState.CONNECTION_REJECTED);
+          throw new SQLNonTransientConnectionException(GT.tr("The server does not support SSL."),
+              PgSqlState.SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION);
         }
 
         return pgStream;
@@ -552,8 +568,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return pgStream;
 
       default:
-        throw new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
-            PSQLState.PROTOCOL_VIOLATION);
+        throw new SQLException(GT.tr("An error occurred while setting up the SSL connection."),
+            PgSqlState.PROTOCOL_VIOLATION);
     }
   }
 
@@ -596,7 +612,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
   }
 
-  private void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private void doAuthentication(PGStream pgStream, String host, String user, Properties info)
+      throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -622,10 +639,32 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             //
             int elen = pgStream.receiveInteger4();
 
-            ServerErrorMessage errorMsg =
-                new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
-            LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-            throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+            PgServerException errorMsg = PgServerException.make(pgStream.receiveString(elen - 4));
+            String errorMessage = errorMsg.getMessage();
+            // U+FFFD REPLACEMENT CHARACTER, decimal: 65533
+            if (errorMessage.indexOf(65533, 0) != -1) {
+              // Pre-auth encoding unknown, just send generic auth_failure
+              String sqlState = errorMsg.getSQLState();
+              if (PgSqlState.INVALID_PASSWORD.equals(sqlState)) {
+                errorMessage = "password authentication failed for user \"{0}\"";
+              } else if (PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION.equals(sqlState)) {
+                errorMessage = "authentication failed for user \"{0}\"";
+              }
+              if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0}: {1})",
+                    new Object[] {sqlState, GT.tr(errorMessage, user)});
+              }
+              // Don't set the cause as it contains bad encoding, just provide the hint of what
+              // failed.
+              throw new SQLInvalidAuthorizationSpecException(GT.tr(errorMessage, user), sqlState);
+            }
+
+            if (LOGGER.isLoggable(Level.FINEST)) {
+              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})",
+                  errorMsg.getFormattedMessage(PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info)));
+            }
+            throw new SQLInvalidAuthorizationSpecException(GT.tr(errorMessage),
+                errorMsg.getSQLState(), errorMsg);
 
           case 'R':
             // Authentication request.
@@ -640,21 +679,23 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_MD5: {
                 byte[] md5Salt = pgStream.receive(4);
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
+                  LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})",
+                      Utils.toHexString(md5Salt));
                 }
 
                 if (password == null) {
-                  throw new PSQLException(
+                  throw new SQLNonTransientConnectionException(
                       GT.tr(
                           "The server requested password-based authentication, but no password was provided."),
-                      PSQLState.CONNECTION_REJECTED);
+                      PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION);
                 }
 
                 byte[] digest =
                     MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), md5Salt);
 
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " FE=> Password(md5digest={0})", new String(digest, "US-ASCII"));
+                  LOGGER.log(Level.FINEST, " FE=> Password(md5digest={0})",
+                      new String(digest, "US-ASCII"));
                 }
 
                 pgStream.sendChar('p');
@@ -671,10 +712,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
                 if (password == null) {
-                  throw new PSQLException(
+                  throw new SQLNonTransientConnectionException(
                       GT.tr(
                           "The server requested password-based authentication, but no password was provided."),
-                      PSQLState.CONNECTION_REJECTED);
+                      PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION);
                 }
 
                 byte[] encodedPassword = password.getBytes("UTF-8");
@@ -736,14 +777,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     sspiClient = null;
 
                     if ("sspi".equals(gsslib)) {
-                      throw new PSQLException(
-                          "SSPI forced with gsslib=sspi, but SSPI not available; set loglevel=2 for details",
-                          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+                      throw new SQLNonTransientConnectionException(
+                          "SSPI forced with gsslib=sspi, but SSPI not available",
+                          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION);
                     }
                   }
 
                   if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Using SSPI: {0}, gsslib={1} and SSPI support detected", new Object[]{useSSPI, gsslib});
+                    LOGGER.log(Level.FINE, "Using SSPI: {0}, gsslib={1} and SSPI support detected",
+                        new Object[] {useSSPI, gsslib});
                   }
                 }
 
@@ -770,17 +812,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
-                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
+                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user,
+                    castNonNull(password), pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
-                // This works as follows:
-                // 1. When tests is run from IDE, it is assumed SCRAM library is on the classpath
-                // 2. In regular build for Java < 8 this `if` is deactivated and the code always throws
-                if (false) {
-                  throw new PSQLException(GT.tr(
-                          "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" versions)",
-                          areq), PSQLState.CONNECTION_REJECTED);
-                }
                 break;
 
               case AUTH_REQ_SASL_CONTINUE:
@@ -798,16 +833,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               default:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationReq (unsupported type {0})", areq);
-                throw new PSQLException(GT.tr(
+                throw new SQLNonTransientConnectionException(GT.tr(
                     "The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.",
-                    areq), PSQLState.CONNECTION_REJECTED);
+                    areq), PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION);
             }
 
             break;
 
           default:
-            throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                PSQLState.PROTOCOL_VIOLATION);
+            throw new SQLException(GT.tr("Protocol error.  Session setup failed."),
+                PgSqlState.PROTOCOL_VIOLATION);
         }
       }
     } finally {

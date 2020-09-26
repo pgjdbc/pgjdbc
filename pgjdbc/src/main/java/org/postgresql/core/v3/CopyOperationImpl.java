@@ -8,9 +8,8 @@ package org.postgresql.core.v3;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -32,35 +31,40 @@ public abstract class CopyOperationImpl implements CopyOperation {
     return castNonNull(queryExecutor);
   }
 
+  @Override
   public void cancelCopy() throws SQLException {
     castNonNull(queryExecutor).cancelCopy(this);
   }
 
+  @Override
   public int getFieldCount() {
     return castNonNull(fieldFormats).length;
   }
 
+  @Override
   public int getFieldFormat(int field) {
     return castNonNull(fieldFormats)[field];
   }
 
+  @Override
   public int getFormat() {
     return rowFormat;
   }
 
+  @Override
   public boolean isActive() {
     synchronized (castNonNull(queryExecutor)) {
       return queryExecutor.hasLock(this);
     }
   }
 
-  public void handleCommandStatus(String status) throws PSQLException {
+  public void handleCommandStatus(String status) throws SQLException {
     if (status.startsWith("COPY")) {
       int i = status.lastIndexOf(' ');
       handledRowCount = i > 3 ? Long.parseLong(status.substring(i + 1)) : -1;
     } else {
-      throw new PSQLException(GT.tr("CommandComplete expected COPY but got: " + status),
-          PSQLState.COMMUNICATION_ERROR);
+      throw new SQLException(GT.tr("CommandComplete expected COPY but got: " + status),
+          PgSqlState.PROTOCOL_VIOLATION);
     }
   }
 
@@ -68,10 +72,11 @@ public abstract class CopyOperationImpl implements CopyOperation {
    * Consume received copy data.
    *
    * @param data data that was receive by copy protocol
-   * @throws PSQLException if some internal problem occurs
+   * @throws SQLException if some internal problem occurs
    */
-  protected abstract void handleCopydata(byte[] data) throws PSQLException;
+  protected abstract void handleCopydata(byte[] data) throws SQLException;
 
+  @Override
   public long getHandledRowCount() {
     return handledRowCount;
   }

@@ -5,8 +5,6 @@
 
 package org.postgresql.core;
 
-import org.postgresql.util.PSQLException;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,7 +29,7 @@ public class OidToStringTest {
   }
 
   @Test
-  public void run() throws PSQLException {
+  public void run() {
     Assert.assertEquals(expected, Oid.toString(value));
   }
 }

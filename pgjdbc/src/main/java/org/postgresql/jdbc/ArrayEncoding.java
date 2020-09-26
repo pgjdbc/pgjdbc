@@ -8,10 +8,9 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -19,6 +18,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashMap;
@@ -246,8 +246,8 @@ final class ArrayEncoding {
     @Override
     final int countNulls(N[] array) {
       int count = 0;
-      for (int i = 0; i < array.length; ++i) {
-        if (array[i] == null) {
+      for (N element : array) {
+        if (element == null) {
           ++count;
         }
       }
@@ -297,14 +297,14 @@ final class ArrayEncoding {
       final byte[] bytes = new byte[length];
 
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
-        if (array[i] == null) {
+      for (N element : array) {
+        if (element == null) {
           ByteConverter.int4(bytes, idx, -1);
           idx += 4;
         } else {
           ByteConverter.int4(bytes, idx, fieldSize);
           idx += 4;
-          write(array[i], bytes, idx);
+          write(element, bytes, idx);
           idx += fieldSize;
         }
       }
@@ -454,9 +454,9 @@ final class ArrayEncoding {
     @Override
     protected void write(long[] array, byte[] bytes, int offset) {
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
+      for (long element : array) {
         bytes[idx + 3] = 8;
-        ByteConverter.int8(bytes, idx + 4, array[i]);
+        ByteConverter.int8(bytes, idx + 4, element);
         idx += 12;
       }
     }
@@ -495,9 +495,9 @@ final class ArrayEncoding {
     @Override
     protected void write(int[] array, byte[] bytes, int offset) {
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
+      for (int element : array) {
         bytes[idx + 3] = 4;
-        ByteConverter.int4(bytes, idx + 4, array[i]);
+        ByteConverter.int4(bytes, idx + 4, element);
         idx += 8;
       }
     }
@@ -536,9 +536,9 @@ final class ArrayEncoding {
     @Override
     protected void write(short[] array, byte[] bytes, int offset) {
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
+      for (short element : array) {
         bytes[idx + 3] = 2;
-        ByteConverter.int2(bytes, idx + 4, array[i]);
+        ByteConverter.int2(bytes, idx + 4, element);
         idx += 6;
       }
     }
@@ -583,9 +583,9 @@ final class ArrayEncoding {
     @Override
     protected void write(double[] array, byte[] bytes, int offset) {
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
+      for (double element : array) {
         bytes[idx + 3] = 8;
-        ByteConverter.float8(bytes, idx + 4, array[i]);
+        ByteConverter.float8(bytes, idx + 4, element);
         idx += 12;
       }
     }
@@ -630,9 +630,9 @@ final class ArrayEncoding {
     @Override
     protected void write(float[] array, byte[] bytes, int offset) {
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
+      for (float element : array) {
         bytes[idx + 3] = 4;
-        ByteConverter.float4(bytes, idx + 4, array[i]);
+        ByteConverter.float4(bytes, idx + 4, element);
         idx += 8;
       }
     }
@@ -674,9 +674,9 @@ final class ArrayEncoding {
     @Override
     protected void write(boolean[] array, byte[] bytes, int offset) {
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
+      for (boolean element : array) {
         bytes[idx + 3] = 1;
-        ByteConverter.bool(bytes, idx + 4, array[i]);
+        ByteConverter.bool(bytes, idx + 4, element);
         idx += 5;
       }
     }
@@ -716,14 +716,14 @@ final class ArrayEncoding {
       final byte[] bytes = new byte[length];
 
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
-        if (array[i] == null) {
+      for (Boolean element : array) {
+        if (element == null) {
           ByteConverter.int4(bytes, idx, -1);
           idx += 4;
         } else {
           ByteConverter.int4(bytes, idx, 1);
           idx += 4;
-          write(array[i], bytes, idx);
+          write(element, bytes, idx);
           ++idx;
         }
       }
@@ -774,8 +774,8 @@ final class ArrayEncoding {
     @Override
     int countNulls(String[] array) {
       int count = 0;
-      for (int i = 0; i < array.length; ++i) {
-        if (array[i] == null) {
+      for (String element : array) {
+        if (element == null) {
           ++count;
         }
       }
@@ -857,15 +857,14 @@ final class ArrayEncoding {
         baos.write(buffer);
 
         final Encoding encoding = connection.getEncoding();
-        for (int i = 0; i < array.length; ++i) {
-          final String string = array[i];
+        for (final String string : array) {
           if (string != null) {
             final byte[] encoded;
             try {
               encoded = encoding.encode(string);
             } catch (IOException e) {
-              throw new PSQLException(GT.tr("Unable to translate data into the desired encoding."),
-                  PSQLState.DATA_ERROR, e);
+              throw new SQLDataException(GT.tr("Unable to translate data into the desired encoding."),
+                  PgSqlState.UNTRANSLATABLE_CHARACTER, e);
             }
             ByteConverter.int4(buffer, 0, encoded.length);
             baos.write(buffer);
@@ -894,15 +893,14 @@ final class ArrayEncoding {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
         final byte[] buffer = new byte[4];
         final Encoding encoding = connection.getEncoding();
-        for (int i = 0; i < array.length; ++i) {
-          final String string = array[i];
+        for (final String string : array) {
           if (string != null) {
             final byte[] encoded;
             try {
               encoded = encoding.encode(string);
             } catch (IOException e) {
-              throw new PSQLException(GT.tr("Unable to translate data into the desired encoding."),
-                  PSQLState.DATA_ERROR, e);
+              throw new SQLDataException(GT.tr("Unable to translate data into the desired encoding."),
+                  PgSqlState.UNTRANSLATABLE_CHARACTER, e);
             }
             ByteConverter.int4(buffer, 0, encoded.length);
             baos.write(buffer);
@@ -941,10 +939,10 @@ final class ArrayEncoding {
       assert oid == arrayOid;
 
       int length = 20;
-      for (int i = 0; i < array.length; ++i) {
+      for (byte[] element : array) {
         length += 4;
-        if (array[i] != null) {
-          length += array[i].length;
+        if (element != null) {
+          length += element.length;
         }
       }
       final byte[] bytes = new byte[length];
@@ -970,12 +968,12 @@ final class ArrayEncoding {
      */
     @Override
     byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, byte[][] array)
-        throws SQLException, SQLFeatureNotSupportedException {
+        throws SQLException {
       int length = 0;
-      for (int i = 0; i < array.length; ++i) {
+      for (byte[] element : array) {
         length += 4;
-        if (array[i] != null) {
-          length += array[i].length;
+        if (element != null) {
+          length += element.length;
         }
       }
       final byte[] bytes = new byte[length];
@@ -990,8 +988,8 @@ final class ArrayEncoding {
     @Override
     int countNulls(byte[][] array) {
       int nulls = 0;
-      for (int i = 0; i < array.length; ++i) {
-        if (array[i] == null) {
+      for (byte[] element : array) {
+        if (element == null) {
           ++nulls;
         }
       }
@@ -1000,12 +998,12 @@ final class ArrayEncoding {
 
     private void write(byte[][] array, byte[] bytes, int offset) {
       int idx = offset;
-      for (int i = 0; i < array.length; ++i) {
-        if (array[i] != null) {
-          ByteConverter.int4(bytes, idx, array[i].length);
+      for (byte[] element : array) {
+        if (element != null) {
+          ByteConverter.int4(bytes, idx, element.length);
           idx += 4;
-          System.arraycopy(array[i], 0, bytes, idx, array[i].length);
-          idx += array[i].length;
+          System.arraycopy(element, 0, bytes, idx, element.length);
+          idx += element.length;
         } else {
           ByteConverter.int4(bytes, idx, -1);
           idx += 4;
@@ -1060,13 +1058,13 @@ final class ArrayEncoding {
 
     @Override
     public byte[] toBinaryRepresentation(BaseConnection connection, Object[] array, int oid)
-        throws SQLException, SQLFeatureNotSupportedException {
+        throws SQLException {
       throw new SQLFeatureNotSupportedException();
     }
 
     @Override
     byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, Object[] array)
-        throws SQLException, SQLFeatureNotSupportedException {
+        throws SQLException {
       throw new SQLFeatureNotSupportedException();
     }
 
@@ -1088,7 +1086,7 @@ final class ArrayEncoding {
   };
 
   @SuppressWarnings("rawtypes")
-  private static final Map<@NonNull Class, @NonNull AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<@NonNull Class, @NonNull AbstractArrayEncoder>(
+  private static final Map<@NonNull Class, @NonNull AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<>(
       (int) (14 / .75) + 1);
 
   static {
@@ -1115,16 +1113,16 @@ final class ArrayEncoding {
    *          The array to encode. Must not be {@code null}.
    * @return An instance capable of encoding <i>array</i> as a {@code String} at
    *         minimum. Some types may support binary encoding.
-   * @throws PSQLException
+   * @throws SQLException
    *           if <i>array</i> is not a supported type.
    * @see ArrayEncoding.ArrayEncoder#supportBinaryRepresentation(int)
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static <A extends @NonNull Object> ArrayEncoder<A> getArrayEncoder(A array) throws PSQLException {
+  public static <A extends @NonNull Object> ArrayEncoder<A> getArrayEncoder(A array) throws SQLException {
     final Class<?> arrayClazz = array.getClass();
     Class<?> subClazz = arrayClazz.getComponentType();
     if (subClazz == null) {
-      throw new PSQLException(GT.tr("Invalid elements {0}", array), PSQLState.INVALID_PARAMETER_TYPE);
+      throw new SQLDataException(GT.tr("Invalid elements {0}", array), PgSqlState.INVALID_PARAMETER_VALUE);
     }
     AbstractArrayEncoder<A> support = ARRAY_CLASS_TO_ENCODER.get(subClazz);
     if (support != null) {
@@ -1135,7 +1133,7 @@ final class ArrayEncoding {
       if (Object.class.isAssignableFrom(subClazz)) {
         return (ArrayEncoder<A>) OBJECT_ARRAY;
       }
-      throw new PSQLException(GT.tr("Invalid elements {0}", array), PSQLState.INVALID_PARAMETER_TYPE);
+      throw new SQLDataException(GT.tr("Invalid elements {0}", array), PgSqlState.INVALID_PARAMETER_VALUE);
     }
 
     subClazz = subSubClazz;
@@ -1161,7 +1159,7 @@ final class ArrayEncoding {
       subClazz = subSubClazz;
     }
 
-    throw new PSQLException(GT.tr("Invalid elements {0}", array), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new SQLDataException(GT.tr("Invalid elements {0}", array), PgSqlState.INVALID_PARAMETER_VALUE);
   }
 
   /**
@@ -1254,8 +1252,8 @@ final class ArrayEncoding {
         ByteConverter.int4(buffer, 0, 1);
         baos.write(buffer);
 
-        for (int i = 0; i < array.length; ++i) {
-          baos.write(support.toSingleDimensionBinaryRepresentation(connection, array[i]));
+        for (A element : array) {
+          baos.write(support.toSingleDimensionBinaryRepresentation(connection, element));
         }
 
         return baos.toByteArray();

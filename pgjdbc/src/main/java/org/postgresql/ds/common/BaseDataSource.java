@@ -8,12 +8,11 @@ package org.postgresql.ds.common;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -26,6 +25,7 @@ import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Properties;
@@ -1289,23 +1289,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     setUrl(url);
   }
 
-  public @Nullable String getProperty(String name) throws SQLException {
+  public @Nullable String getProperty(String name) throws SQLDataException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
       return getProperty(pgProperty);
     } else {
-      throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-        PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("Unsupported property name: {0}", name),
+        PgSqlState.INVALID_PARAMETER_VALUE);
     }
   }
 
-  public void setProperty(String name, @Nullable String value) throws SQLException {
+  public void setProperty(String name, @Nullable String value) throws SQLDataException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
       setProperty(pgProperty, value);
     } else {
-      throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
-        PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("Unsupported property name: {0}", name),
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -1358,6 +1358,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return new Reference(getClass().getName(), PGObjectFactory.class.getName(), null);
   }
 
+  @Override
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
     StringBuilder serverString = new StringBuilder();

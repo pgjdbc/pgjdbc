@@ -8,6 +8,8 @@ package org.postgresql.util;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.exception.PgSqlState;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
@@ -17,6 +19,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
 
 /**
  * Wrapper around a length-limited InputStream.
@@ -43,7 +47,7 @@ public class StreamWrapper {
     this.length = length;
   }
 
-  public StreamWrapper(InputStream stream) throws PSQLException {
+  public StreamWrapper(InputStream stream) throws SQLException {
     try {
       ByteArrayOutputStream memoryOutputStream = new ByteArrayOutputStream();
       final int memoryLength = copyStream(stream, memoryOutputStream, MAX_MEMORY_BUFFER_BYTES);
@@ -57,8 +61,8 @@ public class StreamWrapper {
         try {
           diskLength = copyStream(stream, diskOutputStream, Integer.MAX_VALUE - rawData.length);
           if (diskLength == -1) {
-            throw new PSQLException(GT.tr("Object is too large to send over the protocol."),
-                PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
+            throw new SQLDataException(GT.tr("Object is too large to send over the protocol."),
+                PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE);
           }
           diskOutputStream.flush();
         } finally {
@@ -91,6 +95,7 @@ public class StreamWrapper {
             }
           }
 
+          @Override
           public int read(byte[] b) throws IOException {
             if (closed) {
               return -1;
@@ -100,6 +105,7 @@ public class StreamWrapper {
             return result;
           }
 
+          @Override
           public int read(byte[] b, int off, int len) throws IOException {
             if (closed) {
               return -1;
@@ -109,6 +115,7 @@ public class StreamWrapper {
             return result;
           }
 
+          @Override
           public void close() throws IOException {
             if (!closed) {
               super.close();
@@ -117,6 +124,7 @@ public class StreamWrapper {
             }
           }
 
+          @Override
           protected void finalize() throws IOException {
             // forcibly close it because super.finalize() may keep the FD open, which may prevent
             // file deletion
@@ -142,8 +150,8 @@ public class StreamWrapper {
         this.length = rawData.length;
       }
     } catch (IOException e) {
-      throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
-          PSQLState.IO_ERROR, e);
+      throw new SQLException(GT.tr("An I/O error occurred while sending to the backend."),
+          PgSqlState.IO_ERROR, e);
     }
   }
 
@@ -167,6 +175,7 @@ public class StreamWrapper {
     return rawData;
   }
 
+  @Override
   public String toString() {
     return "<stream of " + length + " bytes>";
   }

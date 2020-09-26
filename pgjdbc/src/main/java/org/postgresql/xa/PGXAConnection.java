@@ -11,9 +11,8 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TransactionState;
 import org.postgresql.ds.PGPooledConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -24,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.logging.Level;
@@ -73,7 +73,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
   }
 
-  public PGXAConnection(BaseConnection conn) throws SQLException {
+  public PGXAConnection(BaseConnection conn) {
     super(conn, true, true);
     this.conn = conn;
     this.state = State.IDLE;
@@ -128,10 +128,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             || methodName.equals("rollback")
             || methodName.equals("setSavePoint")
             || (methodName.equals("setAutoCommit") && castNonNull((Boolean) args[0]))) {
-          throw new PSQLException(
+          throw new SQLException(
               GT.tr(
                   "Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
-              PSQLState.OBJECT_NOT_IN_STATE);
+              PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
         }
       }
       try {
@@ -404,7 +404,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           // in practise.
           ResultSet rs = stmt.executeQuery(
               "SELECT gid FROM pg_prepared_xacts where database = current_database()");
-          LinkedList<Xid> l = new LinkedList<Xid>();
+          LinkedList<Xid> l = new LinkedList<>();
           while (rs.next()) {
             Xid recoveredXid = RecoveredXid.stringToXid(castNonNull(rs.getString(1)));
             if (recoveredXid != null) {
@@ -467,7 +467,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       committedOrRolledBack = true;
     } catch (SQLException ex) {
       int errorCode = XAException.XAER_RMERR;
-      if (PSQLState.UNDEFINED_OBJECT.getState().equals(ex.getSQLState())) {
+      if (PgSqlState.UNDEFINED_OBJECT.equals(ex.getSQLState())) {
         if (committedOrRolledBack || !xid.equals(preparedXid)) {
           if (LOGGER.isLoggable(Level.FINEST)) {
             debug("rolling back xid " + xid + " while the connection prepared xid is " + preparedXid
@@ -476,7 +476,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           errorCode = XAException.XAER_NOTA;
         }
       }
-      if (PSQLState.isConnectionError(ex.getSQLState())) {
+      if (isConnectionError(ex)) {
         if (LOGGER.isLoggable(Level.FINEST)) {
           debug("rollback connection failure (sql error code " + ex.getSQLState() + "), reconnection could be expected");
         }
@@ -596,7 +596,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       committedOrRolledBack = true;
     } catch (SQLException ex) {
       int errorCode = XAException.XAER_RMERR;
-      if (PSQLState.UNDEFINED_OBJECT.getState().equals(ex.getSQLState())) {
+      if (PgSqlState.UNDEFINED_OBJECT.equals(ex.getSQLState())) {
         if (committedOrRolledBack || !xid.equals(preparedXid)) {
           if (LOGGER.isLoggable(Level.FINEST)) {
             debug("committing xid " + xid + " while the connection prepared xid is " + preparedXid
@@ -605,7 +605,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           errorCode = XAException.XAER_NOTA;
         }
       }
-      if (PSQLState.isConnectionError(ex.getSQLState())) {
+      if (isConnectionError(ex)) {
         if (LOGGER.isLoggable(Level.FINEST)) {
           debug("commit connection failure (sql error code " + ex.getSQLState() + "), reconnection could be expected");
         }
@@ -657,13 +657,16 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   private boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
-    if (!(sqlException instanceof PSQLException)) {
-      return false;
-    }
-    String sqlState = sqlException.getSQLState();
-    return sqlState != null
-        && sqlState.length() == 5
-        && sqlState.startsWith("23"); // Class 23 - Integrity Constraint Violation
+    return sqlException instanceof SQLIntegrityConstraintViolationException;
+  }
+
+  private boolean isConnectionError(SQLException sqlException) {
+    String psqlState = sqlException.getSQLState();
+    return PgSqlState.CONNECTION_EXCEPTION.equals(psqlState)
+        || PgSqlState.CONNECTION_DOES_NOT_EXIST.equals(psqlState)
+        || PgSqlState.SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION.equals(psqlState)
+        || PgSqlState.CONNECTION_FAILURE.equals(psqlState)
+        || PgSqlState.TRANSACTION_RESOLUTION_UNKNOWN.equals(psqlState);
   }
 
   private enum State {

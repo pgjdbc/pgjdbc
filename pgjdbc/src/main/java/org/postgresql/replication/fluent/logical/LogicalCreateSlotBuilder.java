@@ -8,13 +8,12 @@ package org.postgresql.replication.fluent.logical;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.ReplicationSlotInfo;
 import org.postgresql.replication.ReplicationType;
 import org.postgresql.replication.fluent.AbstractCreateSlotBuilder;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -75,9 +74,9 @@ public class LogicalCreateSlotBuilder
             result.getString("snapshot_name"),
             result.getString("output_plugin"));
       } else {
-        throw new PSQLException(
+        throw new SQLException(
             GT.tr("{0} returned no results"),
-            PSQLState.OBJECT_NOT_IN_STATE);
+            PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
       }
     } finally {
       if (result != null) {

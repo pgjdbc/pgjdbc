@@ -10,7 +10,7 @@ import org.postgresql.core.ParameterList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.sql.SQLException;
+import java.sql.SQLDataException;
 
 /**
  * Common interface for all V3 parameter list implementations.
@@ -22,9 +22,9 @@ interface V3ParameterList extends ParameterList {
    * Ensure that all parameters in this list have been assigned values. Return silently if all is
    * well, otherwise throw an appropriate exception.
    *
-   * @throws SQLException if not all parameters are set.
+   * @throws SQLDataException if not all parameters are set.
    */
-  void checkAllParametersSet() throws SQLException;
+  void checkAllParametersSet() throws SQLDataException;
 
   /**
    * Convert any function output parameters to the correct type (void) and set an ignorable value

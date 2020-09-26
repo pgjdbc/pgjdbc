@@ -5,16 +5,17 @@
 
 package org.postgresql.geometric;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 
 /**
  * This represents org.postgresql's circle datatype, consisting of a point and a radius.
@@ -74,16 +75,16 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
   public void setValue(String s) throws SQLException {
     PGtokenizer t = new PGtokenizer(PGtokenizer.removeAngle(s), ',');
     if (t.getSize() != 2) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw new SQLSyntaxErrorException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
+          PgSqlState.DATATYPE_MISMATCH);
     }
 
     try {
       center = new PGpoint(t.getToken(0));
       radius = Double.parseDouble(t.getToken(1));
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
-          PSQLState.DATA_TYPE_MISMATCH, e);
+      throw new SQLDataException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
+          PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE, e);
     }
   }
 
@@ -91,6 +92,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two circles are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGcircle) {
       PGcircle p = (PGcircle) obj;
@@ -99,6 +101,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public int hashCode() {
     long bits = Double.doubleToLongBits(radius);
     int v = (int)(bits ^ (bits >>> 32));
@@ -108,6 +111,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
     return v;
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGcircle newPGcircle = (PGcircle) super.clone();
     if (newPGcircle.center != null) {
@@ -119,6 +123,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGcircle in the syntax expected by org.postgresql
    */
+  @Override
   public String getValue() {
     return "<" + center + "," + radius + ">";
   }

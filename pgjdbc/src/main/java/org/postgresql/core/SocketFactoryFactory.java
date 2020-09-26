@@ -6,12 +6,13 @@
 package org.postgresql.core;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.ssl.LibPQFactory;
 import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Properties;
 
 import javax.net.SocketFactory;
@@ -27,9 +28,9 @@ public class SocketFactoryFactory {
    *
    * @param info connection properties
    * @return socket factory
-   * @throws PSQLException if something goes wrong
+   * @throws SQLException if something goes wrong
    */
-  public static SocketFactory getSocketFactory(Properties info) throws PSQLException {
+  public static SocketFactory getSocketFactory(Properties info) throws SQLException {
     // Socket factory
     String socketFactoryClassName = PGProperty.SOCKET_FACTORY.get(info);
     if (socketFactoryClassName == null) {
@@ -39,10 +40,10 @@ public class SocketFactoryFactory {
       return (SocketFactory) ObjectFactory.instantiate(socketFactoryClassName, info, true,
           PGProperty.SOCKET_FACTORY_ARG.get(info));
     } catch (Exception e) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("The SocketFactory class provided {0} could not be instantiated.",
               socketFactoryClassName),
-          PSQLState.CONNECTION_FAILURE, e);
+          PgSqlState.CONNECTION_EXCEPTION, e);
     }
   }
 
@@ -51,9 +52,9 @@ public class SocketFactoryFactory {
    *
    * @param info connection properties
    * @return SSL socket factory
-   * @throws PSQLException if something goes wrong
+   * @throws SQLException if something goes wrong
    */
-  public static SSLSocketFactory getSslSocketFactory(Properties info) throws PSQLException {
+  public static SSLSocketFactory getSslSocketFactory(Properties info) throws SQLException {
     String classname = PGProperty.SSL_FACTORY.get(info);
     if (classname == null
         || "org.postgresql.ssl.jdbc4.LibPQFactory".equals(classname)
@@ -64,9 +65,9 @@ public class SocketFactoryFactory {
       return (SSLSocketFactory) ObjectFactory.instantiate(classname, info, true,
           PGProperty.SSL_FACTORY_ARG.get(info));
     } catch (Exception e) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("The SSLSocketFactory class provided {0} could not be instantiated.", classname),
-          PSQLState.CONNECTION_FAILURE, e);
+          PgSqlState.CONNECTION_EXCEPTION, e);
     }
   }
 

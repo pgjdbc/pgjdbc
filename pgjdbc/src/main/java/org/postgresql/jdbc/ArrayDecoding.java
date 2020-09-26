@@ -8,12 +8,11 @@ package org.postgresql.jdbc;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Parser;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGbytea;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -25,6 +24,7 @@ import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
@@ -274,9 +274,9 @@ final class ArrayDecoding {
       try {
         val = connection.getEncoding().decode(byteArray, offset, length);
       } catch (IOException e) {
-        throw new PSQLException(GT.tr(
+        throw new SQLDataException(GT.tr(
             "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
-            PSQLState.DATA_ERROR, e);
+            PgSqlState.UNTRANSLATABLE_CHARACTER, e);
       }
       bytes.position(bytes.position() + length);
       return val;
@@ -361,7 +361,7 @@ final class ArrayDecoding {
    * entries.
    */
   @SuppressWarnings("rawtypes")
-  private static final Map<Integer, ArrayDecoder> OID_TO_DECODER = new HashMap<Integer, ArrayDecoder>(
+  private static final Map<Integer, ArrayDecoder> OID_TO_DECODER = new HashMap<>(
       (int) (21 / .75) + 1);
 
   static {
@@ -593,7 +593,7 @@ final class ArrayDecoding {
     boolean wasInsideString = false;
 
     // array dimension arrays
-    final List<PgArrayList> dims = new ArrayList<PgArrayList>();
+    final List<PgArrayList> dims = new ArrayList<>();
 
     // currently processed array
     PgArrayList curArray = arrayList;

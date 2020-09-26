@@ -8,10 +8,9 @@ package org.postgresql.copy;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +18,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 
 /**
  * API for PostgreSQL COPY bulk data transfer.
@@ -47,8 +47,8 @@ public class CopyManager {
       return (CopyIn) op;
     } else {
       op.cancelCopy();
-      throw new PSQLException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
-              PSQLState.WRONG_OBJECT_TYPE);
+      throw new SQLSyntaxErrorException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
+          PgSqlState.WRONG_OBJECT_TYPE);
     }
   }
 
@@ -58,8 +58,8 @@ public class CopyManager {
       return (CopyOut) op;
     } else {
       op.cancelCopy();
-      throw new PSQLException(GT.tr("Requested CopyOut but got {0}", op.getClass().getName()),
-              PSQLState.WRONG_OBJECT_TYPE);
+      throw new SQLSyntaxErrorException(GT.tr("Requested CopyOut but got {0}", op.getClass().getName()),
+          PgSqlState.WRONG_OBJECT_TYPE);
     }
   }
 
@@ -69,8 +69,8 @@ public class CopyManager {
       return (CopyDual) op;
     } else {
       op.cancelCopy();
-      throw new PSQLException(GT.tr("Requested CopyDual but got {0}", op.getClass().getName()),
-          PSQLState.WRONG_OBJECT_TYPE);
+      throw new SQLSyntaxErrorException(GT.tr("Requested CopyDual but got {0}", op.getClass().getName()),
+          PgSqlState.WRONG_OBJECT_TYPE);
     }
   }
 

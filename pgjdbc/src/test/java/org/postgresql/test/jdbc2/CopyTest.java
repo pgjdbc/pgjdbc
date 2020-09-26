@@ -17,9 +17,9 @@ import org.postgresql.copy.CopyManager;
 import org.postgresql.copy.CopyOut;
 import org.postgresql.copy.PGCopyOutputStream;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.ByteBufferByteStreamWriter;
-import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -116,7 +116,7 @@ public class CopyTest {
     try {
       cp.cancelCopy();
     } catch (SQLException se) { // should fail with obsolete operation
-      if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(se.getSQLState())) {
+      if (!PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE.equals(se.getSQLState())) {
         fail("should have thrown object not in state exception.");
       }
     }
@@ -191,6 +191,7 @@ public class CopyTest {
     String sql = "COPY copytest FROM STDIN";
     try {
       copyAPI.copyIn(sql, new InputStream() {
+        @Override
         public int read() {
           throw new RuntimeException("COPYTEST");
         }

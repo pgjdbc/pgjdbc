@@ -9,9 +9,8 @@ package org.postgresql.sspi;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import com.sun.jna.LastErrorException;
 import com.sun.jna.Platform;
@@ -25,6 +24,8 @@ import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -102,7 +103,7 @@ public class SSPIClient implements ISSPIClient {
     }
   }
 
-  private String makeSPN() throws PSQLException {
+  private String makeSPN() throws SQLException {
     final HostSpec hs = pgStream.getHostSpec();
 
     try {
@@ -114,8 +115,8 @@ public class SSPIClient implements ISSPIClient {
       return NTDSAPIWrapper.instance.DsMakeSpn(spnServiceClass, hs.getHost(), null,
           (short) 0, null);
     } catch (LastErrorException ex) {
-      throw new PSQLException("SSPI setup failed to determine SPN",
-          PSQLState.CONNECTION_UNABLE_TO_CONNECT, ex);
+      throw new SQLNonTransientConnectionException("SSPI setup failed to determine SPN",
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION, ex);
     }
   }
 
@@ -151,8 +152,8 @@ public class SSPIClient implements ISSPIClient {
         this.clientCredentials = clientCredentials;
         clientCredentials.initialize();
       } catch (Win32Exception ex) {
-        throw new PSQLException("Could not obtain local Windows credentials for SSPI",
-            PSQLState.CONNECTION_UNABLE_TO_CONNECT /* TODO: Should be authentication error */, ex);
+        throw new SQLNonTransientConnectionException("Could not obtain local Windows credentials for SSPI",
+            PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION /* TODO: Should be authentication error */, ex);
       }
 
       try {
@@ -167,16 +168,16 @@ public class SSPIClient implements ISSPIClient {
         sspiContext.setSecurityPackage(securityPackage);
         sspiContext.initialize(null, null, targetName);
       } catch (Win32Exception ex) {
-        throw new PSQLException("Could not initialize SSPI security context",
-            PSQLState.CONNECTION_UNABLE_TO_CONNECT /* TODO: Should be auth error */, ex);
+        throw new SQLNonTransientConnectionException("Could not initialize SSPI security context",
+            PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION /* TODO: Should be auth error */, ex);
       }
 
       sendSSPIResponse(sspiContext.getToken());
       LOGGER.log(Level.FINEST, "Sent first SSPI negotiation message");
     } catch (NoClassDefFoundError ex) {
-      throw new PSQLException(
+      throw new SQLFeatureNotSupportedException(
           "SSPI cannot be used, Waffle or its dependencies are missing from the classpath",
-          PSQLState.NOT_IMPLEMENTED, ex);
+          PgSqlState.FEATURE_NOT_SUPPORTED, ex);
     }
   }
 

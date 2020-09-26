@@ -5,11 +5,12 @@
 
 package org.postgresql.core;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.sql.SQLDataException;
 
 /**
  * Parses {@code oid} and {@code rows} from a {@code CommandComplete (B)} message (end of Execute).
@@ -40,9 +41,9 @@ public final class CommandCompleteParser {
    * and COMMAND can have spaces within it, like CREATE TABLE.
    *
    * @param status COMMAND OID ROWS message
-   * @throws PSQLException in case the status cannot be parsed
+   * @throws SQLDataException in case the status cannot be parsed
    */
-  public void parse(String status) throws PSQLException {
+  public void parse(String status) throws SQLDataException {
     // Assumption: command neither starts nor ends with a digit
     if (!Parser.isDigitAt(status, status.length() - 1)) {
       set(0, 0);
@@ -69,9 +70,9 @@ public final class CommandCompleteParser {
       }
     } catch (NumberFormatException e) {
       // This should only occur if the oid or rows are out of 0..Long.MAX_VALUE range
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("Unable to parse the count in command completion tag: {0}.", status),
-          PSQLState.CONNECTION_FAILURE, e);
+          PgSqlState.INVALID_PARAMETER_VALUE, e);
     }
     set(oid, rows);
   }

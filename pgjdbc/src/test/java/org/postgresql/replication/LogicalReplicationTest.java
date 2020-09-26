@@ -14,12 +14,11 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -105,12 +104,12 @@ public class LogicalReplicationTest {
       fail("For logical decoding replication slot name it required parameter "
           + "that should be create on server before start replication");
 
-    } catch (PSQLException e) {
+    } catch (SQLException e) {
       String state = e.getSQLState();
 
       assertThat("When replication slot doesn't exists, server can't start replication "
               + "and should throw exception about it",
-          state, equalTo(PSQLState.UNDEFINED_OBJECT.getState())
+          state, equalTo(PgSqlState.UNDEFINED_OBJECT)
       );
     }
   }
@@ -169,7 +168,7 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
 
     Statement st = sqlConnection.createStatement();
     st.execute(
@@ -445,7 +444,7 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     result.addAll(receiveMessage(stream, 3));
 
     replConnection.close();
@@ -646,7 +645,7 @@ public class LogicalReplicationTest {
     st.execute("insert into test_logic_table(name) values('second tx change')");
     st.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
 
     //emulate replication break
@@ -711,7 +710,7 @@ public class LogicalReplicationTest {
     st.execute("insert into test_logic_table(name) values('second tx change')");
     st.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     stream.setFlushedLSN(stream.getLastReceiveLSN());
     stream.setAppliedLSN(stream.getLastReceiveLSN());
@@ -791,7 +790,7 @@ public class LogicalReplicationTest {
     tx1Connection.close();
     tx2Connection.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     stream.setFlushedLSN(stream.getLastReceiveLSN());
     stream.setAppliedLSN(stream.getLastReceiveLSN());
@@ -904,7 +903,7 @@ public class LogicalReplicationTest {
   }
 
   private List<String> receiveMessage(PGReplicationStream stream, int count) throws SQLException {
-    List<String> result = new ArrayList<String>(count);
+    List<String> result = new ArrayList<>(count);
     for (int index = 0; index < count; index++) {
       result.add(toString(stream.read()));
     }
@@ -914,7 +913,7 @@ public class LogicalReplicationTest {
 
   private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
-    List<String> result = new ArrayList<String>(3);
+    List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {
       ByteBuffer message;
       do {

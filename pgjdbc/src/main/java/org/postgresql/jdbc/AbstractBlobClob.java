@@ -9,18 +9,19 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Blob;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 
 /**
@@ -39,7 +40,7 @@ public abstract class AbstractBlobClob {
    * We create separate LargeObjects for methods that use streams so they won't interfere with each
    * other.
    */
-  private @Nullable ArrayList<LargeObject> subLOs = new ArrayList<LargeObject>();
+  private @Nullable ArrayList<LargeObject> subLOs = new ArrayList<>();
 
   private final long oid;
 
@@ -76,21 +77,21 @@ public abstract class AbstractBlobClob {
   public synchronized void truncate(long len) throws SQLException {
     checkFreed();
     if (!conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      throw new PSQLException(
+      throw new SQLFeatureNotSupportedException(
           GT.tr("Truncation of large objects is only implemented in 8.3 and later servers."),
-          PSQLState.NOT_IMPLEMENTED);
+          PgSqlState.FEATURE_NOT_SUPPORTED);
     }
 
     if (len < 0) {
-      throw new PSQLException(GT.tr("Cannot truncate LOB to a negative length."),
-          PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("Cannot truncate LOB to a negative length."),
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
     if (len > Integer.MAX_VALUE) {
       if (support64bit) {
         getLo(true).truncate64(len);
       } else {
-        throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE),
-            PSQLState.INVALID_PARAMETER_VALUE);
+        throw new SQLDataException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE),
+            PgSqlState.INVALID_PARAMETER_VALUE);
       }
     } else {
       getLo(true).truncate((int) len);
@@ -227,12 +228,12 @@ public abstract class AbstractBlobClob {
   protected void assertPosition(long pos, long len) throws SQLException {
     checkFreed();
     if (pos < 1) {
-      throw new PSQLException(GT.tr("LOB positioning offsets start at 1."),
-          PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("LOB positioning offsets start at 1."),
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
     if (pos + len - 1 > Integer.MAX_VALUE) {
-      throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE),
-          PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE),
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -243,8 +244,8 @@ public abstract class AbstractBlobClob {
    */
   protected void checkFreed() throws SQLException {
     if (subLOs == null) {
-      throw new PSQLException(GT.tr("free() was called on this LOB previously"),
-          PSQLState.OBJECT_NOT_IN_STATE);
+      throw new SQLException(GT.tr("free() was called on this LOB previously"),
+          PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
     }
   }
 

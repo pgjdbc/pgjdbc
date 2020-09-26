@@ -26,7 +26,6 @@ import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLException;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -277,13 +276,13 @@ public class MultiHostsConnectionTest {
     try {
       getConnection(any, true, fake1);
       fail();
-    } catch (PSQLException ex) {
+    } catch (SQLException ex) {
     }
   }
 
   @Test
   public void testLoadBalancing() throws SQLException {
-    Set<String> connectedHosts = new HashSet<String>();
+    Set<String> connectedHosts = new HashSet<>();
     boolean fake1FoundTried = false;
     for (int i = 0; i < 20; ++i) {
       getConnection(any, true, true, fake1, primary1, secondary1);
@@ -293,15 +292,15 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Never connected to all hosts", new HashSet<String>(asList(primaryIp, secondaryIP)),
+    assertEquals("Never connected to all hosts", new HashSet<>(asList(primaryIp, secondaryIP)),
         connectedHosts);
     assertTrue("Never tried to connect to fake node", fake1FoundTried);
   }
 
   @Test
   public void testLoadBalancing_preferSecondary() throws SQLException {
-    Set<String> connectedHosts = new HashSet<String>();
-    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    Set<String> connectedHosts = new HashSet<>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<>();
     for (int i = 0; i < 20; ++i) {
       getConnection(preferSecondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
@@ -310,7 +309,7 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+    assertEquals("Never connected to all secondary hosts", new HashSet<>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
     assertEquals("Never tried to connect to fake node",4, tryConnectedHosts.size());
 
@@ -324,7 +323,7 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+    assertEquals("Never connected to all secondary hosts", new HashSet<>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
 
     // connect to primary when there's no secondary
@@ -337,8 +336,8 @@ public class MultiHostsConnectionTest {
 
   @Test
   public void testLoadBalancing_secondary() throws SQLException {
-    Set<String> connectedHosts = new HashSet<String>();
-    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    Set<String> connectedHosts = new HashSet<>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<>();
     for (int i = 0; i < 20; ++i) {
       getConnection(secondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
@@ -347,7 +346,7 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Did not attempt to connect to all salve hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+    assertEquals("Did not attempt to connect to all salve hosts", new HashSet<>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
     assertEquals("Did not attempt to connect to primary and fake node", 4, tryConnectedHosts.size());
 
@@ -361,7 +360,7 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Did not connect to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+    assertEquals("Did not connect to all secondary hosts", new HashSet<>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
   }
 

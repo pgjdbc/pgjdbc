@@ -10,10 +10,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assume;
 import org.junit.Test;
@@ -64,7 +64,7 @@ public class StringTypeParameterTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "stringType = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (String stringType : new String[]{null, "varchar", UNSPECIFIED_STRING_TYPE}) {
       ids.add(new Object[]{stringType});
     }
@@ -91,7 +91,7 @@ public class StringTypeParameterTest extends BaseTest4 {
       } catch (SQLException e) {
         // Exception exception is
         // ERROR: column "m" is of type mood but expression is of type character varying
-        if (!PSQLState.DATATYPE_MISMATCH.getState().equals(e.getSQLState())) {
+        if (!PgSqlState.DATATYPE_MISMATCH.equals(e.getSQLState())) {
           throw e;
         }
       }
@@ -123,7 +123,7 @@ public class StringTypeParameterTest extends BaseTest4 {
     } catch (SQLException e) {
       // Exception exception is
       // ERROR: operator does not exist: mood = character varying
-      if (!PSQLState.UNDEFINED_FUNCTION.getState().equals(e.getSQLState())) {
+      if (!PgSqlState.UNDEFINED_FUNCTION.equals(e.getSQLState())) {
         throw e;
       }
     }

@@ -14,9 +14,8 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.BatchedQuery;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -55,7 +54,7 @@ public class BatchResultHandler extends ResultHandlerBase {
     this.parameterLists = parameterLists;
     this.longUpdateCounts = new long[queries.length];
     this.expectGeneratedKeys = expectGeneratedKeys;
-    this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<List<Tuple>>();
+    this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<>();
   }
 
   @Override
@@ -99,8 +98,8 @@ public class BatchResultHandler extends ResultHandlerBase {
     }
 
     if (resultIndex >= queries.length) {
-      handleError(new PSQLException(GT.tr("Too many update results were returned."),
-          PSQLState.TOO_MANY_RESULTS));
+      handleError(new SQLException(GT.tr("Too many update results were returned."),
+          PgSqlState.WARNING_ATTEMPT_TO_RETURN_TOO_MANY_RESULT_SETS));
       return;
     }
     latestGeneratedKeysRs = null;

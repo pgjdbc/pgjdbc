@@ -6,9 +6,8 @@
 package org.postgresql.gss;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -20,11 +19,12 @@ import org.ietf.jgss.Oid;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.sql.SQLInvalidAuthorizationSpecException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class GssEncAction implements PrivilegedAction<@Nullable Exception> {
-  private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(GssEncAction.class.getName());
   private final PGStream pgStream;
   private final String host;
   private final String user;
@@ -115,7 +115,8 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception> {
     } catch (IOException e) {
       return e;
     } catch (GSSException gsse) {
-      return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
+      return new SQLInvalidAuthorizationSpecException(GT.tr("GSS Authentication failed"),
+          PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION,
           gsse);
     }
 

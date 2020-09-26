@@ -5,16 +5,16 @@
 
 package org.postgresql.geometric;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 
 /**
  * This implements a path (a multiple segmented line, which may be closed).
@@ -61,6 +61,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * @param s Definition of the path in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
+  @Override
   public void setValue(String s) throws SQLException {
     // First test to see if were open
     if (s.startsWith("[") && s.endsWith("]")) {
@@ -70,8 +71,8 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
       open = false;
       s = PGtokenizer.removePara(s);
     } else {
-      throw new PSQLException(GT.tr("Cannot tell if path is open or closed: {0}.", s),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw new SQLSyntaxErrorException(GT.tr("Cannot tell if path is open or closed: {0}.", s),
+          PgSqlState.DATATYPE_MISMATCH);
     }
 
     PGtokenizer t = new PGtokenizer(s, ',');
@@ -87,6 +88,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two paths are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpath) {
       PGpath p = (PGpath) obj;
@@ -118,6 +120,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public int hashCode() {
     // XXX not very good..
     int hash = open ? 1231 : 1237;
@@ -130,6 +133,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
     return hash;
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGpath newPGpath = (PGpath) super.clone();
     if (newPGpath.points != null) {
@@ -145,6 +149,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   /**
    * This returns the path in the syntax expected by org.postgresql.
    */
+  @Override
   public String getValue() {
     StringBuilder b = new StringBuilder(open ? "[" : "(");
 

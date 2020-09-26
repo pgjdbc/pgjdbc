@@ -6,9 +6,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -29,11 +28,13 @@ public class SetupQueryRunner {
       return tuples;
     }
 
+    @Override
     public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
         @Nullable ResultCursor cursor) {
       this.tuples = tuples;
     }
 
+    @Override
     public void handleWarning(SQLWarning warning) {
       // We ignore warnings. We assume we know what we're
       // doing in the setup queries.
@@ -63,8 +64,8 @@ public class SetupQueryRunner {
 
     List<Tuple> tuples = handler.getResults();
     if (tuples == null || tuples.size() != 1) {
-      throw new PSQLException(GT.tr("An unexpected result was returned by a query."),
-          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+      throw new SQLException(GT.tr("An unexpected result was returned by a query."),
+          PgSqlState.CONNECTION_EXCEPTION);
     }
 
     return tuples.get(0);

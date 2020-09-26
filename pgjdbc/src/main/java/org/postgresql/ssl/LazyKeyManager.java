@@ -5,9 +5,8 @@
 
 package org.postgresql.ssl;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -30,6 +29,7 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.sql.SQLException;
 import java.util.Collection;
 
 import javax.crypto.Cipher;
@@ -54,7 +54,7 @@ public class LazyKeyManager implements X509KeyManager {
   private final @Nullable String keyfile;
   private final CallbackHandler cbh;
   private final boolean defaultfile;
-  private @Nullable PSQLException error = null;
+  private @Nullable SQLException error = null;
 
   /**
    * Constructor. certfile and keyfile can be null, in that case no certificate is presented to the
@@ -76,9 +76,9 @@ public class LazyKeyManager implements X509KeyManager {
    * getCertificateChain and getPrivateKey cannot throw exeptions, therefore any exception is stored
    * in {@link #error} and can be raised by this method.
    *
-   * @throws PSQLException if any exception is stored in {@link #error} and can be raised
+   * @throws SQLException if any exception is stored in {@link #error} and can be raised
    */
-  public void throwKeyManagerException() throws PSQLException {
+  public void throwKeyManagerException() throws SQLException {
     if (error != null) {
       throw error;
     }
@@ -132,9 +132,9 @@ public class LazyKeyManager implements X509KeyManager {
       } catch (CertificateException ex) {
         // For some strange reason it throws CertificateException instead of
         // NoSuchAlgorithmException...
-        error = new PSQLException(GT.tr(
+        error = new SQLException(GT.tr(
             "Could not find a java cryptographic algorithm: X.509 CertificateFactory not available."),
-            PSQLState.CONNECTION_FAILURE, ex);
+            PgSqlState.CONNECTION_EXCEPTION, ex);
         return null;
       }
       Collection<? extends Certificate> certs;
@@ -144,14 +144,14 @@ public class LazyKeyManager implements X509KeyManager {
         certs = cf.generateCertificates(certfileStream);
       } catch (FileNotFoundException ioex) {
         if (!defaultfile) { // It is not an error if there is no file at the default location
-          error = new PSQLException(
+          error = new SQLException(
               GT.tr("Could not open SSL certificate file {0}.", certfile),
-              PSQLState.CONNECTION_FAILURE, ioex);
+              PgSqlState.CONNECTION_EXCEPTION, ioex);
         }
         return null;
       } catch (CertificateException gsex) {
-        error = new PSQLException(GT.tr("Loading the SSL certificate {0} into a KeyManager failed.",
-            certfile), PSQLState.CONNECTION_FAILURE, gsex);
+        error = new SQLException(GT.tr("Loading the SSL certificate {0} into a KeyManager failed.",
+            certfile), PgSqlState.CONNECTION_EXCEPTION, gsex);
         return null;
       } finally {
         if (certfileStream != null) {
@@ -159,9 +159,9 @@ public class LazyKeyManager implements X509KeyManager {
             certfileStream.close();
           } catch (IOException ioex) {
             if (!defaultfile) { // It is not an error if there is no file at the default location
-              error = new PSQLException(
+              error = new SQLException(
                   GT.tr("Could not close SSL certificate file {0}.", certfile),
-                  PSQLState.CONNECTION_FAILURE, ioex);
+                  PgSqlState.CONNECTION_EXCEPTION, ioex);
             }
           }
         }
@@ -232,15 +232,15 @@ public class LazyKeyManager implements X509KeyManager {
           } catch (UnsupportedCallbackException ucex) {
             if ((cbh instanceof LibPQFactory.ConsoleCallbackHandler)
                 && ("Console is not available".equals(ucex.getMessage()))) {
-              error = new PSQLException(GT
+              error = new SQLException(GT
                   .tr("Could not read password for SSL key file, console is not available."),
-                  PSQLState.CONNECTION_FAILURE, ucex);
+                  PgSqlState.CONNECTION_EXCEPTION, ucex);
             } else {
               error =
-                  new PSQLException(
+                  new SQLException(
                       GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
                               cbh.getClass().getName()),
-                      PSQLState.CONNECTION_FAILURE, ucex);
+                      PgSqlState.CONNECTION_EXCEPTION, ucex);
             }
             return null;
           }
@@ -257,19 +257,19 @@ public class LazyKeyManager implements X509KeyManager {
             KeySpec pkcs8KeySpec = ePKInfo.getKeySpec(cipher);
             key = kf.generatePrivate(pkcs8KeySpec);
           } catch (GeneralSecurityException ikex) {
-            error = new PSQLException(
+            error = new SQLException(
                 GT.tr("Could not decrypt SSL key file {0}.", keyfile),
-                PSQLState.CONNECTION_FAILURE, ikex);
+                PgSqlState.CONNECTION_EXCEPTION, ikex);
             return null;
           }
         }
       }
     } catch (IOException ioex) {
-      error = new PSQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
-          PSQLState.CONNECTION_FAILURE, ioex);
+      error = new SQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
+          PgSqlState.CONNECTION_EXCEPTION, ioex);
     } catch (NoSuchAlgorithmException ex) {
-      error = new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
-              ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      error = new SQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+              ex.getMessage()), PgSqlState.CONNECTION_EXCEPTION, ex);
       return null;
     }
 

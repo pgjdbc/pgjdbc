@@ -7,14 +7,13 @@ package org.postgresql;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LogWriterHandler;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
 
@@ -31,6 +30,7 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -92,6 +92,7 @@ public class Driver implements java.sql.Driver {
     try {
       defaultProperties =
           AccessController.doPrivileged(new PrivilegedExceptionAction<Properties>() {
+            @Override
             public Properties run() throws IOException {
               return loadDefaultProperties();
             }
@@ -140,7 +141,7 @@ public class Driver implements java.sql.Driver {
     // in later files in the classpath to override settings specified in
     // earlier files. To do this we've got to read the returned
     // Enumeration into temporary storage.
-    ArrayList<URL> urls = new ArrayList<URL>();
+    ArrayList<URL> urls = new ArrayList<>();
     Enumeration<URL> urlEnum = cl.getResources("org/postgresql/driverconfig.properties");
     while (urlEnum.hasMoreElements()) {
       urls.add(urlEnum.nextElement());
@@ -222,8 +223,8 @@ public class Driver implements java.sql.Driver {
     try {
       defaults = getDefaultProperties();
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr("Error loading default settings from driverconfig.properties"),
-          PSQLState.UNEXPECTED_ERROR, ioe);
+      throw new SQLException(GT.tr("Error loading default settings from driverconfig.properties"),
+          PgSqlState.SYSTEM_ERROR, ioe);
     }
 
     // override defaults with provided properties
@@ -233,10 +234,10 @@ public class Driver implements java.sql.Driver {
       for (String propName : e) {
         String propValue = info.getProperty(propName);
         if (propValue == null) {
-          throw new PSQLException(
+          throw new SQLException(
               GT.tr("Properties for the driver contains a non-string value for the key ")
                   + propName,
-              PSQLState.UNEXPECTED_ERROR);
+                  PgSqlState.SYSTEM_ERROR);
         }
         props.setProperty(propName, propValue);
       }
@@ -269,22 +270,22 @@ public class Driver implements java.sql.Driver {
       thread.setDaemon(true); // Don't prevent the VM from shutting down
       thread.start();
       return ct.getResult(timeout);
-    } catch (PSQLException ex1) {
+    } catch (SQLException ex1) {
       LOGGER.log(Level.FINE, "Connection error: ", ex1);
       // re-throw the exception, otherwise it will be caught next, and a
       // org.postgresql.unusual error will be returned instead.
       throw ex1;
     } catch (java.security.AccessControlException ace) {
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr(
               "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
-          PSQLState.UNEXPECTED_ERROR, ace);
+          PgSqlState.SYSTEM_ERROR, ace);
     } catch (Exception ex2) {
       LOGGER.log(Level.FINE, "Unexpected connection error: ", ex2);
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr(
               "Something unusual has occurred to cause the driver to fail. Please report this exception."),
-          PSQLState.UNEXPECTED_ERROR, ex2);
+          PgSqlState.SYSTEM_ERROR, ex2);
     }
   }
 
@@ -367,6 +368,7 @@ public class Driver implements java.sql.Driver {
       this.props = props;
     }
 
+    @Override
     public void run() {
       Connection conn;
       Throwable error;
@@ -416,18 +418,18 @@ public class Driver implements java.sql.Driver {
               resultException.fillInStackTrace();
               throw (SQLException) resultException;
             } else {
-              throw new PSQLException(
+              throw new SQLException(
                   GT.tr(
                       "Something unusual has occurred to cause the driver to fail. Please report this exception."),
-                  PSQLState.UNEXPECTED_ERROR, resultException);
+                  PgSqlState.SYSTEM_ERROR, resultException);
             }
           }
 
           long delay = expiry - TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
           if (delay <= 0) {
             abandoned = true;
-            throw new PSQLException(GT.tr("Connection attempt timed out."),
-                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+            throw new SQLTimeoutException(GT.tr("Connection attempt timed out."),
+                PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION);
           }
 
           try {
@@ -696,7 +698,7 @@ public class Driver implements java.sql.Driver {
       String functionName) {
     return new SQLFeatureNotSupportedException(
         GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
-        PSQLState.NOT_IMPLEMENTED.getState());
+        PgSqlState.FEATURE_NOT_SUPPORTED);
   }
 
   @Override

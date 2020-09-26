@@ -9,8 +9,8 @@ import static java.util.Collections.shuffle;
 
 import org.postgresql.PGProperty;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLException;
 
+import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,7 +35,7 @@ class MultiHostChooser implements HostChooser {
     try {
       hostRecheckTime = PGProperty.HOST_RECHECK_SECONDS.getInt(info) * 1000;
       loadBalance = PGProperty.LOAD_BALANCE_HOSTS.getBoolean(info);
-    } catch (PSQLException e) {
+    } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
@@ -47,7 +47,7 @@ class MultiHostChooser implements HostChooser {
       // In case all the candidate hosts are unavailable or do not match, try all the hosts just in case
       List<HostSpec> allHosts = Arrays.asList(hostSpecs);
       if (loadBalance) {
-        allHosts = new ArrayList<HostSpec>(allHosts);
+        allHosts = new ArrayList<>(allHosts);
         Collections.shuffle(allHosts);
       }
       res = withReqStatus(targetServerType, allHosts).iterator();

@@ -19,9 +19,8 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.Tuple;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.lock.qual.GuardedBy;
@@ -30,7 +29,9 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -157,6 +158,7 @@ public class PgStatement implements Statement, BaseStatement {
     this.rsHoldability = rsHoldability;
   }
 
+  @Override
   @SuppressWarnings("method.invocation.invalid")
   public ResultSet createResultSet(@Nullable Query originalQuery, Field[] fields, List<Tuple> tuples,
       @Nullable ResultCursor cursor) throws SQLException {
@@ -176,6 +178,7 @@ public class PgStatement implements Statement, BaseStatement {
     return null;
   }
 
+  @Override
   public @NonNegative int getFetchSize() {
     return fetchSize;
   }
@@ -234,7 +237,7 @@ public class PgStatement implements Statement, BaseStatement {
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
     if (!executeWithFlags(sql, 0)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     return getSingleResultSet();
@@ -245,8 +248,8 @@ public class PgStatement implements Statement, BaseStatement {
       checkClosed();
       ResultWrapper result = castNonNull(this.result);
       if (result.getNext() != null) {
-        throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
-            PSQLState.TOO_MANY_RESULTS);
+        throw new SQLException(GT.tr("Multiple ResultSets were returned by the query."),
+            PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
       }
 
       return castNonNull(result.getResultSet(), "result.getResultSet()");
@@ -266,8 +269,8 @@ public class PgStatement implements Statement, BaseStatement {
       ResultWrapper iter = result;
       while (iter != null) {
         if (iter.getResultSet() != null) {
-          throw new PSQLException(GT.tr("A result was returned when none was expected."),
-              PSQLState.TOO_MANY_RESULTS);
+          throw new SQLException(GT.tr("A result was returned when none was expected."),
+              PgSqlState.WARNING_DYNAMIC_RESULT_SETS_RETURNED);
         }
         iter = iter.getNext();
       }
@@ -314,6 +317,7 @@ public class PgStatement implements Statement, BaseStatement {
     return res;
   }
 
+  @Override
   public boolean executeWithFlags(CachedQuery simpleQuery, int flags) throws SQLException {
     checkClosed();
     if (connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) < 0) {
@@ -326,10 +330,11 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean executeWithFlags(int flags) throws SQLException {
     checkClosed();
-    throw new PSQLException(GT.tr("Can''t use executeWithFlags(int) on a Statement."),
-        PSQLState.WRONG_OBJECT_TYPE);
+    throw new SQLException(GT.tr("Can''t use executeWithFlags(int) on a Statement."),
+        PgSqlState.WRONG_OBJECT_TYPE);
   }
 
   private void closeUnclosedResults() throws SQLException {
@@ -492,6 +497,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public void setCursorName(String name) throws SQLException {
     checkClosed();
     // No-op.
@@ -512,30 +518,35 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean getMoreResults() throws SQLException {
     return getMoreResults(CLOSE_ALL_RESULTS);
   }
 
+  @Override
   public int getMaxRows() throws SQLException {
     checkClosed();
     return maxrows;
   }
 
+  @Override
   public void setMaxRows(int max) throws SQLException {
     checkClosed();
     if (max < 0) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("Maximum number of rows must be a value grater than or equal to 0."),
-          PSQLState.INVALID_PARAMETER_VALUE);
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
     maxrows = max;
   }
 
+  @Override
   public void setEscapeProcessing(boolean enable) throws SQLException {
     checkClosed();
     replaceProcessingEnabled = enable;
   }
 
+  @Override
   public int getQueryTimeout() throws SQLException {
     checkClosed();
     long seconds = timeout / 1000;
@@ -545,6 +556,7 @@ public class PgStatement implements Statement, BaseStatement {
     return (int) seconds;
   }
 
+  @Override
   public void setQueryTimeout(int seconds) throws SQLException {
     setQueryTimeoutMs(seconds * 1000L);
   }
@@ -571,8 +583,8 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
 
     if (millis < 0) {
-      throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."),
-          PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("Query timeout must be a value greater than or equals to 0."),
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
     timeout = millis;
   }
@@ -596,6 +608,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public @Nullable SQLWarning getWarnings() throws SQLException {
     checkClosed();
     //copy reference to avoid NPE from concurrent modification of this.warnings
@@ -612,9 +625,9 @@ public class PgStatement implements Statement, BaseStatement {
   public void setMaxFieldSize(int max) throws SQLException {
     checkClosed();
     if (max < 0) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("The maximum field size must be a value greater than or equal to 0."),
-          PSQLState.INVALID_PARAMETER_VALUE);
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
     maxFieldSize = max;
   }
@@ -626,10 +639,12 @@ public class PgStatement implements Statement, BaseStatement {
    * Therefore you should hold a reference to the tail of the previous warning chain
    * and verify if its {@link SQLWarning#getNextWarning()} value is holds any new value.</p>
    */
+  @Override
   public void clearWarnings() throws SQLException {
     warnings = null;
   }
 
+  @Override
   public @Nullable ResultSet getResultSet() throws SQLException {
     synchronized (this) {
       checkClosed();
@@ -648,6 +663,7 @@ public class PgStatement implements Statement, BaseStatement {
    *
    * {@inheritDoc}
    */
+  @Override
   public final void close() throws SQLException {
     // closing an already closed Statement is a no-op.
     synchronized (this) {
@@ -677,6 +693,7 @@ public class PgStatement implements Statement, BaseStatement {
    *
    */
 
+  @Override
   public long getLastOID() throws SQLException {
     synchronized (this) {
       checkClosed();
@@ -716,8 +733,8 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected void checkClosed() throws SQLException {
     if (isClosed()) {
-      throw new PSQLException(GT.tr("This statement has been closed."),
-          PSQLState.OBJECT_NOT_IN_STATE);
+      throw new SQLException(GT.tr("This statement has been closed."),
+          PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
     }
   }
 
@@ -729,11 +746,11 @@ public class PgStatement implements Statement, BaseStatement {
 
     ArrayList<Query> batchStatements = this.batchStatements;
     if (batchStatements == null) {
-      this.batchStatements = batchStatements = new ArrayList<Query>();
+      this.batchStatements = batchStatements = new ArrayList<>();
     }
     ArrayList<@Nullable ParameterList> batchParameters = this.batchParameters;
     if (batchParameters == null) {
-      this.batchParameters = batchParameters = new ArrayList<@Nullable ParameterList>();
+      this.batchParameters = batchParameters = new ArrayList<>();
     }
 
     // Simple statements should not replace ?, ? with $1, $2
@@ -882,6 +899,7 @@ public class PgStatement implements Statement, BaseStatement {
     return handler;
   }
 
+  @Override
   public int[] executeBatch() throws SQLException {
     checkClosed();
     closeForNextExecution();
@@ -893,6 +911,7 @@ public class PgStatement implements Statement, BaseStatement {
     return internalExecuteBatch().getUpdateCount();
   }
 
+  @Override
   public void cancel() throws SQLException {
     if (statementState == StatementCancelState.IDLE) {
       return;
@@ -913,22 +932,27 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public Connection getConnection() throws SQLException {
     return connection;
   }
 
+  @Override
   public int getFetchDirection() {
     return fetchdirection;
   }
 
+  @Override
   public int getResultSetConcurrency() {
     return concurrency;
   }
 
+  @Override
   public int getResultSetType() {
     return resultsettype;
   }
 
+  @Override
   public void setFetchDirection(int direction) throws SQLException {
     switch (direction) {
       case ResultSet.FETCH_FORWARD:
@@ -937,16 +961,17 @@ public class PgStatement implements Statement, BaseStatement {
         fetchdirection = direction;
         break;
       default:
-        throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", direction),
-            PSQLState.INVALID_PARAMETER_VALUE);
+        throw new SQLDataException(GT.tr("Invalid fetch direction constant: {0}.", direction),
+            PgSqlState.INVALID_PARAMETER_VALUE);
     }
   }
 
+  @Override
   public void setFetchSize(@NonNegative int rows) throws SQLException {
     checkClosed();
     if (rows < 0) {
-      throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
-          PSQLState.INVALID_PARAMETER_VALUE);
+      throw new SQLDataException(GT.tr("Fetch size must be a value greater to or equal to 0."),
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
     fetchSize = rows;
   }
@@ -964,6 +989,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     TimerTask cancelTask = new TimerTask() {
+      @Override
       public void run() {
         try {
           if (!CANCEL_TIMER_UPDATER.compareAndSet(PgStatement.this, this, null)) {
@@ -1051,10 +1077,12 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public void setLargeMaxRows(long max) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setLargeMaxRows");
   }
 
+  @Override
   public long getLargeMaxRows() throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getLargeMaxRows");
   }
@@ -1093,8 +1121,8 @@ public class PgStatement implements Statement, BaseStatement {
       return executeLargeUpdate(sql);
     }
 
-    throw new PSQLException(GT.tr("Returning autogenerated keys by column index is not supported."),
-        PSQLState.NOT_IMPLEMENTED);
+    throw new SQLFeatureNotSupportedException(GT.tr("Returning autogenerated keys by column index is not supported."),
+        PgSqlState.FEATURE_NOT_SUPPORTED);
   }
 
   @Override
@@ -1110,24 +1138,29 @@ public class PgStatement implements Statement, BaseStatement {
     return getLargeUpdateCount();
   }
 
+  @Override
   public boolean isClosed() throws SQLException {
     return isClosed;
   }
 
+  @Override
   public void setPoolable(boolean poolable) throws SQLException {
     checkClosed();
     this.poolable = poolable;
   }
 
+  @Override
   public boolean isPoolable() throws SQLException {
     checkClosed();
     return poolable;
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);
@@ -1135,10 +1168,12 @@ public class PgStatement implements Statement, BaseStatement {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
+  @Override
   public void closeOnCompletion() throws SQLException {
     closeOnCompletion = true;
   }
 
+  @Override
   public boolean isCloseOnCompletion() throws SQLException {
     return closeOnCompletion;
   }
@@ -1169,6 +1204,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean getMoreResults(int current) throws SQLException {
     synchronized (this) {
       checkClosed();
@@ -1194,6 +1230,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public ResultSet getGeneratedKeys() throws SQLException {
     synchronized (this) {
       checkClosed();
@@ -1205,6 +1242,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
     if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
       return executeUpdate(sql);
@@ -1213,15 +1251,17 @@ public class PgStatement implements Statement, BaseStatement {
     return executeUpdate(sql, (String[]) null);
   }
 
+  @Override
   public int executeUpdate(String sql, int[] columnIndexes) throws SQLException {
     if (columnIndexes == null || columnIndexes.length == 0) {
       return executeUpdate(sql);
     }
 
-    throw new PSQLException(GT.tr("Returning autogenerated keys by column index is not supported."),
-        PSQLState.NOT_IMPLEMENTED);
+    throw new SQLFeatureNotSupportedException(GT.tr("Returning autogenerated keys by column index is not supported."),
+        PgSqlState.FEATURE_NOT_SUPPORTED);
   }
 
+  @Override
   public int executeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return executeUpdate(sql);
@@ -1234,6 +1274,7 @@ public class PgStatement implements Statement, BaseStatement {
     return getUpdateCount();
   }
 
+  @Override
   public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
     if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
       return execute(sql);
@@ -1241,15 +1282,17 @@ public class PgStatement implements Statement, BaseStatement {
     return execute(sql, (String[]) null);
   }
 
+  @Override
   public boolean execute(String sql, int @Nullable [] columnIndexes) throws SQLException {
     if (columnIndexes != null && columnIndexes.length == 0) {
       return execute(sql);
     }
 
-    throw new PSQLException(GT.tr("Returning autogenerated keys by column index is not supported."),
-        PSQLState.NOT_IMPLEMENTED);
+    throw new SQLFeatureNotSupportedException(GT.tr("Returning autogenerated keys by column index is not supported."),
+        PgSqlState.FEATURE_NOT_SUPPORTED);
   }
 
+  @Override
   public boolean execute(String sql, String @Nullable [] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return execute(sql);
@@ -1259,10 +1302,12 @@ public class PgStatement implements Statement, BaseStatement {
     return executeCachedSql(sql, 0, columnNames);
   }
 
+  @Override
   public int getResultSetHoldability() throws SQLException {
     return rsHoldability;
   }
 
+  @Override
   public ResultSet createDriverResultSet(Field[] fields, List<Tuple> tuples)
       throws SQLException {
     return createResultSet(null, fields, tuples, null);

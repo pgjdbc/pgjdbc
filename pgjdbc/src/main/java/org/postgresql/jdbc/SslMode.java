@@ -6,10 +6,10 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
+import java.sql.SQLDataException;
 import java.util.Properties;
 
 public enum SslMode {
@@ -60,7 +60,7 @@ public enum SslMode {
     return this == VERIFY_FULL;
   }
 
-  public static SslMode of(Properties info) throws PSQLException {
+  public static SslMode of(Properties info) throws SQLDataException {
     String sslmode = PGProperty.SSL_MODE.get(info);
     // If sslmode is not set, fallback to ssl parameter
     if (sslmode == null) {
@@ -75,7 +75,7 @@ public enum SslMode {
         return sslMode;
       }
     }
-    throw new PSQLException(GT.tr("Invalid sslmode value: {0}", sslmode),
-        PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+    throw new SQLDataException(GT.tr("Invalid sslmode value: {0}", sslmode),
+        PgSqlState.INVALID_PARAMETER_VALUE);
   }
 }

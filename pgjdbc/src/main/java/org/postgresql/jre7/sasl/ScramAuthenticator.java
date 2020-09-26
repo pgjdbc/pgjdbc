@@ -8,9 +8,8 @@ package org.postgresql.jre7.sasl;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import com.ongres.scram.client.ScramClient;
 import com.ongres.scram.client.ScramSession;
@@ -23,6 +22,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -56,17 +56,17 @@ public class ScramAuthenticator {
     this.pgStream = pgStream;
   }
 
-  public void processServerMechanismsAndInit() throws IOException, PSQLException {
+  public void processServerMechanismsAndInit() throws IOException, SQLNonTransientConnectionException {
     List<String> mechanisms = new ArrayList<>();
     do {
       mechanisms.add(pgStream.receiveString());
     } while (pgStream.peekChar() != 0);
     int c = pgStream.receiveChar();
     assert c == 0;
-    if (mechanisms.size() < 1) {
-      throw new PSQLException(
+    if (mechanisms.isEmpty()) {
+      throw new SQLNonTransientConnectionException(
           GT.tr("No SCRAM mechanism(s) advertised by the server"),
-          PSQLState.CONNECTION_REJECTED
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION
       );
     }
 
@@ -78,9 +78,9 @@ public class ScramAuthenticator {
           .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[]{}))
           .setup();
     } catch (IllegalArgumentException e) {
-      throw new PSQLException(
-          GT.tr("Invalid or unsupported by client SCRAM mechanisms", e),
-          PSQLState.CONNECTION_REJECTED
+      throw new SQLNonTransientConnectionException(
+          GT.tr("Invalid or unsupported by client SCRAM mechanisms"),
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION, e
       );
     }
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -115,15 +115,15 @@ public class ScramAuthenticator {
     );
   }
 
-  public void processServerFirstMessage(int length) throws IOException, PSQLException {
+  public void processServerFirstMessage(int length) throws IOException, SQLNonTransientConnectionException {
     String serverFirstMessage = pgStream.receiveString(length);
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue( {0} )", serverFirstMessage);
 
     ScramSession scramSession = this.scramSession;
     if (scramSession == null) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("SCRAM session does not exist"),
-          PSQLState.UNKNOWN_STATE
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION
       );
     }
 
@@ -131,9 +131,9 @@ public class ScramAuthenticator {
     try {
       serverFirstProcessor = scramSession.receiveServerFirstMessage(serverFirstMessage);
     } catch (ScramException e) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("Invalid server-first-message: {0}", serverFirstMessage),
-          PSQLState.CONNECTION_REJECTED,
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION,
           e
       );
     }
@@ -161,36 +161,36 @@ public class ScramAuthenticator {
     );
   }
 
-  public void verifyServerSignature(int length) throws IOException, PSQLException {
+  public void verifyServerSignature(int length) throws IOException, SQLNonTransientConnectionException {
     String serverFinalMessage = pgStream.receiveString(length);
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLFinal( {0} )", serverFinalMessage);
 
     ScramSession.ClientFinalProcessor clientFinalProcessor = this.clientFinalProcessor;
     if (clientFinalProcessor == null) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("SCRAM client final processor does not exist"),
-          PSQLState.UNKNOWN_STATE
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION
       );
     }
     try {
       clientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);
     } catch (ScramParseException e) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("Invalid server-final-message: {0}", serverFinalMessage),
-          PSQLState.CONNECTION_REJECTED,
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION,
           e
       );
     } catch (ScramServerErrorException e) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("SCRAM authentication failed, server returned error: {0}",
               e.getError().getErrorMessage()),
-          PSQLState.CONNECTION_REJECTED,
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION,
           e
       );
     } catch (ScramInvalidServerSignatureException e) {
-      throw new PSQLException(
+      throw new SQLNonTransientConnectionException(
           GT.tr("Invalid server SCRAM signature"),
-          PSQLState.CONNECTION_REJECTED,
+          PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION,
           e
       );
     }
