@@ -231,6 +231,9 @@ public interface BaseConnection extends PGConnection, Connection {
 
   /**
    * Returns the lobVarlena connection setting.
+   *
+   * @return Indication that the connection is using varlena-backed Clob/Blob
+   * @see PGProperty#LOB_VARLENA
    */
   boolean getLobVarlena();
 }
