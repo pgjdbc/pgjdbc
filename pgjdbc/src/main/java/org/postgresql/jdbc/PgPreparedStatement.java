@@ -38,6 +38,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.value.qual.IntRange;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -1580,7 +1581,22 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     byte [] b;
 
     try {
-      b = inputStream.readNBytes((int) length);
+      // for JDK 9+ we could use b = inputStream.readNBytes(length). However ...
+      ByteArrayOutputStream os = new ByteArrayOutputStream();
+      byte[] buffer = new byte[4096];
+      long remaining = length;
+      int toRead = remaining > buffer.length ? buffer.length : (int) remaining;
+      int len = inputStream.read(buffer, 0, toRead);
+      while (remaining > 0 && len > -1) {
+        remaining -= len;
+        os.write(buffer, 0, len);
+        toRead = remaining > buffer.length ? buffer.length : (int) remaining;
+        len = inputStream.read(buffer, 0, toRead);
+      }
+      if (remaining > 0) {
+        // not enough bytes
+      }
+      b = os.toByteArray();
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
           ioe);
@@ -1631,7 +1647,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     byte [] b;
 
     try {
-      b = inputStream.readAllBytes();
+      // for JDK 9+ we could use b = is.readAllBytes(). However ...
+      ByteArrayOutputStream os = new ByteArrayOutputStream();
+      byte[] buffer = new byte[4096];
+      for (int len = inputStream.read(buffer); len != -1; len = inputStream.read(buffer)) {
+        os.write(buffer, 0, len);
+      }
+      b = os.toByteArray();
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
           ioe);

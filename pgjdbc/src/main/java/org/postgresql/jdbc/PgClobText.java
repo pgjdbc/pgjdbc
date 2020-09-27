@@ -106,7 +106,7 @@ public class PgClobText implements java.sql.Clob {
   @Override
   public long length() {
     if (this.data != null) {
-        return this.data.length();
+      return this.data.length();
     }
     return 0;
   }
