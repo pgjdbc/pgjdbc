@@ -15,6 +15,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,13 +28,13 @@ import java.sql.SQLException;
 
 public class PgClobText implements java.sql.Clob {
 
-  private String data;
+  private @Nullable String data;
 
   public PgClobText() {
     this.data = "";
   }
 
-  public PgClobText(String s) {
+  public PgClobText(@Nullable String s) {
     this.data = s;
   }
 
@@ -40,7 +42,7 @@ public class PgClobText implements java.sql.Clob {
   // resources that it holds.
   @Override
   public void free() {
-    this.data = null;
+    this.data = "";
   }
 
   // Retrieves the CLOB value designated by this Clob object as an ascii stream.
@@ -49,7 +51,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new ByteArrayInputStream(this.data.getBytes());
     }
-    return null;
+    return new ByteArrayInputStream(new byte[0]);
   }
 
   // Retrieves the CLOB value designated by this Clob object as a
@@ -59,7 +61,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new StringReader(this.data);
     }
-    return null;
+    return new StringReader("");
   }
 
   //Returns a Reader object that contains a partial Clob value, starting
@@ -70,7 +72,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new StringReader(this.data.substring((int)pos, (int)(pos + length)));
     }
-    return null;
+    return new StringReader("");
   }
 
   // Retrieves a copy of the specified substring in the CLOB value designated
@@ -95,14 +97,18 @@ public class PgClobText implements java.sql.Clob {
       }
       return this.data.substring((int)pos, (int) (pos + length));
     }
-    return null;
+    throw new PSQLException(GT.tr("getSubString called on null Clob"),
+                              PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   // Retrieves the number of characters in the CLOB value designated by this
   // Clob object.
   @Override
   public long length() {
-    return this.data.length();
+    if (this.data != null) {
+        return this.data.length();
+    }
+    return 0;
   }
 
   // Retrieves the character position at which the specified Clob object
@@ -203,7 +209,10 @@ public class PgClobText implements java.sql.Clob {
   }
 
   public String toString() {
-    return this.data;
+    if (this.data != null) {
+      return this.data;
+    }
+    return "";
   }
 
 }

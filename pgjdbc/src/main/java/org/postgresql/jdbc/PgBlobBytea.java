@@ -43,7 +43,7 @@ public class PgBlobBytea implements java.sql.Blob {
   // This method frees the Blob object and releases the resources that it holds.
   @Override
   public void	free() 	 {
-    this.data = null;
+    this.data = new byte[0];
   }
 
   // Retrieves the BLOB value designated by this Blob instance as a stream.
@@ -52,7 +52,7 @@ public class PgBlobBytea implements java.sql.Blob {
     if (this.data != null) {
       return new ByteArrayInputStream(this.data);
     }
-    return null;
+    return new ByteArrayInputStream(new byte[0]);
   }
 
   // Returns an InputStream object that contains a partial Blob value,
@@ -60,7 +60,7 @@ public class PgBlobBytea implements java.sql.Blob {
   @Override
   public InputStream getBinaryStream​(long pos, long length) throws SQLException {
     if (this.data == null) {
-      return null;
+      return new ByteArrayInputStream(new byte[0]);
     }
     if (pos < 1) {
       throw new PSQLException(GT.tr("invalid pos parameter {0}", pos),
@@ -80,7 +80,8 @@ public class PgBlobBytea implements java.sql.Blob {
   @Override
   public byte[]	getBytes​(long pos, int length) throws SQLException {
     if (this.data == null) {
-      return null;
+      throw new PSQLException(GT.tr("called getBytes on null Blob"),
+                              PSQLState.INVALID_PARAMETER_VALUE);
     }
     if (pos < 1) {
       throw new PSQLException(GT.tr("invalid pos parameter {0}", pos),
