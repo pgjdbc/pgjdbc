@@ -47,8 +47,8 @@ public class LobVarlenaTest {
     TestUtil.createTable(conn, "testlobvarlena",
                          "textcol text, byteacol bytea");
     TestUtil.execute("insert into testlobvarlena values("
-                     + "repeat('ksjkdjkdshtrb\\000ujy2t8mnnksdf',500),"
-                     + "decode(repeat('ksjkds\\000trbut8mnnksdf',600),"
+                     + "repeat($$ksjkdjkdshtrb\\000ujy2t8mnnksdf$$,500),"
+                     + "decode(repeat($$ksjkds\\000trbut8mnnksdf$$,600),"
                      + "'escape'))",
                      conn);
   }
