@@ -1152,6 +1152,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return boolean indicating property is enabled or not.
+   * @see PGProperty#ESCAPE_RETURNING_COLUMNS
+   */
+  public boolean isEscapeReturningColumns() {
+    return PGProperty.ESCAPE_RETURNING_COLUMNS.getBoolean(properties);
+  }
+
+  /**
+   * @return boolean indicating property is enabled or not.
+   * @see PGProperty#ESCAPE_RETURNING_COLUMNS
+   */
+  public void setEscapeReturningColumns(boolean escapeReturningColumns) {
+    PGProperty.ESCAPE_RETURNING_COLUMNS.set(properties, escapeReturningColumns);
+  }
+
+  /**
    * @return 'select', "callIfNoReturn', or 'call'
    * @see PGProperty#ESCAPE_SYNTAX_CALL_MODE
    */
