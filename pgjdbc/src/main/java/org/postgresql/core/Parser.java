@@ -363,7 +363,19 @@ public class Parser {
       if (col > 0) {
         nativeSql.append(", ");
       }
-      Utils.escapeIdentifier(nativeSql, columnName);
+      if (columnName.trim().endsWith("\"")) {
+        // In that case, consider that the columnName has already been quoted by the user
+        // e.g. supports leaving columnName unchanged for :
+        // "col1"
+        // "t"."col1"
+        // t."col1" as "alias1"
+        // t.col1 as "alias1"
+        // date_trunc('day', value) as "day"
+        // ...
+        nativeSql.append(columnName);
+      } else {
+        Utils.escapeIdentifier(nativeSql, columnName);
+      }
     }
     return true;
   }

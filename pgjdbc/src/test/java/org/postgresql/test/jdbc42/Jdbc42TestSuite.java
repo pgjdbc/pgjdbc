@@ -19,6 +19,7 @@ import org.junit.runners.Suite.SuiteClasses;
     PreparedStatementTest.class,
     SetObject310Test.class,
     SimpleJdbc42Test.class,
+    ReturningColumnsTest.class,
 })
 public class Jdbc42TestSuite {
 

@@ -196,6 +196,32 @@ public class ParserTest {
   }
 
   @Test
+  public void returningIsReQuotedWhenNoEndingQuote() throws SQLException {
+    String query =
+        "insert test(id, name) select 1, 'value' from test2";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true,
+        "id","test.id","\"test\".id","test.id as id");
+    String nativeSql = qry.get(0).nativeSql;
+    boolean returningClausePresent =
+        nativeSql.endsWith("RETURNING \"id\", \"test.id\", \"\"\"test\"\".id\", \"test.id as id\"");
+    Assert.assertTrue("Query contained expected returning clause : " + nativeSql,
+        returningClausePresent);
+  }
+
+  @Test
+  public void returningIsNotReQuotedWhenEndingQuote() throws SQLException {
+    String query =
+        "insert test(id, name) select 1, 'value' from test2";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true,
+        "\"id\"", "\"test\".\"id\"", "test.id as \"id\"", "length(name) as \"length\"");
+    String nativeSql = qry.get(0).nativeSql;
+    boolean returningClausePresent = nativeSql.endsWith("RETURNING \"id\", \"test\".\"id\", "
+        + "test.id as \"id\", length(name) as \"length\"");
+    Assert.assertTrue("Query contained expected returning clause : " + nativeSql,
+        returningClausePresent);
+  }
+
+  @Test
   public void insertBatchedReWriteOnConflict() throws SQLException {
     String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
