@@ -1604,15 +1604,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       String defval = rs.getString("adsrc");
 
-      if (defval != null) {
+      if (defval != null && defval.contains("nextval(") ) {
         if ("int4".equals(pgType)) {
-          if (defval.contains("nextval(")) {
-            tuple[5] = connection.encodeString("serial"); // Type name == serial
-          }
+          tuple[5] = connection.encodeString("serial"); // Type name == serial
         } else if ("int8".equals(pgType)) {
-          if (defval.contains("nextval(")) {
-            tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
-          }
+          tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
+        } else if ("int2".equals(pgType)) {
+          tuple[5] = connection.encodeString("smallserial"); // Type name == smallserial
         }
       }
       String identity = rs.getString("attidentity");
