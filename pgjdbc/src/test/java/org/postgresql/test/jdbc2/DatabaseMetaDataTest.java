@@ -75,7 +75,8 @@ public class DatabaseMetaDataTest {
         "id int4, name text, updated timestamptz, colour text, quest text");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
-    TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial");
+    TestUtil.dropSequence(con, "sercoltest_s_seq");
+    TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial, s smallserial");
     TestUtil.createTable(con, "\"a\\\"", "a int4");
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
@@ -128,6 +129,7 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
+    TestUtil.dropSequence(con, "sercoltest_s_seq");
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
@@ -574,14 +576,21 @@ public class DatabaseMetaDataTest {
       assertEquals(rownum + 1, rs.getInt("ORDINAL_POSITION"));
       if (rownum == 0) {
         assertEquals("int4", rs.getString("TYPE_NAME"));
+
       } else if (rownum == 1) {
         assertEquals("serial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       } else if (rownum == 2) {
         assertEquals("bigserial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+      } else if (rownum == 3 ) {
+        assertEquals("smallserial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       }
+
       rownum++;
     }
-    assertEquals(3, rownum);
+    assertEquals(4, rownum);
     rs.close();
   }
 
