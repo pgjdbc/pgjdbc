@@ -356,8 +356,9 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       closeUnclosedResults();
 
+      /* we are going to release this anyway make sure it is closed */
       if ( this.result != null && this.result.getResultSet() != null ) {
-        this.result.getResultSet().close();
+        ((PgResultSet)this.result.getResultSet()).rows = null;
       }
       result = null;
 
