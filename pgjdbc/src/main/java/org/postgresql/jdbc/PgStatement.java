@@ -335,9 +335,8 @@ public class PgStatement implements Statement, BaseStatement {
   private void closeUnclosedResults() throws SQLException {
     synchronized (this) {
       ResultWrapper resultWrapper = this.firstUnclosedResult;
-      ResultWrapper currentResult = this.result;
-      for (; resultWrapper != currentResult && resultWrapper != null;
-           resultWrapper = resultWrapper.getNext()) {
+
+      for (; resultWrapper != null; resultWrapper = resultWrapper.getNext()) {
         PgResultSet rs = (PgResultSet) resultWrapper.getResultSet();
         if (rs != null) {
           rs.closeInternally();

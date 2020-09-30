@@ -94,6 +94,13 @@ public class StatementTest {
     }
   }
 
+  @Test
+  public void testResultSetClosed() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select 1");
+    stmt.close();
+    assertTrue(rs.isClosed());
+  }
   /**
    * Closing a Statement twice is not an error.
    */
