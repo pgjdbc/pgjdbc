@@ -1609,7 +1609,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[5] = connection.encodeString("serial"); // Type name == serial
         } else if ("int8".equals(pgType)) {
           tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
-        } else if ("int2".equals(pgType)) {
+        } else if ("int2".equals(pgType) && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
           tuple[5] = connection.encodeString("smallserial"); // Type name == smallserial
         }
       }
@@ -2372,17 +2372,23 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[17] = b10; // everything is base 10
       v.add(new Tuple(tuple));
 
-      // add pseudo-type serial, bigserial
-      if (typname.equals("int4")) {
+      // add pseudo-type serial, bigserial, smallserial
+      if ("int4".equals(typname)) {
         byte[] @Nullable [] tuple1 = tuple.clone();
 
         tuple1[0] = connection.encodeString("serial");
         tuple1[11] = bt;
         v.add(new Tuple(tuple1));
-      } else if (typname.equals("int8")) {
+      } else if ("int8".equals(typname)) {
         byte[] @Nullable [] tuple1 = tuple.clone();
 
         tuple1[0] = connection.encodeString("bigserial");
+        tuple1[11] = bt;
+        v.add(new Tuple(tuple1));
+      } else if ("int2".equals(typname) && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+        byte[] @Nullable [] tuple1 = tuple.clone();
+
+        tuple1[0] = connection.encodeString("smallserial");
         tuple1[11] = bt;
         v.add(new Tuple(tuple1));
       }
