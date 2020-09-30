@@ -55,12 +55,6 @@ dependencies {
     shaded("com.ongres.scram:client")
 
     implementation("org.checkerframework:checker-qual")
-
-    // https://github.com/lburgazzoli/gradle-karaf-plugin/issues/75
-    karafFeatures(platform(project(":bom")))
-    karafFeatures("org.osgi:org.osgi.core:${"org.osgi.core".v}")
-    karafFeatures("org.osgi:org.osgi.enterprise:${"org.osgi.enterprise".v}")
-
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
 }
 
