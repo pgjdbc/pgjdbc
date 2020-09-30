@@ -101,6 +101,7 @@ public class StatementTest {
     stmt.close();
     assertTrue(rs.isClosed());
   }
+
   /**
    * Closing a Statement twice is not an error.
    */
