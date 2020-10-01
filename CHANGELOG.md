@@ -10,10 +10,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.2.17]
+### Changed
+
+### Added
+- Allow setNull with a REF_CURSOR type (#1885)
+- Add smallserial metadata (#899)
+
+### Fixed
+- Avoid removal type annotations on "this" so the source archive is buildable
+- Check for credential cache before requesting GSS encryption (#1883) fixes problems connecting to non-standard postgres such as Azure and AWS
+- PgTokenizer was ignoring last empty token (#1882)
+- Remove osgi from karaf fixes Issue #1891 (#1902)
+
 ## [42.2.16] (2020-08-20)
 
 ### Fixed
-- - Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
+- Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
   Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default 
   for Postgres when sent as strings such as '{1,2,3}'. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
 
