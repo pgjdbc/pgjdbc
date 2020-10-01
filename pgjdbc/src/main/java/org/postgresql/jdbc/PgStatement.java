@@ -358,7 +358,7 @@ public class PgStatement implements Statement, BaseStatement {
 
       /* we are going to release this anyway make sure it is closed */
       if ( this.result != null && this.result.getResultSet() != null ) {
-        ((PgResultSet)this.result.getResultSet()).rows = null;
+        ((PgResultSet)this.result.getResultSet()).internalClose();
       }
       result = null;
 
