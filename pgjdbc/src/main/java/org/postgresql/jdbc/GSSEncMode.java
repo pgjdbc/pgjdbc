@@ -50,7 +50,7 @@ public enum GSSEncMode {
     String gssEncMode = PGProperty.GSS_ENC_MODE.get(info);
     // If gssEncMode is not set, fallback to prefer
     if (gssEncMode == null) {
-      return PREFER;
+      return ALLOW;
     }
 
     for (GSSEncMode mode : VALUES) {
