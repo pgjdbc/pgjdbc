@@ -20,7 +20,7 @@ public enum GSSEncMode {
   DISABLE("disable"),
 
   /**
-   * Start with non-encrypted connection, then try encrypted one.
+   * Start with non-encrypted connection and allow an encrypted one if the server requests it
    */
   ALLOW("allow"),
 
@@ -48,9 +48,9 @@ public enum GSSEncMode {
 
   public static GSSEncMode of(Properties info) throws PSQLException {
     String gssEncMode = PGProperty.GSS_ENC_MODE.get(info);
-    // If gssEncMode is not set, fallback to prefer
+    // If gssEncMode is not set, fallback to allow
     if (gssEncMode == null) {
-      return PREFER;
+      return ALLOW;
     }
 
     for (GSSEncMode mode : VALUES) {
