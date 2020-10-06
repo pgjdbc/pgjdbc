@@ -340,4 +340,50 @@ public class ResultSetMetaDataTest extends BaseTest4 {
         preferQueryMode.compareTo(PreferQueryMode.EXTENDED_FOR_PREPARED) >= 0);
   }
 
+  @Test
+  public void testSmallSerialColumns() throws SQLException {
+    org.junit.Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+    TestUtil.createTable(con, "smallserial_test", "a smallserial");
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT a FROM smallserial_test");
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertTrue(rsmd.isAutoIncrement(1));
+    assertEquals("smallserial_test", rsmd.getTableName(1));
+    assertEquals("a", rsmd.getColumnName(1));
+    assertEquals(Types.SMALLINT, rsmd.getColumnType(1));
+    assertEquals("smallserial", rsmd.getColumnTypeName(1));
+    rs.close();
+
+    TestUtil.dropTable(con, "smallserial_test");
+  }
+
+  @Test
+  public void testSmallSerialSequenceLikeColumns() throws SQLException {
+    Statement stmt = con.createStatement();
+    // This is the equivalent of the smallserial, not the actual smallserial
+    stmt.execute("CREATE SEQUENCE smallserial_test_a_seq;\n"
+        + "CREATE TABLE smallserial_test (\n"
+        + "    a smallint NOT NULL DEFAULT nextval('smallserial_test_a_seq')\n"
+        + ");\n"
+        + "ALTER SEQUENCE smallserial_test_a_seq OWNED BY smallserial_test.a;");
+
+    ResultSet rs = stmt.executeQuery("SELECT a FROM smallserial_test");
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertTrue(rsmd.isAutoIncrement(1));
+    assertEquals("smallserial_test", rsmd.getTableName(1));
+    assertEquals("a", rsmd.getColumnName(1));
+    assertEquals(Types.SMALLINT, rsmd.getColumnType(1));
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2)) {
+      // in Pg 9.2+ it behaves like smallserial
+      assertEquals("smallserial", rsmd.getColumnTypeName(1));
+    } else {
+      assertEquals("int2", rsmd.getColumnTypeName(1));
+    }
+    rs.close();
+
+    stmt.execute("DROP TABLE smallserial_test");
+    stmt.close();
+  }
+
 }

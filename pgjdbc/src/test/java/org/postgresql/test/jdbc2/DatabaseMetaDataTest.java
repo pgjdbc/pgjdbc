@@ -574,11 +574,15 @@ public class DatabaseMetaDataTest {
       assertEquals(rownum + 1, rs.getInt("ORDINAL_POSITION"));
       if (rownum == 0) {
         assertEquals("int4", rs.getString("TYPE_NAME"));
+
       } else if (rownum == 1) {
         assertEquals("serial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       } else if (rownum == 2) {
         assertEquals("bigserial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       }
+
       rownum++;
     }
     assertEquals(3, rownum);
@@ -1484,4 +1488,56 @@ public class DatabaseMetaDataTest {
 
     rs.close();
   }
+
+  @Test
+  public void testSmallSerialColumns() throws SQLException {
+    org.junit.Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+    TestUtil.createTable(con, "smallserial_test", "a smallserial");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "smallserial_test", "a");
+    assertTrue(rs.next());
+    assertEquals("smallserial_test", rs.getString("TABLE_NAME"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
+    assertEquals("smallserial", rs.getString("TYPE_NAME"));
+    assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+    assertEquals("nextval('smallserial_test_a_seq'::regclass)", rs.getString("COLUMN_DEF"));
+    assertFalse(rs.next());
+    rs.close();
+
+    TestUtil.dropTable(con, "smallserial_test");
+  }
+
+  @Test
+  public void testSmallSerialSequenceLikeColumns() throws SQLException {
+    Statement stmt = con.createStatement();
+    // This is the equivalent of the smallserial, not the actual smallserial
+    stmt.execute("CREATE SEQUENCE smallserial_test_a_seq;\n"
+        + "CREATE TABLE smallserial_test (\n"
+        + "    a smallint NOT NULL DEFAULT nextval('smallserial_test_a_seq')\n"
+        + ");\n"
+        + "ALTER SEQUENCE smallserial_test_a_seq OWNED BY smallserial_test.a;");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "smallserial_test", "a");
+    assertTrue(rs.next());
+    assertEquals("smallserial_test", rs.getString("TABLE_NAME"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2)) {
+      // in Pg 9.2+ it behaves like smallserial
+      assertEquals("smallserial", rs.getString("TYPE_NAME"));
+    } else {
+      assertEquals("int2", rs.getString("TYPE_NAME"));
+    }
+    assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+    assertEquals("nextval('smallserial_test_a_seq'::regclass)", rs.getString("COLUMN_DEF"));
+    assertFalse(rs.next());
+    rs.close();
+
+    stmt.execute("DROP TABLE smallserial_test");
+    stmt.close();
+  }
+
 }

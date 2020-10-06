@@ -328,6 +328,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
         return "serial";
       } else if ("int8".equals(type)) {
         return "bigserial";
+      } else if ("int2".equals(type) && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+        return "smallserial";
       }
     }
 

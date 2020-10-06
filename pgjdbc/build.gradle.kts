@@ -55,12 +55,6 @@ dependencies {
     shaded("com.ongres.scram:client")
 
     implementation("org.checkerframework:checker-qual")
-
-    // https://github.com/lburgazzoli/gradle-karaf-plugin/issues/75
-    karafFeatures(platform(project(":bom")))
-    karafFeatures("org.osgi:org.osgi.core:${"org.osgi.core".v}")
-    karafFeatures("org.osgi:org.osgi.enterprise:${"org.osgi.enterprise".v}")
-
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
 }
 
@@ -256,17 +250,15 @@ val hiddenAnnotation = Regex(
             "GuardedBy|UnderInitialization|" +
             "DefaultQualifier)(?:\\([^)]*\\))?")
 val hiddenImports = Regex("import org.checkerframework")
-val thisReferences = Regex("""\*/\s+(\w+\s+this\b,?)""")
 
 val removeTypeAnnotations by tasks.registering(Sync::class) {
     destinationDir = withoutAnnotations
-    inputs.property("regexpsUpdatedOn", "2020-08-29")
+    inputs.property("regexpsUpdatedOn", "2020-08-25")
     from(projectDir) {
         filteringCharset = `java.nio.charset`.StandardCharsets.UTF_8.name()
         filter { x: String ->
             x.replace(hiddenAnnotation, "/* $0 */")
                 .replace(hiddenImports, "// $0")
-                .replace(thisReferences, "*/ /* $1 */")
         }
         include("src/**")
     }
