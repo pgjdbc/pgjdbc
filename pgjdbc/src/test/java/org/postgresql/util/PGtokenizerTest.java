@@ -26,18 +26,4 @@ class PGtokenizerTest {
     Assert.assertEquals("1,2EC1830300027,1,,", string);
   }
 
-  @Test
-  void removeBox() {
-    assertTrue(true);
-  }
-
-  @Test
-  void removeAngle() {
-    assertTrue(true);
-  }
-
-  @Test
-  void removeCurlyBrace() {
-    assertTrue(true);
-  }
 }

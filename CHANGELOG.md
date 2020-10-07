@@ -418,4 +418,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
 [42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
 [42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...HEAD
+[42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...HEAD
