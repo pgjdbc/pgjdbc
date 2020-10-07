@@ -9,8 +9,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
+
+## [42.2.17]
+### Changed
+- Change default of gssEncMode to ALLOW. PostgreSQL can deal with PREFER but there are cloud providers that did not implement the protocol properly
+### Added
+- Add smallserial metadata (#899)
+
+### Fixed
 - Avoid NullPointerException when receiving PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney.
 - The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) [PR 1879](https://github.com/pgjdbc/pgjdbc/pull/1879). 
+- PgTokenizer was ignoring last empty token (#1882)
+- Remove osgi from karaf fixes Issue #1891 (#1902)
 
 ## [42.2.16] (2020-08-20)
 ### Known issues
