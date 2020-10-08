@@ -387,6 +387,7 @@ Connection conn = DriverManager.getConnection(url);
     `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
     an encrypted connection
     `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
+    The default is `allow`.
 
 * **gsslib** = String
 
