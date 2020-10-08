@@ -24,17 +24,17 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.2.16-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.2.17-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.16</version>
+    <version>42.2.17</version>
 </dependency>
 ```
 
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.16|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.3.0|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -132,10 +132,14 @@ In addition to the standard connection parameters the driver supports a number o
 | reWriteBatchedInserts         | Boolean | false   | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
 | escapeSyntaxCallMode          | String  | select  | Specifies how JDBC escape call syntax is transformed into underlying SQL (CALL/SELECT), for invoking procedures or functions (requires server version >= 11), possible values: select, callIfNoReturn, call |
 | maxResultBuffer               | String  | null    | Specifies size of result buffer in bytes, which can't be exceeded during reading result set. Can be specified as particular size (i.e. "100", "200M" "2G") or as percent of max heap memory (i.e. "10p", "20pct", "50percent") |
+<<<<<<< HEAD
 | gssEncMode                    | String  | allow  | Controls the preference for using GSSAPI encryption for the connection,  values are disable, allow, prefer, and require |
 | adaptiveFetch                 | Boolean | false   | Specifies if number of rows fetched in ResultSet by each fetch iteration should be dynamic. Number of rows will be calculated by dividing maxResultBuffer size into max row size observed so far. Requires declaring maxResultBuffer and defaultRowFetchSize for first iteration. 
 | adaptiveFetchMinimum          | Integer | 0       | Specifies minimum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go below this value. 
 | adaptiveFetchMaximum          | Integer | -1      | Specifies maximum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go above this value. Any negative number set as adaptiveFetchMaximum is used by adaptiveFetch as infinity number of rows.
+=======
+| gssEncMode                    | String  | allow   | Controls the preference for using GSSAPI encryption for the connection,  values are disable, allow, prefer, and require |
+>>>>>>> 926af227... Pre release42.2.17 (#1912)
 
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
