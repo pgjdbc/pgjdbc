@@ -184,10 +184,10 @@ public enum PGProperty {
 
   GSS_ENC_MODE(
       "gssEncMode",
-      "prefer",
+      "allow",
       "Force Encoded GSS Mode",
       false,
-      new String[] {"disable", "prefer", "require"}
+      new String[] {"disable", "allow", "prefer", "require"}
   ),
 
   /**
