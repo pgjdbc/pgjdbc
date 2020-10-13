@@ -283,7 +283,7 @@ class SimpleParameterList implements V3ParameterList {
     for (int i = 0; i < paramTypes.length; ++i) {
       if (direction(i) == OUT) {
         paramTypes[i] = Oid.VOID;
-        paramValues[i] = "null";
+        paramValues[i] = NULL_OBJECT;
       }
     }
   }
