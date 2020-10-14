@@ -6,9 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 
-### Added
+### Added 
 
 ### Fixed
+
+## [42.2.18]
+### Fixed
+- Unfortunately changing the default of gssEncMode to ALLOW was not enough. The GSSEncMode Enum was not changed as well
+fixed in #1920
 
 ## [42.2.17]
 ### Changed
