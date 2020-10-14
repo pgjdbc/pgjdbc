@@ -179,7 +179,23 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     switch (getSQLType(columnIndex)) {
       case Types.BOOLEAN:
       case Types.BIT:
-        return getBoolean(columnIndex);
+        if (field.getOID() == Oid.BOOL) {
+          return getBoolean(columnIndex);
+        }
+
+        if (field.getOID() == Oid.BIT) {
+          // Let's peek at the data - I tried to use the field.getLength() but it returns 65535 and
+          // it doesn't reflect the real length of the field, which is odd.
+          // If we have 1 byte, it's a bit(1) and return a boolean to preserve the backwards
+          // compatibility. If the value is null, it doesn't really matter
+          byte[] data = getRawValue(columnIndex);
+          if (data == null || data.length == 1) {
+            return getBoolean(columnIndex);
+          }
+        }
+        // Returning null here will lead to another value processing path for the bit field
+        // which will return a PGobject
+        return null;
       case Types.SQLXML:
         return getSQLXML(columnIndex);
       case Types.TINYINT:

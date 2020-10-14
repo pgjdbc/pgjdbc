@@ -89,11 +89,7 @@ public class TypeInfoCache implements TypeInfo {
       {"name", Oid.NAME, Types.VARCHAR, "java.lang.String", Oid.NAME_ARRAY},
       {"bytea", Oid.BYTEA, Types.BINARY, "[B", Oid.BYTEA_ARRAY},
       {"bool", Oid.BOOL, Types.BIT, "java.lang.Boolean", Oid.BOOL_ARRAY},
-      // Commented out this line to fix issue #892, an error that occurs when calling ResultSet getObject on a bit field.
-      // According to the PostgreSql the bit values are strings of 1's and 0's. Values of this type do not
-      // map to true or false values (unless the length specified for the field is 1). Also varbit is not in this
-      // list, so removing the bit type is consistent with the way the varbit field is handled.
-      // {"bit", Oid.BIT, Types.BIT, "java.lang.Boolean", Oid.BIT_ARRAY},
+      {"bit", Oid.BIT, Types.BIT, "java.lang.Boolean", Oid.BIT_ARRAY},
       {"date", Oid.DATE, Types.DATE, "java.sql.Date", Oid.DATE_ARRAY},
       {"time", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
       {"timetz", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
