@@ -65,10 +65,10 @@ script:
   #- mv $HOME/.m2/repository/org/postgresql /tmp/cache-trick/
 
 before_cache:
-  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
-  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
-  - find $HOME/.sbt -name "*.lock" -delete
+  - F=CleanupGradleCache sh -x -c 'curl -O https://raw.githubusercontent.com/vlsi/cleanup-gradle-cache/v1.x/$F.java && javac -J-Xmx128m $F.java && java -Xmx128m $F'
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -print0 | xargs -0 rm -v
+  - rm -rf $HOME/.ivy2/cache/org.postgresql/
+  - find $HOME/.sbt -name "*.lock" -print0 | xargs -0 rm -v
   # No sense in caching current build artifacts
   - rm -rf $HOME/.m2/repository/org/postgresql
 
