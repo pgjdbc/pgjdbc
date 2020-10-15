@@ -16,7 +16,7 @@ PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a P
 ## Supported PostgreSQL and Java versions
 The current version of the driver should be compatible with **PostgreSQL 8.2 and higher** using the version 3.0 of the protocol, and **Java 6** (JDBC 4.0), **Java 7** (JDBC 4.1) and **Java 8** (JDBC 4.2). Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
 
-PgJDBC regression tests are run against all PostgreSQL versions since 8.2, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please fill an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
+PgJDBC regression tests are run against all PostgreSQL versions since 9.1, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but they have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please file an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
 
 ## Get the Driver
 Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
@@ -24,36 +24,36 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.2.17-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.2.18-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.17</version>
+    <version>42.2.18</version>
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-42.2.17.jre7-blue.svg)][mvn-jre7]
+[![Java 7](https://img.shields.io/badge/Java_7-42.2.18.jre7-blue.svg)][mvn-jre7]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.17.jre7</version>
+    <version>42.2.18.jre7</version>
 </dependency>
 ```
 
-[![Java 6](https://img.shields.io/badge/Java_6-42.2.17.jre6-blue.svg)][mvn-jre6]
+[![Java 6](https://img.shields.io/badge/Java_6-42.2.18.jre6-blue.svg)][mvn-jre6]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.17.jre6</version>
+    <version>42.2.18.jre6</version>
 </dependency>
 ```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.17.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.17.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.17|bundle
+[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.18.jre6|bundle
+[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.18.jre7|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.18|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -61,9 +61,9 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.2.18-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.2.18.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.2.18.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.2.19-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.2.19.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.2.19.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
