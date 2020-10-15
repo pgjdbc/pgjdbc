@@ -51,7 +51,6 @@ Provides:	pgjdbc = %version-%release
 BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
-BuildRequires:	java-comment-preprocessor
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	classloader-leak-test-framework
 
