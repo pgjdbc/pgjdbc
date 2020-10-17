@@ -35,7 +35,6 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import sun.security.krb5.Credentials;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -411,7 +410,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private boolean credentialCacheExists() {
     try {
       @SuppressWarnings({"nullness"})
-      Credentials credentials = Credentials.acquireTGTFromCache(null, null);
+      sun.security.krb5.Credentials credentials =
+          sun.security.krb5.Credentials.acquireTGTFromCache(null, null);
       return credentials != null;
     } catch ( Exception ex ) {
       return false;
