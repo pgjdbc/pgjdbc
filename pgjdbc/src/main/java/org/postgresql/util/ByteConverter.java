@@ -50,29 +50,6 @@ public class ByteConverter {
 
   /**
    * Convert a number from binary representation to text representation.
-   * @param idx index of the digit to be converted in the digits array
-   * @param digits array of shorts that can be decoded as the number String
-   * @param buffer the character buffer to put the text representation in
-   * @param alwaysPutIt a flag that indicate whether or not to put the digit char even if it is zero
-   * @return String the number as String
-   */
-  private static void digitToString(int idx, short[] digits, CharBuffer buffer, boolean alwaysPutIt) {
-    short dig = (idx >= 0 && idx < digits.length) ? digits[idx] : 0;
-    for (int p = 1; p < round_powers.length; p++) {
-      int pow = round_powers[p];
-      short d1 = (short)(dig / pow);
-      dig -= d1 * pow;
-      boolean putit = (d1 > 0);
-      if (putit || alwaysPutIt) {
-        buffer.put((char)(d1 + '0'));
-      }
-    }
-
-    buffer.put((char)(dig + '0'));
-  }
-
-  /**
-   * Convert a number from binary representation to text representation.
    * @param digits array of shorts that can be decoded as the number String
    * @param scale the scale of the number binary representation
    * @param weight the weight of the number binary representation
@@ -80,62 +57,71 @@ public class ByteConverter {
    * @return String the number as String
    */
   private static String numberBytesToString(short[] digits, int scale, int weight, int sign) {
-    CharBuffer buffer;
-    int i;
+    StringBuilder sb = new StringBuilder();
+    // borrowed this code from pg-ng, it looks cleaner than what we had
+    if (sign == NUMERIC_NEG) {
+      sb.append('-');
+    }
+
+    /*
+     * Digits before decimal
+     */
     int d;
 
-    /*
-     * Allocate space for the result.
-     *
-     * i is set to the # of decimal digits before decimal point. dscale is the
-     * # of decimal digits we will print after decimal point. We may generate
-     * as many as DEC_DIGITS-1 excess digits at the end, and in addition we
-     * need room for sign, decimal point, null terminator.
-     */
-    i = (weight + 1) * DEC_DIGITS;
-    if (i <= 0) {
-      i = 1;
-    }
-
-    buffer = CharBuffer.allocate((i + scale + DEC_DIGITS + 2));
-
-    /*
-     * Output a dash for negative values
-     */
-    if (sign == NUMERIC_NEG) {
-      buffer.put('-');
-    }
-
-    /*
-     * Output all digits before the decimal point
-     */
     if (weight < 0) {
       d = weight + 1;
-      buffer.put('0');
-    } else {
+      sb.append(0);
+    }
+    else {
+
       for (d = 0; d <= weight; d++) {
-        /* In the first digit, suppress extra leading decimal zeroes */
-        digitToString(d, digits, buffer, d != 0);
+
+        short dig = d < digits.length ? digits[d] : 0;
+        boolean putIt = (d > 0);
+
+        for (int b = 1000; b > 1; b /= 10) {
+
+          short d1 = (short) (dig / b);
+          dig -= d1 * b;
+          putIt |= d1 > 0;
+          if (putIt)
+            sb.append((char) (d1 + '0'));
+        }
+
+        sb.append((char) (dig + '0'));
+
       }
+
     }
 
     /*
-     * If requested, output a decimal point and all the digits that follow it.
-     * We initially put out a multiple of DEC_DIGITS digits, then truncate if
-     * needed.
+     * Digits after decimal
      */
+
     if (scale > 0) {
-      buffer.put('.');
-      for (i = 0; i < scale; d++, i += DEC_DIGITS) {
-        digitToString(d, digits, buffer, true);
-      }
-    }
 
-    /*
-     * terminate the string and return it
-     */
-    int extra = (i - scale) % DEC_DIGITS;
-    return new String(buffer.array(), 0, buffer.position() - extra);
+      sb.append('.');
+
+      int length = sb.length() + scale;
+
+      for (int i = 0; i < scale; d++, i += DEC_DIGITS) {
+
+        short dig = (d >= 0 && d < digits.length) ? digits[d] : 0;
+
+        for (int b = 1000; b > 1 && sb.length() < length; b /= 10) {
+
+          short d1 = (short) (dig / b);
+          dig -= d1 * b;
+          sb.append((char) (d1 + '0'));
+        }
+
+        if (sb.length() < length)
+          sb.append((char) (dig + '0'));
+
+      }
+
+    }
+    return sb.toString();
   }
 
   /**

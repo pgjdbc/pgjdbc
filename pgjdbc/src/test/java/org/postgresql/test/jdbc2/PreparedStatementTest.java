@@ -564,6 +564,16 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void test1E90() throws SQLException {
+    Statement statement = con.createStatement();
+    ResultSet rs = statement.executeQuery("SELECT 1E+90");
+    assertTrue(rs.next());
+    assertEquals(91, rs.getBigDecimal(1).toString().length());
+    rs.close();
+    statement.close();
+  }
+
+  @Test
   public void testDouble() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");
