@@ -58,6 +58,8 @@ public class ByteConverter {
    */
   private static void digitToString(int idx, short[] digits, CharBuffer buffer, boolean alwaysPutIt) {
     short dig = (idx >= 0 && idx < digits.length) ? digits[idx] : 0;
+    // Each dig represents 4 decimal digits (e.g. 9999)
+    // If we continue the number, then we need to print 0 as 0000 (alwaysPutIt parameter is true)
     for (int p = 1; p < round_powers.length; p++) {
       int pow = round_powers[p];
       short d1 = (short)(dig / pow);
@@ -65,6 +67,10 @@ public class ByteConverter {
       boolean putit = (d1 > 0);
       if (putit || alwaysPutIt) {
         buffer.put((char)(d1 + '0'));
+        // We printed a character, so we need to print the rest of the current digits in dig
+        // For instance, we need to keep printing 000 from 1000 even if idx==0 (== it is the very
+        // beginning)
+        alwaysPutIt = true;
       }
     }
 
