@@ -385,7 +385,6 @@ public class PgConnection implements BaseConnection {
     if (oids != null) {
       binaryOids.removeAll(getOidSet(oids));
     }
-    binaryOids.retainAll(SUPPORTED_BINARY_OIDS);
 
     return binaryOids;
   }
