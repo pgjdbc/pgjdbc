@@ -7,6 +7,8 @@ assignees: ''
 
 ---
 
+Please read https://stackoverflow.com/help/minimal-reproducible-example 
+
 **Describe the issue**
 A clear and concise description of what the issue is.
 
