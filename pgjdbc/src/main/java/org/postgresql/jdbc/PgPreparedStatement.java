@@ -333,6 +333,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setBigDecimal(@Positive int parameterIndex, @Nullable BigDecimal x)
       throws SQLException {
+    if (x != null && connection.binaryTransferSend(Oid.NUMERIC)) {
+      final byte[] bytes = ByteConverter.numeric(x);
+      bindBytes(parameterIndex, bytes, Oid.NUMERIC);
+      return;
+    }
     setNumber(parameterIndex, x);
   }
 
