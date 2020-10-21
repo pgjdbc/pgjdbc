@@ -67,13 +67,13 @@ public class ByteConverter {
   private static final BigInteger BI_TEN_THOUSAND = BigInteger.valueOf(10000);
 
   static {
-    for (int i=0; i<INT_TEN_POWERS.length; ++i) {
+    for (int i = 0; i < INT_TEN_POWERS.length; ++i) {
       INT_TEN_POWERS[i] = (int) Math.pow(10, i);
     }
-    for (int i=0; i<LONG_TEN_POWERS.length; ++i) {
+    for (int i = 0; i < LONG_TEN_POWERS.length; ++i) {
       LONG_TEN_POWERS[i] = (long) Math.pow(10, i);
     }
-    for (int i=0; i<BI_TEN_POWERS.length; ++i) {
+    for (int i = 0; i < BI_TEN_POWERS.length; ++i) {
       BI_TEN_POWERS[i] = BigInteger.TEN.pow(i);
     }
   }
@@ -171,8 +171,8 @@ public class ByteConverter {
         effectiveScale += (4 * weight);
       }
 
-      int i=1;
-      for ( ; i<len && d == 0; ++i) {
+      int i = 1;
+      for ( ; i < len && d == 0; ++i) {
         effectiveScale -= 4;
         idx += 2;
         d = ByteConverter.int2(bytes, idx);
@@ -187,7 +187,7 @@ public class ByteConverter {
         effectiveScale = 0;
       }
       long unscaledInt = d;
-      for ( ; i<len; ++i) {
+      for ( ; i < len; ++i) {
         if (i == 4 && effectiveScale > 2) {
           unscaledBI = BigInteger.valueOf(unscaledInt);
         }
@@ -234,7 +234,7 @@ public class ByteConverter {
     if (scale == 0) {
       BigInteger unscaledBI = null;
       long unscaledInt = d;
-      for (int i=1 ; i<len; ++i) {
+      for (int i = 1; i < len; ++i) {
         if (i == 4) {
           unscaledBI = BigInteger.valueOf(unscaledInt);
         }
@@ -267,7 +267,7 @@ public class ByteConverter {
     long unscaledInt = d;
     int effectiveWeight = weight;
     int effectiveScale = scale;
-    for (int i=1 ; i<len; ++i) {
+    for (int i = 1 ; i < len; ++i) {
       if (i == 4) {
         unscaledBI = BigInteger.valueOf(unscaledInt);
       }
@@ -353,7 +353,7 @@ public class ByteConverter {
       } while (!BigInteger.ZERO.equals(unscaled));
       scale = 0;
     } else {
-      final BigInteger split[] = unscaled.divideAndRemainder(tenPower(scale));
+      final BigInteger[] split = unscaled.divideAndRemainder(tenPower(scale));
       BigInteger decimal = split[1];
       BigInteger wholes = split[0];
       weight = -1;
@@ -380,7 +380,7 @@ public class ByteConverter {
           weight -= segments;
         } else {
           //now add leading 0 shorts
-          for (int i=0; i<segments; ++i) {
+          for (int i = 0; i < segments; ++i) {
             shorts.push((short) 0);
           }
         }
