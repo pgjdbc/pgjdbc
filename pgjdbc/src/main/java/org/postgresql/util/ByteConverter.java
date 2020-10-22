@@ -130,6 +130,7 @@ public class ByteConverter {
     //number of 2-byte shorts representing 4 decimal digits
     short len = ByteConverter.int2(bytes, pos);
     //0 based number of 4 decimal digits (i.e. 2-byte shorts) before the decimal
+    //a value <= 0 indicates an absolute value < 1.
     short weight = ByteConverter.int2(bytes, pos + 2);
     //indicates positive, negative or NaN
     short sign = ByteConverter.int2(bytes, pos + 4);
@@ -173,6 +174,8 @@ public class ByteConverter {
       }
 
       int i = 1;
+      //typically there should not be leading 0 short values, as it is more
+      //efficient to represent that in the weight value
       for ( ; i < len && d == 0; ++i) {
         effectiveScale -= 4;
         idx += 2;
@@ -347,7 +350,7 @@ public class ByteConverter {
         scale = 0;
       }
 
-      while(unscaled.compareTo(BI_MAX_LONG) > 0) {
+      while (unscaled.compareTo(BI_MAX_LONG) > 0) {
         final BigInteger[] pair = unscaled.divideAndRemainder(BI_TEN_THOUSAND);
         unscaled = pair[0];
         final short shortValue = pair[1].shortValue();
@@ -362,7 +365,7 @@ public class ByteConverter {
         if (shortValue != 0 || !shorts.isEmpty()) {
           shorts.push(shortValue);
         }
-        unscaledLong = unscaledLong / 10000l;
+        unscaledLong = unscaledLong / 10000L;
         ++weight;
       } while (unscaledLong != 0);
     } else {

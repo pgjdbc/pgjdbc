@@ -33,6 +33,7 @@ import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.BigDecimalByteConverterTest;
 import org.postgresql.util.ReaderInputStreamTest;
+import org.postgresql.util.UnusualBigDecimalByteConverterTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -123,6 +124,7 @@ import org.junit.runners.Suite;
     TimezoneCachingTest.class,
     TimezoneTest.class,
     TypeCacheDLLStressTest.class,
+    UnusualBigDecimalByteConverterTest.class,
     UpdateableResultTest.class,
     UpsertTest.class,
     UTF8EncodingTest.class,
