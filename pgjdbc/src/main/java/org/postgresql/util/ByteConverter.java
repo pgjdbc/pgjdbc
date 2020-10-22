@@ -65,6 +65,7 @@ public class ByteConverter {
   private static final long[] LONG_TEN_POWERS = new long[19];
   private static final BigInteger[] BI_TEN_POWERS = new BigInteger[32];
   private static final BigInteger BI_TEN_THOUSAND = BigInteger.valueOf(10000);
+  private static final BigInteger BI_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
 
   static {
     for (int i = 0; i < INT_TEN_POWERS.length; ++i) {
@@ -335,14 +336,18 @@ public class ByteConverter {
     int weight = -1;
     if (scale <= 0) {
       //this means we have an integer
-      //adjust unscaled and scale to make multiple of 4
-      int mod = scale % 4;
-      if (mod != 0) {
-        scale += mod;
+      //adjust unscaled and weight
+      if (scale < 0) {
+        scale = Math.abs(scale);
+        //weight value covers 4 digits
+        weight += scale / 4;
+        //whatever remains needs to be incorporated to the unscaled value
+        int mod = scale % 4;
         unscaled = unscaled.multiply(tenPower(mod));
+        scale = 0;
       }
-      //TODO optimize for primitive long
-      do {
+
+      while(unscaled.compareTo(BI_MAX_LONG) > 0) {
         final BigInteger[] pair = unscaled.divideAndRemainder(BI_TEN_THOUSAND);
         unscaled = pair[0];
         final short shortValue = pair[1].shortValue();
@@ -350,8 +355,16 @@ public class ByteConverter {
           shorts.push(shortValue);
         }
         ++weight;
-      } while (!BigInteger.ZERO.equals(unscaled));
-      scale = 0;
+      }
+      long unscaledLong = unscaled.longValueExact();
+      do {
+        final short shortValue = (short) (unscaledLong % 10000);
+        if (shortValue != 0 || !shorts.isEmpty()) {
+          shorts.push(shortValue);
+        }
+        unscaledLong = unscaledLong / 10000l;
+        ++weight;
+      } while (unscaledLong != 0);
     } else {
       final BigInteger[] split = unscaled.divideAndRemainder(tenPower(scale));
       BigInteger decimal = split[1];
