@@ -134,8 +134,24 @@ public class ByteConverter {
     short weight = ByteConverter.int2(bytes, pos + 2);
     //indicates positive, negative or NaN
     short sign = ByteConverter.int2(bytes, pos + 4);
-    //number of digits after the decimal
+    //number of digits after the decimal. This must be >= 0.
+    //a value of 0 indicates a whole number (integer).
     short scale = ByteConverter.int2(bytes, pos + 6);
+
+    //An integer should be built from the len number of 2 byte shorts, treating each
+    //as 4 digits.
+    //The weight, if > 0, indicates how many of those 4 digit chunks should be to the
+    //"left" of the decimal. If the weight is 0, then all 4 digit chunks start immediately
+    //to the "right" of the decimal. If the weight is < 0, the absolute distance from 0
+    //indicates 4 leading "0" digits to the immediate "right" of the decimal, prior to the
+    //digits from "len".
+    //A weight which is positive, can be a number larger than what len defines. This means
+    //there are trailing 0s after the "len" integer and before the decimal.
+    //The scale indicates how many significant digits there are to the right of the decimal.
+    //A value of 0 indicates a whole number (integer).
+    //The combination of weight, len, and scale can result in either trimming digits provided
+    //by len (only to the right of the decimal) or adding significant 0 values to the right
+    //of len (on either side of the decimal).
 
     if (numBytes != (len * SHORT_BYTES + 8)) {
       throw new IllegalArgumentException("invalid length of bytes \"numeric\" value");
