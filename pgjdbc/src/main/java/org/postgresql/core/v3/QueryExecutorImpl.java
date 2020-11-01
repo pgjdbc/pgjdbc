@@ -367,6 +367,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         && query != restoreToAutoSave
         && !query.getNativeSql().equalsIgnoreCase("COMMIT")
         && getAutoSave() != AutoSave.NEVER
+        // Avoid savepoint does not exist error
+        && !query.getNativeSql().startsWith("SAVEPOINT")
+        && !query.getNativeSql().startsWith("ROLLBACK")
+        && !query.getNativeSql().startsWith("RELEASE")
         // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
         // thus no need to set a savepoint before such query
         && (getAutoSave() == AutoSave.ALWAYS
