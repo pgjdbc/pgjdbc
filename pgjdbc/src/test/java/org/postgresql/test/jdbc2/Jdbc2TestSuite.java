@@ -14,10 +14,11 @@ import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCacheTest;
+import org.postgresql.jdbc.ArraysTest;
+import org.postgresql.jdbc.ArraysTestSuite;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
 import org.postgresql.jdbc.PgSQLXMLTest;
-import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.FixedLengthOutputStreamTest;
 import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.LogServerMessagePropertyTest;
@@ -44,6 +45,8 @@ import org.junit.runners.Suite;
     AdaptiveFetchCacheTest.class,
     ANTTest.class,
     ArrayTest.class,
+    ArraysTest.class,
+    ArraysTestSuite.class,
     BatchedInsertReWriteEnabledTest.class,
     BatchExecuteTest.class,
     BatchFailureTest.class,
@@ -99,7 +102,6 @@ import org.junit.runners.Suite;
     PGTimeTest.class,
     PgSQLXMLTest.class,
     PreparedStatementTest.class,
-    PrimitiveArraySupportTest.class,
     QuotationTest.class,
     ReaderInputStreamTest.class,
     RefCursorTest.class,
@@ -124,7 +126,7 @@ import org.junit.runners.Suite;
     UpdateableResultTest.class,
     UpsertTest.class,
     UTF8EncodingTest.class,
-    V3ParameterListTests.class,
+    V3ParameterListTests.class
 })
 public class Jdbc2TestSuite {
 }

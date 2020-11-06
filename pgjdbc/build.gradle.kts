@@ -54,14 +54,7 @@ dependencies {
     shaded(platform(project(":bom")))
     shaded("com.ongres.scram:client")
 
-    // https://github.com/lburgazzoli/gradle-karaf-plugin/issues/75
-    karafFeatures(platform(project(":bom")))
-    karafFeatures("org.osgi:org.osgi.core:${"org.osgi.core".v}")
-    karafFeatures("org.osgi:org.osgi.enterprise:${"org.osgi.enterprise".v}")
-
-    implementation("com.github.waffle:waffle-jna")
-    implementation("org.osgi:org.osgi.core")
-    implementation("org.osgi:org.osgi.enterprise")
+    implementation("org.checkerframework:checker-qual")
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
 }
 
@@ -72,6 +65,12 @@ if (skipReplicationTests) {
     tasks.configureEach<Test> {
         exclude("org/postgresql/replication/**")
         exclude("org/postgresql/test/jdbc2/CopyBothResponseTest*")
+    }
+}
+
+tasks.configureEach<Test> {
+    outputs.cacheIf("test results on the database configuration, so we can't cache it") {
+        false
     }
 }
 
@@ -234,20 +233,61 @@ karaf {
     }
 }
 
+// <editor-fold defaultstate="collapsed" desc="Trim checkerframework annotations from the source code">
+val withoutAnnotations = layout.buildDirectory.dir("without-annotations").get().asFile
+
+val sourceWithoutCheckerAnnotations by configurations.creating {
+    isCanBeResolved = false
+    isCanBeConsumed = true
+}
+
+val hiddenAnnotation = Regex(
+    "@(?:Nullable|NonNull|PolyNull|MonotonicNonNull|RequiresNonNull|EnsuresNonNull|" +
+            "Regex|" +
+            "Pure|" +
+            "KeyFor|" +
+            "Positive|NonNegative|IntRange|" +
+            "GuardedBy|UnderInitialization|" +
+            "DefaultQualifier)(?:\\([^)]*\\))?")
+val hiddenImports = Regex("import org.checkerframework")
+
+val removeTypeAnnotations by tasks.registering(Sync::class) {
+    destinationDir = withoutAnnotations
+    inputs.property("regexpsUpdatedOn", "2020-08-25")
+    from(projectDir) {
+        filteringCharset = `java.nio.charset`.StandardCharsets.UTF_8.name()
+        filter { x: String ->
+            x.replace(hiddenAnnotation, "/* $0 */")
+                .replace(hiddenImports, "// $0")
+        }
+        include("src/**")
+    }
+}
+
+(artifacts) {
+    sourceWithoutCheckerAnnotations(withoutAnnotations) {
+        builtBy(removeTypeAnnotations)
+    }
+}
+// </editor-fold>
+
 // <editor-fold defaultstate="collapsed" desc="Source distribution for building pgjdbc with minimal features">
 val sourceDistribution by tasks.registering(Tar::class) {
-    archiveClassifier.set("src")
+    dependsOn(removeTypeAnnotations)
+    group = LifecycleBasePlugin.BUILD_GROUP
+    description = "Source distribution for building pgjdbc with minimal features"
+    archiveClassifier.set("jdbc-src")
     archiveExtension.set("tar.gz")
     compression = Compression.GZIP
     includeEmptyDirs = false
+
+    into(provider { archiveBaseName.get() + "-" + archiveVersion.get() + "-" + archiveClassifier.get() })
+
     from(rootDir) {
         include("build.properties")
         include("ssltest.properties")
         include("LICENSE")
         include("README.md")
-    }
-    into("src/main/resources") {
-        from("$rootDir/LICENSE")
     }
 
     val props = listOf(
@@ -276,12 +316,16 @@ val sourceDistribution by tasks.registering(Tar::class) {
                 include("META-INF/MANIFEST.MF")
             }
         })
+        into("META-INF") {
+            dependencyLicenses(shadedLicenseFiles)
+        }
     }
     into("src/main") {
         into("java") {
             from(preprocessVersion)
         }
-        from("src/main") {
+        from("$withoutAnnotations/src/main") {
+            exclude("resources/META-INF/LICENSE")
             exclude("checkstyle")
             exclude("*/org/postgresql/osgi/**")
             exclude("*/org/postgresql/sspi/NTDSAPI.java")
@@ -290,7 +334,7 @@ val sourceDistribution by tasks.registering(Tar::class) {
         }
     }
     into("src/test") {
-        from("src/test") {
+        from("$withoutAnnotations/src/test") {
             exclude("*/org/postgresql/test/osgi/**")
             exclude("**/*Suite*")
             exclude("*/org/postgresql/test/sspi/*.java")

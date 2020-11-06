@@ -7,6 +7,8 @@ package org.postgresql.replication.fluent;
 
 import org.postgresql.replication.LogSequenceNumber;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractStreamBuilder<T extends ChainedCommonStreamBuilder<T>>
@@ -14,7 +16,7 @@ public abstract class AbstractStreamBuilder<T extends ChainedCommonStreamBuilder
   private static final int DEFAULT_STATUS_INTERVAL = (int) TimeUnit.SECONDS.toMillis(10L);
   protected int statusIntervalMs = DEFAULT_STATUS_INTERVAL;
   protected LogSequenceNumber startPosition = LogSequenceNumber.INVALID_LSN;
-  protected String slotName;
+  protected @Nullable String slotName;
 
   protected abstract T self();
 

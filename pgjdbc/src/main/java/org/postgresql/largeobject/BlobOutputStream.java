@@ -5,6 +5,8 @@
 
 package org.postgresql.largeobject;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
@@ -16,7 +18,7 @@ public class BlobOutputStream extends OutputStream {
   /**
    * The parent LargeObject.
    */
-  private LargeObject lo;
+  private @Nullable LargeObject lo;
 
   /**
    * Buffer.
@@ -56,7 +58,7 @@ public class BlobOutputStream extends OutputStream {
   }
 
   public void write(int b) throws java.io.IOException {
-    checkClosed();
+    LargeObject lo = checkClosed();
     try {
       if (bpos >= bsize) {
         lo.write(buf);
@@ -69,7 +71,7 @@ public class BlobOutputStream extends OutputStream {
   }
 
   public void write(byte[] buf, int off, int len) throws java.io.IOException {
-    checkClosed();
+    LargeObject lo = checkClosed();
     try {
       // If we have any internally buffered data, send it first
       if (bpos > 0) {
@@ -95,7 +97,7 @@ public class BlobOutputStream extends OutputStream {
    * @throws IOException if an I/O error occurs.
    */
   public void flush() throws IOException {
-    checkClosed();
+    LargeObject lo = checkClosed();
     try {
       if (bpos > 0) {
         lo.write(buf, 0, bpos);
@@ -107,20 +109,22 @@ public class BlobOutputStream extends OutputStream {
   }
 
   public void close() throws IOException {
+    LargeObject lo = this.lo;
     if (lo != null) {
       try {
         flush();
         lo.close();
-        lo = null;
+        this.lo = null;
       } catch (SQLException se) {
         throw new IOException(se.toString());
       }
     }
   }
 
-  private void checkClosed() throws IOException {
+  private LargeObject checkClosed() throws IOException {
     if (lo == null) {
       throw new IOException("BlobOutputStream is closed");
     }
+    return lo;
   }
 }

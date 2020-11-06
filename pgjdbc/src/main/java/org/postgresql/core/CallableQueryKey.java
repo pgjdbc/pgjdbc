@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Serves as a cache key for {@link java.sql.CallableStatement}.
  * Callable statements require some special parsing before use (due to JDBC {@code {?= call...}}
@@ -31,7 +33,7 @@ class CallableQueryKey extends BaseQueryKey {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     // Nothing interesting here, overriding equals to make hashCode and equals paired
     return super.equals(o);
   }

@@ -9,6 +9,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.List;
@@ -55,7 +57,7 @@ public final class EscapedFunctions2 {
    * @param functionName name of the searched function
    * @return a Method object or null if not found
    */
-  public static Method getFunction(String functionName) {
+  public static @Nullable Method getFunction(String functionName) {
     Method method = FUNCTION_MAP.get(functionName);
     if (method != null) {
       return method;

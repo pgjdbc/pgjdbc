@@ -7,6 +7,8 @@ package org.postgresql.util;
 
 import static java.util.regex.Pattern.compile;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,7 +39,7 @@ public class HostSpec {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     return obj instanceof HostSpec && port == ((HostSpec) obj).port
         && host.equals(((HostSpec) obj).host);
   }
@@ -66,7 +68,8 @@ public class HostSpec {
     return matcher != null && matcher.matches();
   }
 
-  private Pattern toPattern(String mask) {
+  @SuppressWarnings("regex")
+  private @Nullable Pattern toPattern(String mask) {
     StringBuilder joiner = new StringBuilder();
     String separator = "";
     for (String disjunct : mask.split("\\|")) {

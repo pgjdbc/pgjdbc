@@ -5,12 +5,18 @@
 
 package org.postgresql.core;
 
+import org.postgresql.gss.GSSInputStream;
+import org.postgresql.gss.GSSOutputStream;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.MessageProp;
 
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
@@ -23,6 +29,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 
@@ -45,7 +52,21 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private OutputStream pgOutput;
-  private byte[] streamBuffer;
+  private byte @Nullable [] streamBuffer;
+
+  public boolean isGssEncrypted() {
+    return gssEncrypted;
+  }
+
+  boolean gssEncrypted = false;
+
+  public void setSecContext(GSSContext secContext) {
+    MessageProp messageProp =  new MessageProp(0, true);
+    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput.getWrapped(), secContext, messageProp ), 8192);
+    pgOutput = new GSSOutputStream(pgOutput, secContext, messageProp, 16384);
+    gssEncrypted = true;
+
+  }
 
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
@@ -68,25 +89,59 @@ public class PGStream implements Closeable, Flushable {
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
 
-    Socket socket = socketFactory.createSocket();
-    if (!socket.isConnected()) {
-      // When using a SOCKS proxy, the host might not be resolvable locally,
-      // thus we defer resolution until the traffic reaches the proxy. If there
-      // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = hostSpec.shouldResolve()
-          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
-          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
-      socket.connect(address, timeout);
-    }
+    Socket socket = createSocket(timeout);
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
     int2Buf = new byte[2];
     int4Buf = new byte[4];
+  }
+
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
+  public PGStream(PGStream pgStream, int timeout ) throws IOException {
+
+    /*
+    Some defaults
+     */
+    int sendBufferSize = 1024;
+    int receiveBufferSize = 1024;
+    int soTimeout = 0;
+    boolean keepAlive = false;
+
+    /*
+    Get the existing values before closing the stream
+     */
+    try {
+      sendBufferSize = pgStream.getSocket().getSendBufferSize();
+      receiveBufferSize = pgStream.getSocket().getReceiveBufferSize();
+      soTimeout = pgStream.getSocket().getSoTimeout();
+      keepAlive = pgStream.getSocket().getKeepAlive();
+
+    } catch ( SocketException ex ) {
+      // ignore it
+    }
+    //close the existing stream
+    pgStream.close();
+
+    this.socketFactory = pgStream.socketFactory;
+    this.hostSpec = pgStream.hostSpec;
+
+    Socket socket = createSocket(timeout);
+
+    // set the buffer sizes and timeout
+    socket.setReceiveBufferSize(receiveBufferSize);
+    socket.setSendBufferSize(sendBufferSize);
+    setNetworkTimeout(soTimeout);
+    socket.setKeepAlive(keepAlive);
+
+    int2Buf = new byte[2];
+    int4Buf = new byte[4];
+
   }
 
   /**
@@ -163,6 +218,23 @@ public class PGStream implements Closeable, Flushable {
 
   public void setMinStreamAvailableCheckDelay(int delay) {
     this.minStreamAvailableCheckDelay = delay;
+  }
+
+  private Socket createSocket(int timeout) throws IOException {
+
+    Socket socket = socketFactory.createSocket();
+    if (!socket.isConnected()) {
+      // When using a SOCKS proxy, the host might not be resolvable locally,
+      // thus we defer resolution until the traffic reaches the proxy. If there
+      // is no proxy, we must resolve the host to an IP to connect the socket.
+      InetSocketAddress address = hostSpec.shouldResolve()
+          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      socket.connect(address, timeout);
+    }
+    changeSocket(socket);
+    setEncoding(Encoding.getJVMEncoding("UTF-8"));
+    return socket;
   }
 
   /**
@@ -276,7 +348,6 @@ public class PGStream implements Closeable, Flushable {
     if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
       throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
     }
-
     int2Buf[0] = (byte) (val >>> 8);
     int2Buf[1] = (byte) val;
     pgOutput.write(int2Buf);
@@ -643,7 +714,7 @@ public class PGStream implements Closeable, Flushable {
    *              multiplier)
    * @throws PSQLException exception returned when occurred parsing problem.
    */
-  public void setMaxResultBuffer(String value) throws PSQLException {
+  public void setMaxResultBuffer(@Nullable String value) throws PSQLException {
     maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
   }
 

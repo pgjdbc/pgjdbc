@@ -113,26 +113,28 @@ Connection conn = DriverManager.getConnection(url);
 	. `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
 	validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
 	verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
-	host connected to has the same hostname as the certificate.
+	host connected to has the same hostname as the certificate. Default is `prefer`
 
 	Setting these will necessitate storing the server certificate on the client machine see
 	["Configuring the client"](ssl-client.html) for details.
 
 * **sslcert** = String
 
-	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
+	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt, where defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows.
 
     It can be a PEM encoded X509v3 certificate
 
-	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
+	*Note:* This parameter is ignored when using PKCS-12 keys, since in that case the certificate is also retrieved from the same keyfile.
 
 * **sslkey** = String
 
 	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
 	
-	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	*Note:* The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
 	`openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+
+	PKCS-12 key files are only recognized if they have the ".p12" (42.2.9+) or the ".pfx" (42.2.16+) extension.
 
 	If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 
@@ -352,6 +354,12 @@ Connection conn = DriverManager.getConnection(url);
 	you are unable to change the application to use an appropriate method
 	such as `setInt()`.
 
+* **ApplicationName** = String
+
+    Specifies the name of the application that is using the connection.
+    This allows a database administrator to see what applications are
+    connected to the server and what resources they are using through views like pg_stat_activity.
+
 * **kerberosServerName** = String
 
 	The Kerberos service name to use when authenticating with GSSAPI. This
@@ -370,11 +378,15 @@ Connection conn = DriverManager.getConnection(url);
 	authenticating. To skip the JAAS login, for example if the native GSS
 	implementation is being used to obtain credentials, set this to `false`.
 
-* **ApplicationName** = String
+* **gssEncMode** = String
 
-	Specifies the name of the application that is using the connection. 
-	This allows a database administrator to see what applications are 
-	connected to the server and what resources they are using through views like pg_stat_activity.
+    PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
+    enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
+    `disable` is obvious and disables any attempt to connect using GSS encrypted mode
+    `allow` will connect in plain text then if the server requests it will switch to encrypted mode
+    `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
+    an encrypted connection
+    `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
 
 * **gsslib** = String
 
@@ -423,6 +435,17 @@ Connection conn = DriverManager.getConnection(url);
 * **readOnly** = boolean
 
 	Put the connection in read-only mode
+
+* **readOnlyMode** = String
+	
+	Controls the behavior when a connection is set to read only, one of 'ignore', 'transaction', or 'always'. 
+	When set to 'ignore' then the `readOnly` setting has no effect. 
+	When set to 'transaction' and `readOnly` is set to 'true' and autocommit is 'false' the driver will set the transaction to
+	readonly  by sending `BEGIN READ ONLY`.
+	When set to 'always' and `readOnly` is set to 'true' the session will be to READ ONLY if autoCommit is 'true'. 
+	If autocommit is false the driver set the transaction to read only by sending `BEGIN READ ONLY` .
+	
+	The default the value is 'transaction'
 
 * **disableColumnSanitiser** = boolean
 

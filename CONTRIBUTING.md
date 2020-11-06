@@ -6,7 +6,7 @@ The purpose of the *Guidelines for Contributing* is to create a collaboration ba
 **Do NOT** blindly obey these guidelines, use them (after understanding) where they make sense.
 
 Currently the PgJDBC driver supports the Oracle and OpenJDK Java implementations of
-versions **6**, **7**, **8** and **9**; and PostgreSQL server versions from **8.2** and higher.
+versions **8** and **higher**; and PostgreSQL server versions from **8.4** and higher.
 
 Some PostgreSQL forks *might* work but are not officially supported, we support vendors of forks
 that want to improve this driver by sending us pull requests that are not disruptive to the
@@ -22,7 +22,7 @@ If you find a bug in the PgJDBC driver please use an issue to report it, try to 
 and detailed in your report, please ensure to specify at least the following:
 
   * Use a concise subject.
-  * PgJDBC driver version (e.g. 42.0.0.jre7)
+  * PgJDBC driver version (e.g. 42.2.14)
   * JDK/JRE version or the output of `java -version` (e.g. OpenJDK Java 8u144, Oracle Java 7u79)
   * PostgreSQL server version or the output of `select version()` (e.g. PostgreSQL 9.6.2)
   * Context information: what you were trying to achieve with PgJDBC.
@@ -139,6 +139,72 @@ Travis CI will fail if there are checkstyle errors.
 You might use the following command to fix auto-correctable issues, and report the rest:
 
     ./gradlew style
+
+## Null safety
+
+The project uses the [Checker Framework](https://checkerframework.org/) for verification of the null safety
+(this was introduced in [PR 1814](https://github.com/pgjdbc/pgjdbc/pull/1814)).
+
+By default, parameters, return values, and fields are `@NonNull`, so you need to add `@Nullable`
+as required.
+
+To execute the Checker Framework locally please use the following command:
+
+    ./gradlew -PenableCheckerframework :postgresql:classes
+
+Notable items:
+
+* The Checker Framework verifies code method by method. That means, it can't account for method execution order.
+That is why `@Nullable` fields should be verified in each method where they are used.
+If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
+For fields that start as null and become non-null later, use `@MonotonicNonNull`.
+For fields that have already been checked against null, use `@RequiresNonNull`.
+
+* If you are absolutely sure the value is non-null, you might use `org.postgresql.util.internal.Nullness.castNonNull(T)`
+or `org.postgresql.util.internal.Nullness.castNonNull(T, String)`.
+
+* You can configure postfix completion in IntelliJ IDEA via `Preferences -> Editor -> General -> Postfix Completion`
+key: `cnn`, applicable element type: `non-primitive`, `org.postgresql.util.internal.Nullness.castNonNull($EXPR$)`.  
+
+* The Checker Framework comes with an annotated JDK, however, there might be invalid annotations.
+In that cases, stub files can be placed to `/config/checkerframework` to override the annotations.
+It is important the files have `.astub` extension otherwise they will be ignored.
+
+* In array types, a type annotation appears immediately before the type component (either the array or the array component) it refers to.
+This is explained in the [Java Language Specification](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.7.4).
+
+        String nonNullable;
+        @Nullable String nullable;
+
+        java.lang.@Nullable String fullyQualifiedNullable;
+
+        // array and elements: non-nullable
+        String[] x;
+
+        // array: nullable, elements: non-nullable
+        String @Nullable [] x;
+
+        // array: non-nullable, elements: nullable
+        @Nullable String[] x;
+
+        // array: nullable, elements: nullable
+        @Nullable String @Nullable [] x;  
+
+        // arrays: nullable, elements: nullable
+        // x: non-nullable
+        // x[0]: non-nullable
+        // x[0][0]: nullable
+        @Nullable String[][] x;
+
+        // x: nullable
+        // x[0]: non-nullable
+        // x[0][0]: non-nullable
+        String @Nullable [][] x;
+
+        // x: non-nullable
+        // x[0]: nullable
+        // x[0][0]: non-nullable
+        String[] @Nullable [] x;
 
 ## Updating translations
 

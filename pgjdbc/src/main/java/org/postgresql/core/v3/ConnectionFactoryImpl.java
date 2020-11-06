@@ -6,6 +6,8 @@
 
 package org.postgresql.core.v3;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
@@ -22,6 +24,7 @@ import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
+import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
@@ -30,6 +33,8 @@ import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -70,7 +75,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_SASL_FINAL = 12;
 
   private ISSPIClient createSSPI(PGStream pgStream,
-      String spnServiceClass,
+      @Nullable String spnServiceClass,
       boolean enableNegotiate) {
     try {
       @SuppressWarnings("unchecked")
@@ -86,7 +91,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private PGStream tryConnect(String user, String database,
       Properties info, SocketFactory socketFactory, HostSpec hostSpec,
-      SslMode sslMode)
+      SslMode sslMode, GSSEncMode gssEncMode)
       throws SQLException, IOException {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
@@ -95,7 +100,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // Set the socket timeout if the "socketTimeout" property has been set.
     int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
     if (socketTimeout > 0) {
-      newStream.getSocket().setSoTimeout(socketTimeout * 1000);
+      newStream.setNetworkTimeout(socketTimeout * 1000);
     }
 
     String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
@@ -136,8 +141,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
     }
 
-    // Construct and send an ssl startup packet if requested.
-    newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+    newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
+
+    // if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
+    if (!newStream.isGssEncrypted()) {
+      // Construct and send an ssl startup packet if requested.
+      newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+    }
+
+    // Make sure to set network timeout again, in case the stream changed due to GSS or SSL
+    if (socketTimeout > 0) {
+      newStream.setNetworkTimeout(socketTimeout * 1000);
+    }
 
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
@@ -152,9 +167,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
       Properties info) throws SQLException {
     SslMode sslMode = SslMode.of(info);
+    GSSEncMode gssEncMode = GSSEncMode.of(info);
 
     HostRequirement targetServerType;
-    String targetServerTypeStr = PGProperty.TARGET_SERVER_TYPE.get(info);
+    String targetServerTypeStr = castNonNull(PGProperty.TARGET_SERVER_TYPE.get(info));
     try {
       targetServerType = HostRequirement.getTargetServerType(targetServerTypeStr);
     } catch (IllegalArgumentException ex) {
@@ -194,7 +210,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       PGStream newStream = null;
       try {
         try {
-          newStream = tryConnect(user, database, info, socketFactory, hostSpec, sslMode);
+          newStream = tryConnect(user, database, info, socketFactory, hostSpec, sslMode, gssEncMode);
         } catch (SQLException e) {
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
@@ -203,7 +219,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.DISABLE);
+                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.DISABLE,gssEncMode);
               LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException ee) {
@@ -214,10 +230,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             if (ex != null) {
               log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", ex);
               // non-SSL failed as well, so re-throw original exception
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               // Add non-SSL exception as suppressed
               e.addSuppressed(ex);
-              //#endif
               throw e;
             }
           } else if (sslMode == SslMode.ALLOW
@@ -226,7 +240,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.REQUIRE);
+                  tryConnect(user, database, info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode);
               LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException ee) {
@@ -237,10 +251,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             if (ex != null) {
               log(Level.FINE, "sslMode==ALLOW, however SSL connection failed as well", ex);
               // non-SSL failed as well, so re-throw original exception
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               // Add SSL exception as suppressed
               e.addSuppressed(ex);
-              //#endif
               throw e;
             }
 
@@ -251,6 +263,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         int cancelSignalTimeout = PGProperty.CANCEL_SIGNAL_TIMEOUT.getInt(info) * 1000;
 
+        // CheckerFramework can't infer newStream is non-nullable
+        castNonNull(newStream);
         // Do final startup.
         QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, user, database,
             cancelSignalTimeout, info);
@@ -393,6 +407,98 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
+  private boolean credentialCacheExists() {
+    try {
+      @SuppressWarnings({"nullness"})
+      sun.security.krb5.Credentials credentials =
+          sun.security.krb5.Credentials.acquireTGTFromCache(null, null);
+      return credentials != null;
+    } catch ( Exception ex ) {
+      return false;
+    }
+  }
+
+  private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
+                                    int connectTimeout)
+      throws IOException, PSQLException {
+
+    if ( gssEncMode == GSSEncMode.DISABLE ) {
+      return pgStream;
+    }
+
+    if (gssEncMode == GSSEncMode.ALLOW ) {
+      // start with plain text and let the server request it
+      return pgStream;
+    }
+
+    // If there is not credential cache there is little point in attempting this
+    if (!credentialCacheExists()) {
+      if ( gssEncMode == GSSEncMode.REQUIRE ) {
+        throw new PSQLException("GSSAPI encryption required but was impossible (possibly no credential cache)", PSQLState.CONNECTION_REJECTED);
+      } else {
+        return pgStream;
+      }
+    }
+
+    // attempt to acquire a GSS encrypted connection
+    String password = PGProperty.PASSWORD.get(info);
+    LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
+
+    // Send GSSEncryption request packet
+    pgStream.sendInteger4(8);
+    pgStream.sendInteger2(1234);
+    pgStream.sendInteger2(5680);
+    pgStream.flush();
+    // Now get the response from the backend, one of N, E, S.
+    int beresp = pgStream.receiveChar();
+    switch (beresp) {
+      case 'E':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");
+
+        // Server doesn't even know about the SSL handshake protocol
+        if (gssEncMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support GSS Encoding."),
+              PSQLState.CONNECTION_REJECTED);
+        }
+
+        // We have to reconnect to continue.
+        pgStream.close();
+        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+
+      case 'N':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");
+
+        // Server does not support gss encryption
+        if (gssEncMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support GSS Encryption."),
+              PSQLState.CONNECTION_REJECTED);
+        }
+
+        return pgStream;
+
+      case 'G':
+        LOGGER.log(Level.FINEST, " <=BE GSSEncryptedOk");
+        try {
+          org.postgresql.gss.MakeGSS.authenticate(true, pgStream, host, user, password,
+              PGProperty.JAAS_APPLICATION_NAME.get(info),
+              PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
+              PGProperty.JAAS_LOGIN.getBoolean(info),
+              PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+          return pgStream;
+        } catch (PSQLException ex) {
+          // allow the connection to proceed
+          if ( gssEncMode == GSSEncMode.PREFER) {
+            // we have to reconnect to continue
+            return new PGStream(pgStream, connectTimeout);
+          }
+        }
+
+      default:
+        throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
+            PSQLState.PROTOCOL_VIOLATION);
+    }
+  }
+
   private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
       int connectTimeout)
       throws IOException, PSQLException {
@@ -425,8 +531,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         // We have to reconnect to continue.
-        pgStream.close();
-        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+        return new PGStream(pgStream, connectTimeout);
 
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE SSLRefused");
@@ -500,10 +605,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /* SSPI negotiation state, if used */
     ISSPIClient sspiClient = null;
 
-    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
     /* SCRAM authentication state, if used */
     org.postgresql.jre7.sasl.ScramAuthenticator scramAuthenticator = null;
-    //#endif
 
     try {
       authloop: while (true) {
@@ -614,9 +717,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * it's forced. Otherwise use gssapi. If the user has specified a Kerberos server
                  * name we'll always use JSSE GSSAPI.
                  */
-                if (gsslib.equals("gssapi")) {
+                if ("gssapi".equals(gsslib)) {
                   LOGGER.log(Level.FINE, "Using JSSE GSSAPI, param gsslib=gssapi");
-                } else if (areq == AUTH_REQ_GSS && !gsslib.equals("sspi")) {
+                } else if (areq == AUTH_REQ_GSS && !"sspi".equals(gsslib)) {
                   LOGGER.log(Level.FINE,
                       "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
                 } else {
@@ -632,7 +735,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     /* No need to dispose() if no SSPI used */
                     sspiClient = null;
 
-                    if (gsslib.equals("sspi")) {
+                    if ("sspi".equals(gsslib)) {
                       throw new PSQLException(
                           "SSPI forced with gsslib=sspi, but SSPI not available; set loglevel=2 for details",
                           PSQLState.CONNECTION_UNABLE_TO_CONNECT);
@@ -646,10 +749,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
                 if (useSSPI) {
                   /* SSPI requested and detected as available */
-                  sspiClient.startSSPI();
+                  castNonNull(sspiClient).startSSPI();
                 } else {
                   /* Use JGSS's GSSAPI for this request */
-                  org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
+                  org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
                       PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
                       PGProperty.JAAS_LOGIN.getBoolean(info),
@@ -661,39 +764,32 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 /*
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
-                sspiClient.continueSSPI(msgLen - 8);
+                castNonNull(sspiClient).continueSSPI(msgLen - 8);
                 break;
 
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
-                //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, password, pgStream);
+                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
                 // This works as follows:
                 // 1. When tests is run from IDE, it is assumed SCRAM library is on the classpath
                 // 2. In regular build for Java < 8 this `if` is deactivated and the code always throws
                 if (false) {
-                  //#else
                   throw new PSQLException(GT.tr(
                           "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" versions)",
                           areq), PSQLState.CONNECTION_REJECTED);
-                  //#endif
-                  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
                 }
                 break;
-                //#endif
 
-              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
               case AUTH_REQ_SASL_CONTINUE:
-                scramAuthenticator.processServerFirstMessage(msgLen - 4 - 4);
+                castNonNull(scramAuthenticator).processServerFirstMessage(msgLen - 4 - 4);
                 break;
 
               case AUTH_REQ_SASL_FINAL:
-                scramAuthenticator.verifyServerSignature(msgLen - 4 - 4);
+                castNonNull(scramAuthenticator).verifyServerSignature(msgLen - 4 - 4);
                 break;
-              //#endif
 
               case AUTH_REQ_OK:
                 /* Cleanup after successful authentication */
@@ -755,7 +851,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
     Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
-    String value = queryExecutor.getEncoding().decode(results.get(0));
+    Tuple nonNullResults = castNonNull(results);
+    String value = queryExecutor.getEncoding().decode(castNonNull(nonNullResults.get(0)));
     return value.equalsIgnoreCase("off");
   }
 }

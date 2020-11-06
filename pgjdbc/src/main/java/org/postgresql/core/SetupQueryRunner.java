@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
@@ -21,14 +23,14 @@ import java.util.List;
 public class SetupQueryRunner {
 
   private static class SimpleResultHandler extends ResultHandlerBase {
-    private List<Tuple> tuples;
+    private @Nullable List<Tuple> tuples;
 
-    List<Tuple> getResults() {
+    @Nullable List<Tuple> getResults() {
       return tuples;
     }
 
     public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
-        ResultCursor cursor) {
+        @Nullable ResultCursor cursor) {
       this.tuples = tuples;
     }
 
@@ -38,7 +40,7 @@ public class SetupQueryRunner {
     }
   }
 
-  public static Tuple run(QueryExecutor executor, String queryString,
+  public static @Nullable Tuple run(QueryExecutor executor, String queryString,
       boolean wantResults) throws SQLException {
     Query query = executor.createSimpleQuery(queryString);
     SimpleResultHandler handler = new SimpleResultHandler();

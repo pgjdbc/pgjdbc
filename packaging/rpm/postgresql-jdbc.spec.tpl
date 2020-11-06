@@ -45,13 +45,12 @@ License:	BSD
 URL:		http://jdbc.postgresql.org/
 
 # This archive contains the minimal set of files + pom.xml that can be used to build postgresql.jar
-Source0:    https://repo1.maven.org/maven2/org/postgresql/postgresql/%{version}/postgresql-%{version}-src.tar.gz
+Source0:    https://repo1.maven.org/maven2/org/postgresql/postgresql/%{version}/postgresql-%{version}-jdbc-src.tar.gz
 Provides:	pgjdbc = %version-%release
 
 BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
-BuildRequires:	java-comment-preprocessor
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	classloader-leak-test-framework
 
@@ -89,8 +88,12 @@ This package contains the API Documentation for %{name}.
 %prep
 %setup -c -q
 
+mv postgresql-%{version}-jdbc-src/* .
+
 # remove any binary libs
-find -name "*.jar" -or -name "*.class" | xargs rm -f
+find -type f \( -name "*.jar" -or -name "*.class" \) | xargs rm -f
+
+%pom_xpath_remove "pom:plugin[pom:artifactId = 'maven-shade-plugin']"
 
 # compat symlink: requested by dtardon (libreoffice), reverts part of
 # 0af97ce32de877 commit.

@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import org.postgresql.util.CanEstimateSize;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * This is an internal class to hold field metadata info like table name, column name, etc.
  * This class is not meant to be used outside of pgjdbc.
@@ -22,7 +24,7 @@ public class FieldMetadata implements CanEstimateSize {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }

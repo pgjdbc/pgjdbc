@@ -77,12 +77,6 @@ public class LargeObjectManager {
   public static final int READWRITE = READ | WRITE;
 
   /**
-   * This prevents us being created by mere mortals.
-   */
-  private LargeObjectManager() {
-  }
-
-  /**
    * <p>Constructs the LargeObject API.</p>
    *
    * <p><b>Important Notice</b> <br>

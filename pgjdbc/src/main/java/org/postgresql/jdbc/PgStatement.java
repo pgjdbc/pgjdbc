@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
@@ -20,6 +22,11 @@ import org.postgresql.core.Tuple;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.lock.qual.GuardedBy;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -43,8 +50,8 @@ public class PgStatement implements Statement, BaseStatement {
   // only for testing purposes. even single shot statements will use binary transfers
   private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
 
-  protected ArrayList<Query> batchStatements = null;
-  protected ArrayList<ParameterList> batchParameters = null;
+  protected @Nullable ArrayList<Query> batchStatements = null;
+  protected @Nullable ArrayList<@Nullable ParameterList> batchParameters = null;
   protected final int resultsettype; // the resultset type to return (ResultSet.TYPE_xxx)
   protected final int concurrency; // is it updateable or not? (ResultSet.CONCUR_xxx)
   private final int rsHoldability;
@@ -60,9 +67,10 @@ public class PgStatement implements Statement, BaseStatement {
    * cancelTask was created. Note: the field must be set/get/compareAndSet via
    * {@link #CANCEL_TIMER_UPDATER} as per {@link AtomicReferenceFieldUpdater} javadoc.
    */
-  private volatile TimerTask cancelTimerTask = null;
-  private static final AtomicReferenceFieldUpdater<PgStatement, TimerTask> CANCEL_TIMER_UPDATER =
-      AtomicReferenceFieldUpdater.newUpdater(PgStatement.class, TimerTask.class, "cancelTimerTask");
+  private volatile @Nullable TimerTask cancelTimerTask = null;
+  private static final AtomicReferenceFieldUpdater<PgStatement, @Nullable TimerTask> CANCEL_TIMER_UPDATER =
+      AtomicReferenceFieldUpdater.<PgStatement, @Nullable TimerTask>newUpdater(
+          PgStatement.class, TimerTask.class, "cancelTimerTask");
 
   /**
    * Protects statement from out-of-order cancels. It protects from both
@@ -99,7 +107,7 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The warnings chain.
    */
-  protected volatile PSQLWarningWrapper warnings = null;
+  protected volatile @Nullable PSQLWarningWrapper warnings = null;
 
   /**
    * Maximum number of rows to return, 0 = unlimited.
@@ -121,17 +129,17 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The current results.
    */
-  protected ResultWrapper result = null;
+  protected @Nullable ResultWrapper result = null;
 
   /**
    * The first unclosed result.
    */
-  protected volatile ResultWrapper firstUnclosedResult = null;
+  protected @Nullable @GuardedBy("<self>") ResultWrapper firstUnclosedResult = null;
 
   /**
    * Results returned by a statement that wants generated keys.
    */
-  protected ResultWrapper generatedKeys = null;
+  protected @Nullable ResultWrapper generatedKeys = null;
 
   protected int mPrepareThreshold; // Reuse threshold to enable use of PREPARE
 
@@ -139,6 +147,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected boolean adaptiveFetch = false;
 
+  @SuppressWarnings("method.invocation.invalid")
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
@@ -151,8 +160,9 @@ public class PgStatement implements Statement, BaseStatement {
     this.rsHoldability = rsHoldability;
   }
 
-  public ResultSet createResultSet(Query originalQuery, Field[] fields, List<Tuple> tuples,
-      ResultCursor cursor) throws SQLException {
+  @SuppressWarnings("method.invocation.invalid")
+  public ResultSet createResultSet(@Nullable Query originalQuery, Field[] fields, List<Tuple> tuples,
+      @Nullable ResultCursor cursor) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
         getResultSetHoldability(), getAdaptiveFetch());
@@ -165,11 +175,11 @@ public class PgStatement implements Statement, BaseStatement {
     return connection;
   }
 
-  public String getFetchingCursorName() {
+  public @Nullable String getFetchingCursorName() {
     return null;
   }
 
-  public int getFetchSize() {
+  public @NonNegative int getFetchSize() {
     return fetchSize;
   }
 
@@ -186,10 +196,10 @@ public class PgStatement implements Statement, BaseStatement {
    * ResultHandler implementations for updates, queries, and either-or.
    */
   public class StatementResultHandler extends ResultHandlerBase {
-    private ResultWrapper results;
-    private ResultWrapper lastResult;
+    private @Nullable ResultWrapper results;
+    private @Nullable ResultWrapper lastResult;
 
-    ResultWrapper getResults() {
+    @Nullable ResultWrapper getResults() {
       return results;
     }
 
@@ -197,13 +207,13 @@ public class PgStatement implements Statement, BaseStatement {
       if (results == null) {
         lastResult = results = newResult;
       } else {
-        lastResult.append(newResult);
+        castNonNull(lastResult).append(newResult);
       }
     }
 
     @Override
     public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
-        ResultCursor cursor) {
+        @Nullable ResultCursor cursor) {
       try {
         ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
         append(new ResultWrapper(rs));
@@ -236,12 +246,13 @@ public class PgStatement implements Statement, BaseStatement {
   protected ResultSet getSingleResultSet() throws SQLException {
     synchronized (this) {
       checkClosed();
+      ResultWrapper result = castNonNull(this.result);
       if (result.getNext() != null) {
         throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
             PSQLState.TOO_MANY_RESULTS);
       }
 
-      return result.getResultSet();
+      return castNonNull(result.getResultSet(), "result.getResultSet()");
     }
   }
 
@@ -276,7 +287,8 @@ public class PgStatement implements Statement, BaseStatement {
     return executeCachedSql(sql, flags, NO_RETURNING_COLUMNS);
   }
 
-  private boolean executeCachedSql(String sql, int flags, String[] columnNames) throws SQLException {
+  private boolean executeCachedSql(String sql, int flags,
+      String @Nullable [] columnNames) throws SQLException {
     PreferQueryMode preferQueryMode = connection.getPreferQueryMode();
     // Simple statements should not replace ?, ? with $1, $2
     boolean shouldUseParameterized = false;
@@ -323,6 +335,21 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  private void closeUnclosedResults() throws SQLException {
+    synchronized (this) {
+      ResultWrapper resultWrapper = this.firstUnclosedResult;
+      ResultWrapper currentResult = this.result;
+      for (; resultWrapper != currentResult && resultWrapper != null;
+           resultWrapper = resultWrapper.getNext()) {
+        PgResultSet rs = (PgResultSet) resultWrapper.getResultSet();
+        if (rs != null) {
+          rs.closeInternally();
+        }
+      }
+      firstUnclosedResult = resultWrapper;
+    }
+  }
+
   protected void closeForNextExecution() throws SQLException {
 
     // Every statement execution clears any previous warnings.
@@ -330,20 +357,16 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Close any existing resultsets associated with this statement.
     synchronized (this) {
-      while (firstUnclosedResult != null) {
-        PgResultSet rs = (PgResultSet)firstUnclosedResult.getResultSet();
-        if (rs != null) {
-          rs.closeInternally();
-        }
-        firstUnclosedResult = firstUnclosedResult.getNext();
-      }
+      closeUnclosedResults();
       result = null;
 
+      ResultWrapper generatedKeys = this.generatedKeys;
       if (generatedKeys != null) {
-        if (generatedKeys.getResultSet() != null) {
-          generatedKeys.getResultSet().close();
+        ResultSet resultSet = generatedKeys.getResultSet();
+        if (resultSet != null) {
+          resultSet.close();
         }
-        generatedKeys = null;
+        this.generatedKeys = null;
       }
     }
   }
@@ -354,7 +377,7 @@ public class PgStatement implements Statement, BaseStatement {
    * @param cachedQuery to check (null if current query)
    * @return true if query is unlikely to be reused
    */
-  protected boolean isOneShotQuery(CachedQuery cachedQuery) {
+  protected boolean isOneShotQuery(@Nullable CachedQuery cachedQuery) {
     if (cachedQuery == null) {
       return true;
     }
@@ -366,7 +389,8 @@ public class PgStatement implements Statement, BaseStatement {
     return false;
   }
 
-  protected final void execute(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
+  protected final void execute(CachedQuery cachedQuery,
+      @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
     try {
       executeInternal(cachedQuery, queryParameters, flags);
@@ -382,7 +406,8 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  private void executeInternal(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
+  private void executeInternal(CachedQuery cachedQuery,
+      @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
     closeForNextExecution();
 
@@ -438,7 +463,7 @@ public class PgStatement implements Statement, BaseStatement {
           flags2);
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
-        result2.getResultSet().close();
+        castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
       }
     }
 
@@ -455,11 +480,13 @@ public class PgStatement implements Statement, BaseStatement {
     }
     synchronized (this) {
       checkClosed();
-      result = firstUnclosedResult = handler.getResults();
+
+      ResultWrapper currentResult = handler.getResults();
+      result = firstUnclosedResult = currentResult;
 
       if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
-        generatedKeys = result;
-        result = result.getNext();
+        generatedKeys = currentResult;
+        result = castNonNull(currentResult, "handler.getResults()").getNext();
 
         if (wantsGeneratedKeysOnce) {
           wantsGeneratedKeysOnce = false;
@@ -489,24 +516,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean getMoreResults() throws SQLException {
-    synchronized (this) {
-      checkClosed();
-      if (result == null) {
-        return false;
-      }
-
-      result = result.getNext();
-
-      // Close preceding resultsets.
-      while (firstUnclosedResult != result) {
-        if (firstUnclosedResult.getResultSet() != null) {
-          firstUnclosedResult.getResultSet().close();
-        }
-        firstUnclosedResult = firstUnclosedResult.getNext();
-      }
-
-      return (result != null && result.getResultSet() != null);
-    }
+    return getMoreResults(CLOSE_ALL_RESULTS);
   }
 
   public int getMaxRows() throws SQLException {
@@ -589,7 +599,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  public SQLWarning getWarnings() throws SQLException {
+  public @Nullable SQLWarning getWarnings() throws SQLException {
     checkClosed();
     //copy reference to avoid NPE from concurrent modification of this.warnings
     final PSQLWarningWrapper warnWrap = this.warnings;
@@ -623,7 +633,7 @@ public class PgStatement implements Statement, BaseStatement {
     warnings = null;
   }
 
-  public ResultSet getResultSet() throws SQLException {
+  public @Nullable ResultSet getResultSet() throws SQLException {
     synchronized (this) {
       checkClosed();
 
@@ -720,9 +730,13 @@ public class PgStatement implements Statement, BaseStatement {
   public void addBatch(String sql) throws SQLException {
     checkClosed();
 
+    ArrayList<Query> batchStatements = this.batchStatements;
     if (batchStatements == null) {
-      batchStatements = new ArrayList<Query>();
-      batchParameters = new ArrayList<ParameterList>();
+      this.batchStatements = batchStatements = new ArrayList<Query>();
+    }
+    ArrayList<@Nullable ParameterList> batchParameters = this.batchParameters;
+    if (batchParameters == null) {
+      this.batchParameters = batchParameters = new ArrayList<@Nullable ParameterList>();
     }
 
     // Simple statements should not replace ?, ? with $1, $2
@@ -736,23 +750,28 @@ public class PgStatement implements Statement, BaseStatement {
   public void clearBatch() throws SQLException {
     if (batchStatements != null) {
       batchStatements.clear();
+    }
+    if (batchParameters != null) {
       batchParameters.clear();
     }
   }
 
   protected BatchResultHandler createBatchHandler(Query[] queries,
-      ParameterList[] parameterLists) {
+      @Nullable ParameterList[] parameterLists) {
     return new BatchResultHandler(this, queries, parameterLists,
         wantsGeneratedKeysAlways);
   }
 
+  @RequiresNonNull({"batchStatements", "batchParameters"})
   private BatchResultHandler internalExecuteBatch() throws SQLException {
     // Construct query/parameter arrays.
     transformQueriesAndParameters();
+    ArrayList<Query> batchStatements = castNonNull(this.batchStatements);
+    ArrayList<@Nullable ParameterList> batchParameters = castNonNull(this.batchParameters);
     // Empty arrays should be passed to toArray
     // see http://shipilev.net/blog/2016/arrays-wisdom-ancients/
     Query[] queries = batchStatements.toArray(new Query[0]);
-    ParameterList[] parameterLists = batchParameters.toArray(new ParameterList[0]);
+    @Nullable ParameterList[] parameterLists = batchParameters.toArray(new ParameterList[0]);
     batchStatements.clear();
     batchParameters.clear();
 
@@ -841,7 +860,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
-        result2.getResultSet().close();
+        castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
       }
     }
 
@@ -870,7 +889,7 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     closeForNextExecution();
 
-    if (batchStatements == null || batchStatements.isEmpty()) {
+    if (batchStatements == null || batchStatements.isEmpty() || batchParameters == null) {
       return new int[0];
     }
 
@@ -926,7 +945,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  public void setFetchSize(int rows) throws SQLException {
+  public void setFetchSize(@NonNegative int rows) throws SQLException {
     checkClosed();
     if (rows < 0) {
       throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
@@ -1023,7 +1042,6 @@ public class PgStatement implements Statement, BaseStatement {
     return forceBinaryTransfers;
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
   @Override
   public long getLargeUpdateCount() throws SQLException {
     synchronized (this) {
@@ -1049,7 +1067,7 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     closeForNextExecution();
 
-    if (batchStatements == null || batchStatements.isEmpty()) {
+    if (batchStatements == null || batchStatements.isEmpty() || batchParameters == null) {
       return new long[0];
     }
 
@@ -1083,7 +1101,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   @Override
-  public long executeLargeUpdate(String sql, String[] columnNames) throws SQLException {
+  public long executeLargeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return executeLargeUpdate(sql);
     }
@@ -1094,7 +1112,6 @@ public class PgStatement implements Statement, BaseStatement {
     }
     return getLargeUpdateCount();
   }
-  //#endif
 
   public boolean isClosed() throws SQLException {
     return isClosed;
@@ -1137,7 +1154,8 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       ResultWrapper result = firstUnclosedResult;
       while (result != null) {
-        if (result.getResultSet() != null && !result.getResultSet().isClosed()) {
+        ResultSet resultSet = result.getResultSet();
+        if (resultSet != null && !resultSet.isClosed()) {
           return;
         }
         result = result.getNext();
@@ -1171,12 +1189,7 @@ public class PgStatement implements Statement, BaseStatement {
       // CLOSE_ALL_RESULTS
       if (current == Statement.CLOSE_ALL_RESULTS) {
         // Close preceding resultsets.
-        while (firstUnclosedResult != result) {
-          if (firstUnclosedResult.getResultSet() != null) {
-            firstUnclosedResult.getResultSet().close();
-          }
-          firstUnclosedResult = firstUnclosedResult.getNext();
-        }
+        closeUnclosedResults();
       }
 
       // Done.
@@ -1212,7 +1225,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.NOT_IMPLEMENTED);
   }
 
-  public int executeUpdate(String sql, String[] columnNames) throws SQLException {
+  public int executeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return executeUpdate(sql);
     }
@@ -1231,7 +1244,7 @@ public class PgStatement implements Statement, BaseStatement {
     return execute(sql, (String[]) null);
   }
 
-  public boolean execute(String sql, int[] columnIndexes) throws SQLException {
+  public boolean execute(String sql, int @Nullable [] columnIndexes) throws SQLException {
     if (columnIndexes != null && columnIndexes.length == 0) {
       return execute(sql);
     }
@@ -1240,7 +1253,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.NOT_IMPLEMENTED);
   }
 
-  public boolean execute(String sql, String[] columnNames) throws SQLException {
+  public boolean execute(String sql, String @Nullable [] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return execute(sql);
     }

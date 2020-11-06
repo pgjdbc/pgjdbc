@@ -363,8 +363,12 @@ public class LogicalReplicationTest {
     replConnection.close();
 
     boolean isActive = isActiveOnView();
-    //we doesn't wait replay from server about stop connection that why some delay exists on update view and should wait some time before check view
-    if (!isActive) {
+
+    /*
+     * we don't wait for replay from server about stop connection that's why some
+     * delay exists on update view and should wait some time before check view
+     */
+    if (isActive) {
       TimeUnit.SECONDS.sleep(2L);
       isActive = isActiveOnView();
     }

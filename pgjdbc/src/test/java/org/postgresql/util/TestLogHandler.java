@@ -30,7 +30,8 @@ public class TestLogHandler extends Handler {
   public List<LogRecord> getRecordsMatching(Pattern messagePattern) {
     ArrayList<LogRecord> matches = new ArrayList<LogRecord>();
     for (LogRecord r: this.records) {
-      if (messagePattern.matcher(r.getMessage()).find()) {
+      String message = r.getMessage();
+      if (message != null && messagePattern.matcher(message).find()) {
         matches.add(r);
       }
     }

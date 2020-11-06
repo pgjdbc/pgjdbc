@@ -337,4 +337,12 @@ public class VisibleBufferedInputStream extends InputStream {
   public void setTimeoutRequested(boolean timeoutRequested) {
     this.timeoutRequested = timeoutRequested;
   }
+
+  /**
+   *
+   * @return the wrapped stream
+   */
+  public InputStream getWrapped() {
+    return wrapped;
+  }
 }

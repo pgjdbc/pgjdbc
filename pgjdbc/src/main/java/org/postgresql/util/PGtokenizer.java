@@ -21,7 +21,7 @@ import java.util.List;
  */
 public class PGtokenizer {
   // Our tokens
-  protected List<String> tokens;
+  protected List<String> tokens = new ArrayList<String>();
 
   /**
    * <p>Create a tokeniser.</p>
@@ -32,6 +32,7 @@ public class PGtokenizer {
    * @param string containing tokens
    * @param delim single character to split the tokens
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGtokenizer(String string, char delim) {
     tokenize(string, delim);
   }
@@ -44,7 +45,7 @@ public class PGtokenizer {
    * @return number of tokens
    */
   public int tokenize(String string, char delim) {
-    tokens = new ArrayList<String>();
+    tokens.clear();
 
     // nest holds how many levels we are in the current token.
     // if this is > 0 then we don't split a token when delim is matched.
@@ -58,9 +59,9 @@ public class PGtokenizer {
     int s;
     boolean skipChar = false;
     boolean nestedDoubleQuote = false;
-
+    char c = (char)0;
     for (p = 0, s = 0; p < string.length(); p++) {
-      char c = string.charAt(p);
+      c = string.charAt(p);
 
       // increase nesting if an open character is found
       if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
@@ -91,6 +92,11 @@ public class PGtokenizer {
     // Don't forget the last token ;-)
     if (s < string.length()) {
       tokens.add(string.substring(s));
+    }
+
+    // check for last token empty
+    if ( s == string.length() && c == delim) {
+      tokens.add("");
     }
 
     return tokens.size();

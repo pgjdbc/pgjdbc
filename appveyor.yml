@@ -4,6 +4,7 @@ configuration: Release
 
 clone_depth: 1
 environment:
+  JAVA_HOME: 'C:\Program Files\Java\jdk1.8.0'
   PGUSER: postgres
   PGPASSWORD: Password12!
   matrix:
@@ -28,6 +29,7 @@ init:
   # We expect that Windows would have CRLF for newlines, so autocrlf=true should be used
   # to automatically convert text files to CRLF on checkout
 - git config --global core.autocrlf true
+- mkdir "\Users\appveyor\.gradle
 
 branches:
   except:
@@ -43,6 +45,9 @@ install:
 - echo service=postgresql%x64%-%pgversion%
 
 before_build:
+- ps: Add-Content -PATH "\Users\appveyor\.gradle\gradle.properties" "pgjdbc.skip.jre6=true"
+- ps: Add-Content -PATH "\Users\appveyor\.gradle\gradle.properties" "pgjdbc.skip.jre7=true"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_keep_segments=10"
@@ -69,3 +74,4 @@ test_script:
 
 cache:
   - C:\Users\appveyor\.m2
+

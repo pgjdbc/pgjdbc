@@ -11,6 +11,8 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -47,6 +49,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * @param s definition of the line segment in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGlseg(String s) throws SQLException {
     this();
     setValue(s);
@@ -56,7 +59,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * required by the driver.
    */
   public PGlseg() {
-    setType("lseg");
+    type = "lseg";
   }
 
   /**
@@ -79,7 +82,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two line segments are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGlseg) {
       PGlseg p = (PGlseg) obj;
       return (p.point[0].equals(point[0]) && p.point[1].equals(point[1]))

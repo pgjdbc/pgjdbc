@@ -1,0 +1,7 @@
+package java.lang.reflect;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class Constructor<T> {
+  public @NonNull T newInstance(@Nullable Object... initargs);
+}

@@ -10,6 +10,7 @@ pluginManagement {
 
         idv("biz.aQute.bnd.builder")
         idv("com.github.autostyle")
+        idv("com.github.burrunan.s3-build-cache")
         idv("com.github.johnrengelman.shadow")
         idv("com.github.lburgazzoli.karaf")
         idv("com.github.spotbugs")
@@ -20,10 +21,17 @@ pluginManagement {
         idv("com.github.vlsi.license-gather", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.stage-vote-release", "com.github.vlsi.vlsi-release-plugins")
         idv("me.champeau.gradle.jmh")
+        idv("org.checkerframework")
         idv("org.jetbrains.gradle.plugin.idea-ext")
+        idv("org.nosphere.gradle.github.actions")
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
     }
+}
+
+plugins {
+    `gradle-enterprise`
+    id("com.github.burrunan.s3-build-cache")
 }
 
 // This is the name of a current project
@@ -50,20 +58,31 @@ fun property(name: String) =
         else -> null
     }
 
-// By default, Java7-processed sourcse are attached to IDE.
-// However, it might be confusing as IDE always suggests multiple files for a class like PgConnection
-// Note: IDEA caches after_sync task names.
-// If you face "project :postgresql-jre7 is not found" issues when reimport
-// you might need to remove items like :postgresql-jre7:preprocessMain from .idea/workspace.xml
+val isCiServer = System.getenv().containsKey("CI")
 
-if (property("pgjdbc.skip.jre6")?.ifBlank { "true" }?.toBoolean() != true) {
-    include("postgresql-jre6")
-    project(":postgresql-jre6").projectDir = file("pgjdbc-jre6")
+if (isCiServer) {
+    gradleEnterprise {
+        buildScan {
+            termsOfServiceUrl = "https://gradle.com/terms-of-service"
+            termsOfServiceAgree = "yes"
+            tag("CI")
+        }
+    }
 }
 
-if (property("pgjdbc.skip.jre7")?.ifBlank { "true" }?.toBoolean() != true) {
-    include("postgresql-jre7")
-    project(":postgresql-jre7").projectDir = file("pgjdbc-jre7")
+// Cache build artifacts, so expensive operations do not need to be re-computed
+buildCache {
+    local {
+        isEnabled = !isCiServer || System.getenv().containsKey("GITHUB_ACTIONS")
+    }
+    if (property("s3.build.cache")?.ifBlank { "true" }?.toBoolean() == true) {
+        val pushAllowed = property("s3.build.cache.push")?.ifBlank { "true" }?.toBoolean() ?: true
+        remote<com.github.burrunan.s3cache.AwsS3BuildCache> {
+            region = "us-east-2"
+            bucket = "pgjdbc-gradle-cache"
+            isPush = isCiServer && pushAllowed && !awsAccessKeyId.isNullOrBlank()
+        }
+    }
 }
 
 // This enables to use local clone of vlsi-release-plugins for debugging purposes

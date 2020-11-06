@@ -53,11 +53,9 @@ before_install:
 script:
   # make sure previous build artifacts are not used for subsequent builds
   - rm -rf $HOME/.m2/repository/org/postgresql || true
-  - test -d "${JDK7_HOME}" || export JDK7_HOME=$(jdk_switcher home openjdk7)
   - test -d "${JDK8_HOME}" || export JDK8_HOME=$(jdk_switcher home oraclejdk8)
-  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk9)
-  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8) # JDK9 missing on precise, fallback to JDK8
-  - test ${JDK} -eq 9 || jdk_switcher use oraclejdk8 # Run Maven with Java 8, build with Toolchains.
+  - test -d "${JDK14_HOME}" || export JDK14_HOME=$(jdk_switcher home oraclejdk14)
+  - test ${JDK} -eq 7 || jdk_switcher use oraclejdk8 # Run Gradle with Java 8, build with Toolchains.
   - test -z "${ZULU_JDK}" || export TRAVIS_JDK_VERSION=zulujdk${ZULU_JDK} # trick codecov to use correct jdk version
   - if [[ $TRAVIS_BRANCH == release/* ]]; then .travis/travis_release.sh; else ./.travis/travis_build.sh; fi
   - ./.travis/travis_check_postgres_health.sh
@@ -66,10 +64,10 @@ script:
   #- mv $HOME/.m2/repository/org/postgresql /tmp/cache-trick/
 
 before_cache:
-  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
-  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
-  - find $HOME/.sbt -name "*.lock" -delete
+  - F=CleanupGradleCache sh -x -c 'curl -O https://raw.githubusercontent.com/vlsi/cleanup-gradle-cache/v1.x/$F.java && javac -J-Xmx128m $F.java && java -Xmx128m $F'
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -print0 | xargs -0 rm -v
+  - rm -rf $HOME/.ivy2/cache/org.postgresql/
+  - find $HOME/.sbt -name "*.lock" -print0 | xargs -0 rm -v
   # No sense in caching current build artifacts
   - rm -rf $HOME/.m2/repository/org/postgresql
 
@@ -102,6 +100,7 @@ matrix:
         - PG_VERSION=10
         - JDK=12
         - TZ=America/New_York # flips between −05:00 and −04:00
+        - BUILD_SCAN=Y
     - jdk: openjdk-ea
       sudo: required
       addons:
@@ -112,7 +111,7 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - PLPGSQL_EXTENSION=Y
-    - jdk: oraclejdk9
+    - jdk: oraclejdk14
       sudo: required
       addons:
         postgresql: "11"
@@ -122,7 +121,7 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - PLPGSQL_EXTENSION=Y
-        - JDK=9
+        - JDK=14
     - jdk: oraclejdk8
       sudo: required
       addons:
@@ -134,6 +133,7 @@ matrix:
         - NO_HSTORE=Y
         - PLPGSQL_EXTENSION=Y
         - JDK=8
+        - BUILD_SCAN=Y
     - jdk: oraclejdk11
       sudo: required
       addons:
@@ -143,12 +143,12 @@ matrix:
         - JDK=11
         - TZ=America/New_York # flips between −05:00 and −04:00
         - SLOW_TESTS=Y
-    - jdk: oraclejdk9
+    - jdk: oraclejdk14
       addons:
         postgresql: "9.6"
       env:
         - PG_VERSION=9.6
-        - JDK=9
+        - JDK=14
         - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: oraclejdk8
       sudo: required
@@ -200,26 +200,6 @@ matrix:
         - SSLTEST=Y
         - COVERAGE=Y
         - JDK=8
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - ZULU_JDK=7
-        - MCENTRAL=Y
-        - COVERAGE=Y
-        - TZ=UTC
-# Java 1.6 is no longer supported
-# Do we need to test PostgreSQL 9.1?
-    - jdk: openjdk7
-      sudo: required
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - ZULU_JDK=6
-        - MCENTRAL=Y
     - jdk: oraclejdk8
       sudo: required
       env:

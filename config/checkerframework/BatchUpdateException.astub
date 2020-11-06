@@ -1,0 +1,17 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class BatchUpdateException {
+  public BatchUpdateException(@Nullable String reason, @Nullable String SQLState, int @Nullable [] updateCounts);
+  public BatchUpdateException(@Nullable String reason, int @Nullable [] updateCounts);
+  public BatchUpdateException(int @Nullable [] updateCounts);
+  public BatchUpdateException(@Nullable Throwable cause);
+  public BatchUpdateException(int @Nullable []updateCounts, @Nullable Throwable cause);
+  public BatchUpdateException(@Nullable String reason, int @Nullable [] updateCounts, @Nullable Throwable cause);
+  public BatchUpdateException(@Nullable String reason, @Nullable String SQLState, int @Nullable [] updateCounts, @Nullable Throwable cause);
+  public BatchUpdateException(@Nullable String reason, @Nullable String SQLState, int vendorCode, int @Nullable [] updateCounts, @Nullable Throwable cause);
+  public int @Nullable [] getUpdateCounts();
+  public BatchUpdateException(@Nullable String reason, @Nullable String SQLState, int vendorCode, long @Nullable [] updateCounts, @Nullable Throwable cause);
+  public long @Nullable [] getLargeUpdateCounts();
+}

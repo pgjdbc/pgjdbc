@@ -97,8 +97,26 @@ public class SingleCertValidatingFactory extends WrappedFactory {
         in = new BufferedInputStream(new FileInputStream(path));
       } else if (sslFactoryArg.startsWith(CLASSPATH_PREFIX)) {
         String path = sslFactoryArg.substring(CLASSPATH_PREFIX.length());
-        in = new BufferedInputStream(
-            Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        InputStream inputStream;
+        if (classLoader != null) {
+          inputStream = classLoader.getResourceAsStream(path);
+          if (inputStream == null) {
+            throw new IllegalArgumentException(
+                GT.tr("Unable to find resource {0} via Thread contextClassLoader {1}",
+                    path, classLoader)
+            );
+          }
+        } else {
+          inputStream = getClass().getResourceAsStream(path);
+          if (inputStream == null) {
+            throw new IllegalArgumentException(
+                GT.tr("Unable to find resource {0} via class {1} ClassLoader {2}",
+                    path, getClass(), getClass().getClassLoader())
+            );
+          }
+        }
+        in = new BufferedInputStream(inputStream);
       } else if (sslFactoryArg.startsWith(ENV_PREFIX)) {
         String name = sslFactoryArg.substring(ENV_PREFIX.length());
         String cert = System.getenv(name);

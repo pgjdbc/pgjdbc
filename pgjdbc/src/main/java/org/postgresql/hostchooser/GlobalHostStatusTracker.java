@@ -7,6 +7,8 @@ package org.postgresql.hostchooser;
 
 import org.postgresql.util.HostSpec;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +68,7 @@ public class GlobalHostStatusTracker {
 
   static class HostSpecStatus {
     final HostSpec host;
-    HostStatus status;
+    @Nullable HostStatus status;
     long lastUpdated;
 
     HostSpecStatus(HostSpec host) {

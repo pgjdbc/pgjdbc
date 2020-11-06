@@ -15,9 +15,9 @@ import static org.junit.Assert.fail;
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.LogWriterHandler;
 import org.postgresql.util.NullOutputStream;
 import org.postgresql.util.URLCoder;
-import org.postgresql.util.WriterHandler;
 
 import org.junit.Test;
 
@@ -237,7 +237,7 @@ public class DriverTest {
 
       Logger logger = Logger.getLogger("org.postgresql");
       Handler[] handlers = logger.getHandlers();
-      assertTrue(handlers[0] instanceof WriterHandler );
+      assertTrue(handlers[0] instanceof LogWriterHandler );
       con.close();
     } finally {
       DriverManager.setLogWriter(prevLog);
@@ -266,7 +266,7 @@ public class DriverTest {
 
       Logger logger = Logger.getLogger("org.postgresql");
       Handler []handlers = logger.getHandlers();
-      assertTrue( handlers[0] instanceof WriterHandler );
+      assertTrue( handlers[0] instanceof LogWriterHandler );
       con.close();
     } finally {
       DriverManager.setLogStream(null);

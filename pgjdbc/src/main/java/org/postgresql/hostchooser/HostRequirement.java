@@ -5,12 +5,14 @@
 
 package org.postgresql.hostchooser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Describes the required server type.
  */
 public enum HostRequirement {
   any {
-    public boolean allowConnectingTo(HostStatus status) {
+    public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status != HostStatus.ConnectFail;
     }
   },
@@ -20,27 +22,27 @@ public enum HostRequirement {
    */
   @Deprecated
   master {
-    public boolean allowConnectingTo(HostStatus status) {
+    public boolean allowConnectingTo(@Nullable HostStatus status) {
       return primary.allowConnectingTo(status);
     }
   },
   primary {
-    public boolean allowConnectingTo(HostStatus status) {
+    public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status == HostStatus.Primary || status == HostStatus.ConnectOK;
     }
   },
   secondary {
-    public boolean allowConnectingTo(HostStatus status) {
+    public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status == HostStatus.Secondary || status == HostStatus.ConnectOK;
     }
   },
   preferSecondary {
-    public boolean allowConnectingTo(HostStatus status) {
+    public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status != HostStatus.ConnectFail;
     }
   };
 
-  public abstract boolean allowConnectingTo(HostStatus status);
+  public abstract boolean allowConnectingTo(@Nullable HostStatus status);
 
   /**
    * <p>The postgreSQL project has decided not to use the term slave to refer to alternate servers.

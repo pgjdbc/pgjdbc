@@ -7,6 +7,7 @@ package org.postgresql.osgi;
 
 import org.postgresql.Driver;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -19,7 +20,7 @@ import java.util.Hashtable;
  * This class is an OSGi Bundle Activator and should only be used internally by the OSGi Framework.
  */
 public class PGBundleActivator implements BundleActivator {
-  private ServiceRegistration<?> registration;
+  private @Nullable ServiceRegistration<?> registration;
 
   public void start(BundleContext context) throws Exception {
     Dictionary<String, Object> properties = new Hashtable<String, Object>();

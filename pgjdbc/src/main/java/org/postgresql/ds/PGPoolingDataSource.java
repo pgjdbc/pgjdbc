@@ -5,10 +5,14 @@
 
 package org.postgresql.ds;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -62,20 +66,21 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   protected static ConcurrentMap<String, PGPoolingDataSource> dataSources =
       new ConcurrentHashMap<String, PGPoolingDataSource>();
 
-  public static PGPoolingDataSource getDataSource(String name) {
+  public static @Nullable PGPoolingDataSource getDataSource(String name) {
     return dataSources.get(name);
   }
 
   // Additional Data Source properties
-  protected String dataSourceName; // Must be protected for subclasses to sync updates to it
+  protected @Nullable String dataSourceName; // Must be protected for subclasses to sync updates to it
   private int initialConnections = 0;
   private int maxConnections = 0;
   // State variables
   private boolean initialized = false;
-  private Stack<PooledConnection> available = new Stack<PooledConnection>();
-  private Stack<PooledConnection> used = new Stack<PooledConnection>();
-  private Object lock = new Object();
-  private PGConnectionPoolDataSource source;
+  private final Stack<PooledConnection> available = new Stack<PooledConnection>();
+  private final Stack<PooledConnection> used = new Stack<PooledConnection>();
+  private boolean isClosed;
+  private final Object lock = new Object();
+  private @Nullable PGConnectionPoolDataSource source;
 
   /**
    * Gets a description of this DataSource.
@@ -104,7 +109,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws IllegalStateException The Database Name cannot be changed after the DataSource has been
    *         used.
    */
-  public void setDatabaseName(String databaseName) {
+  public void setDatabaseName(@Nullable String databaseName) {
     if (initialized) {
       throw new IllegalStateException(
           "Cannot set Data Source properties after DataSource has been used");
@@ -117,7 +122,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    *
    * @throws IllegalStateException The User cannot be changed after the DataSource has been used.
    */
-  public void setUser(String user) {
+  public void setUser(@Nullable String user) {
     if (initialized) {
       throw new IllegalStateException(
           "Cannot set Data Source properties after DataSource has been used");
@@ -131,7 +136,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws IllegalStateException The Password cannot be changed after the DataSource has been
    *         used.
    */
-  public void setPassword(String password) {
+  public void setPassword(@Nullable String password) {
     if (initialized) {
       throw new IllegalStateException(
           "Cannot set Data Source properties after DataSource has been used");
@@ -217,7 +222,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    *
    * @return name of this DataSource
    */
-  public String getDataSourceName() {
+  public @Nullable String getDataSourceName() {
     return dataSourceName;
   }
 
@@ -262,7 +267,8 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    */
   public void initialize() throws SQLException {
     synchronized (lock) {
-      source = createConnectionPool();
+      PGConnectionPoolDataSource source = createConnectionPool();
+      this.source = source;
       try {
         source.initializeFrom(this);
       } catch (Exception e) {
@@ -299,7 +305,8 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws SQLException Occurs when no pooled connection is available, and a new physical
    *         connection cannot be created.
    */
-  public Connection getConnection(String user, String password) throws SQLException {
+  public Connection getConnection(@Nullable String user, @Nullable String password)
+      throws SQLException {
     // If this is for the default user/password, use a pooled connection
     if (user == null || (user.equals(getUser()) && ((password == null && getPassword() == null)
         || (password != null && password.equals(getPassword()))))) {
@@ -331,29 +338,28 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    */
   public void close() {
     synchronized (lock) {
+      isClosed = true;
       while (!available.isEmpty()) {
         PooledConnection pci = available.pop();
         try {
           pci.close();
-        } catch (SQLException e) {
+        } catch (SQLException ignored) {
         }
       }
-      available = null;
       while (!used.isEmpty()) {
         PooledConnection pci = used.pop();
         pci.removeConnectionEventListener(connectionEventListener);
         try {
           pci.close();
-        } catch (SQLException e) {
+        } catch (SQLException ignored) {
         }
       }
-      used = null;
     }
     removeStoredDataSource();
   }
 
   protected void removeStoredDataSource() {
-    dataSources.remove(dataSourceName);
+    dataSources.remove(castNonNull(dataSourceName));
   }
 
   protected void addDataSource(String dataSourceName) {
@@ -367,7 +373,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   private Connection getPooledConnection() throws SQLException {
     PooledConnection pc = null;
     synchronized (lock) {
-      if (available == null) {
+      if (isClosed) {
         throw new PSQLException(GT.tr("DataSource has been closed."),
             PSQLState.CONNECTION_DOES_NOT_EXIST);
       }
@@ -378,14 +384,14 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
           break;
         }
         if (maxConnections == 0 || used.size() < maxConnections) {
-          pc = source.getPooledConnection();
+          pc = castNonNull(source).getPooledConnection();
           used.push(pc);
           break;
         } else {
           try {
             // Wake up every second at a minimum
             lock.wait(1000L);
-          } catch (InterruptedException e) {
+          } catch (InterruptedException ignored) {
           }
         }
       }
@@ -398,11 +404,11 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * Notified when a pooled connection is closed, or a fatal error occurs on a pooled connection.
    * This is the only way connections are marked as unused.
    */
-  private ConnectionEventListener connectionEventListener = new ConnectionEventListener() {
+  private final ConnectionEventListener connectionEventListener = new ConnectionEventListener() {
     public void connectionClosed(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
       synchronized (lock) {
-        if (available == null) {
+        if (isClosed) {
           return; // DataSource has been closed
         }
         boolean removed = used.remove(event.getSource());
@@ -423,7 +429,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
     public void connectionErrorOccurred(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
       synchronized (lock) {
-        if (available == null) {
+        if (isClosed) {
           return; // DataSource has been closed
         }
         used.remove(event.getSource());
