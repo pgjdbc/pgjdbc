@@ -74,6 +74,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -1700,14 +1701,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @param newAdaptiveFetch new state of adaptive fetch
    */
   private void updateQueryInsideAdaptiveFetchCache(boolean newAdaptiveFetch) {
-    if (!this.adaptiveFetch && newAdaptiveFetch) {
-      // If we are here, that means we want to be added to adaptive fetch.
-      connection.getQueryExecutor().addQueryToAdaptiveFetchCache(true, cursor);
-    }
+    if (Objects.nonNull(cursor)) {
+      ResultCursor resultCursor = cursor;
+      if (!this.adaptiveFetch && newAdaptiveFetch) {
+        // If we are here, that means we want to be added to adaptive fetch.
+        connection.getQueryExecutor().addQueryToAdaptiveFetchCache(true, resultCursor);
+      }
 
-    if (this.adaptiveFetch && !newAdaptiveFetch) {
-      // If we are here, that means we want to be removed from adaptive fetch.
-      connection.getQueryExecutor().removeQueryFromAdaptiveFetchCache(true, cursor);
+      if (this.adaptiveFetch && !newAdaptiveFetch && Objects.nonNull(cursor)) {
+        // If we are here, that means we want to be removed from adaptive fetch.
+        connection.getQueryExecutor().removeQueryFromAdaptiveFetchCache(true, resultCursor);
+      }
     }
   }
 

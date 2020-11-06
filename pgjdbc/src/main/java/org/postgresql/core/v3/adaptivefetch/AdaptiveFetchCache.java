@@ -8,6 +8,8 @@ package org.postgresql.core.v3.adaptivefetch;
 import org.postgresql.PGProperty;
 import org.postgresql.core.Query;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +50,7 @@ public class AdaptiveFetchCache {
    * @param adaptiveFetch state of adaptive fetch, which should be used during adding query
    * @param query         query to be cached
    */
-  public void addNewQuery(boolean adaptiveFetch, Query query) {
+  public void addNewQuery(boolean adaptiveFetch, @NonNull Query query) {
     if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
       AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);
@@ -70,7 +72,7 @@ public class AdaptiveFetchCache {
    * @param maximumRowSizeBytes max row size used during updating information about adaptive fetch
    *                            size for given query
    */
-  public void updateQueryFetchSize(boolean adaptiveFetch, Query query, int maximumRowSizeBytes) {
+  public void updateQueryFetchSize(boolean adaptiveFetch, @NonNull Query query, int maximumRowSizeBytes) {
     if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
       AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);
@@ -97,7 +99,7 @@ public class AdaptiveFetchCache {
    * @param query         query to which we want get adaptive fetch size
    * @return adaptive fetch size for query or -1 if size doesn't exist/adaptive fetch state is false
    */
-  public int getFetchSizeForQuery(boolean adaptiveFetch, Query query) {
+  public int getFetchSizeForQuery(boolean adaptiveFetch, @NonNull Query query) {
     if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
       AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);
@@ -115,7 +117,7 @@ public class AdaptiveFetchCache {
    *                      for query
    * @param query         query to be removed from caching
    */
-  public void removeQuery(boolean adaptiveFetch, Query query) {
+  public void removeQuery(boolean adaptiveFetch, @NonNull Query query) {
     if (adaptiveFetch && maximumResultBufferSize != -1) {
       String sql = query.getNativeSql().trim();
       AdaptiveFetchCacheEntry adaptiveFetchCacheEntry = adaptiveFetchInfoMap.get(sql);

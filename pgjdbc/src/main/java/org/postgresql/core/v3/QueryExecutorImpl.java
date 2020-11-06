@@ -47,6 +47,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -65,6 +66,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -2540,8 +2542,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public int getAdaptiveFetchSize(boolean adaptiveFetch, ResultCursor cursor) {
     if (cursor instanceof Portal) {
-      return adaptiveFetchCache
-        .getFetchSizeForQuery(adaptiveFetch, ((Portal) cursor).getQuery());
+      Query query = ((Portal) cursor).getQuery();
+      if (Objects.nonNull(query)) {
+        return adaptiveFetchCache
+            .getFetchSizeForQuery(adaptiveFetch, query);
+      }
     }
     return -1;
   }
@@ -2557,16 +2562,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
-  public void addQueryToAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor) {
+  public void addQueryToAdaptiveFetchCache(boolean adaptiveFetch, @NonNull ResultCursor cursor) {
     if (cursor instanceof Portal) {
-      adaptiveFetchCache.addNewQuery(adaptiveFetch, ((Portal) cursor).getQuery());
+      Query query = ((Portal) cursor).getQuery();
+      if (Objects.nonNull(query)) {
+        adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
+      }
     }
   }
 
   @Override
-  public void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor) {
+  public void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, @NonNull ResultCursor cursor) {
     if (cursor instanceof Portal) {
-      adaptiveFetchCache.removeQuery(adaptiveFetch, ((Portal) cursor).getQuery());
+      Query query = ((Portal) cursor).getQuery();
+      if (Objects.nonNull(query)) {
+        adaptiveFetchCache.removeQuery(adaptiveFetch, query);
+      }
     }
   }
 
