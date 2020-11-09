@@ -61,7 +61,7 @@ public class ScramAuthenticator {
     do {
       mechanisms.add(pgStream.receiveString());
     } while (pgStream.peekChar() != 0);
-    int c = pgStream.receiveChar();
+    int c = pgStream.receiveChar(1000);
     assert c == 0;
     if (mechanisms.size() < 1) {
       throw new PSQLException(

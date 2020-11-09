@@ -95,6 +95,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       throws SQLException, IOException {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
+
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
     // Set the socket timeout if the "socketTimeout" property has been set.
@@ -153,6 +154,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (socketTimeout > 0) {
       newStream.setNetworkTimeout(socketTimeout * 1000);
     }
+
+    newStream.startBackgroundReceive();
 
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
@@ -519,7 +522,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
 
     // Now get the response from the backend, one of N, E, S.
-    int beresp = pgStream.receiveChar();
+    int beresp = pgStream.receiveCharDirect();
     switch (beresp) {
       case 'E':
         LOGGER.log(Level.FINEST, " <=BE SSLError");
@@ -610,7 +613,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     try {
       authloop: while (true) {
-        int beresp = pgStream.receiveChar();
+        int beresp = pgStream.receiveChar(1000);
 
         switch (beresp) {
           case 'E':

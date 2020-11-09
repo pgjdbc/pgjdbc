@@ -32,6 +32,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
 
@@ -42,7 +44,9 @@ import javax.net.SocketFactory;
  * <p>In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
  * at a time is accessing a particular PGStream instance.</p>
  */
-public class PGStream implements Closeable, Flushable {
+public class PGStream implements Closeable, Flushable, Runnable {
+  private static final Logger LOGGER = Logger.getLogger(PGStream.class.getName());
+
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
 
@@ -79,6 +83,9 @@ public class PGStream implements Closeable, Flushable {
   private long maxResultBuffer = -1;
   private long resultBufferByteCount = 0;
 
+  private Thread ioThread;
+  private boolean readAhead = true;
+
   /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
@@ -94,6 +101,9 @@ public class PGStream implements Closeable, Flushable {
 
     Socket socket = createSocket(timeout);
     changeSocket(socket);
+
+    ioThread = new Thread(this);
+
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
     int2Buf = new byte[2];
@@ -431,18 +441,35 @@ public class PGStream implements Closeable, Flushable {
     return c;
   }
 
+  public int receiveCharDirect() throws IOException {
+    int c = pgInput.readDirect();
+    if ( c < 0 ) {
+      throw new EOFException();
+    }
+    return c;
+  }
+
   /**
    * Receives a single character from the backend.
    *
    * @return the character received
    * @throws IOException if an I/O Error occurs
    */
-  public int receiveChar() throws IOException {
-    int c = pgInput.read();
-    if (c < 0) {
-      throw new EOFException();
+  public int receiveChar(int timeout) throws IOException {
+
+    int c = -1;
+    while ( timeout-- > 0 ) {
+      c = pgInput.read();
+      if ( c >= 0 ) {
+        return c;
+      }
+      try {
+        Thread.sleep(2);
+      } catch ( InterruptedException ie ) {
+
+      }
     }
-    return c;
+    throw new EOFException();
   }
 
   /**
@@ -480,14 +507,11 @@ public class PGStream implements Closeable, Flushable {
    * @param len the length of the string to receive, in bytes.
    * @return the decoded string
    * @throws IOException if something wrong happens
-   */
+  */
   public String receiveString(int len) throws IOException {
-    if (!pgInput.ensureBytes(len)) {
-      throw new EOFException();
-    }
-
-    String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
-    pgInput.skip(len);
+    byte buf[] = new byte[len];
+    pgInput.read(buf);
+    String res = encoding.decode(buf, 0, len);
     return res;
   }
 
@@ -500,10 +524,6 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something wrong happens
    */
   public EncodingPredictor.DecodeResult receiveErrorString(int len) throws IOException {
-    if (!pgInput.ensureBytes(len)) {
-      throw new EOFException();
-    }
-
     EncodingPredictor.DecodeResult res;
     try {
       String value = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
@@ -663,20 +683,6 @@ public class PGStream implements Closeable, Flushable {
     pgOutput.flush();
   }
 
-  /**
-   * Consume an expected EOF from the backend.
-   *
-   * @throws IOException if an I/O error occurs
-   * @throws SQLException if we get something other than an EOF
-   */
-  public void receiveEOF() throws SQLException, IOException {
-    int c = pgInput.read();
-    if (c < 0) {
-      return;
-    }
-    throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
-        PSQLState.COMMUNICATION_ERROR);
-  }
 
   /**
    * Closes the connection.
@@ -688,6 +694,9 @@ public class PGStream implements Closeable, Flushable {
     if (encodingWriter != null) {
       encodingWriter.close();
     }
+
+    readAhead = false;
+    ioThread.interrupt();
 
     pgOutput.close();
     pgInput.close();
@@ -743,4 +752,34 @@ public class PGStream implements Closeable, Flushable {
   public boolean isClosed() {
     return connection.isClosed();
   }
+
+
+  public void startBackgroundReceive() {
+    readAhead = true;
+    ioThread = new Thread(this);
+    ioThread.start();
+  }
+
+  public void run() {
+    while ( readAhead ) {
+      try {
+        if ( !(pgInput.roomAvailable() > 0) || !(pgInput.readBackground() ) ) {
+          // if no room or we weren't able to read anything then wait for a bit.
+          Thread.sleep(10);
+        } else {
+          LOGGER.log(Level.FINE,
+            () -> String.format("Reading Index: {0}, available {1}", pgInput.getIndex(),
+              pgInput.getEndIndex()));
+        }
+      } catch (IOException ex) {
+        // need to save this for the next time the reader reads
+        // and throw it
+      } catch ( InterruptedException ie ) {
+        LOGGER.log(Level.FINE,"Reading process shutting down");
+        // don't need to do much here
+      }
+    }
+    LOGGER.log(Level.FINE,"Reading process shutdown");
+  }
+
 }

@@ -66,16 +66,27 @@ public class VisibleBufferedInputStream extends InputStream {
     buffer = new byte[bufferSize < MINIMUM_READ ? MINIMUM_READ : bufferSize];
   }
 
+  private int bytesRead() {
+    synchronized ( buffer ) {
+      return endIndex - index;
+    }
+  }
+
   /**
    * {@inheritDoc}
    */
   public int read() throws IOException {
-    if (ensureBytes(1)) {
-      return buffer[index++] & 0xFF;
+    if ( bytesRead() > 0 ) {
+      synchronized ( buffer ) {
+        return buffer[index++] & 0xFF;
+      }
     }
     return -1;
   }
 
+  public int readDirect() throws IOException {
+    return wrapped.read();
+  }
   /**
    * Reads a byte from the buffer without advancing the index pointer.
    *
@@ -83,22 +94,10 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws IOException if something wrong happens
    */
   public int peek() throws IOException {
-    if (ensureBytes(1)) {
+    if ( bytesRead() > 0 ) {
       return buffer[index] & 0xFF;
     }
     return -1;
-  }
-
-  /**
-   * Reads byte from the buffer without any checks. This method never reads from the underlaying
-   * stream. Before calling this method the {@link #ensureBytes} method must have been called.
-   *
-   * @return The next byte from the buffer.
-   * @throws ArrayIndexOutOfBoundsException If ensureBytes was not called to make sure the buffer
-   *         contains the byte.
-   */
-  public byte readRaw() {
-    return buffer[index++];
   }
 
   /**
@@ -113,6 +112,22 @@ public class VisibleBufferedInputStream extends InputStream {
     return ensureBytes(n, true);
   }
 
+  public boolean readBackground() throws IOException {
+    int roomLeft = roomAvailable();
+
+    if ( roomLeft > 0  ) {
+      try {
+        int actuallyRead = wrapped.read(buffer, endIndex, roomLeft);
+        synchronized (buffer) {
+          endIndex += actuallyRead;
+        }
+        return true;
+      } catch ( SocketTimeoutException ste ) {
+        // TODO do something with this later
+      }
+    }
+    return false;
+  }
   /**
    * Ensures that the buffer contains at least n bytes. This method invalidates the buffer and index
    * fields.
@@ -215,51 +230,31 @@ public class VisibleBufferedInputStream extends InputStream {
     } else if (len == 0) {
       return 0;
     }
+    int read = 0;
+    while ( len > 0 ) {
+      // if the read would go to wrapped stream, but would result
+      // in a small read then try read to the buffer instead
+      int avail = bytesRead();
+      if ( avail > 0  ) {
+        // first copy from buffer
+        synchronized (buffer) {
 
-    // if the read would go to wrapped stream, but would result
-    // in a small read then try read to the buffer instead
-    int avail = endIndex - index;
-    if (len - avail < MINIMUM_READ) {
-      ensureBytes(len);
-      avail = endIndex - index;
-    }
+          int bytesToRead = avail < len ? avail:len;
+          System.arraycopy(buffer, index, to, off, bytesToRead);
 
-    // first copy from buffer
-    if (avail > 0) {
-      if (len <= avail) {
-        System.arraycopy(buffer, index, to, off, len);
-        index += len;
-        return len;
-      }
-      System.arraycopy(buffer, index, to, off, avail);
-      len -= avail;
-      off += avail;
-    }
-    int read = avail;
-
-    // good place to reset index because the buffer is fully drained
-    index = 0;
-    endIndex = 0;
-
-    // then directly from wrapped stream
-    do {
-      int r;
-      try {
-        r = wrapped.read(to, off, len);
-      } catch (SocketTimeoutException e) {
-        if (read == 0 && timeoutRequested) {
-          throw e;
+          len -= bytesToRead;
+          off += bytesToRead;
+          read += bytesToRead;
+          index += bytesToRead;
         }
-        return read;
+      } else {
+        try {
+          Thread.sleep(10);
+        } catch ( InterruptedException ie ) {
+          break;
+        }
       }
-      if (r <= 0) {
-        return (read == 0) ? r : read;
-      }
-      read += r;
-      off += r;
-      len -= r;
-    } while (len > 0);
-
+    }
     return read;
   }
 
@@ -267,23 +262,24 @@ public class VisibleBufferedInputStream extends InputStream {
    * {@inheritDoc}
    */
   public long skip(long n) throws IOException {
-    int avail = endIndex - index;
-    if (avail >= n) {
-      index += n;
-      return n;
+    int avail = 0;
+    avail = bytesRead();
+    synchronized (buffer) {
+      if (avail >= n) {
+        index += n;
+        return n;
+      } else {
+        index += avail;
+        return avail;
+      }
     }
-    n -= avail;
-    index = 0;
-    endIndex = 0;
-    return avail + wrapped.skip(n);
   }
 
   /**
    * {@inheritDoc}
    */
   public int available() throws IOException {
-    int avail = endIndex - index;
-    return avail > 0 ? avail : wrapped.available();
+    return bytesRead();
   }
 
   /**
@@ -312,6 +308,10 @@ public class VisibleBufferedInputStream extends InputStream {
     return index;
   }
 
+  public int getEndIndex() {
+    return endIndex;
+  }
+
   /**
    * Scans the length of the next null terminated string (C-style string) from the stream.
    *
@@ -331,6 +331,15 @@ public class VisibleBufferedInputStream extends InputStream {
         throw new EOFException();
       }
       pos = index;
+    }
+  }
+
+  public int roomAvailable() {
+    synchronized ( buffer ) {
+      if ( index == endIndex ) {
+        index = endIndex = 0;
+      }
+      return buffer.length - endIndex;
     }
   }
 

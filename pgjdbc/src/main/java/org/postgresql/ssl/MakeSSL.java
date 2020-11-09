@@ -31,6 +31,7 @@ public class MakeSSL extends ObjectFactory {
       throws PSQLException, IOException {
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
 
+
     SSLSocketFactory factory = SocketFactoryFactory.getSslSocketFactory(info);
     SSLSocket newConnection;
     try {
@@ -53,6 +54,7 @@ public class MakeSSL extends ObjectFactory {
     }
 
     stream.changeSocket(newConnection);
+
   }
 
   private static void verifyPeerName(PGStream stream, Properties info, SSLSocket newConnection)
