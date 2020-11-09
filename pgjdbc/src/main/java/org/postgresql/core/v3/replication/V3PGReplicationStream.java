@@ -6,18 +6,18 @@
 package org.postgresql.core.v3.replication;
 
 import org.postgresql.copy.CopyDual;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.ReplicationType;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -77,6 +77,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return payload;
   }
 
+  @Override
   public @Nullable ByteBuffer readPending() throws SQLException {
     checkClose();
     return readInternal(false);
@@ -145,9 +146,9 @@ public class V3PGReplicationStream implements PGReplicationStream {
           return processXLogData(buffer);
 
         default:
-          throw new PSQLException(
+          throw new SQLException(
               GT.tr("Unexpected packet type during replication: {0}", Integer.toString(code)),
-              PSQLState.PROTOCOL_VIOLATION
+              PgSqlState.PROTOCOL_VIOLATION
           );
       }
     }
@@ -163,7 +164,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
       } else {
         return null;
       }
-    } catch (PSQLException e) { //todo maybe replace on thread sleep?
+    } catch (SQLException e) { //todo maybe replace on thread sleep?
       if (e.getCause() instanceof SocketTimeoutException) {
         //signal for keep alive
         return null;
@@ -269,13 +270,14 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return buffer.slice();
   }
 
-  private void checkClose() throws PSQLException {
+  private void checkClose() throws SQLNonTransientConnectionException {
     if (isClosed()) {
-      throw new PSQLException(GT.tr("This replication stream has been closed."),
-          PSQLState.CONNECTION_DOES_NOT_EXIST);
+      throw new SQLNonTransientConnectionException(GT.tr("This replication stream has been closed."),
+          PgSqlState.CONNECTION_DOES_NOT_EXIST);
     }
   }
 
+  @Override
   public void close() throws SQLException {
     if (isClosed()) {
       return;

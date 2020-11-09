@@ -5,9 +5,12 @@
 
 package org.postgresql.util;
 
+import org.postgresql.exception.PgSqlState;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -55,8 +58,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     char [] tokens = find.toCharArray();
     int found = -1;
 
-    for ( int i = 0; i < tokens.length; i++ ) {
-      found = value.indexOf(tokens[i], position);
+    for (char token : tokens) {
+      found = value.indexOf(token, position);
       if ( found > 0 ) {
         return found;
       }
@@ -135,6 +138,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
    */
+  @Override
   public void setValue(String value) throws SQLException {
     final boolean PostgresFormat = !value.startsWith("@");
     if (value.startsWith("P")) {
@@ -211,8 +215,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         }
       }
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion of interval failed"),
-          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
+      throw new SQLDataException(GT.tr("Conversion of interval failed"),
+          PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE, e);
     }
 
     if (!PostgresFormat && value.endsWith("ago")) {
@@ -247,6 +251,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @return String represented interval
    */
+  @Override
   public String getValue() {
     DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(Locale.US);
     df.applyPattern("0.0#####");
@@ -469,6 +474,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two intervals are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj == null) {
       return false;

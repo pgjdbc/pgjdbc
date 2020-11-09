@@ -5,13 +5,12 @@
 
 package org.postgresql.core;
 
-import org.postgresql.util.PSQLException;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
@@ -30,12 +29,12 @@ public class CommandCompleteParserNegativeTest {
   }
 
   @Test
-  public void run() throws PSQLException {
+  public void run() throws SQLException {
     CommandCompleteParser parser = new CommandCompleteParser();
     try {
       parser.parse(input);
       Assert.fail("CommandCompleteParser should throw NumberFormatException for " + input);
-    } catch (PSQLException e) {
+    } catch (SQLException e) {
       Throwable cause = e.getCause();
       if (cause == null) {
         throw e;

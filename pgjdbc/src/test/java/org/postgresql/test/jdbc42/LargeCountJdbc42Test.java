@@ -6,9 +6,9 @@
 package org.postgresql.test.jdbc42;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -94,7 +94,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    */
   @Ignore("This is the big and SLOW test")
   @Test
-  public void testExecuteLargeUpdateBIG() throws Exception {
+  public void testExecuteLargeUpdateBIG() throws SQLException {
     long expected = Integer.MAX_VALUE + 110L;
     con.setAutoCommit(false);
     // Test PreparedStatement.executeLargeUpdate()
@@ -117,7 +117,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test Statement.executeLargeUpdate(String sql)
    */
   @Test
-  public void testExecuteLargeUpdateStatementSMALL() throws Exception {
+  public void testExecuteLargeUpdateStatementSMALL() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       long count = stmt.executeLargeUpdate("insert into largetable "
           + "select true from generate_series(1, 1010)");
@@ -130,7 +130,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test PreparedStatement.executeLargeUpdate();
    */
   @Test
-  public void testExecuteLargeUpdatePreparedStatementSMALL() throws Exception {
+  public void testExecuteLargeUpdatePreparedStatementSMALL() throws SQLException {
     try (PreparedStatement stmt = con.prepareStatement("insert into largetable "
         + "select true from generate_series(?, ?)")) {
       stmt.setLong(1, 1);
@@ -145,7 +145,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test Statement.getLargeUpdateCount();
    */
   @Test
-  public void testGetLargeUpdateCountStatementSMALL() throws Exception {
+  public void testGetLargeUpdateCountStatementSMALL() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       boolean isResult = stmt.execute("insert into largetable "
           + "select true from generate_series(1, 1010)");
@@ -160,7 +160,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test PreparedStatement.getLargeUpdateCount();
    */
   @Test
-  public void testGetLargeUpdateCountPreparedStatementSMALL() throws Exception {
+  public void testGetLargeUpdateCountPreparedStatementSMALL() throws SQLException {
     try (PreparedStatement stmt = con.prepareStatement("insert into largetable "
         + "select true from generate_series(?, ?)")) {
       stmt.setInt(1, 1);
@@ -177,12 +177,12 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test fail SELECT Statement.executeLargeUpdate(String sql)
    */
   @Test
-  public void testExecuteLargeUpdateStatementSELECT() throws Exception {
+  public void testExecuteLargeUpdateStatementSELECT() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       long count = stmt.executeLargeUpdate("select true from generate_series(1, 5)");
       Assert.fail("A result was returned when none was expected. Returned: " + count);
     } catch (SQLException e) {
-      Assert.assertEquals(PSQLState.TOO_MANY_RESULTS.getState(), e.getSQLState());
+      Assert.assertEquals(PgSqlState.WARNING_DYNAMIC_RESULT_SETS_RETURNED, e.getSQLState());
     }
   }
 
@@ -190,14 +190,14 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test fail SELECT PreparedStatement.executeLargeUpdate();
    */
   @Test
-  public void testExecuteLargeUpdatePreparedStatementSELECT() throws Exception {
+  public void testExecuteLargeUpdatePreparedStatementSELECT() {
     try (PreparedStatement stmt = con.prepareStatement("select true from generate_series(?, ?)")) {
       stmt.setLong(1, 1);
       stmt.setLong(2, 5L);
       long count = stmt.executeLargeUpdate();
       Assert.fail("A result was returned when none was expected. Returned: " + count);
     } catch (SQLException e) {
-      Assert.assertEquals(PSQLState.TOO_MANY_RESULTS.getState(), e.getSQLState());
+      Assert.assertEquals(PgSqlState.WARNING_DYNAMIC_RESULT_SETS_RETURNED, e.getSQLState());
     }
   }
 
@@ -205,7 +205,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test Statement.getLargeUpdateCount();
    */
   @Test
-  public void testGetLargeUpdateCountStatementSELECT() throws Exception {
+  public void testGetLargeUpdateCountStatementSELECT() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       boolean isResult = stmt.execute("select true from generate_series(1, 5)");
       Assert.assertTrue("True since this is a SELECT", isResult);
@@ -219,7 +219,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test PreparedStatement.getLargeUpdateCount();
    */
   @Test
-  public void testGetLargeUpdateCountPreparedStatementSELECT() throws Exception {
+  public void testGetLargeUpdateCountPreparedStatementSELECT() throws SQLException {
     try (PreparedStatement stmt = con.prepareStatement("select true from generate_series(?, ?)")) {
       stmt.setLong(1, 1);
       stmt.setLong(2, 5L);
@@ -264,7 +264,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    */
   @Ignore("This is the big and SLOW test")
   @Test
-  public void testExecuteLargeBatchStatementBIG() throws Exception {
+  public void testExecuteLargeBatchStatementBIG() throws SQLException {
     con.setAutoCommit(false);
     try (PreparedStatement stmt = con.prepareStatement("insert into largetable "
         + "select true from generate_series(?, ?)")) {
@@ -287,7 +287,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test simple Statement.executeLargeBatch();
    */
   @Test
-  public void testExecuteLargeBatchStatementSMALL() throws Exception {
+  public void testExecuteLargeBatchStatementSMALL() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.addBatch("insert into largetable(a) select true"); // statement one
       stmt.addBatch("insert into largetable select false"); // statement two
@@ -302,7 +302,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test simple PreparedStatement.executeLargeBatch();
    */
   @Test
-  public void testExecuteLargePreparedStatementStatementSMALL() throws Exception {
+  public void testExecuteLargePreparedStatementStatementSMALL() throws SQLException {
     try (PreparedStatement stmt = con.prepareStatement("insert into largetable "
         + "select true from generate_series(?, ?)")) {
       stmt.setInt(1, 1);
@@ -324,7 +324,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test loop PreparedStatement.executeLargeBatch();
    */
   @Test
-  public void testExecuteLargePreparedStatementStatementLoopSMALL() throws Exception {
+  public void testExecuteLargePreparedStatementStatementLoopSMALL() throws SQLException {
     long[] loop = {200, 100, 50, 300, 20, 60, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
     try (PreparedStatement stmt = con.prepareStatement("insert into largetable "
         + "select true from generate_series(?, ?)")) {
@@ -342,7 +342,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test loop PreparedStatement.executeLargeBatch();
    */
   @Test
-  public void testExecuteLargeBatchValuesInsertSMALL() throws Exception {
+  public void testExecuteLargeBatchValuesInsertSMALL() throws SQLException {
     boolean[] loop = {true, false, true, false, false, false, true, true, true, true, false, true};
     try (PreparedStatement stmt = con.prepareStatement("insert into largetable values(?)")) {
       for (boolean i : loop) {
@@ -365,7 +365,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test null PreparedStatement.executeLargeBatch();
    */
   @Test
-  public void testNullExecuteLargeBatchStatement() throws Exception {
+  public void testNullExecuteLargeBatchStatement() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       long[] actual = stmt.executeLargeBatch();
       Assert.assertArrayEquals("addBatch() not called batchStatements is null", new long[0], actual);
@@ -376,7 +376,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test empty PreparedStatement.executeLargeBatch();
    */
   @Test
-  public void testEmptyExecuteLargeBatchStatement() throws Exception {
+  public void testEmptyExecuteLargeBatchStatement() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.addBatch("");
       stmt.clearBatch();
@@ -389,7 +389,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test null PreparedStatement.executeLargeBatch();
    */
   @Test
-  public void testNullExecuteLargeBatchPreparedStatement() throws Exception {
+  public void testNullExecuteLargeBatchPreparedStatement() throws SQLException {
     try (PreparedStatement stmt = con.prepareStatement("")) {
       long[] actual = stmt.executeLargeBatch();
       Assert.assertArrayEquals("addBatch() not called batchStatements is null", new long[0], actual);
@@ -400,7 +400,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
    * Test empty PreparedStatement.executeLargeBatch();
    */
   @Test
-  public void testEmptyExecuteLargeBatchPreparedStatement() throws Exception {
+  public void testEmptyExecuteLargeBatchPreparedStatement() throws SQLException {
     try (PreparedStatement stmt = con.prepareStatement("")) {
       stmt.addBatch();
       stmt.clearBatch();

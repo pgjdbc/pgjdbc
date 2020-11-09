@@ -5,13 +5,12 @@
 
 package org.postgresql.core;
 
-import org.postgresql.util.PSQLException;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
@@ -48,7 +47,7 @@ public class CommandCompleteParserTest {
   }
 
   @Test
-  public void run() throws PSQLException {
+  public void run() throws SQLException {
     CommandCompleteParser expected = new CommandCompleteParser();
     CommandCompleteParser actual = new CommandCompleteParser();
     expected.set(oid, rows);

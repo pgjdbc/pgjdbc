@@ -5,9 +5,12 @@
 
 package org.postgresql.util;
 
+import org.postgresql.exception.PgSqlState;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 
 /**
@@ -40,6 +43,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     type = "money";
   }
 
+  @Override
   public void setValue(String s) throws SQLException {
     try {
       String s1;
@@ -61,8 +65,8 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
       val = negative ? -val : val;
 
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion of money failed."),
-          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
+      throw new SQLDataException(GT.tr("Conversion of money failed."),
+          PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE, e);
     }
   }
 
@@ -76,6 +80,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     return result;
   }
 
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGmoney) {
       PGmoney p = (PGmoney) obj;
@@ -84,6 +89,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public String getValue() {
     if (val < 0) {
       return "-$" + (-val);

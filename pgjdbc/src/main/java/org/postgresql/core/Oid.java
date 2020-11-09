@@ -5,11 +5,11 @@
 
 package org.postgresql.core;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.lang.reflect.Field;
+import java.sql.SQLDataException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -78,8 +78,8 @@ public class Oid {
   public static final int REF_CURSOR = 1790;
   public static final int REF_CURSOR_ARRAY = 2201;
 
-  private static final Map<Integer, String> OID_TO_NAME = new HashMap<Integer, String>(100);
-  private static final Map<String, Integer> NAME_TO_OID = new HashMap<String, Integer>(100);
+  private static final Map<Integer, String> OID_TO_NAME = new HashMap<>(100);
+  private static final Map<String, Integer> NAME_TO_OID = new HashMap<>(100);
 
   static {
     for (Field field : Oid.class.getFields()) {
@@ -109,7 +109,7 @@ public class Oid {
     return name;
   }
 
-  public static int valueOf(String oid) throws PSQLException {
+  public static int valueOf(String oid) throws SQLDataException {
     if (oid.length() > 0 && !Character.isDigit(oid.charAt(0))) {
       Integer id = NAME_TO_OID.get(oid);
       if (id == null) {
@@ -125,7 +125,7 @@ public class Oid {
       } catch (NumberFormatException ex) {
       }
     }
-    throw new PSQLException(GT.tr("oid type {0} not known and not a number", oid),
-        PSQLState.INVALID_PARAMETER_VALUE);
+    throw new SQLDataException(GT.tr("oid type {0} not known and not a number", oid),
+        PgSqlState.INVALID_PARAMETER_VALUE);
   }
 }

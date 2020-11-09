@@ -6,9 +6,8 @@
 package org.postgresql.gss;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSCredential;
@@ -16,6 +15,8 @@ import org.ietf.jgss.GSSCredential;
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.sql.SQLException;
+import java.sql.SQLInvalidAuthorizationSpecException;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,7 +32,7 @@ public class MakeGSS {
       @Nullable String jaasApplicationName, @Nullable String kerberosServerName,
       boolean useSpnego, boolean jaasLogin,
       boolean logServerErrorDetail)
-          throws IOException, PSQLException {
+          throws IOException, SQLException {
     LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
 
     if (jaasApplicationName == null) {
@@ -71,15 +72,17 @@ public class MakeGSS {
         result = Subject.doAs(sub, action);
       }
     } catch (Exception e) {
-      throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE, e);
+      throw new SQLInvalidAuthorizationSpecException(GT.tr("GSS Authentication failed"),
+          PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION, e);
     }
 
     if (result instanceof IOException) {
       throw (IOException) result;
-    } else if (result instanceof PSQLException) {
-      throw (PSQLException) result;
+    } else if (result instanceof SQLInvalidAuthorizationSpecException) {
+      throw (SQLInvalidAuthorizationSpecException) result;
     } else if (result != null) {
-      throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
+      throw new SQLInvalidAuthorizationSpecException(GT.tr("GSS Authentication failed"),
+          PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION,
           result);
     }
 

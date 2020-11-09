@@ -8,21 +8,21 @@ package org.postgresql.jdbc;
 import static org.junit.Assert.assertFalse;
 
 import org.postgresql.core.Oid;
-import org.postgresql.util.PSQLException;
 
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.sql.SQLDataException;
 import java.sql.SQLFeatureNotSupportedException;
 
 public class ArraysTest {
 
-  @Test(expected = PSQLException.class)
+  @Test(expected = SQLDataException.class)
   public void testNonArrayNotSupported() throws Exception {
     ArrayEncoding.getArrayEncoder("asdflkj");
   }
 
-  @Test(expected = PSQLException.class)
+  @Test(expected = SQLDataException.class)
   public void testNoByteArray() throws Exception {
     ArrayEncoding.getArrayEncoder(new byte[] {});
   }

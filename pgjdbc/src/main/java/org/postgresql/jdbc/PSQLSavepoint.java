@@ -6,9 +6,8 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.core.Utils;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -37,13 +36,13 @@ public class PSQLSavepoint implements Savepoint {
   @Override
   public int getSavepointId() throws SQLException {
     if (!isValid) {
-      throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
-          PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
+      throw new SQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+          PgSqlState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
     if (isNamed) {
-      throw new PSQLException(GT.tr("Cannot retrieve the id of a named savepoint."),
-          PSQLState.WRONG_OBJECT_TYPE);
+      throw new SQLException(GT.tr("Cannot retrieve the id of a named savepoint."),
+          PgSqlState.WRONG_OBJECT_TYPE);
     }
 
     return id;
@@ -52,13 +51,13 @@ public class PSQLSavepoint implements Savepoint {
   @Override
   public String getSavepointName() throws SQLException {
     if (!isValid) {
-      throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
-          PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
+      throw new SQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+          PgSqlState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
     if (!isNamed || name == null) {
-      throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."),
-          PSQLState.WRONG_OBJECT_TYPE);
+      throw new SQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."),
+          PgSqlState.WRONG_OBJECT_TYPE);
     }
 
     return name;
@@ -70,8 +69,8 @@ public class PSQLSavepoint implements Savepoint {
 
   public String getPGName() throws SQLException {
     if (!isValid) {
-      throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
-          PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
+      throw new SQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+          PgSqlState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
     if (isNamed && name != null) {

@@ -6,8 +6,8 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -57,7 +57,7 @@ public class ClientEncodingTest extends BaseTest4 {
             "allowEncodingChanges is false, thus set client_encoding=aql_ascii is expected to fail");
       }
     } catch (SQLException e) {
-      if (!allowEncodingChanges && !PSQLState.CONNECTION_FAILURE.getState()
+      if (!allowEncodingChanges && !PgSqlState.CONNECTION_FAILURE
           .equals(e.getSQLState())) {
         throw e;
       }

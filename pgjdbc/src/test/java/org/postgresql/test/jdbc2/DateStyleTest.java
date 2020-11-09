@@ -5,8 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class DateStyleTest extends BaseTest4 {
         throw new IllegalStateException("Set DateStyle=" + dateStyle
             + " should be fine, however received " + e.getMessage(), e);
       }
-      if (PSQLState.CONNECTION_FAILURE.getState().equals(e.getSQLState())) {
+      if (PgSqlState.CONNECTION_FAILURE.equals(e.getSQLState())) {
         return;
       }
       throw new IllegalStateException("Set DateStyle=" + dateStyle

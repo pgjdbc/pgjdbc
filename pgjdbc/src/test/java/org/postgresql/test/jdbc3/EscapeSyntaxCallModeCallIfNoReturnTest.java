@@ -7,11 +7,12 @@ package org.postgresql.test.jdbc3;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
 
@@ -43,7 +44,7 @@ public class EscapeSyntaxCallModeCallIfNoReturnTest extends EscapeSyntaxCallMode
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.WRONG_OBJECT_TYPE.getState()));
+      assertEquals(PgSqlState.WRONG_OBJECT_TYPE, ex.getSQLState());
     }
   }
 

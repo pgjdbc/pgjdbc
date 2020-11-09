@@ -8,12 +8,11 @@ package org.postgresql.ssl;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
 import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -29,6 +28,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Properties;
 
 import javax.net.ssl.KeyManager;
@@ -50,7 +51,7 @@ public class LibPQFactory extends WrappedFactory {
 
   private CallbackHandler getCallbackHandler(
       @UnderInitialization(WrappedFactory.class) LibPQFactory this,
-      Properties info) throws PSQLException {
+      Properties info) throws SQLNonTransientConnectionException {
     // Determine the callback handler
     CallbackHandler cbh;
     String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
@@ -58,10 +59,10 @@ public class LibPQFactory extends WrappedFactory {
       try {
         cbh = (CallbackHandler) ObjectFactory.instantiate(sslpasswordcallback, info, false, null);
       } catch (Exception e) {
-        throw new PSQLException(
+        throw new SQLNonTransientConnectionException(
           GT.tr("The password callback class provided {0} could not be instantiated.",
             sslpasswordcallback),
-          PSQLState.CONNECTION_FAILURE, e);
+          PgSqlState.CONNECTION_FAILURE, e);
       }
     } else {
       cbh = new ConsoleCallbackHandler(PGProperty.SSL_PASSWORD.get(info));
@@ -71,7 +72,7 @@ public class LibPQFactory extends WrappedFactory {
 
   private void initPk8(
       @UnderInitialization(WrappedFactory.class) LibPQFactory this,
-      String sslkeyfile, String defaultdir, Properties info) throws  PSQLException {
+      String sslkeyfile, String defaultdir, Properties info) throws  SQLNonTransientConnectionException {
 
     // Load the client's certificate and key
     String sslcertfile = PGProperty.SSL_CERT.get(info);
@@ -87,16 +88,16 @@ public class LibPQFactory extends WrappedFactory {
 
   private void initP12(
       @UnderInitialization(WrappedFactory.class) LibPQFactory this,
-      String sslkeyfile, Properties info) throws PSQLException {
+      String sslkeyfile, Properties info) throws SQLException {
     km = new PKCS12KeyManager(sslkeyfile, getCallbackHandler(info));
   }
 
   /**
    * @param info the connection parameters The following parameters are used:
    *        sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
-   * @throws PSQLException if security error appears when initializing factory
+   * @throws SQLException if security error appears when initializing factory
    */
-  public LibPQFactory(Properties info) throws PSQLException {
+  public LibPQFactory(Properties info) throws SQLException {
     try {
       SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
 
@@ -146,9 +147,9 @@ public class LibPQFactory extends WrappedFactory {
         try {
           fis = new FileInputStream(sslrootcertfile); // NOSONAR
         } catch (FileNotFoundException ex) {
-          throw new PSQLException(
+          throw new SQLNonTransientConnectionException(
               GT.tr("Could not open SSL root certificate file {0}.", sslrootcertfile),
-              PSQLState.CONNECTION_FAILURE, ex);
+              PgSqlState.CONNECTION_FAILURE, ex);
         }
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -161,14 +162,14 @@ public class LibPQFactory extends WrappedFactory {
           }
           tmf.init(ks);
         } catch (IOException ioex) {
-          throw new PSQLException(
+          throw new SQLNonTransientConnectionException(
               GT.tr("Could not read SSL root certificate file {0}.", sslrootcertfile),
-              PSQLState.CONNECTION_FAILURE, ioex);
+              PgSqlState.CONNECTION_FAILURE, ioex);
         } catch (GeneralSecurityException gsex) {
-          throw new PSQLException(
+          throw new SQLNonTransientConnectionException(
               GT.tr("Loading the SSL root certificate {0} into a TrustManager failed.",
                       sslrootcertfile),
-              PSQLState.CONNECTION_FAILURE, gsex);
+              PgSqlState.CONNECTION_FAILURE, gsex);
         } finally {
           try {
             fis.close();
@@ -184,23 +185,23 @@ public class LibPQFactory extends WrappedFactory {
         KeyManager km = this.km;
         ctx.init(km == null ? null : new KeyManager[]{km}, tm, null);
       } catch (KeyManagementException ex) {
-        throw new PSQLException(GT.tr("Could not initialize SSL context."),
-            PSQLState.CONNECTION_FAILURE, ex);
+        throw new SQLException(GT.tr("Could not initialize SSL context."),
+            PgSqlState.CONNECTION_FAILURE, ex);
       }
 
       factory = ctx.getSocketFactory();
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
-              ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      throw new SQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+              ex.getMessage()), PgSqlState.CONNECTION_FAILURE, ex);
     }
   }
 
   /**
    * Propagates any exception from {@link LazyKeyManager}.
    *
-   * @throws PSQLException if there is an exception to propagate
+   * @throws SQLException if there is an exception to propagate
    */
-  public void throwKeyManagerException() throws PSQLException {
+  public void throwKeyManagerException() throws SQLException {
     if (km != null) {
       if (km instanceof LazyKeyManager) {
         ((LazyKeyManager)km).throwKeyManagerException();

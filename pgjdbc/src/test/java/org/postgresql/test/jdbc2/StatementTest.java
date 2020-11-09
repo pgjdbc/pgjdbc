@@ -13,9 +13,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -738,7 +738,7 @@ public class StatementTest {
         // don't want to do that.
         Assert.assertEquals(
             "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
-            PSQLState.QUERY_CANCELED.getState(),
+            PgSqlState.QUERY_CANCELED,
             e.getSQLState());
       }
       // Must never time out.
@@ -886,7 +886,7 @@ public class StatementTest {
         } catch (SQLException e) {
           Assert.assertEquals(
               "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
-              PSQLState.QUERY_CANCELED.getState(),
+              PgSqlState.QUERY_CANCELED,
               e.getSQLState()
           );
           cancels++;
@@ -915,7 +915,7 @@ public class StatementTest {
             + "END "
             + "$BODY$ "
             + "LANGUAGE plpgsql;");
-    Map<String, Integer> cnt = new HashMap<String, Integer>();
+    Map<String, Integer> cnt = new HashMap<>();
     final Random rnd = new Random();
     for (int i = 0; i < 1000; i++) {
       final Statement st = con.createStatement();
@@ -942,11 +942,11 @@ public class StatementTest {
         // Acceptable
       } catch (SQLException e) {
         sqlState = e.getSQLState();
-        if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(sqlState)
-            && !PSQLState.QUERY_CANCELED.getState().equals(sqlState)) {
+        if (!PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE.equals(sqlState)
+            && !PgSqlState.QUERY_CANCELED.equals(sqlState)) {
           Assert.assertEquals(
               "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
-              PSQLState.QUERY_CANCELED.getState(),
+              PgSqlState.QUERY_CANCELED,
               e.getSQLState()
           );
         }
@@ -971,7 +971,7 @@ public class StatementTest {
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
 
     final AtomicInteger leaks = new AtomicInteger();
-    final AtomicReference<Throwable> cleanupFailure = new AtomicReference<Throwable>();
+    final AtomicReference<Throwable> cleanupFailure = new AtomicReference<>();
 
     for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {
       for (int i = 0; i < 100; i++) {
@@ -1064,7 +1064,7 @@ public class StatementTest {
       fail("Query with unterminated " + errorType + " should fail");
     } catch (SQLException e) {
       assertEquals("Query should fail with unterminated " + errorType,
-          PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+          PgSqlState.SYNTAX_ERROR, e.getSQLState());
     } finally {
       TestUtil.closeQuietly(ps);
     }

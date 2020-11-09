@@ -5,17 +5,18 @@
 
 package org.postgresql.core;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.EscapedFunctions2;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,12 +43,12 @@ public class Parser {
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
-   * @throws SQLException if unable to add returning clause (invalid column names)
+   * @throws SQLSyntaxErrorException if unable to add returning clause (invalid column names)
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
       boolean isBatchedReWriteConfigured,
-      String... returningColumnNames) throws SQLException {
+      String... returningColumnNames) throws SQLSyntaxErrorException {
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
       return Collections.singletonList(new NativeQuery(query,
@@ -126,7 +127,7 @@ public class Parser {
               nativeSql.append('?');
             } else {
               if (bindPositions == null) {
-                bindPositions = new ArrayList<Integer>();
+                bindPositions = new ArrayList<>();
               }
               bindPositions.add(nativeSql.length());
               int bindIndex = bindPositions.size();
@@ -151,7 +152,7 @@ public class Parser {
 
               if (splitStatements) {
                 if (nativeQueries == null) {
-                  nativeQueries = new ArrayList<NativeQuery>();
+                  nativeQueries = new ArrayList<>();
                 }
 
                 if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
@@ -342,7 +343,7 @@ public class Parser {
   }
 
   private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
-      String[] returningColumnNames, boolean isReturningPresent) throws SQLException {
+      String[] returningColumnNames, boolean isReturningPresent) throws SQLSyntaxErrorException {
     if (isReturningPresent || returningColumnNames.length == 0) {
       return false;
     }
@@ -363,7 +364,11 @@ public class Parser {
       if (col > 0) {
         nativeSql.append(", ");
       }
-      Utils.escapeIdentifier(nativeSql, columnName);
+      try {
+        Utils.escapeIdentifier(nativeSql, columnName);
+      } catch (SQLDataException ex) {
+        throw new SQLSyntaxErrorException(ex);
+      }
     }
     return true;
   }
@@ -926,10 +931,10 @@ public class Parser {
    * @param protocolVersion      protocol version
    * @param escapeSyntaxCallMode mode specifying whether JDBC escape call syntax is transformed into a CALL/SELECT statement
    * @return SQL in appropriate for given server format
-   * @throws SQLException if given SQL is malformed
+   * @throws SQLSyntaxErrorException if given SQL is malformed
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
-      int serverVersion, int protocolVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
+      int serverVersion, int protocolVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLSyntaxErrorException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1090,9 +1095,9 @@ public class Parser {
     }
 
     if (syntaxError) {
-      throw new PSQLException(
+      throw new SQLSyntaxErrorException(
           GT.tr("Malformed function or procedure escape syntax at offset {0}.", i),
-          PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+          PgSqlState.INVALID_FUNCTION_DEFINITION);
     }
 
     String prefix;
@@ -1207,7 +1212,7 @@ public class Parser {
    * @throws SQLException if given SQL is wrong
    */
   private static int parseSql(char[] sql, int i, StringBuilder newsql, boolean stopOnComma,
-      boolean stdStrings) throws SQLException {
+      boolean stdStrings) throws SQLSyntaxErrorException {
     SqlParseState state = SqlParseState.IN_SQLCODE;
     int len = sql.length;
     int nestedParenthesis = 0;
@@ -1319,17 +1324,16 @@ public class Parser {
   }
 
   private static void checkParsePosition(int i, int len, int i0, char[] sql,
-      String message)
-      throws PSQLException {
+      String message) throws SQLSyntaxErrorException {
     if (i < len) {
       return;
     }
-    throw new PSQLException(
+    throw new SQLSyntaxErrorException(
         GT.tr(message, i0, new String(sql)),
-        PSQLState.SYNTAX_ERROR);
+        PgSqlState.SYNTAX_ERROR);
   }
 
-  private static int escapeFunction(char[] sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
+  private static int escapeFunction(char[] sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLSyntaxErrorException {
     String functionName;
     int argPos = findOpenBrace(sql, i);
     if (argPos < sql.length) {
@@ -1355,13 +1359,13 @@ public class Parser {
    * @param i position in the input SQL
    * @param stdStrings whether standard_conforming_strings is on
    * @return the right PostgreSQL sql
-   * @throws SQLException if something goes wrong
+   * @throws SQLSyntaxErrorException if something goes wrong
    */
   private static int escapeFunctionArguments(StringBuilder newsql, String functionName, char[] sql, int i,
       boolean stdStrings)
-      throws SQLException {
+      throws SQLSyntaxErrorException {
     // Maximum arity of functions in EscapedFunctions is 3
-    List<CharSequence> parsedArgs = new ArrayList<CharSequence>(3);
+    List<CharSequence> parsedArgs = new ArrayList<>(3);
     while (true) {
       StringBuilder arg = new StringBuilder();
       int lastPos = i;
@@ -1384,15 +1388,17 @@ public class Parser {
     try {
       method.invoke(null, newsql, parsedArgs);
     } catch (InvocationTargetException e) {
-      Throwable targetException = e.getTargetException();
-      if (targetException instanceof SQLException) {
-        throw (SQLException) targetException;
-      } else {
-        String message = targetException == null ? "no message" : targetException.getMessage();
-        throw new PSQLException(message, PSQLState.SYSTEM_ERROR);
+      Throwable targetException = e.getCause();
+      String message = "no message";
+      if (targetException instanceof SQLSyntaxErrorException) {
+        throw (SQLSyntaxErrorException) targetException;
+      } else if (targetException != null) {
+        message = targetException.getMessage() == null ? "no message" : targetException.getMessage();
       }
+      throw new SQLSyntaxErrorException(message, PgSqlState.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION);
     } catch (IllegalAccessException e) {
-      throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR);
+      String message = e.getMessage() == null ? "no message" : e.getMessage();
+      throw new SQLSyntaxErrorException(message, PgSqlState.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION);
     }
     return i;
   }

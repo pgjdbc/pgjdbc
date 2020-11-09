@@ -11,17 +11,16 @@ import org.postgresql.PGStatement;
 import org.postgresql.core.JavaVersion;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Field;
 import java.sql.Date;
-import java.sql.SQLException;
+import java.sql.SQLDataException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
@@ -40,7 +39,7 @@ public class TimestampUtils {
   private static final int ONEDAY = 24 * 3600 * 1000;
   private static final char[] ZEROS = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
   private static final char[][] NUMBERS;
-  private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<String, TimeZone>();
+  private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<>();
   private static final int MAX_NANOS_BEFORE_WRAP_ON_ROUND = 999999500;
   private static final java.time.Duration ONE_MICROSECOND = java.time.Duration.ofNanos(1000);
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
@@ -187,7 +186,7 @@ public class TimestampUtils {
   /**
    * Load date/time information into the provided calendar returning the fractional seconds.
    */
-  private ParsedTimestamp parseBackendTimestamp(String str) throws SQLException {
+  private ParsedTimestamp parseBackendTimestamp(String str) throws SQLDataException {
     char[] s = str.toCharArray();
     int slen = s.length;
 
@@ -356,9 +355,9 @@ public class TimestampUtils {
       }
 
     } catch (NumberFormatException nfe) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("Bad value for type timestamp/date/time: {1}", str),
-          PSQLState.BAD_DATETIME_FORMAT, nfe);
+          PgSqlState.INVALID_DATETIME_FORMAT, nfe);
     }
 
     return result;
@@ -370,10 +369,10 @@ public class TimestampUtils {
    * @param cal calendar to be used to parse the input string
    * @param s The ISO formated date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
-   * @throws SQLException if there is a problem parsing s.
+   * @throws SQLDataException if there is a problem parsing s.
    */
   public synchronized @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
-      @PolyNull String s) throws SQLException {
+      @PolyNull String s) throws SQLDataException {
     if (s == null) {
       return null;
     }
@@ -410,9 +409,9 @@ public class TimestampUtils {
    *
    * @param s The ISO formated time string to parse.
    * @return null if s is null or a LocalTime of the parsed string s.
-   * @throws SQLException if there is a problem parsing s.
+   * @throws SQLDataException if there is a problem parsing s.
    */
-  public java.time.@PolyNull LocalTime toLocalTime(@PolyNull String s) throws SQLException {
+  public java.time.@PolyNull LocalTime toLocalTime(@PolyNull String s) throws SQLDataException {
     if (s == null) {
       return null;
     }
@@ -424,9 +423,9 @@ public class TimestampUtils {
     try {
       return java.time.LocalTime.parse(s);
     } catch (java.time.format.DateTimeParseException nfe) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("Bad value for type timestamp/date/time: {1}", s),
-          PSQLState.BAD_DATETIME_FORMAT, nfe);
+          PgSqlState.INVALID_DATETIME_FORMAT, nfe);
     }
 
   }
@@ -436,9 +435,9 @@ public class TimestampUtils {
    *
    * @param s The ISO formated date string to parse.
    * @return null if s is null or a LocalDateTime of the parsed string s.
-   * @throws SQLException if there is a problem parsing s.
+   * @throws SQLDataException if there is a problem parsing s.
    */
-  public java.time.@PolyNull LocalDateTime toLocalDateTime(@PolyNull String s) throws SQLException {
+  public java.time.@PolyNull LocalDateTime toLocalDateTime(@PolyNull String s) throws SQLDataException {
     if (s == null) {
       return null;
     }
@@ -471,10 +470,10 @@ public class TimestampUtils {
    *
    * @param s The ISO formated date string to parse.
    * @return null if s is null or a LocalDateTime of the parsed string s.
-   * @throws SQLException if there is a problem parsing s.
+   * @throws SQLDataException if there is a problem parsing s.
    */
   public java.time.@PolyNull OffsetDateTime toOffsetDateTime(
-      @PolyNull String s) throws SQLException {
+      @PolyNull String s) throws SQLDataException {
     if (s == null) {
       return null;
     }
@@ -527,9 +526,9 @@ public class TimestampUtils {
    *
    * @param bytes The binary encoded local date time value.
    * @return The parsed local date time object.
-   * @throws PSQLException If binary format could not be parsed.
+   * @throws SQLDataException If binary format could not be parsed.
    */
-  public java.time.OffsetDateTime toOffsetDateTimeBin(byte[] bytes) throws PSQLException {
+  public java.time.OffsetDateTime toOffsetDateTimeBin(byte[] bytes) throws SQLDataException {
     ParsedBinaryTimestamp parsedTimestamp = this.toProlepticParsedTimestampBin(bytes);
     if (parsedTimestamp.infinity == Infinity.POSITIVE) {
       return java.time.OffsetDateTime.MAX;
@@ -544,7 +543,7 @@ public class TimestampUtils {
   }
 
   public synchronized @PolyNull Time toTime(
-      @Nullable Calendar cal, @PolyNull String s) throws SQLException {
+      @Nullable Calendar cal, @PolyNull String s) throws SQLDataException {
     // 1) Parse backend string
     if (s == null) {
       return null;
@@ -588,7 +587,7 @@ public class TimestampUtils {
   }
 
   public synchronized @PolyNull Date toDate(@Nullable Calendar cal,
-      @PolyNull String s) throws SQLException {
+      @PolyNull String s) throws SQLDataException {
     // 1) Parse backend string
     Timestamp timestamp = toTimestamp(cal, s);
 
@@ -977,12 +976,12 @@ public class TimestampUtils {
    * @param tz The timezone used.
    * @param bytes The binary encoded date value.
    * @return The parsed date object.
-   * @throws PSQLException If binary format could not be parsed.
+   * @throws SQLDataException If binary format could not be parsed.
    */
-  public Date toDateBin(@Nullable TimeZone tz, byte[] bytes) throws PSQLException {
+  public Date toDateBin(@Nullable TimeZone tz, byte[] bytes) throws SQLDataException {
     if (bytes.length != 4) {
-      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "date"),
-          PSQLState.BAD_DATETIME_FORMAT);
+      throw new SQLDataException(GT.tr("Unsupported binary encoding of {0}.", "date"),
+          PgSqlState.INVALID_DATETIME_FORMAT);
     }
     int days = ByteConverter.int4(bytes, 0);
     if (tz == null) {
@@ -1035,12 +1034,12 @@ public class TimestampUtils {
    *        contains {@link Oid#TIMETZ}.
    * @param bytes The binary encoded time value.
    * @return The parsed time object.
-   * @throws PSQLException If binary format could not be parsed.
+   * @throws SQLDataException If binary format could not be parsed.
    */
-  public Time toTimeBin(@Nullable TimeZone tz, byte[] bytes) throws PSQLException {
+  public Time toTimeBin(@Nullable TimeZone tz, byte[] bytes) throws SQLDataException {
     if ((bytes.length != 8 && bytes.length != 12)) {
-      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "time"),
-          PSQLState.BAD_DATETIME_FORMAT);
+      throw new SQLDataException(GT.tr("Unsupported binary encoding of {0}.", "time"),
+          PgSqlState.INVALID_DATETIME_FORMAT);
     }
 
     long millis;
@@ -1079,12 +1078,12 @@ public class TimestampUtils {
    *
    * @param bytes The binary encoded time value.
    * @return The parsed time object.
-   * @throws PSQLException If binary format could not be parsed.
+   * @throws SQLDataException If binary format could not be parsed.
    */
-  public java.time.LocalTime toLocalTimeBin(byte[] bytes) throws PSQLException {
+  public java.time.LocalTime toLocalTimeBin(byte[] bytes) throws SQLDataException {
     if (bytes.length != 8) {
-      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "time"),
-          PSQLState.BAD_DATETIME_FORMAT);
+      throw new SQLDataException(GT.tr("Unsupported binary encoding of {0}.", "time"),
+          PgSqlState.INVALID_DATETIME_FORMAT);
     }
 
     long micros;
@@ -1109,10 +1108,10 @@ public class TimestampUtils {
    * @param bytes The binary encoded timestamp value.
    * @param timestamptz True if the binary is in GMT.
    * @return The parsed timestamp object.
-   * @throws PSQLException If binary format could not be parsed.
+   * @throws SQLDataException If binary format could not be parsed.
    */
   public Timestamp toTimestampBin(@Nullable TimeZone tz, byte[] bytes, boolean timestamptz)
-      throws PSQLException {
+      throws SQLDataException {
 
     ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(tz, bytes, timestamptz);
     if (parsedTimestamp.infinity == Infinity.POSITIVE) {
@@ -1127,11 +1126,11 @@ public class TimestampUtils {
   }
 
   private ParsedBinaryTimestamp toParsedTimestampBinPlain(byte[] bytes)
-      throws PSQLException {
+      throws SQLDataException {
 
     if (bytes.length != 8) {
-      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "timestamp"),
-              PSQLState.BAD_DATETIME_FORMAT);
+      throw new SQLDataException(GT.tr("Unsupported binary encoding of {0}.", "timestamp"),
+              PgSqlState.INVALID_DATETIME_FORMAT);
     }
 
     long secs;
@@ -1186,7 +1185,7 @@ public class TimestampUtils {
 
   private ParsedBinaryTimestamp toParsedTimestampBin(@Nullable TimeZone tz, byte[] bytes,
       boolean timestamptz)
-      throws PSQLException {
+      throws SQLDataException {
 
     ParsedBinaryTimestamp ts = toParsedTimestampBinPlain(bytes);
     if (ts.infinity != null) {
@@ -1208,7 +1207,7 @@ public class TimestampUtils {
   }
 
   private ParsedBinaryTimestamp toProlepticParsedTimestampBin(byte[] bytes)
-      throws PSQLException {
+      throws SQLDataException {
 
     ParsedBinaryTimestamp ts = toParsedTimestampBinPlain(bytes);
     if (ts.infinity != null) {
@@ -1231,9 +1230,9 @@ public class TimestampUtils {
    * @param bytes The binary encoded local date time value.
    *
    * @return The parsed local date time object.
-   * @throws PSQLException If binary format could not be parsed.
+   * @throws SQLDataException If binary format could not be parsed.
    */
-  public java.time.LocalDateTime toLocalDateTimeBin(byte[] bytes) throws PSQLException {
+  public java.time.LocalDateTime toLocalDateTimeBin(byte[] bytes) throws SQLDataException {
 
     ParsedBinaryTimestamp parsedTimestamp = this.toProlepticParsedTimestampBin(bytes);
     if (parsedTimestamp.infinity == Infinity.POSITIVE) {
@@ -1481,9 +1480,9 @@ public class TimestampUtils {
    * @param tz The timezone used.
    * @param bytes The binary encoded date value.
    * @param value value
-   * @throws PSQLException If binary format could not be parsed.
+   * @throws SQLDataException If binary format could not be parsed.
    */
-  public void toBinDate(@Nullable TimeZone tz, byte[] bytes, Date value) throws PSQLException {
+  public void toBinDate(@Nullable TimeZone tz, byte[] bytes, Date value) throws SQLDataException {
     long millis = value.getTime();
 
     if (tz == null) {

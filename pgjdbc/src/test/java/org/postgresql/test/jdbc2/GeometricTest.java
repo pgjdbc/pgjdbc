@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
 import org.postgresql.geometric.PGline;
@@ -19,7 +20,6 @@ import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,19 +45,21 @@ public class GeometricTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
     return ids;
   }
 
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "testgeometric",
         "boxval box, circleval circle, lsegval lseg, pathval path, polygonval polygon, pointval point, lineval line");
   }
 
+  @Override
   public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testgeometric");
     super.tearDown();
@@ -145,13 +147,13 @@ public class GeometricTest extends BaseTest4 {
         try {
           checkReadWrite(new PGline(), columnName);
           fail("Expected a PSQLException to be thrown");
-        } catch (PSQLException e) {
-          assertEquals("22P02", e.getSQLState());
+        } catch (SQLException e) {
+          assertEquals(PgSqlState.INVALID_TEXT_REPRESENTATION, e.getSQLState());
         }
       }
 
       // Generate a dataset for testing.
-      List<PGline> linesToTest = new ArrayList<PGline>();
+      List<PGline> linesToTest = new ArrayList<>();
       for (double i = 1; i <= 3; i += 0.25) {
         // Test the 3-arg constructor (coefficients+constant)
         linesToTest.add(new PGline(i, (0 - i), (1 / i)));

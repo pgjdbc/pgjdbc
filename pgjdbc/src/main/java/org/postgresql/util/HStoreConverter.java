@@ -6,11 +6,13 @@
 package org.postgresql.util;
 
 import org.postgresql.core.Encoding;
+import org.postgresql.exception.PgSqlState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +21,7 @@ import java.util.Map.Entry;
 public class HStoreConverter {
   public static Map<String, @Nullable String> fromBytes(byte[] b, Encoding encoding)
       throws SQLException {
-    Map<String, @Nullable String> m = new HashMap<String, @Nullable String>();
+    Map<String, @Nullable String> m = new HashMap<>();
     int pos = 0;
     int numElements = ByteConverter.int4(b, pos);
     pos += 4;
@@ -41,10 +43,10 @@ public class HStoreConverter {
         m.put(key, val);
       }
     } catch (IOException ioe) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr(
               "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
-          PSQLState.DATA_ERROR, ioe);
+          PgSqlState.UNTRANSLATABLE_CHARACTER, ioe);
     }
     return m;
   }
@@ -58,8 +60,8 @@ public class HStoreConverter {
       for (Entry<?, ?> e : m.entrySet()) {
         Object mapKey = e.getKey();
         if (mapKey == null) {
-          throw new PSQLException(GT.tr("hstore key must not be null"),
-              PSQLState.INVALID_PARAMETER_VALUE);
+          throw new SQLDataException(GT.tr("hstore key must not be null"),
+              PgSqlState.INVALID_PARAMETER_VALUE);
         }
         byte[] key = encoding.encode(mapKey.toString());
         ByteConverter.int4(lenBuf, 0, key.length);
@@ -77,10 +79,10 @@ public class HStoreConverter {
         }
       }
     } catch (IOException ioe) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr(
               "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
-          PSQLState.DATA_ERROR, ioe);
+          PgSqlState.UNTRANSLATABLE_CHARACTER, ioe);
     }
     return baos.toByteArray();
   }
@@ -118,7 +120,7 @@ public class HStoreConverter {
   }
 
   public static Map<String, @Nullable String> fromString(String s) {
-    Map<String, @Nullable String> m = new HashMap<String, @Nullable String>();
+    Map<String, @Nullable String> m = new HashMap<>();
     int pos = 0;
     StringBuilder sb = new StringBuilder();
     while (pos < s.length()) {

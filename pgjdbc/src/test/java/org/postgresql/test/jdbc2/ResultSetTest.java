@@ -13,6 +13,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
@@ -296,7 +297,7 @@ public class ResultSetTest extends BaseTest4 {
           rs.getBoolean(1);
           fail();
         } catch (SQLException e) {
-          assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+          assertEquals(PgSqlState.CANNOT_COERCE, e.getSQLState());
         }
       }
     }
@@ -334,7 +335,7 @@ public class ResultSetTest extends BaseTest4 {
       rs.getBoolean(3);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PgSqlState.CANNOT_COERCE, e.getSQLState());
       assertEquals("Cannot cast to boolean: \"2\"", e.getMessage());
     }
     rs.close();
@@ -364,7 +365,7 @@ public class ResultSetTest extends BaseTest4 {
       rs.getBoolean(1);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PgSqlState.CANNOT_COERCE, e.getSQLState());
       assertEquals("Cannot cast to boolean: \"" + value + "\"", e.getMessage());
     }
     rs.close();

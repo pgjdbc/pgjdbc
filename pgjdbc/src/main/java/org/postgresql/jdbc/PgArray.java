@@ -12,16 +12,16 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Tuple;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.ArrayDecoding.PgArrayList;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,11 +106,13 @@ public class PgArray implements java.sql.Array {
     return castNonNull(connection);
   }
 
+  @Override
   @SuppressWarnings("return.type.incompatible")
   public Object getArray() throws SQLException {
     return getArrayImpl(1, 0, null);
   }
 
+  @Override
   @SuppressWarnings("return.type.incompatible")
   public Object getArray(long index, int count) throws SQLException {
     return getArrayImpl(index, count, null);
@@ -121,11 +123,13 @@ public class PgArray implements java.sql.Array {
     return getArrayImpl(1, 0, map);
   }
 
+  @Override
   @SuppressWarnings("return.type.incompatible")
   public Object getArray(Map<String, Class<?>> map) throws SQLException {
     return getArrayImpl(map);
   }
 
+  @Override
   @SuppressWarnings("return.type.incompatible")
   public Object getArray(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
@@ -142,8 +146,8 @@ public class PgArray implements java.sql.Array {
 
     // array index is out of range
     if (index < 1) {
-      throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
-          PSQLState.DATA_ERROR);
+      throw new SQLDataException(GT.tr("The array index is out of range: {0}", index),
+          PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
 
     if (fieldBytes != null) {
@@ -162,10 +166,10 @@ public class PgArray implements java.sql.Array {
 
     // array index out of range
     if ((index - 1) + count > arrayList.size()) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
               index + count, (long) arrayList.size()),
-          PSQLState.DATA_ERROR);
+          PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
 
     return buildArray(arrayList, (int) index, count);
@@ -191,7 +195,7 @@ public class PgArray implements java.sql.Array {
     if (count > 0 && dimensions > 0) {
       dims[0] = Math.min(count, dims[0]);
     }
-    List<Tuple> rows = new ArrayList<Tuple>();
+    List<Tuple> rows = new ArrayList<>();
     Field[] fields = new Field[2];
 
     storeValues(fieldBytes, rows, fields, elementOid, dims, pos, 0, index);
@@ -310,27 +314,33 @@ public class PgArray implements java.sql.Array {
     return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
   }
 
+  @Override
   public int getBaseType() throws SQLException {
     return getConnection().getTypeInfo().getSQLType(getBaseTypeName());
   }
 
+  @Override
   public String getBaseTypeName() throws SQLException {
     int elementOID = getConnection().getTypeInfo().getPGArrayElement(oid);
     return castNonNull(getConnection().getTypeInfo().getPGType(elementOID));
   }
 
+  @Override
   public java.sql.ResultSet getResultSet() throws SQLException {
     return getResultSetImpl(1, 0, null);
   }
 
+  @Override
   public java.sql.ResultSet getResultSet(long index, int count) throws SQLException {
     return getResultSetImpl(index, count, null);
   }
 
+  @Override
   public ResultSet getResultSet(@Nullable Map<String, Class<?>> map) throws SQLException {
     return getResultSetImpl(map);
   }
 
+  @Override
   public ResultSet getResultSet(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     return getResultSetImpl(index, count, map);
@@ -350,8 +360,8 @@ public class PgArray implements java.sql.Array {
 
     // array index is out of range
     if (index < 1) {
-      throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
-          PSQLState.DATA_ERROR);
+      throw new SQLDataException(GT.tr("The array index is out of range: {0}", index),
+          PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
 
     if (fieldBytes != null) {
@@ -366,13 +376,13 @@ public class PgArray implements java.sql.Array {
 
     // array index out of range
     if ((--index) + count > arrayList.size()) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
                   index + count, (long) arrayList.size()),
-          PSQLState.DATA_ERROR);
+          PgSqlState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
 
-    List<Tuple> rows = new ArrayList<Tuple>();
+    List<Tuple> rows = new ArrayList<>();
 
     Field[] fields = new Field[2];
 
@@ -411,6 +421,7 @@ public class PgArray implements java.sql.Array {
     return stat.createDriverResultSet(fields, rows);
   }
 
+  @Override
   @SuppressWarnings("nullness")
   public @Nullable String toString() {
     if (fieldString == null && fieldBytes != null) {
@@ -481,6 +492,7 @@ public class PgArray implements java.sql.Array {
     return fieldBytes;
   }
 
+  @Override
   public void free() throws SQLException {
     connection = null;
     fieldString = null;

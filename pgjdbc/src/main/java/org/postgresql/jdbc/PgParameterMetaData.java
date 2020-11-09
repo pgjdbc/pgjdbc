@@ -8,13 +8,13 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.Positive;
 
 import java.sql.ParameterMetaData;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 
 public class PgParameterMetaData implements ParameterMetaData {
@@ -42,6 +42,7 @@ public class PgParameterMetaData implements ParameterMetaData {
    * {@inheritDoc} For now report all parameters as inputs. CallableStatements may have one output,
    * but ignore that for now.
    */
+  @Override
   public int getParameterMode(int param) throws SQLException {
     checkParamIndex(param);
     return ParameterMetaData.parameterModeIn;
@@ -60,18 +61,21 @@ public class PgParameterMetaData implements ParameterMetaData {
   }
 
   // we don't know this
+  @Override
   public int getPrecision(int param) throws SQLException {
     checkParamIndex(param);
     return 0;
   }
 
   // we don't know this
+  @Override
   public int getScale(int param) throws SQLException {
     checkParamIndex(param);
     return 0;
   }
 
   // we can't tell anything about nullability
+  @Override
   public int isNullable(int param) throws SQLException {
     checkParamIndex(param);
     return ParameterMetaData.parameterNullableUnknown;
@@ -86,19 +90,21 @@ public class PgParameterMetaData implements ParameterMetaData {
     return connection.getTypeInfo().isSigned(oids[param - 1]);
   }
 
-  private void checkParamIndex(int param) throws PSQLException {
+  private void checkParamIndex(int param) throws SQLDataException {
     if (param < 1 || param > oids.length) {
-      throw new PSQLException(
+      throw new SQLDataException(
           GT.tr("The parameter index is out of range: {0}, number of parameters: {1}.",
               param, oids.length),
-          PSQLState.INVALID_PARAMETER_VALUE);
+          PgSqlState.INVALID_PARAMETER_VALUE);
     }
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);

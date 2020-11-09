@@ -6,10 +6,9 @@
 package org.postgresql.gss;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.exception.PgServerException;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -21,6 +20,8 @@ import org.ietf.jgss.Oid;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.sql.SQLInvalidAuthorizationSpecException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -108,12 +109,31 @@ class GssAction implements PrivilegedAction<@Nullable Exception> {
           switch (response) {
             case 'E':
               int elen = pgStream.receiveInteger4();
-              ServerErrorMessage errorMsg
-                  = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
 
-              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
+              PgServerException errorMsg = PgServerException.make(pgStream.receiveString(elen - 4));
+              String errorMessage = errorMsg.getMessage();
+              // U+FFFD REPLACEMENT CHARACTER, decimal: 65533
+              if (errorMessage.indexOf(65533, 0) != -1) {
+                // Pre-auth encoding unknown, just send generic auth_failure
+                String sqlState = errorMsg.getSQLState();
+                if (PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION.equals(sqlState)) {
+                  errorMessage = "GSSAPI authentication failed for user \"{0}\"";
+                }
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                  LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0}: {1})",
+                      new Object[] {sqlState, GT.tr(errorMessage, user)});
+                }
+                // Don't set the cause as it contains bad encoding, just provide the hint of what
+                // failed.
+                return new SQLInvalidAuthorizationSpecException(GT.tr(errorMessage, user), sqlState);
+              }
 
-              return new PSQLException(errorMsg, logServerErrorDetail);
+              if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})",
+                    errorMsg.getFormattedMessage(logServerErrorDetail));
+              }
+              return new SQLInvalidAuthorizationSpecException(GT.tr(errorMessage),
+                  errorMsg.getSQLState(), errorMsg);
             case 'R':
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
@@ -123,8 +143,8 @@ class GssAction implements PrivilegedAction<@Nullable Exception> {
               break;
             default:
               // Unknown/unexpected message type.
-              return new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+              return new SQLNonTransientConnectionException(GT.tr("Protocol error.  Session setup failed."),
+                  PgSqlState.SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION);
           }
         } else {
           established = true;
@@ -134,7 +154,8 @@ class GssAction implements PrivilegedAction<@Nullable Exception> {
     } catch (IOException e) {
       return e;
     } catch (GSSException gsse) {
-      return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
+      return new SQLInvalidAuthorizationSpecException(GT.tr("GSS Authentication failed"),
+          PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION,
           gsse);
     }
     return null;

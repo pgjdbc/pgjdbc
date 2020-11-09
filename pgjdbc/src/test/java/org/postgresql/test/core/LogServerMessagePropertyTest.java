@@ -7,8 +7,9 @@ package org.postgresql.test.core;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgServerException;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Assume;
@@ -22,17 +23,17 @@ public class LogServerMessagePropertyTest {
   private static final String PRIMARY_KEY_NAME = "lms_test_pk";
   private static final String CREATE_TABLE_SQL =
       "CREATE TABLE pg_temp.lms_test ("
-      + "  id text, "
-      + "  CONSTRAINT " + PRIMARY_KEY_NAME + " PRIMARY KEY (id)"
-      + ")";
+          + "  id text, "
+          + "  CONSTRAINT " + PRIMARY_KEY_NAME + " PRIMARY KEY (id)"
+          + ")";
   private static final String SECRET_VALUE = "some_secret_value";
   private static final String INSERT_SQL =
       "INSERT INTO pg_temp.lms_test (id) VALUES ('" + SECRET_VALUE + "')";
 
   /**
-   * Creates a connection with the additional properties, use it to
-   * create a temp table with a primary key, run two inserts to generate
-   * a duplicate key error, and finally return the exception message.
+   * Creates a connection with the additional properties, use it to create a temp table with a
+   * primary key, run two inserts to generate a duplicate key error, and finally return the
+   * exception message.
    */
   private static String testViolatePrimaryKey(Properties props) throws SQLException {
     Connection conn = TestUtil.openDB(props);
@@ -44,8 +45,13 @@ public class LogServerMessagePropertyTest {
       // Second insert should throw a duplicate key error
       TestUtil.execute(INSERT_SQL, conn);
     } catch (SQLException e) {
-      Assert.assertEquals("SQL state must be for a unique violation", PSQLState.UNIQUE_VIOLATION.getState(), e.getSQLState());
-      return e.getMessage();
+      Assert.assertEquals("SQL state must be for a unique violation", PgSqlState.UNIQUE_VIOLATION,
+          e.getSQLState());
+
+      if (e.getCause() instanceof PgServerException) {
+        return ((PgServerException) e.getCause())
+            .getFormattedMessage(PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(props));
+      }
     } finally {
       conn.close();
     }

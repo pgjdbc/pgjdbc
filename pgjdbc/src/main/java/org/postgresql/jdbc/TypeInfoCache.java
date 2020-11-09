@@ -13,10 +13,9 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -108,7 +107,7 @@ public class TypeInfoCache implements TypeInfo {
   private static final HashMap<String, String> typeAliases;
 
   static {
-    typeAliases = new HashMap<String, String>();
+    typeAliases = new HashMap<>();
     typeAliases.put("smallint", "int2");
     typeAliases.put("integer", "int4");
     typeAliases.put("int", "int4");
@@ -122,12 +121,12 @@ public class TypeInfoCache implements TypeInfo {
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;
     this.unknownLength = unknownLength;
-    oidToPgName = new HashMap<Integer, String>((int) Math.round(types.length * 1.5));
-    pgNameToOid = new HashMap<String, Integer>((int) Math.round(types.length * 1.5));
-    pgNameToJavaClass = new HashMap<String, String>((int) Math.round(types.length * 1.5));
-    pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>((int) Math.round(types.length * 1.5));
-    pgArrayToPgType = new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5));
-    arrayOidToDelimiter = new HashMap<Integer, Character>((int) Math.round(types.length * 2.5));
+    oidToPgName = new HashMap<>((int) Math.round(types.length * 1.5));
+    pgNameToOid = new HashMap<>((int) Math.round(types.length * 1.5));
+    pgNameToJavaClass = new HashMap<>((int) Math.round(types.length * 1.5));
+    pgNameToPgObject = new HashMap<>((int) Math.round(types.length * 1.5));
+    pgArrayToPgType = new HashMap<>((int) Math.round(types.length * 1.5));
+    arrayOidToDelimiter = new HashMap<>((int) Math.round(types.length * 2.5));
 
     // needs to be synchronized because the iterator is returned
     // from getPGTypeNamesWithSQLTypes()
@@ -146,6 +145,7 @@ public class TypeInfoCache implements TypeInfo {
     pgNameToJavaClass.put("hstore", Map.class.getName());
   }
 
+  @Override
   public synchronized void addCoreType(String pgTypeName, Integer oid, Integer sqlType,
       String javaClass, Integer arrayOid) {
     pgNameToJavaClass.put(pgTypeName, javaClass);
@@ -175,12 +175,14 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public synchronized void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
     pgNameToPgObject.put(type, klass);
     pgNameToJavaClass.put(type, klass.getName());
   }
 
+  @Override
   public Iterator<String> getPGTypeNamesWithSQLTypes() {
     return pgNameToSQLType.keySet().iterator();
   }
@@ -247,7 +249,7 @@ public class TypeInfoCache implements TypeInfo {
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getAllTypeInfoStatement)
         .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
     ResultSet rs = castNonNull(getAllTypeInfoStatement.getResultSet());
     while (rs.next()) {
@@ -260,6 +262,7 @@ public class TypeInfoCache implements TypeInfo {
     rs.close();
   }
 
+  @Override
   public int getSQLType(int oid) throws SQLException {
     return getSQLType(castNonNull(getPGType(oid)));
   }
@@ -273,6 +276,7 @@ public class TypeInfoCache implements TypeInfo {
     return getTypeInfoStatement;
   }
 
+  @Override
   public synchronized int getSQLType(String pgTypeName) throws SQLException {
     if (pgTypeName.endsWith("[]")) {
       return Types.ARRAY;
@@ -291,7 +295,7 @@ public class TypeInfoCache implements TypeInfo {
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getTypeInfoStatement)
         .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
@@ -412,6 +416,7 @@ public class TypeInfoCache implements TypeInfo {
     return oidStatementComplex;
   }
 
+  @Override
   public synchronized int getPGType(String pgTypeName) throws SQLException {
     Integer oid = pgNameToOid.get(pgTypeName);
     if (oid != null) {
@@ -422,7 +427,7 @@ public class TypeInfoCache implements TypeInfo {
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     oid = Oid.UNSPECIFIED;
@@ -439,6 +444,7 @@ public class TypeInfoCache implements TypeInfo {
     return oid;
   }
 
+  @Override
   public synchronized @Nullable String getPGType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       // TODO: it would be great to forbid UNSPECIFIED argument, and make the return type non-nullable
@@ -456,7 +462,7 @@ public class TypeInfoCache implements TypeInfo {
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     ResultSet rs = castNonNull(getNameStatement.getResultSet());
@@ -498,6 +504,7 @@ public class TypeInfoCache implements TypeInfo {
     return getNameStatement;
   }
 
+  @Override
   public int getPGArrayType(String elementTypeName) throws SQLException {
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
@@ -520,6 +527,7 @@ public class TypeInfoCache implements TypeInfo {
     return i;
   }
 
+  @Override
   public synchronized char getArrayDelimiter(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return ',';
@@ -537,12 +545,12 @@ public class TypeInfoCache implements TypeInfo {
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getArrayDelimiterStatement)
         .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
     if (!rs.next()) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     String s = castNonNull(rs.getString(1));
@@ -566,6 +574,7 @@ public class TypeInfoCache implements TypeInfo {
     return getArrayDelimiterStatement;
   }
 
+  @Override
   public synchronized int getPGArrayElement(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return Oid.UNSPECIFIED;
@@ -584,12 +593,12 @@ public class TypeInfoCache implements TypeInfo {
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getArrayElementOidStatement)
         .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
     if (!rs.next()) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      throw new SQLException(GT.tr("No results were returned by the query."), PgSqlState.NO_DATA);
     }
 
     pgType = (int) rs.getLong(1);
@@ -624,10 +633,12 @@ public class TypeInfoCache implements TypeInfo {
     return getArrayElementOidStatement;
   }
 
+  @Override
   public synchronized @Nullable Class<? extends PGobject> getPGobject(String type) {
     return pgNameToPgObject.get(type);
   }
 
+  @Override
   public synchronized String getJavaClass(int oid) throws SQLException {
     String pgTypeName = getPGType(oid);
     if (pgTypeName == null) {
@@ -650,6 +661,7 @@ public class TypeInfoCache implements TypeInfo {
     return result == null ? "java.lang.String" : result;
   }
 
+  @Override
   public String getTypeForAlias(String alias) {
     String type = typeAliases.get(alias);
     if (type != null) {
@@ -664,6 +676,7 @@ public class TypeInfoCache implements TypeInfo {
     return alias;
   }
 
+  @Override
   public int getPrecision(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -729,6 +742,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public int getScale(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -759,6 +773,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public boolean isCaseSensitive(int oid) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -784,6 +799,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public boolean isSigned(int oid) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -799,6 +815,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public int getDisplaySize(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -892,6 +909,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public int getMaximumPrecision(int oid) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -917,6 +935,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public boolean requiresQuoting(int oid) throws SQLException {
     int sqlType = getSQLType(oid);
     return requiresQuotingSqlType(sqlType);
@@ -930,6 +949,7 @@ public class TypeInfoCache implements TypeInfo {
    * @return true if the type requires quoting
    * @throws SQLException if something goes wrong
    */
+  @Override
   public boolean requiresQuotingSqlType(int sqlType) throws SQLException {
     switch (sqlType) {
       case Types.BIGINT:

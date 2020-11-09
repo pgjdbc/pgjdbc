@@ -10,9 +10,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.BeforeClass;
@@ -20,6 +19,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
@@ -70,9 +70,9 @@ public class SSPITest {
     try {
       Connection con = TestUtil.openDB(props);
       TestUtil.closeDB(con);
-      fail("Expected a PSQLException");
-    } catch (PSQLException e) {
-      MatcherAssert.assertThat(e.getSQLState(), is(PSQLState.INVALID_PASSWORD.getState()));
+      fail("Expected a SQLException");
+    } catch (SQLException e) {
+      MatcherAssert.assertThat(e.getSQLState(), is(PgSqlState.INVALID_PASSWORD));
     }
   }
 

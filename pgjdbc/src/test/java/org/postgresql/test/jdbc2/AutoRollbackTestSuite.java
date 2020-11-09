@@ -11,11 +11,11 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Assume;
@@ -179,7 +179,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
 
   @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     boolean[] booleans = new boolean[] {true, false};
     for (AutoSave autoSave : AutoSave.values()) {
       for (CleanSavePoint cleanSavePoint:CleanSavePoint.values()) {
@@ -252,7 +252,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
           Assert.fail("select 1/0 should fail");
         } catch (SQLException e) {
           Assert.assertEquals("division by zero expected",
-              PSQLState.DIVISION_BY_ZERO.getState(), e.getSQLState());
+              PgSqlState.DIVISION_BY_ZERO, e.getSQLState());
         }
         break;
       case DEALLOCATE:
@@ -271,7 +271,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
           Assert.fail("select 1/0 should fail");
         } catch (SQLException e) {
           Assert.assertEquals("division by zero expected",
-              PSQLState.DIVISION_BY_ZERO.getState(), e.getSQLState());
+              PgSqlState.DIVISION_BY_ZERO, e.getSQLState());
         }
         break;
       default:
@@ -300,7 +300,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
             Assert.assertEquals(
                 "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
                     + " error message is " + e.getMessage(),
-                PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
+                PgSqlState.INVALID_SQL_STATEMENT_NAME, e.getSQLState());
             return;
           }
           throw e;
@@ -332,7 +332,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
         Assert.assertEquals(
             "AutoSave==" + autoSave + ", thus statements should fail with 'current transaction is aborted...', "
                 + " error message is " + e.getMessage(),
-            PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState());
+                PgSqlState.IN_FAILED_SQL_TRANSACTION, e.getSQLState());
         return;
       }
 
@@ -341,13 +341,13 @@ public class AutoRollbackTestSuite extends BaseTest4 {
           Assert.assertEquals(
               "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
                   + " error message is " + e.getMessage(),
-              PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
+                  PgSqlState.INVALID_SQL_STATEMENT_NAME, e.getSQLState());
         } else if (failMode == FailMode.ALTER) {
           Assert.assertEquals(
               "AutoSave==NEVER, autocommit=NO, thus ALTER TABLE causes SELECT * to fail with "
                   + "'cached plan must not change result type', "
                   + " error message is " + e.getMessage(),
-              PSQLState.NOT_IMPLEMENTED.getState(), e.getSQLState());
+                  PgSqlState.FEATURE_NOT_SUPPORTED, e.getSQLState());
         } else {
           throw e;
         }
@@ -368,7 +368,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
           Assert.assertEquals(
               "AutoSave==NEVER, thus statements should fail with 'current transaction is aborted...', "
                   + " error message is " + e.getMessage(),
-              PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState());
+                  PgSqlState.IN_FAILED_SQL_TRANSACTION, e.getSQLState());
         }
       } else {
         throw e;

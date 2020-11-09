@@ -6,9 +6,8 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
@@ -25,6 +24,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 
@@ -107,7 +107,7 @@ public class PgSQLXML implements SQLXML {
       // decoded this data, so it would be surprising that
       // we couldn't encode it.
       // For this reason don't make it translatable.
-      throw new PSQLException("Failed to re-encode xml data.", PSQLState.DATA_ERROR, ioe);
+      throw new SQLException("Failed to re-encode xml data.", PgSqlState.DATA_EXCEPTION, ioe);
     }
   }
 
@@ -159,11 +159,11 @@ public class PgSQLXML implements SQLXML {
         return sourceClass.cast(new StAXSource(xsr));
       }
     } catch (Exception e) {
-      throw new PSQLException(GT.tr("Unable to decode xml data."), PSQLState.DATA_ERROR, e);
+      throw new SQLDataException(GT.tr("Unable to decode xml data."), PgSqlState.DATA_EXCEPTION, e);
     }
 
-    throw new PSQLException(GT.tr("Unknown XML Source class: {0}", sourceClass),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw new SQLDataException(GT.tr("Unknown XML Source class: {0}", sourceClass),
+        PgSqlState.MOST_SPECIFIC_TYPE_MISMATCH);
   }
 
   @Override
@@ -210,8 +210,8 @@ public class PgSQLXML implements SQLXML {
         active = true;
         return resultClass.cast(new SAXResult(transformerHandler));
       } catch (TransformerException te) {
-        throw new PSQLException(GT.tr("Unable to create SAXResult for SQLXML."),
-            PSQLState.UNEXPECTED_ERROR, te);
+        throw new SQLException(GT.tr("Unable to create SAXResult for SQLXML."),
+            PgSqlState.SYSTEM_ERROR, te);
       }
     } else if (StreamResult.class.equals(resultClass)) {
       stringWriter = new StringWriter();
@@ -226,13 +226,13 @@ public class PgSQLXML implements SQLXML {
         active = true;
         return resultClass.cast(new StAXResult(xsw));
       } catch (XMLStreamException xse) {
-        throw new PSQLException(GT.tr("Unable to create StAXResult for SQLXML"),
-            PSQLState.UNEXPECTED_ERROR, xse);
+        throw new SQLException(GT.tr("Unable to create StAXResult for SQLXML"),
+            PgSqlState.SYSTEM_ERROR, xse);
       }
     }
 
-    throw new PSQLException(GT.tr("Unknown XML Result class: {0}", resultClass),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw new SQLDataException(GT.tr("Unknown XML Result class: {0}", resultClass),
+        PgSqlState.MOST_SPECIFIC_TYPE_MISMATCH);
   }
 
   @Override
@@ -244,17 +244,17 @@ public class PgSQLXML implements SQLXML {
 
   private void checkFreed() throws SQLException {
     if (freed) {
-      throw new PSQLException(GT.tr("This SQLXML object has already been freed."),
-          PSQLState.OBJECT_NOT_IN_STATE);
+      throw new SQLException(GT.tr("This SQLXML object has already been freed."),
+          PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
     }
   }
 
   private void ensureInitialized() throws SQLException {
     if (!initialized) {
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr(
               "This SQLXML object has not been initialized, so you cannot retrieve data from it."),
-          PSQLState.OBJECT_NOT_IN_STATE);
+          PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
     }
 
     // Is anyone loading data into us at the moment?
@@ -266,8 +266,8 @@ public class PgSQLXML implements SQLXML {
       try {
         data = conn.getEncoding().decode(byteArrayOutputStream.toByteArray());
       } catch (IOException ioe) {
-        throw new PSQLException(GT.tr("Failed to convert binary xml data to encoding: {0}.",
-            conn.getEncoding().name()), PSQLState.DATA_ERROR, ioe);
+        throw new SQLException(GT.tr("Failed to convert binary xml data to encoding: {0}.",
+            conn.getEncoding().name()), PgSqlState.INVALID_BINARY_REPRESENTATION, ioe);
       } finally {
         byteArrayOutputStream = null;
         active = false;
@@ -293,8 +293,8 @@ public class PgSQLXML implements SQLXML {
         transformer.transform(domSource, streamResult);
         data = stringWriter.toString();
       } catch (TransformerException te) {
-        throw new PSQLException(GT.tr("Unable to convert DOMResult SQLXML data to a string."),
-            PSQLState.DATA_ERROR, te);
+        throw new SQLException(GT.tr("Unable to convert DOMResult SQLXML data to a string."),
+            PgSqlState.SYSTEM_ERROR, te);
       } finally {
         domResult = null;
         active = false;
@@ -304,10 +304,10 @@ public class PgSQLXML implements SQLXML {
 
   private void initialize() throws SQLException {
     if (initialized) {
-      throw new PSQLException(
+      throw new SQLException(
           GT.tr(
               "This SQLXML object has already been initialized, so you cannot manipulate it further."),
-          PSQLState.OBJECT_NOT_IN_STATE);
+          PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
     }
     initialized = true;
   }

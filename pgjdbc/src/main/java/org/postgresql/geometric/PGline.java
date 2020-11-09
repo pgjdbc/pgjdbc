@@ -5,16 +5,16 @@
 
 package org.postgresql.geometric;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 
 /**
  * This implements a line represented by the linear equation Ax + By + C = 0.
@@ -107,8 +107,8 @@ public class PGline extends PGobject implements Serializable, Cloneable {
     if (s.trim().startsWith("{")) {
       PGtokenizer t = new PGtokenizer(PGtokenizer.removeCurlyBrace(s), ',');
       if (t.getSize() != 3) {
-        throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
-            PSQLState.DATA_TYPE_MISMATCH);
+        throw new SQLSyntaxErrorException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
+            PgSqlState.DATATYPE_MISMATCH);
       }
       a = Double.parseDouble(t.getToken(0));
       b = Double.parseDouble(t.getToken(1));
@@ -116,8 +116,8 @@ public class PGline extends PGobject implements Serializable, Cloneable {
     } else if (s.trim().startsWith("[")) {
       PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
       if (t.getSize() != 2) {
-        throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
-            PSQLState.DATA_TYPE_MISMATCH);
+        throw new SQLSyntaxErrorException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
+            PgSqlState.DATATYPE_MISMATCH);
       }
       PGpoint point1 = new PGpoint(t.getToken(0));
       PGpoint point2 = new PGpoint(t.getToken(1));
@@ -131,6 +131,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two lines are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
@@ -149,6 +150,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
         && Double.compare(pGline.c, c) == 0;
   }
 
+  @Override
   public int hashCode() {
     int result = super.hashCode();
     long temp;
@@ -164,6 +166,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGline in the syntax expected by org.postgresql
    */
+  @Override
   public String getValue() {
     return "{" + a + "," + b + "," + c + "}";
   }

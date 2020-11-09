@@ -12,10 +12,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,7 +59,7 @@ public class GetObject310Test extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -154,15 +153,15 @@ public class GetObject310Test extends BaseTest4 {
       assertTrue(rs.next());
       try {
         assertNull(rs.getObject("time_with_time_zone_column", LocalTime.class));
-      } catch (PSQLException e) {
-        assertTrue(e.getSQLState().equals(PSQLState.DATA_TYPE_MISMATCH.getState())
-                || e.getSQLState().equals(PSQLState.BAD_DATETIME_FORMAT.getState()));
+      } catch (SQLException e) {
+        assertTrue(e.getSQLState().equals(PgSqlState.DATATYPE_MISMATCH)
+                || e.getSQLState().equals(PgSqlState.INVALID_DATETIME_FORMAT));
       }
       try {
         assertNull(rs.getObject(1, LocalTime.class));
-      } catch (PSQLException e) {
-        assertTrue(e.getSQLState().equals(PSQLState.DATA_TYPE_MISMATCH.getState())
-                || e.getSQLState().equals(PSQLState.BAD_DATETIME_FORMAT.getState()));
+      } catch (SQLException e) {
+        assertTrue(e.getSQLState().equals(PgSqlState.DATATYPE_MISMATCH)
+                || e.getSQLState().equals(PgSqlState.INVALID_DATETIME_FORMAT));
       }
     } finally {
       rs.close();
@@ -176,7 +175,7 @@ public class GetObject310Test extends BaseTest4 {
   public void testGetLocalDateTime() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
-    List<String> zoneIdsToTest = new ArrayList<String>();
+    List<String> zoneIdsToTest = new ArrayList<>();
     zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
     zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9
     zoneIdsToTest.add("Atlantic/Azores"); // It is something like GMT-1..GMT+0

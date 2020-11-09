@@ -10,10 +10,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgServerException;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.ServerErrorMessage;
 
 import org.junit.Test;
 
@@ -54,13 +53,17 @@ public class ServerErrorTest extends BaseTest4 {
       stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
       fail("Should have thrown a duplicate key exception.");
     } catch (SQLException sqle) {
-      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
-      assertEquals("public", err.getSchema());
-      assertEquals("testerr", err.getTable());
-      assertEquals("testerr_pk", err.getConstraint());
-      assertEquals(PSQLState.UNIQUE_VIOLATION.getState(), err.getSQLState());
-      assertNull(err.getDatatype());
-      assertNull(err.getColumn());
+      if (sqle.getCause() instanceof PgServerException) {
+        PgServerException err = (PgServerException) sqle.getCause();
+        assertEquals("public", err.getSchema());
+        assertEquals("testerr", err.getTable());
+        assertEquals("testerr_pk", err.getConstraint());
+        assertEquals(PgSqlState.UNIQUE_VIOLATION, err.getSQLState());
+        assertNull(err.getDataType());
+        assertNull(err.getColumn());
+      } else {
+        fail("Should have thrown an cause of PgServerException.");
+      }
     }
     stmt.close();
   }
@@ -72,12 +75,16 @@ public class ServerErrorTest extends BaseTest4 {
       stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, NULL)");
       fail("Should have thrown a not null constraint violation.");
     } catch (SQLException sqle) {
-      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
-      assertEquals("public", err.getSchema());
-      assertEquals("testerr", err.getTable());
-      assertEquals("val", err.getColumn());
-      assertNull(err.getDatatype());
-      assertNull(err.getConstraint());
+      if (sqle.getCause() instanceof PgServerException) {
+        PgServerException err = (PgServerException) sqle.getCause();
+        assertEquals("public", err.getSchema());
+        assertEquals("testerr", err.getTable());
+        assertEquals("val", err.getColumn());
+        assertNull(err.getDataType());
+        assertNull(err.getConstraint());
+      } else {
+        fail("Should have thrown an PgServerException.");
+      }
     }
     stmt.close();
   }
@@ -89,10 +96,14 @@ public class ServerErrorTest extends BaseTest4 {
       stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 20)");
       fail("Should have thrown a constraint violation.");
     } catch (SQLException sqle) {
-      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
-      assertEquals("public", err.getSchema());
-      assertEquals("testdom", err.getDatatype());
-      assertEquals("testdom_check", err.getConstraint());
+      if (sqle.getCause() instanceof PgServerException) {
+        PgServerException err = (PgServerException) sqle.getCause();
+        assertEquals("public", err.getSchema());
+        assertEquals("testdom", err.getDataType());
+        assertEquals("testdom_check", err.getConstraint());
+      } else {
+        fail("Should have thrown an PgServerException.");
+      }
     }
     stmt.close();
   }
@@ -104,12 +115,16 @@ public class ServerErrorTest extends BaseTest4 {
       stmt.executeUpdate("INSERT INTO testerr (val) VALUES (1)");
       fail("Should have thrown a not-null exception.");
     } catch (SQLException sqle) {
-      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
-      assertEquals("public", err.getSchema());
-      assertEquals("testerr", err.getTable());
-      assertEquals("id", err.getColumn());
-      assertEquals(PSQLState.NOT_NULL_VIOLATION.getState(), err.getSQLState());
-      assertNull(err.getDatatype());
+      if (sqle.getCause() instanceof PgServerException) {
+        PgServerException err = (PgServerException) sqle.getCause();
+        assertEquals("public", err.getSchema());
+        assertEquals("testerr", err.getTable());
+        assertEquals("id", err.getColumn());
+        assertEquals(PgSqlState.NOT_NULL_VIOLATION, err.getSQLState());
+        assertNull(err.getDataType());
+      } else {
+        fail("Should have thrown an PgServerException.");
+      }
     }
     stmt.close();
   }
@@ -124,12 +139,16 @@ public class ServerErrorTest extends BaseTest4 {
       stmt.executeUpdate("INSERT INTO testerr_foreign (id, testerr_id) VALUES (1, 2)");
       fail("Should have thrown a foreign key exception.");
     } catch (SQLException sqle) {
-      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
-      assertEquals("public", err.getSchema());
-      assertEquals("testerr_foreign", err.getTable());
-      assertEquals(PSQLState.FOREIGN_KEY_VIOLATION.getState(), err.getSQLState());
-      assertNull(err.getDatatype());
-      assertNull(err.getColumn());
+      if (sqle.getCause() instanceof PgServerException) {
+        PgServerException err = (PgServerException) sqle.getCause();
+        assertEquals("public", err.getSchema());
+        assertEquals("testerr_foreign", err.getTable());
+        assertEquals(PgSqlState.FOREIGN_KEY_VIOLATION, err.getSQLState());
+        assertNull(err.getDataType());
+        assertNull(err.getColumn());
+      } else {
+        fail("Should have thrown an PgServerException.");
+      }
     }
     TestUtil.dropTable(con, "testerr_foreign");
     stmt.close();
@@ -144,12 +163,16 @@ public class ServerErrorTest extends BaseTest4 {
       stmt.executeUpdate("INSERT INTO testerr_check (id, max10) VALUES (2, 11)");
       fail("Should have thrown a check exception.");
     } catch (SQLException sqle) {
-      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
-      assertEquals("public", err.getSchema());
-      assertEquals("testerr_check", err.getTable());
-      assertEquals(PSQLState.CHECK_VIOLATION.getState(), err.getSQLState());
-      assertNull(err.getDatatype());
-      assertNull(err.getColumn());
+      if (sqle.getCause() instanceof PgServerException) {
+        PgServerException err = (PgServerException) sqle.getCause();
+        assertEquals("public", err.getSchema());
+        assertEquals("testerr_check", err.getTable());
+        assertEquals(PgSqlState.CHECK_VIOLATION, err.getSQLState());
+        assertNull(err.getDataType());
+        assertNull(err.getColumn());
+      } else {
+        fail("Should have thrown an PgServerException.");
+      }
     }
     TestUtil.dropTable(con, "testerr_check");
     stmt.close();
@@ -164,12 +187,16 @@ public class ServerErrorTest extends BaseTest4 {
       stmt.executeUpdate("INSERT INTO testerr_exclude (id) VALUES (1108)");
       fail("Should have thrown an exclusion exception.");
     } catch (SQLException sqle) {
-      ServerErrorMessage err = ((PSQLException) sqle).getServerErrorMessage();
-      assertEquals("public", err.getSchema());
-      assertEquals("testerr_exclude", err.getTable());
-      assertEquals(PSQLState.EXCLUSION_VIOLATION.getState(), err.getSQLState());
-      assertNull(err.getDatatype());
-      assertNull(err.getColumn());
+      if (sqle.getCause() instanceof PgServerException) {
+        PgServerException err = (PgServerException) sqle.getCause();
+        assertEquals("public", err.getSchema());
+        assertEquals("testerr_exclude", err.getTable());
+        assertEquals(PgSqlState.EXCLUSION_VIOLATION, err.getSQLState());
+        assertNull( err.getDataType());
+        assertNull( err.getColumn());
+      } else {
+        fail("Should have thrown an PgServerException.");
+      }
     }
     TestUtil.dropTable(con, "testerr_exclude");
     stmt.close();

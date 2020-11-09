@@ -7,9 +7,9 @@ package org.postgresql.ssl.jdbc4;
 
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.ssl.PGjdbcHostnameVerifier;
-import org.postgresql.util.PSQLException;
 
 import java.net.IDN;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import javax.net.ssl.HostnameVerifier;
@@ -25,11 +25,11 @@ public class LibPQFactory extends org.postgresql.ssl.LibPQFactory implements Hos
   /**
    * @param info the connection parameters The following parameters are used:
    *             sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
-   * @throws PSQLException if security error appears when initializing factory
+   * @throws SQLException if security error appears when initializing factory
    * @deprecated prefer {@link org.postgresql.ssl.LibPQFactory}
    */
   @Deprecated
-  public LibPQFactory(Properties info) throws PSQLException {
+  public LibPQFactory(Properties info) throws SQLException {
     super(info);
 
     sslMode = SslMode.of(info);
@@ -74,6 +74,7 @@ public class LibPQFactory extends org.postgresql.ssl.LibPQFactory implements Hos
    * @return true if the certificate belongs to the server, false otherwise.
    * @see PGjdbcHostnameVerifier
    */
+  @Override
   @Deprecated
   public boolean verify(String hostname, SSLSession session) {
     if (!sslMode.verifyPeerName()) {

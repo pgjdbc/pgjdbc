@@ -8,9 +8,8 @@ package org.postgresql.ds;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -22,6 +21,8 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,7 +41,7 @@ import javax.sql.StatementEventListener;
  * @see org.postgresql.ds.PGConnectionPoolDataSource
  */
 public class PGPooledConnection implements PooledConnection {
-  private final List<ConnectionEventListener> listeners = new LinkedList<ConnectionEventListener>();
+  private final List<ConnectionEventListener> listeners = new LinkedList<>();
   private @Nullable Connection con;
   private @Nullable ConnectionHandler last;
   private final boolean autoCommit;
@@ -121,9 +122,9 @@ public class PGPooledConnection implements PooledConnection {
   public Connection getConnection() throws SQLException {
     if (con == null) {
       // Before throwing the exception, let's notify the registered listeners about the error
-      PSQLException sqlException =
-          new PSQLException(GT.tr("This PooledConnection has already been closed."),
-              PSQLState.CONNECTION_DOES_NOT_EXIST);
+      SQLNonTransientConnectionException sqlException =
+          new SQLNonTransientConnectionException(GT.tr("This PooledConnection has already been closed."),
+              PgSqlState.CONNECTION_DOES_NOT_EXIST);
       fireConnectionFatalError(sqlException);
       throw sqlException;
     }
@@ -320,10 +321,10 @@ public class PGPooledConnection implements PooledConnection {
         return null;
       }
       if (con == null || con.isClosed()) {
-        throw new PSQLException(automatic
+        throw new SQLNonTransientException(automatic
             ? GT.tr(
                 "Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.")
-            : GT.tr("Connection has been closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
+            : GT.tr("Connection has been closed."), PgSqlState.CONNECTION_DOES_NOT_EXIST);
       }
 
       // From here on in, we invoke via reflection, catch exceptions,
@@ -430,7 +431,7 @@ public class PGPooledConnection implements PooledConnection {
         return null;
       }
       if (st == null || st.isClosed()) {
-        throw new PSQLException(GT.tr("Statement has been closed."), PSQLState.OBJECT_NOT_IN_STATE);
+        throw new SQLException(GT.tr("Statement has been closed."), PgSqlState.OBJECT_NOT_IN_PREREQUISITE_STATE);
       }
       if (methodName.equals("getConnection")) {
         return castNonNull(con).getProxy(); // the proxied connection, not a physical connection

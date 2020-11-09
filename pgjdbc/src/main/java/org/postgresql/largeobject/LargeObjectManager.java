@@ -6,11 +6,10 @@
 package org.postgresql.largeobject;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -240,8 +239,8 @@ public class LargeObjectManager {
    */
   public LargeObject open(long oid, int mode, boolean commitOnClose) throws SQLException {
     if (conn.getAutoCommit()) {
-      throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
-          PSQLState.NO_ACTIVE_SQL_TRANSACTION);
+      throw new SQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
+          PgSqlState.NO_ACTIVE_SQL_TRANSACTION);
     }
     return new LargeObject(fp, oid, mode, conn, commitOnClose);
   }
@@ -281,8 +280,8 @@ public class LargeObjectManager {
    */
   public long createLO(int mode) throws SQLException {
     if (conn.getAutoCommit()) {
-      throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
-          PSQLState.NO_ACTIVE_SQL_TRANSACTION);
+      throw new SQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
+          PgSqlState.NO_ACTIVE_SQL_TRANSACTION);
     }
     FastpathArg[] args = new FastpathArg[1];
     args[0] = new FastpathArg(mode);

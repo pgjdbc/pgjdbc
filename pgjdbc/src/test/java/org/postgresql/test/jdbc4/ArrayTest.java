@@ -44,7 +44,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -403,7 +403,7 @@ public class ArrayTest extends BaseTest4 {
       pstmt.setObject(1, objCopy, Types.ARRAY);
       pstmt.executeUpdate();
       Assert.fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
-    } catch (org.postgresql.util.PSQLException ex) {
+    } catch (SQLException ex) {
       // Expected failure.
     }
 
@@ -411,7 +411,7 @@ public class ArrayTest extends BaseTest4 {
       pstmt.setObject(1, objCopy);
       pstmt.executeUpdate();
       Assert.fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
-    } catch (org.postgresql.util.PSQLException ex) {
+    } catch (SQLException ex) {
       // Expected failure.
     }
 

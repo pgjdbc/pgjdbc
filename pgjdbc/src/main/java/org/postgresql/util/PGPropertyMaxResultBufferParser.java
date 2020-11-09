@@ -5,9 +5,12 @@
 
 package org.postgresql.util;
 
+import org.postgresql.exception.PgSqlState;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.management.ManagementFactory;
+import java.sql.SQLDataException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,9 +30,9 @@ public class PGPropertyMaxResultBufferParser {
    * @param value string containing size of bytes with optional multiplier (T, G, M or K) or percent
    *              value to declare max percent of heap memory to use.
    * @return value of max result buffer size.
-   * @throws PSQLException Exception when given value can't be parsed.
+   * @throws SQLDataException Exception when given value can't be parsed.
    */
-  public static long parseProperty(@Nullable String value) throws PSQLException {
+  public static long parseProperty(@Nullable String value) throws SQLDataException {
     long result = -1;
     //noinspection StatementWithEmptyBody
     if (value == null) {
@@ -59,9 +62,9 @@ public class PGPropertyMaxResultBufferParser {
    *
    * @param value string containing percent used to define max result buffer.
    * @return percent value of max result buffer size.
-   * @throws PSQLException Exception when given value can't be parsed.
+   * @throws SQLDataException Exception when given value can't be parsed.
    */
-  private static long parseBytePercentValue(String value) throws PSQLException {
+  private static long parseBytePercentValue(String value) throws SQLDataException {
     long result = -1;
     int length;
 
@@ -138,9 +141,9 @@ public class PGPropertyMaxResultBufferParser {
    *
    * @param value Given string to be parsed.
    * @return Size based on given string.
-   * @throws PSQLException Exception when given value can't be parsed.
+   * @throws SQLDataException Exception when given value can't be parsed.
    */
-  private static long parseByteValue(String value) throws PSQLException {
+  private static long parseByteValue(String value) throws SQLDataException {
     long result = -1;
     long multiplier = 1;
     long mul = 1000;
@@ -209,12 +212,12 @@ public class PGPropertyMaxResultBufferParser {
    *
    * @param message Message to be added to exception.
    * @param values  Values to be put inside exception message.
-   * @throws PSQLException Exception when given value can't be parsed.
+   * @throws SQLDataException Exception when given value can't be parsed.
    */
-  private static void throwExceptionAboutParsingError(String message, Object... values) throws PSQLException {
-    throw new PSQLException(GT.tr(
+  private static void throwExceptionAboutParsingError(String message, Object... values) throws SQLDataException {
+    throw new SQLDataException(GT.tr(
       message,
       values),
-      PSQLState.SYNTAX_ERROR);
+      PgSqlState.INVALID_PARAMETER_VALUE);
   }
 }

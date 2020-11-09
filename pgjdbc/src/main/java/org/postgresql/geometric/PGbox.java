@@ -5,17 +5,17 @@
 
 package org.postgresql.geometric;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 
 /**
  * This represents the box datatype within org.postgresql.
@@ -76,9 +76,9 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   public void setValue(String value) throws SQLException {
     PGtokenizer t = new PGtokenizer(value, ',');
     if (t.getSize() != 2) {
-      throw new PSQLException(
+      throw new SQLSyntaxErrorException(
           GT.tr("Conversion to type {0} failed: {1}.", type, value),
-          PSQLState.DATA_TYPE_MISMATCH);
+          PgSqlState.DATATYPE_MISMATCH);
     }
 
     point[0] = new PGpoint(t.getToken(0));
@@ -88,6 +88,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   /**
    * @param b Definition of this point in PostgreSQL's binary syntax
    */
+  @Override
   public void setByteValue(byte[] b, int offset) {
     point[0] = new PGpoint();
     point[0].setByteValue(b, offset);
@@ -99,6 +100,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @param obj Object to compare with
    * @return true if the two boxes are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGbox) {
       PGbox p = (PGbox) obj;
@@ -131,6 +133,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
     return false;
   }
 
+  @Override
   public int hashCode() {
     // This relies on the behaviour of point's hashcode being an exclusive-OR of
     // its X and Y components; we end up with an exclusive-OR of the two X and
@@ -139,6 +142,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
     return point[0].hashCode() ^ point[1].hashCode();
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGbox newPGbox = (PGbox) super.clone();
     if (newPGbox.point != null) {
@@ -155,14 +159,17 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   /**
    * @return the PGbox in the syntax expected by org.postgresql
    */
+  @Override
   public String getValue() {
     return point[0].toString() + "," + point[1].toString();
   }
 
+  @Override
   public int lengthInBytes() {
     return point[0].lengthInBytes() + point[1].lengthInBytes();
   }
 
+  @Override
   public void toBytes(byte[] bytes, int offset) {
     point[0].toBytes(bytes, offset);
     point[1].toBytes(bytes, offset + point[0].lengthInBytes());

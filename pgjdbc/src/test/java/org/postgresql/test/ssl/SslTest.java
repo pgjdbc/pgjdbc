@@ -6,11 +6,11 @@
 package org.postgresql.test.ssl;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
@@ -127,7 +127,7 @@ public class SslTest extends BaseTest4 {
       return Collections.emptyList();
     }
 
-    Collection<Object[]> tests = new ArrayList<Object[]>();
+    Collection<Object[]> tests = new ArrayList<>();
 
     File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
     String certdir = certDirFile.getAbsolutePath();
@@ -219,8 +219,8 @@ public class SslTest extends BaseTest4 {
     if (e == null) {
       Assert.fail(caseName + " should result in failure of client validation");
     }
-    Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+    Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
+        PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION, e.getSQLState());
   }
 
   private void checkErrorCodes(@Nullable SQLException e) {
@@ -241,7 +241,7 @@ public class SslTest extends BaseTest4 {
         Assert.fail(caseName + " should result in FileNotFound exception for root certificate");
       }
       Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-          PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+          PgSqlState.CONNECTION_FAILURE, e.getSQLState());
       FileNotFoundException fnf = findCause(e, FileNotFoundException.class);
       if (fnf == null) {
         Assert.fail(caseName + " ==> FileNotFoundException should be present in getCause chain");
@@ -255,7 +255,7 @@ public class SslTest extends BaseTest4 {
         Assert.fail(caseName + " should result in connection failure");
       }
       Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
-          PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+          PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION, e.getSQLState());
       return;
     }
 
@@ -266,7 +266,7 @@ public class SslTest extends BaseTest4 {
         Assert.fail(caseName + " should result in connection failure");
       }
       Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
-          PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+          PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION, e.getSQLState());
       return;
     }
 
@@ -312,7 +312,7 @@ public class SslTest extends BaseTest4 {
           Assert.fail(caseName + " ==> connection should fail");
         }
         Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
-            PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+            PgSqlState.INVALID_AUTHORIZATION_SPECIFICATION, e.getSQLState());
       }
       // ALLOW is ok
       return;
@@ -343,7 +343,7 @@ public class SslTest extends BaseTest4 {
 
   private List<AssertionError> addError(@Nullable List<AssertionError> errors, AssertionError ae) {
     if (errors == null) {
-      errors = new ArrayList<AssertionError>();
+      errors = new ArrayList<>();
     }
     errors.add(ae);
     return errors;
@@ -368,7 +368,7 @@ public class SslTest extends BaseTest4 {
     }
 
     Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+        PgSqlState.CONNECTION_FAILURE, e.getSQLState());
     CertPathValidatorException validatorEx = findCause(e, CertPathValidatorException.class);
     if (validatorEx == null) {
       Assert.fail(caseName + " ==> exception should be caused by CertPathValidatorException,"
@@ -396,7 +396,7 @@ public class SslTest extends BaseTest4 {
       Assert.fail(caseName + " ==> CONNECTION_FAILURE expected");
     }
     Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+        PgSqlState.CONNECTION_FAILURE, e.getSQLState());
     String message = e.getMessage();
     if (message == null || !message.contains("PgjdbcHostnameVerifier")) {
       Assert.fail(caseName + " ==> message should contain"
@@ -430,7 +430,7 @@ public class SslTest extends BaseTest4 {
       Assert.fail(caseName + " should result in failure of client validation");
     }
     Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+        PgSqlState.CONNECTION_FAILURE, e.getSQLState());
 
     // Two exceptions are possible
     // SSLHandshakeException: Received fatal alert: unknown_ca

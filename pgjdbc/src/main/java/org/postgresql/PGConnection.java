@@ -19,6 +19,7 @@ import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * This interface defines the public PostgreSQL extensions to java.sql.Connection. All Connections

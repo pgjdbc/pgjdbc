@@ -6,10 +6,10 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGProperty;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
+import java.sql.SQLDataException;
 import java.util.Properties;
 
 public enum GSSEncMode {
@@ -46,7 +46,7 @@ public enum GSSEncMode {
     return this.compareTo(REQUIRE) >= 0;
   }
 
-  public static GSSEncMode of(Properties info) throws PSQLException {
+  public static GSSEncMode of(Properties info) throws SQLDataException {
     String gssEncMode = PGProperty.GSS_ENC_MODE.get(info);
     // If gssEncMode is not set, fallback to allow
     if (gssEncMode == null) {
@@ -58,8 +58,8 @@ public enum GSSEncMode {
         return mode;
       }
     }
-    throw new PSQLException(GT.tr("Invalid gssEncMode value: {0}", gssEncMode),
-        PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+    throw new SQLDataException(GT.tr("Invalid gssEncMode value: {0}", gssEncMode),
+        PgSqlState.INVALID_PARAMETER_VALUE);
   }
 
 }

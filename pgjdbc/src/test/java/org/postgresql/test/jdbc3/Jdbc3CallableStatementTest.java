@@ -12,9 +12,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
 
@@ -134,7 +134,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       cs.execute();
       fail("Should throw an exception ");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.SYNTAX_ERROR.getState()));
+      assertEquals(PgSqlState.SYNTAX_ERROR, ex.getSQLState());
     }
 
   }
@@ -150,7 +150,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       cs.execute();
       fail("should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.SYNTAX_ERROR.getState()));
+      assertEquals(PgSqlState.SYNTAX_ERROR, ex.getSQLState());
     }
 
   }

@@ -5,10 +5,11 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.exception.PgSqlState;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,9 +31,9 @@ class BooleanTypeUtil {
    *
    * @param in Object to cast into boolean
    * @return boolean value corresponding to the cast of the object
-   * @throws PSQLException PSQLState.CANNOT_COERCE
+   * @throws SQLException PSQLState.CANNOT_COERCE
    */
-  static boolean castToBoolean(final Object in) throws PSQLException {
+  static boolean castToBoolean(final Object in) throws SQLException {
     if (LOGGER.isLoggable(Level.FINE)) {
       LOGGER.log(Level.FINE, "Cast to boolean: \"{0}\"", String.valueOf(in));
     }
@@ -48,10 +49,10 @@ class BooleanTypeUtil {
     if (in instanceof Number) {
       return fromNumber((Number) in);
     }
-    throw new PSQLException("Cannot cast to boolean", PSQLState.CANNOT_COERCE);
+    throw new SQLSyntaxErrorException("Cannot cast to boolean", PgSqlState.CANNOT_COERCE);
   }
 
-  static boolean fromString(final String strval) throws PSQLException {
+  static boolean fromString(final String strval) throws SQLSyntaxErrorException {
     // Leading or trailing whitespace is ignored, and case does not matter.
     final String val = strval.trim();
     if ("1".equals(val) || "true".equalsIgnoreCase(val)
@@ -67,7 +68,7 @@ class BooleanTypeUtil {
     throw cannotCoerceException(strval);
   }
 
-  private static boolean fromCharacter(final Character charval) throws PSQLException {
+  private static boolean fromCharacter(final Character charval) throws SQLException {
     if ('1' == charval || 't' == charval || 'T' == charval
         || 'y' == charval || 'Y' == charval) {
       return true;
@@ -79,7 +80,7 @@ class BooleanTypeUtil {
     throw cannotCoerceException(charval);
   }
 
-  private static boolean fromNumber(final Number numval) throws PSQLException {
+  private static boolean fromNumber(final Number numval) throws SQLException {
     // Handles BigDecimal, Byte, Short, Integer, Long Float, Double
     // based on the widening primitive conversions.
     final double value = numval.doubleValue();
@@ -92,12 +93,12 @@ class BooleanTypeUtil {
     throw cannotCoerceException(numval);
   }
 
-  private static PSQLException cannotCoerceException(final Object value) {
+  private static SQLSyntaxErrorException cannotCoerceException(final Object value) {
     if (LOGGER.isLoggable(Level.FINE)) {
       LOGGER.log(Level.FINE, "Cannot cast to boolean: \"{0}\"", String.valueOf(value));
     }
-    return new PSQLException(GT.tr("Cannot cast to boolean: \"{0}\"", String.valueOf(value)),
-        PSQLState.CANNOT_COERCE);
+    return new SQLSyntaxErrorException(GT.tr("Cannot cast to boolean: \"{0}\"", String.valueOf(value)),
+        PgSqlState.CANNOT_COERCE);
   }
 
 }
