@@ -1427,7 +1427,6 @@ public class PgConnection implements BaseConnection {
           if (checkConnectionQuery == null) {
             checkConnectionQuery = prepareStatement("");
           }
-          checkConnectionQuery.setQueryTimeout(timeout);
           checkConnectionQuery.executeUpdate();
         }
         return true;
