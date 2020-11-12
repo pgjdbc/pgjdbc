@@ -15,6 +15,7 @@ import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.ArraysTest;
 import org.postgresql.jdbc.ArraysTestSuite;
+import org.postgresql.jdbc.BitFieldTest;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
 import org.postgresql.jdbc.PgSQLXMLTest;
@@ -48,6 +49,7 @@ import org.junit.runners.Suite;
     BatchedInsertReWriteEnabledTest.class,
     BatchExecuteTest.class,
     BatchFailureTest.class,
+    BitFieldTest.class,
     BlobTest.class,
     BlobTransactionTest.class,
     CallableStmtTest.class,
