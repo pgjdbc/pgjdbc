@@ -161,9 +161,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
       execute(preparedQuery, preparedParameters, flags);
 
-      synchronized (this) {
+      lock.lock();
+      try {
         checkClosed();
         return (result != null && result.getResultSet() != null);
+      } finally {
+        lock.unlock();
       }
     } finally {
       defaultTimeZone = null;

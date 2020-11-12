@@ -152,8 +152,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
     }
     rs.close();
-    synchronized (this) {
+    lock.lock();
+    try {
       result = null;
+    } finally {
+      lock.unlock();
     }
     return false;
   }
