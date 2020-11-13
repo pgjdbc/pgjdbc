@@ -20,6 +20,8 @@ import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.callback.Callback;
@@ -30,6 +32,7 @@ import javax.security.auth.x500.X500Principal;
 
 public class PKCS12KeyManager implements X509KeyManager {
 
+  private final Lock lock = new ReentrantLock();
   private final CallbackHandler cbh;
   private @Nullable PSQLException error = null;
   private final String keyfile;
@@ -149,33 +152,37 @@ public class PKCS12KeyManager implements X509KeyManager {
     return null;
   }
 
-  private synchronized void loadKeyStore() throws Exception {
-
-    if (keystoreLoaded) {
-      return;
-    }
-    // We call back for the password
-    PasswordCallback pwdcb = new PasswordCallback(GT.tr("Enter SSL password: "), false);
+  private void loadKeyStore() throws Exception {
+    lock.lock();
     try {
-      cbh.handle(new Callback[]{pwdcb});
-    } catch (UnsupportedCallbackException ucex) {
-      if ((cbh instanceof LibPQFactory.ConsoleCallbackHandler)
-          && ("Console is not available".equals(ucex.getMessage()))) {
-        error = new PSQLException(GT
-          .tr("Could not read password for SSL key file, console is not available."),
-          PSQLState.CONNECTION_FAILURE, ucex);
-      } else {
-        error =
-          new PSQLException(
-            GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
-              cbh.getClass().getName()),
-            PSQLState.CONNECTION_FAILURE, ucex);
+      if (keystoreLoaded) {
+        return;
+      }
+      // We call back for the password
+      PasswordCallback pwdcb = new PasswordCallback(GT.tr("Enter SSL password: "), false);
+      try {
+        cbh.handle(new Callback[]{pwdcb});
+      } catch (UnsupportedCallbackException ucex) {
+        if ((cbh instanceof LibPQFactory.ConsoleCallbackHandler)
+            && ("Console is not available".equals(ucex.getMessage()))) {
+          error = new PSQLException(GT
+              .tr("Could not read password for SSL key file, console is not available."),
+              PSQLState.CONNECTION_FAILURE, ucex);
+        } else {
+          error =
+              new PSQLException(
+                  GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
+                      cbh.getClass().getName()),
+                  PSQLState.CONNECTION_FAILURE, ucex);
+        }
+
       }
 
+      keyStore.load(new FileInputStream(new File(keyfile)), pwdcb.getPassword());
+      keystoreLoaded = true;
+    } finally {
+      lock.unlock();
     }
-
-    keyStore.load(new FileInputStream(new File(keyfile)), pwdcb.getPassword());
-    keystoreLoaded = true;
   }
 
 }
