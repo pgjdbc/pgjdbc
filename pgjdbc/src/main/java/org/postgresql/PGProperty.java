@@ -26,8 +26,8 @@ public enum PGProperty {
 
   /**
    * Specifies if number of rows, used during fetching rows of a result set, should be computed
-   * dynamically. Number of rows would be calculated by dividing maxResultBuffer size into max row
-   * size observed so far, rounded down. First fetch will have number of rows declared in
+   * dynamically. Number of rows will be calculated by dividing maxResultBuffer size by max row size
+   * observed so far, rounded down. First fetch will have number of rows declared in
    * defaultRowFetchSize. Number of rows can be limited by adaptiveFetchMinimum and
    * adaptiveFetchMaximum. Requires declaring of maxResultBuffer and defaultRowFetchSize to work.
    * Default value is false.
