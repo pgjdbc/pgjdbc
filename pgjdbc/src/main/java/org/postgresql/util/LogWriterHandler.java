@@ -8,6 +8,8 @@ package org.postgresql.util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Writer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.ErrorManager;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -18,7 +20,7 @@ import java.util.logging.SimpleFormatter;
 public class LogWriterHandler extends Handler {
 
   private @Nullable Writer writer;
-  private final Object lock = new Object();
+  private final Lock lock = new ReentrantLock();
 
   @SuppressWarnings("method.invocation.invalid")
   public LogWriterHandler(Writer inWriter) {
@@ -45,11 +47,14 @@ public class LogWriterHandler extends Handler {
       return;
     }
     try {
-      synchronized (lock) {
+      lock.lock();
+      try {
         Writer writer = this.writer;
         if (writer != null) {
           writer.write(formatted);
         }
+      } finally {
+        lock.unlock();
       }
     } catch (Exception ex) {
       reportError("Error writing message", ex, ErrorManager.WRITE_FAILURE);
