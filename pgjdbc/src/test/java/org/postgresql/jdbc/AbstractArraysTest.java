@@ -942,5 +942,22 @@ public abstract class AbstractArraysTest<A> {
     public boolean hintReadOnly() {
       return false;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setAdaptiveFetch(boolean adaptiveFetch) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean getAdaptiveFetch() {
+      throw new UnsupportedOperationException();
+    }
+
   }
 }

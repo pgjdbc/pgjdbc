@@ -35,6 +35,7 @@ import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
+import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
@@ -46,6 +47,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -64,6 +66,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -134,11 +137,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
 
+  private final AdaptiveFetchCache adaptiveFetchCache;
+
   @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible",
       "method.invocation.invalid"})
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info) throws SQLException, IOException {
     super(pgStream, user, database, cancelSignalTimeout, info);
+
+    long maxResultBuffer = pgStream.getMaxResultBuffer();
+    this.adaptiveFetchCache = new AdaptiveFetchCache(maxResultBuffer, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
@@ -286,6 +294,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public synchronized void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
+    execute(query, parameters, handler, maxRows, fetchSize, flags, false);
+  }
+
+  public synchronized void execute(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler,
+      int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
@@ -313,14 +327,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         handler = sendQueryPreamble(handler, flags);
         autosave = sendAutomaticSavepoint(query, flags);
         sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
-            handler, null);
+            handler, null, adaptiveFetch);
         if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
           // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
           // on its own
         } else {
           sendSync();
         }
-        processResults(handler, flags);
+        processResults(handler, flags, adaptiveFetch);
         estimatedReceiveBufferBytes = 0;
       } catch (PGBindException se) {
         // There are three causes of this error, an
@@ -338,7 +352,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // transaction in progress?
         //
         sendSync();
-        processResults(handler, flags);
+        processResults(handler, flags, adaptiveFetch);
         estimatedReceiveBufferBytes = 0;
         handler
             .handleError(new PSQLException(GT.tr("Unable to bind parameter values for statement."),
@@ -472,6 +486,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public synchronized void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
+    execute(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, false);
+  }
+
+  public synchronized void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
+      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
+      throws SQLException {
     waitOnLock();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  batch execute {0} queries, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
@@ -504,7 +524,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           parameters = SimpleQuery.NO_PARAMETERS;
         }
 
-        sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler);
+        sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch);
 
         if (handler.getException() != null) {
           break;
@@ -518,7 +538,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         } else {
           sendSync();
         }
-        processResults(handler, flags);
+        processResults(handler, flags, adaptiveFetch);
         estimatedReceiveBufferBytes = 0;
       }
     } catch (IOException e) {
@@ -1415,7 +1435,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void sendQuery(Query query, V3ParameterList parameters, int maxRows, int fetchSize,
       int flags, ResultHandler resultHandler,
-      @Nullable BatchResultHandler batchHandler) throws IOException, SQLException {
+      @Nullable BatchResultHandler batchHandler, boolean adaptiveFetch) throws IOException, SQLException {
     // Now the query itself.
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
@@ -1430,6 +1450,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
+        if (fetchSize != 0) {
+          adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
+        }
         sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
             flags);
       }
@@ -1452,6 +1475,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         SimpleParameterList subparam = SimpleQuery.NO_PARAMETERS;
         if (subparams != null) {
           subparam = subparams[i];
+        }
+        if (fetchSize != 0) {
+          adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
         sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
       }
@@ -2038,6 +2064,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   protected void processResults(ResultHandler handler, int flags) throws IOException {
+    processResults(handler, flags, false);
+  }
+
+  protected void processResults(ResultHandler handler, int flags, boolean adaptiveFetch)
+      throws IOException {
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
@@ -2153,6 +2184,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
+          if (currentPortal != null) {
+            // Existence of portal defines if query was using fetching.
+            adaptiveFetchCache
+              .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSizeBytes());
+          }
+          pgStream.clearMaxRowSizeBytes();
+
           Field[] fields = currentQuery.getFields();
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
@@ -2180,6 +2218,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           ExecuteRequest executeData = castNonNull(pendingExecuteQueue.peekFirst());
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
+
+          if (currentPortal != null) {
+            // Existence of portal defines if query was using fetching.
+
+            // Command executed, adaptive fetch size can be removed for this query, max row size can be cleared
+            adaptiveFetchCache.removeQuery(adaptiveFetch, currentQuery);
+            // Update to change fetch size for other fetch portals of this query
+            adaptiveFetchCache
+                .updateQueryFetchSize(adaptiveFetch, currentQuery, pgStream.getMaxRowSizeBytes());
+          }
+          pgStream.clearMaxRowSizeBytes();
 
           if (status.startsWith("SET")) {
             String nativeSql = currentQuery.getNativeQuery().nativeSql;
@@ -2453,8 +2502,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.skip(len - 4);
   }
 
-  public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
-      throws SQLException {
+  public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize,
+      boolean adaptiveFetch) throws SQLException {
     waitOnLock();
     final Portal portal = (Portal) cursor;
 
@@ -2478,7 +2527,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       sendExecute(query, portal, fetchSize);
       sendSync();
 
-      processResults(handler, 0);
+      processResults(handler, 0, adaptiveFetch);
       estimatedReceiveBufferBytes = 0;
     } catch (IOException e) {
       abort();
@@ -2488,6 +2537,48 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     handler.handleCompletion();
+  }
+
+  @Override
+  public int getAdaptiveFetchSize(boolean adaptiveFetch, ResultCursor cursor) {
+    if (cursor instanceof Portal) {
+      Query query = ((Portal) cursor).getQuery();
+      if (Objects.nonNull(query)) {
+        return adaptiveFetchCache
+            .getFetchSizeForQuery(adaptiveFetch, query);
+      }
+    }
+    return -1;
+  }
+
+  @Override
+  public void setAdaptiveFetch(boolean adaptiveFetch) {
+    this.adaptiveFetchCache.setAdaptiveFetch(adaptiveFetch);
+  }
+
+  @Override
+  public boolean getAdaptiveFetch() {
+    return this.adaptiveFetchCache.getAdaptiveFetch();
+  }
+
+  @Override
+  public void addQueryToAdaptiveFetchCache(boolean adaptiveFetch, @NonNull ResultCursor cursor) {
+    if (cursor instanceof Portal) {
+      Query query = ((Portal) cursor).getQuery();
+      if (Objects.nonNull(query)) {
+        adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
+      }
+    }
+  }
+
+  @Override
+  public void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, @NonNull ResultCursor cursor) {
+    if (cursor instanceof Portal) {
+      Query query = ((Portal) cursor).getQuery();
+      if (Objects.nonNull(query)) {
+        adaptiveFetchCache.removeQuery(adaptiveFetch, query);
+      }
+    }
   }
 
   /*

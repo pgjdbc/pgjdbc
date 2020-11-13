@@ -79,6 +79,8 @@ public class PGStream implements Closeable, Flushable {
   private long maxResultBuffer = -1;
   private long resultBufferByteCount = 0;
 
+  private int maxRowSizeBytes = -1;
+
   /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
@@ -548,6 +550,8 @@ public class PGStream implements Closeable, Flushable {
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
+    setMaxRowSizeBytes(dataToReadSize);
+
     byte[][] answer = new byte[nf][];
 
     increaseByteCounter(dataToReadSize);
@@ -715,19 +719,59 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Method to clear count of byte buffer.
+   * Get MaxResultBuffer from PGStream.
+   *
+   * @return size of MaxResultBuffer
+   */
+  public long getMaxResultBuffer() {
+    return maxResultBuffer;
+  }
+
+  /**
+   * The idea behind this method is to keep in maxRowSize the size of biggest read data row. As
+   * there may be many data rows send after each other for a query, then value in maxRowSize would
+   * contain value noticed so far, because next data rows and their sizes are not read for that
+   * moment. We want it increasing, because the size of the biggest among data rows will be used
+   * during computing new adaptive fetch size for the query.
+   *
+   * @param rowSizeBytes new value to be set as maxRowSizeBytes
+   */
+  public void setMaxRowSizeBytes(int rowSizeBytes) {
+    if (rowSizeBytes > maxRowSizeBytes) {
+      maxRowSizeBytes = rowSizeBytes;
+    }
+  }
+
+  /**
+   * Get actual max row size noticed so far.
+   *
+   * @return value of max row size
+   */
+  public int getMaxRowSizeBytes() {
+    return maxRowSizeBytes;
+  }
+
+  /**
+   * Clear value of max row size noticed so far.
+   */
+  public void clearMaxRowSizeBytes() {
+    maxRowSizeBytes = -1;
+  }
+
+  /**
+   * Clear count of byte buffer.
    */
   public void clearResultBufferCount() {
     resultBufferByteCount = 0;
   }
 
   /**
-   * Method to increase actual count of buffer. If buffer count is bigger than max result buffer
-   * limit, then gonna return an exception.
+   * Increase actual count of buffer. If buffer count is bigger than max result buffer limit, then
+   * gonna return an exception.
    *
    * @param value size of bytes to add to byte buffer.
    * @throws SQLException exception returned when result buffer count is bigger than max result
-   *                          buffer.
+   *                      buffer.
    */
   private void increaseByteCounter(long value) throws SQLException {
     if (maxResultBuffer != -1) {

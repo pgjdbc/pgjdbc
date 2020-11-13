@@ -315,4 +315,19 @@ public interface PGConnection {
    * @since 42.2.6
    */
   @Nullable String getParameterStatus(String parameterName);
+
+  /**
+   * Turn on/off adaptive fetch for connection. Existing statements and resultSets won't be affected
+   * by change here.
+   *
+   * @param adaptiveFetch desired state of adaptive fetch.
+   */
+  void setAdaptiveFetch(boolean adaptiveFetch);
+
+  /**
+   * Get state of adaptive fetch for connection.
+   *
+   * @return state of adaptive fetch (turned on or off)
+   */
+  boolean getAdaptiveFetch();
 }

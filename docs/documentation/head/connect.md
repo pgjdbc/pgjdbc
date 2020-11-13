@@ -533,6 +533,31 @@ Connection conn = DriverManager.getConnection(url);
     
 	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
 	
+* **adaptiveFetch** = boolean	
+
+    Specifies if number of rows, fetched in `ResultSet` by one fetch with trip to the database, should be dynamic.
+    Using dynamic number of rows, computed by adaptive fetch, allows to use most of the buffer declared in `maxResultBuffer` property.
+    Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed so far, rounded down.
+    First fetch will have number of rows declared in `defaultRowFetchSize`.
+    Number of rows can be limited by `adaptiveFetchMinimum` and `adaptiveFetchMaximum`. 
+    Requires declaring of `maxResultBuffer` and `defaultRowFetchSize` to work.	
+    
+    By default, adaptiveFetch is false.
+    
+* **adaptiveFetchMinimum** = int
+
+    Specifies the lowest number of rows which can be calculated by `adaptiveFetch`.
+    Requires `adaptiveFetch` set to true to work.
+    
+    By default, minimum of rows calculated by `adaptiveFetch` is 0. 
+
+* **adaptiveFetchMaximum** = int
+
+	Specifies the highest number of rows which can be calculated by `adaptiveFetch`.
+    Requires `adaptiveFetch` set to true to work.
+        
+    By default, maximum of rows calculated by `adaptiveFetch` is -1, which is understood as infinite.
+        
 <a name="unix sockets"></a>
 ## Unix sockets
 

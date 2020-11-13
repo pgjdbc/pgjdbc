@@ -25,6 +25,37 @@ import java.util.Properties;
 public enum PGProperty {
 
   /**
+   * Specifies if number of rows, used during fetching rows of a result set, should be computed
+   * dynamically. Number of rows will be calculated by dividing maxResultBuffer size by max row size
+   * observed so far, rounded down. First fetch will have number of rows declared in
+   * defaultRowFetchSize. Number of rows can be limited by adaptiveFetchMinimum and
+   * adaptiveFetchMaximum. Requires declaring of maxResultBuffer and defaultRowFetchSize to work.
+   * Default value is false.
+   */
+  ADAPTIVE_FETCH(
+    "adaptiveFetch",
+    "false",
+    "Specifies if number of rows fetched in ResultSet should be adaptive to maxResultBuffer and max row size."),
+
+  /**
+   * Specifies the highest number of rows which can be calculated by adaptiveFetch. Requires
+   * adaptiveFetch set to true to work. Default value is -1 (used as infinity).
+   */
+  ADAPTIVE_FETCH_MAXIMUM(
+    "adaptiveFetchMaximum",
+    "-1",
+    "Specifies maximum number of rows used by adaptive fetch."),
+
+  /**
+   * Specifies the lowest number of rows which can be calculated by adaptiveFetch. Requires
+   * adaptiveFetch set to true to work. Default value is 0.
+   */
+  ADAPTIVE_FETCH_MINIMUM(
+    "adaptiveFetchMinimum",
+    "0",
+    "Specifies minimum number of rows used by adaptive fetch."),
+
+  /**
    * When using the V3 protocol the driver monitors changes in certain server configuration
    * parameters that should not be touched by end users. The {@code client_encoding} setting is set
    * by the driver and should not be altered. If the driver detects a change it will abort the
