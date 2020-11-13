@@ -22,6 +22,8 @@ import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class holds all of the methods common to both Blobs and Clobs.
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 public abstract class AbstractBlobClob {
   protected BaseConnection conn;
 
+  protected final Lock lock = new ReentrantLock();
   private @Nullable LargeObject currentLo;
   private boolean currentLoIsWriteable;
   private boolean support64bit;
@@ -51,18 +54,23 @@ public abstract class AbstractBlobClob {
     support64bit = conn.haveMinimumServerVersion(90300);
   }
 
-  public synchronized void free() throws SQLException {
-    if (currentLo != null) {
-      currentLo.close();
-      currentLo = null;
-      currentLoIsWriteable = false;
-    }
-    if (subLOs != null) {
-      for (LargeObject subLO : subLOs) {
-        subLO.close();
+  public void free() throws SQLException {
+    lock.lock();
+    try {
+      if (currentLo != null) {
+        currentLo.close();
+        currentLo = null;
+        currentLoIsWriteable = false;
       }
+      if (subLOs != null) {
+        for (LargeObject subLO : subLOs) {
+          subLO.close();
+        }
+      }
+      subLOs = null;
+    } finally {
+      lock.unlock();
     }
-    subLOs = null;
   }
 
   /**
@@ -73,59 +81,84 @@ public abstract class AbstractBlobClob {
    * @param len maximum length
    * @throws SQLException if operation fails
    */
-  public synchronized void truncate(long len) throws SQLException {
-    checkFreed();
-    if (!conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      throw new PSQLException(
-          GT.tr("Truncation of large objects is only implemented in 8.3 and later servers."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
+  public void truncate(long len) throws SQLException {
+    lock.lock();
+    try {
+      checkFreed();
+      if (!conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
+        throw new PSQLException(
+            GT.tr("Truncation of large objects is only implemented in 8.3 and later servers."),
+            PSQLState.NOT_IMPLEMENTED);
+      }
 
-    if (len < 0) {
-      throw new PSQLException(GT.tr("Cannot truncate LOB to a negative length."),
-          PSQLState.INVALID_PARAMETER_VALUE);
-    }
-    if (len > Integer.MAX_VALUE) {
-      if (support64bit) {
-        getLo(true).truncate64(len);
-      } else {
-        throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE),
+      if (len < 0) {
+        throw new PSQLException(GT.tr("Cannot truncate LOB to a negative length."),
             PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else {
-      getLo(true).truncate((int) len);
+      if (len > Integer.MAX_VALUE) {
+        if (support64bit) {
+          getLo(true).truncate64(len);
+        } else {
+          throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE),
+              PSQLState.INVALID_PARAMETER_VALUE);
+        }
+      } else {
+        getLo(true).truncate((int) len);
+      }
+    } finally {
+      lock.unlock();
     }
   }
 
-  public synchronized long length() throws SQLException {
-    checkFreed();
-    if (support64bit) {
-      return getLo(false).size64();
-    } else {
-      return getLo(false).size();
+  public long length() throws SQLException {
+    lock.lock();
+    try {
+      checkFreed();
+      if (support64bit) {
+        return getLo(false).size64();
+      } else {
+        return getLo(false).size();
+      }
+    } finally {
+      lock.unlock();
     }
   }
 
-  public synchronized byte[] getBytes(long pos, int length) throws SQLException {
-    assertPosition(pos);
-    getLo(false).seek((int) (pos - 1), LargeObject.SEEK_SET);
-    return getLo(false).read(length);
+  public byte[] getBytes(long pos, int length) throws SQLException {
+    lock.lock();
+    try {
+      assertPosition(pos);
+      getLo(false).seek((int) (pos - 1), LargeObject.SEEK_SET);
+      return getLo(false).read(length);
+    } finally {
+      lock.unlock();
+    }
   }
 
-  public synchronized InputStream getBinaryStream() throws SQLException {
-    checkFreed();
-    LargeObject subLO = getLo(false).copy();
-    addSubLO(subLO);
-    subLO.seek(0, LargeObject.SEEK_SET);
-    return subLO.getInputStream();
+  public InputStream getBinaryStream() throws SQLException {
+    lock.lock();
+    try {
+      checkFreed();
+      LargeObject subLO = getLo(false).copy();
+      addSubLO(subLO);
+      subLO.seek(0, LargeObject.SEEK_SET);
+      return subLO.getInputStream();
+    } finally {
+      lock.unlock();
+    }
   }
 
-  public synchronized OutputStream setBinaryStream(long pos) throws SQLException {
-    assertPosition(pos);
-    LargeObject subLO = getLo(true).copy();
-    addSubLO(subLO);
-    subLO.seek((int) (pos - 1));
-    return subLO.getOutputStream();
+  public OutputStream setBinaryStream(long pos) throws SQLException {
+    lock.lock();
+    try {
+      assertPosition(pos);
+      LargeObject subLO = getLo(true).copy();
+      addSubLO(subLO);
+      subLO.seek((int) (pos - 1));
+      return subLO.getOutputStream();
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
@@ -136,31 +169,36 @@ public abstract class AbstractBlobClob {
    * @return position of the specified pattern
    * @throws SQLException if something wrong happens
    */
-  public synchronized long position(byte[] pattern, long start) throws SQLException {
-    assertPosition(start, pattern.length);
+  public long position(byte[] pattern, long start) throws SQLException {
+    lock.lock();
+    try {
+      assertPosition(start, pattern.length);
 
-    int position = 1;
-    int patternIdx = 0;
-    long result = -1;
-    int tmpPosition = 1;
+      int position = 1;
+      int patternIdx = 0;
+      long result = -1;
+      int tmpPosition = 1;
 
-    for (LOIterator i = new LOIterator(start - 1); i.hasNext(); position++) {
-      byte b = i.next();
-      if (b == pattern[patternIdx]) {
-        if (patternIdx == 0) {
-          tmpPosition = position;
+      for (LOIterator i = new LOIterator(start - 1); i.hasNext(); position++) {
+        byte b = i.next();
+        if (b == pattern[patternIdx]) {
+          if (patternIdx == 0) {
+            tmpPosition = position;
+          }
+          patternIdx++;
+          if (patternIdx == pattern.length) {
+            result = tmpPosition;
+            break;
+          }
+        } else {
+          patternIdx = 0;
         }
-        patternIdx++;
-        if (patternIdx == pattern.length) {
-          result = tmpPosition;
-          break;
-        }
-      } else {
-        patternIdx = 0;
       }
-    }
 
-    return result;
+      return result;
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
@@ -201,8 +239,13 @@ public abstract class AbstractBlobClob {
    * @return position of given pattern
    * @throws SQLException if something goes wrong
    */
-  public synchronized long position(Blob pattern, long start) throws SQLException {
-    return position(pattern.getBytes(1, (int) pattern.length()), start);
+  public long position(Blob pattern, long start) throws SQLException {
+    lock.lock();
+    try {
+      return position(pattern.getBytes(1, (int) pattern.length()), start);
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
@@ -248,30 +291,35 @@ public abstract class AbstractBlobClob {
     }
   }
 
-  protected synchronized LargeObject getLo(boolean forWrite) throws SQLException {
-    LargeObject currentLo = this.currentLo;
-    if (currentLo != null) {
-      if (forWrite && !currentLoIsWriteable) {
-        // Reopen the stream in read-write, at the same pos.
-        int currentPos = currentLo.tell();
+  protected LargeObject getLo(boolean forWrite) throws SQLException {
+    lock.lock();
+    try {
+      LargeObject currentLo = this.currentLo;
+      if (currentLo != null) {
+        if (forWrite && !currentLoIsWriteable) {
+          // Reopen the stream in read-write, at the same pos.
+          int currentPos = currentLo.tell();
 
-        LargeObjectManager lom = conn.getLargeObjectAPI();
-        LargeObject newLo = lom.open(oid, LargeObjectManager.READWRITE);
-        castNonNull(subLOs).add(currentLo);
-        this.currentLo = currentLo = newLo;
+          LargeObjectManager lom = conn.getLargeObjectAPI();
+          LargeObject newLo = lom.open(oid, LargeObjectManager.READWRITE);
+          castNonNull(subLOs).add(currentLo);
+          this.currentLo = currentLo = newLo;
 
-        if (currentPos != 0) {
-          currentLo.seek(currentPos);
+          if (currentPos != 0) {
+            currentLo.seek(currentPos);
+          }
         }
-      }
 
+        return currentLo;
+      }
+      LargeObjectManager lom = conn.getLargeObjectAPI();
+      this.currentLo = currentLo =
+          lom.open(oid, forWrite ? LargeObjectManager.READWRITE : LargeObjectManager.READ);
+      currentLoIsWriteable = forWrite;
       return currentLo;
+    } finally {
+      lock.unlock();
     }
-    LargeObjectManager lom = conn.getLargeObjectAPI();
-    this.currentLo = currentLo =
-        lom.open(oid, forWrite ? LargeObjectManager.READWRITE : LargeObjectManager.READ);
-    currentLoIsWriteable = forWrite;
-    return currentLo;
   }
 
   protected void addSubLO(LargeObject subLO) {
