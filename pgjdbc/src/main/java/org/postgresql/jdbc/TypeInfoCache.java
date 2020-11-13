@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,6 +60,7 @@ public class TypeInfoCache implements TypeInfo {
   // array type oid -> base type array element delimiter
   private Map<Integer, Character> arrayOidToDelimiter;
 
+  private final Lock lock = new ReentrantLock();
   private final BaseConnection conn;
   private final int unknownLength;
   private @Nullable PreparedStatement getOidStatementSimple;
@@ -149,41 +152,51 @@ public class TypeInfoCache implements TypeInfo {
     pgNameToJavaClass.put("hstore", Map.class.getName());
   }
 
-  public synchronized void addCoreType(String pgTypeName, Integer oid, Integer sqlType,
+  public void addCoreType(String pgTypeName, Integer oid, Integer sqlType,
       String javaClass, Integer arrayOid) {
-    pgNameToJavaClass.put(pgTypeName, javaClass);
-    pgNameToOid.put(pgTypeName, oid);
-    oidToPgName.put(oid, pgTypeName);
-    pgArrayToPgType.put(arrayOid, oid);
-    pgNameToSQLType.put(pgTypeName, sqlType);
-    oidToSQLType.put(oid, sqlType);
+    lock.lock();
+    try {
+      pgNameToJavaClass.put(pgTypeName, javaClass);
+      pgNameToOid.put(pgTypeName, oid);
+      oidToPgName.put(oid, pgTypeName);
+      pgArrayToPgType.put(arrayOid, oid);
+      pgNameToSQLType.put(pgTypeName, sqlType);
+      oidToSQLType.put(oid, sqlType);
 
-    // Currently we hardcode all core types array delimiter
-    // to a comma. In a stock install the only exception is
-    // the box datatype and it's not a JDBC core type.
-    //
-    Character delim = ',';
-    arrayOidToDelimiter.put(oid, delim);
-    arrayOidToDelimiter.put(arrayOid, delim);
+      // Currently we hardcode all core types array delimiter
+      // to a comma. In a stock install the only exception is
+      // the box datatype and it's not a JDBC core type.
+      //
+      Character delim = ',';
+      arrayOidToDelimiter.put(oid, delim);
+      arrayOidToDelimiter.put(arrayOid, delim);
 
-    String pgArrayTypeName = pgTypeName + "[]";
-    pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
-    pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
-    oidToSQLType.put(arrayOid, Types.ARRAY);
-    pgNameToOid.put(pgArrayTypeName, arrayOid);
-    pgArrayTypeName = "_" + pgTypeName;
-    if (!pgNameToJavaClass.containsKey(pgArrayTypeName)) {
+      String pgArrayTypeName = pgTypeName + "[]";
       pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
       pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+      oidToSQLType.put(arrayOid, Types.ARRAY);
       pgNameToOid.put(pgArrayTypeName, arrayOid);
-      oidToPgName.put(arrayOid, pgArrayTypeName);
+      pgArrayTypeName = "_" + pgTypeName;
+      if (!pgNameToJavaClass.containsKey(pgArrayTypeName)) {
+        pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
+        pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+        pgNameToOid.put(pgArrayTypeName, arrayOid);
+        oidToPgName.put(arrayOid, pgArrayTypeName);
+      }
+    } finally {
+      lock.unlock();
     }
   }
 
-  public synchronized void addDataType(String type, Class<? extends PGobject> klass)
+  public void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
-    pgNameToPgObject.put(type, klass);
-    pgNameToJavaClass.put(type, klass.getName());
+    lock.lock();
+    try {
+      pgNameToPgObject.put(type, klass);
+      pgNameToJavaClass.put(type, klass.getName());
+    } finally {
+      lock.unlock();
+    }
   }
 
   public Iterator<String> getPGTypeNamesWithSQLTypes() {
@@ -283,42 +296,52 @@ public class TypeInfoCache implements TypeInfo {
     return getTypeInfoStatement;
   }
 
-  public synchronized int getSQLType(String pgTypeName) throws SQLException {
-    return getSQLType(castNonNull(getPGType(pgTypeName)));
+  public int getSQLType(String pgTypeName) throws SQLException {
+    lock.lock();
+    try {
+      return getSQLType(castNonNull(getPGType(pgTypeName)));
+    } finally {
+      lock.unlock();
+    }
   }
 
-  public synchronized int getSQLType(int typeOid) throws SQLException {
-    if (typeOid == Oid.UNSPECIFIED) {
-      return Types.OTHER;
+  public int getSQLType(int typeOid) throws SQLException {
+    lock.lock();
+    try {
+      if (typeOid == Oid.UNSPECIFIED) {
+        return Types.OTHER;
+      }
+
+      Integer i = oidToSQLType.get(typeOid);
+      if (i != null) {
+        return i;
+      }
+
+      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", typeOid);
+
+      PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
+
+      getTypeInfoStatement.setInt(1, typeOid);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getTypeInfoStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
+
+      int sqlType = Types.OTHER;
+      if (rs.next()) {
+        sqlType = getSQLTypeFromQueryResult(rs);
+      }
+      rs.close();
+
+      oidToSQLType.put(typeOid, sqlType);
+      return sqlType;
+    } finally {
+      lock.unlock();
     }
-
-    Integer i = oidToSQLType.get(typeOid);
-    if (i != null) {
-      return i;
-    }
-
-    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", typeOid);
-
-    PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
-
-    getTypeInfoStatement.setInt(1, typeOid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
-
-    int sqlType = Types.OTHER;
-    if (rs.next()) {
-      sqlType = getSQLTypeFromQueryResult(rs);
-    }
-    rs.close();
-
-    oidToSQLType.put(typeOid, sqlType);
-    return sqlType;
   }
 
   private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
@@ -427,77 +450,87 @@ public class TypeInfoCache implements TypeInfo {
     return oidStatementComplex;
   }
 
-  public synchronized int getPGType(String pgTypeName) throws SQLException {
-    Integer oid = pgNameToOid.get(pgTypeName);
-    if (oid != null) {
-      return oid;
-    }
+  public int getPGType(String pgTypeName) throws SQLException {
+    lock.lock();
+    try {
+      Integer oid = pgNameToOid.get(pgTypeName);
+      if (oid != null) {
+        return oid;
+      }
 
-    PreparedStatement oidStatement = getOidStatement(pgTypeName);
+      PreparedStatement oidStatement = getOidStatement(pgTypeName);
 
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
 
-    oid = Oid.UNSPECIFIED;
-    ResultSet rs = castNonNull(oidStatement.getResultSet());
-    if (rs.next()) {
-      oid = (int) rs.getLong(1);
-      String internalName = castNonNull(rs.getString(2));
-      oidToPgName.put(oid, internalName);
-      pgNameToOid.put(internalName, oid);
-    }
-    pgNameToOid.put(pgTypeName, oid);
-    rs.close();
-
-    return oid;
-  }
-
-  public synchronized @Nullable String getPGType(int oid) throws SQLException {
-    if (oid == Oid.UNSPECIFIED) {
-      // TODO: it would be great to forbid UNSPECIFIED argument, and make the return type non-nullable
-      return null;
-    }
-
-    String pgTypeName = oidToPgName.get(oid);
-    if (pgTypeName != null) {
-      return pgTypeName;
-    }
-
-    PreparedStatement getNameStatement = prepareGetNameStatement();
-
-    getNameStatement.setInt(1, oid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getNameStatement.getResultSet());
-    if (rs.next()) {
-      boolean onPath = rs.getBoolean(1);
-      String schema = castNonNull(rs.getString(2), "schema");
-      String name = castNonNull(rs.getString(3), "name");
-      if (onPath) {
-        pgTypeName = name;
-        pgNameToOid.put(schema + "." + name, oid);
-      } else {
-        // TODO: escaping !?
-        pgTypeName = "\"" + schema + "\".\"" + name + "\"";
-        // if all is lowercase add special type info
-        // TODO: should probably check for all special chars
-        if (schema.equals(schema.toLowerCase()) && schema.indexOf('.') == -1
-            && name.equals(name.toLowerCase()) && name.indexOf('.') == -1) {
-          pgNameToOid.put(schema + "." + name, oid);
-        }
+      oid = Oid.UNSPECIFIED;
+      ResultSet rs = castNonNull(oidStatement.getResultSet());
+      if (rs.next()) {
+        oid = (int) rs.getLong(1);
+        String internalName = castNonNull(rs.getString(2));
+        oidToPgName.put(oid, internalName);
+        pgNameToOid.put(internalName, oid);
       }
       pgNameToOid.put(pgTypeName, oid);
-      oidToPgName.put(oid, pgTypeName);
-    }
-    rs.close();
+      rs.close();
 
-    return pgTypeName;
+      return oid;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  public @Nullable String getPGType(int oid) throws SQLException {
+    lock.lock();
+    try {
+      if (oid == Oid.UNSPECIFIED) {
+        // TODO: it would be great to forbid UNSPECIFIED argument, and make the return type non-nullable
+        return null;
+      }
+
+      String pgTypeName = oidToPgName.get(oid);
+      if (pgTypeName != null) {
+        return pgTypeName;
+      }
+
+      PreparedStatement getNameStatement = prepareGetNameStatement();
+
+      getNameStatement.setInt(1, oid);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getNameStatement.getResultSet());
+      if (rs.next()) {
+        boolean onPath = rs.getBoolean(1);
+        String schema = castNonNull(rs.getString(2), "schema");
+        String name = castNonNull(rs.getString(3), "name");
+        if (onPath) {
+          pgTypeName = name;
+          pgNameToOid.put(schema + "." + name, oid);
+        } else {
+          // TODO: escaping !?
+          pgTypeName = "\"" + schema + "\".\"" + name + "\"";
+          // if all is lowercase add special type info
+          // TODO: should probably check for all special chars
+          if (schema.equals(schema.toLowerCase()) && schema.indexOf('.') == -1
+              && name.equals(name.toLowerCase()) && name.indexOf('.') == -1) {
+            pgNameToOid.put(schema + "." + name, oid);
+          }
+        }
+        pgNameToOid.put(pgTypeName, oid);
+        oidToPgName.put(oid, pgTypeName);
+      }
+      rs.close();
+
+      return pgTypeName;
+    } finally {
+      lock.unlock();
+    }
   }
 
   private PreparedStatement prepareGetNameStatement() throws SQLException {
@@ -527,47 +560,57 @@ public class TypeInfoCache implements TypeInfo {
    * @param oid input oid
    * @return oid of the array's base element or the provided oid (if not array)
    */
-  protected synchronized int convertArrayToBaseOid(int oid) {
-    Integer i = pgArrayToPgType.get(oid);
-    if (i == null) {
-      return oid;
+  protected int convertArrayToBaseOid(int oid) {
+    lock.lock();
+    try {
+      Integer i = pgArrayToPgType.get(oid);
+      if (i == null) {
+        return oid;
+      }
+      return i;
+    } finally {
+      lock.unlock();
     }
-    return i;
   }
 
-  public synchronized char getArrayDelimiter(int oid) throws SQLException {
-    if (oid == Oid.UNSPECIFIED) {
-      return ',';
-    }
+  public char getArrayDelimiter(int oid) throws SQLException {
+    lock.lock();
+    try {
+      if (oid == Oid.UNSPECIFIED) {
+        return ',';
+      }
 
-    Character delim = arrayOidToDelimiter.get(oid);
-    if (delim != null) {
+      Character delim = arrayOidToDelimiter.get(oid);
+      if (delim != null) {
+        return delim;
+      }
+
+      PreparedStatement getArrayDelimiterStatement = prepareGetArrayDelimiterStatement();
+
+      getArrayDelimiterStatement.setInt(1, oid);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getArrayDelimiterStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
+      if (!rs.next()) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      String s = castNonNull(rs.getString(1));
+      delim = s.charAt(0);
+
+      arrayOidToDelimiter.put(oid, delim);
+
+      rs.close();
+
       return delim;
+    } finally {
+      lock.unlock();
     }
-
-    PreparedStatement getArrayDelimiterStatement = prepareGetArrayDelimiterStatement();
-
-    getArrayDelimiterStatement.setInt(1, oid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getArrayDelimiterStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
-    if (!rs.next()) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    String s = castNonNull(rs.getString(1));
-    delim = s.charAt(0);
-
-    arrayOidToDelimiter.put(oid, delim);
-
-    rs.close();
-
-    return delim;
   }
 
   private PreparedStatement prepareGetArrayDelimiterStatement() throws SQLException {
@@ -581,50 +624,55 @@ public class TypeInfoCache implements TypeInfo {
     return getArrayDelimiterStatement;
   }
 
-  public synchronized int getPGArrayElement(int oid) throws SQLException {
-    if (oid == Oid.UNSPECIFIED) {
-      return Oid.UNSPECIFIED;
-    }
+  public int getPGArrayElement(int oid) throws SQLException {
+    lock.lock();
+    try {
+      if (oid == Oid.UNSPECIFIED) {
+        return Oid.UNSPECIFIED;
+      }
 
-    Integer pgType = pgArrayToPgType.get(oid);
+      Integer pgType = pgArrayToPgType.get(oid);
 
-    if (pgType != null) {
+      if (pgType != null) {
+        return pgType;
+      }
+
+      PreparedStatement getArrayElementOidStatement = prepareGetArrayElementOidStatement();
+
+      getArrayElementOidStatement.setInt(1, oid);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getArrayElementOidStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
+      if (!rs.next()) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      pgType = (int) rs.getLong(1);
+      boolean onPath = rs.getBoolean(2);
+      String schema = rs.getString(3);
+      String name = castNonNull(rs.getString(4));
+      pgArrayToPgType.put(oid, pgType);
+      pgNameToOid.put(schema + "." + name, pgType);
+      String fullName = "\"" + schema + "\".\"" + name + "\"";
+      pgNameToOid.put(fullName, pgType);
+      if (onPath && name.equals(name.toLowerCase())) {
+        oidToPgName.put(pgType, name);
+        pgNameToOid.put(name, pgType);
+      } else {
+        oidToPgName.put(pgType, fullName);
+      }
+
+      rs.close();
+
       return pgType;
+    } finally {
+      lock.unlock();
     }
-
-    PreparedStatement getArrayElementOidStatement = prepareGetArrayElementOidStatement();
-
-    getArrayElementOidStatement.setInt(1, oid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getArrayElementOidStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
-    if (!rs.next()) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    pgType = (int) rs.getLong(1);
-    boolean onPath = rs.getBoolean(2);
-    String schema = rs.getString(3);
-    String name = castNonNull(rs.getString(4));
-    pgArrayToPgType.put(oid, pgType);
-    pgNameToOid.put(schema + "." + name, pgType);
-    String fullName = "\"" + schema + "\".\"" + name + "\"";
-    pgNameToOid.put(fullName, pgType);
-    if (onPath && name.equals(name.toLowerCase())) {
-      oidToPgName.put(pgType, name);
-      pgNameToOid.put(name, pgType);
-    } else {
-      oidToPgName.put(pgType, fullName);
-    }
-
-    rs.close();
-
-    return pgType;
   }
 
   private PreparedStatement prepareGetArrayElementOidStatement() throws SQLException {
@@ -639,30 +687,40 @@ public class TypeInfoCache implements TypeInfo {
     return getArrayElementOidStatement;
   }
 
-  public synchronized @Nullable Class<? extends PGobject> getPGobject(String type) {
-    return pgNameToPgObject.get(type);
+  public @Nullable Class<? extends PGobject> getPGobject(String type) {
+    lock.lock();
+    try {
+      return pgNameToPgObject.get(type);
+    } finally {
+      lock.unlock();
+    }
   }
 
-  public synchronized String getJavaClass(int oid) throws SQLException {
-    String pgTypeName = getPGType(oid);
-    if (pgTypeName == null) {
-      // Technically speaking, we should not be here
-      // null result probably means oid == UNSPECIFIED which has no clear way
-      // to map to Java
-      return "java.lang.String";
-    }
+  public String getJavaClass(int oid) throws SQLException {
+    lock.lock();
+    try {
+      String pgTypeName = getPGType(oid);
+      if (pgTypeName == null) {
+        // Technically speaking, we should not be here
+        // null result probably means oid == UNSPECIFIED which has no clear way
+        // to map to Java
+        return "java.lang.String";
+      }
 
-    String result = pgNameToJavaClass.get(pgTypeName);
-    if (result != null) {
-      return result;
-    }
+      String result = pgNameToJavaClass.get(pgTypeName);
+      if (result != null) {
+        return result;
+      }
 
-    if (getSQLType(pgTypeName) == Types.ARRAY) {
-      result = "java.sql.Array";
-      pgNameToJavaClass.put(pgTypeName, result);
-    }
+      if (getSQLType(pgTypeName) == Types.ARRAY) {
+        result = "java.sql.Array";
+        pgNameToJavaClass.put(pgTypeName, result);
+      }
 
-    return result == null ? "java.lang.String" : result;
+      return result == null ? "java.lang.String" : result;
+    } finally {
+      lock.unlock();
+    }
   }
 
   public String getTypeForAlias(String alias) {
