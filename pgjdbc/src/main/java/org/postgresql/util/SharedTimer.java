@@ -37,15 +37,15 @@ public class SharedTimer {
       if (timer == null) {
         int index = timerCount.incrementAndGet();
 
-      /*
-       Temporarily switch contextClassLoader to the one that loaded this driver to avoid TimerThread preventing current
-       contextClassLoader - which may be the ClassLoader of a web application - from being GC:ed.
-       */
+        /*
+         Temporarily switch contextClassLoader to the one that loaded this driver to avoid TimerThread preventing current
+         contextClassLoader - which may be the ClassLoader of a web application - from being GC:ed.
+         */
         final ClassLoader prevContextCL = Thread.currentThread().getContextClassLoader();
         try {
-        /*
-         Scheduled tasks whould not need to use .getContextClassLoader, so we just reset it to null
-         */
+          /*
+           Scheduled tasks whould not need to use .getContextClassLoader, so we just reset it to null
+           */
           Thread.currentThread().setContextClassLoader(null);
 
           this.timer = timer = new Timer("PostgreSQL-JDBC-SharedTimer-" + index, true);
