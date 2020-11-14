@@ -5,6 +5,8 @@
 
 package org.postgresql.copy;
 
+import org.postgresql.util.ByteStreamWriter;
+
 import java.sql.SQLException;
 
 /**
@@ -23,6 +25,14 @@ public interface CopyIn extends CopyOperation {
   void writeToCopy(byte[] buf, int off, int siz) throws SQLException;
 
   /**
+   * Writes a ByteStreamWriter to an open and writable copy operation.
+   *
+   * @param from the source of bytes, e.g. a ByteBufferByteStreamWriter
+   * @throws SQLException if the operation fails
+   */
+  void writeToCopy(ByteStreamWriter from) throws SQLException;
+
+  /**
    * Force any buffered output to be sent over the network to the backend. In general this is a
    * useless operation as it will get pushed over in due time or when endCopy is called. Some
    * specific modified server versions (Truviso) want this data sooner. If you are unsure if you
@@ -33,7 +43,7 @@ public interface CopyIn extends CopyOperation {
   void flushCopy() throws SQLException;
 
   /**
-   * Finishes copy operation succesfully.
+   * Finishes copy operation successfully.
    *
    * @return number of updated rows for server 8.2 or newer (see getHandledRowCount())
    * @throws SQLException if the operation fails.

@@ -25,130 +25,57 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 /**
- * Provides a SSLSocketFactory that authenticates the remote server against an explicit pre-shared
+ * <p>Provides a SSLSocketFactory that authenticates the remote server against an explicit pre-shared
  * SSL certificate. This is more secure than using the NonValidatingFactory as it prevents "man in
  * the middle" attacks. It is also more secure than relying on a central CA signing your server's
- * certificate as it pins the server's certificate.
+ * certificate as it pins the server's certificate.</p>
  *
- * <p>
- * This class requires a single String parameter specified by setting the connection property
+ * <p>This class requires a single String parameter specified by setting the connection property
  * <code>sslfactoryarg</code>. The value of this property is the PEM-encoded remote server's SSL
- * certificate.
- * </p>
- * <p>
- * Where the certificate is loaded from is based upon the prefix of the
+ * certificate.</p>
  *
- * <pre>
- * <code>sslfactoryarg</code>
- * </pre>
+ * <p>Where the certificate is loaded from is based upon the prefix of the <code>sslfactoryarg</code> property.
+ * The following table lists the valid set of prefixes.</p>
  *
- * property. The following table lists the valid set of prefixes.
- * <table border="1" summary="Valid prefixes for sslfactoryarg">
+ * <table border="1">
+ * <caption>Valid prefixes for sslfactoryarg</caption>
  * <tr>
- * <th>Prefix</th>
- * <th>Example</th>
- * <th>Explanation</th>
+ *     <th>Prefix</th>
+ *     <th>Example</th>
+ *     <th>Explanation</th>
  * </tr>
  * <tr>
- * <td>
- *
- * <pre>
- * <code>classpath:</code>
- * </pre>
- *
- * </td>
- * <td>
- *
- * <pre>
- * <code>classpath:ssl/server.crt</code>
- * </pre>
- *
- * </td>
- * <td>Loaded from the classpath.</td>
+ *     <td><code>classpath:</code></td>
+ *     <td><code>classpath:ssl/server.crt</code></td>
+ *     <td>Loaded from the classpath.</td>
  * </tr>
  * <tr>
- * <td>
- *
- * <pre>
- * <code>file:</code>
- * </pre>
- *
- * </td>
- * <td>
- *
- * <pre>
- * <code>file:/foo/bar/server.crt</code>
- * </pre>
- *
- * </td>
- * <td>Loaded from the filesystem.</td>
+ *     <td><code>file:</code></td>
+ *     <td><code>file:/foo/bar/server.crt</code></td>
+ *     <td>Loaded from the filesystem.</td>
  * </tr>
  * <tr>
- * <td>
- *
- * <pre>
- * <code>env:</code>
- * </pre>
- *
- * </td>
- * <td>
- *
- * <pre>
- * <code>env:mydb_cert</code>
- * </pre>
- *
- * </td>
- * <td>Loaded from string value of the
- *
- * <pre>
- * <code>mydb_cert</code>
- * </pre>
- *
- * environment variable.</td>
+ *     <td><code>env:</code></td>
+ *     <td><code>env:mydb_cert</code></td>
+ *     <td>Loaded from string value of the <code>mydb_cert</code> environment variable.</td>
  * </tr>
  * <tr>
- * <td>
- *
- * <pre>
- * <code>sys:</code>
- * </pre>
- *
- * </td>
- * <td>
- *
- * <pre>
- * <code>sys:mydb_cert</code>
- * </pre>
- *
- * </td>
- * <td>Loaded from string value of the
- *
- * <pre>
- * <code>mydb_cert</code>
- * </pre>
- *
- * system property.</td>
+ *     <td><code>sys:</code></td>
+ *     <td><code>sys:mydb_cert</code></td>
+ *     <td>Loaded from string value of the <code>mydb_cert</code> system property.</td>
  * </tr>
  * <tr>
- * <td>
- *
- * <pre>
- * -----BEGIN CERTIFICATE------
- * </pre>
- *
- * </td>
- * <td>
- *
- * <pre>
+ *     <td><pre>-----BEGIN CERTIFICATE------</pre></td>
+ *     <td>
+ *         <pre>
  * -----BEGIN CERTIFICATE-----
  * MIIDQzCCAqygAwIBAgIJAOd1tlfiGoEoMA0GCSqGSIb3DQEBBQUAMHUxCzAJBgNV
  * [... truncated ...]
  * UCmmYqgiVkAGWRETVo+byOSDZ4swb10=
  * -----END CERTIFICATE-----
- * </pre>
- *
- * </td>
- * <td>Loaded from string value of the argument.</td>
+ *         </pre>
+*      </td>
+ *     <td>Loaded from string value of the argument.</td>
  * </tr>
  * </table>
  */
@@ -170,8 +97,26 @@ public class SingleCertValidatingFactory extends WrappedFactory {
         in = new BufferedInputStream(new FileInputStream(path));
       } else if (sslFactoryArg.startsWith(CLASSPATH_PREFIX)) {
         String path = sslFactoryArg.substring(CLASSPATH_PREFIX.length());
-        in = new BufferedInputStream(
-            Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        InputStream inputStream;
+        if (classLoader != null) {
+          inputStream = classLoader.getResourceAsStream(path);
+          if (inputStream == null) {
+            throw new IllegalArgumentException(
+                GT.tr("Unable to find resource {0} via Thread contextClassLoader {1}",
+                    path, classLoader)
+            );
+          }
+        } else {
+          inputStream = getClass().getResourceAsStream(path);
+          if (inputStream == null) {
+            throw new IllegalArgumentException(
+                GT.tr("Unable to find resource {0} via class {1} ClassLoader {2}",
+                    path, getClass(), getClass().getClassLoader())
+            );
+          }
+        }
+        in = new BufferedInputStream(inputStream);
       } else if (sslFactoryArg.startsWith(ENV_PREFIX)) {
         String name = sslFactoryArg.substring(ENV_PREFIX.length());
         String cert = System.getenv(name);
@@ -197,7 +142,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
 
       SSLContext ctx = SSLContext.getInstance("TLS");
       ctx.init(null, new TrustManager[]{new SingleCertTrustManager(in)}, null);
-      _factory = ctx.getSocketFactory();
+      factory = ctx.getSocketFactory();
     } catch (RuntimeException e) {
       throw e;
     } catch (Exception e) {
@@ -216,7 +161,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
     }
   }
 
-  public class SingleCertTrustManager implements X509TrustManager {
+  public static class SingleCertTrustManager implements X509TrustManager {
     X509Certificate cert;
     X509TrustManager trustManager;
 

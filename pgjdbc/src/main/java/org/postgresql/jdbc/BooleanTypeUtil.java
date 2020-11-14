@@ -13,10 +13,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Helper class to handle boolean type of PostgreSQL.
- * <p>
- * Based on values accepted by the PostgreSQL server:
- * https://www.postgresql.org/docs/current/static/datatype-boolean.html
+ * <p>Helper class to handle boolean type of PostgreSQL.</p>
+ *
+ * <p>Based on values accepted by the PostgreSQL server:
+ * https://www.postgresql.org/docs/current/static/datatype-boolean.html</p>
  */
 class BooleanTypeUtil {
 
@@ -51,7 +51,7 @@ class BooleanTypeUtil {
     throw new PSQLException("Cannot cast to boolean", PSQLState.CANNOT_COERCE);
   }
 
-  private static boolean fromString(final String strval) throws PSQLException {
+  static boolean fromString(final String strval) throws PSQLException {
     // Leading or trailing whitespace is ignored, and case does not matter.
     final String val = strval.trim();
     if ("1".equals(val) || "true".equalsIgnoreCase(val)

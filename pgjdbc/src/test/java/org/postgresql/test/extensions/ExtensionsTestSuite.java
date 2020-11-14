@@ -12,7 +12,8 @@ import org.junit.runners.Suite;
  * Executes all known tests for PostgreSQL extensions supported by JDBC driver
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses(HStoreTest.class)
+@Suite.SuiteClasses({
+    HStoreTest.class,
+})
 public class ExtensionsTestSuite {
 }
-

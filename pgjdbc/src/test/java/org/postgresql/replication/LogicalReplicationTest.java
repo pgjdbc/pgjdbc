@@ -14,6 +14,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -25,6 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 import java.nio.ByteBuffer;
@@ -44,6 +46,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+@Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
 public class LogicalReplicationTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
@@ -166,7 +169,6 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-
     List<String> result = new ArrayList<String>();
 
     Statement st = sqlConnection.createStatement();
@@ -256,10 +258,10 @@ public class LogicalReplicationTest {
   /**
    * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.
+   * Stopping logical replication protocol</a>.</p>
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
-   * wait new changes and until waiting messages from client ignores.
+   * wait new changes and until waiting messages from client ignores.</p>
    */
   @Test(timeout = 1000)
   @HaveMinimalServerVersion("11.1")
@@ -327,13 +329,13 @@ public class LogicalReplicationTest {
   /**
    * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.
+   * Stopping logical replication protocol</a>.</p>
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
-   * wait new changes and until waiting messages from client ignores.
+   * wait new changes and until waiting messages from client ignores.</p>
    */
   @Test(timeout = 10000)
-  @HaveMinimalServerVersion("11.1")
+  @HaveMinimalServerVersion("12.1")
   public void testDuringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -361,8 +363,12 @@ public class LogicalReplicationTest {
     replConnection.close();
 
     boolean isActive = isActiveOnView();
-    //we doesn't wait replay from server about stop connection that why some delay exists on update view and should wait some time before check view
-    if (!isActive) {
+
+    /*
+     * we don't wait for replay from server about stop connection that's why some
+     * delay exists on update view and should wait some time before check view
+     */
+    if (isActive) {
       TimeUnit.SECONDS.sleep(2L);
       isActive = isActiveOnView();
     }
@@ -377,10 +383,10 @@ public class LogicalReplicationTest {
   /**
    * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.
+   * Stopping logical replication protocol</a>.</p>
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
-   * wait new changes and until waiting messages from client ignores.
+   * wait new changes and until waiting messages from client ignores.</p>
    */
   @Test(timeout = 60000)
   @HaveMinimalServerVersion("11.1")
@@ -730,7 +736,6 @@ public class LogicalReplicationTest {
 
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     String result = group(consumedData);
-
 
     String wait = group(Arrays.asList(
         "BEGIN",

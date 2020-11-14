@@ -7,6 +7,8 @@ package org.postgresql.xa;
 
 import org.postgresql.ds.common.PGObjectFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Hashtable;
 
 import javax.naming.Context;
@@ -24,7 +26,7 @@ public class PGXADataSourceFactory extends PGObjectFactory {
    * "JDBC2 Enterprise" edition build which doesn't include PGXADataSource.
    */
 
-  public Object getObjectInstance(Object obj, Name name, Context nameCtx,
+  public @Nullable Object getObjectInstance(Object obj, Name name, Context nameCtx,
       Hashtable<?, ?> environment) throws Exception {
     Reference ref = (Reference) obj;
     String className = ref.getClassName();

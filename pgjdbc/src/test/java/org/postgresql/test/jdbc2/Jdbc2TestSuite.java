@@ -5,13 +5,32 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.CommandCompleteParserNegativeTest;
+import org.postgresql.core.CommandCompleteParserTest;
+import org.postgresql.core.OidToStringTest;
+import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
+import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
+import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCacheTest;
+import org.postgresql.jdbc.ArraysTest;
+import org.postgresql.jdbc.ArraysTestSuite;
+import org.postgresql.jdbc.BitFieldTest;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
+import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
+import org.postgresql.jdbc.PgSQLXMLTest;
+import org.postgresql.test.core.FixedLengthOutputStreamTest;
+import org.postgresql.test.core.JavaVersionTest;
+import org.postgresql.test.core.LogServerMessagePropertyTest;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
+import org.postgresql.test.core.OptionsPropertyTest;
+import org.postgresql.test.util.ByteBufferByteStreamWriterTest;
+import org.postgresql.test.util.ByteStreamWriterTest;
 import org.postgresql.test.util.ExpressionPropertiesTest;
+import org.postgresql.test.util.HostSpecTest;
 import org.postgresql.test.util.LruCacheTest;
+import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.ReaderInputStreamTest;
@@ -24,96 +43,92 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        ANTTest.class,
-
-        DriverTest.class,
-        ConnectionTest.class,
-        DatabaseMetaDataTest.class,
-        DatabaseMetaDataPropertiesTest.class,
-        SearchPathLookupTest.class,
-        EncodingTest.class,
-        ExpressionPropertiesTest.class,
-        ColumnSanitiserDisabledTest.class,
-        ColumnSanitiserEnabledTest.class,
-        LruCacheTest.class,
-        ReaderInputStreamTest.class,
-        ServerVersionParseTest.class,
-        ServerVersionTest.class,
-
-        DriverTest.class,
-        ConnectionTest.class,
-        DatabaseMetaDataTest.class,
-        DatabaseMetaDataPropertiesTest.class,
-        SearchPathLookupTest.class,
-        EncodingTest.class,
-        ExpressionPropertiesTest.class,
-        ColumnSanitiserDisabledTest.class,
-        ColumnSanitiserEnabledTest.class,
-        LruCacheTest.class,
-        ReaderInputStreamTest.class,
-        ServerVersionParseTest.class,
-        ServerVersionTest.class,
-
-        TypeCacheDLLStressTest.class,
-
-        ResultSetTest.class,
-        ResultSetMetaDataTest.class,
-        ArrayTest.class,
-        RefCursorTest.class,
-
-        DateTest.class,
-        TimeTest.class,
-        TimestampTest.class,
-        TimezoneTest.class,
-        PGTimeTest.class,
-        PGTimestampTest.class,
-        TimezoneCachingTest.class,
-        ParserTest.class,
-        ReturningParserTest.class,
-
-        PreparedStatementTest.class,
-        StatementTest.class,
-        QuotationTest.class,
-
-        ServerPreparedStmtTest.class,
-
-        BatchExecuteTest.class,
-        BatchFailureTest.class,
-
-        BatchedInsertReWriteEnabledTest.class,
-        NativeQueryBindLengthTest.class,
-        DeepBatchedInsertStatementTest.class,
-        JBuilderTest.class,
-        MiscTest.class,
-        NotifyTest.class,
-        DatabaseEncodingTest.class,
-
-        BlobTest.class,
-        BlobTransactionTest.class,
-
-        UpdateableResultTest.class,
-
-        CallableStmtTest.class,
-        CursorFetchTest.class,
-        ConcurrentStatementFetch.class,
-        ServerCursorTest.class,
-
-        IntervalTest.class,
-        GeometricTest.class,
-
-        LoginTimeoutTest.class,
-        TestACL.class,
-
-        ConnectTimeoutTest.class,
-
-        PGPropertyTest.class,
-
-        V3ParameterListTests.class,
-
-        CopyTest.class,
-        CopyLargeFileTest.class,
-        ServerErrorTest.class,
-        UpsertTest.class
+    AdaptiveFetchCacheTest.class,
+    ANTTest.class,
+    ArrayTest.class,
+    ArraysTest.class,
+    ArraysTestSuite.class,
+    BatchedInsertReWriteEnabledTest.class,
+    BatchExecuteTest.class,
+    BatchFailureTest.class,
+    BitFieldTest.class,
+    BlobTest.class,
+    BlobTransactionTest.class,
+    CallableStmtTest.class,
+    ClientEncodingTest.class,
+    ColumnSanitiserDisabledTest.class,
+    ColumnSanitiserEnabledTest.class,
+    CommandCompleteParserNegativeTest.class,
+    CommandCompleteParserTest.class,
+    ConcurrentStatementFetch.class,
+    ConnectionTest.class,
+    ConnectTimeoutTest.class,
+    CopyLargeFileTest.class,
+    CopyTest.class,
+    CursorFetchTest.class,
+    DatabaseEncodingTest.class,
+    DatabaseMetaDataCacheTest.class,
+    DatabaseMetaDataPropertiesTest.class,
+    DatabaseMetaDataTest.class,
+    DateStyleTest.class,
+    DateTest.class,
+    DeepBatchedInsertStatementTest.class,
+    DriverTest.class,
+    EncodingTest.class,
+    ExpressionPropertiesTest.class,
+    GeometricTest.class,
+    GetXXXTest.class,
+    HostSpecTest.class,
+    IntervalTest.class,
+    JavaVersionTest.class,
+    JBuilderTest.class,
+    LoginTimeoutTest.class,
+    LogServerMessagePropertyTest.class,
+    LruCacheTest.class,
+    MiscTest.class,
+    NativeQueryBindLengthTest.class,
+    NoColumnMetadataIssue1613Test.class,
+    NotifyTest.class,
+    OidToStringTest.class,
+    OidValueOfTest.class,
+    OptionsPropertyTest.class,
+    OuterJoinSyntaxTest.class,
+    FixedLengthOutputStreamTest.class,
+    ByteStreamWriterTest.class,
+    ByteBufferByteStreamWriterTest.class,
+    ParameterStatusTest.class,
+    ParserTest.class,
+    PGPropertyMaxResultBufferParserTest.class,
+    PGPropertyTest.class,
+    PGTimestampTest.class,
+    PGTimeTest.class,
+    PgSQLXMLTest.class,
+    PreparedStatementTest.class,
+    QuotationTest.class,
+    ReaderInputStreamTest.class,
+    RefCursorTest.class,
+    ReplaceProcessingTest.class,
+    ResultSetMetaDataTest.class,
+    ResultSetTest.class,
+    ReturningParserTest.class,
+    SearchPathLookupTest.class,
+    ServerCursorTest.class,
+    ServerErrorTest.class,
+    ServerPreparedStmtTest.class,
+    ServerVersionParseTest.class,
+    ServerVersionTest.class,
+    StatementTest.class,
+    StringTypeUnspecifiedArrayTest.class,
+    TestACL.class,
+    TimestampTest.class,
+    TimeTest.class,
+    TimezoneCachingTest.class,
+    TimezoneTest.class,
+    TypeCacheDLLStressTest.class,
+    UpdateableResultTest.class,
+    UpsertTest.class,
+    UTF8EncodingTest.class,
+    V3ParameterListTests.class
 })
 public class Jdbc2TestSuite {
 }

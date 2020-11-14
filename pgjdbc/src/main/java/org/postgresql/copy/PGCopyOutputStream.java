@@ -5,24 +5,29 @@
 
 package org.postgresql.copy;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGConnection;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
- * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation
+ * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation.
  */
 public class PGCopyOutputStream extends OutputStream implements CopyIn {
-  private CopyIn op;
+  private @Nullable CopyIn op;
   private final byte[] copyBuffer;
   private final byte[] singleByteBuffer = new byte[1];
   private int at = 0;
 
   /**
-   * Uses given connection for specified COPY FROM STDIN operation
+   * Uses given connection for specified COPY FROM STDIN operation.
    *
    * @param connection database connection to use for copying (protocol version 3 required)
    * @param sql        COPY FROM STDIN statement
@@ -33,7 +38,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   /**
-   * Uses given connection for specified COPY FROM STDIN operation
+   * Uses given connection for specified COPY FROM STDIN operation.
    *
    * @param connection database connection to use for copying (protocol version 3 required)
    * @param sql        COPY FROM STDIN statement
@@ -46,7 +51,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   /**
-   * Use given CopyIn operation for writing
+   * Use given CopyIn operation for writing.
    *
    * @param op COPY FROM STDIN operation
    */
@@ -55,7 +60,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   }
 
   /**
-   * Use given CopyIn operation for writing
+   * Use given CopyIn operation for writing.
    *
    * @param op         COPY FROM STDIN operation
    * @param bufferSize try to send this many bytes at a time
@@ -63,6 +68,10 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   public PGCopyOutputStream(CopyIn op, int bufferSize) {
     this.op = op;
     copyBuffer = new byte[bufferSize];
+  }
+
+  private CopyIn getOp() {
+    return castNonNull(op);
   }
 
   public void write(int b) throws IOException {
@@ -83,9 +92,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     try {
       writeToCopy(buf, off, siz);
     } catch (SQLException se) {
-      IOException ioe = new IOException("Write to copy failed.");
-      ioe.initCause(se);
-      throw ioe;
+      throw new IOException("Write to copy failed.", se);
     }
   }
 
@@ -101,76 +108,84 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
       return;
     }
 
-    try {
-      endCopy();
-    } catch (SQLException se) {
-      IOException ioe = new IOException("Ending write to copy failed.");
-      ioe.initCause(se);
-      throw ioe;
+    if (getOp().isActive()) {
+      try {
+        endCopy();
+      } catch (SQLException se) {
+        throw new IOException("Ending write to copy failed.", se);
+      }
     }
     op = null;
   }
 
   public void flush() throws IOException {
+    checkClosed();
     try {
-      op.writeToCopy(copyBuffer, 0, at);
+      getOp().writeToCopy(copyBuffer, 0, at);
       at = 0;
-      op.flushCopy();
+      getOp().flushCopy();
     } catch (SQLException e) {
-      IOException ioe = new IOException("Unable to flush stream");
-      ioe.initCause(e);
-      throw ioe;
+      throw new IOException("Unable to flush stream", e);
     }
   }
 
   public void writeToCopy(byte[] buf, int off, int siz) throws SQLException {
     if (at > 0
         && siz > copyBuffer.length - at) { // would not fit into rest of our buf, so flush buf
-      op.writeToCopy(copyBuffer, 0, at);
+      getOp().writeToCopy(copyBuffer, 0, at);
       at = 0;
     }
     if (siz > copyBuffer.length) { // would still not fit into buf, so just pass it through
-      op.writeToCopy(buf, off, siz);
+      getOp().writeToCopy(buf, off, siz);
     } else { // fits into our buf, so save it there
       System.arraycopy(buf, off, copyBuffer, at, siz);
       at += siz;
     }
   }
 
+  public void writeToCopy(ByteStreamWriter from) throws SQLException {
+    if (at > 0) {
+      // flush existing buffer so order is preserved
+      getOp().writeToCopy(copyBuffer, 0, at);
+      at = 0;
+    }
+    getOp().writeToCopy(from);
+  }
+
   public int getFormat() {
-    return op.getFormat();
+    return getOp().getFormat();
   }
 
   public int getFieldFormat(int field) {
-    return op.getFieldFormat(field);
+    return getOp().getFieldFormat(field);
   }
 
   public void cancelCopy() throws SQLException {
-    op.cancelCopy();
+    getOp().cancelCopy();
   }
 
   public int getFieldCount() {
-    return op.getFieldCount();
+    return getOp().getFieldCount();
   }
 
   public boolean isActive() {
-    return op.isActive();
+    return op != null && getOp().isActive();
   }
 
   public void flushCopy() throws SQLException {
-    op.flushCopy();
+    getOp().flushCopy();
   }
 
   public long endCopy() throws SQLException {
     if (at > 0) {
-      op.writeToCopy(copyBuffer, 0, at);
+      getOp().writeToCopy(copyBuffer, 0, at);
     }
-    op.endCopy();
+    getOp().endCopy();
     return getHandledRowCount();
   }
 
   public long getHandledRowCount() {
-    return op.getHandledRowCount();
+    return getOp().getHandledRowCount();
   }
 
 }

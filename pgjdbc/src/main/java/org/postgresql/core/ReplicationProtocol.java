@@ -12,14 +12,15 @@ import org.postgresql.replication.fluent.physical.PhysicalReplicationOptions;
 import java.sql.SQLException;
 
 /**
- * <p>Abstracts the protocol-specific details of physic and logic replication. <p>With each
- * connection open with replication options associate own instance ReplicationProtocol.
+ * <p>Abstracts the protocol-specific details of physic and logic replication.</p>
+ *
+ * <p>With each connection open with replication options associate own instance ReplicationProtocol.</p>
  */
 public interface ReplicationProtocol {
   /**
    * @param options not null options for logical replication stream
    * @return not null stream instance from which available fetch wal logs that was decode by output
-   * plugin
+   *     plugin
    * @throws SQLException on error
    */
   PGReplicationStream startLogical(LogicalReplicationOptions options) throws SQLException;

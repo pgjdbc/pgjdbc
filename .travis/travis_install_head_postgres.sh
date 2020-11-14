@@ -2,19 +2,25 @@
 set -x -e
 
 sudo service postgresql stop
+sudo apt-get update -qq
 sudo apt-get remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common -qq --purge
-sudo apt-get -y install libxml2
-sudo apt-get -y install gdb
+sudo apt-get -y install libxml2 gdb
 
 if [[ -z ${POSTGRES_SOURCE_SHA} ]]
 then
     git clone --depth=1 https://github.com/postgres/postgres.git
     cd postgres
 else
-    git clone https://github.com/postgres/postgres.git
+    mkdir postgres
     cd postgres
-    git checkout ${POSTGRES_SOURCE_SHA}
+    git init
+    git remote add origin https://github.com/postgres/postgres.git
+    git fetch origin --depth=1 ${POSTGRES_SOURCE_SHA}
+    git checkout -b ci_test FETCH_HEAD
 fi
+
+echo Will build the following PostgreSQL commit
+git log -1 --format=short
 
 # Build PostgreSQL from source
 if [[ "${COMPILE_PG_WITH_DEBUG_FLAG}" == "Y" ]]

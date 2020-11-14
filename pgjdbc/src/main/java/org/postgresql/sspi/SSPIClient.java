@@ -6,6 +6,8 @@
 
 package org.postgresql.sspi;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.PGStream;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -16,6 +18,7 @@ import com.sun.jna.Platform;
 import com.sun.jna.platform.win32.Sspi;
 import com.sun.jna.platform.win32.Sspi.SecBufferDesc;
 import com.sun.jna.platform.win32.Win32Exception;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import waffle.windows.auth.IWindowsCredentialsHandle;
 import waffle.windows.auth.impl.WindowsCredentialsHandleImpl;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
@@ -26,34 +29,33 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
- * talking to a Windows server.
+ * <p>Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
+ * talking to a Windows server.</p>
  *
- * SSPI is not supported on a non-Windows client.
+ * <p>SSPI is not supported on a non-Windows client.</p>
  *
  * @author craig
  */
 public class SSPIClient implements ISSPIClient {
 
-  public static String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
+  public static final String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
 
   private static final Logger LOGGER = Logger.getLogger(SSPIClient.class.getName());
   private final PGStream pgStream;
   private final String spnServiceClass;
   private final boolean enableNegotiate;
 
-  private IWindowsCredentialsHandle clientCredentials;
-  private WindowsSecurityContextImpl sspiContext;
-  private String targetName;
-
+  private @Nullable IWindowsCredentialsHandle clientCredentials;
+  private @Nullable WindowsSecurityContextImpl sspiContext;
+  private @Nullable String targetName;
 
   /**
-   * Instantiate an SSPIClient for authentication of a connection.
+   * <p>Instantiate an SSPIClient for authentication of a connection.</p>
    *
-   * SSPIClient is not re-usable across connections.
+   * <p>SSPIClient is not re-usable across connections.</p>
    *
-   * It is safe to instantiate SSPIClient even if Waffle and JNA are missing or on non-Windows
-   * platforms, however you may not call any methods other than isSSPISupported().
+   * <p>It is safe to instantiate SSPIClient even if Waffle and JNA are missing or on non-Windows
+   * platforms, however you may not call any methods other than isSSPISupported().</p>
    *
    * @param pgStream PostgreSQL connection stream
    * @param spnServiceClass SSPI SPN service class, defaults to POSTGRES if null
@@ -62,11 +64,7 @@ public class SSPIClient implements ISSPIClient {
   public SSPIClient(PGStream pgStream, String spnServiceClass, boolean enableNegotiate) {
     this.pgStream = pgStream;
 
-    /* If blank or unspecified, SPN service class should be POSTGRES */
-    if (spnServiceClass != null && spnServiceClass.isEmpty()) {
-      spnServiceClass = null;
-    }
-    if (spnServiceClass == null) {
+    if (spnServiceClass == null || spnServiceClass.isEmpty()) {
       spnServiceClass = SSPI_DEFAULT_SPN_SERVICE_CLASS;
     }
     this.spnServiceClass = spnServiceClass;
@@ -81,6 +79,7 @@ public class SSPIClient implements ISSPIClient {
    *
    * @return true if it's safe to attempt SSPI authentication
    */
+  @Override
   public boolean isSSPISupported() {
     try {
       /*
@@ -88,7 +87,7 @@ public class SSPIClient implements ISSPIClient {
        * won't have JNA and this will throw a NoClassDefFoundError.
        */
       if (!Platform.isWindows()) {
-        LOGGER.log(Level.WARNING, "SSPI not supported: non-Windows host");
+        LOGGER.log(Level.FINE, "SSPI not supported: non-Windows host");
         return false;
       }
       /* Waffle must be on the CLASSPATH */
@@ -107,14 +106,18 @@ public class SSPIClient implements ISSPIClient {
     final HostSpec hs = pgStream.getHostSpec();
 
     try {
+      /*
+      The GSSAPI implementation does not use the port in the service name.
+      Force the port number to 0
+      Fixes issue 1482
+      */
       return NTDSAPIWrapper.instance.DsMakeSpn(spnServiceClass, hs.getHost(), null,
-          (short) hs.getPort(), null);
+          (short) 0, null);
     } catch (LastErrorException ex) {
       throw new PSQLException("SSPI setup failed to determine SPN",
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ex);
     }
   }
-
 
   /**
    * Respond to an authentication request from the back-end for SSPI authentication (AUTH_REQ_SSPI).
@@ -122,6 +125,7 @@ public class SSPIClient implements ISSPIClient {
    * @throws SQLException on SSPI authentication handshake failure
    * @throws IOException on network I/O issues
    */
+  @Override
   public void startSSPI() throws SQLException, IOException {
 
     /*
@@ -141,8 +145,10 @@ public class SSPIClient implements ISSPIClient {
        *
        * This corresponds to pg_SSPI_startup in libpq/fe-auth.c .
        */
+      IWindowsCredentialsHandle clientCredentials;
       try {
         clientCredentials = WindowsCredentialsHandleImpl.getCurrent(securityPackage);
+        this.clientCredentials = clientCredentials;
         clientCredentials.initialize();
       } catch (Win32Exception ex) {
         throw new PSQLException("Could not obtain local Windows credentials for SSPI",
@@ -150,7 +156,8 @@ public class SSPIClient implements ISSPIClient {
       }
 
       try {
-        targetName = makeSPN();
+        String targetName = makeSPN();
+        this.targetName = targetName;
 
         LOGGER.log(Level.FINEST, "SSPI target name: {0}", targetName);
 
@@ -174,14 +181,16 @@ public class SSPIClient implements ISSPIClient {
   }
 
   /**
-   * Continue an existing authentication conversation with the back-end in resonse to an
+   * Continue an existing authentication conversation with the back-end in response to an
    * authentication request of type AUTH_REQ_GSS_CONT.
    *
    * @param msgLength Length of message to read, excluding length word and message type word
    * @throws SQLException if something wrong happens
    * @throws IOException if something wrong happens
    */
+  @Override
   public void continueSSPI(int msgLength) throws SQLException, IOException {
+    WindowsSecurityContextImpl sspiContext = this.sspiContext;
 
     if (sspiContext == null) {
       throw new IllegalStateException("Cannot continue SSPI authentication that we didn't begin");
@@ -194,7 +203,7 @@ public class SSPIClient implements ISSPIClient {
 
     SecBufferDesc continueToken = new SecBufferDesc(Sspi.SECBUFFER_TOKEN, receivedToken);
 
-    sspiContext.initialize(sspiContext.getHandle(), continueToken, targetName);
+    sspiContext.initialize(sspiContext.getHandle(), continueToken, castNonNull(targetName));
 
     /*
      * Now send the response token. If negotiation is complete there may be zero bytes to send, in
@@ -226,6 +235,7 @@ public class SSPIClient implements ISSPIClient {
    * Clean up native win32 resources after completion or failure of SSPI authentication. This
    * SSPIClient instance becomes unusable after disposal.
    */
+  @Override
   public void dispose() {
     if (sspiContext != null) {
       sspiContext.dispose();

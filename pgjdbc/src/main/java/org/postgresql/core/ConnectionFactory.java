@@ -13,6 +13,8 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -24,12 +26,12 @@ import java.util.Properties;
  */
 public abstract class ConnectionFactory {
   /**
-   * Establishes and initializes a new connection.
-   * <p>
-   * If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
-   * all protocols are tried in order, falling back to older protocols as necessary.
-   * <p>
-   * Currently, protocol versions 3 (7.4+) is supported.
+   * <p>Establishes and initializes a new connection.</p>
+   *
+   * <p>If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
+   * all protocols are tried in order, falling back to older protocols as necessary.</p>
+   *
+   * <p>Currently, protocol versions 3 (7.4+) is supported.</p>
    *
    * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin
    *        failover
@@ -81,7 +83,7 @@ public abstract class ConnectionFactory {
    *
    * @param newStream The stream to close.
    */
-  protected void closeStream(PGStream newStream) {
+  protected void closeStream(@Nullable PGStream newStream) {
     if (newStream != null) {
       try {
         newStream.close();

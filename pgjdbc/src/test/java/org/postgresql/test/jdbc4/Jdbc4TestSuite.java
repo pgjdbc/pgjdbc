@@ -13,19 +13,21 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        DatabaseMetaDataTest.class,
-        ArrayTest.class,
-        WrapperTest.class,
-        BinaryTest.class,
-        IsValidTest.class,
-        ClientInfoTest.class,
-        PGCopyInputStreamTest.class,
-        BlobTest.class,
-        BinaryStreamTest.class,
-        CharacterStreamTest.class,
-        UUIDTest.class,
-        XmlTest.class
+    ArrayTest.class,
+    BinaryStreamTest.class,
+    BinaryTest.class,
+    BlobTest.class,
+    CharacterStreamTest.class,
+    ClientInfoTest.class,
+    DatabaseMetaDataHideUnprivilegedObjectsTest.class,
+    DatabaseMetaDataTest.class,
+    IsValidTest.class,
+    JsonbTest.class,
+    LogTest.class,
+    PGCopyInputStreamTest.class,
+    UUIDTest.class,
+    WrapperTest.class,
+    XmlTest.class,
 })
 public class Jdbc4TestSuite {
 }
-

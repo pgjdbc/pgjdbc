@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 
 /**
@@ -16,15 +18,33 @@ import java.util.Arrays;
  */
 class QueryWithReturningColumnsKey extends BaseQueryKey {
   public final String[] columnNames;
+  private int size; // query length cannot exceed MAX_INT
 
   QueryWithReturningColumnsKey(String sql, boolean isParameterized, boolean escapeProcessing,
-      String[] columnNames) {
+      String @Nullable [] columnNames) {
     super(sql, isParameterized, escapeProcessing);
     if (columnNames == null) {
       // TODO: teach parser to fetch key columns somehow when no column names were given
       columnNames = new String[]{"*"};
     }
     this.columnNames = columnNames;
+  }
+
+  @Override
+  public long getSize() {
+    int size = this.size;
+    if (size != 0) {
+      return size;
+    }
+    size = (int) super.getSize();
+    if (columnNames != null) {
+      size += 16L; // array itself
+      for (String columnName: columnNames) {
+        size += columnName.length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
+      }
+    }
+    this.size = size;
+    return size;
   }
 
   @Override
@@ -38,7 +58,7 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

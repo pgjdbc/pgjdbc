@@ -6,13 +6,13 @@
 package org.postgresql.util;
 
 /**
- * This code is a stripped down version of Robert Harder's Public Domain Base64 implementation. GZIP
+ * <p>This code is a stripped down version of Robert Harder's Public Domain Base64 implementation. GZIP
  * support, InputStream and OutputStream stuff and some unneeded encode/decode methods have been
- * removed.
+ * removed.</p>
  *
- * -- Original comments follow --
+ * <p>-- Original comments follow --</p>
  *
- * Encodes and decodes to and from Base64 notation.
+ * <p>Encodes and decodes to and from Base64 notation.</p>
  *
  * <p>
  * Change Log:
@@ -27,10 +27,10 @@ package org.postgresql.util;
  * <li>v2.0 - I got rid of methods that used booleans to set options. Now everything is more
  * consolidated and cleaner. The code now detects when data that's being decoded is gzip-compressed
  * and will decompress it automatically. Generally things are cleaner. You'll probably have to
- * change some method calls that you were making to support the new options format (<tt>int</tt>s
+ * change some method calls that you were making to support the new options format ({@code int}s
  * that you "OR" together).</li>
  * <li>v1.5.1 - Fixed bug when decompressing and decoding to a byte[] using
- * <tt>decode( String s, boolean gzipCompressed )</tt>. Added the ability to "suspend" encoding in
+ * {@code decode( String s, boolean gzipCompressed )}. Added the ability to "suspend" encoding in
  * the Output Stream so you can turn on and off the encoding if you need to embed base64 data in an
  * otherwise "normal" stream (like an XML file).</li>
  * <li>v1.5 - Output stream pases on flush() command but doesn't do anything itself. This helps when
@@ -55,10 +55,7 @@ package org.postgresql.util;
  * @version 2.1
  */
 public class Base64 {
-
   /* ******** P U B L I C F I E L D S ******** */
-
-
   /**
    * No options specified. Value is zero.
    */
@@ -69,45 +66,36 @@ public class Base64 {
    */
   public static final int ENCODE = 1;
 
-
   /**
    * Specify decoding.
    */
   public static final int DECODE = 0;
 
-
   /**
-   * Don't break lines when encoding (violates strict Base64 specification)
+   * Don't break lines when encoding (violates strict Base64 specification).
    */
   public static final int DONT_BREAK_LINES = 8;
 
-
   /* ******** P R I V A T E F I E L D S ******** */
-
-
   /**
    * Maximum line length (76) of Base64 output.
    */
   private static final int MAX_LINE_LENGTH = 76;
-
 
   /**
    * The equals sign (=) as a byte.
    */
   private static final byte EQUALS_SIGN = (byte) '=';
 
-
   /**
    * The new line character (\n) as a byte.
    */
   private static final byte NEW_LINE = (byte) '\n';
 
-
   /**
    * Preferred encoding.
    */
   private static final String PREFERRED_ENCODING = "UTF-8";
-
 
   /**
    * The 64 valid Base64 values.
@@ -126,18 +114,17 @@ public class Base64 {
       (byte) '6', (byte) '7', (byte) '8', (byte) '9', (byte) '+', (byte) '/'
   };
 
-  /** Determine which ALPHABET to use. */
+  /* Determine which ALPHABET to use. */
   static {
-    byte[] __bytes;
+    byte[] bytes;
     try {
-      __bytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+      bytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
           .getBytes(PREFERRED_ENCODING);
     } catch (java.io.UnsupportedEncodingException use) {
-      __bytes = _NATIVE_ALPHABET; // Fall back to native encoding
+      bytes = _NATIVE_ALPHABET; // Fall back to native encoding
     }
-    ALPHABET = __bytes;
+    ALPHABET = bytes;
   }
-
 
   /**
    * Translates a Base64 value to either its 6-bit reconstruction value or a negative number
@@ -183,41 +170,18 @@ public class Base64 {
   private static final byte WHITE_SPACE_ENC = -5; // Indicates white space in encoding
   private static final byte EQUALS_SIGN_ENC = -1; // Indicates equals sign in encoding
 
-
   /**
    * Defeats instantiation.
    */
   private Base64() {
   }
 
-
   /* ******** E N C O D I N G M E T H O D S ******** */
-
-
-  /**
-   * Encodes up to the first three bytes of array <var>threeBytes</var> and returns a four-byte
-   * array in Base64 notation. The actual number of significant bytes in your array is given by
-   * <var>numSigBytes</var>. The array <var>threeBytes</var> needs only be as big as
-   * <var>numSigBytes</var>. Code can reuse a byte array by passing a four-byte array as
-   * <var>b4</var>.
-   *
-   * @param b4 A reusable byte array to reduce array instantiation
-   * @param threeBytes the array to convert
-   * @param numSigBytes the number of significant bytes in your array
-   * @return four byte array in Base64 notation.
-   * @since 1.5.1
-   */
-  private static byte[] encode3to4(byte[] b4, byte[] threeBytes, int numSigBytes) {
-    encode3to4(threeBytes, 0, numSigBytes, b4, 0);
-    return b4;
-  } // end encode3to4
-
-
   /**
    * Encodes up to three bytes of the array <var>source</var> and writes the resulting four Base64
    * bytes to <var>destination</var>. The source and destination arrays can be manipulated anywhere
    * along their length by specifying <var>srcOffset</var> and <var>destOffset</var>. This method
-   * does not check to make sure your arrays are large enough to accomodate <var>srcOffset</var> + 3
+   * does not check to make sure your arrays are large enough to accommodate <var>srcOffset</var> + 3
    * for the <var>source</var> array or <var>destOffset</var> + 4 for the <var>destination</var>
    * array. The actual number of significant bytes in your array is given by <var>numSigBytes</var>.
    *
@@ -284,22 +248,21 @@ public class Base64 {
     return encodeBytes(source, 0, source.length, NO_OPTIONS);
   } // end encodeBytes
 
-
   /**
-   * Encodes a byte array into Base64 notation.
-   * <p>
-   * Valid options:
+   * <p>Encodes a byte array into Base64 notation.</p>
+   *
+   * <p>Valid options:</p>
    *
    * <pre>
    *   GZIP: gzip-compresses object before encoding it.
    *   DONT_BREAK_LINES: don't break lines at 76 characters
    *     <i>Note: Technically, this makes your encoding non-compliant.</i>
    * </pre>
-   * <p>
-   * Example: <code>encodeBytes( myData, Base64.GZIP )</code> or
-   * <p>
-   * Example: <code>encodeBytes(
-   * myData, Base64.GZIP | Base64.DONT_BREAK_LINES )</code>
+   *
+   * <p>Example: <code>encodeBytes( myData, Base64.GZIP )</code> or</p>
+   *
+   * <p>Example: <code>encodeBytes(
+   * myData, Base64.GZIP | Base64.DONT_BREAK_LINES )</code></p>
    *
    * @param source The data to convert
    * @param options Specified options
@@ -310,7 +273,6 @@ public class Base64 {
   public static String encodeBytes(byte[] source, int options) {
     return encodeBytes(source, 0, source.length, options);
   } // end encodeBytes
-
 
   /**
    * Encodes a byte array into Base64 notation. Does not GZip-compress data.
@@ -325,22 +287,21 @@ public class Base64 {
     return encodeBytes(source, off, len, NO_OPTIONS);
   } // end encodeBytes
 
-
   /**
-   * Encodes a byte array into Base64 notation.
-   * <p>
-   * Valid options:
+   * <p>Encodes a byte array into Base64 notation.</p>
+   *
+   * <p>Valid options:</p>
    *
    * <pre>
    *   GZIP: gzip-compresses object before encoding it.
    *   DONT_BREAK_LINES: don't break lines at 76 characters
    *     <i>Note: Technically, this makes your encoding non-compliant.</i>
    * </pre>
-   * <p>
-   * Example: <code>encodeBytes( myData, Base64.GZIP )</code> or
-   * <p>
-   * Example: <code>encodeBytes(
-   * myData, Base64.GZIP | Base64.DONT_BREAK_LINES )</code>
+   *
+   * <p>Example: <code>encodeBytes( myData, Base64.GZIP )</code> or</p>
+   *
+   * <p>Example: <code>encodeBytes(
+   * myData, Base64.GZIP | Base64.DONT_BREAK_LINES )</code></p>
    *
    * @param source The data to convert
    * @param off Offset in array where conversion should begin
@@ -383,27 +344,21 @@ public class Base64 {
         e += 4;
       } // end if: some padding needed
 
-
       // Return value according to relevant encoding.
       try {
         return new String(outBuff, 0, e, PREFERRED_ENCODING);
       } catch (java.io.UnsupportedEncodingException uue) {
         return new String(outBuff, 0, e);
       }
-
     }
-
   }
 
-
   /* ******** D E C O D I N G M E T H O D S ******** */
-
-
   /**
    * Decodes four bytes from array <var>source</var> and writes the resulting bytes (up to three of
    * them) to <var>destination</var>. The source and destination arrays can be manipulated anywhere
    * along their length by specifying <var>srcOffset</var> and <var>destOffset</var>. This method
-   * does not check to make sure your arrays are large enough to accomodate <var>srcOffset</var> + 4
+   * does not check to make sure your arrays are large enough to accommodate <var>srcOffset</var> + 4
    * for the <var>source</var> array or <var>destOffset</var> + 3 for the <var>destination</var>
    * array. This method returns the actual number of bytes that were converted from the Base64
    * encoding.
@@ -452,7 +407,6 @@ public class Base64 {
             | ((DECODABET[source[srcOffset + 2]] & 0xFF) << 6)
             | ((DECODABET[source[srcOffset + 3]] & 0xFF));
 
-
         destination[destOffset] = (byte) (outBuff >> 16);
         destination[destOffset + 1] = (byte) (outBuff >> 8);
         destination[destOffset + 2] = (byte) (outBuff);
@@ -467,7 +421,6 @@ public class Base64 {
       } // e nd catch
     }
   } // end decodeToBytes
-
 
   /**
    * Very low-level access to decoding ASCII characters in the form of a byte array. Does not
@@ -510,8 +463,8 @@ public class Base64 {
 
       } else {
         // end if: white space, equals sign or better
-        System.err.println("Bad Base64 input character at " + i + ": " + source[i] + "(decimal)");
-        return null;
+        throw new IllegalArgumentException("Bad Base64 input character at "
+            + i + ": " + source[i] + "(decimal)");
       } // end else:
     } // each input character
 
@@ -519,7 +472,6 @@ public class Base64 {
     System.arraycopy(outBuff, 0, out, 0, outBuffPosn);
     return out;
   } // end decode
-
 
   /**
    * Decodes data from Base64 notation, automatically detecting gzip-compressed data and

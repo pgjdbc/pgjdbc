@@ -1,0 +1,77 @@
+# appveyor.yml
+image: Visual Studio 2015
+configuration: Release
+
+clone_depth: 1
+environment:
+  JAVA_HOME: 'C:\Program Files\Java\jdk1.8.0'
+  PGUSER: postgres
+  PGPASSWORD: Password12!
+  matrix:
+  - pg: 9.6.11-1
+    PlatformToolset: v120
+  - pg: 10.6-1
+    PlatformToolset: v120
+matrix:
+  allow_failures:
+    - pg: master
+  exclude:
+    - platform: x86
+      pg: 11.1-1
+      PlatformToolset: v140
+    - platform: x86
+      pg: master
+
+init:
+- set pf=%ProgramFiles%&& set x64=-x64
+- set exe=postgresql-%pg%-windows%x64%.exe
+- ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # We expect that Windows would have CRLF for newlines, so autocrlf=true should be used
+  # to automatically convert text files to CRLF on checkout
+- git config --global core.autocrlf true
+- mkdir "\Users\appveyor\.gradle
+
+branches:
+  except:
+    - /^tmp\/.*/
+    - /^REL.*/
+
+install:
+- for /f "tokens=1 delims=-" %%A in ("%pg%") do set pgversion=%%~nA
+- echo pgversion=%pgversion%
+- echo pf=%pf%
+- set pgroot=%pf%\PostgreSQL\%pgversion%
+- echo %pgroot%
+- echo service=postgresql%x64%-%pgversion%
+
+before_build:
+- ps: Add-Content -PATH "\Users\appveyor\.gradle\gradle.properties" "pgjdbc.skip.jre6=true"
+- ps: Add-Content -PATH "\Users\appveyor\.gradle\gradle.properties" "pgjdbc.skip.jre7=true"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_keep_segments=10"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_sender_timeout=5s"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_replication_slots=10"
+- ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
+- net start postgresql%x64%-%pgversion%
+- path %pgroot%\bin;%PATH%
+- SET PGUSER=postgres
+- SET PGPASSWORD=Password12!
+- createuser -U postgres test
+- psql -U postgres -c "alter user test with password 'test'" postgres
+- psql -U postgres -c "alter user test with replication" postgres
+- createuser -U postgres testsspi
+- createdb -U postgres -O test test
+
+build_script:
+  - gradlew assemble
+
+test_script:
+  - echo redirect escape ^> foo.bar
+  - echo privilegedPassword=Password12!>c:\projects\pgjdbc\build.local.properties
+  - gradlew test
+
+cache:
+  - C:\Users\appveyor\.m2
+

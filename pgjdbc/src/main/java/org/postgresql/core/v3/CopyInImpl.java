@@ -6,6 +6,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.copy.CopyIn;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -13,7 +14,9 @@ import org.postgresql.util.PSQLState;
 import java.sql.SQLException;
 
 /**
- * Anticipated flow of a COPY FROM STDIN operation:
+ * <p>COPY FROM STDIN operation.</p>
+ *
+ * <p>Anticipated flow:
  *
  * CopyManager.copyIn() -&gt;QueryExecutor.startCopy() - sends given query to server
  * -&gt;processCopyResults(): - receives CopyInResponse from Server - creates new CopyInImpl
@@ -27,20 +30,23 @@ import java.sql.SQLException;
  * -&gt;QueryExecutorImpl.endCopy() - sends CopyDone - processCopyResults() - on CommandComplete
  * -&gt;CopyOperationImpl.handleCommandComplete() - sets updatedRowCount when applicable - on
  * ReadyForQuery unlock() connection for use by other operations &lt;-return:
- * CopyInImpl.getUpdatedRowCount()
+ * CopyInImpl.getUpdatedRowCount()</p>
  */
 public class CopyInImpl extends CopyOperationImpl implements CopyIn {
-
   public void writeToCopy(byte[] data, int off, int siz) throws SQLException {
-    queryExecutor.writeToCopy(this, data, off, siz);
+    getQueryExecutor().writeToCopy(this, data, off, siz);
+  }
+
+  public void writeToCopy(ByteStreamWriter from) throws SQLException {
+    getQueryExecutor().writeToCopy(this, from);
   }
 
   public void flushCopy() throws SQLException {
-    queryExecutor.flushCopy(this);
+    getQueryExecutor().flushCopy(this);
   }
 
   public long endCopy() throws SQLException {
-    return queryExecutor.endCopy(this);
+    return getQueryExecutor().endCopy(this);
   }
 
   protected void handleCopydata(byte[] data) throws PSQLException {

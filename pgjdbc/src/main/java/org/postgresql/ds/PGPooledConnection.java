@@ -5,10 +5,14 @@
 
 package org.postgresql.ds;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -37,8 +41,8 @@ import javax.sql.StatementEventListener;
  */
 public class PGPooledConnection implements PooledConnection {
   private final List<ConnectionEventListener> listeners = new LinkedList<ConnectionEventListener>();
-  private Connection con;
-  private ConnectionHandler last;
+  private @Nullable Connection con;
+  private @Nullable ConnectionHandler last;
   private final boolean autoCommit;
   private final boolean isXA;
 
@@ -62,6 +66,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * Adds a listener for close or fatal error events on the connection handed out to a client.
    */
+  @Override
   public void addConnectionEventListener(ConnectionEventListener connectionEventListener) {
     listeners.add(connectionEventListener);
   }
@@ -69,6 +74,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * Removes a listener for close or fatal error events on the connection handed out to a client.
    */
+  @Override
   public void removeConnectionEventListener(ConnectionEventListener connectionEventListener) {
     listeners.remove(connectionEventListener);
   }
@@ -77,10 +83,11 @@ public class PGPooledConnection implements PooledConnection {
    * Closes the physical database connection represented by this PooledConnection. If any client has
    * a connection based on this PooledConnection, it is forcibly closed as well.
    */
+  @Override
   public void close() throws SQLException {
     if (last != null) {
       last.close();
-      if (!con.isClosed()) {
+      if (con != null && !con.isClosed()) {
         if (!con.getAutoCommit()) {
           try {
             con.rollback();
@@ -88,6 +95,9 @@ public class PGPooledConnection implements PooledConnection {
           }
         }
       }
+    }
+    if (con == null) {
+      return;
     }
     try {
       con.close();
@@ -107,6 +117,7 @@ public class PGPooledConnection implements PooledConnection {
    * called, the previous one is forcibly closed and its work rolled back.
    * </p>
    */
+  @Override
   public Connection getConnection() throws SQLException {
     if (con == null) {
       // Before throwing the exception, let's notify the registered listeners about the error
@@ -124,31 +135,33 @@ public class PGPooledConnection implements PooledConnection {
       // Package spec section 6.2.3
       if (last != null) {
         last.close();
-        if (!con.getAutoCommit()) {
-          try {
-            con.rollback();
-          } catch (SQLException ignored) {
+        if (con != null) {
+          if (!con.getAutoCommit()) {
+            try {
+              con.rollback();
+            } catch (SQLException ignored) {
+            }
           }
+          con.clearWarnings();
         }
-        con.clearWarnings();
       }
       /*
        * In XA-mode, autocommit is handled in PGXAConnection, because it depends on whether an
        * XA-transaction is open or not
        */
-      if (!isXA) {
+      if (!isXA && con != null) {
         con.setAutoCommit(autoCommit);
       }
     } catch (SQLException sqlException) {
       fireConnectionFatalError(sqlException);
       throw (SQLException) sqlException.fillInStackTrace();
     }
-    ConnectionHandler handler = new ConnectionHandler(con);
+    ConnectionHandler handler = new ConnectionHandler(castNonNull(con));
     last = handler;
 
     Connection proxyCon = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
         new Class[]{Connection.class, PGConnection.class}, handler);
-    last.setProxy(proxyCon);
+    handler.setProxy(proxyCon);
     return proxyCon;
   }
 
@@ -159,7 +172,7 @@ public class PGPooledConnection implements PooledConnection {
     ConnectionEvent evt = null;
     // Copy the listener list so the listener can remove itself during this method call
     ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        listeners.toArray(new ConnectionEventListener[0]);
     for (ConnectionEventListener listener : local) {
       if (evt == null) {
         evt = createConnectionEvent(null);
@@ -175,7 +188,7 @@ public class PGPooledConnection implements PooledConnection {
     ConnectionEvent evt = null;
     // Copy the listener list so the listener can remove itself during this method call
     ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        listeners.toArray(new ConnectionEventListener[0]);
     for (ConnectionEventListener listener : local) {
       if (evt == null) {
         evt = createConnectionEvent(e);
@@ -184,12 +197,12 @@ public class PGPooledConnection implements PooledConnection {
     }
   }
 
-  protected ConnectionEvent createConnectionEvent(SQLException e) {
-    return new ConnectionEvent(this, e);
+  protected ConnectionEvent createConnectionEvent(@Nullable SQLException e) {
+    return e == null ? new ConnectionEvent(this) : new ConnectionEvent(this, e);
   }
 
   // Classes we consider fatal.
-  private static String[] fatalClasses = {
+  private static final String[] fatalClasses = {
       "08", // connection error
       "53", // insufficient resources
 
@@ -205,7 +218,7 @@ public class PGPooledConnection implements PooledConnection {
       "XX", // internal error (backend)
   };
 
-  private static boolean isFatalState(String state) {
+  private static boolean isFatalState(@Nullable String state) {
     if (state == null) {
       // no info, assume fatal
       return true;
@@ -244,8 +257,8 @@ public class PGPooledConnection implements PooledConnection {
    * package.
    */
   private class ConnectionHandler implements InvocationHandler {
-    private Connection con;
-    private Connection proxy; // the Connection the client is currently using, which is a proxy
+    private @Nullable Connection con;
+    private @Nullable Connection proxy; // the Connection the client is currently using, which is a proxy
     private boolean automatic = false;
 
     ConnectionHandler(Connection con) {
@@ -253,7 +266,8 @@ public class PGPooledConnection implements PooledConnection {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    @SuppressWarnings("throwing.nullable")
+    public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
       if (method.getDeclaringClass() == Object.class) {
@@ -269,6 +283,7 @@ public class PGPooledConnection implements PooledConnection {
         try {
           return method.invoke(con, args);
         } catch (InvocationTargetException e) {
+          // throwing.nullable
           throw e.getTargetException();
         }
       }
@@ -315,17 +330,17 @@ public class PGPooledConnection implements PooledConnection {
       // and check if they're fatal before rethrowing.
       try {
         if (methodName.equals("createStatement")) {
-          Statement st = (Statement) method.invoke(con, args);
+          Statement st = castNonNull((Statement) method.invoke(con, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{Statement.class, org.postgresql.PGStatement.class},
               new StatementHandler(this, st));
         } else if (methodName.equals("prepareCall")) {
-          Statement st = (Statement) method.invoke(con, args);
+          Statement st = castNonNull((Statement) method.invoke(con, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{CallableStatement.class, org.postgresql.PGStatement.class},
               new StatementHandler(this, st));
         } else if (methodName.equals("prepareStatement")) {
-          Statement st = (Statement) method.invoke(con, args);
+          Statement st = castNonNull((Statement) method.invoke(con, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{PreparedStatement.class, org.postgresql.PGStatement.class},
               new StatementHandler(this, st));
@@ -342,7 +357,7 @@ public class PGPooledConnection implements PooledConnection {
     }
 
     Connection getProxy() {
-      return proxy;
+      return castNonNull(proxy);
     }
 
     void setProxy(Connection proxy) {
@@ -364,17 +379,17 @@ public class PGPooledConnection implements PooledConnection {
   }
 
   /**
-   * Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
+   * <p>Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
    * which would have to be updated for every JDK rev, use a dynamic proxy to handle all calls
    * through the Statement interfaces. This is the part that requires JDK 1.3 or higher, though JDK
-   * 1.2 could be supported with a 3rd-party proxy package.
+   * 1.2 could be supported with a 3rd-party proxy package.</p>
    *
-   * The StatementHandler is required in order to return the proper Connection proxy for the
-   * getConnection method.
+   * <p>The StatementHandler is required in order to return the proper Connection proxy for the
+   * getConnection method.</p>
    */
   private class StatementHandler implements InvocationHandler {
-    private ConnectionHandler con;
-    private Statement st;
+    private @Nullable ConnectionHandler con;
+    private @Nullable Statement st;
 
     StatementHandler(ConnectionHandler con, Statement st) {
       this.con = con;
@@ -382,7 +397,9 @@ public class PGPooledConnection implements PooledConnection {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    @SuppressWarnings("throwing.nullable")
+    public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args)
+        throws Throwable {
       final String methodName = method.getName();
       // From Object
       if (method.getDeclaringClass() == Object.class) {
@@ -416,7 +433,7 @@ public class PGPooledConnection implements PooledConnection {
         throw new PSQLException(GT.tr("Statement has been closed."), PSQLState.OBJECT_NOT_IN_STATE);
       }
       if (methodName.equals("getConnection")) {
-        return con.getProxy(); // the proxied connection, not a physical connection
+        return castNonNull(con).getProxy(); // the proxied connection, not a physical connection
       }
 
       // Delegate the call to the proxied Statement.
@@ -432,9 +449,11 @@ public class PGPooledConnection implements PooledConnection {
     }
   }
 
+  @Override
   public void removeStatementEventListener(StatementEventListener listener) {
   }
 
+  @Override
   public void addStatementEventListener(StatementEventListener listener) {
   }
 

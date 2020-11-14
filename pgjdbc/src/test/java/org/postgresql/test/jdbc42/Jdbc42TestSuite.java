@@ -11,13 +11,16 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    SimpleJdbc42Test.class,
+    AdaptiveFetchSizeTest.class,
     CustomizeDefaultFetchSizeTest.class,
-    GetObject310Test.class,
-    PreparedStatementTest.class,
-    Jdbc42CallableStatementTest.class,
     GetObject310InfinityTests.class,
-    SetObject310Test.class})
+    GetObject310Test.class,
+    Jdbc42CallableStatementTest.class,
+    LargeCountJdbc42Test.class,
+    PreparedStatementTest.class,
+    SetObject310Test.class,
+    SimpleJdbc42Test.class,
+})
 public class Jdbc42TestSuite {
 
 }

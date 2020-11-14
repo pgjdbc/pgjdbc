@@ -11,34 +11,66 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  *
  */
+@RunWith(Parameterized.class)
 public class DatabaseMetaDataTest {
   private Connection con;
+  private final BinaryMode binaryMode;
+
+  public DatabaseMetaDataTest(BinaryMode binaryMode) {
+    this.binaryMode = binaryMode;
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Before
   public void setUp() throws Exception {
-    con = TestUtil.openDB();
+    if (binaryMode == BinaryMode.FORCE) {
+      final Properties props = new Properties();
+      PGProperty.PREPARE_THRESHOLD.set(props, -1);
+      con = TestUtil.openDB(props);
+    } else {
+      con = TestUtil.openDB();
+    }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
@@ -48,9 +80,10 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
-    TestUtil.createCompositeType(con, "custom", "i int");
-    TestUtil.createCompositeType(con, "_custom", "f float");
-
+    TestUtil.dropType(con, "custom");
+    TestUtil.dropType(con, "_custom");
+    TestUtil.createCompositeType(con, "custom", "i int", false);
+    TestUtil.createCompositeType(con, "_custom", "f float", false);
 
     // 8.2 does not support arrays of composite types
     TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
@@ -77,7 +110,10 @@ public class DatabaseMetaDataTest {
     }
 
     TestUtil.createDomain(con, "nndom", "int not null");
-    TestUtil.createTable(con, "domaintable", "id nndom");
+    TestUtil.createDomain(con, "varbit2", "varbit(3)");
+    TestUtil.createDomain(con, "float83", "numeric(8,3)");
+
+    TestUtil.createTable(con, "domaintable", "id nndom, v varbit2, f float83");
     stmt.close();
   }
 
@@ -103,8 +139,10 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     stmt.execute("DROP FUNCTION f2(int, varchar)");
     stmt.execute("DROP FUNCTION f3(int, varchar)");
-    TestUtil.dropType(con, "domaintable");
+    TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
+    TestUtil.dropDomain(con, "varbit2");
+    TestUtil.dropDomain(con, "float83");
 
     TestUtil.closeDB(con);
   }
@@ -174,8 +212,16 @@ public class DatabaseMetaDataTest {
     assertEquals("metadatatest", tableName);
     String tableType = rs.getString("TABLE_TYPE");
     assertEquals("TABLE", tableType);
+    assertEquals(rs.findColumn("REMARKS"), 5);
+    assertEquals(rs.findColumn("TYPE_CAT"), 6);
+    assertEquals(rs.findColumn("TYPE_SCHEM"),7);
+    assertEquals(rs.findColumn("TYPE_NAME"), 8);
+    assertEquals(rs.findColumn("SELF_REFERENCING_COL_NAME"), 9);
+    assertEquals(rs.findColumn("REF_GENERATION"), 10);
+
     // There should only be one row returned
     assertTrue("getTables() returned too many rows", rs.next() == false);
+
     rs.close();
 
     rs = dbmd.getColumns("", "", "meta%", "%");
@@ -199,16 +245,18 @@ public class DatabaseMetaDataTest {
   public void testCrossReference() throws Exception {
     Connection con1 = TestUtil.openDB();
 
-    TestUtil.createTable(con1, "vv", "a int not null, b int not null, primary key ( a, b )");
+    TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
 
     TestUtil.createTable(con1, "ww",
-        "m int not null, n int not null, primary key ( m, n ), foreign key ( m, n ) references vv ( a, b )");
-
+        "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
     ResultSet rs = dbmd.getCrossReference(null, "", "vv", null, "", "ww");
+    String[] expectedPkColumnNames = new String[]{"a", "b"};
+    String[] expectedFkColumnNames = new String[]{"m", "n"};
+    int numRows = 0;
 
     for (int j = 1; rs.next(); j++) {
 
@@ -216,13 +264,13 @@ public class DatabaseMetaDataTest {
       assertEquals("vv", pkTableName);
 
       String pkColumnName = rs.getString("PKCOLUMN_NAME");
-      assertTrue(pkColumnName.equals("a") || pkColumnName.equals("b"));
+      assertEquals(expectedPkColumnNames[j - 1], pkColumnName);
 
       String fkTableName = rs.getString("FKTABLE_NAME");
       assertEquals("ww", fkTableName);
 
       String fkColumnName = rs.getString("FKCOLUMN_NAME");
-      assertTrue(fkColumnName.equals("m") || fkColumnName.equals("n"));
+      assertEquals(expectedFkColumnNames[j - 1], fkColumnName);
 
       String fkName = rs.getString("FK_NAME");
       assertEquals("ww_m_fkey", fkName);
@@ -232,8 +280,9 @@ public class DatabaseMetaDataTest {
 
       int keySeq = rs.getInt("KEY_SEQ");
       assertEquals(j, keySeq);
+      numRows += 1;
     }
-
+    assertEquals(2, numRows);
 
     TestUtil.dropTable(con1, "vv");
     TestUtil.dropTable(con1, "ww");
@@ -252,14 +301,14 @@ public class DatabaseMetaDataTest {
 
     ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
     assertTrue(rs.next());
-    assertTrue(rs.getInt("UPDATE_RULE") == DatabaseMetaData.importedKeyRestrict);
-    assertTrue(rs.getInt("DELETE_RULE") == DatabaseMetaData.importedKeyCascade);
+    assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
+    assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
     rs.close();
 
     rs = dbmd.getImportedKeys(null, "", "fkt2");
     assertTrue(rs.next());
-    assertTrue(rs.getInt("UPDATE_RULE") == DatabaseMetaData.importedKeySetNull);
-    assertTrue(rs.getInt("DELETE_RULE") == DatabaseMetaData.importedKeySetDefault);
+    assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("UPDATE_RULE"));
+    assertEquals(DatabaseMetaData.importedKeySetDefault, rs.getInt("DELETE_RULE"));
     rs.close();
 
     TestUtil.dropTable(conn, "fkt2");
@@ -280,12 +329,12 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
     int j = 0;
     for (; rs.next(); j++) {
-      assertTrue("pkt".equals(rs.getString("PKTABLE_NAME")));
-      assertTrue("fkt".equals(rs.getString("FKTABLE_NAME")));
-      assertTrue("pkt_un_b".equals(rs.getString("PK_NAME")));
-      assertTrue("b".equals(rs.getString("PKCOLUMN_NAME")));
+      assertEquals("pkt", rs.getString("PKTABLE_NAME"));
+      assertEquals("fkt", rs.getString("FKTABLE_NAME"));
+      assertEquals("pkt_un_b", rs.getString("PK_NAME"));
+      assertEquals("b", rs.getString("PKCOLUMN_NAME"));
     }
-    assertTrue(j == 1);
+    assertEquals(1, j);
 
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
@@ -304,18 +353,18 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
     int j = 0;
     for (; rs.next(); j++) {
-      assertTrue("pkt".equals(rs.getString("PKTABLE_NAME")));
-      assertTrue("fkt".equals(rs.getString("FKTABLE_NAME")));
-      assertTrue(j + 1 == rs.getInt("KEY_SEQ"));
+      assertEquals("pkt", rs.getString("PKTABLE_NAME"));
+      assertEquals("fkt", rs.getString("FKTABLE_NAME"));
+      assertEquals(j + 1, rs.getInt("KEY_SEQ"));
       if (j == 0) {
-        assertTrue("b".equals(rs.getString("PKCOLUMN_NAME")));
-        assertTrue("c".equals(rs.getString("FKCOLUMN_NAME")));
+        assertEquals("b", rs.getString("PKCOLUMN_NAME"));
+        assertEquals("c", rs.getString("FKCOLUMN_NAME"));
       } else {
-        assertTrue("a".equals(rs.getString("PKCOLUMN_NAME")));
-        assertTrue("d".equals(rs.getString("FKCOLUMN_NAME")));
+        assertEquals("a", rs.getString("PKCOLUMN_NAME"));
+        assertEquals("d", rs.getString("FKCOLUMN_NAME"));
       }
     }
-    assertTrue(j == 2);
+    assertEquals(2, j);
 
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
@@ -339,7 +388,6 @@ public class DatabaseMetaDataTest {
             + "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"
             + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
             + "ON UPDATE CASCADE ON DELETE CASCADE");
-
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -375,7 +423,7 @@ public class DatabaseMetaDataTest {
         // continue foreign key, i.e. fkName matches the last foreign key
         assertEquals(fkNames.get(fkNames.size() - 1), fkName);
         // see always increases by 1
-        assertTrue(seq == lastFieldCount + 1);
+        assertEquals(seq, lastFieldCount + 1);
       }
       lastFieldCount = seq;
     }
@@ -384,8 +432,6 @@ public class DatabaseMetaDataTest {
 
     TestUtil.dropTable(con1, "person");
     TestUtil.closeDB(con1);
-
-
   }
 
   @Test
@@ -398,7 +444,6 @@ public class DatabaseMetaDataTest {
         "id int4 primary key, people_id int4, policy_id int4,"
             + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
             + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
-
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -427,7 +472,7 @@ public class DatabaseMetaDataTest {
 
     }
 
-    assertTrue(j == 2);
+    assertEquals(2, j);
 
     rs = dbmd.getExportedKeys(null, "", "people");
 
@@ -442,7 +487,6 @@ public class DatabaseMetaDataTest {
 
     assertTrue(rs.getString("FK_NAME").startsWith("people"));
 
-
     TestUtil.dropTable(con1, "users");
     TestUtil.dropTable(con1, "people");
     TestUtil.dropTable(con1, "policy");
@@ -452,9 +496,21 @@ public class DatabaseMetaDataTest {
   @Test
   public void testColumns() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
+    String [] metadataColumns = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME",
+                                 "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH",
+                                 "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+                                 "COLUMN_DEF","SQL_DATA_TYPE","SQL_DATETIME_SUB","CHAR_OCTET_LENGTH",
+                                 "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA",
+                                 "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN"};
+
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getColumns(null, null, "pg_class", null);
+    if ( rs.next() ) {
+      for (int i = 0; i < metadataColumns.length; i++) {
+        assertEquals(i + 1,  rs.findColumn(metadataColumns[i]));
+      }
+    }
     rs.close();
   }
 
@@ -490,7 +546,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("quest", rs.getString("COLUMN_NAME"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     rs.close();
 
     /* getFunctionColumns also has to be aware of dropped columns
@@ -505,9 +561,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("updated", rs.getString(4));
 
-
     rs.close();
-
   }
 
   @Test
@@ -520,11 +574,15 @@ public class DatabaseMetaDataTest {
       assertEquals(rownum + 1, rs.getInt("ORDINAL_POSITION"));
       if (rownum == 0) {
         assertEquals("int4", rs.getString("TYPE_NAME"));
+
       } else if (rownum == 1) {
         assertEquals("serial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       } else if (rownum == 2) {
         assertEquals("bigserial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       }
+
       rownum++;
     }
     assertEquals(3, rownum);
@@ -545,17 +603,17 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
-    boolean l_foundSelect = false;
+    boolean foundSelect = false;
     while (rs.next()) {
       if (rs.getString("GRANTEE").equals(TestUtil.getUser())
           && rs.getString("PRIVILEGE").equals("SELECT")) {
-        l_foundSelect = true;
+        foundSelect = true;
       }
     }
     rs.close();
     // Test that the table owner has select priv
     assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        l_foundSelect);
+        foundSelect);
   }
 
   @Test
@@ -632,6 +690,32 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
+  /**
+   * Order defined at
+   * https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo-java.lang.String-java.lang.String-java.lang.String-boolean-boolean-
+   */
+  @Test
+  public void testIndexInfoColumnOrder() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+    assertEquals(rs.findColumn("TABLE_CAT"), 1);
+    assertEquals(rs.findColumn("TABLE_SCHEM"), 2);
+    assertEquals(rs.findColumn("TABLE_NAME"), 3);
+    assertEquals(rs.findColumn("NON_UNIQUE"), 4);
+    assertEquals(rs.findColumn("INDEX_QUALIFIER"), 5);
+    assertEquals(rs.findColumn("INDEX_NAME"), 6);
+    assertEquals(rs.findColumn("TYPE"), 7);
+    assertEquals(rs.findColumn("ORDINAL_POSITION"), 8);
+    assertEquals(rs.findColumn("COLUMN_NAME"), 9);
+    assertEquals(rs.findColumn("ASC_OR_DESC"), 10);
+    assertEquals(rs.findColumn("CARDINALITY"), 11);
+    assertEquals(rs.findColumn("PAGES"), 12);
+    assertEquals(rs.findColumn("FILTER_CONDITION"), 13);
+
+    rs.close();
+  }
+
   @Test
   public void testNotNullDomainColumn() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
@@ -639,7 +723,26 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
+    assertTrue(rs.next());
+    assertTrue(rs.next());
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testDomainColumnSize() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    assertTrue(rs.next());
+    assertEquals("id", rs.getString("COLUMN_NAME"));
+    assertEquals(10, rs.getInt("COLUMN_SIZE"));
+    assertTrue(rs.next());
+    assertEquals("v", rs.getString("COLUMN_NAME"));
+    assertEquals(3, rs.getInt("COLUMN_SIZE"));
+    assertTrue(rs.next());
+    assertEquals("f", rs.getString("COLUMN_NAME"));
+    assertEquals(8, rs.getInt("COLUMN_SIZE"));
+    assertEquals( 3, rs.getInt("DECIMAL_DIGITS"));
+
   }
 
   @Test
@@ -659,7 +762,6 @@ public class DatabaseMetaDataTest {
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("A", rs.getString("ASC_OR_DESC"));
-
 
     assertTrue(rs.next());
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
@@ -688,11 +790,27 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testTableTypes() throws SQLException {
-    // At the moment just test that no exceptions are thrown KJ
+    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX",
+        "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
+        "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
+        "TEMPORARY VIEW", "TYPE", "VIEW"));
+    final List<String> foundTableTypes = new ArrayList<String>();
+
+    // Test that no exceptions are thrown
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
+
+    // Test that the table types returned are the same as those expected
     ResultSet rs = dbmd.getTableTypes();
+    while (rs.next()) {
+      String tableType = new String(rs.getBytes(1));
+      foundTableTypes.add(tableType);
+    }
     rs.close();
+    Collections.sort(expectedTableTypes);
+    Collections.sort(foundTableTypes);
+    Assert.assertEquals("The table types received from DatabaseMetaData should match the 17 expected types",
+        true, foundTableTypes.equals(expectedTableTypes));
   }
 
   @Test
@@ -973,27 +1091,19 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
-      String cat;
-      String schema;
-      String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
-      typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
+      String typeName = rs.getString("type_name");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", !rs.wasNull());
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1002,7 +1112,6 @@ public class DatabaseMetaDataTest {
       }
     }
   }
-
 
   @Test
   public void testGetUDT2() throws Exception {
@@ -1013,27 +1122,20 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]{Types.DISTINCT, Types.STRUCT});
       assertTrue(rs.next());
-      String cat;
-      String schema;
       String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
       typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", !rs.wasNull());
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1052,27 +1154,19 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]{Types.DISTINCT});
       assertTrue(rs.next());
-      String cat;
-      String schema;
-      String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
-      typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
+      String typeName = rs.getString("type_name");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", !rs.wasNull());
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1090,26 +1184,18 @@ public class DatabaseMetaDataTest {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
-      String cat;
-      String schema;
-      String typeName;
-      String remarks;
-      String className;
-      int dataType;
-      int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
-      typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
+      String cat = rs.getString("type_cat");
+      String schema = rs.getString("type_schem");
+      String typeName = rs.getString("type_name");
+      String className = rs.getString("class_name");
+      int dataType = rs.getInt("data_type");
+      String remarks = rs.getString("remarks");
 
-      baseType = rs.getInt("base_type");
+      int baseType = rs.getInt("base_type");
       assertTrue("base type", rs.wasNull());
       assertEquals("data type", Types.STRUCT, dataType);
       assertEquals("type name ", "testint8", typeName);
-
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1123,38 +1209,36 @@ public class DatabaseMetaDataTest {
   public void testTypes() throws SQLException {
     // https://www.postgresql.org/docs/8.2/static/datatype.html
     List<String> stringTypeList = new ArrayList<String>();
-    stringTypeList.addAll(Arrays.asList(new String[]{
-        "bit",
-        "bool",
-        "box",
-        "bytea",
-        "char",
-        "cidr",
-        "circle",
-        "date",
-        "float4",
-        "float8",
-        "inet",
-        "int2",
-        "int4",
-        "int8",
-        "interval",
-        "line",
-        "lseg",
-        "macaddr",
-        "money",
-        "numeric",
-        "path",
-        "point",
-        "polygon",
-        "text",
-        "time",
-        "timestamp",
-        "timestamptz",
-        "timetz",
-        "varbit",
-        "varchar"
-    }));
+    stringTypeList.addAll(Arrays.asList("bit",
+            "bool",
+            "box",
+            "bytea",
+            "char",
+            "cidr",
+            "circle",
+            "date",
+            "float4",
+            "float8",
+            "inet",
+            "int2",
+            "int4",
+            "int8",
+            "interval",
+            "line",
+            "lseg",
+            "macaddr",
+            "money",
+            "numeric",
+            "path",
+            "point",
+            "polygon",
+            "text",
+            "time",
+            "timestamp",
+            "timestamptz",
+            "timetz",
+            "varbit",
+            "varchar"));
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
       stringTypeList.add("tsquery");
       stringTypeList.add("tsvector");
@@ -1180,7 +1264,6 @@ public class DatabaseMetaDataTest {
     for (String typeName : stringTypeList) {
       assertTrue(types.contains(typeName));
     }
-
   }
 
   @Test
@@ -1235,7 +1318,7 @@ public class DatabaseMetaDataTest {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"TABLE"});
+        ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
 
@@ -1270,7 +1353,191 @@ public class DatabaseMetaDataTest {
         }
       }
     }
+  }
 
+  @Test
+  public void testGetSQLKeywords() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    String keywords = dbmd.getSQLKeywords();
+
+    // We don't want SQL:2003 keywords returned, so check for that.
+    String sql2003 = "a,abs,absolute,action,ada,add,admin,after,all,allocate,alter,always,and,any,are,"
+        + "array,as,asc,asensitive,assertion,assignment,asymmetric,at,atomic,attribute,attributes,"
+        + "authorization,avg,before,begin,bernoulli,between,bigint,binary,blob,boolean,both,breadth,by,"
+        + "c,call,called,cardinality,cascade,cascaded,case,cast,catalog,catalog_name,ceil,ceiling,chain,"
+        + "char,char_length,character,character_length,character_set_catalog,character_set_name,"
+        + "character_set_schema,characteristics,characters,check,checked,class_origin,clob,close,"
+        + "coalesce,cobol,code_units,collate,collation,collation_catalog,collation_name,collation_schema,"
+        + "collect,column,column_name,command_function,command_function_code,commit,committed,condition,"
+        + "condition_number,connect,connection_name,constraint,constraint_catalog,constraint_name,"
+        + "constraint_schema,constraints,constructors,contains,continue,convert,corr,corresponding,count,"
+        + "covar_pop,covar_samp,create,cross,cube,cume_dist,current,current_collation,current_date,"
+        + "current_default_transform_group,current_path,current_role,current_time,current_timestamp,"
+        + "current_transform_group_for_type,current_user,cursor,cursor_name,cycle,data,date,datetime_interval_code,"
+        + "datetime_interval_precision,day,deallocate,dec,decimal,declare,default,defaults,deferrable,"
+        + "deferred,defined,definer,degree,delete,dense_rank,depth,deref,derived,desc,describe,"
+        + "descriptor,deterministic,diagnostics,disconnect,dispatch,distinct,domain,double,drop,dynamic,"
+        + "dynamic_function,dynamic_function_code,each,element,else,end,end-exec,equals,escape,every,"
+        + "except,exception,exclude,excluding,exec,execute,exists,exp,external,extract,false,fetch,filter,"
+        + "final,first,float,floor,following,for,foreign,fortran,found,free,from,full,function,fusion,"
+        + "g,general,get,global,go,goto,grant,granted,group,grouping,having,hierarchy,hold,hour,identity,"
+        + "immediate,implementation,in,including,increment,indicator,initially,inner,inout,input,"
+        + "insensitive,insert,instance,instantiable,int,integer,intersect,intersection,interval,into,"
+        + "invoker,is,isolation,join,k,key,key_member,key_type,language,large,last,lateral,leading,left,"
+        + "length,level,like,ln,local,localtime,localtimestamp,locator,lower,m,map,match,matched,max,"
+        + "maxvalue,member,merge,message_length,message_octet_length,message_text,method,min,minute,"
+        + "minvalue,mod,modifies,module,month,more,multiset,mumps,name,names,national,natural,nchar,"
+        + "nclob,nesting,new,next,no,none,normalize,normalized,not,null,nullable,nullif,nulls,number,"
+        + "numeric,object,octet_length,octets,of,old,on,only,open,option,options,or,order,ordering,"
+        + "ordinality,others,out,outer,output,over,overlaps,overlay,overriding,pad,parameter,parameter_mode,"
+        + "parameter_name,parameter_ordinal_position,parameter_specific_catalog,parameter_specific_name,"
+        + "parameter_specific_schema,partial,partition,pascal,path,percent_rank,percentile_cont,"
+        + "percentile_disc,placing,pli,position,power,preceding,precision,prepare,preserve,primary,"
+        + "prior,privileges,procedure,public,range,rank,read,reads,real,recursive,ref,references,"
+        + "referencing,regr_avgx,regr_avgy,regr_count,regr_intercept,regr_r2,regr_slope,regr_sxx,"
+        + "regr_sxy,regr_syy,relative,release,repeatable,restart,result,return,returned_cardinality,"
+        + "returned_length,returned_octet_length,returned_sqlstate,returns,revoke,right,role,rollback,"
+        + "rollup,routine,routine_catalog,routine_name,routine_schema,row,row_count,row_number,rows,"
+        + "savepoint,scale,schema,schema_name,scope_catalog,scope_name,scope_schema,scroll,search,second,"
+        + "section,security,select,self,sensitive,sequence,serializable,server_name,session,session_user,"
+        + "set,sets,similar,simple,size,smallint,some,source,space,specific,specific_name,specifictype,sql,"
+        + "sqlexception,sqlstate,sqlwarning,sqrt,start,state,statement,static,stddev_pop,stddev_samp,"
+        + "structure,style,subclass_origin,submultiset,substring,sum,symmetric,system,system_user,table,"
+        + "table_name,tablesample,temporary,then,ties,time,timestamp,timezone_hour,timezone_minute,to,"
+        + "top_level_count,trailing,transaction,transaction_active,transactions_committed,"
+        + "transactions_rolled_back,transform,transforms,translate,translation,treat,trigger,trigger_catalog,"
+        + "trigger_name,trigger_schema,trim,true,type,uescape,unbounded,uncommitted,under,union,unique,"
+        + "unknown,unnamed,unnest,update,upper,usage,user,user_defined_type_catalog,user_defined_type_code,"
+        + "user_defined_type_name,user_defined_type_schema,using,value,values,var_pop,var_samp,varchar,"
+        + "varying,view,when,whenever,where,width_bucket,window,with,within,without,work,write,year,zone";
+
+    String[] excludeSQL2003 = sql2003.split(",");
+    String[] returned = keywords.split(",");
+    Set<String> returnedSet = new HashSet<String>(Arrays.asList(returned));
+    Assert.assertEquals("Returned keywords should be unique", returnedSet.size(), returned.length);
+
+    for (String s : excludeSQL2003) {
+      assertFalse("Keyword from SQL:2003 \"" + s + "\" found", returnedSet.contains(s));
+    }
+
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
+      Assert.assertTrue("reindex should be in keywords", returnedSet.contains("reindex"));
+    }
+  }
+
+  @Test
+  public void testFunctionColumns() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
+      return;
+    }
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getFunctionColumns(null, null, "f1", null);
+
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertEquals(17, rsmd.getColumnCount());
+    assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
+    assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
+    assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
+    assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+    assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
+    assertEquals("DATA_TYPE", rsmd.getColumnName(6));
+    assertEquals("TYPE_NAME", rsmd.getColumnName(7));
+    assertEquals("PRECISION", rsmd.getColumnName(8));
+    assertEquals("LENGTH", rsmd.getColumnName(9));
+    assertEquals("SCALE", rsmd.getColumnName(10));
+    assertEquals("RADIX", rsmd.getColumnName(11));
+    assertEquals("NULLABLE", rsmd.getColumnName(12));
+    assertEquals("REMARKS", rsmd.getColumnName(13));
+    assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
+    assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
+    assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
+    assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
+
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("returnValue", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionReturn, rs.getInt(5));
+    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals("int4", rs.getString(7));
+    assertEquals(0, rs.getInt(15));
+
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("$1", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
+    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals("int4", rs.getString(7));
+    assertEquals(1, rs.getInt(15));
+
+    assertTrue(rs.next());
+    assertEquals(null, rs.getString(1));
+    assertEquals("public", rs.getString(2));
+    assertEquals("f1", rs.getString(3));
+    assertEquals("$2", rs.getString(4));
+    assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
+    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals("varchar", rs.getString(7));
+    assertEquals(2, rs.getInt(15));
+
+    assertTrue(!rs.next());
+
+    rs.close();
+  }
+
+  @Test
+  public void testSmallSerialColumns() throws SQLException {
+    org.junit.Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+    TestUtil.createTable(con, "smallserial_test", "a smallserial");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "smallserial_test", "a");
+    assertTrue(rs.next());
+    assertEquals("smallserial_test", rs.getString("TABLE_NAME"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
+    assertEquals("smallserial", rs.getString("TYPE_NAME"));
+    assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+    assertEquals("nextval('smallserial_test_a_seq'::regclass)", rs.getString("COLUMN_DEF"));
+    assertFalse(rs.next());
+    rs.close();
+
+    TestUtil.dropTable(con, "smallserial_test");
+  }
+
+  @Test
+  public void testSmallSerialSequenceLikeColumns() throws SQLException {
+    Statement stmt = con.createStatement();
+    // This is the equivalent of the smallserial, not the actual smallserial
+    stmt.execute("CREATE SEQUENCE smallserial_test_a_seq;\n"
+        + "CREATE TABLE smallserial_test (\n"
+        + "    a smallint NOT NULL DEFAULT nextval('smallserial_test_a_seq')\n"
+        + ");\n"
+        + "ALTER SEQUENCE smallserial_test_a_seq OWNED BY smallserial_test.a;");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "smallserial_test", "a");
+    assertTrue(rs.next());
+    assertEquals("smallserial_test", rs.getString("TABLE_NAME"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2)) {
+      // in Pg 9.2+ it behaves like smallserial
+      assertEquals("smallserial", rs.getString("TYPE_NAME"));
+    } else {
+      assertEquals("int2", rs.getString("TYPE_NAME"));
+    }
+    assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+    assertEquals("nextval('smallserial_test_a_seq'::regclass)", rs.getString("COLUMN_DEF"));
+    assertFalse(rs.next());
+    rs.close();
+
+    stmt.execute("DROP TABLE smallserial_test");
+    stmt.close();
   }
 
 }

@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
@@ -21,9 +23,9 @@ public class ObjectFactory {
    * single String argument is searched if it fails, or tryString is true a no argument constructor
    * is tried.
    *
-   * @param classname Nam of the class to instantiate
+   * @param classname name of the class to instantiate
    * @param info parameter to pass as Properties
-   * @param tryString weather to look for a single String argument constructor
+   * @param tryString whether to look for a single String argument constructor
    * @param stringarg parameter to pass as String
    * @return the instantiated class
    * @throws ClassNotFoundException if something goes wrong
@@ -35,29 +37,28 @@ public class ObjectFactory {
    * @throws InvocationTargetException if something goes wrong
    */
   public static Object instantiate(String classname, Properties info, boolean tryString,
-      String stringarg) throws ClassNotFoundException, SecurityException, NoSuchMethodException,
+      @Nullable String stringarg)
+      throws ClassNotFoundException, SecurityException, NoSuchMethodException,
           IllegalArgumentException, InstantiationException, IllegalAccessException,
           InvocationTargetException {
-    Object[] args = {info};
+    @Nullable Object[] args = {info};
     Constructor<?> ctor = null;
     Class<?> cls = Class.forName(classname);
     try {
       ctor = cls.getConstructor(Properties.class);
-    } catch (NoSuchMethodException nsme) {
-      if (tryString) {
-        try {
-          ctor = cls.getConstructor(String.class);
-          args = new String[]{stringarg};
-        } catch (NoSuchMethodException nsme2) {
-          tryString = false;
-        }
+    } catch (NoSuchMethodException ignored) {
+    }
+    if (tryString && ctor == null) {
+      try {
+        ctor = cls.getConstructor(String.class);
+        args = new String[]{stringarg};
+      } catch (NoSuchMethodException ignored) {
       }
-      if (!tryString) {
-        ctor = cls.getConstructor((Class[]) null);
-        args = null;
-      }
+    }
+    if (ctor == null) {
+      ctor = cls.getConstructor();
+      args = new Object[0];
     }
     return ctor.newInstance(args);
   }
-
 }

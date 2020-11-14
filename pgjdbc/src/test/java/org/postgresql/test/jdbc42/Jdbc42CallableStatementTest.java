@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
 /**
  * Tests for JDBC 4.2 features in {@link org.postgresql.jdbc.PgCallableStatement}.
  */
@@ -40,7 +39,6 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
                       + "begin OPEN ref FOR SELECT 1; RETURN ref; end; ' LANGUAGE plpgsql;");
     }
   }
-
 
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
@@ -91,4 +89,27 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
     }
   }
 
+  @Test
+  public void testRegisterOutParameter() throws SQLException {
+
+    CallableStatement cs = null;
+
+    cs = con.prepareCall("{ ? = call xxxx.yyyy (?,?,?,?)}");
+    cs.registerOutParameter(1, Types.REF_CURSOR);
+
+    cs.setLong(2, 1000L);
+    cs.setLong(3, 500);
+    cs.setLong(4, 3000);
+    cs.setNull(5, Types.NUMERIC);
+  }
+
+  @Test
+  public void testRegisterInoutParameter() throws SQLException {
+
+    CallableStatement cs = null;
+
+    cs = con.prepareCall("{call xxxx.yyyy (?)}");
+    cs.setNull(1, Types.REF_CURSOR);
+    cs.registerOutParameter(1, Types.REF_CURSOR);
+  }
 }

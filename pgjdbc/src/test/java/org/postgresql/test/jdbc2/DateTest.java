@@ -161,7 +161,6 @@ public class DateTest {
     assertNotNull(d);
     assertEquals(makeDate(1950, 2, 7), d);
 
-
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);

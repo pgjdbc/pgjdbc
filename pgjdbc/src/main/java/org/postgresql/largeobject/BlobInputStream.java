@@ -5,6 +5,8 @@
 
 package org.postgresql.largeobject;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -14,37 +16,37 @@ import java.sql.SQLException;
  */
 public class BlobInputStream extends InputStream {
   /**
-   * The parent LargeObject
+   * The parent LargeObject.
    */
-  private LargeObject lo;
+  private @Nullable LargeObject lo;
 
   /**
-   * The absolute position
+   * The absolute position.
    */
   private long apos;
 
   /**
-   * Buffer used to improve performance
+   * Buffer used to improve performance.
    */
-  private byte[] buffer;
+  private byte @Nullable [] buffer;
 
   /**
-   * Position within buffer
+   * Position within buffer.
    */
   private int bpos;
 
   /**
-   * The buffer size
+   * The buffer size.
    */
   private int bsize;
 
   /**
-   * The mark position
+   * The mark position.
    */
-  private int mpos = 0;
+  private long mpos = 0;
 
   /**
-   * The limit
+   * The limit.
    */
   private long limit = -1;
 
@@ -79,10 +81,10 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * The minimum required to implement input stream
+   * The minimum required to implement input stream.
    */
   public int read() throws java.io.IOException {
-    checkClosed();
+    LargeObject lo = getLo();
     try {
       if (limit > 0 && apos >= limit) {
         return -1;
@@ -93,7 +95,7 @@ public class BlobInputStream extends InputStream {
       }
 
       // Handle EOF
-      if (bpos >= buffer.length) {
+      if (buffer == null || bpos >= buffer.length) {
         return -1;
       }
 
@@ -111,12 +113,10 @@ public class BlobInputStream extends InputStream {
     }
   }
 
-
   /**
-   * Closes this input stream and releases any system resources associated with the stream.
+   * <p>Closes this input stream and releases any system resources associated with the stream.</p>
    *
-   * <p>
-   * The <code>close</code> method of <code>InputStream</code> does nothing.
+   * <p>The <code>close</code> method of <code>InputStream</code> does nothing.</p>
    *
    * @throws IOException if an I/O error occurs.
    */
@@ -132,49 +132,47 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * Marks the current position in this input stream. A subsequent call to the <code>reset</code>
+   * <p>Marks the current position in this input stream. A subsequent call to the <code>reset</code>
    * method repositions this stream at the last marked position so that subsequent reads re-read the
-   * same bytes.
+   * same bytes.</p>
    *
-   * <p>
-   * The <code>readlimit</code> arguments tells this input stream to allow that many bytes to be
-   * read before the mark position gets invalidated.
+   * <p>The <code>readlimit</code> arguments tells this input stream to allow that many bytes to be
+   * read before the mark position gets invalidated.</p>
    *
-   * <p>
-   * The general contract of <code>mark</code> is that, if the method <code>markSupported</code>
+   * <p>The general contract of <code>mark</code> is that, if the method <code>markSupported</code>
    * returns <code>true</code>, the stream somehow remembers all the bytes read after the call to
    * <code>mark</code> and stands ready to supply those same bytes again if and whenever the method
    * <code>reset</code> is called. However, the stream is not required to remember any data at all
    * if more than <code>readlimit</code> bytes are read from the stream before <code>reset</code> is
-   * called.
+   * called.</p>
    *
-   * <p>
-   * Marking a closed stream should not have any effect on the stream.
+   * <p>Marking a closed stream should not have any effect on the stream.</p>
    *
    * @param readlimit the maximum limit of bytes that can be read before the mark position becomes
    *        invalid.
    * @see java.io.InputStream#reset()
    */
   public synchronized void mark(int readlimit) {
-    try {
-      mpos = lo.tell();
-    } catch (SQLException se) {
-      // Can't throw this because mark API doesn't allow it.
-      // throw new IOException(se.toString());
-    }
+    mpos = apos;
   }
 
   /**
    * Repositions this stream to the position at the time the <code>mark</code> method was last
-   * called on this input stream. NB: If mark is not called we move to the begining.
+   * called on this input stream. NB: If mark is not called we move to the beginning.
    *
    * @see java.io.InputStream#mark(int)
    * @see java.io.IOException
    */
   public synchronized void reset() throws IOException {
-    checkClosed();
+    LargeObject lo = getLo();
     try {
-      lo.seek(mpos);
+      if (mpos <= Integer.MAX_VALUE) {
+        lo.seek((int)mpos);
+      } else {
+        lo.seek64(mpos, LargeObject.SEEK_SET);
+      }
+      buffer = null;
+      apos = mpos;
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }
@@ -193,9 +191,10 @@ public class BlobInputStream extends InputStream {
     return true;
   }
 
-  private void checkClosed() throws IOException {
+  private LargeObject getLo() throws IOException {
     if (lo == null) {
       throw new IOException("BlobOutputStream is closed");
     }
+    return lo;
   }
 }

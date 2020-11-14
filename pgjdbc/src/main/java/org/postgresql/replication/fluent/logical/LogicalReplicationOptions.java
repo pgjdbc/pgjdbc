@@ -7,15 +7,17 @@ package org.postgresql.replication.fluent.logical;
 
 import org.postgresql.replication.fluent.CommonOptions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Properties;
 
 public interface LogicalReplicationOptions extends CommonOptions {
   /**
-   * Required parameter for logical replication
+   * Required parameter for logical replication.
    *
    * @return not null logical replication slot name that already exists on server and free.
    */
-  String getSlotName();
+  @Nullable String getSlotName();
 
   /**
    * Parameters for output plugin. Parameters will be set to output plugin that register for

@@ -9,13 +9,13 @@ import java.io.IOException;
 
 public class PGBindException extends IOException {
 
-  private IOException _ioe;
+  private final IOException ioe;
 
   public PGBindException(IOException ioe) {
-    _ioe = ioe;
+    this.ioe = ioe;
   }
 
   public IOException getIOException() {
-    return _ioe;
+    return ioe;
   }
 }

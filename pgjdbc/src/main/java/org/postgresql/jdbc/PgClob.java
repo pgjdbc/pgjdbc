@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.largeobject.LargeObject;
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -54,8 +56,9 @@ public class PgClob extends AbstractBlobClob implements java.sql.Clob {
 
   public synchronized String getSubString(long i, int j) throws SQLException {
     assertPosition(i, j);
-    getLo(false).seek((int) i - 1);
-    return new String(getLo(false).read(j));
+    LargeObject lo = getLo(false);
+    lo.seek((int) i - 1);
+    return new String(lo.read(j));
   }
 
   /**
@@ -67,7 +70,7 @@ public class PgClob extends AbstractBlobClob implements java.sql.Clob {
   }
 
   /**
-   * This should be simply passing the byte value of the pattern Blob
+   * This should be simply passing the byte value of the pattern Blob.
    */
   public synchronized long position(Clob pattern, long start) throws SQLException {
     checkFreed();

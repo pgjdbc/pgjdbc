@@ -3,12 +3,10 @@
  * See the LICENSE file in the project root for more information.
  */
 
-
 package org.postgresql.util;
 
 import java.util.ArrayList;
 import java.util.List;
-
 
 /**
  * This class is used to tokenize the text output of org.postgres. It's mainly used by the geometric
@@ -23,18 +21,18 @@ import java.util.List;
  */
 public class PGtokenizer {
   // Our tokens
-  protected List<String> tokens;
+  protected List<String> tokens = new ArrayList<String>();
 
   /**
-   * Create a tokeniser.
+   * <p>Create a tokeniser.</p>
    *
-   * <p>
-   * We could have used StringTokenizer to do this, however, we needed to handle nesting of '(' ')'
-   * '[' ']' '&lt;' and '&gt;' as these are used by the geometric data types.
+   * <p>We could have used StringTokenizer to do this, however, we needed to handle nesting of '(' ')'
+   * '[' ']' '&lt;' and '&gt;' as these are used by the geometric data types.</p>
    *
    * @param string containing tokens
    * @param delim single character to split the tokens
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGtokenizer(String string, char delim) {
     tokenize(string, delim);
   }
@@ -47,7 +45,7 @@ public class PGtokenizer {
    * @return number of tokens
    */
   public int tokenize(String string, char delim) {
-    tokens = new ArrayList<String>();
+    tokens.clear();
 
     // nest holds how many levels we are in the current token.
     // if this is > 0 then we don't split a token when delim is matched.
@@ -61,9 +59,9 @@ public class PGtokenizer {
     int s;
     boolean skipChar = false;
     boolean nestedDoubleQuote = false;
-
+    char c = (char)0;
     for (p = 0, s = 0; p < string.length(); p++) {
-      char c = string.charAt(p);
+      c = string.charAt(p);
 
       // increase nesting if an open character is found
       if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
@@ -92,10 +90,13 @@ public class PGtokenizer {
     }
 
     // Don't forget the last token ;-)
-
-
     if (s < string.length()) {
       tokens.add(string.substring(s));
+    }
+
+    // check for last token empty
+    if ( s == string.length() && c == delim) {
+      tokens.add("");
     }
 
     return tokens.size();
@@ -117,9 +118,9 @@ public class PGtokenizer {
   }
 
   /**
-   * This returns a new tokenizer based on one of our tokens.
+   * <p>This returns a new tokenizer based on one of our tokens.</p>
    *
-   * The geometric datatypes use this to process nested tokens (usually PGpoint).
+   * <p>The geometric datatypes use this to process nested tokens (usually PGpoint).</p>
    *
    * @param n Token number ( 0 ... getSize()-1 )
    * @param delim The delimiter to use
@@ -130,7 +131,7 @@ public class PGtokenizer {
   }
 
   /**
-   * This removes the lead/trailing strings from a string
+   * This removes the lead/trailing strings from a string.
    *
    * @param s Source string
    * @param l Leading string to remove
@@ -148,7 +149,7 @@ public class PGtokenizer {
   }
 
   /**
-   * This removes the lead/trailing strings from all tokens
+   * This removes the lead/trailing strings from all tokens.
    *
    * @param l Leading string to remove
    * @param t Trailing string to remove
@@ -160,7 +161,7 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes ( and ) from the beginning and end of a string
+   * Removes ( and ) from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the ( or )
@@ -170,14 +171,14 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes ( and ) from the beginning and end of all tokens
+   * Removes ( and ) from the beginning and end of all tokens.
    */
   public void removePara() {
     remove("(", ")");
   }
 
   /**
-   * Removes [ and ] from the beginning and end of a string
+   * Removes [ and ] from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the [ or ]
@@ -187,14 +188,14 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes [ and ] from the beginning and end of all tokens
+   * Removes [ and ] from the beginning and end of all tokens.
    */
   public void removeBox() {
     remove("[", "]");
   }
 
   /**
-   * Removes &lt; and &gt; from the beginning and end of a string
+   * Removes &lt; and &gt; from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the &lt; or &gt;
@@ -204,14 +205,14 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes &lt; and &gt; from the beginning and end of all tokens
+   * Removes &lt; and &gt; from the beginning and end of all tokens.
    */
   public void removeAngle() {
     remove("<", ">");
   }
 
   /**
-   * Removes curly braces { and } from the beginning and end of a string
+   * Removes curly braces { and } from the beginning and end of a string.
    *
    * @param s String to remove from
    * @return String without the { or }
@@ -221,7 +222,7 @@ public class PGtokenizer {
   }
 
   /**
-   * Removes &lt; and &gt; from the beginning and end of all tokens
+   * Removes &lt; and &gt; from the beginning and end of all tokens.
    */
   public void removeCurlyBrace() {
     remove("{", "}");

@@ -3,15 +3,12 @@
  * See the LICENSE file in the project root for more information.
  */
 
-/**
- * Bulk data copy for PostgreSQL
- */
-
 package org.postgresql.copy;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -24,7 +21,7 @@ import java.io.Writer;
 import java.sql.SQLException;
 
 /**
- * API for PostgreSQL COPY bulk data transfer
+ * API for PostgreSQL COPY bulk data transfer.
  */
 public class CopyManager {
   // I don't know what the best buffer size is, so we let people specify it if
@@ -81,7 +78,8 @@ public class CopyManager {
    * Pass results of a COPY TO STDOUT query from database into a Writer.
    *
    * @param sql COPY TO STDOUT statement
-   * @param to the stream to write the results to (row by row)
+   * @param to the Writer to write the results to (row by row).
+   *           The Writer is not closed at the end of the Copy Out operation.
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage errors
    * @throws IOException upon writer or database connection failure
@@ -99,7 +97,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try { // read until excausted or operation cancelled SQLException
+      try { // read until exhausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
@@ -117,6 +115,8 @@ public class CopyManager {
    *
    * @param sql COPY TO STDOUT statement
    * @param to the stream to write the results to (row by row)
+   *           The stream is not closed at the end of the operation. This is intentional so the
+   *           caller can continue to write to the output stream
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage errors
    * @throws IOException upon output stream or database connection failure
@@ -134,7 +134,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try { // read until excausted or operation cancelled SQLException
+      try { // read until exhausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
@@ -224,6 +224,28 @@ public class CopyManager {
           cp.writeToCopy(buf, 0, len);
         }
       }
+      return cp.endCopy();
+    } finally { // see to it that we do not leave the connection locked
+      if (cp.isActive()) {
+        cp.cancelCopy();
+      }
+    }
+  }
+
+  /**
+   * Use COPY FROM STDIN for very fast copying from an ByteStreamWriter into a database table.
+   *
+   * @param sql  COPY FROM STDIN statement
+   * @param from the source of bytes, e.g. a ByteBufferByteStreamWriter
+   * @return number of rows updated for server 8.2 or newer; -1 for older
+   * @throws SQLException on database usage issues
+   * @throws IOException  upon input stream or database connection failure
+   */
+  public long copyIn(String sql, ByteStreamWriter from)
+      throws SQLException, IOException {
+    CopyIn cp = copyIn(sql);
+    try {
+      cp.writeToCopy(from);
       return cp.endCopy();
     } finally { // see to it that we do not leave the connection locked
       if (cp.isActive()) {

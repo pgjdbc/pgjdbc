@@ -8,14 +8,16 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.LogWriterHandler;
 import org.postgresql.util.NullOutputStream;
-import org.postgresql.util.WriterHandler;
+import org.postgresql.util.URLCoder;
 
 import org.junit.Test;
 
@@ -23,6 +25,7 @@ import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
@@ -34,6 +37,24 @@ import java.util.logging.Logger;
  *
  */
 public class DriverTest {
+
+  @Test
+  public void urlIsNotForPostgreSQL() throws SQLException {
+    Driver driver = new Driver();
+
+    assertNull(driver.connect("jdbc:otherdb:database", new Properties()));
+  }
+
+  /**
+   * According to the javadoc of java.sql.Driver.connect(...), calling abort when the {@code executor} is {@code null}
+   * results in SQLException
+   */
+  @Test(expected = SQLException.class)
+  public void urlIsNull() throws SQLException {
+    Driver driver = new Driver();
+
+    driver.connect(null, new Properties());
+  }
 
   /*
    * This tests the acceptsURL() method with a couple of well and poorly formed jdbc urls.
@@ -55,10 +76,13 @@ public class DriverTest {
     verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "[::1]", "5740", "db");
 
     // Badly formatted url's
-    assertTrue(!drv.acceptsURL("jdbc:postgres:test"));
-    assertTrue(!drv.acceptsURL("postgresql:test"));
-    assertTrue(!drv.acceptsURL("db"));
-    assertTrue(!drv.acceptsURL("jdbc:postgresql://localhost:5432a/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgres:test"));
+    assertFalse(drv.acceptsURL("postgresql:test"));
+    assertFalse(drv.acceptsURL("db"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:5432a/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:500000/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:0/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:-2/test"));
 
     // failover urls
     verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",
@@ -83,7 +107,7 @@ public class DriverTest {
   }
 
   /**
-   * Tests the connect method by connecting to the test database
+   * Tests the connect method by connecting to the test database.
    */
   @Test
   public void testConnect() throws Exception {
@@ -97,7 +121,9 @@ public class DriverTest {
 
     // Test with the username in the url
     con = DriverManager.getConnection(
-        TestUtil.getURL() + "&user=" + TestUtil.getUser() + "&password=" + TestUtil.getPassword());
+        TestUtil.getURL()
+            + "&user=" + URLCoder.encode(TestUtil.getUser())
+            + "&password=" + URLCoder.encode(TestUtil.getPassword()));
     assertNotNull(con);
     con.close();
 
@@ -196,8 +222,8 @@ public class DriverTest {
     String loggerLevel = System.getProperty("loggerLevel");
     String loggerFile = System.getProperty("loggerFile");
 
+    PrintWriter prevLog = DriverManager.getLogWriter();
     try {
-
       PrintWriter printWriter = new PrintWriter(new NullOutputStream(System.err));
       DriverManager.setLogWriter(printWriter);
       assertEquals(DriverManager.getLogWriter(), printWriter);
@@ -211,20 +237,17 @@ public class DriverTest {
 
       Logger logger = Logger.getLogger("org.postgresql");
       Handler[] handlers = logger.getHandlers();
-      assertTrue(handlers[0] instanceof WriterHandler );
+      assertTrue(handlers[0] instanceof LogWriterHandler );
       con.close();
     } finally {
-      DriverManager.setLogWriter(null);
-      System.setProperty("loggerLevel", loggerLevel);
-      System.setProperty("loggerFile", loggerFile);
-
+      DriverManager.setLogWriter(prevLog);
+      setProperty("loggerLevel", loggerLevel);
+      setProperty("loggerFile", loggerFile);
     }
-
   }
 
   @Test
   public void testSetLogStream() throws Exception {
-
     // this is a dummy to make sure TestUtil is initialized
     Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
     con.close();
@@ -232,7 +255,6 @@ public class DriverTest {
     String loggerFile = System.getProperty("loggerFile");
 
     try {
-
       DriverManager.setLogStream(new NullOutputStream(System.err));
       System.clearProperty("loggerFile");
       System.clearProperty("loggerLevel");
@@ -244,16 +266,20 @@ public class DriverTest {
 
       Logger logger = Logger.getLogger("org.postgresql");
       Handler []handlers = logger.getHandlers();
-      assertTrue( handlers[0] instanceof WriterHandler );
+      assertTrue( handlers[0] instanceof LogWriterHandler );
       con.close();
     } finally {
       DriverManager.setLogStream(null);
-      System.setProperty("loggerLevel", loggerLevel);
-      System.setProperty("loggerFile", loggerFile);
-
-
+      setProperty("loggerLevel", loggerLevel);
+      setProperty("loggerFile", loggerFile);
     }
-
   }
 
+  private void setProperty(String key, String value) {
+    if (value == null) {
+      System.clearProperty(key);
+    } else {
+      System.setProperty(key, value);
+    }
+  }
 }

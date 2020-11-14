@@ -7,9 +7,14 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.core.ParameterList;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -27,7 +32,7 @@ class CompositeParameterList implements V3ParameterList {
     this.total = offsets[offsets.length - 1] + subparams[offsets.length - 1].getInParameterCount();
   }
 
-  private int findSubParam(int index) throws SQLException {
+  private int findSubParam(@Positive int index) throws SQLException {
     if (index < 1 || index > total) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.", index, total),
@@ -43,7 +48,7 @@ class CompositeParameterList implements V3ParameterList {
     throw new IllegalArgumentException("I am confused; can't find a subparam for index " + index);
   }
 
-  public void registerOutParameter(int index, int sqlType) {
+  public void registerOutParameter(@Positive int index, int sqlType) {
 
   }
 
@@ -51,15 +56,15 @@ class CompositeParameterList implements V3ParameterList {
     return 0;
   }
 
-  public int getParameterCount() {
+  public @NonNegative int getParameterCount() {
     return total;
   }
 
-  public int getInParameterCount() {
+  public @NonNegative int getInParameterCount() {
     return total;
   }
 
-  public int getOutParameterCount() {
+  public @NonNegative int getOutParameterCount() {
     return 0;
   }
 
@@ -72,52 +77,57 @@ class CompositeParameterList implements V3ParameterList {
     return oids;
   }
 
-  public void setIntParameter(int index, int value) throws SQLException {
+  public void setIntParameter(@Positive int index, int value) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setIntParameter(index - offsets[sub], value);
   }
 
-  public void setLiteralParameter(int index, String value, int oid) throws SQLException {
+  public void setLiteralParameter(@Positive int index, String value, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setStringParameter(index - offsets[sub], value, oid);
   }
 
-  public void setStringParameter(int index, String value, int oid) throws SQLException {
+  public void setStringParameter(@Positive int index, String value, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setStringParameter(index - offsets[sub], value, oid);
   }
 
-  public void setBinaryParameter(int index, byte[] value, int oid) throws SQLException {
+  public void setBinaryParameter(@Positive int index, byte[] value, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBinaryParameter(index - offsets[sub], value, oid);
   }
 
-  public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
+  public void setBytea(@Positive int index, byte[] data, int offset, @NonNegative int length) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], data, offset, length);
   }
 
-  public void setBytea(int index, InputStream stream, int length) throws SQLException {
+  public void setBytea(@Positive int index, InputStream stream, @NonNegative int length) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], stream, length);
   }
 
-  public void setBytea(int index, InputStream stream) throws SQLException {
+  public void setBytea(@Positive int index, InputStream stream) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], stream);
   }
 
-  public void setText(int index, InputStream stream) throws SQLException {
+  public void setBytea(@Positive int index, ByteStreamWriter writer) throws SQLException {
+    int sub = findSubParam(index);
+    subparams[sub].setBytea(index - offsets[sub], writer);
+  }
+
+  public void setText(@Positive int index, InputStream stream) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setText(index - offsets[sub], stream);
   }
 
-  public void setNull(int index, int oid) throws SQLException {
+  public void setNull(@Positive int index, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setNull(index - offsets[sub], oid);
   }
 
-  public String toString(int index, boolean standardConformingStrings) {
+  public String toString(@Positive int index, boolean standardConformingStrings) {
     try {
       int sub = findSubParam(index);
       return subparams[sub].toString(index - offsets[sub], standardConformingStrings);
@@ -141,7 +151,7 @@ class CompositeParameterList implements V3ParameterList {
     }
   }
 
-  public SimpleParameterList[] getSubparams() {
+  public SimpleParameterList @Nullable [] getSubparams() {
     return subparams;
   }
 
@@ -151,19 +161,19 @@ class CompositeParameterList implements V3ParameterList {
     }
   }
 
-  public byte[][] getEncoding() {
+  public byte @Nullable [][] getEncoding() {
     return null; // unsupported
   }
 
-  public byte[] getFlags() {
+  public byte @Nullable [] getFlags() {
     return null; // unsupported
   }
 
-  public int[] getParamTypes() {
+  public int @Nullable [] getParamTypes() {
     return null; // unsupported
   }
 
-  public Object[] getValues() {
+  public @Nullable Object @Nullable [] getValues() {
     return null; // unsupported
   }
 
@@ -177,7 +187,7 @@ class CompositeParameterList implements V3ParameterList {
     }
   }
 
-  private final int total;
+  private final @Positive int total;
   private final SimpleParameterList[] subparams;
   private final int[] offsets;
 }

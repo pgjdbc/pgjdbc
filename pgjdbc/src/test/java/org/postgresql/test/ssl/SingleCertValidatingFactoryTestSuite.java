@@ -7,6 +7,7 @@ package org.postgresql.test.ssl;
 
 import org.postgresql.test.TestUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,18 +31,18 @@ import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class SingleCertValidatingFactoryTestSuite {
-  private static String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
+  private static final String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
 
   /**
-   * This method returns the paramaters that JUnit will use when constructing this class for
+   * <p>This method returns the parameters that JUnit will use when constructing this class for
    * testing. It returns a collection of arrays, each containing a single value for the JDBC URL to
-   * test against.
+   * test against.</p>
    *
-   * To point the test at a different set of test databases edit the JDBC URL list accordingly. By
-   * default it points to the test databases setup by the pgjdbc-test-vm virtual machine.
+   * <p>To point the test at a different set of test databases edit the JDBC URL list accordingly. By
+   * default it points to the test databases setup by the pgjdbc-test-vm virtual machine.</p>
    *
-   * Note: The test assumes that the username as password for all the test databases are the same
-   * (pulled from system properties).
+   * <p>Note: The test assumes that the username as password for all the test databases are the same
+   * (pulled from system properties).</p>
    */
   @Parameters
   public static Collection<Object[]> data() throws IOException {
@@ -58,17 +59,17 @@ public class SingleCertValidatingFactoryTestSuite {
     }
 
     return Arrays.asList(new Object[][]{
-        {"jdbc:postgresql://localhost:10084/test"},
-        {"jdbc:postgresql://localhost:10090/test"},
-        {"jdbc:postgresql://localhost:10091/test"},
-        {"jdbc:postgresql://localhost:10092/test"},
-        {"jdbc:postgresql://localhost:10093/test"},
+        {"jdbc:postgresql://localhost:5432/test"},
+        //        {"jdbc:postgresql://localhost:10090/test"},
+        //        {"jdbc:postgresql://localhost:10091/test"},
+        //        {"jdbc:postgresql://localhost:10092/test"},
+        //        {"jdbc:postgresql://localhost:10093/test"},
     });
   }
 
   // The valid and invalid server SSL certfiicates:
-  private static final String goodServerCertPath = "certdir/goodroot.crt";
-  private static final String badServerCertPath = "certdir/badroot.crt";
+  private static final String goodServerCertPath = "../certdir/goodroot.crt";
+  private static final String badServerCertPath = "../certdir/badroot.crt";
 
   private String getGoodServerCert() {
     return loadFile(goodServerCertPath);
@@ -78,11 +79,11 @@ public class SingleCertValidatingFactoryTestSuite {
     return loadFile(badServerCertPath);
   }
 
-  protected String getUsername() {
+  protected @Nullable String getUsername() {
     return System.getProperty("username");
   }
 
-  protected String getPassword() {
+  protected @Nullable String getPassword() {
     return System.getProperty("password");
   }
 
@@ -97,7 +98,7 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   /**
-   * Helper method to create a connection using the additional properites specified in the "info"
+   * Helper method to create a connection using the additional properties specified in the "info"
    * paramater.
    *
    * @param info The additional properties to use when creating a connection
@@ -112,7 +113,8 @@ public class SingleCertValidatingFactoryTestSuite {
   /**
    * Tests whether a given throwable or one of it's root causes matches of a given class.
    */
-  private boolean matchesExpected(Throwable t, Class<? extends Throwable> expectedThrowable)
+  private boolean matchesExpected(@Nullable Throwable t,
+      Class<? extends Throwable> expectedThrowable)
       throws SQLException {
     if (t == null || expectedThrowable == null) {
       return false;
@@ -132,7 +134,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * is using SSL.
    */
   protected void testConnect(Properties info, boolean sslExpected,
-      Class<? extends Throwable> expectedThrowable) throws SQLException {
+      @Nullable Class<? extends Throwable> expectedThrowable) throws SQLException {
     Connection conn = null;
     try {
       conn = getConnection(info);
@@ -187,15 +189,15 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   /**
-   * Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
+   * <p>Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
    * certificate. This test uses a pre generated certificate that will *not* match the test
-   * PostgreSQL server (the certificate is for properssl.example.com).
+   * PostgreSQL server (the certificate is for properssl.example.com).</p>
    *
-   * This connection uses a custom SSLSocketFactory using a custom trust manager that validates the
-   * remote server's certificate against the pre shared certificate.
+   * <p>This connection uses a custom SSLSocketFactory using a custom trust manager that validates the
+   * remote server's certificate against the pre shared certificate.</p>
    *
-   * This test should throw an exception as the client should reject the server since the
-   * certificate does not match.
+   * <p>This test should throw an exception as the client should reject the server since the
+   * certificate does not match.</p>
    */
   @Test
   public void connectSSLWithValidationWrongCert() throws SQLException, IOException {
@@ -276,13 +278,13 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   /**
-   * Connect using SSL and attempt to validate the server's certificate against the proper pre
-   * shared certificate. The certificate is specified as an environment variable.
+   * <p>Connect using SSL and attempt to validate the server's certificate against the proper pre
+   * shared certificate. The certificate is specified as an environment variable.</p>
    *
-   * Note: To execute this test succesfully you need to set the value of the environment variable
-   * DATASOURCE_SSL_CERT prior to running the test.
+   * <p>Note: To execute this test successfully you need to set the value of the environment variable
+   * DATASOURCE_SSL_CERT prior to running the test.</p>
    *
-   * Here's one way to do it: $ DATASOURCE_SSL_CERT=$(cat certdir/goodroot.crt) ant clean test
+   * <p>Here's one way to do it: $ DATASOURCE_SSL_CERT=$(cat certdir/goodroot.crt) ant clean test</p>
    */
   @Test
   public void connectSSLWithValidationProperCertEnvVar() throws SQLException, IOException {
@@ -347,7 +349,7 @@ public class SingleCertValidatingFactoryTestSuite {
   ///////////////////////////////////////////////////////////////////
 
   /**
-   * Utility function to load a file as a string
+   * Utility function to load a file as a string.
    */
   public static String loadFile(String path) {
     BufferedReader br = null;

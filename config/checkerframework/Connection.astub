@@ -1,0 +1,11 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+interface Connection {
+    @Nullable String getSchema();
+    @Nullable SQLWarning getWarnings();
+    @Nullable String getClientInfo(@NonNull String p0);
+    Array createArrayOf(String typeName, @Nullable Object @Nullable [] elements);
+    Array createArrayOf(String typeName, @Nullable Object elements);
+}

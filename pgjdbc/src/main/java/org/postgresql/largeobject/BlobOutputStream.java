@@ -5,36 +5,38 @@
 
 package org.postgresql.largeobject;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
- * This implements a basic output stream that writes to a LargeObject
+ * This implements a basic output stream that writes to a LargeObject.
  */
 public class BlobOutputStream extends OutputStream {
   /**
-   * The parent LargeObject
+   * The parent LargeObject.
    */
-  private LargeObject lo;
+  private @Nullable LargeObject lo;
 
   /**
-   * Buffer
+   * Buffer.
    */
   private byte[] buf;
 
   /**
-   * Size of the buffer (default 1K)
+   * Size of the buffer (default 1K).
    */
   private int bsize;
 
   /**
-   * Position within the buffer
+   * Position within the buffer.
    */
   private int bpos;
 
   /**
-   * Create an OutputStream to a large object
+   * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
    */
@@ -43,7 +45,7 @@ public class BlobOutputStream extends OutputStream {
   }
 
   /**
-   * Create an OutputStream to a large object
+   * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
    * @param bsize The size of the buffer used to improve performance
@@ -56,7 +58,7 @@ public class BlobOutputStream extends OutputStream {
   }
 
   public void write(int b) throws java.io.IOException {
-    checkClosed();
+    LargeObject lo = checkClosed();
     try {
       if (bpos >= bsize) {
         lo.write(buf);
@@ -69,7 +71,7 @@ public class BlobOutputStream extends OutputStream {
   }
 
   public void write(byte[] buf, int off, int len) throws java.io.IOException {
-    checkClosed();
+    LargeObject lo = checkClosed();
     try {
       // If we have any internally buffered data, send it first
       if (bpos > 0) {
@@ -86,7 +88,6 @@ public class BlobOutputStream extends OutputStream {
     }
   }
 
-
   /**
    * Flushes this output stream and forces any buffered output bytes to be written out. The general
    * contract of <code>flush</code> is that calling it is an indication that, if any bytes
@@ -96,7 +97,7 @@ public class BlobOutputStream extends OutputStream {
    * @throws IOException if an I/O error occurs.
    */
   public void flush() throws IOException {
-    checkClosed();
+    LargeObject lo = checkClosed();
     try {
       if (bpos > 0) {
         lo.write(buf, 0, bpos);
@@ -108,20 +109,22 @@ public class BlobOutputStream extends OutputStream {
   }
 
   public void close() throws IOException {
+    LargeObject lo = this.lo;
     if (lo != null) {
       try {
         flush();
         lo.close();
-        lo = null;
+        this.lo = null;
       } catch (SQLException se) {
         throw new IOException(se.toString());
       }
     }
   }
 
-  private void checkClosed() throws IOException {
+  private LargeObject checkClosed() throws IOException {
     if (lo == null) {
       throw new IOException("BlobOutputStream is closed");
     }
+    return lo;
   }
 }

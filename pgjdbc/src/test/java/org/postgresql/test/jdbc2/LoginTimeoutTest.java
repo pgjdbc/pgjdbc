@@ -162,7 +162,6 @@ public class LoginTimeoutTest {
     private final ServerSocket listenSocket;
   }
 
-
   @Test
   public void testTimeoutOccurs() throws Exception {
     // Spawn a helper thread to accept a connection and do nothing with it;
@@ -234,4 +233,3 @@ public class LoginTimeoutTest {
     }
   }
 }
-

@@ -28,7 +28,7 @@ import java.util.Arrays;
 import javax.sql.rowset.serial.SerialBlob;
 
 /**
- * Test that oid/lob are accessible in concurrent connection, in presence of the lo_manage trigger
+ * Test that oid/lob are accessible in concurrent connection, in presence of the lo_manage trigger.
  * Require the lo module accessible in $libdir
  */
 public class BlobTransactionTest {
@@ -142,7 +142,6 @@ public class BlobTransactionTest {
     ResultSet rs2 = pstmt2.executeQuery();
     assertTrue(rs2.next());
 
-
     // con replace the blob
     byte[] newData = randomData();
     pstmt = con.prepareStatement("UPDATE testblob SET lo=? where id=?");
@@ -157,7 +156,6 @@ public class BlobTransactionTest {
     for (int i = 0; i < initialContentReRead.length; ++i) {
       assertEquals(initialContentReRead[i], initialData[i]);
     }
-
 
     con2.rollback();
     pstmt2 = con2.prepareStatement("SELECT lo FROM testblob WHERE id=?");

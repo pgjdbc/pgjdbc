@@ -74,7 +74,6 @@ public class TimeTest {
     assertNotNull(rs);
     assertTrue(rs.next());
 
-
     Time time = rs.getTime(1);
     Timestamp timestamp = rs.getTimestamp(1);
     assertNotNull(timestamp);
@@ -136,7 +135,6 @@ public class TimeTest {
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'12:15:12'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'22:12:01'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'08:46:44'")));
-
 
     // Fall through helper
     timeTest();

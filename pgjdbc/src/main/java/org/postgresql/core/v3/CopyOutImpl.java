@@ -7,12 +7,14 @@ package org.postgresql.core.v3;
 
 import org.postgresql.copy.CopyOut;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 
 /**
- * Anticipated flow of a COPY TO STDOUT operation:
+ * <p>Anticipated flow of a COPY TO STDOUT operation:</p>
  *
- * CopyManager.copyOut() -&gt;QueryExecutor.startCopy() - sends given query to server
+ * <p>CopyManager.copyOut() -&gt;QueryExecutor.startCopy() - sends given query to server
  * -&gt;processCopyResults(): - receives CopyOutResponse from Server - creates new CopyOutImpl
  * -&gt;initCopy(): - receives copy metadata from server -&gt;CopyOutImpl.init() -&gt;lock()
  * connection for this operation - if query fails an exception is thrown - if query returns wrong
@@ -21,19 +23,19 @@ import java.sql.SQLException;
  * -&gt;CopyOutImpl.readFromCopy() -&gt;QueryExecutorImpl.readFromCopy() -&gt;processCopyResults() -
  * on copydata row from server -&gt;CopyOutImpl.handleCopydata() stores reference to byte array - on
  * CopyDone, CommandComplete, ReadyForQuery -&gt;unlock() connection for use by other operations
- * &lt;-returned: byte array of data received from server or null at end.
+ * &lt;-returned: byte array of data received from server or null at end.</p>
  */
 public class CopyOutImpl extends CopyOperationImpl implements CopyOut {
-  private byte[] currentDataRow;
+  private byte @Nullable [] currentDataRow;
 
-  public byte[] readFromCopy() throws SQLException {
+  public byte @Nullable [] readFromCopy() throws SQLException {
     return readFromCopy(true);
   }
 
   @Override
-  public byte[] readFromCopy(boolean block) throws SQLException {
+  public byte @Nullable [] readFromCopy(boolean block) throws SQLException {
     currentDataRow = null;
-    queryExecutor.readFromCopy(this, block);
+    getQueryExecutor().readFromCopy(this, block);
     return currentDataRow;
   }
 

@@ -25,13 +25,13 @@ import java.sql.Types;
 
 public class TypesTest extends BaseTest4 {
 
-  private Connection _conn;
+  private Connection conn;
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    _conn = con;
-    Statement stmt = _conn.createStatement();
+    conn = con;
+    Statement stmt = conn.createStatement();
     stmt.execute(
         "CREATE OR REPLACE FUNCTION return_bool(boolean) RETURNS boolean AS 'BEGIN RETURN $1; END;' LANGUAGE plpgsql");
     stmt.close();
@@ -39,7 +39,7 @@ public class TypesTest extends BaseTest4 {
 
   @Override
   public void tearDown() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.execute("DROP FUNCTION return_bool(boolean)");
     stmt.close();
     super.tearDown();
@@ -47,7 +47,7 @@ public class TypesTest extends BaseTest4 {
 
   @Test
   public void testPreparedBoolean() throws SQLException {
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?,?,?,?");
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?,?,?,?");
     pstmt.setNull(1, Types.BOOLEAN);
     pstmt.setObject(2, null, Types.BOOLEAN);
     pstmt.setBoolean(3, true);
@@ -68,7 +68,7 @@ public class TypesTest extends BaseTest4 {
 
   @Test
   public void testPreparedByte() throws SQLException {
-    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?,?");
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?,?");
     pstmt.setByte(1, (byte) 1);
     pstmt.setObject(2, new Byte((byte) 2));
     ResultSet rs = pstmt.executeQuery();
@@ -84,7 +84,7 @@ public class TypesTest extends BaseTest4 {
   @Test
   public void testCallableBoolean() throws SQLException {
     assumeCallableStatementsSupported();
-    CallableStatement cs = _conn.prepareCall("{? = call return_bool(?)}");
+    CallableStatement cs = conn.prepareCall("{? = call return_bool(?)}");
     cs.registerOutParameter(1, Types.BOOLEAN);
     cs.setBoolean(2, true);
     cs.execute();
@@ -94,7 +94,7 @@ public class TypesTest extends BaseTest4 {
 
   @Test
   public void testUnknownType() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
 
     ResultSet rs = stmt.executeQuery("select 'foo1' as icon1, 'foo2' as icon2 ");
     assertTrue(rs.next());

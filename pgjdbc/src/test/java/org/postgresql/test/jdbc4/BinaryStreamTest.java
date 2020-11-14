@@ -5,11 +5,13 @@
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
@@ -20,7 +22,7 @@ import java.util.Random;
 
 public class BinaryStreamTest extends BaseTest4 {
 
-  private ByteBuffer _testData;
+  private ByteBuffer testData;
 
   @Override
   public void setUp() throws Exception {
@@ -29,9 +31,9 @@ public class BinaryStreamTest extends BaseTest4 {
     TestUtil.createTable(con, "images", "img bytea");
 
     Random random = new Random(31459);
-    _testData = ByteBuffer.allocate(200 * 1024);
-    while (_testData.remaining() > 0) {
-      _testData.putLong(random.nextLong());
+    testData = ByteBuffer.allocate(200 * 1024);
+    while (testData.remaining() > 0) {
+      testData.putLong(random.nextLong());
     }
   }
 
@@ -85,9 +87,9 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   private byte[] getTestData(int size) {
-    _testData.rewind();
+    testData.rewind();
     byte[] data = new byte[size];
-    _testData.get(data);
+    testData.get(data);
     return data;
   }
 
@@ -113,6 +115,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testKnownLength100Kb() throws Exception {
     byte[] data = getTestData(100 * 1024);
     insertStreamKownLength(data);
@@ -120,6 +123,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testKnownLength200Kb() throws Exception {
     byte[] data = getTestData(200 * 1024);
     insertStreamKownLength(data);
@@ -148,6 +152,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testUnknownLength100Kb() throws Exception {
     byte[] data = getTestData(100 * 1024);
     insertStreamUnkownLength(data);
@@ -155,6 +160,7 @@ public class BinaryStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testUnknownLength200Kb() throws Exception {
     byte[] data = getTestData(200 * 1024);
     insertStreamUnkownLength(data);

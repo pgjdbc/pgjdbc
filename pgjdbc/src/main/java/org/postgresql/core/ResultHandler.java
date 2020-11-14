@@ -6,21 +6,23 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
 
 /**
- * Callback interface for passing query results from the protocol-specific layer to the
- * protocol-independent JDBC implementation code.
- * <p>
- * In general, a single query execution will consist of a number of calls to handleResultRows,
+ * <p>Callback interface for passing query results from the protocol-specific layer to the
+ * protocol-independent JDBC implementation code.</p>
+ *
+ * <p>In general, a single query execution will consist of a number of calls to handleResultRows,
  * handleCommandStatus, handleWarning, and handleError, followed by a single call to
  * handleCompletion when query execution is complete. If the caller wants to throw SQLException,
- * this can be done in handleCompletion.
- * <p>
- * Each executed query ends with a call to handleResultRows, handleCommandStatus, or handleError. If
- * an error occurs, subsequent queries won't generate callbacks.
+ * this can be done in handleCompletion.</p>
+ *
+ * <p>Each executed query ends with a call to handleResultRows, handleCommandStatus, or handleError. If
+ * an error occurs, subsequent queries won't generate callbacks.</p>
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
@@ -36,8 +38,8 @@ public interface ResultHandler {
    * @param cursor a cursor to use to fetch additional data; <code>null</code> if no further results
    *        are present.
    */
-  void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor);
+  void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+      @Nullable ResultCursor cursor);
 
   /**
    * Called when a query that did not return a resultset completes.
@@ -48,7 +50,7 @@ public interface ResultHandler {
    * @param insertOID for a single-row INSERT query, the OID of the newly inserted row; 0 if not
    *        available.
    */
-  void handleCommandStatus(String status, int updateCount, long insertOID);
+  void handleCommandStatus(String status, long updateCount, long insertOID);
 
   /**
    * Called when a warning is emitted.
@@ -85,11 +87,11 @@ public interface ResultHandler {
    * Returns the first encountered exception. The rest are chained via {@link SQLException#setNextException(SQLException)}
    * @return the first encountered exception
    */
-  SQLException getException();
+  @Nullable SQLException getException();
 
   /**
    * Returns the first encountered warning. The rest are chained via {@link SQLException#setNextException(SQLException)}
    * @return the first encountered warning
    */
-  SQLWarning getWarning();
+  @Nullable SQLWarning getWarning();
 }

@@ -6,6 +6,10 @@
 
 package org.postgresql.core;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
@@ -18,19 +22,19 @@ import java.util.List;
 public class ResultHandlerBase implements ResultHandler {
   // Last exception is tracked to avoid O(N) SQLException#setNextException just in case there
   // will be lots of exceptions (e.g. all batch rows fail with constraint violation or so)
-  private SQLException firstException;
-  private SQLException lastException;
+  private @Nullable SQLException firstException;
+  private @Nullable SQLException lastException;
 
-  private SQLWarning firstWarning;
-  private SQLWarning lastWarning;
+  private @Nullable SQLWarning firstWarning;
+  private @Nullable SQLWarning lastWarning;
 
   @Override
-  public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor) {
+  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+      @Nullable ResultCursor cursor) {
   }
 
   @Override
-  public void handleCommandStatus(String status, int updateCount, long insertOID) {
+  public void handleCommandStatus(String status, long updateCount, long insertOID) {
   }
 
   @Override
@@ -43,8 +47,9 @@ public class ResultHandlerBase implements ResultHandler {
       firstWarning = lastWarning = warning;
       return;
     }
+    SQLWarning lastWarning = castNonNull(this.lastWarning);
     lastWarning.setNextException(warning);
-    lastWarning = warning;
+    this.lastWarning = warning;
   }
 
   @Override
@@ -53,24 +58,25 @@ public class ResultHandlerBase implements ResultHandler {
       firstException = lastException = error;
       return;
     }
-    lastException.setNextException(error);
-    lastException = error;
+    castNonNull(lastException).setNextException(error);
+    this.lastException = error;
   }
 
   @Override
   public void handleCompletion() throws SQLException {
+    SQLException firstException = this.firstException;
     if (firstException != null) {
       throw firstException;
     }
   }
 
   @Override
-  public SQLException getException() {
+  public @Nullable SQLException getException() {
     return firstException;
   }
 
   @Override
-  public SQLWarning getWarning() {
+  public @Nullable SQLWarning getWarning() {
     return firstWarning;
   }
 }

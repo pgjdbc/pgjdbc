@@ -6,6 +6,10 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -70,8 +74,8 @@ public class StreamWrapper {
            * when doing so. Auto-closing will be done when the first occurs: reaching EOF or Garbage
            * Collection
            */
-          private boolean _closed = false;
-          private int _position = 0;
+          private boolean closed = false;
+          private int position = 0;
 
           /**
            * Check if we should auto-close this stream
@@ -80,15 +84,15 @@ public class StreamWrapper {
             if (readResult == -1) {
               close();
             } else {
-              _position += readResult;
-              if (_position >= length) {
+              position += readResult;
+              if (position >= length) {
                 close();
               }
             }
           }
 
           public int read(byte[] b) throws IOException {
-            if (_closed) {
+            if (closed) {
               return -1;
             }
             int result = super.read(b);
@@ -97,7 +101,7 @@ public class StreamWrapper {
           }
 
           public int read(byte[] b, int off, int len) throws IOException {
-            if (_closed) {
+            if (closed) {
               return -1;
             }
             int result = super.read(b, off, len);
@@ -106,10 +110,10 @@ public class StreamWrapper {
           }
 
           public void close() throws IOException {
-            if (!_closed) {
+            if (!closed) {
               super.close();
               tempFile.delete();
-              _closed = true;
+              closed = true;
             }
           }
 
@@ -117,7 +121,18 @@ public class StreamWrapper {
             // forcibly close it because super.finalize() may keep the FD open, which may prevent
             // file deletion
             close();
-            super.finalize();
+            // javac 13 assumes it can throw Throwable
+            try {
+              super.finalize();
+            } catch (RuntimeException e) {
+              throw e;
+            } catch (Error e) {
+              throw e;
+            } catch (IOException e) {
+              throw e;
+            } catch (Throwable e) {
+              throw new RuntimeException("Unexpected exception from finalize", e);
+            }
           }
         };
       } else {
@@ -137,7 +152,7 @@ public class StreamWrapper {
       return stream;
     }
 
-    return new java.io.ByteArrayInputStream(rawData, offset, length);
+    return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
   }
 
   public int getLength() {
@@ -148,7 +163,7 @@ public class StreamWrapper {
     return offset;
   }
 
-  public byte[] getBytes() {
+  public byte @Nullable [] getBytes() {
     return rawData;
   }
 
@@ -172,8 +187,8 @@ public class StreamWrapper {
     return totalLength;
   }
 
-  private final InputStream stream;
-  private final byte[] rawData;
+  private final @Nullable InputStream stream;
+  private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;
 }

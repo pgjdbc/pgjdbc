@@ -5,13 +5,19 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.checker.regex.qual.Regex;
+
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ExpressionProperties extends Properties {
 
-  private static final Pattern EXPRESSION = Pattern.compile("\\$\\{([^}]+)\\}");
+  private static final @Regex(1) Pattern EXPRESSION = Pattern.compile("\\$\\{([^}]+)\\}");
 
   private final Properties[] defaults;
 
@@ -25,10 +31,10 @@ public class ExpressionProperties extends Properties {
   }
 
   /**
-   * Returns property value with all {@code ${propKey}} like references replaced with the value of
-   * the relevant property with recursive resolution.
+   * <p>Returns property value with all {@code ${propKey}} like references replaced with the value of
+   * the relevant property with recursive resolution.</p>
    *
-   * The method returns <code>null</code> if the property is not found.
+   * <p>The method returns <code>null</code> if the property is not found.</p>
    *
    * @param key the property key.
    *
@@ -36,13 +42,13 @@ public class ExpressionProperties extends Properties {
    *         the specified key value.
    */
   @Override
-  public String getProperty(String key) {
+  public @Nullable String getProperty(String key) {
     String value = getRawPropertyValue(key);
     return replaceProperties(value);
   }
 
   @Override
-  public String getProperty(String key, String defaultValue) {
+  public @PolyNull String getProperty(String key, @PolyNull String defaultValue) {
     String value = getRawPropertyValue(key);
     if (value == null) {
       value = defaultValue;
@@ -51,11 +57,11 @@ public class ExpressionProperties extends Properties {
   }
 
   /**
-   * Returns raw value of a property without any replacements
+   * Returns raw value of a property without any replacements.
    * @param key property name
    * @return raw property value
    */
-  public String getRawPropertyValue(String key) {
+  public @Nullable String getRawPropertyValue(String key) {
     String value = super.getProperty(key);
     if (value != null) {
       return value;
@@ -69,7 +75,7 @@ public class ExpressionProperties extends Properties {
     return null;
   }
 
-  private String replaceProperties(String value) {
+  private @PolyNull String replaceProperties(@PolyNull String value) {
     if (value == null) {
       return null;
     }
@@ -79,7 +85,7 @@ public class ExpressionProperties extends Properties {
       if (sb == null) {
         sb = new StringBuffer();
       }
-      String propValue = getProperty(matcher.group(1));
+      String propValue = getProperty(castNonNull(matcher.group(1)));
       if (propValue == null) {
         // Use original content like ${propKey} if property is not found
         propValue = matcher.group();

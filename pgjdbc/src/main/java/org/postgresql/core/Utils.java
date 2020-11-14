@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
@@ -54,28 +56,28 @@ public class Utils {
   }
 
   /**
-   * Escape the given literal <tt>value</tt> and append it to the string builder <tt>sbuf</tt>. If
-   * <tt>sbuf</tt> is <tt>null</tt>, a new StringBuilder will be returned. The argument
-   * <tt>standardConformingStrings</tt> defines whether the backend expects standard-conforming
+   * Escape the given literal {@code value} and append it to the string builder {@code sbuf}. If
+   * {@code sbuf} is {@code null}, a new StringBuilder will be returned. The argument
+   * {@code standardConformingStrings} defines whether the backend expects standard-conforming
    * string literals or allows backslash escape sequences.
    *
-   * @param sbuf the string builder to append to; or <tt>null</tt>
+   * @param sbuf the string builder to append to; or {@code null}
    * @param value the string value
    * @param standardConformingStrings if standard conforming strings should be used
    * @return the sbuf argument; or a new string builder for sbuf == null
-   * @throws SQLException if the string contains a <tt>\0</tt> character
+   * @throws SQLException if the string contains a {@code \0} character
    */
-  public static StringBuilder escapeLiteral(StringBuilder sbuf, String value,
+  public static StringBuilder escapeLiteral(@Nullable StringBuilder sbuf, String value,
       boolean standardConformingStrings) throws SQLException {
     if (sbuf == null) {
-      sbuf = new StringBuilder(value.length() * 11 / 10); // Add 10% for escaping.
+      sbuf = new StringBuilder((value.length() + 10) / 10 * 11); // Add 10% for escaping.
     }
     doAppendEscapedLiteral(sbuf, value, standardConformingStrings);
     return sbuf;
   }
 
   /**
-   * Common part for {@link #escapeLiteral(StringBuilder, String, boolean)}
+   * Common part for {@link #escapeLiteral(StringBuilder, String, boolean)}.
    *
    * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
    *        thrown
@@ -123,27 +125,27 @@ public class Utils {
   }
 
   /**
-   * Escape the given identifier <tt>value</tt> and append it to the string builder <tt>sbuf</tt>.
-   * If <tt>sbuf</tt> is <tt>null</tt>, a new StringBuilder will be returned. This method is
+   * Escape the given identifier {@code value} and append it to the string builder {@code sbuf}.
+   * If {@code sbuf} is {@code null}, a new StringBuilder will be returned. This method is
    * different from appendEscapedLiteral in that it includes the quoting required for the identifier
    * while {@link #escapeLiteral(StringBuilder, String, boolean)} does not.
    *
-   * @param sbuf the string builder to append to; or <tt>null</tt>
+   * @param sbuf the string builder to append to; or {@code null}
    * @param value the string value
    * @return the sbuf argument; or a new string builder for sbuf == null
-   * @throws SQLException if the string contains a <tt>\0</tt> character
+   * @throws SQLException if the string contains a {@code \0} character
    */
-  public static StringBuilder escapeIdentifier(StringBuilder sbuf, String value)
+  public static StringBuilder escapeIdentifier(@Nullable StringBuilder sbuf, String value)
       throws SQLException {
     if (sbuf == null) {
-      sbuf = new StringBuilder(2 + value.length() * 11 / 10); // Add 10% for escaping.
+      sbuf = new StringBuilder(2 + (value.length() + 10) / 10 * 11); // Add 10% for escaping.
     }
     doAppendEscapedIdentifier(sbuf, value);
     return sbuf;
   }
 
   /**
-   * Common part for appendEscapedIdentifier
+   * Common part for appendEscapedIdentifier.
    *
    * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
    *        thrown.
@@ -173,25 +175,25 @@ public class Utils {
   }
 
   /**
-   * Attempt to parse the server version string into an XXYYZZ form version number.
+   * <p>Attempt to parse the server version string into an XXYYZZ form version number.</p>
    *
-   * Returns 0 if the version could not be parsed.
+   * <p>Returns 0 if the version could not be parsed.</p>
    *
-   * Returns minor version 0 if the minor version could not be determined, e.g. devel or beta
-   * releases.
+   * <p>Returns minor version 0 if the minor version could not be determined, e.g. devel or beta
+   * releases.</p>
    *
-   * If a single major part like 90400 is passed, it's assumed to be a pre-parsed version and
-   * returned verbatim. (Anything equal to or greater than 10000 is presumed to be this form).
+   * <p>If a single major part like 90400 is passed, it's assumed to be a pre-parsed version and
+   * returned verbatim. (Anything equal to or greater than 10000 is presumed to be this form).</p>
    *
-   * The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
-   * version part is out of range.
+   * <p>The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
+   * version part is out of range.</p>
    *
    * @param serverVersion server vertion in a XXYYZZ form
    * @return server version in number form
    * @deprecated use specific {@link Version} instance
    */
   @Deprecated
-  public static int parseServerVersionStr(String serverVersion) throws NumberFormatException {
+  public static int parseServerVersionStr(@Nullable String serverVersion) throws NumberFormatException {
     return ServerVersion.parseServerVersionStr(serverVersion);
   }
 }

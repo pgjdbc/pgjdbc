@@ -11,6 +11,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -23,7 +24,7 @@ import java.security.PrivilegedAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-class GssAction implements PrivilegedAction<Exception> {
+class GssAction implements PrivilegedAction<@Nullable Exception> {
 
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
   private final PGStream pgStream;
@@ -31,17 +32,18 @@ class GssAction implements PrivilegedAction<Exception> {
   private final String user;
   private final String kerberosServerName;
   private final boolean useSpnego;
-  private final GSSCredential clientCredentials;
+  private final @Nullable GSSCredential clientCredentials;
+  private final boolean logServerErrorDetail;
 
-
-  GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
-      String kerberosServerName, boolean useSpnego) {
+  GssAction(PGStream pgStream, @Nullable GSSCredential clientCredentials, String host, String user,
+      String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
     this.clientCredentials = clientCredentials;
     this.host = host;
     this.user = user;
     this.kerberosServerName = kerberosServerName;
     this.useSpnego = useSpnego;
+    this.logServerErrorDetail = logServerErrorDetail;
   }
 
   private static boolean hasSpnegoSupport(GSSManager manager) throws GSSException {
@@ -57,10 +59,9 @@ class GssAction implements PrivilegedAction<Exception> {
     return false;
   }
 
-  public Exception run() {
-
+  @Override
+  public @Nullable Exception run() {
     try {
-
       GSSManager manager = GSSManager.getInstance();
       GSSCredential clientCreds = null;
       Oid[] desiredMechs = new Oid[1];
@@ -92,7 +93,6 @@ class GssAction implements PrivilegedAction<Exception> {
       while (!established) {
         outToken = secContext.initSecContext(inToken, 0, inToken.length);
 
-
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
@@ -107,13 +107,13 @@ class GssAction implements PrivilegedAction<Exception> {
           // Error
           switch (response) {
             case 'E':
-              int l_elen = pgStream.receiveInteger4();
-              ServerErrorMessage l_errorMsg
-                  = new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
+              int elen = pgStream.receiveInteger4();
+              ServerErrorMessage errorMsg
+                  = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
 
-              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", l_errorMsg);
+              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
 
-              return new PSQLException(l_errorMsg);
+              return new PSQLException(errorMsg, logServerErrorDetail);
             case 'R':
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
@@ -137,7 +137,6 @@ class GssAction implements PrivilegedAction<Exception> {
       return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
           gsse);
     }
-
     return null;
   }
 }

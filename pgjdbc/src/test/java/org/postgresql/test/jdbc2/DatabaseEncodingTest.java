@@ -260,7 +260,7 @@ public class DatabaseEncodingTest {
         // Seven-byte illegal sequences
         {(byte) 0xfe}, // Can't have a seven-byte sequence.
 
-        // Eigth-byte illegal sequences
+        // Eighth-byte illegal sequences
         {(byte) 0xff}, // Can't have an eight-byte sequence.
     };
 
@@ -312,7 +312,6 @@ public class DatabaseEncodingTest {
       } catch (IOException ioe) {
         // Expected exception.
       }
-
 
       // Try it with padding and a truncated length.
       Arrays.fill(paddedSequence, (byte) 0);

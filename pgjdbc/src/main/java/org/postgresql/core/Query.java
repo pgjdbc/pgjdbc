@@ -6,24 +6,26 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
- * Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
- * to execute the query efficiently.
- * <p>
- * Query objects should be explicitly closed when no longer needed; if resources are allocated on
- * the server for this query, their cleanup is triggered by closing the Query.
+ * <p>Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
+ * to execute the query efficiently.</p>
+ *
+ * <p>Query objects should be explicitly closed when no longer needed; if resources are allocated on
+ * the server for this query, their cleanup is triggered by closing the Query.</p>
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface Query {
   /**
-   * Create a ParameterList suitable for storing parameters associated with this Query.
-   * <p>
-   * If this query has no parameters, a ParameterList will be returned, but it may be a shared
+   * <p>Create a ParameterList suitable for storing parameters associated with this Query.</p>
+   *
+   * <p>If this query has no parameters, a ParameterList will be returned, but it may be a shared
    * immutable object. If this query does have parameters, the returned ParameterList is a new list,
-   * unshared by other callers.
+   * unshared by other callers.</p>
    *
    * @return a suitable ParameterList instance for this query
    */
@@ -37,10 +39,10 @@ public interface Query {
    *        or <code>null</code> to leave the parameter placeholders unsubstituted.
    * @return a human-readable representation of this query
    */
-  String toString(ParameterList parameters);
+  String toString(@Nullable ParameterList parameters);
 
   /**
-   * Returns SQL in native for database format
+   * Returns SQL in native for database format.
    * @return SQL in native for database format
    */
   String getNativeSql();
@@ -49,13 +51,13 @@ public interface Query {
    * Returns properties of the query (sql keyword, and some other parsing info).
    * @return returns properties of the query (sql keyword, and some other parsing info) or null if not applicable
    */
-  SqlCommand getSqlCommand();
+  @Nullable SqlCommand getSqlCommand();
 
   /**
-   * Close this query and free any server-side resources associated with it. The resources may not
-   * be immediately deallocated, but closing a Query may make the deallocation more prompt.
-   * <p>
-   * A closed Query should not be executed.
+   * <p>Close this query and free any server-side resources associated with it. The resources may not
+   * be immediately deallocated, but closing a Query may make the deallocation more prompt.</p>
+   *
+   * <p>A closed Query should not be executed.</p>
    */
   void close();
 
@@ -74,7 +76,7 @@ public interface Query {
    *
    * @return null if the query implementation does not support this method.
    */
-  Map<String, Integer> getResultSetColumnNameIndexMap();
+  @Nullable Map<String, Integer> getResultSetColumnNameIndexMap();
 
   /**
    * Return a list of the Query objects that make up this query. If this object is already a
@@ -83,5 +85,5 @@ public interface Query {
    * @return an array of single-statement queries, or <code>null</code> if this object is already a
    *         single-statement query.
    */
-  Query[] getSubqueries();
+  Query @Nullable [] getSubqueries();
 }

@@ -5,6 +5,8 @@
 
 package org.postgresql.core.v3.replication;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.copy.CopyDual;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
@@ -58,7 +60,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
 
     return new V3PGReplicationStream(
-        copyDual,
+        castNonNull(copyDual),
         options.getStartLSNPosition(),
         options.getStatusInterval(),
         replicationType
@@ -66,7 +68,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
   }
 
   /**
-   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX
+   * START_REPLICATION [SLOT slot_name] [PHYSICAL] XXX/XXX.
    */
   private String createStartPhysicalQuery(PhysicalReplicationOptions options) {
     StringBuilder builder = new StringBuilder();
@@ -129,11 +131,11 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
       }
 
       pgStream.getSocket().setSoTimeout(minimalTimeOut);
+      // Use blocking 1ms reads for `available()` checks
+      pgStream.setMinStreamAvailableCheckDelay(0);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("The connection attempt failed."),
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
     }
   }
-
-
 }

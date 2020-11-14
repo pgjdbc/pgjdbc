@@ -5,6 +5,8 @@
 
 package org.postgresql.fastpath;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.QueryExecutor;
@@ -13,6 +15,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -20,14 +24,18 @@ import java.util.Map;
 import java.util.logging.Level;
 
 /**
- * This class implements the Fastpath api.
+ * <p>This class implements the Fastpath api.</p>
  *
- * <p>
- * This is a means of executing functions embedded in the backend from within a java application.
+ * <p>This is a means of executing functions embedded in the backend from within a java application.</p>
  *
- * <p>
- * It is based around the file src/interfaces/libpq/fe-exec.c
+ * <p>It is based around the file src/interfaces/libpq/fe-exec.c</p>
+ *
+ * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+ *         and greater functionality by setting up a prepared statement to define
+ *         the function call. Then, executing the statement with binary transmission of parameters
+ *         and results substitutes for a fast-path function call.
  */
+@Deprecated
 public class Fastpath {
   // Java passes oids around as longs, but in the backend
   // it's an unsigned int, so we use this to make the conversion
@@ -41,7 +49,7 @@ public class Fastpath {
   private final BaseConnection connection;
 
   /**
-   * Initialises the fastpath system
+   * Initialises the fastpath system.
    *
    * @param conn BaseConnection to attach to
    */
@@ -51,7 +59,7 @@ public class Fastpath {
   }
 
   /**
-   * Send a function call to the PostgreSQL backend
+   * Send a function call to the PostgreSQL backend.
    *
    * @param fnId Function id
    * @param resultType True if the result is a numeric (Integer or Long)
@@ -62,7 +70,8 @@ public class Fastpath {
    * @deprecated please use {@link #fastpath(int, FastpathArg[])}
    */
   @Deprecated
-  public Object fastpath(int fnId, boolean resultType, FastpathArg[] args) throws SQLException {
+  public @Nullable Object fastpath(int fnId, boolean resultType, FastpathArg[] args)
+      throws SQLException {
     // Run it.
     byte[] returnValue = fastpath(fnId, args);
 
@@ -83,14 +92,14 @@ public class Fastpath {
   }
 
   /**
-   * Send a function call to the PostgreSQL backend
+   * Send a function call to the PostgreSQL backend.
    *
    * @param fnId Function id
    * @param args FastpathArguments to pass to fastpath
    * @return null if no data, byte[] otherwise
    * @throws SQLException if a database-access error occurs.
    */
-  public byte[] fastpath(int fnId, FastpathArg[] args) throws SQLException {
+  public byte @Nullable [] fastpath(int fnId, FastpathArg[] args) throws SQLException {
     // Turn fastpath array into a parameter list.
     ParameterList params = executor.createFastpathParameters(args.length);
     for (int i = 0; i < args.length; ++i) {
@@ -115,21 +124,22 @@ public class Fastpath {
    *             {@link #getLong(String, FastpathArg[])} if you expect a numeric one
    */
   @Deprecated
-  public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException {
+  public @Nullable Object fastpath(String name, boolean resulttype, FastpathArg[] args)
+      throws SQLException {
     connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), resulttype, args);
   }
 
   /**
-   * Send a function call to the PostgreSQL backend by name.
+   * <p>Send a function call to the PostgreSQL backend by name.</p>
    *
-   * Note: the mapping for the procedure name to function id needs to exist, usually to an earlier
-   * call to addfunction().
+   * <p>Note: the mapping for the procedure name to function id needs to exist, usually to an earlier
+   * call to addfunction().</p>
    *
-   * This is the preferred method to call, as function id's can/may change between versions of the
-   * backend.
+   * <p>This is the preferred method to call, as function id's can/may change between versions of the
+   * backend.</p>
    *
-   * For an example of how this works, refer to org.postgresql.largeobject.LargeObject
+   * <p>For an example of how this works, refer to org.postgresql.largeobject.LargeObject</p>
    *
    * @param name Function name
    * @param args FastpathArguments to pass to fastpath
@@ -137,13 +147,13 @@ public class Fastpath {
    * @throws SQLException if name is unknown or if a database-access error occurs.
    * @see org.postgresql.largeobject.LargeObject
    */
-  public byte[] fastpath(String name, FastpathArg[] args) throws SQLException {
+  public byte @Nullable [] fastpath(String name, FastpathArg[] args) throws SQLException {
     connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), args);
   }
 
   /**
-   * This convenience method assumes that the return value is an integer
+   * This convenience method assumes that the return value is an integer.
    *
    * @param name Function name
    * @param args Function arguments
@@ -168,7 +178,7 @@ public class Fastpath {
   }
 
   /**
-   * This convenience method assumes that the return value is a long (bigint)
+   * This convenience method assumes that the return value is a long (bigint).
    *
    * @param name Function name
    * @param args Function arguments
@@ -210,24 +220,23 @@ public class Fastpath {
   }
 
   /**
-   * This convenience method assumes that the return value is not an Integer
+   * This convenience method assumes that the return value is not an Integer.
    *
    * @param name Function name
    * @param args Function arguments
    * @return byte[] array containing result
    * @throws SQLException if a database-access error occurs or no result
    */
-  public byte[] getData(String name, FastpathArg[] args) throws SQLException {
+  public byte @Nullable [] getData(String name, FastpathArg[] args) throws SQLException {
     return fastpath(name, args);
   }
 
   /**
-   * This adds a function to our lookup table.
+   * <p>This adds a function to our lookup table.</p>
    *
-   * <p>
-   * User code should use the addFunctions method, which is based upon a query, rather than hard
+   * <p>User code should use the addFunctions method, which is based upon a query, rather than hard
    * coding the oid. The oid for a function is not guaranteed to remain static, even on different
-   * servers of the same version.
+   * servers of the same version.</p>
    *
    * @param name Function name
    * @param fnid Function id
@@ -237,35 +246,28 @@ public class Fastpath {
   }
 
   /**
-   * This takes a ResultSet containing two columns. Column 1 contains the function name, Column 2
-   * the oid.
+   * <p>This takes a ResultSet containing two columns. Column 1 contains the function name, Column 2
+   * the oid.</p>
    *
-   * <p>
-   * It reads the entire ResultSet, loading the values into the function table.
+   * <p>It reads the entire ResultSet, loading the values into the function table.</p>
    *
-   * <p>
-   * <b>REMEMBER</b> to close() the resultset after calling this!!
+   * <p><b>REMEMBER</b> to close() the resultset after calling this!!</p>
    *
-   * <p>
-   * <b><em>Implementation note about function name lookups:</em></b>
+   * <p><b><em>Implementation note about function name lookups:</em></b></p>
    *
-   * <p>
-   * PostgreSQL stores the function id's and their corresponding names in the pg_proc table. To
+   * <p>PostgreSQL stores the function id's and their corresponding names in the pg_proc table. To
    * speed things up locally, instead of querying each function from that table when required, a
    * HashMap is used. Also, only the function's required are entered into this table, keeping
-   * connection times as fast as possible.
+   * connection times as fast as possible.</p>
    *
-   * <p>
-   * The org.postgresql.largeobject.LargeObject class performs a query upon it's startup, and passes
-   * the returned ResultSet to the addFunctions() method here.
+   * <p>The org.postgresql.largeobject.LargeObject class performs a query upon it's startup, and passes
+   * the returned ResultSet to the addFunctions() method here.</p>
    *
-   * <p>
-   * Once this has been done, the LargeObject api refers to the functions by name.
+   * <p>Once this has been done, the LargeObject api refers to the functions by name.</p>
    *
-   * <p>
-   * Dont think that manually converting them to the oid's will work. Ok, they will for now, but
+   * <p>Don't think that manually converting them to the oid's will work. Ok, they will for now, but
    * they can change during development (there was some discussion about this for V7.0), so this is
-   * implemented to prevent any unwarranted headaches in the future.
+   * implemented to prevent any unwarranted headaches in the future.</p>
    *
    * @param rs ResultSet
    * @throws SQLException if a database-access error occurs.
@@ -273,16 +275,15 @@ public class Fastpath {
    */
   public void addFunctions(ResultSet rs) throws SQLException {
     while (rs.next()) {
-      func.put(rs.getString(1), rs.getInt(2));
+      func.put(castNonNull(rs.getString(1)), rs.getInt(2));
     }
   }
 
   /**
-   * This returns the function id associated by its name.
+   * <p>This returns the function id associated by its name.</p>
    *
-   * <p>
-   * If addFunction() or addFunctions() have not been called for this name, then an SQLException is
-   * thrown.
+   * <p>If addFunction() or addFunctions() have not been called for this name, then an SQLException is
+   * thrown.</p>
    *
    * @param name Function name to lookup
    * @return Function ID for fastpath call
@@ -322,4 +323,3 @@ public class Fastpath {
   }
 
 }
-
