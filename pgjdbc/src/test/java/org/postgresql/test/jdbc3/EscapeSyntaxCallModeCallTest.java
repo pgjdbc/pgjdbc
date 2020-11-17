@@ -5,9 +5,6 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
@@ -20,6 +17,10 @@ import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
 
@@ -50,7 +51,7 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(expected.getState()));
+      assertEquals(expected.getState(),ex.getSQLState());
     }
   }
 
@@ -74,7 +75,7 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(expected.getState()));
+      assertEquals(expected.getState(), ex.getSQLState());
     }
   }
 
