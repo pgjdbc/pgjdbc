@@ -2608,11 +2608,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
     StringBuilder sqlwhen = new StringBuilder();
-    for (Iterator<String> i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext(); ) {
-      String pgType = i.next();
-      int sqlType = connection.getTypeInfo().getSQLType(pgType);
-      sqlwhen.append(" when typname = ").append(escapeQuotes(pgType)).append(" then ").append(sqlType);
-    }
+    connection.getTypeInfo().forEachSQLType((n,t) -> {
+      try {
+        sqlwhen.append(" when typname = ")
+               .append(escapeQuotes(n))
+               .append(" then ")
+               .append(t);
+      } catch (SQLException e) {
+        throw new IllegalStateException("type name is invalid: " + n, e);
+      }
+    });
     sql += sqlwhen.toString();
 
     sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
