@@ -37,6 +37,7 @@ dependencies {
         apiv("com.github.waffle:waffle-jna")
         apiv("com.ongres.scram:client", "com.ongres.scram.client")
         apiv("junit:junit", "junit4")
+        apiv("org.checkerframework:checker-qual", "checkerframework")
         apiv("org.hamcrest:hamcrest")
         apiv("org.hamcrest:hamcrest-core", "hamcrest")
         apiv("org.hamcrest:hamcrest-library", "hamcrest")

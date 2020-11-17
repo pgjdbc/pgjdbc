@@ -5,9 +5,13 @@
 
 package org.postgresql.replication.fluent.logical;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.fluent.AbstractStreamBuilder;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.util.Properties;
@@ -38,7 +42,7 @@ public class LogicalStreamBuilder extends AbstractStreamBuilder<ChainedLogicalSt
   }
 
   @Override
-  public String getSlotName() {
+  public @Nullable String getSlotName() {
     return slotName;
   }
 
@@ -69,7 +73,7 @@ public class LogicalStreamBuilder extends AbstractStreamBuilder<ChainedLogicalSt
   @Override
   public ChainedLogicalStreamBuilder withSlotOptions(Properties options) {
     for (String propertyName : options.stringPropertyNames()) {
-      slotOptions.setProperty(propertyName, options.getProperty(propertyName));
+      slotOptions.setProperty(propertyName, castNonNull(options.getProperty(propertyName)));
     }
     return this;
   }

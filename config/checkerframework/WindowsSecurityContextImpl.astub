@@ -1,0 +1,9 @@
+package waffle.windows.auth.impl;
+
+import org.checkerframework.checker.nullness.qual.*;
+import com.sun.jna.platform.win32.Sspi.CtxtHandle;
+import com.sun.jna.platform.win32.Sspi.SecBufferDesc;
+
+class WindowsSecurityContextImpl {
+    void initialize(@Nullable CtxtHandle continueCtx, @Nullable SecBufferDesc continueToken, String targetName);
+}

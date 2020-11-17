@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -219,7 +221,7 @@ public class Encoding {
    * @return a bytearray containing the encoded string
    * @throws IOException if something goes wrong
    */
-  public byte[] encode(String s) throws IOException {
+  public byte @PolyNull [] encode(@PolyNull String s) throws IOException {
     if (s == null) {
       return null;
     }

@@ -5,6 +5,8 @@
 
 package org.postgresql.osgi;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
@@ -14,6 +16,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.xa.PGXADataSource;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.osgi.service.jdbc.DataSourceFactory;
 
 import java.sql.SQLException;
@@ -37,6 +40,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
   private static class SingleUseProperties extends Properties {
     private static final long serialVersionUID = 1L;
 
+    @SuppressWarnings("method.invocation.invalid")
     SingleUseProperties(Properties initialProperties) {
       super();
       if (initialProperties != null) {
@@ -45,7 +49,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     }
 
     @Override
-    public String getProperty(String key) {
+    public @Nullable String getProperty(String key) {
       String value = super.getProperty(key);
       remove(key);
       return value;
@@ -54,13 +58,13 @@ public class PGDataSourceFactory implements DataSourceFactory {
 
   private void configureBaseDataSource(BaseDataSource ds, Properties props) throws SQLException {
     if (props.containsKey(JDBC_URL)) {
-      ds.setUrl(props.getProperty(JDBC_URL));
+      ds.setUrl(castNonNull(props.getProperty(JDBC_URL)));
     }
     if (props.containsKey(JDBC_SERVER_NAME)) {
-      ds.setServerName(props.getProperty(JDBC_SERVER_NAME));
+      ds.setServerName(castNonNull(props.getProperty(JDBC_SERVER_NAME)));
     }
     if (props.containsKey(JDBC_PORT_NUMBER)) {
-      ds.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
+      ds.setPortNumber(Integer.parseInt(castNonNull(props.getProperty(JDBC_PORT_NUMBER))));
     }
     if (props.containsKey(JDBC_DATABASE_NAME)) {
       ds.setDatabaseName(props.getProperty(JDBC_DATABASE_NAME));
@@ -88,13 +92,15 @@ public class PGDataSourceFactory implements DataSourceFactory {
   private DataSource createPoolingDataSource(Properties props) throws SQLException {
     PoolingDataSource dataSource = new PoolingDataSource();
     if (props.containsKey(JDBC_INITIAL_POOL_SIZE)) {
-      dataSource.setInitialConnections(Integer.parseInt(props.getProperty(JDBC_INITIAL_POOL_SIZE)));
+      String initialPoolSize = castNonNull(props.getProperty(JDBC_INITIAL_POOL_SIZE));
+      dataSource.setInitialConnections(Integer.parseInt(initialPoolSize));
     }
     if (props.containsKey(JDBC_MAX_POOL_SIZE)) {
-      dataSource.setMaxConnections(Integer.parseInt(props.getProperty(JDBC_MAX_POOL_SIZE)));
+      String maxPoolSize = castNonNull(props.getProperty(JDBC_MAX_POOL_SIZE));
+      dataSource.setMaxConnections(Integer.parseInt(maxPoolSize));
     }
     if (props.containsKey(JDBC_DATASOURCE_NAME)) {
-      dataSource.setDataSourceName(props.getProperty(JDBC_DATASOURCE_NAME));
+      dataSource.setDataSourceName(castNonNull(props.getProperty(JDBC_DATASOURCE_NAME)));
     }
     configureBaseDataSource(dataSource, props);
     return dataSource;

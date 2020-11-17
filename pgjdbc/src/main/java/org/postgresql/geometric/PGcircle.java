@@ -11,6 +11,8 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -21,7 +23,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
   /**
    * This is the center point.
    */
-  public PGpoint center;
+  public @Nullable PGpoint center;
 
   /**
    * This is the radius.
@@ -51,6 +53,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
    * @param s definition of the circle in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGcircle(String s) throws SQLException {
     this();
     setValue(s);
@@ -60,7 +63,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
    * This constructor is used by the driver.
    */
   public PGcircle() {
-    setType("circle");
+    type = "circle";
   }
 
   /**
@@ -88,17 +91,21 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two circles are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGcircle) {
       PGcircle p = (PGcircle) obj;
-      return p.center.equals(center) && p.radius == radius;
+      return p.radius == radius && equals(p.center, center);
     }
     return false;
   }
 
   public int hashCode() {
-    long v = Double.doubleToLongBits(radius);
-    return (int) (center.hashCode() ^ v ^ (v >>> 32));
+    long bits = Double.doubleToLongBits(radius);
+    int v = (int)(bits ^ (bits >>> 32));
+    if (center != null) {
+      v = v * 31 + center.hashCode();
+    }
+    return v;
   }
 
   public Object clone() throws CloneNotSupportedException {

@@ -40,13 +40,15 @@ In the case where the certificate validation is failing you can try `sslcert=` a
 not send the client certificate. If the server is not configured to authenticate using the certificate
 it should connect.
 
-The location of the client certificate, client key and root certificate can be overridden with the
+The location of the client certificate, the PKCS-8 client key and root certificate can be overridden with the
 `sslcert`, `sslkey`, and `sslrootcert` settings respectively. These default to /defaultdir/postgresql.crt,
 /defaultdir/postgresql.pk8, and /defaultdir/root.crt respectively where defaultdir is
 ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows
 
-as of version 42.2.9 PKCS12 is supported. In this archive format the key, cert and root cert are all
-in one file which by default is /defaultdir/postgresql.p12
+As of version 42.2.9 PKCS-12 is also supported. In this archive format the client key and the client
+certificate are in one file, which needs to be set with the `sslkey` parameter. For the PKCS-12 format
+to be recognized, the file extension must be ".p12" (supported since 42.2.9) or ".pfx" (since 42.2.16).
+(In this case the `sslcert` parameter is ignored.)
 
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
 This parameter is the same as the libpq `sslmode` parameter and the currently SSL implements the

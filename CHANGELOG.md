@@ -10,6 +10,61 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.2.16] (2020-08-20)
+
+### Fixed
+- - Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
+  Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default 
+  for Postgres when sent as strings such as '{1,2,3}'. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
+
+## [42.2.15] (2020-08-14)
+### Changed
+- Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder [ba017507](https://github.com/pgjdbc/pgjdbc/commit/ba0175072ee9c751c1496d2fe170f4af7256f1a5)
+- Add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
+are possible. Now the driver will attempt to connect to the server with a GSSAPI encrypted connection. If that fails then
+attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
+and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required. [PR 1821](https://github.com/pgjdbc/pgjdbc/pull/1821) [ad921b9e](https://github.com/pgjdbc/pgjdbc/commit/ad921b9e3563b28b9a03b1e2dfaad0e34efc02f1)
+- Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact [f0301eb9](https://github.com/pgjdbc/pgjdbc/commit/f0301eb901f880059b00b0fb0a3ee93ef7d749a8)
+- Refactor decoding arrays [PR 1194](https://github.com/pgjdbc/pgjdbc/pull/1194)
+
+### Added
+- Verify nullness with CheckerFramework [6e524ae5](https://github.com/pgjdbc/pgjdbc/commit/6e524ae51cee67b25426c09a7083465c820c0a0d)
+
+### Fixed
+- Avoid preparedStatement leak when using updateable ResultSet via insert/update/refreshRow [PR 1815](https://github.com/pgjdbc/pgjdbc/pull/1815) [9a0d2b18](https://github.com/pgjdbc/pgjdbc/commit/9a0d2b18a81c7ec5974d4caf2ff2d218312da25f)
+- Change order of checks for oid vs primary keys. OID's have been deprecated. [PR 1613](https://github.com/pgjdbc/pgjdbc/pull/1613)
+- Close certificate file stream. [PR 1837](https://github.com/pgjdbc/pgjdbc/pull/1837)
+- Make sure socketTimeout is enforced [PR 1831](https://github.com/pgjdbc/pgjdbc/pull/1831)
+- Assume PKCS-8 SSL key format by default [PR 1819](https://github.com/pgjdbc/pgjdbc/pull/1819)
+- Preserve unquoted unicode whitespace in array literals [PR 1266](https://github.com/pgjdbc/pgjdbc/pull/1266)
+
+## [42.2.14] (2020-06-10)
+### Changed
+- Reverted com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies to optional=true in Maven [PR 1797](https://github.com/pgjdbc/pgjdbc/pull/1797).
+
+## [42.2.13] (2020-06-04)
+
+**Notable Changes**
+
+- Security: The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
+Reported by David Dworken, this is an XXE and more information can be found [here](https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html).
+Sehrope Sarkuni reworked the XML parsing to provide a solution in commit [14b62aca4](https://github.com/pgjdbc/pgjdbc/commit/14b62aca4764d496813f55a43d050b017e01eb65).
+- The build system has been changed to Gradle thanks to Vladimir [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627).
+- Regression: com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies are listed as non-optional [issue 1975](https://github.com/pgjdbc/pgjdbc/issues/1795).
+
+### Changed
+
+### Added
+- jre-6 was added back to allow us to release fixes for all artifacts in the 42.2.x branch [PR 1787](https://github.com/pgjdbc/pgjdbc/pull/1787)
+
+### Fixed
+- I/O error ru translation [PR 1756](https://github.com/pgjdbc/pgjdbc/pull/1756)
+- Issue [1771](https://github.com/pgjdbc/pgjdbc/issues/1771)  PgDatabaseMetaData.getFunctions() returns
+ procedures fixed in [PR 1774](https://github.com/pgjdbc/pgjdbc/pull/1774)
+- getTypeMap() returning null [PR 1781](https://github.com/pgjdbc/pgjdbc/pull/1774)
+- Updated openssl example command [PR 1763](https://github.com/pgjdbc/pgjdbc/pull/1763)
+- fix documentation with ordered list to be displayed correctly [PR 1783](https://github.com/pgjdbc/pgjdbc/pull/1783)
+
 ## [42.2.12] (2020-03-31)
 
 **Notable changes**
@@ -18,7 +73,7 @@ We have released 42.2.12 to correct regressions in this version: Specifically
 - [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729) was reverted as this is a breaking change
 - [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719) has been reverted as it introduced errors in the PgType Cache
 
-We recommend that this version 42.2.11 not be used.
+We recommend that version 42.2.11 not be used.
 ### Changed
  - reverted [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)  throw an error instead of silently rolling back a commit error. 
  This change introduced a breaking change which will be moved to 42.3.0
@@ -26,6 +81,9 @@ We recommend that this version 42.2.11 not be used.
 
 
 ## [42.2.11] (2020-03-07)
+
+**Notable changes**
+As mentioned above this version is broken and should not be used.
 ### Changed
  - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals. 
  - `DatabaseMetaData#getProcedures` returns only procedures (not functions) for PostgreSQL 11+ [PR 1723](https://github.com/pgjdbc/pgjdbc/pull/1723)
@@ -338,4 +396,8 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.10]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...REL42.2.10
 [42.2.11]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.10...REL42.2.11
 [42.2.12]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...REL42.2.12
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...HEAD
+[42.2.13]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...REL42.2.13
+[42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
+[42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
+[42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...HEAD

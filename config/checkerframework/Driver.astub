@@ -1,0 +1,8 @@
+package java.sql;
+
+import java.util.Properties;
+import org.checkerframework.checker.nullness.qual.*;
+
+interface Driver {
+    @Nullable Connection connect(String url, @Nullable Properties info);
+}

@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -15,7 +17,7 @@ public class SharedTimer {
   private static final AtomicInteger timerCount = new AtomicInteger(0);
 
   private static final Logger LOGGER = Logger.getLogger(SharedTimer.class.getName());
-  private volatile Timer timer = null;
+  private volatile @Nullable Timer timer;
   private final AtomicInteger refCount = new AtomicInteger(0);
 
   public SharedTimer() {
@@ -26,6 +28,7 @@ public class SharedTimer {
   }
 
   public synchronized Timer getTimer() {
+    Timer timer = this.timer;
     if (timer == null) {
       int index = timerCount.incrementAndGet();
 
@@ -40,7 +43,7 @@ public class SharedTimer {
          */
         Thread.currentThread().setContextClassLoader(null);
 
-        timer = new Timer("PostgreSQL-JDBC-SharedTimer-" + index, true);
+        this.timer = timer = new Timer("PostgreSQL-JDBC-SharedTimer-" + index, true);
       } finally {
         Thread.currentThread().setContextClassLoader(prevContextCL);
       }

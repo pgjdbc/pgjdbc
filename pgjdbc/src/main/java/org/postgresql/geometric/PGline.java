@@ -11,6 +11,8 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -83,6 +85,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param s definition of the line in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGline(String s) throws SQLException {
     this();
     setValue(s);
@@ -92,7 +95,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * required by the driver.
    */
   public PGline() {
-    setType("line");
+    type = "line";
   }
 
   /**
@@ -128,7 +131,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two lines are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

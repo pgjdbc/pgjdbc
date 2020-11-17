@@ -5,6 +5,8 @@
 
 package org.postgresql.replication;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -82,7 +84,7 @@ public final class LogSequenceNumber implements Comparable<LogSequenceNumber> {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

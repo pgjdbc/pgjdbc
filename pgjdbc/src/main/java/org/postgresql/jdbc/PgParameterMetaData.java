@@ -5,10 +5,14 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.index.qual.Positive;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
@@ -24,7 +28,7 @@ public class PgParameterMetaData implements ParameterMetaData {
   }
 
   @Override
-  public String getParameterClassName(int param) throws SQLException {
+  public String getParameterClassName(@Positive int param) throws SQLException {
     checkParamIndex(param);
     return connection.getTypeInfo().getJavaClass(oids[param - 1]);
   }
@@ -52,7 +56,7 @@ public class PgParameterMetaData implements ParameterMetaData {
   @Override
   public String getParameterTypeName(int param) throws SQLException {
     checkParamIndex(param);
-    return connection.getTypeInfo().getPGType(oids[param - 1]);
+    return castNonNull(connection.getTypeInfo().getPGType(oids[param - 1]));
   }
 
   // we don't know this

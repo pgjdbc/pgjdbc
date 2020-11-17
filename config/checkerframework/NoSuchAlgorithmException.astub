@@ -1,0 +1,7 @@
+package java.security;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class NoSuchAlgorithmException {
+  NoSuchAlgorithmException(@Nullable String message, @Nullable Throwable cause);
+}

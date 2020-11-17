@@ -7,6 +7,8 @@ package org.postgresql.core;
 
 import org.postgresql.util.PGobject;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.util.Iterator;
 
@@ -52,7 +54,7 @@ public interface TypeInfo {
    * @return the server type name for that OID or null if unknown
    * @throws SQLException if an error occurs when retrieving PG type
    */
-  String getPGType(int oid) throws SQLException;
+  @Nullable String getPGType(int oid) throws SQLException;
 
   /**
    * Look up the oid of an array's base type given the array's type oid.
@@ -83,7 +85,7 @@ public interface TypeInfo {
 
   Iterator<String> getPGTypeNamesWithSQLTypes();
 
-  Class<? extends PGobject> getPGobject(String type);
+  @Nullable Class<? extends PGobject> getPGobject(String type);
 
   String getJavaClass(int oid) throws SQLException;
 

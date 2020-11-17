@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -21,26 +24,22 @@ public class GT {
   private static final GT _gt = new GT();
   private static final Object[] noargs = new Object[0];
 
-  public static String tr(String message, Object... args) {
+  public static @Pure String tr(String message, @Nullable Object... args) {
     return _gt.translate(message, args);
   }
 
-  private ResourceBundle bundle;
+  private @Nullable ResourceBundle bundle;
 
   private GT() {
     try {
-      //#if mvn.project.property.postgresql.jdbc.spec < "JDBC4.1"
-      bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
-      //#else
       bundle = ResourceBundle.getBundle("org.postgresql.translation.messages", Locale.getDefault(Locale.Category.DISPLAY));
-      //#endif
     } catch (MissingResourceException mre) {
       // translation files have not been installed
       bundle = null;
     }
   }
 
-  private String translate(String message, Object[] args) {
+  private String translate(String message, @Nullable Object[] args) {
     if (bundle != null && message != null) {
       try {
         message = bundle.getString(message);

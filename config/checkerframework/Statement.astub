@@ -1,0 +1,8 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class Statement {
+  public @Nullable SQLWarning getWarnings();
+  public @Nullable ResultSet getResultSet();
+}

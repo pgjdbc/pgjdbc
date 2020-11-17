@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
 import java.util.HashMap;
@@ -179,6 +181,14 @@ public enum PGProperty {
       + "In escapeSyntaxCallMode=call mode, the driver always uses a CALL statement (allowing procedure invocation only).",
     false,
     new String[] {"select", "callIfNoReturn", "call"}),
+
+  GSS_ENC_MODE(
+      "gssEncMode",
+      "allow",
+      "Force Encoded GSS Mode",
+      false,
+      new String[] {"disable", "allow", "prefer", "require"}
+  ),
 
   /**
    * Force one of
@@ -661,24 +671,36 @@ public enum PGProperty {
     "false",
     "Use SPNEGO in SSPI authentication requests"),
 
+  /**
+   * Factory class to instantiate factories for XML processing.
+   * The default factory disables external entity processing.
+   * Legacy behavior with external entity processing can be enabled by specifying a value of LEGACY_INSECURE.
+   * Or specify a custom class that implements {@code org.postgresql.xml.PGXmlFactoryFactory}.
+   */
+  XML_FACTORY_FACTORY(
+    "xmlFactoryFactory",
+    "",
+    "Factory class to instantiate factories for XML processing"),
+
   ;
 
   private final String name;
-  private final String defaultValue;
+  private final @Nullable String defaultValue;
   private final boolean required;
   private final String description;
-  private final String[] choices;
+  private final String @Nullable [] choices;
   private final boolean deprecated;
 
-  PGProperty(String name, String defaultValue, String description) {
+  PGProperty(String name, @Nullable String defaultValue, String description) {
     this(name, defaultValue, description, false);
   }
 
-  PGProperty(String name, String defaultValue, String description, boolean required) {
+  PGProperty(String name, @Nullable String defaultValue, String description, boolean required) {
     this(name, defaultValue, description, required, (String[]) null);
   }
 
-  PGProperty(String name, String defaultValue, String description, boolean required, String[] choices) {
+  PGProperty(String name, @Nullable String defaultValue, String description, boolean required,
+      String @Nullable [] choices) {
     this.name = name;
     this.defaultValue = defaultValue;
     this.required = required;
@@ -715,7 +737,7 @@ public enum PGProperty {
    *
    * @return the default value for this connection parameter or null
    */
-  public String getDefaultValue() {
+  public @Nullable String getDefaultValue() {
     return defaultValue;
   }
 
@@ -742,7 +764,7 @@ public enum PGProperty {
    *
    * @return the available values for this connection parameter or null
    */
-  public String[] getChoices() {
+  public String @Nullable [] getChoices() {
     return choices;
   }
 
@@ -762,7 +784,7 @@ public enum PGProperty {
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter
    */
-  public String get(Properties properties) {
+  public @Nullable String get(Properties properties) {
     return properties.getProperty(name, defaultValue);
   }
 
@@ -772,7 +794,7 @@ public enum PGProperty {
    * @param properties properties in which the value should be set
    * @param value value for this connection parameter
    */
-  public void set(Properties properties, String value) {
+  public void set(Properties properties, @Nullable String value) {
     if (value == null) {
       properties.remove(name);
     } else {
@@ -787,7 +809,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to boolean
    */
   public boolean getBoolean(Properties properties) {
-    return Boolean.valueOf(get(properties));
+    return Boolean.parseBoolean(get(properties));
   }
 
   /**
@@ -798,8 +820,10 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to int
    * @throws NumberFormatException if it cannot be converted to int.
    */
+  @SuppressWarnings("nullness:argument.type.incompatible")
   public int getIntNoCheck(Properties properties) {
     String value = get(properties);
+    //noinspection ConstantConditions
     return Integer.parseInt(value);
   }
 
@@ -810,9 +834,11 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to int
    * @throws PSQLException if it cannot be converted to int.
    */
+  @SuppressWarnings("nullness:argument.type.incompatible")
   public int getInt(Properties properties) throws PSQLException {
     String value = get(properties);
     try {
+      //noinspection ConstantConditions
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
       throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
@@ -827,7 +853,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to Integer or null
    * @throws PSQLException if unable to parse property as integer
    */
-  public Integer getInteger(Properties properties) throws PSQLException {
+  public @Nullable Integer getInteger(Properties properties) throws PSQLException {
     String value = get(properties);
     if (value == null) {
       return null;
@@ -885,7 +911,7 @@ public enum PGProperty {
     return propertyInfo;
   }
 
-  public static PGProperty forName(String name) {
+  public static @Nullable PGProperty forName(String name) {
     return PROPS_BY_NAME.get(name);
   }
 
@@ -896,7 +922,7 @@ public enum PGProperty {
    * @param properties properties bundle
    * @return the value of a set property
    */
-  public String getSetString(Properties properties) {
+  public @Nullable String getSetString(Properties properties) {
     Object o = properties.get(name);
     if (o instanceof String) {
       return (String) o;

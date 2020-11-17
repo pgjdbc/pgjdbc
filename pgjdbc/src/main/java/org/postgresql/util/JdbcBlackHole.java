@@ -5,13 +5,15 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 public class JdbcBlackHole {
-  public static void close(Connection con) {
+  public static void close(@Nullable Connection con) {
     try {
       if (con != null) {
         con.close();
@@ -21,7 +23,7 @@ public class JdbcBlackHole {
     }
   }
 
-  public static void close(Statement s) {
+  public static void close(@Nullable Statement s) {
     try {
       if (s != null) {
         s.close();
@@ -31,7 +33,7 @@ public class JdbcBlackHole {
     }
   }
 
-  public static void close(ResultSet rs) {
+  public static void close(@Nullable ResultSet rs) {
     try {
       if (rs != null) {
         rs.close();

@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,11 +29,14 @@ public class PGPropertyMaxResultBufferParser {
    * @return value of max result buffer size.
    * @throws PSQLException Exception when given value can't be parsed.
    */
-  public static long parseProperty(String value) throws PSQLException {
+  public static long parseProperty(@Nullable String value) throws PSQLException {
     long result = -1;
-    if (checkIfValueContainsPercent(value)) {
+    //noinspection StatementWithEmptyBody
+    if (value == null) {
+      // default branch
+    } else if (checkIfValueContainsPercent(value)) {
       result = parseBytePercentValue(value);
-    } else if (checkIfValueExistsToBeParsed(value)) {
+    } else if (!value.isEmpty()) {
       result = parseByteValue(value);
     }
     result = adjustResultSize(result);
@@ -45,7 +50,7 @@ public class PGPropertyMaxResultBufferParser {
    * @return Result if value contains percent.
    */
   private static boolean checkIfValueContainsPercent(String value) {
-    return (value != null) && (getPercentPhraseLengthIfContains(value) != -1);
+    return getPercentPhraseLengthIfContains(value) != -1;
   }
 
   /**
@@ -60,7 +65,7 @@ public class PGPropertyMaxResultBufferParser {
     long result = -1;
     int length;
 
-    if (checkIfValueExistsToBeParsed(value)) {
+    if (!value.isEmpty()) {
       length = getPercentPhraseLengthIfContains(value);
 
       if (length == -1) {
@@ -125,16 +130,6 @@ public class PGPropertyMaxResultBufferParser {
     double percent = Double.parseDouble(realValue) / 100;
     long result = (long) (percent * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
     return result;
-  }
-
-  /**
-   * Method to check if given value has any chars to be parsed.
-   *
-   * @param value Value to be checked.
-   * @return Result if value can be parsed.
-   */
-  private static boolean checkIfValueExistsToBeParsed(String value) {
-    return value != null && value.length() != 0;
   }
 
   /**

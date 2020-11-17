@@ -1,0 +1,7 @@
+package javax.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+interface CommonDataSource {
+    @Nullable java.io.PrintWriter getLogWriter();
+}

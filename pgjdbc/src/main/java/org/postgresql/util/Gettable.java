@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
-public interface Gettable<K,V> {
-  V get(K key);
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+public interface Gettable<K extends @NonNull Object, V extends @NonNull Object> {
+  @Nullable V get(K key);
 }

@@ -9,12 +9,14 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.util.GT;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLFeatureNotSupportedException;
 
 public abstract class AbstractCreateSlotBuilder<T extends ChainedCommonCreateSlotBuilder<T>>
     implements ChainedCommonCreateSlotBuilder<T> {
 
-  protected String slotName;
+  protected @Nullable String slotName;
   protected boolean temporaryOption = false;
   protected BaseConnection connection;
 
