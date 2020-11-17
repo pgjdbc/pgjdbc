@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.PGobject;
 
 import org.junit.Assert;
 import org.junit.Assume;
