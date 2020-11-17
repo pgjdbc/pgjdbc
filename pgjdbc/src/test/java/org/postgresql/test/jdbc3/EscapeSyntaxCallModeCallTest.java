@@ -38,9 +38,10 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
     assumeMinimumServerVersion(ServerVersion.v11);
 
     /* version 14 changes this to undefined function */
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)){
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
       expected = PSQLState.UNDEFINED_FUNCTION;
     }
+    
     CallableStatement cs = con.prepareCall("{ call myiofunc(?,?) }");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.registerOutParameter(2, Types.INTEGER);
@@ -59,9 +60,10 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
     // syntax used below. "mysumfunc" is a function, so the attempted invocation should fail.
     /* version 14 changes this to undefined function */
     PSQLState expected = PSQLState.WRONG_OBJECT_TYPE;
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)){
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
       expected = PSQLState.UNDEFINED_FUNCTION;
     }
+
     assumeCallableStatementsSupported();
     assumeMinimumServerVersion(ServerVersion.v11);
     CallableStatement cs = con.prepareCall("{ ? = call mysumfunc(?,?) }");
