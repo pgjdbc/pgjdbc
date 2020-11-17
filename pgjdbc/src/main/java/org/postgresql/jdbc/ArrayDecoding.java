@@ -375,7 +375,6 @@ final class ArrayDecoding {
     OID_TO_DECODER.put(Oid.FLOAT4, FLOAT_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.TEXT, STRING_ARRAY);
     OID_TO_DECODER.put(Oid.VARCHAR, STRING_ARRAY);
-    // 42.2.x decodes jsonb array as String rather than PGobject
     OID_TO_DECODER.put(Oid.JSONB, STRING_ONLY_DECODER);
     OID_TO_DECODER.put(Oid.BIT, BOOLEAN_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.BOOL, BOOLEAN_OBJ_ARRAY);
@@ -383,8 +382,7 @@ final class ArrayDecoding {
     OID_TO_DECODER.put(Oid.NUMERIC, BIG_DECIMAL_STRING_DECODER);
     OID_TO_DECODER.put(Oid.BPCHAR, STRING_ONLY_DECODER);
     OID_TO_DECODER.put(Oid.CHAR, STRING_ONLY_DECODER);
-    // 42.2.x decodes json array as PGobject rather than String
-    // OID_TO_DECODER.put(Oid.JSON, STRING_ONLY_DECODER);
+    OID_TO_DECODER.put(Oid.JSON, STRING_ONLY_DECODER);
     OID_TO_DECODER.put(Oid.DATE, DATE_DECODER);
     OID_TO_DECODER.put(Oid.TIME, TIME_DECODER);
     OID_TO_DECODER.put(Oid.TIMETZ, TIME_DECODER);
@@ -475,7 +473,6 @@ final class ArrayDecoding {
       throw org.postgresql.Driver.notImplemented(PgArray.class, "readArray(data,oid)");
     }
 
-    // 42.2.x should return enums as strings
     int type = connection.getTypeInfo().getSQLType(typeName);
     if (type == Types.CHAR || type == Types.VARCHAR) {
       return (ArrayDecoder<A>) STRING_ONLY_DECODER;
