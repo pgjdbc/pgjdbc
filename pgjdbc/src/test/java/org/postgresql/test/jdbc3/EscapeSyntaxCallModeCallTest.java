@@ -38,7 +38,7 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
     assumeCallableStatementsSupported();
     assumeMinimumServerVersion(ServerVersion.v11);
 
-    /* version 14 changes this to undefined function */
+    // version 14 changes this to undefined function
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
       expected = PSQLState.UNDEFINED_FUNCTION;
     }
@@ -59,8 +59,10 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
   public void testInvokeFunctionHavingReturnParameter() throws Throwable {
     // escapeSyntaxCallMode=call will cause a CALL statement to be used for the JDBC escape call
     // syntax used below. "mysumfunc" is a function, so the attempted invocation should fail.
-    /* version 14 changes this to undefined function */
+
+    //version 14 changes this to undefined function
     PSQLState expected = PSQLState.WRONG_OBJECT_TYPE;
+
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
       expected = PSQLState.UNDEFINED_FUNCTION;
     }
