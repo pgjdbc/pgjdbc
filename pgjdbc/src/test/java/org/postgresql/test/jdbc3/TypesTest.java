@@ -98,10 +98,8 @@ public class TypesTest extends BaseTest4 {
 
     ResultSet rs = stmt.executeQuery("select 'foo1' as icon1, 'foo2' as icon2 ");
     assertTrue(rs.next());
-    assertTrue("failed returned [" + rs.getString("icon1") + "]",
-        rs.getString("icon1").equalsIgnoreCase("foo1"));
-    assertTrue("failed returned [" + rs.getString("icon2") + "]",
-        rs.getString("icon2").equalsIgnoreCase("foo2"));
+    assertEquals("failed", "foo1", rs.getString("icon1"));
+    assertEquals("failed", "foo2", rs.getString("icon2"));
   }
 
 }
