@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc3;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
-import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
