@@ -62,13 +62,8 @@ public class EscapeSyntaxCallModeSelectTest extends EscapeSyntaxCallModeBaseTest
   public void testInvokeProcedure() throws Throwable {
     // escapeSyntaxCallMode=select will cause a SELECT statement to be used for the JDBC escape call
     // syntax used below. "myioproc" is a procedure, so the attempted invocation should fail.
-    PSQLState expected = PSQLState.WRONG_OBJECT_TYPE;
     assumeCallableStatementsSupported();
     assumeMinimumServerVersion(ServerVersion.v11);
-    // version 14 changes this to undefined function
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
-      expected = PSQLState.UNDEFINED_FUNCTION;
-    }
     CallableStatement cs = con.prepareCall("{call myioproc(?,?)}");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.registerOutParameter(2, Types.INTEGER);
@@ -78,7 +73,7 @@ public class EscapeSyntaxCallModeSelectTest extends EscapeSyntaxCallModeBaseTest
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertEquals(expected.getState(),ex.getSQLState());
+      assertEquals(PSQLState.WRONG_OBJECT_TYPE,ex.getSQLState());
     }
   }
 
