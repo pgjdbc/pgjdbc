@@ -9,6 +9,7 @@ import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
+import org.postgresql.core.OidValuesCorrectnessTest;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
@@ -91,6 +92,7 @@ import org.junit.runners.Suite;
     NotifyTest.class,
     OidToStringTest.class,
     OidValueOfTest.class,
+    OidValuesCorrectnessTest.class,
     OptionsPropertyTest.class,
     OuterJoinSyntaxTest.class,
     FixedLengthOutputStreamTest.class,
