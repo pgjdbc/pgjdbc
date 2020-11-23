@@ -99,7 +99,7 @@ public class BatchExecuteTest extends BaseTest4 {
   @Test
   public void testSupportsBatchUpdates() throws Exception {
     DatabaseMetaData dbmd = con.getMetaData();
-    Assert.assertTrue(dbmd.supportsBatchUpdates());
+    Assert.assertTrue("Expected that Batch Updates are supported", dbmd.supportsBatchUpdates());
   }
 
   @Test
@@ -113,38 +113,42 @@ public class BatchExecuteTest extends BaseTest4 {
 
   private void assertCol1HasValue(int expected) throws Exception {
     Statement getCol1 = con.createStatement();
+    try {
+      ResultSet rs = getCol1.executeQuery("SELECT col1 FROM testbatch WHERE pk = 1");
+      Assert.assertTrue(rs.next());
 
-    ResultSet rs = getCol1.executeQuery("SELECT col1 FROM testbatch WHERE pk = 1");
-    Assert.assertTrue(rs.next());
+      int actual = rs.getInt("col1");
 
-    int actual = rs.getInt("col1");
+      Assert.assertEquals(expected, actual);
+      Assert.assertFalse(rs.next());
 
-    Assert.assertEquals(expected, actual);
-
-    Assert.assertEquals(false, rs.next());
-
-    rs.close();
-    getCol1.close();
+      rs.close();
+    } finally {
+      TestUtil.closeQuietly(getCol1);
+    }
   }
 
   @Test
   public void testExecuteEmptyBatch() throws Exception {
     Statement stmt = con.createStatement();
-    int[] updateCount = stmt.executeBatch();
-    Assert.assertEquals(0, updateCount.length);
+    try {
+      int[] updateCount = stmt.executeBatch();
+      Assert.assertEquals(0, updateCount.length);
 
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
-    stmt.clearBatch();
-    updateCount = stmt.executeBatch();
-    Assert.assertEquals(0, updateCount.length);
-    stmt.close();
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+      stmt.clearBatch();
+      updateCount = stmt.executeBatch();
+      Assert.assertEquals(0, updateCount.length);
+      stmt.close();
+    } finally {
+      TestUtil.closeQuietly(stmt);
+    }
   }
 
   @Test
   public void testExecuteEmptyPreparedBatch() throws Exception {
-    PreparedStatement ps = null;
+    PreparedStatement ps = con.prepareStatement("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
     try {
-      ps = con.prepareStatement("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
       int[] updateCount = ps.executeBatch();
       Assert.assertEquals("Empty batch should update empty result", 0, updateCount.length);
     } finally {
@@ -154,9 +158,8 @@ public class BatchExecuteTest extends BaseTest4 {
 
   @Test
   public void testPreparedNoParameters() throws SQLException {
-    PreparedStatement ps = null;
+    PreparedStatement ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
     try {
-      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
       ps.addBatch();
       ps.addBatch();
       ps.addBatch();
@@ -171,28 +174,28 @@ public class BatchExecuteTest extends BaseTest4 {
   @Test
   public void testClearBatch() throws Exception {
     Statement stmt = con.createStatement();
-
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
-    assertCol1HasValue(0);
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
-    assertCol1HasValue(0);
-    stmt.clearBatch();
-    assertCol1HasValue(0);
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 4 WHERE pk = 1");
-    assertCol1HasValue(0);
-    stmt.executeBatch();
-    assertCol1HasValue(4);
-    con.commit();
-    assertCol1HasValue(4);
-
-    stmt.close();
+    try {
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+      assertCol1HasValue(0);
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
+      assertCol1HasValue(0);
+      stmt.clearBatch();
+      assertCol1HasValue(0);
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 4 WHERE pk = 1");
+      assertCol1HasValue(0);
+      stmt.executeBatch();
+      assertCol1HasValue(4);
+      con.commit();
+      assertCol1HasValue(4);
+    } finally {
+      TestUtil.closeQuietly(stmt);
+    }
   }
 
   @Test
   public void testClearPreparedNoArgBatch() throws Exception {
-    PreparedStatement ps = null;
+    PreparedStatement ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
     try {
-      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
       ps.addBatch();
       ps.clearBatch();
       int[] updateCount = ps.executeBatch();
@@ -204,9 +207,8 @@ public class BatchExecuteTest extends BaseTest4 {
 
   @Test
   public void testClearPreparedEmptyBatch() throws Exception {
-    PreparedStatement ps = null;
+    PreparedStatement ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
     try {
-      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (1)");
       ps.clearBatch();
     } finally {
       TestUtil.closeQuietly(ps);
@@ -215,26 +217,27 @@ public class BatchExecuteTest extends BaseTest4 {
 
   @Test
   public void testSelectInBatch() throws Exception {
-    Statement stmt = con.createStatement();
+    Statement stmt = stmt = con.createStatement();
+    try {
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+      stmt.addBatch("SELECT col1 FROM testbatch WHERE pk = 1");
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
 
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
-    stmt.addBatch("SELECT col1 FROM testbatch WHERE pk = 1");
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
+      // There's no reason to Assert.fail
+      int[] updateCounts = stmt.executeBatch();
 
-    // There's no reason to Assert.fail
-    int[] updateCounts = stmt.executeBatch();
-
-    Assert.assertTrue("First update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
-            + ", actual value: " + updateCounts[0],
-        updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO);
-    Assert.assertTrue("For SELECT, number of modified rows should be either 0 or SUCCESS_NO_INFO"
-            + ", actual value: " + updateCounts[1],
-        updateCounts[1] == 0 || updateCounts[1] == Statement.SUCCESS_NO_INFO);
-    Assert.assertTrue("Second update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
-            + ", actual value: " + updateCounts[2],
-        updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO);
-
-    stmt.close();
+      Assert.assertTrue("First update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
+              + ", actual value: " + updateCounts[0],
+          updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO);
+      Assert.assertTrue("For SELECT, number of modified rows should be either 0 or SUCCESS_NO_INFO"
+              + ", actual value: " + updateCounts[1],
+          updateCounts[1] == 0 || updateCounts[1] == Statement.SUCCESS_NO_INFO);
+      Assert.assertTrue("Second update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
+              + ", actual value: " + updateCounts[2],
+          updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO);
+    } finally {
+      TestUtil.closeQuietly(stmt);
+    }
   }
 
   @Test
@@ -246,37 +249,39 @@ public class BatchExecuteTest extends BaseTest4 {
   @Test
   public void testSelectInBatchThrows() throws Exception {
     Statement stmt = con.createStatement();
-
-    int oldValue = getCol1Value();
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
-    stmt.addBatch("SELECT 0/0 FROM testbatch WHERE pk = 1");
-    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
-
-    int[] updateCounts;
     try {
-      updateCounts = stmt.executeBatch();
-      Assert.fail("0/0 should throw BatchUpdateException");
-    } catch (BatchUpdateException be) {
-      updateCounts = be.getUpdateCounts();
+      int oldValue = getCol1Value();
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+      stmt.addBatch("SELECT 0/0 FROM testbatch WHERE pk = 1");
+      stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
+
+      int[] updateCounts;
+      try {
+        updateCounts = stmt.executeBatch();
+        Assert.fail("0/0 should throw BatchUpdateException");
+      } catch (BatchUpdateException be) {
+        updateCounts = be.getUpdateCounts();
+      }
+
+      if (!con.getAutoCommit()) {
+        con.commit();
+      }
+
+      int newValue = getCol1Value();
+      boolean firstOk = updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO;
+      boolean lastOk = updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO;
+
+      Assert.assertEquals("testbatch.col1 should account +1 and +2 for the relevant successful rows: "
+              + Arrays.toString(updateCounts),
+          oldValue + (firstOk ? 1 : 0) + (lastOk ? 2 : 0), newValue);
+
+      Assert.assertEquals("SELECT 0/0 should be marked as Statement.EXECUTE_FAILED",
+          Statement.EXECUTE_FAILED,
+          updateCounts[1]);
+
+    } finally {
+      TestUtil.closeQuietly(stmt);
     }
-
-    if (!con.getAutoCommit()) {
-      con.commit();
-    }
-
-    int newValue = getCol1Value();
-    boolean firstOk = updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO;
-    boolean lastOk = updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO;
-
-    Assert.assertEquals("testbatch.col1 should account +1 and +2 for the relevant successful rows: "
-        + Arrays.toString(updateCounts),
-        oldValue + (firstOk ? 1 : 0) + (lastOk ? 2 : 0), newValue);
-
-    Assert.assertEquals("SELECT 0/0 should be marked as Statement.EXECUTE_FAILED",
-        Statement.EXECUTE_FAILED,
-        updateCounts[1]);
-
-    stmt.close();
   }
 
   private int getCol1Value() throws SQLException {
