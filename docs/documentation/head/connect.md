@@ -324,9 +324,9 @@ Connection conn = DriverManager.getConnection(url);
 
 * **cancelSignalTimeout** = int
 
-  Cancel command is sent out of band over its own connection, so cancel message can itself get
-  stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
-  The timeout is specified in seconds. Default value is 10 seconds.
+	Cancel command is sent out of band over its own connection, so cancel message can itself get
+	stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
+	The timeout is specified in seconds. Default value is 10 seconds.
 
 
 * **tcpKeepAlive** = boolean
@@ -504,14 +504,15 @@ Connection conn = DriverManager.getConnection(url);
 
 * **replication** = String
 
-   Connection parameter passed in the startup message. This parameter accepts two values; "true"
-   and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
-   of replication commands can be issued instead of SQL statements. Only the simple query protocol
-   can be used in walsender mode. Passing "database" as the value instructs walsender to connect
-   to the database specified in the dbname parameter, which will allow the connection to be used
-   for logical replication from that database. <p>Parameter should be use together with 
-   `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
-    
+	Connection parameter passed in the startup message. This parameter accepts two values; "true"
+	and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
+	of replication commands can be issued instead of SQL statements. Only the simple query protocol
+	can be used in walsender mode. Passing "database" as the value instructs walsender to connect
+	to the database specified in the dbname parameter, which will allow the connection to be used
+	for logical replication from that database.
+	
+	Parameter should be use together with `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
+
 * **escapeSyntaxCallMode** = String
 
 	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
