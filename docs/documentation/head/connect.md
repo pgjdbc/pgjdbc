@@ -79,12 +79,20 @@ Connection conn = DriverManager.getConnection(url);
 
 * **options** = String
 
-	Specify 'options' connection initialization parameter.
+	Specify 'options' connection initialization parameter. For example setting this to `-c statement_timeout=5min` would set the statement timeout parameter for this session to 5 minutes.
 
 	The value of this property may contain spaces or other special characters,
 	and it should be properly encoded if provided in the connection URL. Spaces
 	are considered to separate command-line arguments, unless escaped with
 	a backslash (`\`); `\\` represents a literal backslash.
+
+	```java
+	props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
+	Connection conn = DriverManager.getConnection(url, props);
+
+	String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
+	Connection conn = DriverManager.getConnection(url);
+	```
 
 * **ssl** = boolean
 
