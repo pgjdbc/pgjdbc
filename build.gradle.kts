@@ -338,8 +338,8 @@ allprojects {
                 docEncoding = "UTF-8"
                 charSet = "UTF-8"
                 encoding = "UTF-8"
-                docTitle = "PostgreSQL JDBC ${project.name} API"
-                windowTitle = "PostgreSQL JDBC ${project.name} API"
+                docTitle = "PostgreSQL JDBC ${project.name} API version ${project.version}"
+                windowTitle = "PostgreSQL JDBC ${project.name} API version ${project.version}"
                 header = "<b>PostgreSQL JDBC</b>"
                 bottom =
                     "Copyright &copy; 1997-$lastEditYear PostgreSQL Global Development Group. All Rights Reserved."
