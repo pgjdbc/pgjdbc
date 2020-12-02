@@ -79,12 +79,20 @@ Connection conn = DriverManager.getConnection(url);
 
 * **options** = String
 
-	Specify 'options' connection initialization parameter.
+	Specify 'options' connection initialization parameter. For example setting this to `-c statement_timeout=5min` would set the statement timeout parameter for this session to 5 minutes.
 
 	The value of this property may contain spaces or other special characters,
 	and it should be properly encoded if provided in the connection URL. Spaces
 	are considered to separate command-line arguments, unless escaped with
 	a backslash (`\`); `\\` represents a literal backslash.
+
+	```java
+	props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
+	Connection conn = DriverManager.getConnection(url, props);
+
+	String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
+	Connection conn = DriverManager.getConnection(url);
+	```
 
 * **ssl** = boolean
 
@@ -324,9 +332,9 @@ Connection conn = DriverManager.getConnection(url);
 
 * **cancelSignalTimeout** = int
 
-  Cancel command is sent out of band over its own connection, so cancel message can itself get
-  stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
-  The timeout is specified in seconds. Default value is 10 seconds.
+	Cancel command is sent out of band over its own connection, so cancel message can itself get
+	stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
+	The timeout is specified in seconds. Default value is 10 seconds.
 
 
 * **tcpKeepAlive** = boolean
@@ -504,14 +512,15 @@ Connection conn = DriverManager.getConnection(url);
 
 * **replication** = String
 
-   Connection parameter passed in the startup message. This parameter accepts two values; "true"
-   and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
-   of replication commands can be issued instead of SQL statements. Only the simple query protocol
-   can be used in walsender mode. Passing "database" as the value instructs walsender to connect
-   to the database specified in the dbname parameter, which will allow the connection to be used
-   for logical replication from that database. <p>Parameter should be use together with 
-   `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
-    
+	Connection parameter passed in the startup message. This parameter accepts two values; "true"
+	and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
+	of replication commands can be issued instead of SQL statements. Only the simple query protocol
+	can be used in walsender mode. Passing "database" as the value instructs walsender to connect
+	to the database specified in the dbname parameter, which will allow the connection to be used
+	for logical replication from that database.
+	
+	Parameter should be use together with `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
+
 * **escapeSyntaxCallMode** = String
 
 	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
