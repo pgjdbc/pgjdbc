@@ -40,6 +40,9 @@ create a file named `$JDBC_SRC/build.local.properties` and add your
 customized values of the properties `database`, `username` and
 `password`.
 
+The test suite requires that you have the `contrib/lo` and `contrib/test_decoding` modules
+installed.
+
 If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
 
     cd docker
