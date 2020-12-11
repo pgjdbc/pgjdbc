@@ -64,7 +64,6 @@ public class Driver implements java.sql.Driver {
   private static @Nullable Driver registeredDriver;
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
-  private static final SharedTimer SHARED_TIMER = new SharedTimer();
   private static final String DEFAULT_PORT = "5432";
 
   static {
@@ -705,7 +704,7 @@ public class Driver implements java.sql.Driver {
   }
 
   public static SharedTimer getSharedTimer() {
-    return SHARED_TIMER;
+    return SharedTimer.getSharedInstance();
   }
 
   /**

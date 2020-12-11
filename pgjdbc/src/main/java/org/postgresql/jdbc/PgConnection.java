@@ -7,7 +7,6 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -39,6 +38,7 @@ import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.SharedTimer;
 import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.LegacyInsecurePGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
@@ -81,6 +81,7 @@ import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -153,8 +154,8 @@ public class PgConnection implements BaseConnection {
   private @Nullable SQLWarning firstWarning;
 
   // Timer for scheduling TimerTasks for this connection.
-  // Only instantiated if a task is actually scheduled.
-  private volatile @Nullable Timer cancelTimer;
+  // Only populated if a task is actually scheduled.
+  private final AtomicReference<Timer> cancelTimerRef = new AtomicReference<>();
 
   private @Nullable PreparedStatement checkConnectionQuery;
   /**
@@ -1219,17 +1220,20 @@ public class PgConnection implements BaseConnection {
     queryExecutor.abort();
   }
 
-  private synchronized Timer getTimer() {
+  private Timer getTimer() {
+    Timer cancelTimer = cancelTimerRef.get();
     if (cancelTimer == null) {
-      cancelTimer = Driver.getSharedTimer().getTimer();
+      cancelTimer = SharedTimer.getSharedInstance().getTimer();
+      cancelTimerRef.set(cancelTimer);
     }
     return cancelTimer;
   }
 
-  private synchronized void releaseTimer() {
-    if (cancelTimer != null) {
-      cancelTimer = null;
-      Driver.getSharedTimer().releaseTimer();
+  private void releaseTimer() {
+    //here we atomically get the old value and set to null
+    //if the old value was not null, that means we need to "release" shared instance
+    if (cancelTimerRef.getAndSet(null) != null) {
+      SharedTimer.getSharedInstance().releaseTimer();
     }
   }
 
@@ -1241,7 +1245,7 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void purgeTimerTasks() {
-    Timer timer = cancelTimer;
+    Timer timer = cancelTimerRef.get();
     if (timer != null) {
       timer.purge();
     }
