@@ -155,7 +155,7 @@ public class PgConnection implements BaseConnection {
 
   // Timer for scheduling TimerTasks for this connection.
   // Only populated if a task is actually scheduled.
-  private final AtomicReference<Timer> cancelTimerRef = new AtomicReference<>();
+  private final AtomicReference<@Nullable Timer> cancelTimerRef = new AtomicReference<>();
 
   private @Nullable PreparedStatement checkConnectionQuery;
   /**
