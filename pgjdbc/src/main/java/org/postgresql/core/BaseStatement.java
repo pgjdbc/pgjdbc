@@ -73,6 +73,15 @@ public interface BaseStatement extends PGStatement, Statement {
    */
   boolean executeWithFlags(int flags) throws SQLException;
 
+  /**
+   * Execute a query, passing additional query flags.
+   *
+   * @param sql the query to execute (JDBC-style query)
+   * @param flags additional {@link QueryExecutor} flags for execution; these are bitwise-ORed into
+   *        the default flags.
+   * @return the new ResultSet
+   * @throws SQLException if something goes wrong.
+   */
   ResultSet executeQueryWithFlags(String sql, int flags) throws SQLException;
 
 }

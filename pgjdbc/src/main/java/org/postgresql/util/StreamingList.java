@@ -172,7 +172,7 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
 
     @SuppressWarnings("argument.type.incompatible")
     public ArrayList<E> bufferResults() {
-      // the array list will be mostly nulls, but that is ok, since we only use streaming list for forward_only queries
+      // the array list will contain nulls for rows that have already been processed, but that is ok, since we only use streaming list for forward_only queries
       ArrayList<E> list = new ArrayList<>();
 
       for (int i = 0; i < resultNumber - 1; i++) {
@@ -181,7 +181,7 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
       if (prev != null) {
         list.add(prev);
       }
-      for (int i = list.size(); i < resultNumber; i++) {
+      if (list.size() < resultNumber) {
         list.add(null);
       }
       while (hasNext()) {

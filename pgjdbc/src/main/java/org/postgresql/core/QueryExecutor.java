@@ -130,7 +130,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_READ_ONLY_HINT = 2048;
 
   /**
-   * Flag indicating to delay processing of rows.
+   * Flag indicating avoid buffering of rows when possible.
+   * If used the the onFinished handler must be provided to the executor.
    */
   int QUERY_STREAM_ROWS = 4096;
 
@@ -546,5 +547,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    */
   void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor);
 
+  /**
+   * Finishes protocol parsing of an ongoing streaming ResultSet and prepares the connection for
+   * next command. No-op if protocol is already in ready state.
+   *
+   * @param buffer True if the unprocessed rows should be buffered. False if they should be ignored.
+   * @throws SQLException If server or protocol error occurs.
+   */
   void finishReadingPendingProtocolEvents(boolean buffer) throws SQLException;
 }
