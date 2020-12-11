@@ -145,7 +145,7 @@ public class LoginTimeoutTest {
 
       // This is a pretty crude check, but should help distinguish
       // "can't connect" from "timed out".
-      long startTime = System.currentTimeMillis();
+      long startTime = System.nanoTime();
       Connection conn = null;
       try {
         conn = DriverManager.getConnection(url, props);
@@ -158,8 +158,8 @@ public class LoginTimeoutTest {
         }
       }
 
-      long endTime = System.currentTimeMillis();
-      assertTrue(endTime > startTime + 2500);
+      long endTime = System.nanoTime();
+      assertTrue("Connection timed before 2500ms",endTime > startTime + (2500L * 1E6));
     } finally {
       helper.kill();
     }

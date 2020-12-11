@@ -952,6 +952,21 @@ public class TestUtil {
   }
 
   /**
+   * Execute a SQL query with a given connection, fetch the first row, and return its
+   * string value.
+   */
+  public static String queryForString(Connection conn, String sql) throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery(sql);
+    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    String value = rs.getString(1);
+    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    rs.close();
+    stmt.close();
+    return value;
+  }
+
+  /**
    * Retrieve the backend process id for a given connection.
    */
   public static int getBackendPid(Connection conn) throws SQLException {

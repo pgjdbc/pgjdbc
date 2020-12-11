@@ -86,6 +86,8 @@ public interface TypeInfo {
 
   Iterator<String> getPGTypeNamesWithSQLTypes();
 
+  Iterator<Integer> getPGTypeOidsWithSQLTypes();
+
   @Nullable Class<? extends PGobject> getPGobject(String type);
 
   String getJavaClass(int oid) throws SQLException;
@@ -123,5 +125,14 @@ public interface TypeInfo {
    * @see #getPGTypeNamesWithSQLTypes()
    * @see #getSQLType(String)
    */
-  void forEachSQLType(BiConsumer<? super String, ? super Integer> action);
+  void forEachSQLNameType(BiConsumer<? super String, ? super Integer> action);
+
+  /**
+   * Calls <i>action</i> for every known pgTypeOid with the {@link java.sql.Types sql type}.
+   * @param action Action to be called with each known pair. <b>MUST NOT</b> call any function which re-enters
+   * this instance.
+   * @see #getPGTypeOidsWithSQLTypes()
+   * @see #getSQLType(int)
+   */
+  void forEachSQLOidType(BiConsumer<? super Integer, ? super Integer> action);
 }

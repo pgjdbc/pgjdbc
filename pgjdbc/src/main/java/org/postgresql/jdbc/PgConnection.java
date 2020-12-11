@@ -1431,7 +1431,6 @@ public class PgConnection implements BaseConnection {
           if (checkConnectionQuery == null) {
             checkConnectionQuery = prepareStatement("");
           }
-          checkConnectionQuery.setQueryTimeout(timeout);
           checkConnectionQuery.executeUpdate();
         }
         return true;
@@ -1795,6 +1794,16 @@ public class PgConnection implements BaseConnection {
   @Override
   public final @Nullable String getParameterStatus(String parameterName) {
     return queryExecutor.getParameterStatus(parameterName);
+  }
+
+  @Override
+  public boolean getAdaptiveFetch() {
+    return queryExecutor.getAdaptiveFetch();
+  }
+
+  @Override
+  public void setAdaptiveFetch(boolean adaptiveFetch) {
+    queryExecutor.setAdaptiveFetch(adaptiveFetch);
   }
 
   @Override

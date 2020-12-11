@@ -1550,6 +1550,31 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.MAX_RESULT_BUFFER.set(properties, maxResultBuffer);
   }
 
+  public boolean getAdaptiveFetch() {
+    return PGProperty.ADAPTIVE_FETCH.getBoolean(properties);
+  }
+
+  public void setAdaptiveFetch(boolean adaptiveFetch) {
+    PGProperty.ADAPTIVE_FETCH.set(properties, adaptiveFetch);
+  }
+
+  public int getAdaptiveFetchMaximum() {
+    return PGProperty.ADAPTIVE_FETCH_MAXIMUM.getIntNoCheck(properties);
+  }
+
+  public void setAdaptiveFetchMaximum(int adaptiveFetchMaximum) {
+    PGProperty.ADAPTIVE_FETCH_MAXIMUM.set(properties, adaptiveFetchMaximum);
+  }
+
+  public int getAdaptiveFetchMinimum() {
+    return PGProperty.ADAPTIVE_FETCH_MINIMUM.getIntNoCheck(properties);
+  }
+
+  public void setAdaptiveFetchMinimum(int adaptiveFetchMinimum) {
+    PGProperty.ADAPTIVE_FETCH_MINIMUM.set(properties, adaptiveFetchMinimum);
+  }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");

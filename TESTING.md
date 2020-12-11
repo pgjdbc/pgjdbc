@@ -30,10 +30,18 @@ loss of data. We recommend you assign the following names:
 - username: test
 - password: test
 
+- The test user must have `CREATE` privilege on the test database.
+- There must be a superuser named postgres.
+- The test user must have the `REPLICATION` attribute.
+- The test PostgreSQL instance must be started with `wal_level = logical`.
+
 If you have chosen other names you need to
 create a file named `$JDBC_SRC/build.local.properties` and add your
 customized values of the properties `database`, `username` and
 `password`.
+
+The test suite requires that you have the `contrib/lo` and `contrib/test_decoding` modules
+installed.
 
 If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
 
@@ -42,7 +50,7 @@ If you have Docker, you can use `docker-compose` to launch test database (see [d
     # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
     docker-compose down && docker-compose up
 
-    # Launch PostgreSQL 9.6, with XA, without SSL
+    # Launch PostgreSQL 13, with XA, without SSL
     docker-compose down && SSL=no XA=yes docker-compose up
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
