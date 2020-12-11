@@ -35,7 +35,7 @@ import java.util.TimeZone;
  * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
  * {@link #createQuery(String, boolean, boolean, String...)})
  * <li>execution methods for created Query objects (
- * {@link #execute(Query, ParameterList, ResultHandler, int, int, int, Runnable)} for single queries and
+ * {@link #execute(Query, ParameterList, ResultHandler, int, int, int, boolean, Runnable)} for single queries and
  * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
  * <li>a fastpath call interface ({@link #createFastpathParameters} and {@link #fastpathCall}).
  * </ul>

@@ -2186,6 +2186,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *
    * @param handler The handler to feed the status and results
    * @param flags Query flags
+   * @param adaptiveFetch state of adaptiveFetch to use during execution
    * @param onFinished Callback that is invoked when streming query processing ends, can be null if
    *     flags does not have {@link QueryExecutor#QUERY_STREAM_ROWS}
    * @param onIOError Callback that is invoked when an IOExceptio occurs while processing streaming
