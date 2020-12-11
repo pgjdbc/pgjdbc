@@ -121,7 +121,7 @@ public interface TypeInfo {
   /**
    * Calls <i>action</i> for every known pgTypeName with the {@link java.sql.Types sql type}.
    * @param action Action to be called with each known pair. <b>MUST NOT</b> call any function which re-enters
-   * this instance.
+   *        this instance.
    * @see #getPGTypeNamesWithSQLTypes()
    * @see #getSQLType(String)
    */
@@ -130,7 +130,7 @@ public interface TypeInfo {
   /**
    * Calls <i>action</i> for every known pgTypeOid with the {@link java.sql.Types sql type}.
    * @param action Action to be called with each known pair. <b>MUST NOT</b> call any function which re-enters
-   * this instance.
+   *        this instance.
    * @see #getPGTypeOidsWithSQLTypes()
    * @see #getSQLType(int)
    */
