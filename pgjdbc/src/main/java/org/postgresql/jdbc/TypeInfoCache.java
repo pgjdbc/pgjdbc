@@ -139,17 +139,25 @@ public class TypeInfoCache implements TypeInfo {
     arrayOidToDelimiter = new HashMap<Integer, Character>(2 * initMapSize);
     oidToSQLType = new HashMap<Integer, Integer>(2 * initMapSize);
 
-    for (Object[] type : types) {
-      String pgTypeName = (String) type[0];
-      Integer oid = (Integer) type[1];
-      Integer sqlType = (Integer) type[2];
-      String javaClass = (String) type[3];
-      Integer arrayOid = (Integer) type[4];
+    //this /should/ not be needed as references to this instance are not leaked out
+    //in the constructor. however, it is inexpensive and potentially prevents future
+    //problems
+    final long stamp = lock.writeLock();
+    try {
+      for (Object[] type : types) {
+        String pgTypeName = (String) type[0];
+        Integer oid = (Integer) type[1];
+        Integer sqlType = (Integer) type[2];
+        String javaClass = (String) type[3];
+        Integer arrayOid = (Integer) type[4];
 
-      addCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
+        innerAddCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
+      }
+
+      pgNameToJavaClass.put("hstore", Map.class.getName());
+    } finally {
+      lock.unlockWrite(stamp);
     }
-
-    pgNameToJavaClass.put("hstore", Map.class.getName());
   }
 
   @Override
@@ -157,35 +165,44 @@ public class TypeInfoCache implements TypeInfo {
       String javaClass, Integer arrayOid) {
     final long stamp = lock.writeLock();
     try {
-      pgNameToJavaClass.put(pgTypeName, javaClass);
-      pgNameToOid.put(pgTypeName, oid);
-      oidToPgName.put(oid, pgTypeName);
-      pgArrayToPgType.put(arrayOid, oid);
-      pgNameToSQLType.put(pgTypeName, sqlType);
-      oidToSQLType.put(oid, sqlType);
-
-      // Currently we hardcode all core types array delimiter
-      // to a comma. In a stock install the only exception is
-      // the box datatype and it's not a JDBC core type.
-      //
-      final Character delim = ',';
-      arrayOidToDelimiter.put(oid, delim);
-      arrayOidToDelimiter.put(arrayOid, delim);
-
-      String pgArrayTypeName = pgTypeName + "[]";
-      pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
-      pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
-      oidToSQLType.put(arrayOid, Types.ARRAY);
-      pgNameToOid.put(pgArrayTypeName, arrayOid);
-      pgArrayTypeName = "_" + pgTypeName;
-      if (!pgNameToJavaClass.containsKey(pgArrayTypeName)) {
-        pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
-        pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
-        pgNameToOid.put(pgArrayTypeName, arrayOid);
-        oidToPgName.put(arrayOid, pgArrayTypeName);
-      }
+      innerAddCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
     } finally {
       lock.unlockWrite(stamp);
+    }
+  }
+
+  /**
+   * Does the work of {@link #addCoreType(String, Integer, Integer, String, Integer)}, but expecting
+   * any necessary locking/synchronization to be managed externally.
+   */
+  private void innerAddCoreType(String pgTypeName, Integer oid, Integer sqlType,
+      String javaClass, Integer arrayOid) {
+    pgNameToJavaClass.put(pgTypeName, javaClass);
+    pgNameToOid.put(pgTypeName, oid);
+    oidToPgName.put(oid, pgTypeName);
+    pgArrayToPgType.put(arrayOid, oid);
+    pgNameToSQLType.put(pgTypeName, sqlType);
+    oidToSQLType.put(oid, sqlType);
+
+    // Currently we hardcode all core types array delimiter
+    // to a comma. In a stock install the only exception is
+    // the box datatype and it's not a JDBC core type.
+    //
+    final Character delim = ',';
+    arrayOidToDelimiter.put(oid, delim);
+    arrayOidToDelimiter.put(arrayOid, delim);
+
+    String pgArrayTypeName = pgTypeName + "[]";
+    pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
+    pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+    oidToSQLType.put(arrayOid, Types.ARRAY);
+    pgNameToOid.put(pgArrayTypeName, arrayOid);
+    pgArrayTypeName = "_" + pgTypeName;
+    if (!pgNameToJavaClass.containsKey(pgArrayTypeName)) {
+      pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
+      pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+      pgNameToOid.put(pgArrayTypeName, arrayOid);
+      oidToPgName.put(arrayOid, pgArrayTypeName);
     }
   }
 
