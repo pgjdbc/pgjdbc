@@ -41,12 +41,12 @@ import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
+import org.postgresql.util.NullableSupplier;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.StreamingList;
-import org.postgresql.util.Supplier;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -344,29 +344,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           final ResultHandler handler0 = handler;
           final int flags0 = flags;
           final boolean autosave0 = autosave;
-          final SQLThrowingRunnable onFinished0 = onFinished = new SQLThrowingRunnable() {
-            @Override
-            public void run() throws SQLException {
-              try {
-                QueryExecutorImpl.this.processResultsCleanup(handler0, flags0, autosave0);
-              } finally {
-                finallyHandler.run();
-              }
+          final SQLThrowingRunnable onFinished0 = onFinished = () -> {
+            try {
+              QueryExecutorImpl.this.processResultsCleanup(handler0, flags0, autosave0);
+            } finally {
+              finallyHandler.run();
             }
           };
-          onIOError = new Consumer<IOException>() {
-            @Override
-            public void accept(IOException e) {
+          onIOError = e -> {
+            try {
+              QueryExecutorImpl.this.handleIoError(handler0, e);
               try {
-                QueryExecutorImpl.this.handleIoError(handler0, e);
-                try {
-                  onFinished0.run();
-                } catch (SQLException ex) {
-                  throw new SQLRuntimeException(ex);
-                }
-              } finally {
-                finallyHandler.run();
+                onFinished0.run();
+              } catch (SQLException ex) {
+                throw new SQLRuntimeException(ex);
               }
+            } finally {
+              finallyHandler.run();
             }
           };
         }
@@ -2715,7 +2709,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private List<Tuple> createTupleList(final ProcessState state) {
     if (state.streamRows) {
-      return new StreamingList<>(new Supplier<Tuple>() {
+      return new StreamingList<>(new NullableSupplier<Tuple>() {
         @Override
         public @Nullable Tuple get() {
           return QueryExecutorImpl.this.processStreamedResultsImpl(state);

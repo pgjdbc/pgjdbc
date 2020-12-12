@@ -475,7 +475,6 @@ public class GeneratedKeysTest extends BaseTest4 {
         break;
       default:
         s.execute(sql, returningInQuery.columns);
-
     }
     ResultSet rs = s.getResultSet();
     assertNotNull("SELECT statement should return results via getResultSet, not getGeneratedKeys", rs);

@@ -5,6 +5,7 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractSequentialList;
@@ -28,10 +29,10 @@ import java.util.NoSuchElementException;
 public class StreamingList<E> extends AbstractSequentialList<E> {
   private final DynamicListIterator<E> listIterator;
   private boolean firstTime;
-  private @Nullable ArrayList<E> buffer;
+  private @MonotonicNonNull ArrayList<E> buffer;
 
-  public StreamingList(Supplier<E> supplier) {
-    listIterator = new DynamicListIterator<E>(supplier);
+  public StreamingList(NullableSupplier<E> supplier) {
+    listIterator = new DynamicListIterator<>(supplier);
   }
 
   @Override
@@ -116,13 +117,13 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
   }
 
   static class DynamicListIterator<E> implements ListIterator<E> {
-    private final Supplier<E> supplier;
+    private final NullableSupplier<E> supplier;
     private @Nullable E prev;
     private @Nullable E next;
     private boolean end;
     private int resultNumber = -1;
 
-    DynamicListIterator(Supplier<E> supplier) {
+    DynamicListIterator(NullableSupplier<E> supplier) {
       this.supplier = supplier;
     }
 
@@ -178,11 +179,8 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
       for (int i = 0; i < resultNumber - 1; i++) {
         list.add(null);
       }
-      if (prev != null) {
-        list.add(prev);
-      }
       if (list.size() < resultNumber) {
-        list.add(null);
+        list.add(prev);
       }
       while (hasNext()) {
         list.add(next());

@@ -499,12 +499,7 @@ public class PgStatement implements Statement, BaseStatement {
     try {
       startTimer();
       if (!connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
-          fetchSize, flags, adaptiveFetch, new Runnable() {
-            @Override
-            public void run() {
-              PgStatement.this.killTimerTask();
-            }
-          })) {
+          fetchSize, flags, adaptiveFetch, PgStatement.this::killTimerTask)) {
         streamingResults = true;
       }
     } finally {
