@@ -1224,7 +1224,12 @@ public class PgConnection implements BaseConnection {
     Timer cancelTimer = cancelTimerRef.get();
     if (cancelTimer == null) {
       cancelTimer = SharedTimer.getSharedInstance().getTimer();
-      cancelTimerRef.set(cancelTimer);
+      //if another thread has concurrent populated this instance, then we need to "release"
+      //the timer to keep the SharedTimer's ref count accurate, as we are logically only
+      //keeping one reference from this instance (released at close)
+      if (!cancelTimerRef.compareAndSet(null, cancelTimer)) {
+        SharedTimer.getSharedInstance().releaseTimer();
+      }
     }
     return cancelTimer;
   }
