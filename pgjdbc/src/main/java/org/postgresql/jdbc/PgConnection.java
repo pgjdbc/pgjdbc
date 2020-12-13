@@ -92,6 +92,23 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
+  private static final Map<String, Class<? extends PGobject>> DEFAULT_TYPE_MAPPINGS;
+
+  static {
+    final Map<String, Class<? extends PGobject>> mappings = new HashMap<>(13);
+
+    mappings.put("box", org.postgresql.geometric.PGbox.class);
+    mappings.put("circle", org.postgresql.geometric.PGcircle.class);
+    mappings.put("line", org.postgresql.geometric.PGline.class);
+    mappings.put("lseg", org.postgresql.geometric.PGlseg.class);
+    mappings.put("path", org.postgresql.geometric.PGpath.class);
+    mappings.put("point", org.postgresql.geometric.PGpoint.class);
+    mappings.put("polygon", org.postgresql.geometric.PGpolygon.class);
+    mappings.put("money", org.postgresql.util.PGmoney.class);
+    mappings.put("interval", org.postgresql.util.PGInterval.class);
+    DEFAULT_TYPE_MAPPINGS = mappings;
+  }
+
   private enum ReadOnlyBehavior {
     ignore,
     transaction,
@@ -702,15 +719,7 @@ public class PgConnection implements BaseConnection {
   private void initObjectTypes(Properties info) throws SQLException {
     // Add in the types that come packaged with the driver.
     // These can be overridden later if desired.
-    addDataType("box", org.postgresql.geometric.PGbox.class);
-    addDataType("circle", org.postgresql.geometric.PGcircle.class);
-    addDataType("line", org.postgresql.geometric.PGline.class);
-    addDataType("lseg", org.postgresql.geometric.PGlseg.class);
-    addDataType("path", org.postgresql.geometric.PGpath.class);
-    addDataType("point", org.postgresql.geometric.PGpoint.class);
-    addDataType("polygon", org.postgresql.geometric.PGpolygon.class);
-    addDataType("money", org.postgresql.util.PGmoney.class);
-    addDataType("interval", org.postgresql.util.PGInterval.class);
+    typeCache.addAllDataTypes(DEFAULT_TYPE_MAPPINGS);
 
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {

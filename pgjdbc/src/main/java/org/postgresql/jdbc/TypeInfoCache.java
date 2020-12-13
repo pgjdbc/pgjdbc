@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
@@ -55,9 +57,6 @@ public class TypeInfoCache implements TypeInfo {
     // pgname (String) -> oid (Integer)
     final Map<String, Integer> pgNameToOid;
 
-    // pgname (String) -> extension pgobject (Class)
-    final Map<String, Class<? extends PGobject>> pgNameToPgObject;
-
     // type array oid -> base type's oid
     final Map<Integer, Integer> pgArrayToPgType;
 
@@ -65,18 +64,25 @@ public class TypeInfoCache implements TypeInfo {
     final Map<Integer, Character> arrayOidToDelimiter;
 
     TypeMaps(int size) {
-      pgNameToSQLType = new HashMap<>(size);
-      oidToSQLType = new HashMap<>(size);
-      pgNameToJavaClass = new HashMap<>(size);
-      oidToPgName = new HashMap<>(size);
-      pgNameToOid = new HashMap<>(size);
-      pgNameToPgObject = new HashMap<>(size);
-      pgArrayToPgType = new HashMap<>(size);
-      arrayOidToDelimiter = new HashMap<>(size);
+      final int adjustedSize = (int) ((size / .75) + 1);
+
+      //1 entry for every type
+      pgArrayToPgType = new HashMap<>(adjustedSize);
+
+      //2 entries per type
+      oidToSQLType = new HashMap<>(2 * adjustedSize);
+      oidToPgName = new HashMap<>(2 * adjustedSize);
+      arrayOidToDelimiter = new HashMap<>(2 * adjustedSize);
+
+      //3 entries per type
+      pgNameToSQLType = new HashMap<>(3 * adjustedSize);
+      pgNameToOid = new HashMap<>(3 * size);
+      // plus the hstore entry
+      pgNameToJavaClass = new HashMap<>((3 * size) + 2);
     }
   }
 
-  private static final TypeMaps DEFAULT_TYPES = new TypeMaps(24 * 3);
+  private static final TypeMaps DEFAULT_TYPES = new TypeMaps(24);
 
   static {
     innerAddCoreType(DEFAULT_TYPES, "int2", Oid.INT2, Types.SMALLINT, "java.lang.Integer", Oid.INT2_ARRAY);
@@ -126,6 +132,8 @@ public class TypeInfoCache implements TypeInfo {
 
   private final StampedLock lock = new StampedLock();
   private final TypeMaps types = new TypeMaps(4);
+  // pgname (String) -> extension pgobject (Class)
+  private final ConcurrentMap<String, Class<? extends PGobject>> pgNameToPgObject = new ConcurrentHashMap<>(12);
   private final BaseConnection conn;
   private final int unknownLength;
   private @Nullable PreparedStatement getOidStatementSimple;
@@ -195,8 +203,28 @@ public class TypeInfoCache implements TypeInfo {
       throws SQLException {
     final long stamp = lock.writeLock();
     try {
-      types.pgNameToPgObject.put(type, klass);
+      //by setting this inside the write lock we can guarantee that any read of pgNameToPgObject (no lock required)
+      //followed by a read of types.pgNameToJavaClass (protected by read lock), will find corresponding value
+      pgNameToPgObject.put(type, klass);
       types.pgNameToJavaClass.put(type, klass.getName());
+    } finally {
+      lock.unlockWrite(stamp);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void addAllDataTypes(Map<String, Class<? extends PGobject>> mappings) throws SQLException {
+    final long stamp = lock.writeLock();
+    try {
+      //by setting this inside the write lock we can guarantee that any read of pgNameToPgObject (no lock required)
+      //followed by a read of types.pgNameToJavaClass (protected by read lock), will find corresponding value
+      pgNameToPgObject.putAll(mappings);
+      mappings.forEach((type, klass) -> {
+        types.pgNameToJavaClass.put(type, klass.getName());
+      });
     } finally {
       lock.unlockWrite(stamp);
     }
@@ -806,16 +834,7 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public @Nullable Class<? extends PGobject> getPGobject(String type) {
-    Class<? extends PGobject> clazz = DEFAULT_TYPES.pgNameToPgObject.get(type);
-    if (clazz != null) {
-      return clazz;
-    }
-    final long stamp = lock.readLock();
-    try {
-      return types.pgNameToPgObject.get(type);
-    } finally {
-      lock.unlockRead(stamp);
-    }
+    return pgNameToPgObject.get(type);
   }
 
   public String getJavaClass(int oid) throws SQLException {

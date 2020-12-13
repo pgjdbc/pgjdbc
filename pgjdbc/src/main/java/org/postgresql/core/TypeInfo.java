@@ -11,6 +11,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.BiConsumer;
 
 public interface TypeInfo {
@@ -18,6 +19,8 @@ public interface TypeInfo {
       Integer arrayOid);
 
   void addDataType(String type, Class<? extends PGobject> klass) throws SQLException;
+
+  void addAllDataTypes(Map<String, Class<? extends PGobject>> mappings) throws SQLException;
 
   /**
    * Look up the SQL typecode for a given type oid.
