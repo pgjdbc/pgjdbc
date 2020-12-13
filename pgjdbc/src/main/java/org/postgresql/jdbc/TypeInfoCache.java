@@ -76,9 +76,9 @@ public class TypeInfoCache implements TypeInfo {
 
       //3 entries per type
       pgNameToSQLType = new HashMap<>(3 * adjustedSize);
-      pgNameToOid = new HashMap<>(3 * size);
+      pgNameToOid = new HashMap<>(3 * adjustedSize);
       // plus the hstore entry
-      pgNameToJavaClass = new HashMap<>((3 * size) + 2);
+      pgNameToJavaClass = new HashMap<>((3 * adjustedSize) + 2);
     }
   }
 
