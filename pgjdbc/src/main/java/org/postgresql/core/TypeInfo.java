@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.IntBiConsumer;
 import org.postgresql.util.PGobject;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -14,21 +15,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 public interface TypeInfo {
-  /**
-   * Represents an operation which takes two {@code int} operations and returns no result.
-   *
-   * @see java.util.function.BiConsumer
-   */
-  public static interface IntBiConsumer {
-
-    /**
-     * Performs this operation on the given arguments.
-     *
-     * @param t the first input argument
-     * @param u the second input argument
-     */
-    public void accept (int t, int u);
-  }
 
   void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass,
       Integer arrayOid);
