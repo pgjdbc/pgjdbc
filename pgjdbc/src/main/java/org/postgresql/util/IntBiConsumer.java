@@ -8,16 +8,16 @@ package org.postgresql.util;
 /**
  * Represents an operation which takes two {@code int} operations and returns no result.
  *
- * @see java.util.function.BiConsumer
  * @author Brett Okken
+ * @see java.util.function.BiConsumer
  */
 public interface IntBiConsumer {
 
- /**
-  * Performs this operation on the given arguments.
-  *
-  * @param t the first input argument
-  * @param u the second input argument
-  */
+  /**
+   * Performs this operation on the given arguments.
+   *
+   * @param t the first input argument
+   * @param u the second input argument
+   */
   void accept(int t, int u);
 }
