@@ -12,9 +12,24 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 public interface TypeInfo {
+  /**
+   * Represents an operation which takes two {@code int} operations and returns no result.
+   *
+   * @see java.util.function.BiConsumer
+   */
+  public static interface IntBiConsumer {
+
+    /**
+     * Performs this operation on the given arguments.
+     *
+     * @param t the first input argument
+     * @param u the second input argument
+     */
+    public void accept (int t, int u);
+  }
+
   void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass,
       Integer arrayOid);
 
@@ -122,20 +137,11 @@ public interface TypeInfo {
   boolean requiresQuotingSqlType(int sqlType) throws SQLException;
 
   /**
-   * Calls <i>action</i> for every known pgTypeName with the {@link java.sql.Types sql type}.
-   * @param action Action to be called with each known pair. <b>MUST NOT</b> call any function which re-enters
-   *        this instance.
-   * @see #getPGTypeNamesWithSQLTypes()
-   * @see #getSQLType(String)
-   */
-  void forEachSQLNameType(BiConsumer<? super String, ? super Integer> action);
-
-  /**
    * Calls <i>action</i> for every known pgTypeOid with the {@link java.sql.Types sql type}.
    * @param action Action to be called with each known pair. <b>MUST NOT</b> call any function which re-enters
    *        this instance.
    * @see #getPGTypeOidsWithSQLTypes()
    * @see #getSQLType(int)
    */
-  void forEachSQLOidType(BiConsumer<? super Integer, ? super Integer> action);
+  void forEachSQLOidType(IntBiConsumer action);
 }

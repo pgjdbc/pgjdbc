@@ -253,19 +253,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   @Override
-  public void forEachSQLNameType(BiConsumer<? super String, ? super Integer> action) {
-
-    DEFAULT_TYPES.pgNameToSQLType.forEach(action);
-
-    final long stamp = lock.readLock();
-    try {
-      types.pgNameToSQLType.forEach(action);
-    } finally {
-      lock.unlockRead(stamp);
-    }
-  }
-
-  @Override
   public Iterator<Integer> getPGTypeOidsWithSQLTypes() {
     Collection<Integer> oids = DEFAULT_TYPES.oidToSQLType.keySet();
     final long stamp = lock.readLock();
@@ -289,11 +276,12 @@ public class TypeInfoCache implements TypeInfo {
    * {@inheritDoc}
    */
   @Override
-  public void forEachSQLOidType(BiConsumer<? super Integer, ? super Integer> action) {
-    DEFAULT_TYPES.oidToSQLType.forEach(action);
+  public void forEachSQLOidType(IntBiConsumer action) {
+    final BiConsumer<? super Integer, ? super Integer> mapAction = action::accept;
+    DEFAULT_TYPES.oidToSQLType.forEach(mapAction);
     final long stamp = lock.readLock();
     try {
-      types.oidToSQLType.forEach(action);
+      types.oidToSQLType.forEach(mapAction);
     } finally {
       lock.unlockRead(stamp);
     }
@@ -364,6 +352,8 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
     ResultSet rs = castNonNull(getAllTypeInfoStatement.getResultSet());
+    // it is safe to hold write lock while interacting with result set because all types
+    // come from the default mappings, which do not obtain a read lock to access
     final long stamp = lock.writeLock();
     try {
       while (rs.next()) {
@@ -576,6 +566,8 @@ public class TypeInfoCache implements TypeInfo {
 
     oid = Oid.UNSPECIFIED;
     ResultSet rs = castNonNull(oidStatement.getResultSet());
+    // it is safe to hold write lock while interacting with result set because all types
+    // come from the default mappings, which do not obtain a read lock to access
     stamp = lock.writeLock();
     try {
       if (rs.next()) {
