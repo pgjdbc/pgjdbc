@@ -288,7 +288,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-  private String getSQLTypeQuery(boolean typoidParam) {
+  private static String getSQLTypeQuery(boolean typoidParam) {
     // There's no great way of telling what's an array type.
     // People can name their own types starting with _.
     // Other types use typelem that aren't actually arrays, like box.
@@ -336,6 +336,7 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PreparedStatement prepareGetAllTypeInfoStatement() throws SQLException {
+    assert lock.isWriteLocked();
     PreparedStatement getAllTypeInfoStatement = this.getAllTypeInfoStatement;
     if (getAllTypeInfoStatement == null) {
       getAllTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(false));
@@ -346,17 +347,17 @@ public class TypeInfoCache implements TypeInfo {
 
   public void cacheSQLTypes() throws SQLException {
     LOGGER.log(Level.FINEST, "caching all SQL typecodes");
-    PreparedStatement getAllTypeInfoStatement = prepareGetAllTypeInfoStatement();
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getAllTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-    ResultSet rs = castNonNull(getAllTypeInfoStatement.getResultSet());
     // it is safe to hold write lock while interacting with result set because all types
     // come from the default mappings, which do not obtain a read lock to access
     final long stamp = lock.writeLock();
     try {
+      PreparedStatement getAllTypeInfoStatement = prepareGetAllTypeInfoStatement();
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getAllTypeInfoStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+      ResultSet rs = castNonNull(getAllTypeInfoStatement.getResultSet());
       while (rs.next()) {
         final String typeName = castNonNull(rs.getString("typname"));
         final Integer type = getSQLTypeFromQueryResult(rs);
@@ -368,13 +369,14 @@ public class TypeInfoCache implements TypeInfo {
           types.oidToSQLType.putIfAbsent(typeOid, type);
         }
       }
+      rs.close();
     } finally {
       lock.unlockWrite(stamp);
     }
-    rs.close();
   }
 
   private PreparedStatement prepareGetTypeInfoStatement() throws SQLException {
+    assert lock.isWriteLocked();
     PreparedStatement getTypeInfoStatement = this.getTypeInfoStatement;
     if (getTypeInfoStatement == null) {
       getTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(true));
@@ -383,10 +385,12 @@ public class TypeInfoCache implements TypeInfo {
     return getTypeInfoStatement;
   }
 
+  @Override
   public int getSQLType(String pgTypeName) throws SQLException {
     return getSQLType(castNonNull(getPGType(pgTypeName)));
   }
 
+  @Override
   public int getSQLType(int typeOid) throws SQLException {
     if (typeOid == Oid.UNSPECIFIED) {
       return Types.OTHER;
@@ -410,34 +414,35 @@ public class TypeInfoCache implements TypeInfo {
 
     LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", key);
 
-    PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
-
-    getTypeInfoStatement.setInt(1, typeOid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
-
-    int sqlType = Types.OTHER;
-    if (rs.next()) {
-      sqlType = getSQLTypeFromQueryResult(rs);
-    }
-    rs.close();
-
     stamp = lock.writeLock();
     try {
+      PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
+
+      getTypeInfoStatement.setInt(1, typeOid);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getTypeInfoStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
+
+      int sqlType = Types.OTHER;
+      if (rs.next()) {
+        sqlType = getSQLTypeFromQueryResult(rs);
+      }
+      rs.close();
+
       types.oidToSQLType.put(key, sqlType);
+      return sqlType;
     } finally {
       lock.unlockWrite(stamp);
     }
-    return sqlType;
   }
 
   private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
+    assert lock.isWriteLocked();
     boolean isArray = pgTypeName.endsWith("[]");
     boolean hasQuote = pgTypeName.contains("\"");
     int dotIndex = pgTypeName.indexOf('.');
@@ -543,6 +548,7 @@ public class TypeInfoCache implements TypeInfo {
     return oidStatementComplex;
   }
 
+  @Override
   public int getPGType(String pgTypeName) throws SQLException {
     Integer oid = DEFAULT_TYPES.pgNameToOid.get(pgTypeName);
     if (oid != null) {
@@ -558,19 +564,19 @@ public class TypeInfoCache implements TypeInfo {
       return oid;
     }
 
-    PreparedStatement oidStatement = getOidStatement(pgTypeName);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    oid = Oid.UNSPECIFIED;
-    ResultSet rs = castNonNull(oidStatement.getResultSet());
     // it is safe to hold write lock while interacting with result set because all types
     // come from the default mappings, which do not obtain a read lock to access
     stamp = lock.writeLock();
     try {
+      PreparedStatement oidStatement = getOidStatement(pgTypeName);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      oid = Oid.UNSPECIFIED;
+      ResultSet rs = castNonNull(oidStatement.getResultSet());
       if (rs.next()) {
         oid = (int) rs.getLong(1);
         String internalName = castNonNull(rs.getString(2));
@@ -578,14 +584,15 @@ public class TypeInfoCache implements TypeInfo {
         types.pgNameToOid.put(internalName, oid);
       }
       types.pgNameToOid.put(pgTypeName, oid);
+      rs.close();
     } finally {
       lock.unlockWrite(stamp);
     }
-    rs.close();
 
     return oid;
   }
 
+  @Override
   public @Nullable String getPGType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       // TODO: it would be great to forbid UNSPECIFIED argument, and make the return type non-nullable
@@ -608,22 +615,22 @@ public class TypeInfoCache implements TypeInfo {
       return pgTypeName;
     }
 
-    PreparedStatement getNameStatement = prepareGetNameStatement();
+    stamp = lock.writeLock();
+    try {
+      PreparedStatement getNameStatement = prepareGetNameStatement();
 
-    getNameStatement.setInt(1, oid);
+      getNameStatement.setInt(1, oid);
 
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
 
-    ResultSet rs = castNonNull(getNameStatement.getResultSet());
-    if (rs.next()) {
-      boolean onPath = rs.getBoolean(1);
-      String schema = castNonNull(rs.getString(2), "schema");
-      String name = castNonNull(rs.getString(3), "name");
-      stamp = lock.writeLock();
-      try {
+      ResultSet rs = castNonNull(getNameStatement.getResultSet());
+      if (rs.next()) {
+        boolean onPath = rs.getBoolean(1);
+        String schema = castNonNull(rs.getString(2), "schema");
+        String name = castNonNull(rs.getString(3), "name");
         if (onPath) {
           pgTypeName = name;
           types.pgNameToOid.put(schema + "." + name, key);
@@ -639,16 +646,17 @@ public class TypeInfoCache implements TypeInfo {
         }
         types.pgNameToOid.put(pgTypeName, key);
         types.oidToPgName.put(key, pgTypeName);
-      } finally {
-        lock.unlockWrite(stamp);
       }
+      rs.close();
+    } finally {
+      lock.unlockWrite(stamp);
     }
-    rs.close();
 
     return pgTypeName;
   }
 
   private PreparedStatement prepareGetNameStatement() throws SQLException {
+    assert lock.isWriteLocked();
     PreparedStatement getNameStatement = this.getNameStatement;
     if (getNameStatement == null) {
       String sql;
@@ -661,6 +669,7 @@ public class TypeInfoCache implements TypeInfo {
     return getNameStatement;
   }
 
+  @Override
   public int getPGArrayType(String elementTypeName) throws SQLException {
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
@@ -690,6 +699,7 @@ public class TypeInfoCache implements TypeInfo {
     return i != null ? i : oid;
   }
 
+  @Override
   public char getArrayDelimiter(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return ',';
@@ -711,37 +721,37 @@ public class TypeInfoCache implements TypeInfo {
       return delim;
     }
 
-    PreparedStatement getArrayDelimiterStatement = prepareGetArrayDelimiterStatement();
-
-    getArrayDelimiterStatement.setInt(1, oid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getArrayDelimiterStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
-    if (!rs.next()) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    String s = castNonNull(rs.getString(1));
-    delim = s.charAt(0);
-
     stamp = lock.writeLock();
     try {
+      PreparedStatement getArrayDelimiterStatement = prepareGetArrayDelimiterStatement();
+
+      getArrayDelimiterStatement.setInt(1, oid);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getArrayDelimiterStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
+      if (!rs.next()) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      String s = castNonNull(rs.getString(1));
+      delim = s.charAt(0);
+
       types.arrayOidToDelimiter.put(key, delim);
+      rs.close();
     } finally {
       lock.unlockWrite(stamp);
     }
-
-    rs.close();
 
     return delim;
   }
 
   private PreparedStatement prepareGetArrayDelimiterStatement() throws SQLException {
+    assert lock.isWriteLocked();
     PreparedStatement getArrayDelimiterStatement = this.getArrayDelimiterStatement;
     if (getArrayDelimiterStatement == null) {
       String sql;
@@ -774,27 +784,27 @@ public class TypeInfoCache implements TypeInfo {
       return pgType;
     }
 
-    PreparedStatement getArrayElementOidStatement = prepareGetArrayElementOidStatement();
-
-    getArrayElementOidStatement.setInt(1, oid);
-
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getArrayElementOidStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
-    if (!rs.next()) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-
-    pgType = (int) rs.getLong(1);
-    boolean onPath = rs.getBoolean(2);
-    String schema = rs.getString(3);
-    String name = castNonNull(rs.getString(4));
     stamp = lock.writeLock();
     try {
+      PreparedStatement getArrayElementOidStatement = prepareGetArrayElementOidStatement();
+
+      getArrayElementOidStatement.setInt(1, oid);
+
+      // Go through BaseStatement to avoid transaction start.
+      if (!((BaseStatement) getArrayElementOidStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
+      if (!rs.next()) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      pgType = (int) rs.getLong(1);
+      boolean onPath = rs.getBoolean(2);
+      String schema = rs.getString(3);
+      String name = castNonNull(rs.getString(4));
       types.pgArrayToPgType.put(key, pgType);
       types.pgNameToOid.put(schema + "." + name, pgType);
       String fullName = "\"" + schema + "\".\"" + name + "\"";
@@ -805,16 +815,16 @@ public class TypeInfoCache implements TypeInfo {
       } else {
         types.oidToPgName.put(pgType, fullName);
       }
+      rs.close();
     } finally {
       lock.unlockWrite(stamp);
     }
-
-    rs.close();
 
     return pgType;
   }
 
   private PreparedStatement prepareGetArrayElementOidStatement() throws SQLException {
+    assert lock.isWriteLocked();
     PreparedStatement getArrayElementOidStatement = this.getArrayElementOidStatement;
     if (getArrayElementOidStatement == null) {
       String sql;
