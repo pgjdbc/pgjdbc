@@ -35,6 +35,7 @@ public class DatabaseMetaDataCacheTest {
   private Level driverLogLevel;
 
   private static final Pattern SQL_TYPE_QUERY_LOG_FILTER = Pattern.compile("querying SQL typecode for pg type");
+  private static final Pattern PG_TYPE_QUERY_LOG_FILTER = Pattern.compile("querying type info for pg type name");
   private static final Pattern SQL_TYPE_CACHE_LOG_FILTER = Pattern.compile("caching all SQL typecodes");
 
   @Before
@@ -61,13 +62,19 @@ public class DatabaseMetaDataCacheTest {
 
     List<LogRecord> typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
     assertEquals(0, typeQueries.size());
+    typeQueries = log.getRecordsMatching(PG_TYPE_QUERY_LOG_FILTER);
+    assertEquals(0, typeQueries.size());
 
     ti.getSQLType("box");  // this must be a type not in the hardcoded 'types' list
     typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
+    assertEquals(0, typeQueries.size());
+    typeQueries = log.getRecordsMatching(PG_TYPE_QUERY_LOG_FILTER);
     assertEquals(1, typeQueries.size());
 
     ti.getSQLType("box");  // this time it should be retrieved from the cache
     typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
+    assertEquals(0, typeQueries.size());
+    typeQueries = log.getRecordsMatching(PG_TYPE_QUERY_LOG_FILTER);
     assertEquals(1, typeQueries.size());
   }
 
