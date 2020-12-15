@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -106,18 +108,29 @@ public class TypeInfoCache implements TypeInfo {
   /**
    * PG maps several alias to real type names. When we do queries against pg_catalog, we must use
    * the real type, not an alias, so use this mapping.
+   * <p>
+   * Additional values used at runtime (including case variants) will be added to the map.
+   * </p>
    */
-  private static final HashMap<String, String> typeAliases;
+  private static final ConcurrentMap<String, String> TYPE_ALIASES = new ConcurrentHashMap<>(20);
 
   static {
-    typeAliases = new HashMap<String, String>();
-    typeAliases.put("smallint", "int2");
-    typeAliases.put("integer", "int4");
-    typeAliases.put("int", "int4");
-    typeAliases.put("bigint", "int8");
-    typeAliases.put("float", "float8");
-    typeAliases.put("boolean", "bool");
-    typeAliases.put("decimal", "numeric");
+    TYPE_ALIASES.put("bool", "bool");
+    TYPE_ALIASES.put("boolean", "bool");
+    TYPE_ALIASES.put("smallint", "int2");
+    TYPE_ALIASES.put("int2", "int2");
+    TYPE_ALIASES.put("int", "int4");
+    TYPE_ALIASES.put("integer", "int4");
+    TYPE_ALIASES.put("int4", "int4");
+    TYPE_ALIASES.put("long", "int8");
+    TYPE_ALIASES.put("int8", "int8");
+    TYPE_ALIASES.put("bigint", "int8");
+    TYPE_ALIASES.put("float", "float4");
+    TYPE_ALIASES.put("float4", "float4");
+    TYPE_ALIASES.put("double", "float8");
+    TYPE_ALIASES.put("float8", "float8");
+    TYPE_ALIASES.put("decimal", "numeric");
+    TYPE_ALIASES.put("numeric", "numeric");
   }
 
   @SuppressWarnings("method.invocation.invalid")
@@ -666,17 +679,17 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public String getTypeForAlias(String alias) {
-    String type = typeAliases.get(alias);
+    String type = TYPE_ALIASES.get(alias);
     if (type != null) {
       return type;
     }
-    if (alias.indexOf('"') == -1) {
-      type = typeAliases.get(alias.toLowerCase());
-      if (type != null) {
-        return type;
-      }
+    type = TYPE_ALIASES.get(alias.toLowerCase());
+    if (type == null) {
+      type = alias;
     }
-    return alias;
+    //populate for future use
+    TYPE_ALIASES.put(alias, type);
+    return type;
   }
 
   public int getPrecision(int oid, int typmod) {
