@@ -30,6 +30,11 @@ abstract class OptimizedUTF8Encoder extends Encoding {
     decoderArray = new char[1024];
   }
 
+  @Override
+  public final String decodeCanonicalized(byte[] encodedString, int offset, int length) throws IOException {
+    return length != 0 ? INTERNER.getString(encodedString, offset, length, this) : "";
+  }
+
   /**
    * Returns a {@code char[]} to use for decoding. Will use member variable if <i>size</i>
    * is small enough. This method must be called, and returned {@code char[]} only used, from

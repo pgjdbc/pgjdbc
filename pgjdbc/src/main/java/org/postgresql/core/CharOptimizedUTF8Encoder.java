@@ -19,6 +19,6 @@ final class CharOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
    */
   @Override
   public String decode(byte[] encodedString, int offset, int length) throws IOException {
-    return charDecode(encodedString, offset, length);
+    return length > 0 ? charDecode(encodedString, offset, length) : "";
   }
 }
