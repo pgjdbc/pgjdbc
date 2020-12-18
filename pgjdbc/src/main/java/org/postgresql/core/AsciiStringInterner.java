@@ -332,7 +332,10 @@ final class AsciiStringInterner {
       sb.append("', ");
     });
     //replace trailing ', ' with ']';
-    sb.setLength(sb.length() - 2);
+    final int length = sb.length();
+    if (length > 21) {
+      sb.setLength(sb.length() - 2);
+    }
     sb.append(']');
     return sb.toString();
   }

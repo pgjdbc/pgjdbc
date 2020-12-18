@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.AsciiStringInternerTest;
 import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
@@ -49,6 +50,7 @@ import org.junit.runners.Suite;
     ArrayTest.class,
     ArraysTest.class,
     ArraysTestSuite.class,
+    AsciiStringInternerTest.class,
     BatchedInsertReWriteEnabledTest.class,
     BatchExecuteTest.class,
     BatchFailureTest.class,
