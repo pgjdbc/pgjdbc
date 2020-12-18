@@ -5,6 +5,10 @@
 
 package org.postgresql.core;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -45,7 +49,7 @@ final class AsciiStringInterner {
    * Will be {@code null} when the jdk 9 method is not available.
    * </p>
    */
-  private static final MethodHandle ARRAY_EQUALS;
+  private static final @Nullable MethodHandle ARRAY_EQUALS;
 
   static {
     Lookup l = MethodHandles.lookup();
@@ -72,7 +76,7 @@ final class AsciiStringInterner {
     }
 
     @Override
-    public final boolean equals(Object obj) {
+    public final boolean equals(@Nullable Object obj) {
       if (obj == this) {
         return true;
       }
@@ -259,7 +263,7 @@ final class AsciiStringInterner {
       return val != null ? v : new StringReference(key, value, refQueue);
     });
 
-    return ref.get();
+    return castNonNull(ref.get());
   }
 
   /**
