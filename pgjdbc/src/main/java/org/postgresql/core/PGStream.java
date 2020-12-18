@@ -538,6 +538,22 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * Receives a null-terminated string from the backend and attempts to decode to a
+   * {@link Encoding#decodeCanonicalized(byte[], int, int) canonical} {@code String}.
+   * If we don't see a null, then we assume something has gone wrong.
+   *
+   * @return string from back end
+   * @throws IOException if an I/O error occurs, or end of file
+   * @see Encoding#decodeCanonicalized(byte[], int, int)
+   */
+  public String receiveCanonicalString() throws IOException {
+    int len = pgInput.scanCStringLength();
+    String res = encoding.decodeCanonicalized(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
+    pgInput.skip(len);
+    return res;
+  }
+
+  /**
    * Read a tuple from the back end. A tuple is a two dimensional array of bytes. This variant reads
    * the V3 protocol's tuple representation.
    *

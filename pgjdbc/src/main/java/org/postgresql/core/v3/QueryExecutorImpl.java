@@ -84,6 +84,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Field[] NO_FIELDS = new Field[0];
 
+  static {
+    //canonicalize commonly seen strings to reduce memory and speed comparisons
+    Encoding.canonicalize("application_name");
+    Encoding.canonicalize("client_encoding");
+    Encoding.canonicalize("DateStyle");
+    Encoding.canonicalize("integer_datetimes");
+    Encoding.canonicalize("off");
+    Encoding.canonicalize("on");
+    Encoding.canonicalize("server_version");
+    Encoding.canonicalize("server_version_num");
+    Encoding.canonicalize("standard_conforming_strings");
+    Encoding.canonicalize("TimeZone");
+    Encoding.canonicalize("UTF8");
+    Encoding.canonicalize("UTF-8");
+  }
+
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
    */
@@ -2594,7 +2610,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     for (int i = 0; i < fields.length; i++) {
-      String columnLabel = pgStream.receiveString();
+      String columnLabel = pgStream.receiveCanonicalString();
       int tableOid = pgStream.receiveInteger4();
       short positionInTable = (short) pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
@@ -2616,7 +2632,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     assert len > 4 : "Length for AsyncNotify must be at least 4";
 
     int pid = pgStream.receiveInteger4();
-    String msg = pgStream.receiveString();
+    String msg = pgStream.receiveCanonicalString();
     String param = pgStream.receiveString();
     addNotification(new org.postgresql.core.Notification(msg, pid, param));
 
@@ -2781,17 +2797,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
     pgStream.receiveInteger4(); // MESSAGE SIZE
-    String name = pgStream.receiveString();
-    String value = pgStream.receiveString();
+    final String name = pgStream.receiveCanonicalString();
+    final String value = pgStream.receiveCanonicalString();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
     }
 
-    /* Update client-visible parameter status map for getParameterStatuses() */
-    if (name != null && !name.equals("")) {
-      onParameterStatus(name, value);
+    //if the name is empty, there is nothing to do
+    if (name.isEmpty()) {
+      return;
     }
+
+    /* Update client-visible parameter status map for getParameterStatuses() */
+    onParameterStatus(name, value);
 
     if (name.equals("client_encoding")) {
       if (allowEncodingChanges) {
@@ -2808,6 +2827,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             value), PSQLState.CONNECTION_FAILURE);
 
       }
+      return;
     }
 
     if (name.equals("DateStyle") && !value.startsWith("ISO")
