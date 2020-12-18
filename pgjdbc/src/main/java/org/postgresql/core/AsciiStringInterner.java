@@ -171,8 +171,8 @@ final class AsciiStringInterner {
 
     private final BaseKey key;
 
-    StringReference(BaseKey key, String referent, ReferenceQueue<? super String> q) {
-      super(referent, q);
+    StringReference(BaseKey key, String referent) {
+      super(referent, refQueue);
       this.key = key;
     }
 
@@ -189,7 +189,7 @@ final class AsciiStringInterner {
   /**
    * Used for {@link Reference} as values in {@code cache}.
    */
-  private final ReferenceQueue<String> refQueue = new ReferenceQueue<>();
+  final ReferenceQueue<String> refQueue = new ReferenceQueue<>();
 
   /**
    * Preemptively populates a value into the cache. This is intended to be used with {@code String} constants
@@ -257,10 +257,10 @@ final class AsciiStringInterner {
     // handle case where a concurrent thread has populated the map or existing value has cleared reference
     ref = cache.compute(key, (k,v) -> {
       if (v == null) {
-        return new StringReference(key, value, refQueue);
+        return new StringReference(key, value);
       }
       final String val = v.get();
-      return val != null ? v : new StringReference(key, value, refQueue);
+      return val != null ? v : new StringReference(key, value);
     });
 
     return castNonNull(ref.get());

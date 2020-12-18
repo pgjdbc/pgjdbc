@@ -73,7 +73,7 @@ public class AsciiStringInternerTest {
   public void testNonAsciiValue() throws Exception {
     final Encoding encoding = Encoding.getJVMEncoding("UTF-8");
     AsciiStringInterner interner = new AsciiStringInterner();
-    String s1 = "testNonAsciiValue" + '\u03C0';
+    String s1 = "testNonAsciiValue" + '\u03C0'; // add multi-byte to string to make invalid for intern
     byte[] bytes = s1.getBytes(StandardCharsets.UTF_8);
     String interned = interner.getString(bytes, 0, bytes.length, encoding);
 
@@ -101,13 +101,13 @@ public class AsciiStringInternerTest {
   @Test
   public void testGarbageCleaning() throws Exception {
     final byte[] bytes = new byte[100000];
-    for (int i=0; i<100000; ++i) {
+    for (int i = 0; i < 100000; ++i) {
       bytes[i] = (byte) ThreadLocalRandom.current().nextInt(128);
     }
     AsciiStringInterner interner = new AsciiStringInterner();
     final LongAdder length = new LongAdder();
     final Callable<Void> c = () -> {
-      for (int i=0; i<25000; ++i) {
+      for (int i = 0; i < 25000; ++i) {
         String str;
         try {
           str = interner.getString(bytes, 0, ThreadLocalRandom.current().nextInt(1000, bytes.length), null);
