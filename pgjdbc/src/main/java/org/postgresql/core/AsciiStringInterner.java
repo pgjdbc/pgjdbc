@@ -59,10 +59,10 @@ final class AsciiStringInterner {
     ARRAY_EQUALS = method;
   }
 
-  private static abstract class BaseKey {
+  private abstract static class BaseKey {
     private final int hash;
 
-    BaseKey (int hash) {
+    BaseKey(int hash) {
       this.hash = hash;
     }
 
@@ -84,7 +84,9 @@ final class AsciiStringInterner {
     }
 
     abstract boolean equalsBytes(BaseKey other);
+
     abstract boolean equals(byte[] other, int offset, int length);
+
     abstract void appendString(StringBuilder sb);
   }
 
@@ -96,7 +98,7 @@ final class AsciiStringInterner {
     final int offset;
     final int length;
 
-    TempKey (int hash, byte[] bytes, int offset, int length) {
+    TempKey(int hash, byte[] bytes, int offset, int length) {
       super(hash);
       this.bytes = bytes;
       this.offset = offset;
@@ -115,7 +117,7 @@ final class AsciiStringInterner {
 
     @Override
     void appendString(StringBuilder sb) {
-      for (int i=offset,j=offset+length; i<j; ++i) {
+      for (int i = offset, j = offset + length; i < j; ++i) {
         sb.append((char) bytes[i]);
       }
     }
@@ -128,7 +130,7 @@ final class AsciiStringInterner {
   private static final class Key extends BaseKey {
     final byte[] key;
 
-    Key (byte[] key, int hash) {
+    Key(byte[] key, int hash) {
       super(hash);
       this.key = key;
     }
@@ -151,7 +153,7 @@ final class AsciiStringInterner {
      */
     @Override
     void appendString(StringBuilder sb) {
-      for (int i=0; i<key.length; ++i) {
+      for (int i = 0; i < key.length; ++i) {
         sb.append((char) key[i]);
       }
     }
@@ -266,7 +268,7 @@ final class AsciiStringInterner {
    */
   private void cleanQueue() {
     Reference<?> ref;
-    while((ref = refQueue.poll()) != null) {
+    while ((ref = refQueue.poll()) != null) {
       ((StringReference)ref).dispose();
     }
   }
@@ -275,9 +277,9 @@ final class AsciiStringInterner {
    * Generates a hash value for the relevant entries in <i>bytes</i> as long as all values are ascii ({@code >= 0}).
    * @return hash code for relevant bytes, or {@code 0} if non-ascii bytes present.
    */
-  private static final int hashKey(byte[] bytes, int offset, int length) {
+  private static int hashKey(byte[] bytes, int offset, int length) {
     int result = 1;
-    for (int i=offset,j=offset+length; i<j; ++i) {
+    for (int i = offset, j = offset + length; i < j; ++i) {
       final byte b = bytes[i];
       // bytes are signed values. all ascii values are positive
       if (b < 0) {
@@ -305,13 +307,13 @@ final class AsciiStringInterner {
   }
 
   /**
-   * Provides equality check between <i>a</i> and <i>b</b> for jdk 8 runtime.
+   * Provides equality check between <i>a</i> and <i>b</i> for jdk 8 runtime.
    */
   private static boolean legacyEquals(byte[] a, int aOffset, int aLength, byte[] b, int bOffset, int bLength) {
     if (aLength != bLength) {
       return false;
     }
-    for (int i=0; i<aLength; ++i) {
+    for (int i = 0; i < aLength; ++i) {
       if (a[aOffset + i] != b[bOffset + i]) {
         return false;
       }
