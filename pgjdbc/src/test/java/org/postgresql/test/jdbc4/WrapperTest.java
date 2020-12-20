@@ -74,14 +74,16 @@ public class WrapperTest {
   public void testConnectionUnwrapConnection() throws SQLException {
     Object v = conn.unwrap(Connection.class);
     assertNotNull(v);
-    assertTrue(v instanceof Connection);
+    assertTrue("connection.unwrap(PGConnection.class) should return PGConnection instance"
+        + ", actual instance is " + v, v instanceof Connection);
   }
 
   @Test
   public void testConnectionUnwrapPGConnection() throws SQLException {
     Object v = conn.unwrap(PGConnection.class);
     assertNotNull(v);
-    assertTrue(v instanceof PGConnection);
+    assertTrue("connection.unwrap(PGConnection.class) should return PGConnection instance"
+        + ", actual instance is " + v, v instanceof PGConnection);
   }
 
   @Test
@@ -100,17 +102,17 @@ public class WrapperTest {
 
   @Test
   public void testStatementIsWrapperForPrivate() throws SQLException {
-    assertFalse(statement.isWrapperFor(PrivateInterface.class));
+    assertFalse("Should not be a wrapper for PrivateInterface", statement.isWrapperFor(PrivateInterface.class));
   }
 
   @Test
   public void testStatementIsWrapperForStatement() throws SQLException {
-    assertTrue(statement.isWrapperFor(Statement.class));
+    assertTrue("Should be a wrapper for Statement", statement.isWrapperFor(Statement.class));
   }
 
   @Test
   public void testStatementIsWrapperForPGStatement() throws SQLException {
-    assertTrue(statement.isWrapperFor(PGStatement.class));
+    assertTrue("Should be a wrapper for PGStatement", statement.isWrapperFor(PGStatement.class));
   }
 
   @Test
@@ -126,14 +128,14 @@ public class WrapperTest {
   public void testStatementUnwrapStatement() throws SQLException {
     Object v = statement.unwrap(Statement.class);
     assertNotNull(v);
-    assertTrue(v instanceof Statement);
+    assertTrue("Should be instance of Statement, actual instance of " + v, v instanceof Statement);
   }
 
   @Test
   public void testStatementUnwrapPGStatement() throws SQLException {
     Object v = statement.unwrap(PGStatement.class);
     assertNotNull(v);
-    assertTrue(v instanceof PGStatement);
+    assertTrue("Should be instance of PGStatement, actual instance of " + v,v instanceof PGStatement);
   }
 
 }

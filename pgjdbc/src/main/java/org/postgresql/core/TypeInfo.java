@@ -85,6 +85,8 @@ public interface TypeInfo {
 
   Iterator<String> getPGTypeNamesWithSQLTypes();
 
+  Iterator<Integer> getPGTypeOidsWithSQLTypes();
+
   @Nullable Class<? extends PGobject> getPGobject(String type);
 
   String getJavaClass(int oid) throws SQLException;
