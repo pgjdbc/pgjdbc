@@ -213,7 +213,7 @@ class SimpleParameterList implements V3ParameterList {
         case Oid.NUMERIC:
           Number n = ByteConverter.numeric((byte[]) paramValue);
           if (n instanceof Double) {
-            assert n.doubleValue() == Double.NaN;
+            assert ((Double) n).isNaN();
             return "'NaN'::numeric";
           }
           return n.toString();
