@@ -59,9 +59,9 @@ class RecoveredXid implements Xid {
     }
 
     Xid other = (Xid) o;
-    return formatId == other.getFormatId() &&
-        Arrays.equals(globalTransactionId, other.getGlobalTransactionId()) &&
-        Arrays.equals(branchQualifier, other.getBranchQualifier());
+    return formatId == other.getFormatId()
+        && Arrays.equals(globalTransactionId, other.getGlobalTransactionId())
+        && Arrays.equals(branchQualifier, other.getBranchQualifier());
   }
 
   /**
@@ -78,10 +78,10 @@ class RecoveredXid implements Xid {
     final byte[] branchQualifier = xid.getBranchQualifier();
     final StringBuilder sb = new StringBuilder((int) (16 + globalTransactionId.length * 1.5 + branchQualifier.length * 1.5));
     sb.append(xid.getFormatId())
-      .append('_')
-      .append(Base64.getEncoder().encodeToString(globalTransactionId))
-      .append('_')
-      .append(Base64.getEncoder().encodeToString(branchQualifier));
+        .append('_')
+        .append(Base64.getEncoder().encodeToString(globalTransactionId))
+        .append('_')
+        .append(Base64.getEncoder().encodeToString(branchQualifier));
     return sb.toString();
   }
 
