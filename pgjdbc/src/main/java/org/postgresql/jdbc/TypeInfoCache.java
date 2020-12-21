@@ -141,6 +141,15 @@ public class TypeInfoCache implements TypeInfo {
     typeAliases.put("decimal", "numeric");
   }
 
+  /**
+   * Guards access to {@code #types}.
+   *
+   * <p>
+   * As there is rarely actually contention on a {@code TypeInfoCache} instance,
+   * it is counter-productive to obtain a read lock to do a read when, if not present the method will then obtain
+   * a write lock to look up and populate value. In that case, do all of the work with a write lock.
+   * </p>
+   */
   private final StampedLock lock = new StampedLock();
   private final TypeMaps types = new TypeMaps(4);
   // pgname (String) -> extension pgobject (Class)
@@ -409,20 +418,17 @@ public class TypeInfoCache implements TypeInfo {
     if (i != null) {
       return i;
     }
-    long stamp = lock.readLock();
+
+    final long stamp = lock.writeLock();
     try {
       i = types.oidToSQLType.get(key);
-    } finally {
-      lock.unlockRead(stamp);
-    }
-    if (i != null) {
-      return i;
-    }
 
-    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", key);
+      if (i != null) {
+        return i;
+      }
 
-    stamp = lock.writeLock();
-    try {
+      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", key);
+
       final int sqlType = querySqlType(typeOid);
       types.oidToSQLType.put(key, sqlType);
       return sqlType;
@@ -566,22 +572,19 @@ public class TypeInfoCache implements TypeInfo {
     if (oidAndType != null) {
       return oidAndType.oid;
     }
-    long stamp = lock.readLock();
-    try {
-      oidAndType = types.pgNameToOidAndType.get(pgTypeName);
-    } finally {
-      lock.unlockRead(stamp);
-    }
-    if (oidAndType != null) {
-      return oidAndType.oid;
-    }
-
-    LOGGER.log(Level.FINEST, "querying type info for pg type name '{0}'", pgTypeName);
 
     // it is safe to hold write lock while interacting with result set because all types
     // come from the default mappings, which do not obtain a read lock to access
-    stamp = lock.writeLock();
+    final long stamp = lock.writeLock();
     try {
+      oidAndType = types.pgNameToOidAndType.get(pgTypeName);
+
+      if (oidAndType != null) {
+        return oidAndType.oid;
+      }
+
+      LOGGER.log(Level.FINEST, "querying type info for pg type name '{0}'", pgTypeName);
+
       PreparedStatement oidStatement = getOidStatement(pgTypeName);
 
       // Go through BaseStatement to avoid transaction start.
@@ -624,18 +627,14 @@ public class TypeInfoCache implements TypeInfo {
     if (pgTypeName != null) {
       return pgTypeName;
     }
-    long stamp = lock.readLock();
+
+    final long stamp = lock.writeLock();
     try {
       pgTypeName = types.oidToPgName.get(key);
-    } finally {
-      lock.unlockRead(stamp);
-    }
-    if (pgTypeName != null) {
-      return pgTypeName;
-    }
 
-    stamp = lock.writeLock();
-    try {
+      if (pgTypeName != null) {
+        return pgTypeName;
+      }
 
       final int sqlType = querySqlType(oid);
       final OidAndType oidAndType = new OidAndType(oid, sqlType);
@@ -714,7 +713,7 @@ public class TypeInfoCache implements TypeInfo {
     if (i != null) {
       return i;
     }
-    long stamp = lock.readLock();
+    final long stamp = lock.readLock();
     try {
       i = types.pgArrayToPgType.get(key);
     } finally {
@@ -735,18 +734,15 @@ public class TypeInfoCache implements TypeInfo {
     if (delim != null) {
       return delim;
     }
-    long stamp = lock.readLock();
+
+    final long stamp = lock.writeLock();
     try {
       delim = types.arrayOidToDelimiter.get(key);
-    } finally {
-      lock.unlockRead(stamp);
-    }
-    if (delim != null) {
-      return delim;
-    }
 
-    stamp = lock.writeLock();
-    try {
+      if (delim != null) {
+        return delim;
+      }
+
       PreparedStatement getArrayDelimiterStatement = prepareGetArrayDelimiterStatement();
 
       getArrayDelimiterStatement.setInt(1, oid);
@@ -799,19 +795,15 @@ public class TypeInfoCache implements TypeInfo {
     if (pgType != null) {
       return pgType;
     }
-    long stamp = lock.readLock();
+
+    final long stamp = lock.writeLock();
     try {
       pgType = types.pgArrayToPgType.get(key);
-    } finally {
-      lock.unlockRead(stamp);
-    }
 
-    if (pgType != null) {
-      return pgType;
-    }
+      if (pgType != null) {
+        return pgType;
+      }
 
-    stamp = lock.writeLock();
-    try {
       PreparedStatement getArrayElementOidStatement = prepareGetArrayElementOidStatement();
 
       getArrayElementOidStatement.setInt(1, oid);
