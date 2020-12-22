@@ -57,6 +57,7 @@ import java.lang.ref.ReferenceQueue;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayDeque;
@@ -900,7 +901,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (!suppressBegin) {
       doSubprotocolBegin();
     }
-    byte[] buf = Utils.encodeUTF8(sql);
+    byte[] buf = sql.getBytes(StandardCharsets.UTF_8);
 
     try {
       LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
@@ -960,7 +961,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (op instanceof CopyIn) {
         synchronized (this) {
           LOGGER.log(Level.FINEST, "FE => CopyFail");
-          final byte[] msg = Utils.encodeUTF8("Copy cancel requested");
+          final byte[] msg = "Copy cancel requested".getBytes(StandardCharsets.US_ASCII);
           pgStream.sendChar('f'); // CopyFail
           pgStream.sendInteger4(5 + msg.length);
           pgStream.send(msg);
@@ -1551,7 +1552,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Send Parse.
     //
 
-    byte[] queryUtf8 = Utils.encodeUTF8(nativeSql);
+    byte[] queryUtf8 = nativeSql.getBytes(StandardCharsets.UTF_8);
 
     // Total size = 4 (size field)
     // + N + 1 (statement name, zero-terminated)
@@ -1806,7 +1807,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     LOGGER.log(Level.FINEST, " FE=> ClosePortal({0})", portalName);
 
-    byte[] encodedPortalName = (portalName == null ? null : Utils.encodeUTF8(portalName));
+    byte[] encodedPortalName = (portalName == null ? null : portalName.getBytes(StandardCharsets.UTF_8));
     int encodedSize = (encodedPortalName == null ? 0 : encodedPortalName.length);
 
     // Total size = 4 (size field) + 1 (close type, 'P') + 1 + N (portal name)
@@ -1826,7 +1827,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     LOGGER.log(Level.FINEST, " FE=> CloseStatement({0})", statementName);
 
-    byte[] encodedStatementName = Utils.encodeUTF8(statementName);
+    byte[] encodedStatementName = statementName.getBytes(StandardCharsets.UTF_8);
 
     // Total size = 4 (size field) + 1 (close type, 'S') + N + 1 (statement name)
     pgStream.sendChar('C'); // Close
@@ -2451,7 +2452,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // We'll send a CopyFail message for COPY FROM STDIN so that
           // server does not wait for the data.
 
-          byte[] buf = Utils.encodeUTF8("COPY commands are only supported using the CopyManager API.");
+          byte[] buf = "COPY commands are only supported using the CopyManager API.".getBytes(StandardCharsets.US_ASCII);
           pgStream.sendChar('f');
           pgStream.sendInteger4(buf.length + 4 + 1);
           pgStream.send(buf);

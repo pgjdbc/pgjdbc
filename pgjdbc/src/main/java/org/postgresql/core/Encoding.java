@@ -15,6 +15,7 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -301,13 +302,9 @@ public class Encoding {
     // any which do _not_ have ascii numbers in same location
     // at least all the encoding listed in the encodings hashmap have
     // working ascii numbers
-    try {
-      String test = "-0123456789";
-      byte[] bytes = test.getBytes(encoding);
-      String res = new String(bytes, "US-ASCII");
-      return test.equals(res);
-    } catch (java.io.UnsupportedEncodingException e) {
-      return false;
-    }
+    String test = "-0123456789";
+    byte[] bytes = test.getBytes(encoding);
+    String res = new String(bytes, StandardCharsets.US_ASCII);
+    return test.equals(res);
   }
 }

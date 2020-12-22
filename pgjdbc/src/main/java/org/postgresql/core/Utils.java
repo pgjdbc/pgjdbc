@@ -13,7 +13,6 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.sql.SQLException;
 
 /**
@@ -33,26 +32,6 @@ public class Utils {
       sb.append(Integer.toHexString(element & 15));
     }
     return sb.toString();
-  }
-
-  /**
-   * Keep a local copy of the UTF-8 Charset so we can avoid synchronization overhead from looking up
-   * the Charset by name as String.getBytes(String) requires.
-   */
-  private static final Charset utf8Charset = Charset.forName("UTF-8");
-
-  /**
-   * Encode a string as UTF-8.
-   *
-   * @param str the string to encode
-   * @return the UTF-8 representation of {@code str}
-   */
-  public static byte[] encodeUTF8(String str) {
-    // See org.postgresql.benchmark.encoding.UTF8Encoding#string_getBytes
-    // for performance measurements.
-    // In OracleJDK 6u65, 7u55, and 8u40 String.getBytes(Charset) is
-    // 3 times faster than other JDK approaches.
-    return str.getBytes(utf8Charset);
   }
 
   /**
