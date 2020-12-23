@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 public enum JavaVersion {
   // Note: order is important,
   v1_8(2),
@@ -37,7 +39,7 @@ public enum JavaVersion {
 
   private final int sizeMultiple;
 
-  private JavaVersion(int sizeMultiple) {
+  JavaVersion(int sizeMultiple) {
     this.sizeMultiple = sizeMultiple;
   }
 
@@ -47,7 +49,7 @@ public enum JavaVersion {
    * @param string The {@code String} instance to estimate memory consumption for.
    * @return Approximate memory used by <i>string</i>.
    */
-  public final int size(String string) {
+  public final int size(@Nullable String string) {
     return string != null ? string.length() * sizeMultiple : 0;
   }
 }
