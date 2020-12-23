@@ -18,7 +18,7 @@ import java.util.Arrays;
  */
 class QueryWithReturningColumnsKey extends BaseQueryKey {
   public final String[] columnNames;
-  private int size; // query length cannot exceed MAX_INT
+  private volatile int size; // query length cannot exceed MAX_INT
 
   QueryWithReturningColumnsKey(String sql, boolean isParameterized, boolean escapeProcessing,
       String @Nullable [] columnNames) {
@@ -39,8 +39,9 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
     size = (int) super.getSize();
     if (columnNames != null) {
       size += 16L; // array itself
-      for (String columnName: columnNames) {
-        size += columnName.length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
+      final JavaVersion runtimeVersion = JavaVersion.getRuntimeVersion();
+      for (String columnName : columnNames) {
+        size += runtimeVersion.size(columnName);
       }
     }
     this.size = size;
@@ -62,16 +63,14 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
     if (!super.equals(o)) {
       return false;
     }
 
     QueryWithReturningColumnsKey that = (QueryWithReturningColumnsKey) o;
 
-    // Probably incorrect - comparing Object[] arrays with Arrays.equals
+    // this compares size of array and order of entries. each entry compared
+    // as with Objects.equals(o1, o2)
     return Arrays.equals(columnNames, that.columnNames);
   }
 
