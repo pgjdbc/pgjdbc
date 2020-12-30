@@ -350,6 +350,7 @@ public class PgConnection implements BaseConnection {
         Oid.INT8,
         Oid.FLOAT4,
         Oid.FLOAT8,
+        Oid.NUMERIC,
         Oid.TIME,
         Oid.DATE,
         Oid.TIMETZ,

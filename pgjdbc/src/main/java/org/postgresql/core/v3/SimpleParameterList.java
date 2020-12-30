@@ -211,6 +211,14 @@ class SimpleParameterList implements V3ParameterList {
           }
           return Double.toString(d);
 
+        case Oid.NUMERIC:
+          Number n = ByteConverter.numeric((byte[]) paramValue);
+          if (n instanceof Double) {
+            assert ((Double) n).isNaN();
+            return "'NaN'::numeric";
+          }
+          return n.toString();
+
         case Oid.UUID:
           String uuid =
               new UUIDArrayAssistant().buildElement((byte[]) paramValue, 0, 16).toString();
