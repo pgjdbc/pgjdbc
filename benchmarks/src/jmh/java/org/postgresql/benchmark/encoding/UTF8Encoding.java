@@ -6,8 +6,6 @@
 
 package org.postgresql.benchmark.encoding;
 
-import org.postgresql.core.Utils;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -69,11 +67,6 @@ public class UTF8Encoding {
     byte[] b = new byte[buf.limit()];
     buf.get(b, 0, buf.limit());
     return b;
-  }
-
-  @Benchmark
-  public byte[] utilsEncodeUTF8_current() {
-    return Utils.encodeUTF8(source);
   }
 
   @Benchmark

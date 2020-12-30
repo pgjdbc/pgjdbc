@@ -50,6 +50,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -1188,7 +1189,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     try {
-      InputStreamReader reader = new InputStreamReader(x, "ASCII");
+      InputStreamReader reader = new InputStreamReader(x, StandardCharsets.US_ASCII);
       char[] data = new char[length];
       int numRead = 0;
       while (true) {
@@ -1204,9 +1205,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
       }
       updateString(columnIndex, new String(data, 0, numRead));
-    } catch (UnsupportedEncodingException uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
-          PSQLState.UNEXPECTED_ERROR, uee);
     } catch (IOException ie) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), null, ie);
     }
@@ -2649,13 +2647,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
-    try {
-      String stringValue = castNonNull(getString(columnIndex));
-      return new ByteArrayInputStream(stringValue.getBytes("ASCII"));
-    } catch (UnsupportedEncodingException l_uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
-    }
+    String stringValue = castNonNull(getString(columnIndex));
+    return new ByteArrayInputStream(stringValue.getBytes(StandardCharsets.US_ASCII));
   }
 
   @Pure
@@ -2672,13 +2665,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
-    try {
-      String stringValue = castNonNull(getString(columnIndex));
-      return new ByteArrayInputStream(stringValue.getBytes("UTF-8"));
-    } catch (UnsupportedEncodingException l_uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "UTF-8"),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
-    }
+    String stringValue = castNonNull(getString(columnIndex));
+    return new ByteArrayInputStream(stringValue.getBytes(StandardCharsets.UTF_8));
   }
 
   @Pure

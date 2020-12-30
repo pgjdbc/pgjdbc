@@ -7,11 +7,11 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.core.ResultCursor;
-import org.postgresql.core.Utils;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.ref.PhantomReference;
+import java.nio.charset.StandardCharsets;
 
 /**
  * V3 ResultCursor implementation in terms of backend Portals. This holds the state of a single
@@ -23,7 +23,7 @@ class Portal implements ResultCursor {
   Portal(@Nullable SimpleQuery query, String portalName) {
     this.query = query;
     this.portalName = portalName;
-    this.encodedName = Utils.encodeUTF8(portalName);
+    this.encodedName = portalName.getBytes(StandardCharsets.UTF_8);
   }
 
   public void close() {

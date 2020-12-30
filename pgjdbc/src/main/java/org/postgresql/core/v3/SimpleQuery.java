@@ -12,12 +12,12 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
-import org.postgresql.core.Utils;
 import org.postgresql.jdbc.PgResultSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.ref.PhantomReference;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.logging.Level;
@@ -116,7 +116,7 @@ class SimpleQuery implements Query {
   void setStatementName(String statementName, short deallocateEpoch) {
     assert statementName != null : "statement name should not be null";
     this.statementName = statementName;
-    this.encodedStatementName = Utils.encodeUTF8(statementName);
+    this.encodedStatementName = statementName.getBytes(StandardCharsets.UTF_8);
     this.deallocateEpoch = deallocateEpoch;
   }
 
