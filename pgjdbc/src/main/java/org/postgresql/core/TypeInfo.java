@@ -21,8 +21,6 @@ public interface TypeInfo {
 
   void addDataType(String type, Class<? extends PGobject> klass) throws SQLException;
 
-  void addAllDataTypes(Map<String, Class<? extends PGobject>> mappings) throws SQLException;
-
   /**
    * Look up the SQL typecode for a given type oid.
    *

@@ -59,6 +59,8 @@ public class TypeInfoCache implements TypeInfo {
   private static final class TypeMaps {
     // pgname (String) -> oid and java.sql.Types (OidAndType)
     final Map<String, OidAndType> pgNameToOidAndType;
+    // pgname (String) -> extension pgobject (Class)
+    final Map<String, Class<? extends PGobject>> pgNameToPgObject;
 
     final Map<Integer, Integer> oidToSQLType;
 
@@ -80,6 +82,7 @@ public class TypeInfoCache implements TypeInfo {
 
       //1 entry for every type
       pgArrayToPgType = new HashMap<>(adjustedSize);
+      pgNameToPgObject = new ConcurrentHashMap<>(adjustedSize);
 
       //2 entries per type
       oidToSQLType = new HashMap<>(2 * adjustedSize);
@@ -121,7 +124,26 @@ public class TypeInfoCache implements TypeInfo {
     innerAddCoreType(DEFAULT_TYPES, "json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY);
     innerAddCoreType(DEFAULT_TYPES, "point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY);
 
+    DEFAULT_TYPES.pgNameToPgObject.put("box", org.postgresql.geometric.PGbox.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("circle", org.postgresql.geometric.PGcircle.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("line", org.postgresql.geometric.PGline.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("lseg", org.postgresql.geometric.PGlseg.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("path", org.postgresql.geometric.PGpath.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("point", org.postgresql.geometric.PGpoint.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("polygon", org.postgresql.geometric.PGpolygon.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("money", org.postgresql.util.PGmoney.class);
+    DEFAULT_TYPES.pgNameToPgObject.put("interval", org.postgresql.util.PGInterval.class);
+
     DEFAULT_TYPES.pgNameToJavaClass.put("hstore", Map.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("box", org.postgresql.geometric.PGbox.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("circle", org.postgresql.geometric.PGcircle.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("line", org.postgresql.geometric.PGline.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("lseg", org.postgresql.geometric.PGlseg.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("path", org.postgresql.geometric.PGpath.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("point", org.postgresql.geometric.PGpoint.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("polygon", org.postgresql.geometric.PGpolygon.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("money", org.postgresql.util.PGmoney.class.getName());
+    DEFAULT_TYPES.pgNameToJavaClass.put("interval", org.postgresql.util.PGInterval.class.getName());
   }
 
   /**
@@ -163,8 +185,6 @@ public class TypeInfoCache implements TypeInfo {
    */
   private final StampedLock lock = new StampedLock();
   private final TypeMaps types = new TypeMaps(4);
-  // pgname (String) -> extension pgobject (Class)
-  private final ConcurrentMap<String, Class<? extends PGobject>> pgNameToPgObject = new ConcurrentHashMap<>(12);
   private final BaseConnection conn;
   private final int unknownLength;
   private @Nullable PreparedStatement getOidStatementSimple;
@@ -231,28 +251,8 @@ public class TypeInfoCache implements TypeInfo {
       throws SQLException {
     final long stamp = lock.writeLock();
     try {
-      //by setting this inside the write lock we can guarantee that any read of pgNameToPgObject (no lock required)
-      //followed by a read of types.pgNameToJavaClass (protected by read lock), will find corresponding value
-      pgNameToPgObject.put(type, klass);
+      types.pgNameToPgObject.put(type, klass);
       types.pgNameToJavaClass.put(type, klass.getName());
-    } finally {
-      lock.unlockWrite(stamp);
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void addAllDataTypes(Map<String, Class<? extends PGobject>> mappings) throws SQLException {
-    final long stamp = lock.writeLock();
-    try {
-      //by setting this inside the write lock we can guarantee that any read of pgNameToPgObject (no lock required)
-      //followed by a read of types.pgNameToJavaClass (protected by read lock), will find corresponding value
-      pgNameToPgObject.putAll(mappings);
-      mappings.forEach((type, klass) -> {
-        types.pgNameToJavaClass.put(type, klass.getName());
-      });
     } finally {
       lock.unlockWrite(stamp);
     }
@@ -872,7 +872,16 @@ public class TypeInfoCache implements TypeInfo {
 
   @Override
   public @Nullable Class<? extends PGobject> getPGobject(String type) {
-    return pgNameToPgObject.get(type);
+    Class<? extends PGobject> clazz = DEFAULT_TYPES.pgNameToPgObject.get(type);
+    if (clazz != null) {
+      return clazz;
+    }
+    final long stamp = lock.readLock();
+    try {
+      return types.pgNameToPgObject.get(type);
+    } finally {
+      lock.unlockRead(stamp);
+    }
   }
 
   @Override
