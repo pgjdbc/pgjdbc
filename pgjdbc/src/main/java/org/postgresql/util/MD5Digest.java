@@ -14,6 +14,9 @@ import java.security.NoSuchAlgorithmException;
  * @author Jeremy Wohl
  */
 public class MD5Digest {
+
+  private static final byte[] HEX_BYTES = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
   private MD5Digest() {
   }
 
@@ -26,52 +29,41 @@ public class MD5Digest {
    * @return A 35-byte array, comprising the string "md5" and an MD5 digest.
    */
   public static byte[] encode(byte[] user, byte[] password, byte[] salt) {
-    MessageDigest md;
-    byte[] tempDigest;
-    byte[] passDigest;
-    byte[] hexDigest = new byte[35];
-
     try {
-      md = MessageDigest.getInstance("MD5");
+      final MessageDigest md = MessageDigest.getInstance("MD5");
 
       md.update(password);
       md.update(user);
-      tempDigest = md.digest();
+      byte[] digest = md.digest();
 
-      bytesToHex(tempDigest, hexDigest, 0);
+      final byte[] hexDigest = new byte[35];
+
+      bytesToHex(digest, hexDigest, 0);
       md.update(hexDigest, 0, 32);
       md.update(salt);
-      passDigest = md.digest();
+      digest = md.digest();
 
-      bytesToHex(passDigest, hexDigest, 3);
+      bytesToHex(digest, hexDigest, 3);
       hexDigest[0] = (byte) 'm';
       hexDigest[1] = (byte) 'd';
       hexDigest[2] = (byte) '5';
+
+      return hexDigest;
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("Unable to encode password with MD5", e);
     }
-
-    return hexDigest;
   }
 
   /*
    * Turn 16-byte stream into a human-readable 32-byte hex string
    */
   private static void bytesToHex(byte[] bytes, byte[] hex, int offset) {
-    final char[] lookup =
-        {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-
-    int i;
-    int c;
-    int j;
     int pos = offset;
-
-    for (i = 0; i < 16; i++) {
-      c = bytes[i] & 0xFF;
-      j = c >> 4;
-      hex[pos++] = (byte) lookup[j];
-      j = (c & 0xF);
-      hex[pos++] = (byte) lookup[j];
+    for (int i = 0; i < 16; i++) {
+      //bit twiddling converts to int, so just do it once here for both operations
+      final int c = bytes[i] & 0xFF;
+      hex[pos++] = HEX_BYTES[c >> 4];
+      hex[pos++] = HEX_BYTES[c & 0xF];
     }
   }
 }
