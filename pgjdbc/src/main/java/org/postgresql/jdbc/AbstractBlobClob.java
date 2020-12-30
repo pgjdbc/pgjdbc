@@ -8,7 +8,6 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.GT;

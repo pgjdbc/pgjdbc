@@ -14,7 +14,6 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
