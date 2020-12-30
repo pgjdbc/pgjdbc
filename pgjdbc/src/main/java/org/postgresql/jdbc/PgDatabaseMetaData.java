@@ -1506,7 +1506,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
     f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
-
     // a.attnum isn't decremented when preceding columns are dropped,
     // so the only way to calculate the correct column number is with
     // window functions
