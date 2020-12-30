@@ -1,8 +1,8 @@
 ---
 layout: documents
 title: PostgreSQL JDBC Documentation
-resource: ../media
-nav: ../
+resource: /media/
+nav: /
 ---
 
 * [HEAD](head/index.html)
