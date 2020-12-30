@@ -531,8 +531,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    if (targetSqlType == Types.OTHER && in instanceof UUID
-        && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
+    if (targetSqlType == Types.OTHER && in instanceof UUID) {
       setUuid(parameterIndex, (UUID) in);
       return;
     }
@@ -933,7 +932,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
     if (x == null) {
       setNull(parameterIndex, Types.OTHER);
-    } else if (x instanceof UUID && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
+    } else if (x instanceof UUID) {
       setUuid(parameterIndex, (UUID) x);
     } else if (x instanceof SQLXML) {
       setSQLXML(parameterIndex, (SQLXML) x);
