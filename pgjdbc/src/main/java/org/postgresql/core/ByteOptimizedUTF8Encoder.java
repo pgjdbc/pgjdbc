@@ -6,7 +6,7 @@
 package org.postgresql.core;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * UTF-8 encoder which validates input and is optimized for jdk 9+ where {@code String} objects are backed by
@@ -14,8 +14,6 @@ import java.nio.charset.Charset;
  * @author Brett Okken
  */
 final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
-
-  private static final Charset ASCII_CHARSET = Charset.forName("ascii");
 
   /**
    * {@inheritDoc}
@@ -33,7 +31,7 @@ final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
       }
     }
     // we have confirmed all chars are ascii, give java that hint
-    return new String(encodedString, offset, length, ASCII_CHARSET);
+    return new String(encodedString, offset, length, StandardCharsets.US_ASCII);
   }
 
   /**
