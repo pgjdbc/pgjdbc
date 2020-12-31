@@ -38,8 +38,8 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
   }
 
   private final StampedLock lock = new StampedLock();
-  private final @Nullable EvictAction<Value> onEvict;
-  private final @Nullable CreateAction<Key, Value> createAction;
+  private final EvictAction<Value> onEvict;
+  private final CreateAction<Key, Value> createAction;
   private final Map<Key, Value> cache;
   final int maxSizeEntries;
   final long maxSizeBytes;
@@ -78,21 +78,31 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     }
   }
 
-  void evictValue(Value value) {
+  final void evictValue(Value value) {
     try {
-      if (onEvict != null) {
-        onEvict.evict(value);
-      }
+      onEvict.evict(value);
     } catch (SQLException e) {
       /* ignore */
     }
   }
 
+  /**
+   * Creates an instance with defined max entries and max memory used.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   */
   public LruCache(int maxSizeEntries, long maxSizeBytes) {
     this(maxSizeEntries, maxSizeBytes, null, null);
   }
 
   /**
+   * Creates an instance with defined max entries and max memory used.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   * @param accessOrder Determines orders entries are purged. A value of {@code true} means access order (usage).
+   *      A value of {@code false} means insertion order.
    * @deprecated As it allows controlling access order, which determines if it is actually an LRU cache.
    */
   @Deprecated
@@ -100,6 +110,14 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     this(maxSizeEntries, maxSizeBytes, null, null);
   }
 
+  /**
+   * Creates an instance with defined max entries, max memory used, and optional actions to use for creation/eviction.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   * @param createAction Optional action to use for creating entries on demand.
+   * @param onEvict Optional action to call when entries are evicted.
+   */
   public LruCache(int maxSizeEntries, long maxSizeBytes,
       @Nullable CreateAction<Key, Value> createAction,
       @Nullable EvictAction<Value> onEvict) {
@@ -107,6 +125,14 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
   }
 
   /**
+   * Creates an instance with defined max entries, max memory used, and optional actions to use for creation/eviction.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   * @param accessOrder Determines orders entries are purged. A value of {@code true} means access order (usage).
+   *      A value of {@code false} means insertion order.
+   * @param createAction Optional action to use for creating entries on demand.
+   * @param onEvict Optional action to call when entries are evicted.
    * @deprecated As it allows controlling access order, which determines if it is actually an LRU cache.
    */
   @Deprecated
@@ -115,8 +141,10 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
       @Nullable EvictAction<Value> onEvict) {
     this.maxSizeEntries = maxSizeEntries;
     this.maxSizeBytes = maxSizeBytes;
-    this.createAction = createAction;
-    this.onEvict = onEvict;
+    this.createAction = createAction != null ? createAction : k -> {
+      throw new UnsupportedOperationException("createAction == null, so can't create object");
+    };
+    this.onEvict = onEvict != null ? onEvict : v -> {};
     this.cache = new LimitedMap(16, 0.75f, accessOrder);
   }
 
@@ -149,9 +177,6 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     try {
       Value value = cache.remove(key);
       if (value == null) {
-        if (createAction == null) {
-          throw new UnsupportedOperationException("createAction == null, so can't create object");
-        }
         return createAction.create(key);
       }
       currentSize -= value.getSize();
