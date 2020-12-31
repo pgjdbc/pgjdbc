@@ -22,6 +22,7 @@ import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.TypeInfo;
@@ -221,6 +222,11 @@ public class PgConnection implements BaseConnection {
 
     // Now make the initial connection and set up local state
     this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, user, database, info);
+
+    // WARNING for unsupported servers (below 9.0)
+    if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v9_0)) {
+      LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
+    }
 
     setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, true);
     setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, true);

@@ -86,8 +86,7 @@ public class DatabaseMetaDataTest {
     TestUtil.createCompositeType(con, "_custom", "f float", false);
 
     // 8.2 does not support arrays of composite types
-    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
-        + (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3) ? ", c3 custom[], c4 _custom[]" : ""));
+    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom, c3 custom[], c4 _custom[]");
 
     Statement stmt = con.createStatement();
     // we add the following comments to ensure the joins to the comments
@@ -103,11 +102,8 @@ public class DatabaseMetaDataTest {
         "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
     stmt.execute(
         "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      // RETURNS TABLE requires PostgreSQL 8.4+
-      stmt.execute(
-          "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
-    }
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
 
     TestUtil.createDomain(con, "nndom", "int not null");
     TestUtil.createDomain(con, "varbit2", "varbit(3)");
@@ -181,24 +177,21 @@ public class DatabaseMetaDataTest {
     assertEquals("custom", res.getString("TYPE_NAME"));
     assertTrue(res.next());
     assertEquals("_custom", res.getString("TYPE_NAME"));
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
-      assertTrue(res.next());
-      assertEquals("__custom", res.getString("TYPE_NAME"));
-      assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
-    }
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
-      con.createArrayOf("custom", new Object[]{});
-      res = dbmd.getColumns(null, null, "customtable", null);
-      assertTrue(res.next());
-      assertEquals("custom", res.getString("TYPE_NAME"));
-      assertTrue(res.next());
-      assertEquals("_custom", res.getString("TYPE_NAME"));
-      assertTrue(res.next());
-      assertEquals("__custom", res.getString("TYPE_NAME"));
-      assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
-    }
+    assertTrue(res.next());
+    assertEquals("__custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("___custom", res.getString("TYPE_NAME"));
+
+    con.createArrayOf("custom", new Object[]{});
+    res = dbmd.getColumns(null, null, "customtable", null);
+    assertTrue(res.next());
+    assertEquals("custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("_custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("__custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("___custom", res.getString("TYPE_NAME"));
   }
 
   @Test
@@ -516,10 +509,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testDroppedColumns() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      return;
-    }
-
     Statement stmt = con.createStatement();
     stmt.execute("ALTER TABLE metadatatest DROP name");
     stmt.execute("ALTER TABLE metadatatest DROP colour");
@@ -747,10 +736,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testAscDescIndexInfo() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
-      return;
-    }
-
     Statement stmt = con.createStatement();
     stmt.execute("CREATE INDEX idx_a_d ON metadatatest (id ASC, quest DESC)");
     stmt.close();
@@ -920,9 +905,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testFuncReturningTable() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      return;
-    }
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f5", null);
     assertTrue(rs.next());
@@ -1238,14 +1220,13 @@ public class DatabaseMetaDataTest {
             "timestamptz",
             "timetz",
             "varbit",
-            "varchar"));
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
-      stringTypeList.add("tsquery");
-      stringTypeList.add("tsvector");
-      stringTypeList.add("txid_snapshot");
-      stringTypeList.add("uuid");
-      stringTypeList.add("xml");
-    }
+            "varchar",
+            "tsquery",
+            "tsvector",
+            "txid_snapshot",
+            "uuid",
+            "xml"));
+
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2)) {
       stringTypeList.add("json");
     }
@@ -1420,17 +1401,11 @@ public class DatabaseMetaDataTest {
       assertFalse("Keyword from SQL:2003 \"" + s + "\" found", returnedSet.contains(s));
     }
 
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      Assert.assertTrue("reindex should be in keywords", returnedSet.contains("reindex"));
-    }
+    Assert.assertTrue("reindex should be in keywords", returnedSet.contains("reindex"));
   }
 
   @Test
   public void testFunctionColumns() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      return;
-    }
-
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getFunctionColumns(null, null, "f1", null);
 

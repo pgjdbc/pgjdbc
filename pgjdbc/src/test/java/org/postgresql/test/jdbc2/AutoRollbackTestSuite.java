@@ -18,7 +18,6 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -150,12 +149,6 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     con.setAutoCommit(autoCommit == AutoCommit.YES);
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
     baseConnection.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
-    Assume.assumeTrue("DEALLOCATE ALL requires PostgreSQL 8.3+",
-        failMode != FailMode.DEALLOCATE || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
-    Assume.assumeTrue("DISCARD ALL requires PostgreSQL 8.3+",
-        failMode != FailMode.DISCARD || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
-    Assume.assumeTrue("Plan invalidation on table redefinition requires PostgreSQL 8.3+",
-        failMode != FailMode.ALTER || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
   }
 
   @Override

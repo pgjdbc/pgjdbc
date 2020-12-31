@@ -10,7 +10,6 @@ import static org.junit.Assert.assertNotNull;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -53,10 +52,6 @@ public class NotifyTest {
 
   @Test(timeout = 60000)
   public void testNotifyArgument() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
-      return;
-    }
-
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
     stmt.executeUpdate("NOTIFY mynotification, 'message'");

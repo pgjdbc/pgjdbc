@@ -68,11 +68,6 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getClientInfoProperties();
-    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
-      assertTrue(!rs.next());
-      return;
-    }
-
     assertTrue(rs.next());
     assertEquals("ApplicationName", rs.getString("NAME"));
   }
@@ -318,62 +313,39 @@ public class DatabaseMetaDataTest {
     // We modify to ensure new function created are returned by getFunctions()
 
     DatabaseMetaData dbmd = conn.getMetaData();
-    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_4)) {
-      Statement stmt = conn.createStatement();
-      stmt.execute(
-              "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-      ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
-      assertThat(rs.next(), is(true));
-      assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f1"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionNoTable));
-      assertThat(rs.next(), is(false));
-      rs.close();
-      stmt.execute("DROP FUNCTION getfunc_f1(int, varchar)");
 
-      stmt.execute(
-              "CREATE OR REPLACE FUNCTION getfunc_f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
-      rs = dbmd.getFunctions("", "", "getfunc_f3");
-      assertThat(rs.next(), is(true));
-      assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f3"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionNoTable));
-      assertThat(rs.next(), is(false));
-      rs.close();
-      stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
+    Statement stmt = conn.createStatement();
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
+    ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
+    assertThat(rs.next(), is(true));
+    assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f1"));
+    assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionNoTable));
+    assertThat(rs.next(), is(false));
+    rs.close();
+    stmt.execute("DROP FUNCTION getfunc_f1(int, varchar)");
 
-      // RETURNS TABLE requires PostgreSQL 8.4+
-      stmt.execute(
-              "CREATE OR REPLACE FUNCTION getfunc_f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION getfunc_f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
+    rs = dbmd.getFunctions("", "", "getfunc_f3");
+    assertThat(rs.next(), is(true));
+    assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f3"));
+    assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionNoTable));
+    assertThat(rs.next(), is(false));
+    rs.close();
+    stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
 
-      rs = dbmd.getFunctions("", "", "getfunc_f5");
-      assertThat(rs.next(), is(true));
-      assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f5"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionReturnsTable));
-      assertThat(rs.next(), is(false));
-      rs.close();
-      stmt.execute("DROP FUNCTION getfunc_f5()");
-    } else {
-      // For PG 8.3 or 8.2 it will resulted in unknown function type
-      Statement stmt = conn.createStatement();
-      stmt.execute(
-              "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-      ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
-      assertThat(rs.next(), is(true));
-      assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f1"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionResultUnknown));
-      assertThat(rs.next(), is(false));
-      rs.close();
-      stmt.execute("DROP FUNCTION getfunc_f1(int, varchar)");
+    // RETURNS TABLE requires PostgreSQL 8.4+
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION getfunc_f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
 
-      stmt.execute(
-              "CREATE OR REPLACE FUNCTION getfunc_f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
-      rs = dbmd.getFunctions("", "", "getfunc_f3");
-      assertThat(rs.next(), is(true));
-      assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f3"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionResultUnknown));
-      assertThat(rs.next(), is(false));
-      rs.close();
-      stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
-    }
+    rs = dbmd.getFunctions("", "", "getfunc_f5");
+    assertThat(rs.next(), is(true));
+    assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f5"));
+    assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionReturnsTable));
+    assertThat(rs.next(), is(false));
+    rs.close();
+    stmt.execute("DROP FUNCTION getfunc_f5()");
   }
 
   @Test

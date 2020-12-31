@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
@@ -383,7 +382,6 @@ public class ResultSetTest extends BaseTest4 {
 
   @Test
   public void testGetBadUuidBoolean() throws SQLException {
-    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
     testBadBoolean("'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
   }
 

@@ -48,8 +48,6 @@ public class IsValidTest extends BaseTest4 {
 
   @Test
   public void testIsValidRemoteClose() throws SQLException, InterruptedException {
-    Assume.assumeTrue("Unable to use pg_terminate_backend(...) before version 8.4", TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
-
     boolean wasTerminated = TestUtil.terminateBackend(con);
     assertTrue("The backend should be terminated", wasTerminated);
 

@@ -13,7 +13,6 @@ import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
@@ -124,10 +123,8 @@ public class TimestampTest extends BaseTest4 {
     runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
     runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
     runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      runInfinityTests(DATE_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
-      runInfinityTests(DATE_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
-    }
+    runInfinityTests(DATE_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
+    runInfinityTests(DATE_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
   }
 
   private void runInfinityTests(String table, long value) throws SQLException {
@@ -301,8 +298,6 @@ public class TimestampTest extends BaseTest4 {
   @Test
   public void testGetTimestampWOTZ() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
-    //Refer to #896
-    assumeMinimumServerVersion(ServerVersion.v8_4);
 
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
@@ -335,8 +330,6 @@ public class TimestampTest extends BaseTest4 {
   @Test
   public void testSetTimestampWOTZ() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
-    //Refer to #896
-    assumeMinimumServerVersion(ServerVersion.v8_4);
 
     Statement stmt = con.createStatement();
     PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWOTZ_TABLE, "?"));
