@@ -8,12 +8,10 @@ package org.postgresql.test.jdbc4;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.Connection;
