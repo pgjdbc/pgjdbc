@@ -84,8 +84,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
-        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
-        false,
+        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024L * 1024L),
         cachedQueryCreateAction,
         new LruCache.EvictAction<CachedQuery>() {
           @Override
