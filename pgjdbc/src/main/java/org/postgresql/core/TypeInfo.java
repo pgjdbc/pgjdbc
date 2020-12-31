@@ -12,7 +12,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.util.Iterator;
-import java.util.Map;
 
 public interface TypeInfo {
 
