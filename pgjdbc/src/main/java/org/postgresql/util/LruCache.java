@@ -144,7 +144,7 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     this.createAction = createAction != null ? createAction : k -> {
       throw new UnsupportedOperationException("createAction == null, so can't create object");
     };
-    this.onEvict = onEvict != null ? onEvict : v -> {};
+    this.onEvict = onEvict != null ? onEvict : v -> { };
     this.cache = new LimitedMap(16, 0.75f, accessOrder);
   }
 
