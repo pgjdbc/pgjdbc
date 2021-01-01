@@ -165,7 +165,7 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
    * @throws SQLException if entry creation fails
    */
   public synchronized Value borrow(Key key) throws SQLException {
-    Value value = cache.remove(key);
+    @Nullable Value value = cache.remove(key);
     if (value == null) {
       return createAction.create(key);
     }
@@ -195,7 +195,7 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
       return;
     }
     currentSize += valueSize;
-    Value prev = cache.put(key, value);
+    @Nullable Value prev = cache.put(key, value);
     if (prev == null) {
       return;
     }
