@@ -180,13 +180,6 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
    * @param value value
    */
   public synchronized void put(Key key, Value value) {
-    innerPut(key, value);
-  }
-
-  /**
-   * Actual work of put, but requires calling method to obtain lock.
-   */
-  private void innerPut(Key key, Value value) {
     long valueSize = value.getSize();
     if (maxSizeBytes == 0 || maxSizeEntries == 0 || valueSize * 2 > maxSizeBytes) {
       // Just destroy the value if cache is disabled or if entry would consume more than a half of
@@ -212,6 +205,6 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
    * @param m The map containing entries to put into the cache
    */
   public synchronized void putAll(Map<Key, Value> m) {
-    m.forEach((k,v) -> this.innerPut(k, v));
+    m.forEach(this::put);
   }
 }
