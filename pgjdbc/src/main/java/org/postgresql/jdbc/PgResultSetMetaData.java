@@ -193,7 +193,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return;
     }
 
-    StringBuilder sql = new StringBuilder(
+    StringBuilder sql = new StringBuilder(1024).append(
         "SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, "
             + "a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), ");
 
@@ -207,42 +207,28 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
             + "JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) "
             + "JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) "
             + "LEFT JOIN pg_catalog.pg_attrdef d ON (d.adrelid = a.attrelid AND d.adnum = a.attnum) "
-            + "JOIN (");
+            + "WHERE (c.oid, a.attnum) in (");
 
-    // 7.4 servers don't support row IN operations (a,b) IN ((c,d),(e,f))
-    // so we've got to fake that with a JOIN here.
-    //
-    boolean hasSourceInfo = false;
     for (Field field : fields) {
-      if (field.getMetadata() != null) {
-        continue;
-      }
-
-      if (hasSourceInfo) {
-        sql.append(" UNION ALL ");
-      }
-
-      sql.append("SELECT ");
-      sql.append(field.getTableOid());
-      if (!hasSourceInfo) {
-        sql.append(" AS oid ");
-      }
-      sql.append(", ");
-      sql.append(field.getPositionInTable());
-      if (!hasSourceInfo) {
-        sql.append(" AS attnum");
-      }
-
-      if (!hasSourceInfo) {
-        hasSourceInfo = true;
+      if (field.getMetadata() == null) {
+        sql.append('(')
+            .append(field.getTableOid())
+            .append(',')
+            .append(field.getPositionInTable())
+            .append("),");
       }
     }
-    sql.append(") vals ON (c.oid = vals.oid AND a.attnum = vals.attnum) ");
 
-    if (!hasSourceInfo) {
-      fieldInfoFetched = true;
-      return;
-    }
+    //because we called populateFieldsWithMetadata prior to this loop and returned if it was true, then
+    //we know there /must/ be at least 1 field without metadata before we entered the loop above
+    //this means the last character in the string builder is a trailing comma to be removed
+    assert sql.charAt(sql.length() - 1) == ',';
+
+    //trim last comma
+    sql.setLength(sql.length() - 1);
+    fieldInfoFetched = true;
+
+    sql.append(')');
 
     Statement stmt = connection.createStatement();
     ResultSet rs = null;
