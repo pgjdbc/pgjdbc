@@ -20,6 +20,7 @@ pluginManagement {
         idv("com.github.vlsi.ide", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.license-gather", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.stage-vote-release", "com.github.vlsi.vlsi-release-plugins")
+        idv("de.thetaphi.forbiddenapis")
         idv("me.champeau.gradle.jmh")
         idv("org.checkerframework")
         idv("org.jetbrains.gradle.plugin.idea-ext")

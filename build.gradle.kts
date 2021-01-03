@@ -12,6 +12,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.properties.dsl.stringProperty
 import com.github.vlsi.gradle.publishing.dsl.simplifyXml
 import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
 import org.postgresql.buildtools.JavaCommentPreprocessorTask
 
 plugins {
@@ -24,6 +25,7 @@ plugins {
     id("org.owasp.dependencycheck")
     id("org.checkerframework") apply false
     id("com.github.johnrengelman.shadow") apply false
+    id("de.thetaphi.forbiddenapis") apply false
     id("org.nosphere.gradle.github.actions")
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
@@ -45,6 +47,7 @@ val enableCheckerframework by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
+val skipForbiddenApis by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
 // For instance -PincludeTestTags=!org.postgresql.test.SlowTests
@@ -371,6 +374,22 @@ allprojects {
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {
                 enabled = false
+            }
+        }
+
+        if (!skipForbiddenApis && !props.bool("skipCheckstyle")) {
+            apply(plugin = "de.thetaphi.forbiddenapis")
+            configure<CheckForbiddenApisExtension> {
+                failOnUnsupportedJava = false
+                bundledSignatures.addAll(
+                    listOf(
+                        // "jdk-deprecated",
+                        "jdk-internal",
+                        "jdk-non-portable"
+                        // "jdk-system-out"
+                        // "jdk-unsafe"
+                    )
+                )
             }
         }
 
