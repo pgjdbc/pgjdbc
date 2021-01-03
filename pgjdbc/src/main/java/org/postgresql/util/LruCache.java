@@ -38,10 +38,10 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
 
   private final EvictAction<Value> onEvict;
   private final CreateAction<Key, Value> createAction;
+  private final int maxSizeEntries;
+  private final long maxSizeBytes;
   private final Map<Key, Value> cache;
-  final int maxSizeEntries;
-  final long maxSizeBytes;
-  long currentSize;
+  private long currentSize;
 
   private class LimitedMap extends LinkedHashMap<Key, Value> {
     private static final long serialVersionUID = 1L;
@@ -57,15 +57,15 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
         return false;
       }
 
-      Iterator<Value> it = values().iterator();
+      Iterator<Map.Entry<Key,Value>> it = entrySet().iterator();
       while (it.hasNext()) {
         if (size() <= maxSizeEntries && currentSize <= maxSizeBytes) {
           return false;
         }
 
-        Value value = it.next();
-        evictValue(value);
-        long valueSize = value.getSize();
+        Map.Entry<Key,Value> entry = it.next();
+        evictValue(entry.getValue());
+        long valueSize = entry.getValue().getSize();
         if (valueSize > 0) {
           // just in case
           currentSize -= valueSize;
@@ -76,7 +76,7 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     }
   }
 
-  final void evictValue(Value value) {
+  private void evictValue(Value value) {
     try {
       onEvict.evict(value);
     } catch (SQLException e) {
