@@ -172,6 +172,16 @@ public class LruCacheTest {
     }
   }
 
+  @Test
+  public void testBorrowNoAction() throws SQLException {
+    LruCache<Integer, Entry> cache = new LruCache<>(2, 1000);
+    try {
+      cache.borrow(0);
+      fail("borrow with no create action should have failed");
+    } catch (UnsupportedOperationException e) {
+    }
+  }
+
   private Entry use(int expectCreate, Entry... expectEvict) throws SQLException {
     this.expectCreate[0] = expectCreate <= 0 ? -1 : expectCreate;
     this.expectEvict.clear();
