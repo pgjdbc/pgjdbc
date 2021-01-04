@@ -33,6 +33,7 @@ import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.internal.Unsafe;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -409,14 +410,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private boolean credentialCacheExists() {
-    try {
-      @SuppressWarnings({"nullness"})
-      sun.security.krb5.Credentials credentials =
-          sun.security.krb5.Credentials.acquireTGTFromCache(null, null);
-      return credentials != null;
-    } catch ( Exception ex ) {
-      return false;
-    }
+    return Unsafe.credentialCacheExists();
   }
 
   private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
