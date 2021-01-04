@@ -12,6 +12,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.properties.dsl.stringProperty
 import com.github.vlsi.gradle.publishing.dsl.simplifyXml
 import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
 import org.postgresql.buildtools.JavaCommentPreprocessorTask
 
@@ -390,6 +391,9 @@ allprojects {
                         // "jdk-unsafe"
                     )
                 )
+            }
+            tasks.configureEach<CheckForbiddenApis> {
+                exclude("**/org/postgresql/util/internal/Unsafe.class")
             }
         }
 
