@@ -14,7 +14,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.Positive;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -111,7 +110,7 @@ final class ArrayEncoding {
    * @param <A>
    *          Base array type supported.
    */
-  private abstract static class AbstractArrayEncoder<A extends @NonNull Object>
+  private abstract static class AbstractArrayEncoder<A extends Object>
       implements ArrayEncoder<A> {
 
     private final int oid;
@@ -222,7 +221,7 @@ final class ArrayEncoding {
    * @param <N>
    *          The base type of array.
    */
-  private abstract static class NumberArrayEncoder<N extends Number> extends AbstractArrayEncoder<N @NonNull []> {
+  private abstract static class NumberArrayEncoder<N extends Number> extends AbstractArrayEncoder<N[]> {
 
     private final int fieldSize;
 
@@ -353,7 +352,7 @@ final class ArrayEncoding {
    * @param <A>
    *          The primitive array to support.
    */
-  private abstract static class FixedSizePrimitiveArrayEncoder<A extends @NonNull Object>
+  private abstract static class FixedSizePrimitiveArrayEncoder<A extends Object>
       extends AbstractArrayEncoder<A> {
 
     private final int fieldSize;
@@ -430,7 +429,7 @@ final class ArrayEncoding {
     protected abstract void write(A array, byte[] bytes, int offset);
   }
 
-  private static final AbstractArrayEncoder<long @NonNull []> LONG_ARRAY = new FixedSizePrimitiveArrayEncoder<long @NonNull []>(8, Oid.INT8,
+  private static final AbstractArrayEncoder<long[]> LONG_ARRAY = new FixedSizePrimitiveArrayEncoder<long[]>(8, Oid.INT8,
       Oid.INT8_ARRAY) {
 
     /**
@@ -462,7 +461,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Long @NonNull []> LONG_OBJ_ARRAY = new NumberArrayEncoder<Long>(8, Oid.INT8,
+  private static final AbstractArrayEncoder<Long[]> LONG_OBJ_ARRAY = new NumberArrayEncoder<Long>(8, Oid.INT8,
       Oid.INT8_ARRAY) {
 
     @Override
@@ -471,7 +470,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<int @NonNull []> INT_ARRAY = new FixedSizePrimitiveArrayEncoder<int @NonNull []>(4, Oid.INT4,
+  private static final AbstractArrayEncoder<int[]> INT_ARRAY = new FixedSizePrimitiveArrayEncoder<int[]>(4, Oid.INT4,
       Oid.INT4_ARRAY) {
 
     /**
@@ -503,7 +502,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Integer @NonNull []> INT_OBJ_ARRAY = new NumberArrayEncoder<Integer>(4, Oid.INT4,
+  private static final AbstractArrayEncoder<Integer[]> INT_OBJ_ARRAY = new NumberArrayEncoder<Integer>(4, Oid.INT4,
       Oid.INT4_ARRAY) {
 
     @Override
@@ -512,7 +511,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<short @NonNull []> SHORT_ARRAY = new FixedSizePrimitiveArrayEncoder<short @NonNull []>(2,
+  private static final AbstractArrayEncoder<short[]> SHORT_ARRAY = new FixedSizePrimitiveArrayEncoder<short[]>(2,
       Oid.INT2, Oid.INT2_ARRAY) {
 
     /**
@@ -544,7 +543,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Short @NonNull []> SHORT_OBJ_ARRAY = new NumberArrayEncoder<Short>(2, Oid.INT2,
+  private static final AbstractArrayEncoder<Short[]> SHORT_OBJ_ARRAY = new NumberArrayEncoder<Short>(2, Oid.INT2,
       Oid.INT2_ARRAY) {
 
     /**
@@ -556,7 +555,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<double @NonNull []> DOUBLE_ARRAY = new FixedSizePrimitiveArrayEncoder<double @NonNull []>(8,
+  private static final AbstractArrayEncoder<double[]> DOUBLE_ARRAY = new FixedSizePrimitiveArrayEncoder<double[]>(8,
       Oid.FLOAT8, Oid.FLOAT8_ARRAY) {
 
     /**
@@ -591,7 +590,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Double @NonNull []> DOUBLE_OBJ_ARRAY = new NumberArrayEncoder<Double>(8, Oid.FLOAT8,
+  private static final AbstractArrayEncoder<Double[]> DOUBLE_OBJ_ARRAY = new NumberArrayEncoder<Double>(8, Oid.FLOAT8,
       Oid.FLOAT8_ARRAY) {
 
     /**
@@ -603,7 +602,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<float @NonNull []> FLOAT_ARRAY = new FixedSizePrimitiveArrayEncoder<float @NonNull []>(4,
+  private static final AbstractArrayEncoder<float[]> FLOAT_ARRAY = new FixedSizePrimitiveArrayEncoder<float[]>(4,
       Oid.FLOAT4, Oid.FLOAT4_ARRAY) {
 
     /**
@@ -638,7 +637,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Float @NonNull []> FLOAT_OBJ_ARRAY = new NumberArrayEncoder<Float>(4, Oid.FLOAT4,
+  private static final AbstractArrayEncoder<Float[]> FLOAT_OBJ_ARRAY = new NumberArrayEncoder<Float>(4, Oid.FLOAT4,
       Oid.FLOAT4_ARRAY) {
 
     /**
@@ -650,7 +649,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<boolean @NonNull []> BOOLEAN_ARRAY = new FixedSizePrimitiveArrayEncoder<boolean @NonNull []>(1,
+  private static final AbstractArrayEncoder<boolean[]> BOOLEAN_ARRAY = new FixedSizePrimitiveArrayEncoder<boolean[]>(1,
       Oid.BOOL, Oid.BOOL_ARRAY) {
 
     /**
@@ -682,7 +681,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Boolean @NonNull []> BOOLEAN_OBJ_ARRAY = new AbstractArrayEncoder<Boolean @NonNull []>(Oid.BOOL,
+  private static final AbstractArrayEncoder<Boolean[]> BOOLEAN_OBJ_ARRAY = new AbstractArrayEncoder<Boolean[]>(Oid.BOOL,
       Oid.BOOL_ARRAY) {
 
     /**
@@ -765,7 +764,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<String @NonNull []> STRING_ARRAY = new AbstractArrayEncoder<String @NonNull []>(Oid.VARCHAR,
+  private static final AbstractArrayEncoder<String[]> STRING_ARRAY = new AbstractArrayEncoder<String[]>(Oid.VARCHAR,
       Oid.VARCHAR_ARRAY) {
 
     /**
@@ -922,7 +921,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<byte[] @NonNull []> BYTEA_ARRAY = new AbstractArrayEncoder<byte[] @NonNull []>(Oid.BYTEA,
+  private static final AbstractArrayEncoder<byte[][]> BYTEA_ARRAY = new AbstractArrayEncoder<byte[][]>(Oid.BYTEA,
       Oid.BYTEA_ARRAY) {
 
     /**
@@ -1043,7 +1042,7 @@ final class ArrayEncoding {
     }
   };
 
-  private static final AbstractArrayEncoder<Object @NonNull []> OBJECT_ARRAY = new AbstractArrayEncoder<Object @NonNull []>(0, 0) {
+  private static final AbstractArrayEncoder<Object[]> OBJECT_ARRAY = new AbstractArrayEncoder<Object[]>(0, 0) {
 
     @Override
     public int getDefaultArrayTypeOid() {
@@ -1088,7 +1087,7 @@ final class ArrayEncoding {
   };
 
   @SuppressWarnings("rawtypes")
-  private static final Map<@NonNull Class, @NonNull AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<@NonNull Class, @NonNull AbstractArrayEncoder>(
+  private static final Map<Class, AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<Class, AbstractArrayEncoder>(
       (int) (14 / .75) + 1);
 
   static {
@@ -1120,7 +1119,7 @@ final class ArrayEncoding {
    * @see ArrayEncoding.ArrayEncoder#supportBinaryRepresentation(int)
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static <A extends @NonNull Object> ArrayEncoder<A> getArrayEncoder(A array) throws PSQLException {
+  public static <A extends Object> ArrayEncoder<A> getArrayEncoder(A array) throws PSQLException {
     final Class<?> arrayClazz = array.getClass();
     Class<?> subClazz = arrayClazz.getComponentType();
     if (subClazz == null) {
@@ -1168,7 +1167,7 @@ final class ArrayEncoding {
    * Wraps an {@link AbstractArrayEncoder} implementation and provides optimized
    * support for 2 dimensions.
    */
-  private static final class TwoDimensionPrimitiveArrayEncoder<A extends @NonNull Object> implements ArrayEncoder<A @NonNull []> {
+  private static final class TwoDimensionPrimitiveArrayEncoder<A extends Object> implements ArrayEncoder<A[]> {
     private final AbstractArrayEncoder<A> support;
 
     /**
@@ -1192,7 +1191,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, A @NonNull[] array) {
+    public String toArrayString(char delim, A[] array) {
       final StringBuilder sb = new StringBuilder(1024);
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {

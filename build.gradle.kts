@@ -28,6 +28,7 @@ plugins {
     id("com.github.johnrengelman.shadow") apply false
     id("de.thetaphi.forbiddenapis") apply false
     id("org.nosphere.gradle.github.actions")
+    id("com.github.vlsi.jandex") apply false
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
     id("com.github.vlsi.ide")
@@ -372,7 +373,12 @@ allprojects {
 
         val sourceSets: SourceSetContainer by project
 
+        apply(plugin = "com.github.vlsi.jandex")
         apply(plugin = "maven-publish")
+
+        project.configure<com.github.vlsi.jandex.JandexExtension> {
+            skipIndexFileGeneration()
+        }
 
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {

@@ -30,11 +30,15 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk8
-        arguments: autostyleCheck checkstyleAll
+        arguments: autostyleCheck checkstyleAll jandex
 
   ubuntu-latest:
-    name: 'Ubuntu, PG latest (JDK 8)'
+    name: 'Ubuntu, PG latest (JDK ${{ matrix.jdk }})'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [8, 11]
 # Service must be started after checkout, because we want to use git-stored files for initialization
 # of the Docker container. So we start it with and explicit docker ... command
 #    services:
@@ -63,10 +67,10 @@ jobs:
     - name: Start PostgreSQL
       working-directory: docker
       run: docker-compose up -d && docker-compose logs
-    - name: 'Set up JDK 8'
+    - name: 'Set up JDK ${{ matrix.jdk }}'
       uses: actions/setup-java@v1
       with:
-        java-version: 8
+        java-version: ${{ matrix.jdk }}
     - name: Prepare ssltest.local.properties
       run: echo enable_ssl_tests=true > ssltest.local.properties
     - uses: burrunan/gradle-cache-action@v1
@@ -76,7 +80,7 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk${{ matrix.jdk }}
-        arguments: --scan --no-parallel --no-daemon test
+        arguments: --scan --no-parallel --no-daemon jandex test
         properties: |
           skipReplicationTests=
           port=${{ job.services.postgres.ports['5432'] }}
