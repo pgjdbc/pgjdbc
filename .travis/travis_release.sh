@@ -54,7 +54,7 @@ if [[ "x$JRE" == "x" ]]; then
   git push --dry-run git@github.com:$TRAVIS_REPO_SLUG.git "HEAD:$ORIGINAL_BRANCH"
 
   git checkout -b "$TMP_BRANCH"
-
+fi
 
 # Remove release tag if exists just in case
 git push git@github.com:$TRAVIS_REPO_SLUG$JRE.git :$RELEASE_TAG || true
