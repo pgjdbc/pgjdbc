@@ -57,13 +57,13 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
         return false;
       }
 
-      Iterator<Map.Entry<Key,Value>> it = entrySet().iterator();
+      Iterator<Map.Entry<Key, Value>> it = entrySet().iterator();
       while (it.hasNext()) {
         if (size() <= maxSizeEntries && currentSize <= maxSizeBytes) {
           return false;
         }
 
-        Map.Entry<Key,Value> entry = it.next();
+        Map.Entry<Key, Value> entry = it.next();
         evictValue(entry.getValue());
         long valueSize = entry.getValue().getSize();
         if (valueSize > 0) {
