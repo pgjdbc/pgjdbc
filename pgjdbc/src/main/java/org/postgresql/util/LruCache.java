@@ -36,8 +36,8 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     Value create(Key key) throws SQLException;
   }
 
-  @Nullable private final EvictAction<Value> onEvict;
-  @Nullable private final CreateAction<Key, Value> createAction;
+  private final @Nullable EvictAction<Value> onEvict;
+  private final @Nullable CreateAction<Key, Value> createAction;
   private final int maxSizeEntries;
   private final long maxSizeBytes;
   private final Map<Key, Value> cache;
