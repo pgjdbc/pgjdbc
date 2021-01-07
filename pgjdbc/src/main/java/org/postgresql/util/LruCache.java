@@ -142,7 +142,7 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     this.maxSizeEntries = maxSizeEntries;
     this.maxSizeBytes = maxSizeBytes;
     this.createAction = createAction;
-    this.onEvict = onEvict != null ? onEvict : v -> { };
+    this.onEvict = onEvict;
     this.cache = new LimitedMap(16, 0.75f, accessOrder);
   }
 
