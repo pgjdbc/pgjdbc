@@ -36,8 +36,8 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
     Value create(Key key) throws SQLException;
   }
 
-  private final EvictAction<Value> onEvict;
-  private final CreateAction<Key, Value> createAction;
+  @Nullable private final EvictAction<Value> onEvict;
+  @Nullable private final CreateAction<Key, Value> createAction;
   private final int maxSizeEntries;
   private final long maxSizeBytes;
   private final Map<Key, Value> cache;
@@ -78,7 +78,9 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
 
   private void evictValue(Value value) {
     try {
-      onEvict.evict(value);
+      if (onEvict != null) {
+        onEvict.evict(value);
+      }
     } catch (SQLException e) {
       /* ignore */
     }
@@ -139,9 +141,7 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
       @Nullable EvictAction<Value> onEvict) {
     this.maxSizeEntries = maxSizeEntries;
     this.maxSizeBytes = maxSizeBytes;
-    this.createAction = createAction != null ? createAction : k -> {
-      throw new UnsupportedOperationException("createAction == null, so can't create object");
-    };
+    this.createAction = createAction;
     this.onEvict = onEvict != null ? onEvict : v -> { };
     this.cache = new LimitedMap(16, 0.75f, accessOrder);
   }
@@ -165,8 +165,11 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
    * @throws SQLException if entry creation fails
    */
   public synchronized Value borrow(Key key) throws SQLException {
-    @Nullable Value value = cache.remove(key);
+    Value value = cache.remove(key);
     if (value == null) {
+      if (createAction == null) {
+        throw new UnsupportedOperationException("createAction == null, so can't create object");
+      }
       return createAction.create(key);
     }
     currentSize -= value.getSize();
@@ -205,6 +208,8 @@ public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEst
    * @param m The map containing entries to put into the cache
    */
   public synchronized void putAll(Map<Key, Value> m) {
-    m.forEach(this::put);
+    for (Map.Entry<Key, Value> entry : m.entrySet()) {
+      this.put(entry.getKey(), entry.getValue());
+    }
   }
 }
