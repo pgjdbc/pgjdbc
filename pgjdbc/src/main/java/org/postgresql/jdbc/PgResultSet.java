@@ -2159,11 +2159,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    *
    * @param columnIndex the first column is 1, the second is 2, ...
    * @return the column value; if the value is SQL <code>NULL</code>, the value returned is
-   * <code>false</code>
+   *         <code>false</code>
    * @exception SQLException if the columnIndex is not valid; if a database access error occurs; if
-   *     this method is called on a closed result set or is an invalid cast to boolean type.
+   *            this method is called on a closed result set or is an invalid cast to boolean type.
    * @see <a href="https://www.postgresql.org/docs/current/static/datatype-boolean.html">PostgreSQL
-   * Boolean Type</a>
+   *      Boolean Type</a>
    */
   @Pure
   @Override
