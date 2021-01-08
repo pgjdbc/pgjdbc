@@ -205,7 +205,7 @@ public class Driver implements java.sql.Driver {
    * @param info a list of arbitrary tag/value pairs as connection arguments
    * @return a connection to the URL or null if it isnt us
    * @exception SQLException if a database access error occurs or the url is
-   * {@code null}
+   *            {@code null}
    * @see java.sql.Driver#connect
    */
   @Override
