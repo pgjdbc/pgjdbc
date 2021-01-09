@@ -104,7 +104,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   }
 
   public byte @Nullable [] readFromCopy() throws SQLException {
-    byte[] result = buf;
+    byte[] result = null;
     try {
       byte[] buf = fillBuffer();
       if (buf != null) {
