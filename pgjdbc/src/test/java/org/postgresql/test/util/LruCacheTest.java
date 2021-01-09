@@ -96,7 +96,22 @@ public class LruCacheTest {
   }
 
   @Test
-  public void testEvictsLeastRecentlyUsed() throws SQLException {
+  public void testEvictsLeastRecentlyBorrowed() throws SQLException {
+    Entry a;
+    Entry b;
+    Entry c;
+    Entry d;
+
+    a = use(1);
+    b = use(2);
+    c = use(3);
+    a = use(1); // reuse a
+    use(5);
+    d = use(4, b); // expect b to be evicted
+  }
+
+  @Test
+  public void testEvictsLeastRecentlyGotten() throws SQLException {
     Entry a;
     Entry b;
     Entry c;
