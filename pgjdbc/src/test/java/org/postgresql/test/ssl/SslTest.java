@@ -153,6 +153,10 @@ public class SslTest extends BaseTest4 {
                 continue;
               }
               for (GSSEncMode gssEncMode : GSSEncMode.values()) {
+                if (gssEncMode == GSSEncMode.REQUIRE) {
+                  // TODO: support gss tests in /certdir/pg_hba.conf
+                  continue;
+                }
                 tests.add(
                     new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate,
                         certdir, gssEncMode});
@@ -308,11 +312,18 @@ public class SslTest extends BaseTest4 {
           Assert.fail(caseName + " ==> connection should be upgraded to SSL with no failures");
         }
       } else {
-        if (e == null) {
-          Assert.fail(caseName + " ==> connection should fail");
+        try {
+          if (e == null) {
+            Assert.fail(caseName + " ==> connection should fail");
+          }
+          Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
+              PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+        } catch (AssertionError er) {
+          for (AssertionError error : errors) {
+            er.addSuppressed(error);
+          }
+          throw er;
         }
-        Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
-            PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
       }
       // ALLOW is ok
       return;
