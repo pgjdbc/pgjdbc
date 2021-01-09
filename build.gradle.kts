@@ -545,7 +545,7 @@ allprojects {
                 passProperty("user.country", "tr")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-                    if (e.startsWith("pgjdbc.")) {
+                    if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
                         passProperty(e)
                     }
                 }
