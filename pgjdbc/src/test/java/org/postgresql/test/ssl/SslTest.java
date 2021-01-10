@@ -440,8 +440,22 @@ public class SslTest extends BaseTest4 {
     if (e == null) {
       Assert.fail(caseName + " should result in failure of client validation");
     }
-    Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+    // Note: Java's SSLSocket handshake does NOT process alert messages
+    // even if they are present on the wire. This looks like a perfectly valid
+    // handshake, however, the subsequent read from the stream (e.g. during startup
+    // message) discovers the alert message (e.g. "Received fatal alert: decrypt_error")
+    // and converts that to exception.
+    // That is why "CONNECTION_UNABLE_TO_CONNECT" is listed here for BAD client cert.
+    // Ideally, hanshake failure should be detected during the handshake, not after sending the startup
+    // message
+    if (!PSQLState.CONNECTION_FAILURE.getState().equals(e.getSQLState())
+        && !(clientCertificate == ClientCertificate.BAD
+        && PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(e.getSQLState()))
+    ) {
+      Assert.fail(caseName + " ==> CONNECTION_FAILURE(08006)"
+              + " or CONNECTION_UNABLE_TO_CONNECT(08001) is expected"
+              + ", got " + e.getSQLState());
+    }
 
     // Two exceptions are possible
     // SSLHandshakeException: Received fatal alert: unknown_ca
