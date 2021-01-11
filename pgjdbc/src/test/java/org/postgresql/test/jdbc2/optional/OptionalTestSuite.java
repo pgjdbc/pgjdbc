@@ -16,13 +16,13 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        BaseDataSourceFailoverUrlsTest.class,
-        CaseOptimiserDataSourceTest.class,
-        ConnectionPoolTest.class,
-        PoolingDataSourceTest.class,
-        SimpleDataSourceTest.class,
-        SimpleDataSourceWithSetURLTest.class,
-        SimpleDataSourceWithUrlTest.class,
+    BaseDataSourceFailoverUrlsTest.class,
+    CaseOptimiserDataSourceTest.class,
+    ConnectionPoolTest.class,
+    PoolingDataSourceTest.class,
+    SimpleDataSourceTest.class,
+    SimpleDataSourceWithSetURLTest.class,
+    SimpleDataSourceWithUrlTest.class,
 })
 public class OptionalTestSuite {
 

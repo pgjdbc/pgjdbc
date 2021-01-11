@@ -166,10 +166,10 @@ public class PKCS12KeyManager implements X509KeyManager {
           PSQLState.CONNECTION_FAILURE, ucex);
       } else {
         error =
-          new PSQLException(
-            GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
-              cbh.getClass().getName()),
-            PSQLState.CONNECTION_FAILURE, ucex);
+            new PSQLException(
+              GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
+                cbh.getClass().getName()),
+              PSQLState.CONNECTION_FAILURE, ucex);
       }
 
     }
