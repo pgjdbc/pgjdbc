@@ -16,7 +16,6 @@ import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.copy.CopyOut;
 import org.postgresql.copy.PGCopyOutputStream;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.PSQLState;
@@ -69,11 +68,7 @@ public class CopyTest {
     TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
 
     copyAPI = ((PGConnection) con).getCopyAPI();
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      copyParams = "(FORMAT CSV, HEADER false)";
-    } else {
-      copyParams = "CSV";
-    }
+    copyParams = "(FORMAT CSV, HEADER false)";
   }
 
   @After
@@ -412,11 +407,6 @@ public class CopyTest {
 
   @Test
   public void testLockReleaseOnCancelFailure() throws SQLException, InterruptedException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      // pg_backend_pid() requires PostgreSQL 8.4+
-      return;
-    }
-
     // This is a fairly complex test because it is testing a
     // deadlock that only occurs when the connection to postgres
     // is broken during a copy operation. We'll start a copy

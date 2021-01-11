@@ -6,7 +6,6 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGConnection;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.hamcrest.core.StringStartsWith;
@@ -59,20 +58,8 @@ public class ParameterStatusTest extends BaseTest4 {
     Assert.assertNotNull(params.get("server_version"));
     Assert.assertNotNull(params.get("session_authorization"));
     Assert.assertNotNull(params.get("standard_conforming_strings"));
-
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      Assert.assertNotNull(params.get("IntervalStyle"));
-    } else {
-      Assert.assertNull(params.get("IntervalStyle"));
-    }
-
-    // TestUtil forces "ApplicationName=Driver Tests"
-    // if application_name is supported (9.0 or newer)
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      Assert.assertEquals("Driver Tests", params.get("application_name"));
-    } else {
-      Assert.assertNull(params.get("application_name"));
-    }
+    Assert.assertNotNull(params.get("IntervalStyle"));
+    Assert.assertEquals("Driver Tests", params.get("application_name"));
 
     // Not reported
     Assert.assertNull(params.get("nonexistent"));
@@ -84,12 +71,6 @@ public class ParameterStatusTest extends BaseTest4 {
   @Test
   public void reportUpdatedParameters() throws Exception {
     con = TestUtil.openDB();
-
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      /* This test uses application_name which was added in 9.0 */
-      return;
-    }
-
     con.setAutoCommit(false);
     Statement stmt = con.createStatement();
 
@@ -128,11 +109,6 @@ public class ParameterStatusTest extends BaseTest4 {
   public void transactionalParametersRollback() throws Exception {
     con = TestUtil.openDB();
 
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      /* This test uses application_name which was added in 9.0 */
-      return;
-    }
-
     con.setAutoCommit(false);
 
     transactionalParametersCommon();
@@ -148,11 +124,6 @@ public class ParameterStatusTest extends BaseTest4 {
   @Test
   public void transactionalParametersCommit() throws Exception {
     con = TestUtil.openDB();
-
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      /* This test uses application_name which was added in 9.0 */
-      return;
-    }
 
     con.setAutoCommit(false);
 
@@ -170,11 +141,6 @@ public class ParameterStatusTest extends BaseTest4 {
   public void transactionalParametersAutocommit() throws Exception {
     con = TestUtil.openDB();
 
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      /* This test uses application_name which was added in 9.0 */
-      return;
-    }
-
     con.setAutoCommit(true);
     Statement stmt = con.createStatement();
 
@@ -191,7 +157,7 @@ public class ParameterStatusTest extends BaseTest4 {
   public void parameterMapReadOnly() throws Exception {
     try {
       con = TestUtil.openDB();
-      Map params = ((PGConnection)con).getParameterStatuses();
+      Map<String, String> params = ((PGConnection)con).getParameterStatuses();
       params.put("DateStyle", "invalid");
       Assert.fail("Attempt to write to exposed parameters map must throw");
     } finally {
@@ -203,12 +169,7 @@ public class ParameterStatusTest extends BaseTest4 {
   public void parameterMapIsView() throws Exception {
     con = TestUtil.openDB();
 
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      /* This test uses application_name which was added in 9.0 */
-      return;
-    }
-
-    Map params = ((PGConnection)con).getParameterStatuses();
+    Map<String, String> params = ((PGConnection)con).getParameterStatuses();
 
     Statement stmt = con.createStatement();
 

@@ -9,7 +9,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -109,10 +108,6 @@ public class Jdbc3BlobTest {
 
   @Test
   public void testTruncate() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3)) {
-      return;
-    }
-
     byte[] data = new byte[100];
     for (byte i = 0; i < data.length; i++) {
       data[i] = i;

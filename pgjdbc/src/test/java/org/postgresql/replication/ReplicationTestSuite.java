@@ -5,7 +5,6 @@
 
 package org.postgresql.replication;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.AssumptionViolatedException;
@@ -34,15 +33,8 @@ public class ReplicationTestSuite {
   public static void setUp() throws Exception {
     Connection connection = TestUtil.openDB();
     try {
-      if (TestUtil.haveMinimumServerVersion(connection, ServerVersion.v9_0)) {
-        assumeWalSenderEnabled(connection);
-        assumeReplicationRole(connection);
-      } else {
-        throw new AssumptionViolatedException(
-            "Skip replication test because current database version "
-                + "too old and don't contain replication API"
-        );
-      }
+      assumeWalSenderEnabled(connection);
+      assumeReplicationRole(connection);
     } finally {
       connection.close();
     }

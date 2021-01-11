@@ -9,12 +9,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,9 +45,6 @@ public class SetObject310InfinityTests extends BaseTest4 {
 
   @Override
   public void setUp() throws Exception {
-    super.setUp();
-    Assume.assumeTrue("PostgreSQL 8.3 does not support 'infinity' for 'date'",
-        TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
     super.setUp();
     TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
             + "timestamp_with_time_zone_column timestamp with time zone,"

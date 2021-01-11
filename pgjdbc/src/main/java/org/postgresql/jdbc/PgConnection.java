@@ -65,7 +65,6 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -222,8 +221,8 @@ public class PgConnection implements BaseConnection {
     // Now make the initial connection and set up local state
     this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, user, database, info);
 
-    // WARNING for unsupported servers (8.1 and lower are not supported)
-    if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v8_2)) {
+    // WARNING for unsupported servers (below 9.0)
+    if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v9_0)) {
       LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
     }
 
@@ -299,19 +298,12 @@ public class PgConnection implements BaseConnection {
     }
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
-    if (haveMinimumServerVersion(ServerVersion.v8_3)) {
-      typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
-      typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
-    }
-
     this.clientInfo = new Properties();
-    if (haveMinimumServerVersion(ServerVersion.v9_0)) {
-      String appName = PGProperty.APPLICATION_NAME.get(info);
-      if (appName == null) {
-        appName = "";
-      }
-      this.clientInfo.put("ApplicationName", appName);
+    String appName = PGProperty.APPLICATION_NAME.get(info);
+    if (appName == null) {
+      appName = "";
     }
+    this.clientInfo.put("ApplicationName", appName);
 
     fieldMetadataCache = new LruCache<FieldMetadata.Key, FieldMetadata>(
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
@@ -1447,7 +1439,7 @@ public class PgConnection implements BaseConnection {
       throw new SQLClientInfoException(GT.tr("This connection has been closed."), failures, cause);
     }
 
-    if (haveMinimumServerVersion(ServerVersion.v9_0) && "ApplicationName".equals(name)) {
+    if ("ApplicationName".equals(name)) {
       if (value == null) {
         value = "";
       }

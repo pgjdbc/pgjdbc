@@ -12,7 +12,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
@@ -152,10 +151,8 @@ public class StatementTest {
     count = stmt.executeUpdate("CREATE TEMP TABLE another_table (a int)");
     assertEquals(0, count);
 
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      count = stmt.executeUpdate("CREATE TEMP TABLE yet_another_table AS SELECT x FROM generate_series(1,10) x");
-      assertEquals(10, count);
-    }
+    count = stmt.executeUpdate("CREATE TEMP TABLE yet_another_table AS SELECT x FROM generate_series(1,10) x");
+    assertEquals(10, count);
   }
 
   @Test

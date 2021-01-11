@@ -264,91 +264,78 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     connection.checkClosed();
     String keywords = this.keywords;
     if (keywords == null) {
-      if (connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-        // Exclude SQL:2003 keywords (https://github.com/ronsavage/SQL/blob/master/sql-2003-2.bnf)
-        // from the returned list, ugly but required by jdbc spec.
-        String sql = "select string_agg(word, ',') from pg_catalog.pg_get_keywords() "
-            + "where word <> ALL ('{a,abs,absolute,action,ada,add,admin,after,all,allocate,alter,"
-            + "always,and,any,are,array,as,asc,asensitive,assertion,assignment,asymmetric,at,atomic,"
-            + "attribute,attributes,authorization,avg,before,begin,bernoulli,between,bigint,binary,"
-            + "blob,boolean,both,breadth,by,c,call,called,cardinality,cascade,cascaded,case,cast,"
-            + "catalog,catalog_name,ceil,ceiling,chain,char,char_length,character,character_length,"
-            + "character_set_catalog,character_set_name,character_set_schema,characteristics,"
-            + "characters,check,checked,class_origin,clob,close,coalesce,cobol,code_units,collate,"
-            + "collation,collation_catalog,collation_name,collation_schema,collect,column,"
-            + "column_name,command_function,command_function_code,commit,committed,condition,"
-            + "condition_number,connect,connection_name,constraint,constraint_catalog,constraint_name,"
-            + "constraint_schema,constraints,constructors,contains,continue,convert,corr,"
-            + "corresponding,count,covar_pop,covar_samp,create,cross,cube,cume_dist,current,"
-            + "current_collation,current_date,current_default_transform_group,current_path,"
-            + "current_role,current_time,current_timestamp,current_transform_group_for_type,current_user,"
-            + "cursor,cursor_name,cycle,data,date,datetime_interval_code,datetime_interval_precision,"
-            + "day,deallocate,dec,decimal,declare,default,defaults,deferrable,deferred,defined,definer,"
-            + "degree,delete,dense_rank,depth,deref,derived,desc,describe,descriptor,deterministic,"
-            + "diagnostics,disconnect,dispatch,distinct,domain,double,drop,dynamic,dynamic_function,"
-            + "dynamic_function_code,each,element,else,end,end-exec,equals,escape,every,except,"
-            + "exception,exclude,excluding,exec,execute,exists,exp,external,extract,false,fetch,filter,"
-            + "final,first,float,floor,following,for,foreign,fortran,found,free,from,full,function,"
-            + "fusion,g,general,get,global,go,goto,grant,granted,group,grouping,having,hierarchy,hold,"
-            + "hour,identity,immediate,implementation,in,including,increment,indicator,initially,"
-            + "inner,inout,input,insensitive,insert,instance,instantiable,int,integer,intersect,"
-            + "intersection,interval,into,invoker,is,isolation,join,k,key,key_member,key_type,language,"
-            + "large,last,lateral,leading,left,length,level,like,ln,local,localtime,localtimestamp,"
-            + "locator,lower,m,map,match,matched,max,maxvalue,member,merge,message_length,"
-            + "message_octet_length,message_text,method,min,minute,minvalue,mod,modifies,module,month,"
-            + "more,multiset,mumps,name,names,national,natural,nchar,nclob,nesting,new,next,no,none,"
-            + "normalize,normalized,not,\"null\",nullable,nullif,nulls,number,numeric,object,"
-            + "octet_length,octets,of,old,on,only,open,option,options,or,order,ordering,ordinality,"
-            + "others,out,outer,output,over,overlaps,overlay,overriding,pad,parameter,parameter_mode,"
-            + "parameter_name,parameter_ordinal_position,parameter_specific_catalog,"
-            + "parameter_specific_name,parameter_specific_schema,partial,partition,pascal,path,"
-            + "percent_rank,percentile_cont,percentile_disc,placing,pli,position,power,preceding,"
-            + "precision,prepare,preserve,primary,prior,privileges,procedure,public,range,rank,read,"
-            + "reads,real,recursive,ref,references,referencing,regr_avgx,regr_avgy,regr_count,"
-            + "regr_intercept,regr_r2,regr_slope,regr_sxx,regr_sxy,regr_syy,relative,release,"
-            + "repeatable,restart,result,return,returned_cardinality,returned_length,"
-            + "returned_octet_length,returned_sqlstate,returns,revoke,right,role,rollback,rollup,"
-            + "routine,routine_catalog,routine_name,routine_schema,row,row_count,row_number,rows,"
-            + "savepoint,scale,schema,schema_name,scope_catalog,scope_name,scope_schema,scroll,"
-            + "search,second,section,security,select,self,sensitive,sequence,serializable,server_name,"
-            + "session,session_user,set,sets,similar,simple,size,smallint,some,source,space,specific,"
-            + "specific_name,specifictype,sql,sqlexception,sqlstate,sqlwarning,sqrt,start,state,"
-            + "statement,static,stddev_pop,stddev_samp,structure,style,subclass_origin,submultiset,"
-            + "substring,sum,symmetric,system,system_user,table,table_name,tablesample,temporary,then,"
-            + "ties,time,timestamp,timezone_hour,timezone_minute,to,top_level_count,trailing,"
-            + "transaction,transaction_active,transactions_committed,transactions_rolled_back,"
-            + "transform,transforms,translate,translation,treat,trigger,trigger_catalog,trigger_name,"
-            + "trigger_schema,trim,true,type,uescape,unbounded,uncommitted,under,union,unique,unknown,"
-            + "unnamed,unnest,update,upper,usage,user,user_defined_type_catalog,user_defined_type_code,"
-            + "user_defined_type_name,user_defined_type_schema,using,value,values,var_pop,var_samp,"
-            + "varchar,varying,view,when,whenever,where,width_bucket,window,with,within,without,work,"
-            + "write,year,zone}'::text[])";
+      // Exclude SQL:2003 keywords (https://github.com/ronsavage/SQL/blob/master/sql-2003-2.bnf)
+      // from the returned list, ugly but required by jdbc spec.
+      String sql = "select string_agg(word, ',') from pg_catalog.pg_get_keywords() "
+          + "where word <> ALL ('{a,abs,absolute,action,ada,add,admin,after,all,allocate,alter,"
+          + "always,and,any,are,array,as,asc,asensitive,assertion,assignment,asymmetric,at,atomic,"
+          + "attribute,attributes,authorization,avg,before,begin,bernoulli,between,bigint,binary,"
+          + "blob,boolean,both,breadth,by,c,call,called,cardinality,cascade,cascaded,case,cast,"
+          + "catalog,catalog_name,ceil,ceiling,chain,char,char_length,character,character_length,"
+          + "character_set_catalog,character_set_name,character_set_schema,characteristics,"
+          + "characters,check,checked,class_origin,clob,close,coalesce,cobol,code_units,collate,"
+          + "collation,collation_catalog,collation_name,collation_schema,collect,column,"
+          + "column_name,command_function,command_function_code,commit,committed,condition,"
+          + "condition_number,connect,connection_name,constraint,constraint_catalog,constraint_name,"
+          + "constraint_schema,constraints,constructors,contains,continue,convert,corr,"
+          + "corresponding,count,covar_pop,covar_samp,create,cross,cube,cume_dist,current,"
+          + "current_collation,current_date,current_default_transform_group,current_path,"
+          + "current_role,current_time,current_timestamp,current_transform_group_for_type,current_user,"
+          + "cursor,cursor_name,cycle,data,date,datetime_interval_code,datetime_interval_precision,"
+          + "day,deallocate,dec,decimal,declare,default,defaults,deferrable,deferred,defined,definer,"
+          + "degree,delete,dense_rank,depth,deref,derived,desc,describe,descriptor,deterministic,"
+          + "diagnostics,disconnect,dispatch,distinct,domain,double,drop,dynamic,dynamic_function,"
+          + "dynamic_function_code,each,element,else,end,end-exec,equals,escape,every,except,"
+          + "exception,exclude,excluding,exec,execute,exists,exp,external,extract,false,fetch,filter,"
+          + "final,first,float,floor,following,for,foreign,fortran,found,free,from,full,function,"
+          + "fusion,g,general,get,global,go,goto,grant,granted,group,grouping,having,hierarchy,hold,"
+          + "hour,identity,immediate,implementation,in,including,increment,indicator,initially,"
+          + "inner,inout,input,insensitive,insert,instance,instantiable,int,integer,intersect,"
+          + "intersection,interval,into,invoker,is,isolation,join,k,key,key_member,key_type,language,"
+          + "large,last,lateral,leading,left,length,level,like,ln,local,localtime,localtimestamp,"
+          + "locator,lower,m,map,match,matched,max,maxvalue,member,merge,message_length,"
+          + "message_octet_length,message_text,method,min,minute,minvalue,mod,modifies,module,month,"
+          + "more,multiset,mumps,name,names,national,natural,nchar,nclob,nesting,new,next,no,none,"
+          + "normalize,normalized,not,\"null\",nullable,nullif,nulls,number,numeric,object,"
+          + "octet_length,octets,of,old,on,only,open,option,options,or,order,ordering,ordinality,"
+          + "others,out,outer,output,over,overlaps,overlay,overriding,pad,parameter,parameter_mode,"
+          + "parameter_name,parameter_ordinal_position,parameter_specific_catalog,"
+          + "parameter_specific_name,parameter_specific_schema,partial,partition,pascal,path,"
+          + "percent_rank,percentile_cont,percentile_disc,placing,pli,position,power,preceding,"
+          + "precision,prepare,preserve,primary,prior,privileges,procedure,public,range,rank,read,"
+          + "reads,real,recursive,ref,references,referencing,regr_avgx,regr_avgy,regr_count,"
+          + "regr_intercept,regr_r2,regr_slope,regr_sxx,regr_sxy,regr_syy,relative,release,"
+          + "repeatable,restart,result,return,returned_cardinality,returned_length,"
+          + "returned_octet_length,returned_sqlstate,returns,revoke,right,role,rollback,rollup,"
+          + "routine,routine_catalog,routine_name,routine_schema,row,row_count,row_number,rows,"
+          + "savepoint,scale,schema,schema_name,scope_catalog,scope_name,scope_schema,scroll,"
+          + "search,second,section,security,select,self,sensitive,sequence,serializable,server_name,"
+          + "session,session_user,set,sets,similar,simple,size,smallint,some,source,space,specific,"
+          + "specific_name,specifictype,sql,sqlexception,sqlstate,sqlwarning,sqrt,start,state,"
+          + "statement,static,stddev_pop,stddev_samp,structure,style,subclass_origin,submultiset,"
+          + "substring,sum,symmetric,system,system_user,table,table_name,tablesample,temporary,then,"
+          + "ties,time,timestamp,timezone_hour,timezone_minute,to,top_level_count,trailing,"
+          + "transaction,transaction_active,transactions_committed,transactions_rolled_back,"
+          + "transform,transforms,translate,translation,treat,trigger,trigger_catalog,trigger_name,"
+          + "trigger_schema,trim,true,type,uescape,unbounded,uncommitted,under,union,unique,unknown,"
+          + "unnamed,unnest,update,upper,usage,user,user_defined_type_catalog,user_defined_type_code,"
+          + "user_defined_type_name,user_defined_type_schema,using,value,values,var_pop,var_samp,"
+          + "varchar,varying,view,when,whenever,where,width_bucket,window,with,within,without,work,"
+          + "write,year,zone}'::text[])";
 
-        Statement stmt = null;
-        ResultSet rs = null;
-        try {
-          stmt = connection.createStatement();
-          rs = stmt.executeQuery(sql);
-          if (!rs.next()) {
-            throw new PSQLException(GT.tr("Unable to find keywords in the system catalogs."),
-                PSQLState.UNEXPECTED_ERROR);
-          }
-          keywords = rs.getString(1);
-        } finally {
-          JdbcBlackHole.close(rs);
-          JdbcBlackHole.close(stmt);
+      Statement stmt = null;
+      ResultSet rs = null;
+      try {
+        stmt = connection.createStatement();
+        rs = stmt.executeQuery(sql);
+        if (!rs.next()) {
+          throw new PSQLException(GT.tr("Unable to find keywords in the system catalogs."),
+              PSQLState.UNEXPECTED_ERROR);
         }
-      } else {
-        // Static list from PG8.2 src/backend/parser/keywords.c with SQL:2003 excluded.
-        keywords = "abort,access,aggregate,also,analyse,analyze,backward,bit,cache,checkpoint,class,"
-            + "cluster,comment,concurrently,connection,conversion,copy,csv,database,delimiter,"
-            + "delimiters,disable,do,enable,encoding,encrypted,exclusive,explain,force,forward,freeze,"
-            + "greatest,handler,header,if,ilike,immutable,implicit,index,indexes,inherit,inherits,"
-            + "instead,isnull,least,limit,listen,load,location,lock,mode,move,nothing,notify,notnull,"
-            + "nowait,off,offset,oids,operator,owned,owner,password,prepared,procedural,quote,reassign,"
-            + "recheck,reindex,rename,replace,reset,restrict,returning,rule,setof,share,show,stable,"
-            + "statistics,stdin,stdout,storage,strict,sysid,tablespace,temp,template,truncate,trusted,"
-            + "unencrypted,unlisten,until,vacuum,valid,validator,verbose,volatile";
+        keywords = rs.getString(1);
+      } finally {
+        JdbcBlackHole.close(rs);
+        JdbcBlackHole.close(stmt);
       }
       this.keywords = castNonNull(keywords);
     }
@@ -1519,29 +1506,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
     f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
-    String sql;
     // a.attnum isn't decremented when preceding columns are dropped,
     // so the only way to calculate the correct column number is with
-    // window functions, new in 8.4.
+    // window functions
     //
     // We want to push as much predicate information below the window
     // function as possible (schema/table names), but must leave
     // column name outside so we correctly count the other columns.
     //
-    if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-      sql = "SELECT * FROM (";
-    } else {
-      sql = "";
-    }
-
-    sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
-
-    if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-      sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
-    } else {
-      sql += "a.attnum,";
-    }
+    String sql = "SELECT * FROM ("
+           + "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
+           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,"
+           + "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v10)) {
       sql += "nullif(a.attidentity, '') as attidentity,";
@@ -1565,9 +1541,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (tableNamePattern != null && !tableNamePattern.isEmpty()) {
       sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
     }
-    if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-      sql += ") c WHERE true ";
-    }
+    sql += ") c WHERE true ";
     if (columnNamePattern != null && !columnNamePattern.isEmpty()) {
       sql += " AND attname LIKE " + escapeQuotes(columnNamePattern);
     }
@@ -1714,9 +1688,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl, "
-          + (connection.haveMinimumServerVersion(ServerVersion.v8_4) ? "a.attacl, " : "")
-          + " a.attname "
+    sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl, a.attacl, a.attname "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, "
           + " pg_catalog.pg_roles r, pg_catalog.pg_attribute a "
           + " WHERE c.relnamespace = n.oid "
@@ -1747,12 +1719,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       // For instance: SELECT -> user1 -> list of [grantor, grantable]
       Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(relAcl, owner);
+      String acl = rs.getString("attacl");
+      Map<String, Map<String, List<@Nullable String[]>>> relPermissions = parseACL(acl, owner);
+      permissions.putAll(relPermissions);
 
-      if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-        String acl = rs.getString("attacl");
-        Map<String, Map<String, List<@Nullable String[]>>> relPermissions = parseACL(acl, owner);
-        permissions.putAll(relPermissions);
-      }
       @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {
@@ -2001,11 +1971,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public Map<String, Map<String, List<@Nullable String[]>>> parseACL(@Nullable String aclArray,
       String owner) {
     if (aclArray == null) {
-      // arwdxt -- 8.2 Removed the separate RULE permission
-      // arwdDxt -- 8.4 Added a separate TRUNCATE permission
-      String perms = connection.haveMinimumServerVersion(ServerVersion.v8_4) ? "arwdDxt" : "arwdxt";
-
-      aclArray = "{" + owner + "=" + perms + "/" + owner + "}";
+      aclArray = "{" + owner + "=arwdDxt/" + owner + "}";
     }
 
     List<String> acls = parseACLArray(aclArray);
@@ -2226,18 +2192,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     // Starting in Postgres 9.0, pg_constraint was augmented with the conindid column, which
     // contains the oid of the index supporting the constraint. This makes it unnecessary to do a
     // further join on pg_depend.
-    if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      sql += ", pg_catalog.pg_depend dep ";
-    }
+
     sql +=
         " WHERE pkn.oid = pkc.relnamespace AND pkc.oid = pka.attrelid AND pka.attnum = con.confkey[pos.n] AND con.confrelid = pkc.oid "
             + " AND fkn.oid = fkc.relnamespace AND fkc.oid = fka.attrelid AND fka.attnum = con.conkey[pos.n] AND con.conrelid = fkc.oid "
-            + " AND con.contype = 'f' AND pkic.relkind = 'i' ";
-    if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      sql += " AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
-    } else {
-      sql += " AND pkic.oid = con.conindid ";
-    }
+            + " AND con.contype = 'f' AND pkic.relkind = 'i' AND pkic.oid = con.conindid ";
 
     if (primarySchema != null && !primarySchema.isEmpty()) {
       sql += " AND pkn.nspname = " + escapeQuotes(primarySchema);
@@ -2420,116 +2379,72 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * with the single column functional index we need an extra join to the table's pg_attribute
      * data to get the column the function operates on.
      */
-    String sql;
-    if (connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
-            + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
-            + "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
-            + "  CASE i.indisclustered "
-            + "    WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered
-            + "    ELSE CASE am.amname "
-            + "      WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed
-            + "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther
-            + "    END "
-            + "  END AS TYPE, "
-            + "  (information_schema._pg_expandarray(i.indkey)).n AS ORDINAL_POSITION, "
-            + "  ci.reltuples AS CARDINALITY, "
-            + "  ci.relpages AS PAGES, "
-            + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION, "
-            + "  ci.oid AS CI_OID, "
-            + "  i.indoption AS I_INDOPTION, "
-            + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME " : "  am.amcanorder AS AM_CANORDER ")
-            + "FROM pg_catalog.pg_class ct "
-            + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-            + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
-            + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
-            + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
-            + "WHERE true ";
+    String innerSql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+        + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
+        + "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
+        + "  CASE i.indisclustered "
+        + "    WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered
+        + "    ELSE CASE am.amname "
+        + "      WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed
+        + "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther
+        + "    END "
+        + "  END AS TYPE, "
+        + "  (information_schema._pg_expandarray(i.indkey)).n AS ORDINAL_POSITION, "
+        + "  ci.reltuples AS CARDINALITY, "
+        + "  ci.relpages AS PAGES, "
+        + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION, "
+        + "  ci.oid AS CI_OID, "
+        + "  i.indoption AS I_INDOPTION, "
+        + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME " : "  am.amcanorder AS AM_CANORDER ")
+        + "FROM pg_catalog.pg_class ct "
+        + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+        + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
+        + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
+        + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
+        + "WHERE true ";
 
-      if (schema != null && !schema.isEmpty()) {
-        sql += " AND n.nspname = " + escapeQuotes(schema);
-      }
-
-      sql += " AND ct.relname = " + escapeQuotes(tableName);
-
-      if (unique) {
-        sql += " AND i.indisunique ";
-      }
-
-      sql = "SELECT "
-                + "    tmp.TABLE_CAT, "
-                + "    tmp.TABLE_SCHEM, "
-                + "    tmp.TABLE_NAME, "
-                + "    tmp.NON_UNIQUE, "
-                + "    tmp.INDEX_QUALIFIER, "
-                + "    tmp.INDEX_NAME, "
-                + "    tmp.TYPE, "
-                + "    tmp.ORDINAL_POSITION, "
-                + "    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS COLUMN_NAME, "
-                + (connection.haveMinimumServerVersion(ServerVersion.v9_6)
-                        ? "  CASE tmp.AM_NAME "
-                        + "    WHEN 'btree' THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
-                        + "      WHEN 1 THEN 'D' "
-                        + "      ELSE 'A' "
-                        + "    END "
-                        + "    ELSE NULL "
-                        + "  END AS ASC_OR_DESC, "
-                        : "  CASE tmp.AM_CANORDER "
-                        + "    WHEN true THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
-                        + "      WHEN 1 THEN 'D' "
-                        + "      ELSE 'A' "
-                        + "    END "
-                        + "    ELSE NULL "
-                        + "  END AS ASC_OR_DESC, ")
-                + "    tmp.CARDINALITY, "
-                + "    tmp.PAGES, "
-                + "    tmp.FILTER_CONDITION "
-                + "FROM ("
-                + sql
-                + ") AS tmp";
-    } else {
-      String select;
-      String from;
-      String where;
-
-      select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
-      from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, "
-             + " pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
-      where = " AND n.oid = ct.relnamespace ";
-      from += ", pg_catalog.pg_index i ";
-
-      if (schema != null && !schema.isEmpty()) {
-        where += " AND n.nspname = " + escapeQuotes(schema);
-      }
-
-      sql = select
-            + " ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
-            + " CASE i.indisclustered "
-            + " WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered
-            + " ELSE CASE am.amname "
-            + " WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed
-            + " ELSE " + java.sql.DatabaseMetaData.tableIndexOther
-            + " END "
-            + " END AS TYPE, "
-            + " a.attnum AS ORDINAL_POSITION, "
-            + " CASE WHEN i.indexprs IS NULL THEN a.attname "
-            + " ELSE pg_catalog.pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, "
-            + " NULL AS ASC_OR_DESC, "
-            + " ci.reltuples AS CARDINALITY, "
-            + " ci.relpages AS PAGES, "
-            + " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION "
-            + from
-            + " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid "
-            + where;
-
-      sql += " AND ct.relname = " + escapeQuotes(tableName);
-
-      if (unique) {
-        sql += " AND i.indisunique ";
-      }
+    if (schema != null && !schema.isEmpty()) {
+      innerSql += " AND n.nspname = " + escapeQuotes(schema);
     }
 
-    sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
+    innerSql += " AND ct.relname = " + escapeQuotes(tableName);
+
+    if (unique) {
+      innerSql += " AND i.indisunique ";
+    }
+
+    String sql = "SELECT "
+        + "    tmp.TABLE_CAT, "
+        + "    tmp.TABLE_SCHEM, "
+        + "    tmp.TABLE_NAME, "
+        + "    tmp.NON_UNIQUE, "
+        + "    tmp.INDEX_QUALIFIER, "
+        + "    tmp.INDEX_NAME, "
+        + "    tmp.TYPE, "
+        + "    tmp.ORDINAL_POSITION, "
+        + "    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS COLUMN_NAME, "
+        + (connection.haveMinimumServerVersion(ServerVersion.v9_6)
+          ? "  CASE tmp.AM_NAME "
+            + "    WHEN 'btree' THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+            + "      WHEN 1 THEN 'D' "
+            + "      ELSE 'A' "
+            + "    END "
+            + "    ELSE NULL "
+            + "  END AS ASC_OR_DESC, "
+            : "  CASE tmp.AM_CANORDER "
+            + "    WHEN true THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1 "
+            + "      WHEN 1 THEN 'D' "
+            + "      ELSE 'A' "
+            + "    END "
+            + "    ELSE NULL "
+            + "  END AS ASC_OR_DESC, ")
+        + "    tmp.CARDINALITY, "
+        + "    tmp.PAGES, "
+        + "    tmp.FILTER_CONDITION "
+        + "FROM ("
+        + innerSql
+        + ") AS tmp"
+        + " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
 
     return createMetaDataStatement().executeQuery(sql);
   }
@@ -2709,23 +2624,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getClientInfoProperties() throws SQLException {
-    Field[] f = new Field[4];
-    f[0] = new Field("NAME", Oid.VARCHAR);
-    f[1] = new Field("MAX_LEN", Oid.INT4);
-    f[2] = new Field("DEFAULT_VALUE", Oid.VARCHAR);
-    f[3] = new Field("DESCRIPTION", Oid.VARCHAR);
+    Field[] f = new Field[] {
+        new Field("NAME", Oid.VARCHAR),
+        new Field("MAX_LEN", Oid.INT4),
+        new Field("DEFAULT_VALUE", Oid.VARCHAR),
+        new Field("DESCRIPTION", Oid.VARCHAR)
+    };
 
-    List<Tuple> v = new ArrayList<Tuple>();
+    byte[] @Nullable [] tuple = new byte[][] {
+        connection.encodeString("ApplicationName"),
+        connection.encodeString(Integer.toString(getMaxNameLength())),
+        connection.encodeString(""),
+        connection.encodeString("The name of the application currently utilizing the connection.")
+    };
 
-    if (connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      byte[] @Nullable [] tuple = new byte[4][];
-      tuple[0] = connection.encodeString("ApplicationName");
-      tuple[1] = connection.encodeString(Integer.toString(getMaxNameLength()));
-      tuple[2] = connection.encodeString("");
-      tuple[3] = connection
-          .encodeString("The name of the application currently utilizing the connection.");
-      v.add(new Tuple(tuple));
-    }
+    List<Tuple> v = new ArrayList<Tuple>(1);
+    v.add(new Tuple(tuple));
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
@@ -2745,20 +2659,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String functionNamePattern)
       throws SQLException {
 
-    // The pg_get_function_result only exists 8.4 or later
-    boolean pgFuncResultExists = connection.haveMinimumServerVersion(ServerVersion.v8_4);
-
     // Use query that support pg_get_function_result to get function result, else unknown is defaulted
-    String funcTypeSql = DatabaseMetaData.functionResultUnknown + " ";
-    if (pgFuncResultExists) {
-      funcTypeSql = " CASE "
-              + "   WHEN (format_type(p.prorettype, null) = 'unknown') THEN " + DatabaseMetaData.functionResultUnknown
-              + "   WHEN "
-              + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'TABLE') OR "
-              + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'SETOF') THEN " + DatabaseMetaData.functionReturnsTable
-              + "   ELSE " + DatabaseMetaData.functionNoTable
-              + " END ";
-    }
+    String funcTypeSql = " CASE WHEN (format_type(p.prorettype, null) = 'unknown') THEN "
+        + DatabaseMetaData.functionResultUnknown
+        + "   WHEN "
+        + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'TABLE') OR "
+        + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'SETOF') THEN " + DatabaseMetaData.functionReturnsTable
+        + "   ELSE " + DatabaseMetaData.functionNoTable
+        + " END ";
 
     // Build query and result
     String sql;

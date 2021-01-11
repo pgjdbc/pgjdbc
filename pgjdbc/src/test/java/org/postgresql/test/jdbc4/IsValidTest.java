@@ -8,12 +8,10 @@ package org.postgresql.test.jdbc4;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -48,8 +46,6 @@ public class IsValidTest extends BaseTest4 {
 
   @Test
   public void testIsValidRemoteClose() throws SQLException, InterruptedException {
-    Assume.assumeTrue("Unable to use pg_terminate_backend(...) before version 8.4", TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
-
     boolean wasTerminated = TestUtil.terminateBackend(con);
     assertTrue("The backend should be terminated", wasTerminated);
 

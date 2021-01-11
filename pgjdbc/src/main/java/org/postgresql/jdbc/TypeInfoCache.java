@@ -11,7 +11,6 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Oid;
 import org.postgresql.core.QueryExecutor;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
@@ -102,7 +101,9 @@ public class TypeInfoCache implements TypeInfo {
           Oid.TIMESTAMPTZ_ARRAY},
       {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
       {"json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY},
-      {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY}
+      {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY},
+      {"uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY},
+      {"xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY}
   };
 
   /**
@@ -368,23 +369,12 @@ public class TypeInfoCache implements TypeInfo {
     PreparedStatement oidStatementComplex;
     if (isArray) {
       if (getOidStatementComplexArray == null) {
-        String sql;
-        if (conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-          sql = "SELECT t.typarray, arr.typname "
-              + "  FROM pg_catalog.pg_type t"
-              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-              + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
-              + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
-              + " ORDER BY t.oid DESC LIMIT 1";
-        } else {
-          sql = "SELECT t.oid, t.typname "
-              + "  FROM pg_catalog.pg_type t"
-              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-              + " WHERE t.typelem = (SELECT oid FROM pg_catalog.pg_type WHERE typname = ?)"
-              + " AND substring(t.typname, 1, 1) = '_' AND t.typlen = -1"
-              + " AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
-              + " ORDER BY t.typelem DESC LIMIT 1";
-        }
+        String sql = "SELECT t.typarray, arr.typname "
+            + "  FROM pg_catalog.pg_type t"
+            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+            + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
+            + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
+            + " ORDER BY t.oid DESC LIMIT 1";
         getOidStatementComplexArray = conn.prepareStatement(sql);
       }
       oidStatementComplex = getOidStatementComplexArray;

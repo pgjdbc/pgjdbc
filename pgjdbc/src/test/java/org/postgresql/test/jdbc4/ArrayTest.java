@@ -57,8 +57,7 @@ public class ArrayTest extends BaseTest4 {
     conn = con;
 
     TestUtil.createTable(conn, "arrtest",
-        "intarr int[], decarr decimal(2,1)[], strarr text[]"
-        + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
+        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[]"
         + ", floatarr float8[]"
         + ", intarr2 int4[][]");
     TestUtil.createTable(conn, "arrcompprnttest", "id serial, name character(10)");
@@ -149,10 +148,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayOfBytesFromString() throws SQLException {
-
-    assumeMinimumServerVersion("support for bytea[] as string requires hex string support from 9.0",
-        ServerVersion.v9_0);
-
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::bytea[]");
     final byte[][] in = new byte[][] { { 0x01, (byte) 0xFF, (byte) 0x12 }, {}, { (byte) 0xAC, (byte) 0xE4 }, null };
 
@@ -345,8 +340,7 @@ public class ArrayTest extends BaseTest4 {
   public void testUUIDArray() throws SQLException {
     Assume.assumeTrue("UUID is not supported in PreferQueryMode.SIMPLE",
         preferQueryMode != PreferQueryMode.SIMPLE);
-    Assume.assumeTrue("UUID requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
+
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     UUID uuid3 = UUID.randomUUID();
@@ -432,8 +426,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testGetArrayOfComposites() throws SQLException {
-    Assume.assumeTrue("array_agg(expression) requires PostgreSQL 8.4+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_4));
 
     PreparedStatement insertParentPstmt =
         conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
@@ -500,9 +492,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCasingComposite() throws SQLException {
-    Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
-
     PGobject cc = new PGobject();
     cc.setType("\"CorrectCasing\"");
     cc.setValue("(1)");
@@ -550,9 +539,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testEvilCasing() throws SQLException {
-    Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
-
     PGobject cc = new PGobject();
     cc.setType("\"Evil.Table\"");
     cc.setValue("(1)");

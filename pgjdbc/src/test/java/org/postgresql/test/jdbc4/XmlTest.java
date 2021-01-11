@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
@@ -68,7 +67,6 @@ public class XmlTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeMinimumServerVersion(ServerVersion.v8_3);
     assumeTrue("Server has been compiled --with-libxml", isXmlEnabled(con));
 
     Statement stmt = con.createStatement();

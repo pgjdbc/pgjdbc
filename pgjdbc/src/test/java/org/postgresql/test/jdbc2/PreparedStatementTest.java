@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -309,7 +308,6 @@ public class PreparedStatementTest extends BaseTest4 {
 
     pstmt.close();
 
-    assumeMinimumServerVersion(ServerVersion.v8_3);
     pstmt = con.prepareStatement("select 'ok' where ?=? or (? is null) ");
     pstmt.setObject(1, UUID.randomUUID(), Types.OTHER);
     pstmt.setNull(2, Types.OTHER, "uuid");

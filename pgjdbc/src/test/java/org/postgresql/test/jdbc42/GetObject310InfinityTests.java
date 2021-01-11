@@ -5,12 +5,9 @@
 
 package org.postgresql.test.jdbc42;
 
-import org.postgresql.core.ServerVersion;
-import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,13 +37,6 @@ public class GetObject310InfinityTests extends BaseTest4 {
     this.pgType = pgType;
     this.klass = klass;
     this.expectedValue = expectedValue;
-  }
-
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    Assume.assumeTrue("PostgreSQL 8.3 does not support 'infinity' for 'date'",
-        !"date".equals(pgType) || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
   }
 
   @Parameterized.Parameters(name = "binary = {0}, expr = {1}, pgType = {2}, klass = {3}")

@@ -11,7 +11,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLException;
@@ -313,8 +312,6 @@ public class GetObject310Test extends BaseTest4 {
 
   @Test
   public void testProlepticCalendarTimestamp() throws SQLException {
-    // date time ranges and CTEs are both new with 8.4
-    assumeMinimumServerVersion(ServerVersion.v8_4);
     LocalDateTime start = LocalDate.of(1582, 9, 30).atStartOfDay();
     LocalDateTime end = LocalDate.of(1582, 10, 16).atStartOfDay();
     long numberOfDays = Duration.between(start, end).toDays() + 1L;
@@ -327,8 +324,6 @@ public class GetObject310Test extends BaseTest4 {
 
   @Test
   public void testProlepticCalendarTimestamptz() throws SQLException {
-    // date time ranges and CTEs are both new with 8.4
-    assumeMinimumServerVersion(ServerVersion.v8_4);
     OffsetDateTime start = LocalDate.of(1582, 9, 30).atStartOfDay().atOffset(UTC);
     OffsetDateTime end = LocalDate.of(1582, 10, 16).atStartOfDay().atOffset(UTC);
     long numberOfDays = Duration.between(start, end).toDays() + 1L;

@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
@@ -41,8 +40,6 @@ public class StringTypeParameterTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    // Assume enum supported
-    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
     TestUtil.createEnumType(con, "mood", "'happy', 'sad'");
     TestUtil.createTable(con, "stringtypetest", "m mood");
   }

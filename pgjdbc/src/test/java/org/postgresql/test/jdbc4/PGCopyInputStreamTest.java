@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.PGCopyInputStream;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -31,11 +30,7 @@ public class PGCopyInputStreamTest {
   public void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "cpinstreamtest", "i int");
-    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
-      copyParams = "(FORMAT CSV, HEADER false)";
-    } else {
-      copyParams = "CSV";
-    }
+    copyParams = "(FORMAT CSV, HEADER false)";
   }
 
   @After

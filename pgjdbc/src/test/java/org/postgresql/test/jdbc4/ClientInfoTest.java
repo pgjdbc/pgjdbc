@@ -10,8 +10,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.postgresql.core.ServerVersion;
-import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
@@ -36,10 +34,6 @@ public class ClientInfoTest extends BaseTest4 {
 
   @Test
   public void testSetAppName() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      return;
-    }
-
     con.setClientInfo("ApplicationName", "my app");
     assertEquals("my app", getAppName());
     assertEquals("my app", con.getClientInfo("ApplicationName"));
@@ -48,10 +42,6 @@ public class ClientInfoTest extends BaseTest4 {
 
   @Test
   public void testExplicitSetAppNameNotificationIsParsed() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      return;
-    }
-
     String appName = "test-42";
 
     Statement s = con.createStatement();
@@ -65,10 +55,6 @@ public class ClientInfoTest extends BaseTest4 {
 
   @Test
   public void testSetAppNameProps() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      return;
-    }
-
     Properties props = new Properties();
     props.put("ApplicationName", "my app");
     con.setClientInfo(props);
@@ -95,10 +81,6 @@ public class ClientInfoTest extends BaseTest4 {
    */
   @Test
   public void testMissingName() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      return;
-    }
-
     con.setClientInfo("ApplicationName", "my app");
 
     // According to the spec, empty properties must clear all (because all names are missing)
