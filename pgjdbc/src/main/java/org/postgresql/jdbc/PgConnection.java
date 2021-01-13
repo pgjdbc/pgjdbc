@@ -1408,10 +1408,17 @@ public class PgConnection implements BaseConnection {
     if (isClosed()) {
       return false;
     }
+    boolean changedNetworkTimeout = false;
     try {
-      int savedNetworkTimeOut = getNetworkTimeout();
+      int oldNetworkTimeout = getNetworkTimeout();
+      int newNetworkTimeout = (int) Math.min(timeout * 1000L, Integer.MAX_VALUE);
       try {
-        setNetworkTimeout(null, timeout * 1000);
+        // change network timeout only if the new value is less than the current
+        // (zero means infinite timeout)
+        if (newNetworkTimeout != 0 && (oldNetworkTimeout == 0 || newNetworkTimeout < oldNetworkTimeout)) {
+          changedNetworkTimeout = true;
+          setNetworkTimeout(null, newNetworkTimeout);
+        }
         if (replicationConnection) {
           Statement statement = createStatement();
           statement.execute("IDENTIFY_SYSTEM");
@@ -1425,7 +1432,9 @@ public class PgConnection implements BaseConnection {
         }
         return true;
       } finally {
-        setNetworkTimeout(null, savedNetworkTimeOut);
+        if (changedNetworkTimeout) {
+          setNetworkTimeout(null, oldNetworkTimeout);
+        }
       }
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
