@@ -363,8 +363,10 @@ public class TestUtil {
     String hostport = props.getProperty(SERVER_HOST_PORT_PROP, getServer() + ":" + getPort());
     String database = props.getProperty(DATABASE_PROP, getDatabase());
 
-    // Set GSSEncMode for tests
-    PGProperty.GSS_ENC_MODE.set(props,getGSSEncMode().value);
+    // Set GSSEncMode for tests only in the case the property is already missing
+    if (PGProperty.GSS_ENC_MODE.getSetString(props) == null) {
+      PGProperty.GSS_ENC_MODE.set(props, getGSSEncMode().value);
+    }
 
     return DriverManager.getConnection(getURL(hostport, database), props);
   }

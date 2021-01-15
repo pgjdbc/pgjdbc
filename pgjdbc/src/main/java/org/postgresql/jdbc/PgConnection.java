@@ -17,7 +17,6 @@ import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
-import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
@@ -77,7 +76,6 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
@@ -282,12 +280,7 @@ public class PgConnection implements BaseConnection {
 
     // Initialize timestamp stuff
     timestampUtils = new TimestampUtils(!queryExecutor.getIntegerDateTimes(),
-        new Provider<@Nullable TimeZone>() {
-          @Override
-          public @Nullable TimeZone get() {
-            return queryExecutor.getTimeZone();
-          }
-        });
+        new QueryExecutorTimeZoneProvider(queryExecutor));
 
     // Initialize common queries.
     // isParameterized==true so full parse is performed and the engine knows the query
@@ -322,7 +315,7 @@ public class PgConnection implements BaseConnection {
 
     fieldMetadataCache = new LruCache<FieldMetadata.Key, FieldMetadata>(
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
-            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024 * 1024));
+            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024L * 1024L));
 
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
 

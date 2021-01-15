@@ -5,7 +5,6 @@
 
 package org.postgresql.util;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
@@ -16,7 +15,7 @@ import java.util.Map;
 /**
  * Caches values in simple least-recently-accessed order.
  */
-public class LruCache<Key extends @NonNull Object, Value extends @NonNull CanEstimateSize>
+public class LruCache<Key extends Object, Value extends CanEstimateSize>
     implements Gettable<Key, Value> {
   /**
    * Action that is invoked when the entry is removed from the cache.

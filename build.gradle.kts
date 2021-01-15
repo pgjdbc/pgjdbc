@@ -12,6 +12,8 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.properties.dsl.stringProperty
 import com.github.vlsi.gradle.publishing.dsl.simplifyXml
 import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
 import org.postgresql.buildtools.JavaCommentPreprocessorTask
 
 plugins {
@@ -24,7 +26,9 @@ plugins {
     id("org.owasp.dependencycheck")
     id("org.checkerframework") apply false
     id("com.github.johnrengelman.shadow") apply false
+    id("de.thetaphi.forbiddenapis") apply false
     id("org.nosphere.gradle.github.actions")
+    id("com.github.vlsi.jandex") apply false
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
     id("com.github.vlsi.ide")
@@ -45,6 +49,7 @@ val enableCheckerframework by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
+val skipForbiddenApis by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
 // For instance -PincludeTestTags=!org.postgresql.test.SlowTests
@@ -368,11 +373,35 @@ allprojects {
 
         val sourceSets: SourceSetContainer by project
 
+        apply(plugin = "com.github.vlsi.jandex")
         apply(plugin = "maven-publish")
+
+        project.configure<com.github.vlsi.jandex.JandexExtension> {
+            skipIndexFileGeneration()
+        }
 
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {
                 enabled = false
+            }
+        }
+
+        if (!skipForbiddenApis && !props.bool("skipCheckstyle")) {
+            apply(plugin = "de.thetaphi.forbiddenapis")
+            configure<CheckForbiddenApisExtension> {
+                failOnUnsupportedJava = false
+                bundledSignatures.addAll(
+                    listOf(
+                        // "jdk-deprecated",
+                        "jdk-internal",
+                        "jdk-non-portable"
+                        // "jdk-system-out"
+                        // "jdk-unsafe"
+                    )
+                )
+            }
+            tasks.configureEach<CheckForbiddenApis> {
+                exclude("**/org/postgresql/util/internal/Unsafe.class")
             }
         }
 
@@ -517,7 +546,7 @@ allprojects {
                 passProperty("user.country", "tr")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-                    if (e.startsWith("pgjdbc.")) {
+                    if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
                         passProperty(e)
                     }
                 }
