@@ -132,7 +132,8 @@ public class PGStream implements Closeable, Flushable {
     this.hostSpec = pgStream.hostSpec;
 
     Socket socket = createSocket(timeout);
-
+    changeSocket(socket);
+    setEncoding(Encoding.getJVMEncoding("UTF-8"));
     // set the buffer sizes and timeout
     socket.setReceiveBufferSize(receiveBufferSize);
     socket.setSendBufferSize(sendBufferSize);
@@ -221,7 +222,6 @@ public class PGStream implements Closeable, Flushable {
   }
 
   private Socket createSocket(int timeout) throws IOException {
-
     Socket socket = socketFactory.createSocket();
     if (!socket.isConnected()) {
       // When using a SOCKS proxy, the host might not be resolvable locally,
@@ -232,8 +232,6 @@ public class PGStream implements Closeable, Flushable {
           : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
       socket.connect(address, timeout);
     }
-    changeSocket(socket);
-    setEncoding(Encoding.getJVMEncoding("UTF-8"));
     return socket;
   }
 
@@ -245,6 +243,10 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something goes wrong
    */
   public void changeSocket(Socket socket) throws IOException {
+    assert connection != socket : "changeSocket is called with the current socket as argument."
+        + " This is a no-op, however, it re-allocates buffered streams, so refrain from"
+        + " excessive changeSocket calls";
+
     this.connection = socket;
 
     // Submitted by Jason Venner <jason@idiom.com>. Disable Nagle

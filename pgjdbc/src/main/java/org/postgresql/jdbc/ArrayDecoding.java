@@ -20,11 +20,11 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
@@ -303,11 +303,7 @@ final class ArrayDecoding {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      try {
-        return PGbytea.toBytes(stringVal.getBytes("ascii"));
-      } catch (UnsupportedEncodingException e) {
-        throw new java.lang.Error("ascii must be supported");
-      }
+      return PGbytea.toBytes(stringVal.getBytes(StandardCharsets.US_ASCII));
     }
   };
 

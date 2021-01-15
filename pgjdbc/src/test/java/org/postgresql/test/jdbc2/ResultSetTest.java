@@ -18,19 +18,39 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
 /*
  * ResultSet tests.
  */
+@RunWith(Parameterized.class)
 public class ResultSetTest extends BaseTest4 {
+
+  public ResultSetTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
@@ -98,6 +118,11 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('-1.0')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.2')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2.5')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('0.000000000000000000000000000990')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('10.0000000000099')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('.10000000000000')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('.10')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.10000000000000')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999.2')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('-99999.2')");
@@ -120,6 +145,8 @@ public class ResultSetTest extends BaseTest4 {
 
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775808')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775809')");
+
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('10223372036850000000')");
 
     TestUtil.createTable(con, "testpgobject", "id integer NOT NULL, d date, PRIMARY KEY (id)");
     stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
@@ -335,7 +362,11 @@ public class ResultSetTest extends BaseTest4 {
       fail();
     } catch (SQLException e) {
       assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"2\"", e.getMessage());
+      // message can be 2 or 2.0 depending on whether binary or text
+      final String message = e.getMessage();
+      if (!"Cannot cast to boolean: \"2.0\"".equals(message)) {
+        assertEquals("Cannot cast to boolean: \"2\"", message);
+      }
     }
     rs.close();
     stmt.close();
@@ -364,8 +395,19 @@ public class ResultSetTest extends BaseTest4 {
       rs.getBoolean(1);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"" + value + "\"", e.getMessage());
+      //binary transfer gets different error code and message
+      if (org.postgresql.util.PSQLState.DATA_TYPE_MISMATCH.getState().equals(e.getSQLState())) {
+        final String message = e.getMessage();
+        if (!message.startsWith("Cannot convert the column of type ")) {
+          fail(message);
+        }
+        if (!message.endsWith(" to requested type boolean.")) {
+          fail(message);
+        }
+      } else {
+        assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+        assertEquals("Cannot cast to boolean: \"" + value + "\"", e.getMessage());
+      }
     }
     rs.close();
     stmt.close();
@@ -389,6 +431,21 @@ public class ResultSetTest extends BaseTest4 {
 
     assertTrue(rs.next());
     assertEquals(-2, rs.getByte(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(1));
+
+    assertTrue(rs.next());
+    assertEquals(10, rs.getByte(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(1));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getByte(1));
 
     while (rs.next()) {
       try {
@@ -419,6 +476,21 @@ public class ResultSetTest extends BaseTest4 {
     assertTrue(rs.next());
     assertEquals(-2, rs.getShort(1));
 
+    assertTrue(rs.next());
+    assertEquals(0, rs.getShort(1));
+
+    assertTrue(rs.next());
+    assertEquals(10, rs.getShort(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getShort(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getShort(1));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getShort(1));
+
     while (rs.next()) {
       try {
         rs.getShort(1);
@@ -447,6 +519,21 @@ public class ResultSetTest extends BaseTest4 {
 
     assertTrue(rs.next());
     assertEquals(-2, rs.getInt(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(1));
+
+    assertTrue(rs.next());
+    assertEquals(10, rs.getInt(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(1));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
 
     assertTrue(rs.next());
     assertEquals(99999, rs.getInt(1));
@@ -496,6 +583,21 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(-2, rs.getLong(1));
 
     assertTrue(rs.next());
+    assertEquals(0, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(10, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(1));
+
+    assertTrue(rs.next());
     assertEquals(99999, rs.getLong(1));
 
     assertTrue(rs.next());
@@ -533,6 +635,80 @@ public class ResultSetTest extends BaseTest4 {
       }
     }
     rs.close();
+  }
+
+  @Test
+  public void testgetBigDecimal() throws SQLException {
+    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(1.0), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(0.0), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(-1.0), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(1.2), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(-2.5), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("0.000000000000000000000000000990"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("10.0000000000099"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("0.10000000000000"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("0.10"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("1.10000000000000"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(99999.2), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(99999), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(-99999.2), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(-99999), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(2147483647), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(-2147483648), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("2147483648"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("-2147483649"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("9223372036854775807"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("-9223372036854775808"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("-9223372036854775809"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("10223372036850000000"), rs.getBigDecimal(1));
   }
 
   @Test

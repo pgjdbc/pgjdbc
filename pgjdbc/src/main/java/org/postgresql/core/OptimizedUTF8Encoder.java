@@ -8,16 +8,14 @@ package org.postgresql.core;
 import org.postgresql.util.GT;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * UTF-8 encoder implementation which validates values during decoding which is
  * significantly faster than using a {@link CharsetDecoder}.
  */
 abstract class OptimizedUTF8Encoder extends Encoding {
-
-  static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
 
   private static final int MIN_2_BYTES = 0x80;
   private static final int MIN_3_BYTES = 0x800;
@@ -28,7 +26,7 @@ abstract class OptimizedUTF8Encoder extends Encoding {
   private char[] decoderArray;
 
   OptimizedUTF8Encoder() {
-    super(UTF_8_CHARSET, true);
+    super(StandardCharsets.UTF_8, true);
     decoderArray = new char[1024];
   }
 

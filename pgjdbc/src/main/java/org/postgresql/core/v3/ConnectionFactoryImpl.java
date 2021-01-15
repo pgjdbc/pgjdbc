@@ -33,11 +33,13 @@ import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.internal.Unsafe;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -408,14 +410,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private boolean credentialCacheExists() {
-    try {
-      @SuppressWarnings({"nullness"})
-      sun.security.krb5.Credentials credentials =
-          sun.security.krb5.Credentials.acquireTGTFromCache(null, null);
-      return credentials != null;
-    } catch ( Exception ex ) {
-      return false;
-    }
+    return Unsafe.credentialCacheExists();
   }
 
   private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, String user, Properties info,
@@ -576,8 +571,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int length = 4 + 4;
     byte[][] encodedParams = new byte[params.size() * 2][];
     for (int i = 0; i < params.size(); ++i) {
-      encodedParams[i * 2] = params.get(i)[0].getBytes("UTF-8");
-      encodedParams[i * 2 + 1] = params.get(i)[1].getBytes("UTF-8");
+      encodedParams[i * 2] = params.get(i)[0].getBytes(StandardCharsets.UTF_8);
+      encodedParams[i * 2 + 1] = params.get(i)[1].getBytes(StandardCharsets.UTF_8);
       length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
     }
 
@@ -651,10 +646,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
 
                 byte[] digest =
-                    MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), md5Salt);
+                    MD5Digest.encode(user.getBytes(StandardCharsets.UTF_8), password.getBytes(StandardCharsets.UTF_8), md5Salt);
 
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                  LOGGER.log(Level.FINEST, " FE=> Password(md5digest={0})", new String(digest, "US-ASCII"));
+                  LOGGER.log(Level.FINEST, " FE=> Password(md5digest={0})", new String(digest, StandardCharsets.US_ASCII));
                 }
 
                 pgStream.sendChar('p');
@@ -677,7 +672,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       PSQLState.CONNECTION_REJECTED);
                 }
 
-                byte[] encodedPassword = password.getBytes("UTF-8");
+                byte[] encodedPassword = password.getBytes(StandardCharsets.UTF_8);
 
                 pgStream.sendChar('p');
                 pgStream.sendInteger4(4 + encodedPassword.length + 1);

@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
@@ -124,7 +125,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
           throw new GeneralSecurityException(GT.tr(
               "The environment variable containing the server's SSL certificate must not be empty."));
         }
-        in = new ByteArrayInputStream(cert.getBytes("UTF-8"));
+        in = new ByteArrayInputStream(cert.getBytes(StandardCharsets.UTF_8));
       } else if (sslFactoryArg.startsWith(SYS_PROP_PREFIX)) {
         String name = sslFactoryArg.substring(SYS_PROP_PREFIX.length());
         String cert = System.getProperty(name);
@@ -132,9 +133,9 @@ public class SingleCertValidatingFactory extends WrappedFactory {
           throw new GeneralSecurityException(GT.tr(
               "The system property containing the server's SSL certificate must not be empty."));
         }
-        in = new ByteArrayInputStream(cert.getBytes("UTF-8"));
+        in = new ByteArrayInputStream(cert.getBytes(StandardCharsets.UTF_8));
       } else if (sslFactoryArg.startsWith("-----BEGIN CERTIFICATE-----")) {
-        in = new ByteArrayInputStream(sslFactoryArg.getBytes("UTF-8"));
+        in = new ByteArrayInputStream(sslFactoryArg.getBytes(StandardCharsets.UTF_8));
       } else {
         throw new GeneralSecurityException(GT.tr(
             "The sslfactoryarg property must start with the prefix file:, classpath:, env:, sys:, or -----BEGIN CERTIFICATE-----."));

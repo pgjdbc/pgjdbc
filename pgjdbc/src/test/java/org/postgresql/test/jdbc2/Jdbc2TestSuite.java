@@ -10,7 +10,6 @@ import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
-import org.postgresql.core.OidValuesCorrectnessTest;
 import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
@@ -35,7 +34,9 @@ import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
+import org.postgresql.util.BigDecimalByteConverterTest;
 import org.postgresql.util.ReaderInputStreamTest;
+import org.postgresql.util.UnusualBigDecimalByteConverterTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -54,6 +55,7 @@ import org.junit.runners.Suite;
     BatchedInsertReWriteEnabledTest.class,
     BatchExecuteTest.class,
     BatchFailureTest.class,
+    BigDecimalByteConverterTest.class,
     BitFieldTest.class,
     BlobTest.class,
     BlobTransactionTest.class,
@@ -94,7 +96,6 @@ import org.junit.runners.Suite;
     NotifyTest.class,
     OidToStringTest.class,
     OidValueOfTest.class,
-    OidValuesCorrectnessTest.class,
     OptionsPropertyTest.class,
     OuterJoinSyntaxTest.class,
     FixedLengthOutputStreamTest.class,
@@ -129,6 +130,7 @@ import org.junit.runners.Suite;
     TimezoneCachingTest.class,
     TimezoneTest.class,
     TypeCacheDLLStressTest.class,
+    UnusualBigDecimalByteConverterTest.class,
     UpdateableResultTest.class,
     UpsertTest.class,
     UTF8EncodingTest.class,
