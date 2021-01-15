@@ -10,10 +10,6 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.invoke.MethodType;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
@@ -21,8 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Provides the canonicalization/interning of {@code String} instances which contain only ascii characters,
@@ -40,28 +34,6 @@ import java.util.logging.Logger;
  * @author Brett Okken
  */
 final class AsciiStringInterner {
-
-  /**
-   * A {@link MethodHandle} to call the jdk 9 {@link Arrays} method
-   * {@code static boolean equals(byte[].class, int, int, byte[], int, int}, which performs vectorized comparisons.
-   *
-   * <p>
-   * Will be {@code null} when the jdk 9 method is not available.
-   * </p>
-   */
-  private static final @Nullable MethodHandle ARRAY_EQUALS;
-
-  static {
-    Lookup l = MethodHandles.lookup();
-    final MethodType type = MethodType.methodType(boolean.class, byte[].class, int.class, int.class, byte[].class, int.class, int.class);
-    MethodHandle method = null;
-    try {
-      method = l.findStatic(Arrays.class, "equals", type);
-    } catch (Exception e) {
-      Logger.getLogger(AsciiStringInterner.class.getName()).log(Level.FINE, "unable find MethodHandle for Arrays.equals", e);
-    }
-    ARRAY_EQUALS = method;
-  }
 
   private abstract static class BaseKey {
     private final int hash;
@@ -295,28 +267,18 @@ final class AsciiStringInterner {
   }
 
   /**
-   * Performs equality check between <i>a</i> and <i>b</i> (with corresponding offset/length values). Will prefer
-   * to use {@link #ARRAY_EQUALS} if available and will fall back to
-   * {@link #legacyEquals(byte[], int, int, byte[], int, int)}.
+   * Performs equality check between <i>a</i> and <i>b</i> (with corresponding offset/length values).
+   * <p>
+   * The {@code static boolean equals(byte[].class, int, int, byte[], int, int} method in {@link java.util.Arrays}
+   * is optimized for longer {@code byte[]} instances than is expected to be seen here.
+   * </p>
    */
   static boolean arrayEquals(byte[] a, int aOffset, int aLength, byte[] b, int bOffset, int bLength) {
-    if (ARRAY_EQUALS != null) {
-      try {
-        return (boolean) ARRAY_EQUALS.invokeExact(a, aOffset, aOffset + aLength, b, bOffset, bOffset + bLength);
-      } catch (Throwable e) {
-        throw new IllegalStateException(e);
-      }
-    }
-    return legacyEquals(a, aOffset, aLength, b, bOffset, bLength);
-  }
-
-  /**
-   * Provides equality check between <i>a</i> and <i>b</i> for jdk 8 runtime.
-   */
-  private static boolean legacyEquals(byte[] a, int aOffset, int aLength, byte[] b, int bOffset, int bLength) {
     if (aLength != bLength) {
       return false;
     }
+    //TODO: in jdk9, could use VarHandle to read 4 bytes at a time as an int for comparison
+    // or 8 bytes as a long - though we likely expect short values here
     for (int i = 0; i < aLength; ++i) {
       if (a[aOffset + i] != b[bOffset + i]) {
         return false;
