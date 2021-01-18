@@ -105,7 +105,7 @@ final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
    * @param offset The offset into <i>bytes</i> to start checking.
    * @param length The number of bytes to check.
    * @return {@code -1} if no values in range are negative. A non-negative value indicates that some value
-   * at or after the returned index is negative.
+   *     at or after the returned index is negative.
    */
   private static int negativeIndex(byte[] bytes, int offset, int length) {
     try {
@@ -143,7 +143,8 @@ final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
     final int toIdx = offset + length;
     int i = offset;
     for (int j = toIdx - 7; i < j; i += 8) {
-      //the only way to get here is if this value is not null
+      //this method is only called from negativeIndex if VAR_HANDLE_GET_LONG was successfully
+      //populated in the static block
       @SuppressWarnings("nullness")
       final long l = (long) VAR_HANDLE_GET_LONG.invokeExact(bytes, i);
       if ((l & POSITIVE_MASK) != l) {
@@ -154,7 +155,7 @@ final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
       }
     }
     //take care of any remaining (up to 7)
-    for ( ; i<toIdx; ++i) {
+    for ( ; i < toIdx; ++i) {
       if (bytes[i] < 0) {
         return i;
       }
