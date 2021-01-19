@@ -1,7 +1,7 @@
 ---
 layout: downloads
 title: PostgreSQL JDBC Download
-resource: media
+resource: /media
 nav:
 ---
 
