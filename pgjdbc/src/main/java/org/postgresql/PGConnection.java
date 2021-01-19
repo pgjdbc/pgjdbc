@@ -314,7 +314,7 @@ public interface PGConnection {
    * @see #getParameterStatuses
    * @since 42.2.6
    */
-  @Nullable String getParameterStatus(String parameterName);
+  String getParameterStatus(String parameterName);
 
   /**
    * Turn on/off adaptive fetch for connection. Existing statements and resultSets won't be affected
