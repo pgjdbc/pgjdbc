@@ -7,11 +7,11 @@ package org.postgresql;
 
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
-import org.postgresql.jdbc.AutoSave;
-import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.PGobject;
+import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.PreferQueryMode;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
