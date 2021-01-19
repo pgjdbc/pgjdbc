@@ -38,6 +38,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays.
   Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default
+## [42.2.18]
+### Fixed
+- Unfortunately changing the default of gssEncMode to ALLOW was not enough. The GSSEncMode Enum was not changed as well
+fixed in #1920
+
+## [42.2.17]
+### Changed
+- Change default of gssEncMode to ALLOW. PostgreSQL can deal with PREFER but there are cloud providers that did not implement the protocol properly. Libpq gets around this by checking for a GSS credential cache before attempting the connection. This is possible in JDK 8 and up, but not JDK6, or JDK7 fixes Issue #1868 [PR #1913](https://github.com/pgjdbc/pgjdbc/pull/1913)
+-
+### Added
+- Add smallserial metadata [PR #899(https://github.com/pgjdbc/pgjdbc/pull/899)
+
+### Fixed
+- Avoid NullPointerException when receiving PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney [PR 1873] (https://github.com/pgjdbc/pgjdbc/pull/1873).
+- The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) [PR 1879](https://github.com/pgjdbc/pgjdbc/pull/1879).
+- PgTokenizer was ignoring last empty token [PR #1882](https://github.com/pgjdbc/pgjdbc/pull/1882)
+- Remove osgi from karaf fixes Issue #1891 [PR #1902](https://github.com/pgjdbc/pgjdbc/pull/1902)
+
+## [42.2.16] (2020-08-20)
+### Known issues
+- The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)- - Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
+  Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default 
   for Postgres when sent as strings such as '{1,2,3}'. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
 
 ## [42.2.15] (2020-08-14)
@@ -423,4 +445,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
 [42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
 [42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...HEAD
+[42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...HEAD
