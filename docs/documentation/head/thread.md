@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 10. Using the Driver in a Multithreaded or a Servlet Environment
 header: Chapter 10. Using the Driver in a Multithreaded or a Servlet Environment
-resource: media
+resource: /documentation/head/media
 previoustitle: Server Prepared Statements
 previous: server-prepare.html
 nexttitle: Chapter 11. Connection Pools and Data Sources

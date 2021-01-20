@@ -2,7 +2,7 @@
 layout: default_docs
 title: Creating and Modifying Database Objects
 header: Chapter 5. Issuing a Query and Processing the Result
-resource: media
+resource: /documentation/head/media
 previoustitle: Performing Updates
 previous: update.html
 nexttitle: Using Java 8 Date and Time classes

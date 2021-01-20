@@ -27,7 +27,7 @@
 
 #pgHeader {
   position: relative;
-  background: url("../img/layout/hdr_fill.png") repeat-x;
+  background: url("/media/img/layout/hdr_fill.png") repeat-x;
   height: 80px;
   margin: 0;
   padding: 0;
@@ -44,8 +44,8 @@
   float: left;
 }
 
-#pgHeaderLogoLeft img { 
-  border: 0px; 
+#pgHeaderLogoLeft img {
+  border: 0px;
 }
 
 #pgHeaderLogoRight {
@@ -79,13 +79,13 @@
   white-space: nowrap; /* for Opera */
 }
 
-#pgSearch form label { 
-  color: #666; 
-  font-size: 0.8em; 
+#pgSearch form label {
+  color: #666;
+  font-size: 0.8em;
 }
 
-#pgSearch form input { 
-  font-size: 0.8em; 
+#pgSearch form input {
+  font-size: 0.8em;
 }
 
 #pgSearch form #submit,
@@ -429,7 +429,7 @@ img.pgArrowImage {
   border-bottom: 1px solid #EFEFEF;
   background: #F5F5F5 url(../img/layout/box_top.gif) no-repeat top left;
 }
-	
+
 #pgSurvey dd {
   margin: 0 0 0 10px;
   padding: 0 10px 0 0;
@@ -523,7 +523,7 @@ img.pgArrowImage {
   border-bottom: 1px solid #EFEFEF;
   background: #F5F5F5 url(../img/layout/box_top.gif) no-repeat top left;
 }
-	
+
 #pgQuickDocs dd {
   margin: 0 0 0 10px;
   padding: 0 10px 0 0;
@@ -556,7 +556,7 @@ img.pgArrowImage {
 }
 
 .pgCommunityDocsCurrentMenu {
-  font-weight: bold;    
+  font-weight: bold;
 }
 
 #pgDownloadsWrap {
@@ -596,7 +596,7 @@ img.pgArrowImage {
   border-bottom: 1px solid #EFEFEF;
   background: #F5F5F5 url(../img/layout/box_top.gif) no-repeat top left;
 }
-	
+
 #pgQuickDownloads dd {
   margin: 0 0 0 10px;
   padding: 0 10px 0 0;
@@ -619,7 +619,7 @@ img.pgArrowImage {
 
 #pgPressContacts dd {
   margin-bottom: 10px;
-  
+
 }
 
 #pgArchiveWrap {
@@ -628,9 +628,9 @@ img.pgArrowImage {
 
 /* Footer Container */
 #pgFooter {
-  font-size: 0.9em; 
-  color: #666; 
-  line-height: 1.3em; 
+  font-size: 0.9em;
+  color: #666;
+  line-height: 1.3em;
   padding-top: 5px;
   clear: both;
 }

@@ -2,7 +2,7 @@
 layout: default_docs
 title: Custom SSLSocketFactory
 header: Chapter 4. Using SSL
-resource: media
+resource: /documentation/head/media
 previoustitle: Configuring the Client
 previous: ssl-client.html
 nexttitle: Chapter 5. Issuing a Query and Processing the Result

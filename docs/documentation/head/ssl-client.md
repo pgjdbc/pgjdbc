@@ -2,7 +2,7 @@
 layout: default_docs
 title: Configuring the Client
 header: Chapter 4. Using SSL
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 4. Using SSL
 previous: ssl.html
 nexttitle: Custom SSLSocketFactory

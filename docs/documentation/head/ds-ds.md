@@ -2,7 +2,7 @@
 layout: default_docs
 title: Applications DataSource
 header: Chapter 11. Connection Pools and Data Sources
-resource: media
+resource: /documentation/head/media
 previoustitle: Application Servers ConnectionPoolDataSource
 previous: ds-cpds.html
 nexttitle: Tomcat setup
