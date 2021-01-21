@@ -2,7 +2,7 @@
 layout: default_docs
 title: Performing Updates
 header: Chapter 5. Issuing a Query and Processing the Result
-resource: media
+resource: /documentation/head/media
 previoustitle: Using the ResultSet Interface
 previous: resultset.html
 nexttitle: Creating and Modifying Database Objects

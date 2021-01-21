@@ -2,7 +2,7 @@
 layout: default_docs
 title: Escape for outer joins
 header: Chapter 8. JDBC escapes
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 8. JDBC escapes
 previous: escapes.html
 nexttitle: Date-time escapes
@@ -15,5 +15,5 @@ ON search-condition  }`
 For example :
 
 ```java
-rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
+ResultSet rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
 ```

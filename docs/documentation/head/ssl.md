@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 4. Using SSL
 header: Chapter 4. Using SSL
-resource: media
+resource: /documentation/head/media
 previoustitle: Connecting to the Database
 previous: connect.html
 nexttitle: Configuring the Client

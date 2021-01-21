@@ -2,7 +2,7 @@
 layout: default_docs
 title: Creating a Database
 header: Chapter 2. Setting up the JDBC Driver
-resource: media
+resource: /documentation/head/media
 previoustitle: Preparing the Database Server for JDBC
 previous: prepare.html
 nexttitle: Chapter 3. Initializing the Driver

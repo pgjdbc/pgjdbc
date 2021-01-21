@@ -2,7 +2,7 @@
 layout: default_docs
 title: Parameter Status Messages
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
-resource: media
+resource: /documentation/head/media
 previoustitle: Parameter Status Messages
 previous: server-prepare.html
 nexttitle: Physical and Logical replication API

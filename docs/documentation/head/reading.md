@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 13. Further Reading
 header: Chapter 13. Further Reading
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 12. Logging with java.util.logging
 previous: logging.html
 nexttitle: The PostgreSQL™ JDBC Interface
