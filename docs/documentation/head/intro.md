@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 1. Introduction
 header: Chapter 1. Introduction
-resource: media
+resource: /documentation/head/media
 previoustitle: The PostgreSQL™ JDBC Interface
 previous: index.html
 nexttitle: Chapter 2. Setting up the JDBC Driver

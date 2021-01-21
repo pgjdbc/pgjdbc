@@ -2,7 +2,7 @@
 layout: default_docs
 title: Arrays
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
-resource: media
+resource: /documentation/head/media
 previoustitle: Physical and Logical replication API
 previous: replication.html
 nexttitle: Chapter 10. Using the Driver in a Multithreaded or a Servlet Environment

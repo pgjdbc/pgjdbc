@@ -2,7 +2,7 @@
 layout: default_docs
 title: Application Servers ConnectionPoolDataSource
 header: Chapter 11. Connection Pools and Data Sources
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 11. Connection Pools and Data Sources
 previous: datasource.html
 nexttitle: Applications DataSource

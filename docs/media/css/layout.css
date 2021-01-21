@@ -27,7 +27,7 @@
 
 #pgHeader {
   position: relative;
-  background: url("../img/layout/hdr_fill.png") repeat-x;
+  background: url("/media/img/layout/hdr_fill.png") repeat-x;
   height: 80px;
   margin: 0;
   padding: 0;
@@ -44,8 +44,8 @@
   float: left;
 }
 
-#pgHeaderLogoLeft img { 
-  border: 0px; 
+#pgHeaderLogoLeft img {
+  border: 0px;
 }
 
 #pgHeaderLogoRight {
@@ -79,13 +79,13 @@
   white-space: nowrap; /* for Opera */
 }
 
-#pgSearch form label { 
-  color: #666; 
-  font-size: 0.8em; 
+#pgSearch form label {
+  color: #666;
+  font-size: 0.8em;
 }
 
-#pgSearch form input { 
-  font-size: 0.8em; 
+#pgSearch form input {
+  font-size: 0.8em;
 }
 
 #pgSearch form #submit,
@@ -125,7 +125,7 @@
 
 #pgFrontFeature {
   position: relative;
-  background: #F5F5F5 url(../img/feature/feature_gears.png) right bottom no-repeat;
+  background: #F5F5F5 url(/media/img/feature/feature_gears.png) right bottom no-repeat;
   /* Also see pgFrontFeatureContent for image size */
   padding: 15px;
   margin-bottom: 1em;
@@ -135,12 +135,12 @@
 #pgFrontFeature:before {
   line-height: 0.1;
   font-size: 1px;
-  background: transparent url("../img/layout/feature_tr.gif") no-repeat top right;
+  background: transparent url("/media/img/layout/feature_tr.gif") no-repeat top right;
   margin: -15px -15px 0 -15px;
   height: 15px;
   display: block;
   border: none;
-  content: url("../img/layout/feature_tl.gif");
+  content: url("/media/img/layout/feature_tl.gif");
 }
 
 #pgFrontFeature:after {
@@ -149,10 +149,10 @@
   padding-top: 15px;
   line-height: 0.1;
   font-size: 1px;
-  content:  url("../img/layout/feature_bl.gif");
+  content:  url("/media/img/layout/feature_bl.gif");
   margin: -15px;
   height: 8px;
-  background: transparent url("../img/layout/feature_br.gif") scroll no-repeat bottom right ;
+  background: transparent url("/media/img/layout/feature_br.gif") scroll no-repeat bottom right ;
 }
 
 #pgFrontFeature h2{
@@ -260,12 +260,12 @@ img.pgArrowImage {
   width: 545px;
   padding-top: 7px;
   float: left;
-  background: url(../img/layout/usr_tbl_top.png) top right no-repeat;
+  background: url(/media/img/layout/usr_tbl_top.png) top right no-repeat;
   margin-bottom: 15px;
 }
 
 #pgFrontUserInner {
-  background: url(../img/layout/usr_tbl_btm.png) bottom left no-repeat;
+  background: url(/media/img/layout/usr_tbl_btm.png) bottom left no-repeat;
   width: 100%;
   padding-bottom: 7px;
 }
@@ -316,7 +316,7 @@ img.pgArrowImage {
 #pgFrontShortcutsList li {
   margin: 0;
   padding-left: 12px;
-  background-image: url(../img/layout/blt_blu_arrow.png);
+  background-image: url(/media/img/layout/blt_blu_arrow.png);
   background-repeat: no-repeat;
   background-position: 0px 0.5em;
 }
@@ -417,7 +417,7 @@ img.pgArrowImage {
   width: 200px;
   margin: 0;
   padding: 0;
-  background: #F5F5F5 url(../img/layout/box_bottom.gif) no-repeat bottom left;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
   padding-bottom: 10px;
 }
 
@@ -427,9 +427,9 @@ img.pgArrowImage {
   font-weight: bold;
   color: #666;
   border-bottom: 1px solid #EFEFEF;
-  background: #F5F5F5 url(../img/layout/box_top.gif) no-repeat top left;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
 }
-	
+
 #pgSurvey dd {
   margin: 0 0 0 10px;
   padding: 0 10px 0 0;
@@ -460,7 +460,7 @@ img.pgArrowImage {
   width: 200px;
   margin: 0;
   padding: 0;
-  background: #F5F5F5 url(../img/layout/box_bottom.gif) no-repeat bottom left;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
   padding-bottom: 10px;
 }
 
@@ -470,7 +470,7 @@ img.pgArrowImage {
   font-weight: bold;
   color: #666;
   border-bottom: 1px solid #EFEFEF;
-  background: #F5F5F5 url(../img/layout/box_top.gif) no-repeat top left;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
 }
 
 #pgPlanet dd {
@@ -511,7 +511,7 @@ img.pgArrowImage {
   width: 200px;
   margin: 0;
   padding: 0;
-  background: #F5F5F5 url(../img/layout/box_bottom.gif) no-repeat bottom left;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
   padding-bottom: 10px;
 }
 
@@ -521,9 +521,9 @@ img.pgArrowImage {
   font-weight: bold;
   color: #666;
   border-bottom: 1px solid #EFEFEF;
-  background: #F5F5F5 url(../img/layout/box_top.gif) no-repeat top left;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
 }
-	
+
 #pgQuickDocs dd {
   margin: 0 0 0 10px;
   padding: 0 10px 0 0;
@@ -556,7 +556,7 @@ img.pgArrowImage {
 }
 
 .pgCommunityDocsCurrentMenu {
-  font-weight: bold;    
+  font-weight: bold;
 }
 
 #pgDownloadsWrap {
@@ -584,7 +584,7 @@ img.pgArrowImage {
   width: 200px;
   margin: 0;
   padding: 0;
-  background: #F5F5F5 url(../img/layout/box_bottom.gif) no-repeat bottom left;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
   padding-bottom: 10px;
 }
 
@@ -594,9 +594,9 @@ img.pgArrowImage {
   font-weight: bold;
   color: #666;
   border-bottom: 1px solid #EFEFEF;
-  background: #F5F5F5 url(../img/layout/box_top.gif) no-repeat top left;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
 }
-	
+
 #pgQuickDownloads dd {
   margin: 0 0 0 10px;
   padding: 0 10px 0 0;
@@ -619,7 +619,7 @@ img.pgArrowImage {
 
 #pgPressContacts dd {
   margin-bottom: 10px;
-  
+
 }
 
 #pgArchiveWrap {
@@ -628,9 +628,9 @@ img.pgArrowImage {
 
 /* Footer Container */
 #pgFooter {
-  font-size: 0.9em; 
-  color: #666; 
-  line-height: 1.3em; 
+  font-size: 0.9em;
+  color: #666;
+  line-height: 1.3em;
   padding-top: 5px;
   clear: both;
 }

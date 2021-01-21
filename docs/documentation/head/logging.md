@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 12. Logging using java.util.logging
 header: Chapter 12. Logging using java.util.logging
-resource: media
+resource: /documentation/head/media
 previoustitle: Data Sources and JNDI
 previous: jndi.html
 nexttitle: Further Reading

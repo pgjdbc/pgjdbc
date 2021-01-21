@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 9. PostgreSQL™ Extensions to the JDBC API
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
-resource: media
+resource: /documentation/head/media
 previoustitle: Escaped scalar functions
 previous: escaped-functions.html
 nexttitle: Geometric Data Types
