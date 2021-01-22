@@ -140,8 +140,18 @@ final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
    */
   @SuppressWarnings("unused") //called via MethodHandle
   private static int varHandleNegativeIndex(byte[] bytes, int offset, int length) throws Throwable {
+    assert length > 8;
     final int toIdx = offset + length;
     int i = offset;
+    //first get aligned for reads (for architectures other than x86)
+    //we know length is longer than 8, so no need to check length each
+    //time through loop
+    while ((i & 7) != 0) {
+      if (bytes[i] < 0) {
+        return i;
+      }
+      i++;
+    }
     for (int j = toIdx - 7; i < j; i += 8) {
       //this method is only called from negativeIndex if VAR_HANDLE_GET_LONG was successfully
       //populated in the static block
