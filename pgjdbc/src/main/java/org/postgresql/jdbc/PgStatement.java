@@ -528,7 +528,7 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     if (max < 0) {
       throw new PSQLException(
-          GT.tr("Maximum number of rows must be a value grater than or equal to 0."),
+          GT.tr("Maximum number of rows must be a value greater than or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
     maxrows = max;
