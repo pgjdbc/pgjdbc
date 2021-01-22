@@ -19,7 +19,7 @@ tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See
 In this Howto we'll use `$JDBC_SRC` to refer to the top-level directory
 of the JDBC driver source tree.  The test suite is the directory where you cloned the https://github.com/pgjdbc/pgjdbc project from GitHub.
 
-## 3 Test PostgreSQL Database
+## 3 - Test PostgreSQL Database
 
 The test suite requires a PostgreSQL database to run the tests against
 and a user to login as. The tests will create and drop many objects in
