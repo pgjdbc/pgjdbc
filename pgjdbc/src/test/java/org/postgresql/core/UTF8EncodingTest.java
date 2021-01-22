@@ -89,4 +89,12 @@ public class UTF8EncodingTest {
     final byte[] encoded = encoding.encode(string);
     assertEquals(string, encoding.decode(encoded));
   }
+
+  @Test
+  public void testOffset() throws Exception {
+    final byte[] encoded = encoding.encode(string);
+    final byte[] copied = new byte[encoded.length  + 1];
+    System.arraycopy(encoded, 0, copied, 1, encoded.length);
+    assertEquals(string, encoding.decode(copied, 1, encoded.length));
+  }
 }
