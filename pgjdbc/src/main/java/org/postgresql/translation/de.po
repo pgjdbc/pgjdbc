@@ -19,49 +19,49 @@ msgstr ""
 "X-Poedit-Language: German\n"
 "X-Poedit-Country: GERMANY\n"
 
-#: src/main/java/org/postgresql/Driver.java:221
+#: src/main/java/org/postgresql/Driver.java:225
 msgid "Error loading default settings from driverconfig.properties"
 msgstr "Fehler beim Laden der Voreinstellungen aus driverconfig.properties"
 
-#: src/main/java/org/postgresql/Driver.java:233
+#: src/main/java/org/postgresql/Driver.java:237
 msgid "Properties for the driver contains a non-string value for the key "
 msgstr ""
 
-#: src/main/java/org/postgresql/Driver.java:276
+#: src/main/java/org/postgresql/Driver.java:280
 msgid ""
 "Your security policy has prevented the connection from being attempted.  You "
 "probably need to grant the connect java.net.SocketPermission to the database "
 "server host and port that you wish to connect to."
 msgstr ""
 "Ihre Sicherheitsrichtlinie hat den Versuch des Verbindungsaufbaus "
-"verhindert. Sie müssen wahrscheinlich der Verbindung zum Datenbankrechner "
-"java.net.SocketPermission gewähren, um den Rechner auf dem gewählten Port zu "
-"erreichen."
+"verhindert. Sie mï¿½ssen wahrscheinlich der Verbindung zum Datenbankrechner "
+"java.net.SocketPermission gewï¿½hren, um den Rechner auf dem gewï¿½hlten "
+"Port zu erreichen."
 
-#: src/main/java/org/postgresql/Driver.java:282
-#: src/main/java/org/postgresql/Driver.java:414
+#: src/main/java/org/postgresql/Driver.java:286
+#: src/main/java/org/postgresql/Driver.java:421
 msgid ""
 "Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
-"Etwas Ungewöhnliches ist passiert, das den Treiber fehlschlagen ließ. Bitte "
-"teilen Sie diesen Fehler mit."
+"Etwas Ungewï¿½hnliches ist passiert, das den Treiber fehlschlagen lieï¿½. "
+"Bitte teilen Sie diesen Fehler mit."
 
-#: src/main/java/org/postgresql/Driver.java:422
+#: src/main/java/org/postgresql/Driver.java:429
 msgid "Connection attempt timed out."
-msgstr "Keine Verbindung innerhalb des Zeitintervalls möglich."
+msgstr "Keine Verbindung innerhalb des Zeitintervalls mï¿½glich."
 
-#: src/main/java/org/postgresql/Driver.java:435
+#: src/main/java/org/postgresql/Driver.java:442
 msgid "Interrupted while attempting to connect."
 msgstr "Beim Verbindungsversuch trat eine Unterbrechung auf."
 
-#: src/main/java/org/postgresql/Driver.java:691
+#: src/main/java/org/postgresql/Driver.java:698
 #, java-format
 msgid "Method {0} is not yet implemented."
 msgstr "Die Methode {0} ist noch nicht implementiert."
 
-#: src/main/java/org/postgresql/PGProperty.java:818
-#: src/main/java/org/postgresql/PGProperty.java:838
+#: src/main/java/org/postgresql/PGProperty.java:875
+#: src/main/java/org/postgresql/PGProperty.java:895
 #, java-format
 msgid "{0} parameter value must be an integer but was: {1}"
 msgstr ""
@@ -81,102 +81,103 @@ msgstr ""
 msgid "Requested CopyDual but got {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/copy/PGCopyInputStream.java:51
+#: src/main/java/org/postgresql/copy/PGCopyInputStream.java:60
 #, fuzzy, java-format
 msgid "Copying from database failed: {0}"
-msgstr "Konnte »{0}« nicht in Typ »box« umwandeln"
+msgstr "Konnte ï¿½{0}ï¿½ nicht in Typ ï¿½boxï¿½ umwandeln"
 
-#: src/main/java/org/postgresql/copy/PGCopyInputStream.java:67
-#: src/main/java/org/postgresql/copy/PGCopyOutputStream.java:95
+#: src/main/java/org/postgresql/copy/PGCopyInputStream.java:74
+#: src/main/java/org/postgresql/copy/PGCopyOutputStream.java:101
 #, fuzzy
 msgid "This copy stream is closed."
 msgstr "Dieses ResultSet ist geschlossen."
 
-#: src/main/java/org/postgresql/copy/PGCopyInputStream.java:109
+#: src/main/java/org/postgresql/copy/PGCopyInputStream.java:120
 msgid "Read from copy failed."
 msgstr ""
 
-#: src/main/java/org/postgresql/copy/PGCopyOutputStream.java:72
+#: src/main/java/org/postgresql/copy/PGCopyOutputStream.java:80
 #, java-format
 msgid "Cannot write to copy a byte of value {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/CommandCompleteParser.java:71
+#: src/main/java/org/postgresql/core/CommandCompleteParser.java:73
 #, fuzzy, java-format
 msgid "Unable to parse the count in command completion tag: {0}."
 msgstr ""
-"Der Updatecount aus der Kommandovervollständigungsmarkierung(?) {0} konnte "
+"Der Updatecount aus der Kommandovervollstï¿½ndigungsmarkierung(?) {0} konnte "
 "nicht interpretiert werden."
 
-#: src/main/java/org/postgresql/core/ConnectionFactory.java:57
+#: src/main/java/org/postgresql/core/ConnectionFactory.java:59
 #, java-format
 msgid "A connection could not be made using the requested protocol {0}."
 msgstr ""
 "Es konnte keine Verbindung unter Verwendung des Protokolls {0} hergestellt "
 "werden."
 
-#: src/main/java/org/postgresql/core/Oid.java:128
+#: src/main/java/org/postgresql/core/Oid.java:139
 #, java-format
 msgid "oid type {0} not known and not a number"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:102
-#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:129
+#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:100
+#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:127
 #, java-format
 msgid "Illegal UTF-8 sequence: initial byte is {0}: {1}"
-msgstr "Ungültige UTF-8-Sequenz: das erste Byte ist {0}: {1}"
+msgstr "Ungï¿½ltige UTF-8-Sequenz: das erste Byte ist {0}: {1}"
 
-#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:135
+#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:133
 #, java-format
 msgid "Illegal UTF-8 sequence: final value is out of range: {0}"
 msgstr ""
-"Ungültige UTF-8-Sequenz: Der letzte Wert ist außerhalb des zulässigen "
+"Ungï¿½ltige UTF-8-Sequenz: Der letzte Wert ist auï¿½erhalb des zulï¿½ssigen "
 "Bereichs: {0}"
 
-#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:148
+#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:146
 #, java-format
 msgid "Illegal UTF-8 sequence: final value is a surrogate value: {0}"
-msgstr "Ungültige UTF-8-Sequenz: der letzte Wert ist ein Ersatzwert: {0}"
+msgstr "Ungï¿½ltige UTF-8-Sequenz: der letzte Wert ist ein Ersatzwert: {0}"
 
-#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:164
+#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:162
 #, java-format
 msgid ""
 "Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}"
 msgstr ""
-"Ungültige UTF-8-Sequenz: Byte {0} der {1} Bytesequenz ist nicht 10xxxxxx: {2}"
+"Ungï¿½ltige UTF-8-Sequenz: Byte {0} der {1} Bytesequenz ist nicht 10xxxxxx: "
+"{2}"
 
-#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:200
+#: src/main/java/org/postgresql/core/OptimizedUTF8Encoder.java:198
 #, java-format
 msgid "Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}"
 msgstr ""
-"Ungültige UTF-8-Sequenz: {0} Bytes wurden verwendet um einen {1} Bytewert zu "
-"kodieren: {2}"
+"Ungï¿½ltige UTF-8-Sequenz: {0} Bytes wurden verwendet um einen {1} Bytewert "
+"zu kodieren: {2}"
 
-#: src/main/java/org/postgresql/core/PGStream.java:565
+#: src/main/java/org/postgresql/core/PGStream.java:642
 #, java-format
 msgid "Premature end of input stream, expected {0} bytes, but only read {1}."
 msgstr ""
 "Vorzeitiges Ende des Eingabedatenstroms. Es wurden {0} Bytes erwartet, "
 "jedoch nur {1} gelesen."
 
-#: src/main/java/org/postgresql/core/PGStream.java:606
+#: src/main/java/org/postgresql/core/PGStream.java:683
 #, java-format
 msgid "Expected an EOF from server, got: {0}"
 msgstr "Vom Server wurde ein EOF erwartet, jedoch {0} gelesen."
 
-#: src/main/java/org/postgresql/core/PGStream.java:666
+#: src/main/java/org/postgresql/core/PGStream.java:783
 #, java-format
 msgid ""
 "Result set exceeded maxResultBuffer limit. Received:  {0}; Current limit: {1}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/Parser.java:1069
+#: src/main/java/org/postgresql/core/Parser.java:1094
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
 msgstr ""
-"Unzulässige Syntax für ein Funktions- oder Prozedur-Escape an Offset {0}."
+"Unzulï¿½ssige Syntax fï¿½r ein Funktions- oder Prozedur-Escape an Offset {0}."
 
-#: src/main/java/org/postgresql/core/SetupQueryRunner.java:64
+#: src/main/java/org/postgresql/core/SetupQueryRunner.java:66
 msgid "An unexpected result was returned by a query."
 msgstr "Eine Abfrage lieferte ein unerwartetes Resultat."
 
@@ -194,67 +195,82 @@ msgstr ""
 "Die von {0} bereitgestellte SSLSocketFactory-Klasse konnte nicht "
 "instanziiert werden."
 
-#: src/main/java/org/postgresql/core/Utils.java:93
-#: src/main/java/org/postgresql/core/Utils.java:110
+#: src/main/java/org/postgresql/core/Utils.java:74
+#: src/main/java/org/postgresql/core/Utils.java:91
 msgid "Zero bytes may not occur in string parameters."
-msgstr "Stringparameter dürfen keine Nullbytes enthalten."
+msgstr "Stringparameter dï¿½rfen keine Nullbytes enthalten."
 
-#: src/main/java/org/postgresql/core/Utils.java:120
-#: src/main/java/org/postgresql/core/Utils.java:170
+#: src/main/java/org/postgresql/core/Utils.java:101
+#: src/main/java/org/postgresql/core/Utils.java:151
 msgid "No IOException expected from StringBuffer or StringBuilder"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/Utils.java:159
+#: src/main/java/org/postgresql/core/Utils.java:140
 msgid "Zero bytes may not occur in identifiers."
-msgstr "Nullbytes dürfen in Bezeichnern nicht vorkommen."
+msgstr "Nullbytes dï¿½rfen in Bezeichnern nicht vorkommen."
 
-#: src/main/java/org/postgresql/core/v3/CompositeParameterList.java:34
-#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:54
-#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:65
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:183
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2754
-#: src/main/java/org/postgresql/jdbc/PgResultSetMetaData.java:393
+#: src/main/java/org/postgresql/core/v3/CompositeParameterList.java:38
+#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:59
+#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:70
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:192
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3010
+#: src/main/java/org/postgresql/jdbc/PgResultSetMetaData.java:399
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
 msgstr ""
-"Der Spaltenindex {0} ist außerhalb des gültigen Bereichs. Anzahl Spalten: "
-"{1}."
+"Der Spaltenindex {0} ist auï¿½erhalb des gï¿½ltigen Bereichs. Anzahl "
+"Spalten: {1}."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:162
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:180
 #, fuzzy, java-format
 msgid "Invalid targetServerType value: {0}"
-msgstr "Ungültige Länge des Datenstroms: {0}."
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:286
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:302
 #, fuzzy, java-format
 msgid ""
 "Connection to {0} refused. Check that the hostname and port are correct and "
 "that the postmaster is accepting TCP/IP connections."
 msgstr ""
-"Verbindung verweigert. Überprüfen Sie die Korrektheit von Hostnamen und der "
-"Portnummer und dass der Datenbankserver TCP/IP-Verbindungen annimmt."
+"Verbindung verweigert. ï¿½berprï¿½fen Sie die Korrektheit von Hostnamen und "
+"der Portnummer und dass der Datenbankserver TCP/IP-Verbindungen annimmt."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:297
-#: src/main/java/org/postgresql/core/v3/replication/V3ReplicationProtocol.java:135
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:313
+#: src/main/java/org/postgresql/core/v3/replication/V3ReplicationProtocol.java:137
 msgid "The connection attempt failed."
 msgstr "Der Verbindungsversuch schlug fehl."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:312
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:328
 #, java-format
 msgid "Could not find a server with specified targetServerType: {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:423
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:436
-msgid "The server does not support SSL."
-msgstr "Der Server unterstützt SSL nicht."
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:455
+#, fuzzy
+msgid "The server does not support GSS Encoding."
+msgstr "Der Server unterstï¿½tzt SSL nicht."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:450
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:468
+#, fuzzy
+msgid "The server does not support GSS Encryption."
+msgstr "Der Server unterstï¿½tzt SSL nicht."
+
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:492
+#, fuzzy
+msgid "An error occurred while setting up the GSS Encoded connection."
+msgstr "Beim Aufbau der SSL-Verbindung trat ein Fehler auf."
+
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:524
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:536
+msgid "The server does not support SSL."
+msgstr "Der Server unterstï¿½tzt SSL nicht."
+
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:550
 msgid "An error occurred while setting up the SSL connection."
 msgstr "Beim Aufbau der SSL-Verbindung trat ein Fehler auf."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:546
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:573
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:644
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:671
 msgid ""
 "The server requested password-based authentication, but no password was "
 "provided."
@@ -262,227 +278,227 @@ msgstr ""
 "Der Server verlangt passwortbasierte Authentifizierung, jedoch wurde kein "
 "Passwort angegeben."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:680
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:776
 msgid ""
 "SCRAM authentication is not supported by this driver. You need JDK >= 8 and "
 "pgjdbc >= 42.2.0 (not \".jre\" versions)"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:706
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:797
 #, java-format
 msgid ""
 "The authentication type {0} is not supported. Check that you have configured "
 "the pg_hba.conf file to include the client''s IP address or subnet, and that "
 "it is using an authentication scheme supported by the driver."
 msgstr ""
-"Der Authentifizierungstyp {0} wird nicht unterstützt. Stellen Sie sicher, "
+"Der Authentifizierungstyp {0} wird nicht unterstï¿½tzt. Stellen Sie sicher, "
 "dass die Datei ''pg_hba.conf'' die IP-Adresse oder das Subnetz des Clients "
-"enthält und dass der Client ein Authentifizierungsschema nutzt, das vom "
-"Treiber unterstützt wird."
+"enthï¿½lt und dass der Client ein Authentifizierungsschema nutzt, das vom "
+"Treiber unterstï¿½tzt wird."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:713
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2628
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2661
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2665
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2738
-#: src/main/java/org/postgresql/gss/GssAction.java:125
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:804
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2740
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2773
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2777
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2850
+#: src/main/java/org/postgresql/gss/GssAction.java:126
 msgid "Protocol error.  Session setup failed."
 msgstr "Protokollfehler.  Die Sitzung konnte nicht gestartet werden."
 
-#: src/main/java/org/postgresql/core/v3/CopyInImpl.java:54
+#: src/main/java/org/postgresql/core/v3/CopyInImpl.java:53
 msgid "CopyIn copy direction can't receive data"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/CopyOperationImpl.java:54
+#: src/main/java/org/postgresql/core/v3/CopyOperationImpl.java:62
 msgid "CommandComplete expected COPY but got: "
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:167
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:185
 msgid "Tried to obtain lock while already holding it"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:183
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:201
 msgid "Tried to break lock on database connection"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:201
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:219
 #, fuzzy
 msgid "Interrupted while waiting to obtain lock on database connection"
 msgstr "Beim Verbindungsversuch trat eine Unterbrechung auf."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:333
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:358
 msgid "Unable to bind parameter values for statement."
 msgstr "Der Anweisung konnten keine Parameterwerte zugewiesen werden."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:339
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:516
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:596
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:645
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:771
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2465
-#: src/main/java/org/postgresql/util/StreamWrapper.java:141
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:364
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:547
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:628
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:677
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:803
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2535
+#: src/main/java/org/postgresql/util/StreamWrapper.java:145
 #, fuzzy
 msgid "An I/O error occurred while sending to the backend."
 msgstr "Eingabe/Ausgabe-Fehler {0} beim Senden an das Backend."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:391
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:416
 msgid "Error releasing savepoint"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:571
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:614
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:602
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:646
 #, java-format
 msgid "Expected command status BEGIN, got {0}."
 msgstr "Statt des erwarteten Befehlsstatus BEGIN, wurde {0} empfangen."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:619
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1744
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:651
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1945
 #, java-format
 msgid "Unexpected command status: {0}."
 msgstr "Unerwarteter Befehlsstatus: {0}."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:729
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:761
 #, fuzzy
 msgid "An error occurred while trying to get the socket timeout."
 msgstr "Eingabe/Ausgabe-Fehler {0} beim Senden an das Backend."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:764
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:840
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:796
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:872
 #, java-format
 msgid "Unknown Response Type {0}."
 msgstr "Die Antwort weist einen unbekannten Typ auf: {0}."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:787
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:819
 #, fuzzy
 msgid "An error occurred while trying to reset the socket timeout."
 msgstr "Eingabe/Ausgabe-Fehler {0} beim Senden an das Backend."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:885
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:917
 msgid "Database connection failed when starting copy"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:920
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:952
 msgid "Tried to cancel an inactive copy operation"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:959
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:991
 msgid "Database connection failed when canceling copy operation"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:975
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1007
 msgid "Missing expected error response to copy cancel request"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:979
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1011
 #, java-format
 msgid "Got {0} error responses to single copy cancel request"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:994
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1026
 msgid "Tried to end inactive copy"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1009
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1041
 msgid "Database connection failed when ending copy"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1027
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1054
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1073
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1059
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1086
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1105
 msgid "Tried to write to an inactive copy operation"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1038
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1066
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1080
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1070
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1098
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1112
 msgid "Database connection failed when writing to copy"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1095
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1127
 msgid "Tried to read from inactive copy"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1102
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1134
 msgid "Database connection failed when reading from copy"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1126
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1158
 #, fuzzy
 msgid "PGStream is closed"
 msgstr "Dieses ResultSet ist geschlossen."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1187
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1219
 #, java-format
 msgid "Received CommandComplete ''{0}'' without an active copy operation"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1212
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1244
 #, java-format
 msgid "Got CopyInResponse from server during an active {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1226
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1258
 #, java-format
 msgid "Got CopyOutResponse from server during an active {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1240
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1272
 #, java-format
 msgid "Got CopyBothResponse from server during an active {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1259
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1291
 msgid "Got CopyData without an active copy operation"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1263
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1295
 #, fuzzy, java-format
 msgid "Unexpected copydata from server for {0}"
 msgstr "Vom Server wurde ein EOF erwartet, jedoch {0} gelesen."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1323
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1355
 #, java-format
 msgid "Unexpected packet type during copy: {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1619
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1658
 #, java-format
 msgid ""
 "Bind message length {0} too long.  This can be caused by very large or "
 "incorrect length specifications on InputStream parameters."
 msgstr ""
-"Die Nachrichtenlänge {0} ist zu groß. Das kann von sehr großen oder "
-"inkorrekten Längenangaben eines InputStream-Parameters herrühren."
+"Die Nachrichtenlï¿½nge {0} ist zu groï¿½. Das kann von sehr groï¿½en oder "
+"inkorrekten Lï¿½ngenangaben eines InputStream-Parameters herrï¿½hren."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2240
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2305
 msgid "Ran out of memory retrieving query results."
-msgstr "Nicht genügend Speicher beim Abholen der Abfrageergebnisse."
+msgstr "Nicht genï¿½gend Speicher beim Abholen der Abfrageergebnisse."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2402
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2471
 msgid "COPY commands are only supported using the CopyManager API."
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2695
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2807
 #, fuzzy, java-format
 msgid ""
 "The server''s client_encoding parameter was changed to {0}. The JDBC driver "
 "requires client_encoding to be UTF8 for correct operation."
 msgstr ""
-"Der Parameter ''client_encoding'' wurde auf dem Server auf {0} verändert. "
-"Der JDBC-Treiber setzt für korrektes Funktionieren die Einstellung UNICODE "
+"Der Parameter ''client_encoding'' wurde auf dem Server auf {0} verï¿½ndert. "
+"Der JDBC-Treiber setzt fï¿½r korrektes Funktionieren die Einstellung UNICODE "
 "voraus."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2705
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2817
 #, java-format
 msgid ""
 "The server''s DateStyle parameter was changed to {0}. The JDBC driver "
 "requires DateStyle to begin with ISO for correct operation."
 msgstr ""
-"Der Parameter ''Date Style'' wurde auf dem Server auf {0} verändert. Der "
-"JDBC-Treiber setzt für korrekte Funktion voraus, dass ''Date Style'' mit "
+"Der Parameter ''Date Style'' wurde auf dem Server auf {0} verï¿½ndert. Der "
+"JDBC-Treiber setzt fï¿½r korrekte Funktion voraus, dass ''Date Style'' mit "
 "''ISO'' beginnt."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2718
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2830
 #, java-format
 msgid ""
 "The server''s standard_conforming_strings parameter was reported as {0}. The "
@@ -491,161 +507,191 @@ msgstr ""
 "Der standard_conforming_strings Parameter des Servers steht auf {0}. Der "
 "JDBC-Treiber erwartete on oder off."
 
-#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:270
+#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:284
 #, java-format
 msgid "No value specified for parameter {0}."
-msgstr "Für den Parameter {0} wurde kein Wert angegeben."
+msgstr "Fï¿½r den Parameter {0} wurde kein Wert angegeben."
 
-#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:462
+#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:479
 #, fuzzy, java-format
 msgid "Added parameters index out of range: {0}, number of columns: {1}."
 msgstr ""
-"Der Parameterindex {0} ist außerhalb des gültigen Bereichs. Es gibt {1} "
+"Der Parameterindex {0} ist auï¿½erhalb des gï¿½ltigen Bereichs. Es gibt {1} "
 "Parameter."
 
-#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:147
+#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:149
 #, java-format
 msgid "Unexpected packet type during replication: {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:272
+#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:274
 #, fuzzy
 msgid "This replication stream has been closed."
 msgstr "Die Verbindung wurde geschlossen."
 
-#: src/main/java/org/postgresql/ds/PGPooledConnection.java:118
+#: src/main/java/org/postgresql/ds/PGPooledConnection.java:125
 msgid "This PooledConnection has already been closed."
 msgstr "Diese PooledConnection ist bereits geschlossen worden."
 
-#: src/main/java/org/postgresql/ds/PGPooledConnection.java:314
+#: src/main/java/org/postgresql/ds/PGPooledConnection.java:325
 msgid ""
 "Connection has been closed automatically because a new connection was opened "
 "for the same PooledConnection or the PooledConnection has been closed."
 msgstr ""
 "Die Verbindung wurde automatisch geschlossen, da entweder eine neue "
-"Verbindung für die gleiche PooledConnection geöffnet wurde, oder die "
+"Verbindung fï¿½r die gleiche PooledConnection geï¿½ffnet wurde, oder die "
 "PooledConnection geschlossen worden ist.."
 
-#: src/main/java/org/postgresql/ds/PGPooledConnection.java:315
+#: src/main/java/org/postgresql/ds/PGPooledConnection.java:326
 msgid "Connection has been closed."
 msgstr "Die Verbindung wurde geschlossen."
 
-#: src/main/java/org/postgresql/ds/PGPooledConnection.java:420
+#: src/main/java/org/postgresql/ds/PGPooledConnection.java:433
 msgid "Statement has been closed."
 msgstr "Die Anweisung wurde geschlossen."
 
-#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:269
+#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:275
 msgid "Failed to setup DataSource."
 msgstr ""
 
-#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:371
+#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:377
 msgid "DataSource has been closed."
 msgstr "Die Datenquelle wurde geschlossen."
 
-#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1270
-#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1280
+#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1297
+#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1307
 #, fuzzy, java-format
 msgid "Unsupported property name: {0}"
 msgstr "Unbekannter Typ: {0}."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:84
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:89
 #, fuzzy, java-format
 msgid "Fastpath call {0} - No result was returned and we expected a numeric."
 msgstr ""
-"Der Fastpath-Aufruf {0} gab kein Ergebnis zurück, jedoch wurde ein Integer "
+"Der Fastpath-Aufruf {0} gab kein Ergebnis zurï¿½ck, jedoch wurde ein Integer "
 "erwartet."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:161
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:167
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected an integer."
 msgstr ""
-"Der Fastpath-Aufruf {0} gab kein Ergebnis zurück, jedoch wurde ein Integer "
+"Der Fastpath-Aufruf {0} gab kein Ergebnis zurï¿½ck, jedoch wurde ein Integer "
 "erwartet."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:169
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:175
 #, fuzzy, java-format
 msgid ""
 "Fastpath call {0} - No result was returned or wrong size while expecting an "
 "integer."
 msgstr ""
-"Der Fastpath-Aufruf {0} gab kein Ergebnis zurück, jedoch wurde ein Integer "
+"Der Fastpath-Aufruf {0} gab kein Ergebnis zurï¿½ck, jedoch wurde ein Integer "
 "erwartet."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:186
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:192
 #, fuzzy, java-format
 msgid "Fastpath call {0} - No result was returned and we expected a long."
 msgstr ""
-"Der Fastpath-Aufruf {0} gab kein Ergebnis zurück, jedoch wurde ein Integer "
+"Der Fastpath-Aufruf {0} gab kein Ergebnis zurï¿½ck, jedoch wurde ein Integer "
 "erwartet."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:194
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:200
 #, fuzzy, java-format
 msgid ""
 "Fastpath call {0} - No result was returned or wrong size while expecting a "
 "long."
 msgstr ""
-"Der Fastpath-Aufruf {0} gab kein Ergebnis zurück, jedoch wurde ein Integer "
+"Der Fastpath-Aufruf {0} gab kein Ergebnis zurï¿½ck, jedoch wurde ein Integer "
 "erwartet."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:297
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:303
 #, java-format
 msgid "The fastpath function {0} is unknown."
 msgstr "Die Fastpath-Funktion {0} ist unbekannt."
 
-#: src/main/java/org/postgresql/geometric/PGbox.java:77
-#: src/main/java/org/postgresql/geometric/PGcircle.java:74
-#: src/main/java/org/postgresql/geometric/PGcircle.java:82
-#: src/main/java/org/postgresql/geometric/PGline.java:107
-#: src/main/java/org/postgresql/geometric/PGline.java:116
-#: src/main/java/org/postgresql/geometric/PGlseg.java:70
-#: src/main/java/org/postgresql/geometric/PGpoint.java:76
+#: src/main/java/org/postgresql/geometric/PGbox.java:80
+#: src/main/java/org/postgresql/geometric/PGcircle.java:77
+#: src/main/java/org/postgresql/geometric/PGcircle.java:85
+#: src/main/java/org/postgresql/geometric/PGline.java:110
+#: src/main/java/org/postgresql/geometric/PGline.java:119
+#: src/main/java/org/postgresql/geometric/PGlseg.java:73
+#: src/main/java/org/postgresql/geometric/PGpoint.java:79
 #, java-format
 msgid "Conversion to type {0} failed: {1}."
 msgstr "Die Umwandlung in den Typ {0} schlug fehl: {1}."
 
-#: src/main/java/org/postgresql/geometric/PGpath.java:70
+#: src/main/java/org/postgresql/geometric/PGpath.java:73
 #, java-format
 msgid "Cannot tell if path is open or closed: {0}."
 msgstr ""
 "Es konnte nicht ermittelt werden, ob der Pfad offen oder geschlossen ist: "
 "{0}."
 
-#: src/main/java/org/postgresql/gss/GssAction.java:136
-#: src/main/java/org/postgresql/gss/MakeGSS.java:65
-#: src/main/java/org/postgresql/gss/MakeGSS.java:73
+#: src/main/java/org/postgresql/gss/GssAction.java:137
+#: src/main/java/org/postgresql/gss/GssEncAction.java:118
+#: src/main/java/org/postgresql/gss/MakeGSS.java:74
+#: src/main/java/org/postgresql/gss/MakeGSS.java:82
 msgid "GSS Authentication failed"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:77
+#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:80
 msgid ""
 "Truncation of large objects is only implemented in 8.3 and later servers."
 msgstr ""
-"Das Abschneiden großer Objekte ist nur in Versionen nach 8.3 implementiert."
+"Das Abschneiden groï¿½er Objekte ist nur in Versionen nach 8.3 implementiert."
 
-#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:82
+#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:85
 msgid "Cannot truncate LOB to a negative length."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:89
-#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:231
+#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:92
+#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:234
 #, java-format
 msgid "PostgreSQL LOBs can only index to: {0}"
-msgstr "LOBs in PostgreSQL können nur auf {0} verweisen."
+msgstr "LOBs in PostgreSQL kï¿½nnen nur auf {0} verweisen."
 
-#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:227
+#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:230
 msgid "LOB positioning offsets start at 1."
-msgstr "Positionsoffsets für LOBs beginnen bei 1."
+msgstr "Positionsoffsets fï¿½r LOBs beginnen bei 1."
 
-#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:243
+#: src/main/java/org/postgresql/jdbc/AbstractBlobClob.java:246
 msgid "free() was called on this LOB previously"
-msgstr "free() wurde bereits für dieses LOB aufgerufen."
+msgstr "free() wurde bereits fï¿½r dieses LOB aufgerufen."
 
-#: src/main/java/org/postgresql/jdbc/BatchResultHandler.java:95
+#: src/main/java/org/postgresql/jdbc/ArrayDecoding.java:278
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2141
+#: src/main/java/org/postgresql/util/HStoreConverter.java:46
+#: src/main/java/org/postgresql/util/HStoreConverter.java:82
+msgid ""
+"Invalid character data was found.  This is most likely caused by stored data "
+"containing characters that are invalid for the character set the database "
+"was created in.  The most common example of this is storing 8bit data in a "
+"SQL_ASCII database."
+msgstr ""
+"Ungï¿½ltige Zeichendaten.  Das ist hï¿½chstwahrscheinlich von in der "
+"Datenbank gespeicherten Zeichen hervorgerufen, die in einer anderen "
+"Kodierung vorliegen, als die, in der die Datenbank erstellt wurde.  Das "
+"hï¿½ufigste Beispiel dafï¿½r ist es, 8Bit-Daten in SQL_ASCII-Datenbanken "
+"abzulegen."
+
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:866
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:903
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1064
+msgid "Unable to translate data into the desired encoding."
+msgstr ""
+"Die Daten konnten nicht in die gewï¿½nschte Kodierung gewandelt werden."
+
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1126
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1137
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1163
+#, fuzzy, java-format
+msgid "Invalid elements {0}"
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
+
+#: src/main/java/org/postgresql/jdbc/BatchResultHandler.java:102
 msgid "Too many update results were returned."
-msgstr "Zu viele Updateergebnisse wurden zurückgegeben."
+msgstr "Zu viele Updateergebnisse wurden zurï¿½ckgegeben."
 
-#: src/main/java/org/postgresql/jdbc/BatchResultHandler.java:152
-#: src/main/java/org/postgresql/jdbc/BatchResultHandler.java:157
+#: src/main/java/org/postgresql/jdbc/BatchResultHandler.java:161
 #, fuzzy, java-format
 msgid ""
 "Batch entry {0} {1} was aborted: {2}  Call getNextException to see other "
@@ -659,139 +705,129 @@ msgstr ""
 msgid "Cannot cast to boolean: \"{0}\""
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:238
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:168
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:240
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:170
 #, java-format
 msgid "{0} function takes four and only four argument."
 msgstr "Die {0}-Funktion erwartet genau vier Argumente."
 
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:268
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:335
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:737
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:197
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:264
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:665
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:270
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:337
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:741
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:199
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:266
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:667
 #, java-format
 msgid "{0} function takes two and only two arguments."
 msgstr "Die {0}-Funktion erwartet genau zwei Argumente."
 
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:286
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:439
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:465
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:524
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:725
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:212
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:356
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:382
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:441
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:654
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:288
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:441
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:467
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:526
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:729
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:214
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:358
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:384
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:443
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:656
 #, java-format
 msgid "{0} function takes one and only one argument."
 msgstr "Die {0}-Funktion erwartet nur genau ein Argument."
 
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:310
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:384
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:239
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:308
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:312
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:386
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:241
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:310
 #, java-format
 msgid "{0} function takes two or three arguments."
 msgstr "Die {0}-Funktion erwartet zwei oder drei Argumente."
 
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:409
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:424
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:690
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:716
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:645
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:411
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:426
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:694
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:720
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:647
 #, java-format
 msgid "{0} function doesn''t take any argument."
 msgstr "Die {0}-Funktion akzeptiert kein Argument."
 
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:584
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:636
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:501
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:571
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:587
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:640
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:503
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:573
 #, java-format
 msgid "{0} function takes three and only three arguments."
 msgstr "Die {0}-Funktion erwartet genau drei Argumente."
 
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:597
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:618
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:600
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:621
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:653
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:666
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:669
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:511
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:528
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:585
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:597
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:624
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:657
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:670
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:673
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:513
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:530
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:587
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:599
 #, java-format
 msgid "Interval {0} not yet implemented"
 msgstr "Intervall {0} ist noch nicht implementiert."
 
-#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:38
-#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:53
-#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:71
+#: src/main/java/org/postgresql/jdbc/GSSEncMode.java:61
+#, fuzzy, java-format
+msgid "Invalid gssEncMode value: {0}"
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
+
+#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:40
+#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:55
+#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:73
 msgid "Cannot reference a savepoint after it has been released."
 msgstr ""
 "Ein Rettungspunkt kann nicht angesprochen werden, nach dem er entfernt wurde."
 
-#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:43
+#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:45
 msgid "Cannot retrieve the id of a named savepoint."
 msgstr "Die ID eines benamten Rettungspunktes kann nicht ermittelt werden."
 
-#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:58
+#: src/main/java/org/postgresql/jdbc/PSQLSavepoint.java:60
 msgid "Cannot retrieve the name of an unnamed savepoint."
 msgstr "Der Name eines namenlosen Rettungpunktes kann nicht ermittelt werden."
 
-#: src/main/java/org/postgresql/jdbc/PgArray.java:156
-#: src/main/java/org/postgresql/jdbc/PgArray.java:847
+#: src/main/java/org/postgresql/jdbc/PgArray.java:145
+#: src/main/java/org/postgresql/jdbc/PgArray.java:353
 #, java-format
 msgid "The array index is out of range: {0}"
-msgstr "Der Arrayindex ist außerhalb des gültigen Bereichs: {0}."
+msgstr "Der Arrayindex ist auï¿½erhalb des gï¿½ltigen Bereichs: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgArray.java:177
-#: src/main/java/org/postgresql/jdbc/PgArray.java:864
+#: src/main/java/org/postgresql/jdbc/PgArray.java:166
+#: src/main/java/org/postgresql/jdbc/PgArray.java:370
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
 msgstr ""
-"Der Arrayindex {0} ist außerhalb des gültigen Bereichs. Vorhandene Elemente: "
-"{1}."
+"Der Arrayindex {0} ist auï¿½erhalb des gï¿½ltigen Bereichs. Vorhandene "
+"Elemente: {1}."
 
-#: src/main/java/org/postgresql/jdbc/PgArray.java:209
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1908
-#: src/main/java/org/postgresql/util/HStoreConverter.java:43
-#: src/main/java/org/postgresql/util/HStoreConverter.java:74
-msgid ""
-"Invalid character data was found.  This is most likely caused by stored data "
-"containing characters that are invalid for the character set the database "
-"was created in.  The most common example of this is storing 8bit data in a "
-"SQL_ASCII database."
-msgstr ""
-"Ungültige Zeichendaten.  Das ist höchstwahrscheinlich von in der Datenbank "
-"gespeicherten Zeichen hervorgerufen, die in einer anderen Kodierung "
-"vorliegen, als die, in der die Datenbank erstellt wurde.  Das häufigste "
-"Beispiel dafür ist es, 8Bit-Daten in SQL_ASCII-Datenbanken abzulegen."
-
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:85
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:95
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:92
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:98
 msgid "A CallableStatement was executed with nothing returned."
-msgstr "Ein CallableStatement wurde ausgeführt ohne etwas zurückzugeben."
+msgstr "Ein CallableStatement wurde ausgefï¿½hrt ohne etwas zurï¿½ckzugeben."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:106
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:109
 msgid "A CallableStatement was executed with an invalid number of parameters"
 msgstr ""
-"Ein CallableStatement wurde mit einer falschen Anzahl Parameter ausgeführt."
+"Ein CallableStatement wurde mit einer falschen Anzahl Parameter ausgefï¿½hrt."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:144
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:147
 #, java-format
 msgid ""
 "A CallableStatement function was executed and the out parameter {0} was of "
 "type {1} however type {2} was registered."
 msgstr ""
-"Eine CallableStatement-Funktion wurde ausgeführt und der Rückgabewert {0} "
-"war vom Typ {1}. Jedoch wurde der Typ {2} dafür registriert."
+"Eine CallableStatement-Funktion wurde ausgefï¿½hrt und der Rï¿½ckgabewert "
+"{0} war vom Typ {1}. Jedoch wurde der Typ {2} dafï¿½r registriert."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:206
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:211
 msgid ""
 "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
 "to declare one."
@@ -799,13 +835,13 @@ msgstr ""
 "Diese Anweisung deklariert keinen OUT-Parameter. Benutzen Sie '{' ?= "
 "call ... '}' um das zu tun."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:229
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:233
 msgid "wasNull cannot be call before fetching a result."
 msgstr ""
 "wasNull kann nicht aufgerufen werden, bevor ein Ergebnis abgefragt wurde."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:367
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:386
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:356
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:378
 #, java-format
 msgid ""
 "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was "
@@ -814,7 +850,7 @@ msgstr ""
 "Ein Parameter des Typs {0} wurde registriert, jedoch erfolgte ein Aufruf "
 "get{1} (sqltype={2})."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:407
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:392
 msgid ""
 "A CallableStatement was declared, but no call to registerOutParameter(1, "
 "<some type>) was made."
@@ -822,334 +858,340 @@ msgstr ""
 "Ein CallableStatement wurde deklariert, aber kein Aufruf von "
 "''registerOutParameter(1, <some type>)'' erfolgte."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:413
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:397
 #, fuzzy
 msgid "No function outputs were registered."
 msgstr "Es wurden keine Funktionsausgaben registriert."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:419
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:404
 msgid ""
 "Results cannot be retrieved from a CallableStatement before it is executed."
 msgstr ""
-"Ergebnisse können nicht von einem CallableStatement abgerufen werden, bevor "
-"es ausgeführt wurde."
+"Ergebnisse kï¿½nnen nicht von einem CallableStatement abgerufen werden, "
+"bevor es ausgefï¿½hrt wurde."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:686
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:664
 #, fuzzy, java-format
 msgid "Unsupported type conversion to {1}."
 msgstr "Unbekannter Typ: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:262
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:274
 #, java-format
 msgid "Unsupported value for stringtype parameter: {0}"
-msgstr "Nichtunterstützter Wert für den Stringparameter: {0}"
+msgstr "Nichtunterstï¿½tzter Wert fï¿½r den Stringparameter: {0}"
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:463
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:104
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:227
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:240
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:277
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:408
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:448
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:521
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:526
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:563
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:482
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:115
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:240
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:272
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:322
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:453
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:487
 #: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:568
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:573
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:615
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:620
 msgid "No results were returned by the query."
 msgstr "Die Abfrage lieferte kein Ergebnis."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:481
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:499
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:258
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:500
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:518
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:272
 msgid "A result was returned when none was expected."
 msgstr "Die Anweisung lieferte ein Ergebnis obwohl keines erwartet wurde."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:604
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:624
 #, fuzzy
 msgid "Custom type maps are not supported."
-msgstr "Selbstdefinierte Typabbildungen werden nicht unterstützt."
+msgstr "Selbstdefinierte Typabbildungen werden nicht unterstï¿½tzt."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:646
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:666
 #, java-format
 msgid "Failed to create object for: {0}."
-msgstr "Erstellung des Objektes schlug fehl für: {0}."
+msgstr "Erstellung des Objektes schlug fehl fï¿½r: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:700
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:720
 #, java-format
 msgid "Unable to load the class {0} responsible for the datatype {1}"
 msgstr ""
-"Die für den Datentyp {1} verantwortliche Klasse {0} konnte nicht geladen "
+"Die fï¿½r den Datentyp {1} verantwortliche Klasse {0} konnte nicht geladen "
 "werden."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:761
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:782
 msgid ""
 "Cannot change transaction read-only property in the middle of a transaction."
 msgstr ""
-"Die Nur-Lesen-Eigenschaft einer Transaktion kann nicht während der "
-"Transaktion verändert werden."
+"Die Nur-Lesen-Eigenschaft einer Transaktion kann nicht wï¿½hrend der "
+"Transaktion verï¿½ndert werden."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:846
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:867
 msgid "Cannot commit when autoCommit is enabled."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:857
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1485
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1529
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:878
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1447
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1491
 #, fuzzy
 msgid "This connection has been closed."
 msgstr "Die Verbindung wurde geschlossen."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:867
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:888
 msgid "Cannot rollback when autoCommit is enabled."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:920
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:941
 msgid ""
 "Cannot change transaction isolation level in the middle of a transaction."
 msgstr ""
-"Die Transaktions-Trennungsstufe kann nicht während einer Transaktion "
-"verändert werden."
+"Die Transaktions-Trennungsstufe kann nicht wï¿½hrend einer Transaktion "
+"verï¿½ndert werden."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:926
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:947
 #, java-format
 msgid "Transaction isolation level {0} not supported."
-msgstr "Die Transaktions-Trennungsstufe {0} ist nicht unterstützt."
+msgstr "Die Transaktions-Trennungsstufe {0} ist nicht unterstï¿½tzt."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:975
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:996
 msgid "Finalizing a Connection that was never closed:"
 msgstr "Eine Connection wurde finalisiert, die nie geschlossen wurde:"
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1042
-msgid "Unable to translate data into the desired encoding."
-msgstr "Die Daten konnten nicht in die gewünschte Kodierung gewandelt werden."
-
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1105
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1783
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:929
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1127
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1984
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:951
 msgid "Fetch size must be a value greater to or equal to 0."
-msgstr "Die Fetch-Größe muss ein Wert größer oder gleich Null sein."
+msgstr "Die Fetch-Grï¿½ï¿½e muss ein Wert grï¿½ï¿½er oder gleich Null sein."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1384
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1425
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1380
 #, fuzzy, java-format
 msgid "Unable to find server array type for provided name {0}."
 msgstr ""
-"Für den angegebenen Namen {0} konnte kein Serverarraytyp gefunden werden."
+"Fï¿½r den angegebenen Namen {0} konnte kein Serverarraytyp gefunden werden."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1407
-#, fuzzy, java-format
-msgid "Invalid elements {0}"
-msgstr "Ungültige Länge des Datenstroms: {0}."
-
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1443
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1406
 #, fuzzy, java-format
 msgid "Invalid timeout ({0}<0)."
-msgstr "Ungültige Länge des Datenstroms: {0}."
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1473
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1435
 msgid "Validating connection."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1506
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1468
 #, fuzzy, java-format
 msgid "Failed to set ClientInfo property: {0}"
-msgstr "Erstellung des Objektes schlug fehl für: {0}."
+msgstr "Erstellung des Objektes schlug fehl fï¿½r: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1516
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1478
 msgid "ClientInfo property not supported."
-msgstr "Die ClientInfo-Eigenschaft ist nicht unterstützt."
+msgstr "Die ClientInfo-Eigenschaft ist nicht unterstï¿½tzt."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1542
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1504
 msgid "One or more ClientInfo failed."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1642
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1605
 #, fuzzy
 msgid "Network timeout must be a value greater than or equal to 0."
-msgstr "Das Abfragetimeout muss ein Wert größer oder gleich Null sein."
+msgstr "Das Abfragetimeout muss ein Wert grï¿½ï¿½er oder gleich Null sein."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1654
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1617
 msgid "Unable to set network timeout."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1665
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1628
 msgid "Unable to get network timeout."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1682
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1645
 #, java-format
 msgid "Unknown ResultSet holdability setting: {0}."
-msgstr "Unbekannte Einstellung für die Haltbarkeit des ResultSets: {0}."
+msgstr "Unbekannte Einstellung fï¿½r die Haltbarkeit des ResultSets: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1700
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1721
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1663
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1684
 msgid "Cannot establish a savepoint in auto-commit mode."
 msgstr "Ein Rettungspunkt kann im Modus ''auto-commit'' nicht erstellt werden."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1790
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1753
 msgid "Returning autogenerated keys is not supported."
-msgstr "Die Rückgabe automatisch generierter Schlüssel wird nicht unterstützt,"
+msgstr ""
+"Die Rï¿½ckgabe automatisch generierter Schlï¿½ssel wird nicht unterstï¿½tzt,"
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:65
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1815
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1827
+#, java-format
+msgid "Could not instantiate xmlFactoryFactory: {0}"
+msgstr ""
+
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1820
+#, java-format
+msgid ""
+"Connection property xmlFactoryFactory must implement PGXmlFactoryFactory: {0}"
+msgstr ""
+
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:70
 msgid ""
 "Unable to determine a value for MaxIndexKeys due to missing system catalog "
 "data."
 msgstr ""
-"Es konnte kein Wert für MaxIndexKeys gefunden werden, da die "
+"Es konnte kein Wert fï¿½r MaxIndexKeys gefunden werden, da die "
 "Systemkatalogdaten fehlen."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:88
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:93
 msgid "Unable to find name datatype in the system catalogs."
 msgstr ""
 "In den Systemkatalogen konnte der Namensdatentyp nicht gefunden werden."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:327
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:333
 #, fuzzy
 msgid "Unable to find keywords in the system catalogs."
 msgstr ""
 "In den Systemkatalogen konnte der Namensdatentyp nicht gefunden werden."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1110
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2819
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1119
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2844
 msgid "oid"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1110
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2819
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1119
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2844
 msgid "proname"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1112
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1576
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2821
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:216
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1121
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1588
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2846
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:241
 msgid "typtype"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1115
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2824
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1124
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:2849
 msgid "proargtypes"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1593
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1605
 msgid "adsrc"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1606
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1616
 msgid "attidentity"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1735
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1811
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1745
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1821
 msgid "rolname"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1736
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1812
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1746
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1822
 msgid "relacl"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1742
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1752
 msgid "attacl"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgParameterMetaData.java:88
+#: src/main/java/org/postgresql/jdbc/PgParameterMetaData.java:92
 #, java-format
 msgid "The parameter index is out of range: {0}, number of parameters: {1}."
 msgstr ""
-"Der Parameterindex {0} ist außerhalb des gültigen Bereichs. Es gibt {1} "
+"Der Parameterindex {0} ist auï¿½erhalb des gï¿½ltigen Bereichs. Es gibt {1} "
 "Parameter."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:90
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:113
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:136
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1033
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:101
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:124
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:145
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1063
 #, fuzzy
 msgid ""
 "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr ""
-"Abfragemethoden, die einen Abfragestring annehmen, können nicht auf ein "
+"Abfragemethoden, die einen Abfragestring annehmen, kï¿½nnen nicht auf ein "
 "PreparedStatement angewandt werden."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:254
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:264
 msgid "Unknown Types value."
 msgstr "Unbekannter Typ."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:385
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:442
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1190
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1497
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:405
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:465
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1227
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1559
 #, java-format
 msgid "Invalid stream length {0}."
-msgstr "Ungültige Länge des Datenstroms: {0}."
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:414
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:434
 #, java-format
 msgid "The JVM claims not to support the {0} encoding."
-msgstr "Die JVM behauptet, die Zeichenkodierung {0} nicht zu unterstützen."
+msgstr "Die JVM behauptet, die Zeichenkodierung {0} nicht zu unterstï¿½tzen."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:417
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1124
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1156
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:437
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1209
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1242
 msgid "Provided InputStream failed."
 msgstr "Der bereitgestellte InputStream scheiterte."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:463
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1095
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:486
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1129
 #, java-format
 msgid "Unknown type {0}."
 msgstr "Unbekannter Typ {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:480
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:503
 msgid "No hstore extension installed."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:622
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:645
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:655
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:667
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:639
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:661
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:671
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:684
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:995
 #, java-format
 msgid "Cannot cast an instance of {0} to type {1}"
-msgstr "Die Typwandlung für eine Instanz von {0} nach {1} ist nicht möglich."
+msgstr ""
+"Die Typwandlung fï¿½r eine Instanz von {0} nach {1} ist nicht mï¿½glich."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:685
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:702
 #, java-format
 msgid "Unsupported Types value: {0}"
 msgstr "Unbekannter Typ: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:897
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:920
 #, java-format
 msgid "Cannot convert an instance of {0} to type {1}"
-msgstr "Die Typwandlung für eine Instanz von {0} nach {1} ist nicht möglich."
+msgstr ""
+"Die Typwandlung fï¿½r eine Instanz von {0} nach {1} ist nicht mï¿½glich."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:973
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1001
 #, java-format
 msgid ""
 "Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
 "with an explicit Types value to specify the type to use."
 msgstr ""
-"Der in SQL für eine Instanz von {0} zu verwendende Datentyp kann nicht "
+"Der in SQL fï¿½r eine Instanz von {0} zu verwendende Datentyp kann nicht "
 "abgeleitet werden. Benutzen Sie ''setObject()'' mit einem expliziten Typ, um "
 "ihn festzulegen."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1132
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1233
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1168
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1270
 msgid "Unexpected error writing large object to database."
 msgstr ""
 "Beim Schreiben eines LargeObjects (LOB) in die Datenbank trat ein "
 "unerwarteter Fehler auf."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1177
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1206
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1213
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1293
 msgid "Provided Reader failed."
 msgstr "Der bereitgestellte Reader scheiterte."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1456
-#: src/main/java/org/postgresql/util/StreamWrapper.java:56
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1502
+#: src/main/java/org/postgresql/util/StreamWrapper.java:60
 msgid "Object is too large to send over the protocol."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:273
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:312
 msgid ""
 "Operation requires a scrollable ResultSet, but this ResultSet is "
 "FORWARD_ONLY."
@@ -1157,41 +1199,43 @@ msgstr ""
 "Die Operation erfordert ein scrollbares ResultSet, dieses jedoch ist "
 "FORWARD_ONLY."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:479
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:518
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:542
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:579
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:617
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:647
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3012
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3065
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:522
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:565
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:588
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:634
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:674
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:704
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3274
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3328
 #, fuzzy, java-format
 msgid "Cannot convert the column of type {0} to requested type {1}."
-msgstr "Die Typwandlung für eine Instanz von {0} nach {1} ist nicht möglich."
+msgstr ""
+"Die Typwandlung fï¿½r eine Instanz von {0} nach {1} ist nicht mï¿½glich."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:851
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:872
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1799
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:929
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:950
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2017
 msgid "Can''t use relative move methods while on the insert row."
 msgstr ""
-"Relative Bewegungen können in der Einfügezeile nicht durchgeführt werden."
+"Relative Bewegungen kï¿½nnen in der Einfï¿½gezeile nicht durchgefï¿½hrt "
+"werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:895
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:921
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:973
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:943
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
-msgstr "Unzulässige Richtungskonstante bei fetch: {0}."
+msgstr "Unzulï¿½ssige Richtungskonstante bei fetch: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:905
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:983
 msgid "Cannot call cancelRowUpdates() when on the insert row."
 msgstr ""
-"''cancelRowUpdates()'' kann in der Einfügezeile nicht aufgerufen werden."
+"''cancelRowUpdates()'' kann in der Einfï¿½gezeile nicht aufgerufen werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:920
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:998
 msgid "Cannot call deleteRow() when on the insert row."
-msgstr "''deleteRow()'' kann in der Einfügezeile nicht aufgerufen werden."
+msgstr "''deleteRow()'' kann in der Einfï¿½gezeile nicht aufgerufen werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:927
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1005
 msgid ""
 "Currently positioned before the start of the ResultSet.  You cannot call "
 "deleteRow() here."
@@ -1199,7 +1243,7 @@ msgstr ""
 "Die augenblickliche Position ist vor dem Beginn des ResultSets.  Dort kann "
 "''deleteRow()'' nicht aufgerufen werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:933
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1011
 msgid ""
 "Currently positioned after the end of the ResultSet.  You cannot call "
 "deleteRow() here."
@@ -1207,37 +1251,30 @@ msgstr ""
 "Die augenblickliche Position ist hinter dem Ende des ResultSets.  Dort kann "
 "''deleteRow()'' nicht aufgerufen werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:937
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1016
 msgid "There are no rows in this ResultSet."
 msgstr "Es gibt keine Zeilen in diesem ResultSet."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:974
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1054
 msgid "Not on the insert row."
-msgstr "Nicht in der Einfügezeile."
+msgstr "Nicht in der Einfï¿½gezeile."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:976
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1058
 msgid "You must specify at least one column value to insert a row."
 msgstr ""
-"Sie müssen mindestens einen Spaltenwert angeben, um eine Zeile einzufügen."
+"Sie mï¿½ssen mindestens einen Spaltenwert angeben, um eine Zeile "
+"einzufï¿½gen."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1121
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1718
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2418
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2439
-#, java-format
-msgid "The JVM claims not to support the encoding: {0}"
-msgstr "Die JVM behauptet, die Zeichenkodierung {0} nicht zu unterstützen."
-
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1248
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1338
 msgid "Can''t refresh the insert row."
-msgstr "Die Einfügezeile kann nicht aufgefrischt werden."
+msgstr "Die Einfï¿½gezeile kann nicht aufgefrischt werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1313
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1407
 msgid "Cannot call updateRow() when on the insert row."
-msgstr "''updateRow()'' kann in der Einfügezeile nicht aufgerufen werden."
+msgstr "''updateRow()'' kann in der Einfï¿½gezeile nicht aufgerufen werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1320
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3082
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1415
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3345
 msgid ""
 "Cannot update the ResultSet because it is either before the start or after "
 "the end of the results."
@@ -1245,335 +1282,362 @@ msgstr ""
 "Das ResultSet kann nicht aktualisiert werden, da es entweder vor oder nach "
 "dem Ende der Ergebnisse ist."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1496
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1609
 msgid "ResultSets with concurrency CONCUR_READ_ONLY cannot be updated."
 msgstr ""
-"ResultSets, deren Zugriffsart CONCUR_READ_ONLY ist, können nicht "
+"ResultSets, deren Zugriffsart CONCUR_READ_ONLY ist, kï¿½nnen nicht "
 "aktualisiert werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1564
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1691
 #, java-format
 msgid "No primary key found for table {0}."
-msgstr "Für die Tabelle {0} konnte kein Primärschlüssel gefunden werden."
+msgstr "Fï¿½r die Tabelle {0} konnte kein Primï¿½rschlï¿½ssel gefunden werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1995
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2000
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2806
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2812
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2837
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2843
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2867
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2872
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2888
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2909
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2920
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2933
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3070
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1891
+#, java-format
+msgid "The JVM claims not to support the encoding: {0}"
+msgstr "Die JVM behauptet, die Zeichenkodierung {0} nicht zu unterstï¿½tzen."
+
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2230
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2235
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3067
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3073
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3098
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3104
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3128
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3133
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3149
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3170
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3181
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3194
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3333
 #, java-format
 msgid "Bad value for type {0} : {1}"
-msgstr "Unzulässiger Wert für den Typ {0} : {1}."
+msgstr "Unzulï¿½ssiger Wert fï¿½r den Typ {0} : {1}."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2592
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2838
 #, java-format
 msgid "The column name {0} was not found in this ResultSet."
 msgstr "Der Spaltenname {0} wurde in diesem ResultSet nicht gefunden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2728
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2979
 msgid ""
 "ResultSet is not updateable.  The query that generated this result set must "
 "select only one table, and must select all primary keys from that table. See "
 "the JDBC 2.1 API Specification, section 5.6 for more details."
 msgstr ""
 "Das ResultSet kann nicht aktualisiert werden.  Die Abfrage, die es erzeugte, "
-"darf nur eine Tabelle und muss darin alle Primärschlüssel auswählen. Siehe "
-"JDBC 2.1 API-Spezifikation, Abschnitt 5.6 für mehr Details."
+"darf nur eine Tabelle und muss darin alle Primï¿½rschlï¿½ssel auswï¿½hlen. "
+"Siehe JDBC 2.1 API-Spezifikation, Abschnitt 5.6 fï¿½r mehr Details."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2740
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2995
 msgid "This ResultSet is closed."
 msgstr "Dieses ResultSet ist geschlossen."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2771
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3029
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr ""
 "Das ResultSet ist nicht richtig positioniert. Eventuell muss ''next'' "
 "aufgerufen werden."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3102
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3367
 #, fuzzy
 msgid "Invalid UUID data."
-msgstr "Ungültiges Flag."
+msgstr "Ungï¿½ltiges Flag."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3191
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3198
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3209
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3220
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3231
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3242
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3253
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3264
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3275
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3282
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3289
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3300
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3317
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3324
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3331
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3342
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3349
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3356
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3395
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3402
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3409
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3417
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3430
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3457
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3464
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3475
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3486
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3497
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3508
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3519
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3530
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3541
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3548
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3555
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3564
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3579
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3586
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3593
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3604
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3611
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3618
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3656
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3663
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3670
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3678
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3691
 #, fuzzy, java-format
 msgid "conversion to {0} from {1} not supported"
-msgstr "Die Transaktions-Trennungsstufe {0} ist nicht unterstützt."
+msgstr "Die Transaktions-Trennungsstufe {0} ist nicht unterstï¿½tzt."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3370
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3632
 #, fuzzy
 msgid "Invalid Inet data."
-msgstr "Ungültiges Flag."
+msgstr "Ungï¿½ltiges Flag."
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:151
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:162
 msgid "Unable to decode xml data."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:154
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:165
 #, java-format
 msgid "Unknown XML Source class: {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:202
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:213
 #, fuzzy
 msgid "Unable to create SAXResult for SQLXML."
-msgstr "Erstellung des Objektes schlug fehl für: {0}."
+msgstr "Erstellung des Objektes schlug fehl fï¿½r: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:217
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:229
 msgid "Unable to create StAXResult for SQLXML"
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:222
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:234
 #, fuzzy, java-format
 msgid "Unknown XML Result class: {0}"
-msgstr "Unbekannte Einstellung für die Haltbarkeit des ResultSets: {0}."
+msgstr "Unbekannte Einstellung fï¿½r die Haltbarkeit des ResultSets: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:235
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:247
 #, fuzzy
 msgid "This SQLXML object has already been freed."
 msgstr "Diese PooledConnection ist bereits geschlossen worden."
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:244
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:256
 msgid ""
 "This SQLXML object has not been initialized, so you cannot retrieve data "
 "from it."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:257
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:269
 #, java-format
 msgid "Failed to convert binary xml data to encoding: {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:283
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:296
 msgid "Unable to convert DOMResult SQLXML data to a string."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:296
+#: src/main/java/org/postgresql/jdbc/PgSQLXML.java:309
 msgid ""
 "This SQLXML object has already been initialized, so you cannot manipulate it "
 "further."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:237
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:251
 msgid "Multiple ResultSets were returned by the query."
 msgstr "Die Abfrage ergab mehrere ResultSets."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:319
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:334
 msgid "Can''t use executeWithFlags(int) on a Statement."
 msgstr ""
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:518
-msgid "Maximum number of rows must be a value grater than or equal to 0."
-msgstr "Die maximale Zeilenzahl muss ein Wert größer oder gleich Null sein."
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:531
+msgid "Maximum number of rows must be a value greater than or equal to 0."
+msgstr ""
+"Die maximale Zeilenzahl muss ein Wert grï¿½ï¿½er oder gleich Null sein."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:564
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:577
 msgid "Query timeout must be a value greater than or equals to 0."
-msgstr "Das Abfragetimeout muss ein Wert größer oder gleich Null sein."
+msgstr "Das Abfragetimeout muss ein Wert grï¿½ï¿½er oder gleich Null sein."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:606
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:619
 msgid "The maximum field size must be a value greater than or equal to 0."
-msgstr "Die maximale Feldgröße muss ein Wert größer oder gleich Null sein."
+msgstr ""
+"Die maximale Feldgrï¿½ï¿½e muss ein Wert grï¿½ï¿½er oder gleich Null sein."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:709
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:722
 msgid "This statement has been closed."
 msgstr "Die Anweisung wurde geschlossen."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1078
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1208
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1236
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1099
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1224
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1252
 #, fuzzy
 msgid "Returning autogenerated keys by column index is not supported."
-msgstr "Die Rückgabe automatisch generierter Schlüssel wird nicht unterstützt,"
+msgstr ""
+"Die Rï¿½ckgabe automatisch generierter Schlï¿½ssel wird nicht unterstï¿½tzt,"
 
 #: src/main/java/org/postgresql/jdbc/SslMode.java:78
 #, fuzzy, java-format
 msgid "Invalid sslmode value: {0}"
-msgstr "Ungültige Länge des Datenstroms: {0}."
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
 
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:356
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:424
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:360
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:428
 #, fuzzy, java-format
 msgid "Bad value for type timestamp/date/time: {1}"
-msgstr "Unzulässiger Wert für den Typ {0} : {1}."
+msgstr "Unzulï¿½ssiger Wert fï¿½r den Typ {0} : {1}."
 
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:981
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1038
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1083
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1131
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:984
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1042
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1086
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1133
 #, fuzzy, java-format
 msgid "Unsupported binary encoding of {0}."
 msgstr "Unbekannter Typ: {0}."
 
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:244
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:276
 msgid "typname"
 msgstr ""
 
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:66
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:68
 msgid "No SCRAM mechanism(s) advertised by the server"
 msgstr ""
 
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:79
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:82
 msgid "Invalid or unsupported by client SCRAM mechanisms"
 msgstr ""
 
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:120
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:125
+msgid "SCRAM session does not exist"
+msgstr ""
+
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:135
 #, fuzzy, java-format
 msgid "Invalid server-first-message: {0}"
-msgstr "Ungültige Länge des Datenstroms: {0}."
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
 
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:157
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:171
+msgid "SCRAM client final processor does not exist"
+msgstr ""
+
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:179
 #, fuzzy, java-format
 msgid "Invalid server-final-message: {0}"
-msgstr "Ungültige Länge des Datenstroms: {0}."
+msgstr "Ungï¿½ltige Lï¿½nge des Datenstroms: {0}."
 
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:163
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:185
 #, java-format
 msgid "SCRAM authentication failed, server returned error: {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:170
+#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:192
 msgid "Invalid server SCRAM signature"
 msgstr ""
 
-#: src/main/java/org/postgresql/largeobject/LargeObjectManager.java:249
-#: src/main/java/org/postgresql/largeobject/LargeObjectManager.java:290
+#: src/main/java/org/postgresql/largeobject/LargeObjectManager.java:243
+#: src/main/java/org/postgresql/largeobject/LargeObjectManager.java:284
 msgid "Large Objects may not be used in auto-commit mode."
 msgstr ""
-"LargeObjects (LOB) dürfen im Modus ''auto-commit'' nicht verwendet werden."
+"LargeObjects (LOB) dï¿½rfen im Modus ''auto-commit'' nicht verwendet werden."
 
-#: src/main/java/org/postgresql/osgi/PGDataSourceFactory.java:82
+#: src/main/java/org/postgresql/osgi/PGDataSourceFactory.java:86
 #, fuzzy, java-format
 msgid "Unsupported properties: {0}"
 msgstr "Unbekannter Typ: {0}."
 
-#: src/main/java/org/postgresql/replication/fluent/AbstractCreateSlotBuilder.java:38
+#: src/main/java/org/postgresql/replication/fluent/AbstractCreateSlotBuilder.java:40
 msgid "Server does not support temporary replication slots"
 msgstr ""
 
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:63
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:49
+#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:72
+#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:55
 msgid "slot_name"
 msgstr ""
 
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:65
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:51
+#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:74
+#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:57
 msgid "consistent_point"
 msgstr ""
 
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:66
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:52
+#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:75
+#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:58
 msgid "snapshot_name"
 msgstr ""
 
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:67
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:53
+#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:76
+#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:59
 msgid "output_plugin"
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:132
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:117
+#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:79
+#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:62
+#, java-format
+msgid "{0} returned no results"
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:136
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:124
 msgid ""
 "Could not find a java cryptographic algorithm: X.509 CertificateFactory not "
 "available."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:142
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:148
 #, java-format
 msgid "Could not open SSL certificate file {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:147
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:153
 #, java-format
 msgid "Loading the SSL certificate {0} into a KeyManager failed."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:211
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:127
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:148
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:163
+#, java-format
+msgid "Could not close SSL certificate file {0}."
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:229
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:134
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:158
 msgid "Enter SSL password: "
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:218
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:155
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:236
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:165
 msgid "Could not read password for SSL key file, console is not available."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:223
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:160
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:241
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:170
 #, java-format
 msgid "Could not read password for SSL key file by callbackhandler {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:243
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:261
 #, java-format
 msgid "Could not decrypt SSL key file {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:250
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:136
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:268
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:146
 #, java-format
 msgid "Could not read SSL key file {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:253
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:182
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:271
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:193
 #, java-format
 msgid "Could not find a java cryptographic algorithm: {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:55
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:62
 #, fuzzy, java-format
 msgid "The password callback class provided {0} could not be instantiated."
 msgstr ""
 "Die von {0} bereitgestellte SSLSocketFactory-Klasse konnte nicht "
 "instanziiert werden."
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:140
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:150
 #, java-format
 msgid "Could not open SSL root certificate file {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:155
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:165
 #, java-format
 msgid "Could not read SSL root certificate file {0}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:159
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:169
 #, java-format
 msgid "Loading the SSL root certificate {0} into a TrustManager failed."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:176
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:187
 msgid "Could not initialize SSL context."
 msgstr ""
 
@@ -1594,33 +1658,33 @@ msgstr ""
 msgid "The hostname {0} could not be verified by hostnameverifier {1}."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:85
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:87
 #, fuzzy, java-format
 msgid "Unable to parse X509Certificate for hostname {0}"
 msgstr ""
-"Für den angegebenen Namen {0} konnte kein Serverarraytyp gefunden werden."
+"Fï¿½r den angegebenen Namen {0} konnte kein Serverarraytyp gefunden werden."
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:90
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:92
 #, fuzzy, java-format
 msgid "No certificates found for hostname {0}"
-msgstr "Für die Tabelle {0} konnte kein Primärschlüssel gefunden werden."
+msgstr "Fï¿½r die Tabelle {0} konnte kein Primï¿½rschlï¿½ssel gefunden werden."
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:109
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:111
 #, java-format
 msgid "Hostname {0} is invalid"
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:126
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:128
 #, fuzzy, java-format
 msgid "Unable to parse certificates for hostname {0}"
 msgstr "Der Anweisung konnten keine Parameterwerte zugewiesen werden."
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:157
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:159
 #, java-format
 msgid "Server name validation pass for {0}, subjectAltName {1}"
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:173
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:175
 #, java-format
 msgid ""
 "Server name validation failed: certificate for host {0} dNSName entries "
@@ -1628,79 +1692,94 @@ msgid ""
 "failed"
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:184
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:186
 #, java-format
 msgid ""
 "Server name validation failed: unable to extract common name from "
 "X509Certificate for hostname {0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:197
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:199
 #, java-format
 msgid ""
 "Server name validation failed: certificate for hostname {0} has no DNS "
 "subjectAltNames, and it CommonName is missing as well"
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:217
+#: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:219
 #, java-format
 msgid ""
 "Server name validation failed: hostname {0} does not match common name {1}"
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:44
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:46
 #, fuzzy
 msgid "Unable to find pkcs12 keystore."
 msgstr ""
 "In den Systemkatalogen konnte der Namensdatentyp nicht gefunden werden."
 
-#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:91
+#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:92
 msgid "The sslfactoryarg property may not be empty."
 msgstr ""
 
 #: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:107
+#, java-format
+msgid "Unable to find resource {0} via Thread contextClassLoader {1}"
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:115
+#, java-format
+msgid "Unable to find resource {0} via class {1} ClassLoader {2}"
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:126
 msgid ""
 "The environment variable containing the server's SSL certificate must not be "
 "empty."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:115
+#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:134
 msgid ""
 "The system property containing the server's SSL certificate must not be "
 "empty."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:122
+#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:141
 msgid ""
 "The sslfactoryarg property must start with the prefix file:, classpath:, "
 "env:, sys:, or -----BEGIN CERTIFICATE-----."
 msgstr ""
 
-#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:134
+#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:153
 #, fuzzy
 msgid "An error occurred reading the certificate"
 msgstr "Beim Aufbau der SSL-Verbindung trat ein Fehler auf."
 
-#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:167
+#: src/main/java/org/postgresql/ssl/SingleCertValidatingFactory.java:186
 msgid "No X509TrustManager found"
 msgstr ""
 
-#: src/main/java/org/postgresql/util/PGInterval.java:210
+#: src/main/java/org/postgresql/util/HStoreConverter.java:61
+#, fuzzy
+msgid "hstore key must not be null"
+msgstr "Die xid darf nicht null sein."
+
+#: src/main/java/org/postgresql/util/PGInterval.java:214
 msgid "Conversion of interval failed"
 msgstr "Die Umwandlung eines Intervalls schlug fehl."
 
-#: src/main/java/org/postgresql/util/PGPropertyMaxResultBufferParser.java:204
+#: src/main/java/org/postgresql/util/PGPropertyMaxResultBufferParser.java:199
 #, java-format
 msgid ""
 "WARNING! Required to allocate {0} bytes, which exceeded possible heap memory "
 "size. Assigned {1} bytes as limit."
 msgstr ""
 
-#: src/main/java/org/postgresql/util/PGmoney.java:61
+#: src/main/java/org/postgresql/util/PGmoney.java:64
 msgid "Conversion of money failed."
-msgstr "Die Umwandlung eines Währungsbetrags schlug fehl."
+msgstr "Die Umwandlung eines Wï¿½hrungsbetrags schlug fehl."
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:43
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:45
 #, java-format
 msgid ""
 " (pgjdbc: autodetected server-encoding to be {0}, if the message is not "
@@ -1708,185 +1787,183 @@ msgid ""
 "password, pg_hba.conf)"
 msgstr ""
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:187
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:189
 #, java-format
 msgid "Detail: {0}"
 msgstr "Detail: {0}"
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:192
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:194
 #, java-format
 msgid "Hint: {0}"
 msgstr "Hinweis: {0}"
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:196
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:198
 #, java-format
 msgid "Position: {0}"
 msgstr "Position: {0}"
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:200
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:202
 #, java-format
 msgid "Where: {0}"
 msgstr "Wobei: {0}"
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:206
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:208
 #, java-format
 msgid "Internal Query: {0}"
 msgstr "Interne Abfrage: {0}"
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:210
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:212
 #, java-format
 msgid "Internal Position: {0}"
 msgstr "Interne Position: {0}"
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:217
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:219
 #, java-format
 msgid "Location: File: {0}, Routine: {1}, Line: {2}"
 msgstr "Ort: Datei: {0}, Routine: {1}, Zeile: {2}."
 
-#: src/main/java/org/postgresql/util/ServerErrorMessage.java:222
+#: src/main/java/org/postgresql/util/ServerErrorMessage.java:224
 #, java-format
 msgid "Server SQLState: {0}"
 msgstr "Server SQLState: {0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:128
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:133
 msgid ""
 "Transaction control methods setAutoCommit(true), commit, rollback and "
 "setSavePoint not allowed while an XA transaction is active."
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:186
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:272
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:381
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:191
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:277
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:386
 #, fuzzy, java-format
 msgid "Invalid flags {0}"
-msgstr "Ungültige Flags"
+msgstr "Ungï¿½ltige Flags"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:190
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:276
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:491
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:195
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:281
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:496
 msgid "xid must not be null"
 msgstr "Die xid darf nicht null sein."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:194
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:199
 msgid "Connection is busy with another transaction"
-msgstr "Die Verbindung ist derzeit mit einer anderen Transaktion beschäftigt."
+msgstr ""
+"Die Verbindung ist derzeit mit einer anderen Transaktion beschï¿½ftigt."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:203
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:286
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:208
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:291
 msgid "suspend/resume not implemented"
 msgstr "Anhalten/Fortsetzen ist nicht implementiert."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:211
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:218
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:222
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:216
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:223
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:227
 #, java-format
 msgid ""
 "Invalid protocol state requested. Attempted transaction interleaving is not "
 "supported. xid={0}, currentXid={1}, state={2}, flags={3}"
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:233
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:238
 msgid "Error disabling autocommit"
 msgstr "Fehler beim Abschalten von Autocommit."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:280
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:285
 #, fuzzy, java-format
 msgid ""
 "tried to call end without corresponding start call. state={0}, start "
 "xid={1}, currentXid={2}, preparedXid={3}"
 msgstr ""
-"Es wurde versucht, ohne dazugehörigen ''start''-Aufruf ''end'' aufzurufen."
+"Es wurde versucht, ohne dazugehï¿½rigen ''start''-Aufruf ''end'' aufzurufen."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:326
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:331
 #, java-format
 msgid ""
 "Preparing already prepared transaction, the prepared xid {0}, prepare xid={1}"
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:329
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:334
 #, java-format
 msgid "Current connection does not have an associated xid. prepare xid={0}"
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:336
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:341
 #, fuzzy, java-format
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
 "started the transaction. currentXid={0}, prepare xid={1}"
 msgstr ""
-"Nicht implementiert: ''Prepare'' muss über die selbe Verbindung abgesetzt "
+"Nicht implementiert: ''Prepare'' muss ï¿½ber die selbe Verbindung abgesetzt "
 "werden, die die Transaktion startete."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:340
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:345
 #, fuzzy, java-format
 msgid "Prepare called before end. prepare xid={0}, state={1}"
 msgstr "''Prepare'' wurde vor ''end'' aufgerufen."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:360
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:365
 #, fuzzy, java-format
 msgid "Error preparing transaction. prepare xid={0}"
 msgstr "Beim Vorbereiten der Transaktion trat ein Fehler auf."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:416
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:421
 msgid "Error during recover"
 msgstr "Beim Wiederherstellen trat ein Fehler auf."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:480
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:485
 #, fuzzy, java-format
 msgid ""
 "Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, "
 "currentXid={2}"
 msgstr "Fehler beim Rollback einer vorbereiteten Transaktion."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:521
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:526
 #, java-format
 msgid ""
 "One-phase commit called for xid {0} but connection was prepared with xid {1}"
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:529
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:534
 msgid ""
 "Not implemented: one-phase commit must be issued using the same connection "
 "that was used to start it"
 msgstr ""
-"Nicht implementiert: Die einphasige Bestätigung muss über die selbe "
+"Nicht implementiert: Die einphasige Bestï¿½tigung muss ï¿½ber die selbe "
 "Verbindung abgewickelt werden, die verwendet wurde, um sie zu beginnen."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:533
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:538
 #, java-format
 msgid "One-phase commit with unknown xid. commit xid={0}, currentXid={1}"
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:537
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:542
 #, fuzzy, java-format
 msgid "commit called before end. commit xid={0}, state={1}"
 msgstr "''Commit'' wurde vor ''end'' aufgerufen."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:548
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:553
 #, fuzzy, java-format
 msgid "Error during one-phase commit. commit xid={0}"
-msgstr "Bei der einphasigen Bestätigung trat ein Fehler auf."
+msgstr "Bei der einphasigen Bestï¿½tigung trat ein Fehler auf."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:576
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:581
 #, fuzzy, java-format
 msgid ""
 "Not implemented: 2nd phase commit must be issued using an idle connection. "
 "commit xid={0}, currentXid={1}, state={2}, transactionState={3}"
 msgstr ""
-"Nicht implementiert: Die zweite Bestätigungsphase muss über eine im Leerlauf "
-"befindliche Verbindung abgewickelt werden."
+"Nicht implementiert: Die zweite Bestï¿½tigungsphase muss ï¿½ber eine im "
+"Leerlauf befindliche Verbindung abgewickelt werden."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:609
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:614
 #, fuzzy, java-format
 msgid ""
 "Error committing prepared transaction. commit xid={0}, preparedXid={1}, "
 "currentXid={2}"
 msgstr "Fehler beim Rollback einer vorbereiteten Transaktion."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:626
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:631
 #, fuzzy, java-format
 msgid "Heuristic commit/rollback not supported. forget xid={0}"
-msgstr "Heuristisches Commit/Rollback wird nicht unterstützt."
-
-#~ msgid "The driver currently does not support COPY operations."
-#~ msgstr "Der Treiber unterstützt derzeit keine COPY-Operationen."
+msgstr "Heuristisches Commit/Rollback wird nicht unterstï¿½tzt."

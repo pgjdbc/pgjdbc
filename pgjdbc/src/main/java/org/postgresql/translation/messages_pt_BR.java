@@ -58,6 +58,8 @@ public class messages_pt_BR extends java.util.ResourceBundle {
     t[123] = "O servidor não suporta SSL.";
     t[124] = "Custom type maps are not supported.";
     t[125] = "Mapeamento de tipos personalizados não são suportados.";
+    t[134] = "Maximum number of rows must be a value greater than or equal to 0.";
+    t[135] = "Número máximo de registros deve ser um valor maior ou igual a 0.";
     t[140] = "Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}";
     t[141] = "Sequência UTF-8 ilegal: byte {0} da sequência de bytes {1} não é 10xxxxxx: {2}";
     t[148] = "Hint: {0}";
@@ -154,8 +156,6 @@ public class messages_pt_BR extends java.util.ResourceBundle {
     t[345] = "SQLState: {0}";
     t[348] = "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.";
     t[349] = "O parâmetro do servidor standard_conforming_strings foi definido como {0}. O driver JDBC espera que seja on ou off.";
-    t[360] = "The driver currently does not support COPY operations.";
-    t[361] = "O driver atualmente não suporta operações COPY.";
     t[364] = "The array index is out of range: {0}, number of elements: {1}.";
     t[365] = "O índice da matriz está fora do intervalo: {0}, número de elementos: {1}.";
     t[374] = "suspend/resume not implemented";
@@ -264,8 +264,6 @@ public class messages_pt_BR extends java.util.ResourceBundle {
     t[609] = "Sintaxe de escape mal formada da função ou do procedimento no deslocamento {0}.";
     t[612] = "Provided Reader failed.";
     t[613] = "Reader fornecido falhou.";
-    t[614] = "Maximum number of rows must be a value grater than or equal to 0.";
-    t[615] = "Número máximo de registros deve ser um valor maior ou igual a 0.";
     t[616] = "Failed to create object for: {0}.";
     t[617] = "Falhou ao criar objeto para: {0}.";
     t[620] = "Conversion of money failed.";

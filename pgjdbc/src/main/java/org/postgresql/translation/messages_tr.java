@@ -58,6 +58,8 @@ public class messages_tr extends java.util.ResourceBundle {
     t[123] = "Sunucu SSL desteklemiyor.";
     t[124] = "Custom type maps are not supported.";
     t[125] = "Özel tip eşleştirmeleri desteklenmiyor.";
+    t[134] = "Maximum number of rows must be a value greater than or equal to 0.";
+    t[135] = "En büyük getirilecek satır sayısı sıfırdan büyük olmalıdır.";
     t[140] = "Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}";
     t[141] = "Geçersiz UTF-8 çoklu bayt karakteri: {0}/{1} baytı 10xxxxxx değildir: {2}";
     t[148] = "Hint: {0}";
@@ -156,8 +158,6 @@ public class messages_tr extends java.util.ResourceBundle {
     t[345] = "Sunucu SQLState: {0}";
     t[348] = "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.";
     t[349] = "İstemcinin client_standard_conforming_strings parametresi {0} olarak raporlandı. JDBC sürücüsü on ya da off olarak bekliyordu.";
-    t[360] = "The driver currently does not support COPY operations.";
-    t[361] = "Bu sunucu şu aşamada COPY işlemleri desteklememktedir.";
     t[364] = "The array index is out of range: {0}, number of elements: {1}.";
     t[365] = "Dizin göstergisi kapsam dışıdır: {0}, öğe sayısı: {1}.";
     t[374] = "suspend/resume not implemented";
@@ -266,8 +266,6 @@ public class messages_tr extends java.util.ResourceBundle {
     t[609] = "{0} adresinde fonksiyon veya yordamda kaçış söz dizimi geçersiz.";
     t[612] = "Provided Reader failed.";
     t[613] = "Sağlanmış InputStream başarısız.";
-    t[614] = "Maximum number of rows must be a value grater than or equal to 0.";
-    t[615] = "En büyük getirilecek satır sayısı sıfırdan büyük olmalıdır.";
     t[616] = "Failed to create object for: {0}.";
     t[617] = "{0} için nesne oluşturma hatası.";
     t[620] = "Conversion of money failed.";

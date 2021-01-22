@@ -62,8 +62,6 @@ public class messages_zh_CN extends java.util.ResourceBundle {
     t[163] = "查询逾时等候时间必须大于或等于 0。";
     t[170] = "Unknown type {0}.";
     t[171] = "不明的类型 {0}";
-    t[174] = "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.";
-    t[175] = "这服务器的 standard_conforming_strings 参数已回报为 {0}，JDBC 驱动程序已预期开启或是关闭。";
     t[176] = "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database.";
     t[177] = "发现不合法的字元，可能的原因是欲储存的数据中包含数据库的字元集不支援的字码，其中最常见例子的就是将 8 位元数据存入使用 SQL_ASCII 编码的数据库中。";
     t[178] = "The column index is out of range: {0}, number of columns: {1}.";
@@ -76,6 +74,8 @@ public class messages_zh_CN extends java.util.ResourceBundle {
     t[191] = "提供的 Reader 已失败。";
     t[194] = "Unsupported value for stringtype parameter: {0}";
     t[195] = "字符类型参数值未被支持：{0}";
+    t[196] = "Maximum number of rows must be a value greater than or equal to 0.";
+    t[197] = "最大数据读取笔数必须大于或等于 0。";
     t[198] = "A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made.";
     t[199] = "已经宣告 CallableStatement 函式，但是尚未呼叫 registerOutParameter (1, <some_type>) 。";
     t[204] = "Currently positioned before the start of the ResultSet.  You cannot call deleteRow() here.";
@@ -162,10 +162,8 @@ public class messages_zh_CN extends java.util.ResourceBundle {
     t[425] = "不能在新增的数据列上使用相对位置 move 方法。";
     t[434] = "Invalid stream length {0}.";
     t[435] = "无效的串流长度 {0}.";
-    t[436] = "The driver currently does not support COPY operations.";
-    t[437] = "驱动程序目前不支援 COPY 操作。";
-    t[440] = "Maximum number of rows must be a value grater than or equal to 0.";
-    t[441] = "最大数据读取笔数必须大于或等于 0。";
+    t[436] = "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.";
+    t[437] = "这服务器的 standard_conforming_strings 参数已回报为 {0}，JDBC 驱动程序已预期开启或是关闭。";
     t[446] = "Failed to create object for: {0}.";
     t[447] = "为 {0} 建立对象失败。";
     t[448] = "{0} function takes three and only three arguments.";

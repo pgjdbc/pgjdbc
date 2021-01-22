@@ -6,8 +6,6 @@ public class messages_pl extends java.util.ResourceBundle {
     java.lang.String[] t = new java.lang.String[346];
     t[0] = "";
     t[1] = "Project-Id-Version: head-pl\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2005-05-22 03:01+0200\nLast-Translator: Jarosław Jan Pyszny <jarek@pyszny.net>\nLanguage-Team:  <pl@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Generator: KBabel 1.10\nPlural-Forms:  nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n";
-    t[2] = "The driver currently does not support COPY operations.";
-    t[3] = "Sterownik nie obsługuje aktualnie operacji COPY.";
     t[4] = "Internal Query: {0}";
     t[5] = "Wewnętrzne Zapytanie: {0}";
     t[6] = "There are no rows in this ResultSet.";
@@ -70,8 +68,6 @@ public class messages_pl extends java.util.ResourceBundle {
     t[169] = "Szczegóły: {0}";
     t[170] = "Unknown Response Type {0}.";
     t[171] = "Nieznany typ odpowiedzi {0}.";
-    t[172] = "Maximum number of rows must be a value grater than or equal to 0.";
-    t[173] = "Maksymalna liczba rekordów musi być wartością dodatnią lub 0.";
     t[184] = "Query timeout must be a value greater than or equals to 0.";
     t[185] = "Timeout zapytania musi być wartością dodatnią lub 0.";
     t[186] = "Too many update results were returned.";
@@ -136,6 +132,8 @@ public class messages_pl extends java.util.ResourceBundle {
     t[333] = "Indeks tablicy jest poza zakresem: {0}, liczba elementów: {1}.";
     t[338] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
     t[339] = "Coś niezwykłego spowodowało pad sterownika. Proszę, zgłoś ten wyjątek.";
+    t[340] = "Maximum number of rows must be a value greater than or equal to 0.";
+    t[341] = "Maksymalna liczba rekordów musi być wartością dodatnią lub 0.";
     t[342] = "Zero bytes may not occur in string parameters.";
     t[343] = "Zerowe bajty nie mogą pojawiać się w parametrach typu łańcuch znakowy.";
     table = t;
