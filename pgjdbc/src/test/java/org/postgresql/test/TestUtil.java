@@ -17,6 +17,7 @@ import org.postgresql.util.PSQLException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -825,6 +826,18 @@ public class TestUtil {
     }
     rs.close();
     return returnValue;
+  }
+
+  /**
+   * Close a resource and ignore any errors during closing.
+   */
+  public static void closeQuietly(@Nullable Closeable resource) {
+    if (resource != null) {
+      try {
+        resource.close();
+      } catch (Exception ignore) {
+      }
+    }
   }
 
   /**
