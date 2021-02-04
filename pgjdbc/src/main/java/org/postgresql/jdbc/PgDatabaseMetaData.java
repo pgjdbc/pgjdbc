@@ -1798,11 +1798,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
     String sql;
+    // r = ordinary table, p = partitioned table, v = view, m = materialized view, f = foreign table
     sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r "
           + " WHERE c.relnamespace = n.oid "
           + " AND c.relowner = r.oid "
-          + " AND c.relkind IN ('r','p') ";
+          + " AND c.relkind IN ('r','p','v','m','f') ";
 
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
