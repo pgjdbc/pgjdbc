@@ -406,18 +406,7 @@ public class TestUtil {
    * Helper - drops a schema
    */
   public static void dropSchema(Connection con, String schema) throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP SCHEMA " + schema + " CASCADE");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "SCHEMA", schema);
   }
 
   /*
@@ -445,7 +434,6 @@ public class TestUtil {
    * @param table String
    * @param columns String
    */
-
   public static void createTempTable(Connection con, String table, String columns)
       throws SQLException {
     Statement st = con.createStatement();
@@ -487,7 +475,6 @@ public class TestUtil {
    * @param name String
    * @param values String
    */
-
   public static void createEnumType(Connection con, String name, String values)
       throws SQLException {
     Statement st = con.createStatement();
@@ -537,22 +524,11 @@ public class TestUtil {
    * Drops a domain.
    *
    * @param con Connection
-   * @param name String
+   * @param domain String
    */
-  public static void dropDomain(Connection con, String name)
+  public static void dropDomain(Connection con, String domain)
       throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP DOMAIN IF EXISTS " + name + " CASCADE");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP DOMAIN " + name + " CASCADE");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "DOMAIN", domain);
   }
 
   /**
@@ -578,50 +554,32 @@ public class TestUtil {
    * drop a sequence because older versions don't have dependency information for serials
    */
   public static void dropSequence(Connection con, String sequence) throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP SEQUENCE IF EXISTS " + sequence + " CASCADE");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP SEQUENCE " + sequence + " CASCADE");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "SEQUENCE", sequence);
   }
 
   /*
    * Helper - drops a table
    */
   public static void dropTable(Connection con, String table) throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP TABLE IF EXISTS " + table + " CASCADE ");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP TABLE " + table + " CASCADE ");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "TABLE", table);
   }
 
   /*
    * Helper - drops a type
    */
   public static void dropType(Connection con, String type) throws SQLException {
+    dropObject(con, "TYPE", type);
+  }
+
+  private static void dropObject(Connection con, String type, String name) throws SQLException {
     Statement stmt = con.createStatement();
     try {
       if (con.getAutoCommit()) {
         // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP TYPE IF EXISTS " + type + " CASCADE");
+        stmt.executeUpdate("DROP " + type + " IF EXISTS " + name + " CASCADE");
       } else {
         // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP TYPE " + type + " CASCADE");
+        stmt.executeUpdate("DROP " + type + " " + name + " CASCADE");
       }
     } finally {
       closeQuietly(stmt);
