@@ -468,6 +468,24 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a view
+   */
+  public static void createView(Connection con, String viewName, String query)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the view
+      dropView(con, viewName);
+
+      String sql = "CREATE VIEW " + viewName + " AS " + query;
+
+      st.executeUpdate(sql);
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
   /**
    * Helper creates an enum type.
    *
@@ -562,6 +580,13 @@ public class TestUtil {
    */
   public static void dropTable(Connection con, String table) throws SQLException {
     dropObject(con, "TABLE", table);
+  }
+
+  /*
+   * Helper - drops a view
+   */
+  public static void dropView(Connection con, String view) throws SQLException {
+    dropObject(con, "VIEW", view);
   }
 
   /*
