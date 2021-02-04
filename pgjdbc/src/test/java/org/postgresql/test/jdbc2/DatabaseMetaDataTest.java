@@ -80,6 +80,7 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
+    TestUtil.createView(con, "viewtest", "SELECT id, quest FROM metadatatest");
     TestUtil.dropType(con, "custom");
     TestUtil.dropType(con, "_custom");
     TestUtil.createCompositeType(con, "custom", "i int", false);
@@ -124,6 +125,7 @@ public class DatabaseMetaDataTest {
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION f4(int)");
 
+    TestUtil.dropView(con, "viewtest");
     TestUtil.dropTable(con, "metadatatest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
@@ -624,6 +626,24 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testViewPrivileges() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getTablePrivileges(null, null, "viewtest");
+    boolean foundSelect = false;
+    while (rs.next()) {
+      if (rs.getString("GRANTEE").equals(TestUtil.getUser())
+          && rs.getString("PRIVILEGE").equals("SELECT")) {
+        foundSelect = true;
+      }
+    }
+    rs.close();
+    // Test that the view owner has select priv
+    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
+        foundSelect);
   }
 
   @Test
