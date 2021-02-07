@@ -47,4 +47,10 @@ sudo mkdir -p ${PG_DATADIR}
 sudo chmod 777 ${PG_DATADIR}
 sudo chown -R postgres:postgres ${PG_DATADIR}
 
-sudo su postgres -c "/usr/local/pgsql/bin/pg_ctl -D ${PG_DATADIR} -U postgres initdb"
+sudo su postgres -c "/usr/local/pgsql/bin/pg_ctl initdb -D ${PG_DATADIR} -U postgres -o -k"
+
+sudo sh -c "echo 'local all all trust' > ${PG_DATADIR}/pg_hba.conf"
+sudo sh -c "echo 'host  all testscram all scram-sha-256' >> ${PG_DATADIR}/pg_hba.conf"
+sudo sh -c "echo 'host  all all all trust' >> ${PG_DATADIR}/pg_hba.conf"
+sudo sh -c "echo 'local replication all trust' >> ${PG_DATADIR}/pg_hba.conf"
+sudo sh -c "echo -n 'host  replication all all trust' >> ${PG_DATADIR}/pg_hba.conf"

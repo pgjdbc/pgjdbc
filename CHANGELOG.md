@@ -4,6 +4,10 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+**Notable Changes**
+- Now the driver use SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
+
 ### Changed
 
 ### Added 
@@ -13,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fix "Required class information missing" when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]
 - Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]
 - Fix Connnection.isValid() to not wait longer than existing network timeout [PR #2040](https://github.com/pgjdbc/pgjdbc/pull/2040)
+- Use SASLprep normalization for SCRAM authentication [PR #2052](https://github.com/pgjdbc/pgjdbc/pull/2052)
 
 ## [42.2.18]
 ### Fixed
