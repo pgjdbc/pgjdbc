@@ -21,18 +21,18 @@ class PGtokenizerTest {
   
   @Test
   void tokenize2() {
-    PGtokenizer pGtokenizer = new Tokenizer(",,d,\"f(10\",\"(mime,pdf,pdf)\",test,2018-10-11,1010", ',');
+    PGtokenizer pGtokenizer = new PGtokenizer(",,d,\"f(10\",\"(mime,pdf,pdf)\",test,2018-10-11,1010", ',');
     assertEquals(7,pGtokenizer.getSize());
   }
   
   @Test
   void tokenize3() {
-    PGtokenizer pGtokenizer = new Tokenizer(",,d,\"f)10\",\"(mime,pdf,pdf)\",test,2018-10-11,1010", ',');
+    PGtokenizer pGtokenizer = new PGtokenizer(",,d,\"f)10\",\"(mime,pdf,pdf)\",test,2018-10-11,1010", ',');
     assertEquals(7,pGtokenizer.getSize());
   }
   @Test
   void tokenize4() {
-    PGtokenizer pGtokenizer = new Tokenizer(",,d,\"f()10\",\"(mime,pdf,pdf)\",test,2018-10-11,1010", ',');
+    PGtokenizer pGtokenizer = new PGtokenizer(",,d,\"f()10\",\"(mime,pdf,pdf)\",test,2018-10-11,1010", ',');
     assertEquals(7,pGtokenizer.getSize());
   }  
 
