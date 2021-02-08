@@ -92,7 +92,7 @@ public class PGtokenizer {
 
 
 				if (c == '"') {
-					while (stack.size()>0 && stack.peek().charValue()!='"') {  
+					while (stack.size() > 0 && stack.peek().charValue()!='"') {  
 						nest--;
 						stack.pop();	
 					}	
@@ -100,7 +100,8 @@ public class PGtokenizer {
 					stack.pop();
 					nest--;
 				} else {
-					if (stack.size()>0 && stack.peek().charValue()==closing2OpeningCharacter.get(c).charValue()) {
+					final Character ch = closing2OpeningCharacter.get(c);					
+					if (stack.size() > 0 && ch != null && stack.peek().charValue() == ch.charValue()) {
 						stack.pop();
 						nest--;
 					}
@@ -127,8 +128,7 @@ public class PGtokenizer {
 		}
 
 		return tokens.size();
-	}		  
-
+	}
   /**
    * @return the number of tokens available
    */
