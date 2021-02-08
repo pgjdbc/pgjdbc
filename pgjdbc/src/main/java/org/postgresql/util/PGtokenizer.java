@@ -20,6 +20,15 @@ import java.util.List;
  * @see org.postgresql.geometric.PGpolygon
  */
 public class PGtokenizer {
+  
+	static final Map<Character, Character> closing2OpeningCharacter = new HashMap<>();
+	static {
+		closing2OpeningCharacter.put(')', '(');
+		closing2OpeningCharacter.put(']', '[');
+		closing2OpeningCharacter.put('>', '<');
+		closing2OpeningCharacter.put('"', '"');
+	}  
+  
   // Our tokens
   protected List<String> tokens = new ArrayList<String>();
 
@@ -37,70 +46,85 @@ public class PGtokenizer {
     tokenize(string, delim);
   }
 
-  /**
-   * This resets this tokenizer with a new string and/or delimiter.
-   *
-   * @param string containing tokens
-   * @param delim single character to split the tokens
-   * @return number of tokens
-   */
-  public int tokenize(String string, char delim) {
-    tokens.clear();
+	/**
+	 * This resets this tokenizer with a new string and/or delimiter.
+	 *
+	 * @param string containing tokens
+	 * @param delim single character to split the tokens
+	 * @return number of tokens
+	 */
+	public int tokenize(String string, char delim) {
+		tokens.clear();
 
-    // nest holds how many levels we are in the current token.
-    // if this is > 0 then we don't split a token when delim is matched.
-    //
-    // The Geometric datatypes use this, because often a type may have others
-    // (usualls PGpoint) imbedded within a token.
-    //
-    // Peter 1998 Jan 6 - Added < and > to the nesting rules
-    int nest = 0;
-    int p;
-    int s;
-    boolean skipChar = false;
-    boolean nestedDoubleQuote = false;
-    char c = (char)0;
-    for (p = 0, s = 0; p < string.length(); p++) {
-      c = string.charAt(p);
+		final Stack<Character> stack = new Stack<>();
 
-      // increase nesting if an open character is found
-      if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
-        nest++;
-        if (c == '"') {
-          nestedDoubleQuote = true;
-          skipChar = true;
-        }
-      }
+		// nest holds how many levels we are in the current token.
+		// if this is > 0 then we don't split a token when delim is matched.
+		//
+		// The Geometric datatypes use this, because often a type may have others
+		// (usualls PGpoint) imbedded within a token.
+		//
+		// Peter 1998 Jan 6 - Added < and > to the nesting rules
+		int nest = 0;
+		int p;
+		int s;
+		boolean skipChar = false;
+		boolean nestedDoubleQuote = false;
+		char c = (char)0;
+		for (p = 0, s = 0; p < string.length(); p++) {
+			c = string.charAt(p);
 
-      // decrease nesting if a close character is found
-      if (c == ')' || c == ']' || c == '>' || (nestedDoubleQuote && !skipChar && c == '"')) {
-        nest--;
-        if (c == '"') {
-          nestedDoubleQuote = false;
-        }
-      }
+			// increase nesting if an open character is found
+			if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
+				nest++;
+				stack.push(c);
+				if (c == '"') {
+					nestedDoubleQuote = true;
+					skipChar = true;
+				}
+			}
 
-      skipChar = c == '\\';
+			// decrease nesting if a close character is found
+			if (c == ')' || c == ']' || c == '>' || (nestedDoubleQuote && !skipChar && c == '"')) {
 
-      if (nest == 0 && c == delim) {
-        tokens.add(string.substring(s, p));
-        s = p + 1; // +1 to skip the delimiter
-      }
 
-    }
+				if (c == '"') {
+					while (stack.size()>0 && stack.peek().charValue()!='"') {  
+						nest--;
+						stack.pop();	
+					}	
+					nestedDoubleQuote = false;
+					stack.pop();
+					nest--;
+				} else {
+					if (stack.size()>0 && stack.peek().charValue()==closing2OpeningCharacter.get(c).charValue()) {
+						stack.pop();
+						nest--;
+					}
+				}
+			}
 
-    // Don't forget the last token ;-)
-    if (s < string.length()) {
-      tokens.add(string.substring(s));
-    }
+			skipChar = c == '\\';
 
-    // check for last token empty
-    if ( s == string.length() && c == delim) {
-      tokens.add("");
-    }
+			if (nest == 0 && c == delim) {
+				tokens.add(string.substring(s, p));
+				s = p + 1; // +1 to skip the delimiter
+			}
 
-    return tokens.size();
-  }
+		}
+
+		// Don't forget the last token ;-)
+		if (s < string.length()) {
+			tokens.add(string.substring(s));
+		}
+
+		// check for last token empty
+		if ( s == string.length() && c == delim) {
+			tokens.add("");
+		}
+
+		return tokens.size();
+	}		  
 
   /**
    * @return the number of tokens available
