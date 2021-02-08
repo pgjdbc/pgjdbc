@@ -7,6 +7,9 @@ package org.postgresql.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
 
 /**
  * This class is used to tokenize the text output of org.postgres. It's mainly used by the geometric
