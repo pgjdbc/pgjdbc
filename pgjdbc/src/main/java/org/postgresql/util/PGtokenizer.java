@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * This class is used to tokenize the text output of org.postgres. It's mainly used by the geometric
@@ -24,13 +25,13 @@ import java.util.Stack;
  */
 public class PGtokenizer {
   
-	static final Map<Character, Character> closing2OpeningCharacter = new HashMap<>();
+	private static final Map<Character, Character> CLOSING2OPENINGChARACTER = new HashMap<>();
 	static {
-		closing2OpeningCharacter.put(')', '(');
-		closing2OpeningCharacter.put(']', '[');
-		closing2OpeningCharacter.put('>', '<');
-		closing2OpeningCharacter.put('"', '"');
-	}  
+		CLOSING2OPENINGChARACTER.put(')', '(');
+		CLOSING2OPENINGChARACTER.put(']', '[');
+		CLOSING2OPENINGChARACTER.put('>', '<');
+		CLOSING2OPENINGChARACTER.put('"', '"');
+	}
   
   // Our tokens
   protected List<String> tokens = new ArrayList<String>();
@@ -59,7 +60,7 @@ public class PGtokenizer {
 	public int tokenize(String string, char delim) {
 		tokens.clear();
 
-		final Stack<Character> stack = new Stack<>();
+		final Deque<Character> stack = new ArrayDeque<>();
 
 		// nest holds how many levels we are in the current token.
 		// if this is > 0 then we don't split a token when delim is matched.
@@ -100,8 +101,8 @@ public class PGtokenizer {
 					stack.pop();
 					nest--;
 				} else {
-					final Character ch = closing2OpeningCharacter.get(c);					
-					if (stack.size() > 0 && ch != null && stack.peek().charValue() == ch.charValue()) {
+					final Character ch = CLOSING2OPENINGChARACTER.get(c);					
+					if (!stack.isEmpty() && ch != null && stack.peek().charValue() == ch.charValue()) {
 						stack.pop();
 						nest--;
 					}
@@ -129,6 +130,7 @@ public class PGtokenizer {
 
 		return tokens.size();
 	}
+  
   /**
    * @return the number of tokens available
    */
