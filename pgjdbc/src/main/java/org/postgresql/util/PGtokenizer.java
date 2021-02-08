@@ -25,12 +25,12 @@ import java.util.Deque;
  */
 public class PGtokenizer {
   
-	private static final Map<Character, Character> CLOSING2OPENINGChARACTER = new HashMap<>();
+	private static final Map<Character, Character> CLOSING_TO_OPENING_CHARACTER = new HashMap<>();
 	static {
-		CLOSING2OPENINGChARACTER.put(')', '(');
-		CLOSING2OPENINGChARACTER.put(']', '[');
-		CLOSING2OPENINGChARACTER.put('>', '<');
-		CLOSING2OPENINGChARACTER.put('"', '"');
+		CLOSING_TO_OPENING_CHARACTER.put(')', '(');
+		CLOSING_TO_OPENING_CHARACTER.put(']', '[');
+		CLOSING_TO_OPENING_CHARACTER.put('>', '<');
+		CLOSING_TO_OPENING_CHARACTER.put('"', '"');
 	}
   
   // Our tokens
@@ -68,8 +68,7 @@ public class PGtokenizer {
 		// The Geometric datatypes use this, because often a type may have others
 		// (usualls PGpoint) imbedded within a token.
 		//
-		// Peter 1998 Jan 6 - Added < and > to the nesting rules
-		int nest = 0;
+		// Peter 1998 Jan 6 - Added < and > to the nesting rules		
 		int p;
 		int s;
 		boolean skipChar = false;
@@ -80,7 +79,6 @@ public class PGtokenizer {
 
 			// increase nesting if an open character is found
 			if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
-				nest++;
 				stack.push(c);
 				if (c == '"') {
 					nestedDoubleQuote = true;
@@ -93,25 +91,22 @@ public class PGtokenizer {
 
 
 				if (c == '"') {
-					while (stack.size() > 0 && stack.peek().charValue()!='"') {  
-						nest--;
+					while (!stack.isEmpty() && stack.peek().charValue()!='"') {  
 						stack.pop();	
 					}	
 					nestedDoubleQuote = false;
 					stack.pop();
-					nest--;
 				} else {
-					final Character ch = CLOSING2OPENINGChARACTER.get(c);					
+					final Character ch = CLOSING_TO_OPENING_CHARACTER.get(c);					
 					if (!stack.isEmpty() && ch != null && stack.peek().charValue() == ch.charValue()) {
 						stack.pop();
-						nest--;
 					}
 				}
 			}
 
 			skipChar = c == '\\';
 
-			if (nest == 0 && c == delim) {
+			if (stack.isEmpty() && c == delim) {
 				tokens.add(string.substring(s, p));
 				s = p + 1; // +1 to skip the delimiter
 			}
@@ -129,8 +124,8 @@ public class PGtokenizer {
 		}
 
 		return tokens.size();
-	}
-  
+	}	
+
   /**
    * @return the number of tokens available
    */
