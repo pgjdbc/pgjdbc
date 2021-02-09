@@ -5,12 +5,12 @@
 
 package org.postgresql.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class is used to tokenize the text output of org.postgres. It's mainly used by the geometric
@@ -24,15 +24,19 @@ import java.util.Deque;
  * @see org.postgresql.geometric.PGpolygon
  */
 public class PGtokenizer {
-  
-	private static final Map<Character, Character> CLOSING_TO_OPENING_CHARACTER = new HashMap<>();
-	static {
-		CLOSING_TO_OPENING_CHARACTER.put(')', '(');
-		CLOSING_TO_OPENING_CHARACTER.put(']', '[');
-		CLOSING_TO_OPENING_CHARACTER.put('>', '<');
-		CLOSING_TO_OPENING_CHARACTER.put('"', '"');
-	}
-  
+
+  private static final Map<Character, Character> CLOSING_TO_OPENING_CHARACTER = new HashMap<>();
+
+  static 	{
+    CLOSING_TO_OPENING_CHARACTER.put( ')', '(');
+
+    CLOSING_TO_OPENING_CHARACTER.put( ']', '[');
+
+    CLOSING_TO_OPENING_CHARACTER.put( '>', '<');
+
+    CLOSING_TO_OPENING_CHARACTER.put( '"', '"');
+  }
+
   // Our tokens
   protected List<String> tokens = new ArrayList<String>();
 
@@ -50,81 +54,80 @@ public class PGtokenizer {
     tokenize(string, delim);
   }
 
-	/**
-	 * This resets this tokenizer with a new string and/or delimiter.
-	 *
-	 * @param string containing tokens
-	 * @param delim single character to split the tokens
-	 * @return number of tokens
-	 */
-	public int tokenize(String string, char delim) {
-		tokens.clear();
+  /**
+   * This resets this tokenizer with a new string and/or delimiter.
+   *
+   * @param string containing tokens
+   * @param delim single character to split the tokens
+   * @return number of tokens
+   */
+  public int tokenize(String string, char delim) {
+    tokens.clear();
 
-		final Deque<Character> stack = new ArrayDeque<>();
+    final Deque<Character> stack = new ArrayDeque<>();
 
-		// nest holds how many levels we are in the current token.
-		// if this is > 0 then we don't split a token when delim is matched.
-		//
-		// The Geometric datatypes use this, because often a type may have others
-		// (usualls PGpoint) imbedded within a token.
-		//
-		// Peter 1998 Jan 6 - Added < and > to the nesting rules		
-		int p;
-		int s;
-		boolean skipChar = false;
-		boolean nestedDoubleQuote = false;
-		char c = (char)0;
-		for (p = 0, s = 0; p < string.length(); p++) {
-			c = string.charAt(p);
+    // nest holds how many levels we are in the current token.
+    // if this is > 0 then we don't split a token when delim is matched.
+    //
+    // The Geometric datatypes use this, because often a type may have others
+    // (usualls PGpoint) imbedded within a token.
+    //
+    // Peter 1998 Jan 6 - Added < and > to the nesting rules
+    int p;
+    int s;
+    boolean skipChar = false;
+    boolean nestedDoubleQuote = false;
+    char c = (char)0;
+    for (p = 0, s = 0; p < string.length(); p++) {
+      c = string.charAt(p);
 
-			// increase nesting if an open character is found
-			if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
-				stack.push(c);
-				if (c == '"') {
-					nestedDoubleQuote = true;
-					skipChar = true;
-				}
-			}
+      // increase nesting if an open character is found
+      if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
+        stack.push(c);
+        if (c == '"') {
+          nestedDoubleQuote = true;
+          skipChar = true;
+        }
+      }
 
-			// decrease nesting if a close character is found
-			if (c == ')' || c == ']' || c == '>' || (nestedDoubleQuote && !skipChar && c == '"')) {
+      // decrease nesting if a close character is found
+      if (c == ')' || c == ']' || c == '>' || (nestedDoubleQuote && !skipChar && c == '"')) {
 
+        if (c == '"') {
+          while (!stack.isEmpty() && !Character.valueOf('"').equals(stack.peek())) {
+            stack.pop();
+          }
+          nestedDoubleQuote = false;
+          stack.pop();
+        } else {
+          final Character ch = CLOSING_TO_OPENING_CHARACTER.get(c);
+          if (!stack.isEmpty() && ch != null && ch.equals(stack.peek())) {
+            stack.pop();
+          }
+        }
+      }
 
-				if (c == '"') {
-					while (!stack.isEmpty() && stack.peek().charValue()!='"') {  
-						stack.pop();	
-					}	
-					nestedDoubleQuote = false;
-					stack.pop();
-				} else {
-					final Character ch = CLOSING_TO_OPENING_CHARACTER.get(c);					
-					if (!stack.isEmpty() && ch != null && stack.peek().charValue() == ch.charValue()) {
-						stack.pop();
-					}
-				}
-			}
+      skipChar = c == '\\';
 
-			skipChar = c == '\\';
+      if (stack.isEmpty() && c == delim) {
+        tokens.add(string.substring(s, p));
+        s = p + 1; // +1 to skip the delimiter
+      }
 
-			if (stack.isEmpty() && c == delim) {
-				tokens.add(string.substring(s, p));
-				s = p + 1; // +1 to skip the delimiter
-			}
+    }
 
-		}
+    // Don't forget the last token ;-)
+    if (s < string.length()) {
+      tokens.add(string.substring(s));
+    }
 
-		// Don't forget the last token ;-)
-		if (s < string.length()) {
-			tokens.add(string.substring(s));
-		}
+    // check for last token empty
+    if ( s == string.length() && c == delim) {
+      tokens.add("");
+    }
 
-		// check for last token empty
-		if ( s == string.length() && c == delim) {
-			tokens.add("");
-		}
-
-		return tokens.size();
-	}	
+    return tokens.size();
+  }
 
   /**
    * @return the number of tokens available
