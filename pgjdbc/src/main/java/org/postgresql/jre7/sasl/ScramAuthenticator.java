@@ -74,7 +74,7 @@ public class ScramAuthenticator {
     try {
       scramClient = ScramClient
           .channelBinding(ScramClient.ChannelBinding.NO)
-          .stringPreparation(StringPreparations.NO_PREPARATION)
+          .stringPreparation(StringPreparations.SASL_PREPARATION)
           .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[]{}))
           .setup();
     } catch (IllegalArgumentException e) {
