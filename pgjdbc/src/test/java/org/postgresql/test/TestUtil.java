@@ -341,11 +341,14 @@ public class TestUtil {
           "user name is not specified. Please specify 'username' property via -D or build.properties");
     }
     props.setProperty("user", user);
-    String password = getPassword();
+
+    // Allow properties to override the password.
+    String password = props.getProperty("password");
     if (password == null) {
-      password = "";
+      password = getPassword() != null ? getPassword() : "";
     }
     props.setProperty("password", password);
+
     String sslPassword = getSslPassword();
     if (sslPassword != null) {
       PGProperty.SSL_PASSWORD.set(props, sslPassword);

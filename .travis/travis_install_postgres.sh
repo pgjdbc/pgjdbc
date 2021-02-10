@@ -18,8 +18,11 @@ then
     sudo apt-get update
     sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install postgresql-${PG_VERSION} postgresql-contrib-${PG_VERSION} -qq
 
-    sudo sh -c "echo 'local all postgres trust' > /etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
-    sudo sh -c "echo 'local all all trust' >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
+    sudo sh -c "echo 'local all all trust' > /etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
+    if [ ${PG_VERSION} -ge '10' ]
+    then
+        sudo sh -c "echo 'host all testscram all scram-sha-256' >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
+    fi
     sudo sh -c "echo -n 'host all all 127.0.0.1/32 trust' >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
 
     if [ ${PG_VERSION} = '8.4' ]
