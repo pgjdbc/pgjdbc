@@ -9,16 +9,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Now the driver use SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
 
 ### Changed
+- Perf avoid duplicate PGStream#changeSocket calls
 
 ### Added 
 - Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) [PR #2012](https://github.com/pgjdbc/pgjdbc/pull/2012)
 
 ### Fixed
+- Fix Binary transfer for numeric fixes #1935
+- Fix Allow specifying binaryTransferEnable even for those types that are not enabled by default
 - Fix "Required class information missing" when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]
 - Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]
 - Fix Connnection.isValid() to not wait longer than existing network timeout [PR #2040](https://github.com/pgjdbc/pgjdbc/pull/2040)
 - Use SASLprep normalization for SCRAM authentication [PR #2052](https://github.com/pgjdbc/pgjdbc/pull/2052)
 - Fix DatabaseMetaData.getTablePrivileges() to include views, materialized views, and foreign tables [PR #2049](https://github.com/pgjdbc/pgjdbc/pull/2049)
+- Fix Resolve ParseError in PGtokenizer fixes #2050
+- Fix return metadata privileges for views and foreign tables
 
 ## [42.2.18]
 ### Fixed
