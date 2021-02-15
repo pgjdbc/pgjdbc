@@ -70,7 +70,7 @@ public class PGtokenizer {
     // if stack.size is > 0 then we don't split a token when delim is matched.
     //
     // The Geometric datatypes use this, because often a type may have others
-    // (usualls PGpoint) imbedded within a token.
+    // (usually PGpoint) embedded within a token.
     //
     // Peter 1998 Jan 6 - Added < and > to the nesting rules
     int p;
