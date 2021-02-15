@@ -66,8 +66,8 @@ public class PGtokenizer {
 
     final Deque<Character> stack = new ArrayDeque<>();
 
-    // nest holds how many levels we are in the current token.
-    // if this is > 0 then we don't split a token when delim is matched.
+    // stack keeps track of the levels we are in the current token.
+    // if stack.size is > 0 then we don't split a token when delim is matched.
     //
     // The Geometric datatypes use this, because often a type may have others
     // (usualls PGpoint) imbedded within a token.
