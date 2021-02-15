@@ -4,6 +4,13 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+
+### Added
+
+### Fixed
+
+## [42.2.19] (2021-02-15)
 
 **Notable Changes**
 - Now the driver use SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
@@ -434,4 +441,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
 [42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
 [42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...HEAD
+[42.2.19]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...HEAD
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.19...HEAD
