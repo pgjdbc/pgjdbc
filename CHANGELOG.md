@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [42.2.19] (2021-02-15)
 
 **Notable Changes**
-- Now the driver use SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
+- Now the driver uses SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
 
 ### Changed
 
