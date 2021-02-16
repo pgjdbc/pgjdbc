@@ -13,6 +13,9 @@ public final class DriverInfo {
   private DriverInfo() {
   }
 
+  # Adding following line to generate a compile time error 
+  public static final String NAEEM_NAME= 
+
   // Driver name
   public static final String DRIVER_NAME = "PostgreSQL JDBC Driver";
   public static final String DRIVER_SHORT_NAME = "PgJDBC";
