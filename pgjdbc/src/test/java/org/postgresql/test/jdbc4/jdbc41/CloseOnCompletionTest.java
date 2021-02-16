@@ -100,6 +100,7 @@ public class CloseOnCompletionTest {
     s.executeQuery();
 
   }
+
   @Test
   public void testCloseOnCompletionExecuteTwice() throws SQLException {
     PreparedStatement s = conn.prepareStatement("SELECT 1");
