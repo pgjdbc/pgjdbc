@@ -5,6 +5,10 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -16,10 +20,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 
 public class CloseOnCompletionTest {
   private Connection conn;
