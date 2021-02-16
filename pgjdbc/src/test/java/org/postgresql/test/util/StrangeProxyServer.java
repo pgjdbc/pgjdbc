@@ -60,6 +60,10 @@ public class StrangeProxyServer implements Closeable {
     this.minAcceptedAt = System.currentTimeMillis();
   }
 
+  public void stopForwardingAllClients() {
+    this.minAcceptedAt = Long.MAX_VALUE;
+  }
+
   private void doAsync(Runnable task) {
     Thread thread = new Thread(task);
     thread.setDaemon(true);
