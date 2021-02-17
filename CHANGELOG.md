@@ -14,8 +14,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 **Notable Changes**
 - Now the driver uses SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
+- If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.
 
 ### Changed
+- Fix: Actually close unclosed results. Previously was not closing the first unclosed result fixes #1903 (#1905)
+There is a small behaviour change here as a result. If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.
 
 ### Added 
 - Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) [PR #2012](https://github.com/pgjdbc/pgjdbc/pull/2012)
