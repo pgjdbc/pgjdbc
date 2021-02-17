@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -94,8 +95,28 @@ public class CloseOnCompletionTest {
   @Test
   public void testExecuteTwice() throws SQLException {
     PreparedStatement s = conn.prepareStatement("SELECT 1");
+
+    s.executeQuery();
+    s.executeQuery();
+
+  }
+
+  @Test
+  public void testCloseOnCompletionExecuteTwice() throws SQLException {
+    PreparedStatement s = conn.prepareStatement("SELECT 1");
+
+    /*
+     once we set close on completion we should only be able to execute one as the second execution
+     will close the resultsets from the first one which will close the statement.
+     */
+
     s.closeOnCompletion();
     s.executeQuery();
-    s.executeQuery();
+    try {
+      s.executeQuery();
+    } catch (SQLException ex) {
+      assertEquals(ex.getMessage(),"This statement has been closed.");
+    }
+
   }
 }
