@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 is executed a second time it will fail.
 
 ### Changed
+- Perf: avoid duplicate PGStream#changeSocket calls
 - Fix: Actually close unclosed results. Previously was not closing the first unclosed result fixes #1903 (#1905)
 There is a small behaviour change here as a result. If closeOnCompletion is called on an existing statement and the statement
 is executed a second time it will fail.
@@ -26,12 +27,16 @@ is executed a second time it will fail.
 - Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) [PR #2012](https://github.com/pgjdbc/pgjdbc/pull/2012)
 
 ### Fixed
+- Fix Binary transfer for numeric fixes #1935
+- Fix Allow specifying binaryTransferEnable even for those types that are not enabled by default
 - Fix: properly set cancel socket timeout (#2044)
 - Fix "Required class information missing" when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]
 - Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]
 - Fix Connnection.isValid() to not wait longer than existing network timeout [PR #2040](https://github.com/pgjdbc/pgjdbc/pull/2040)
 - Fix Passwords with spaces (ASCII and non-ASCII) now work with SCRAM authentication (driver now uses SASLprep normalization) [PR #2052](https://github.com/pgjdbc/pgjdbc/pull/2052)
 - Fix DatabaseMetaData.getTablePrivileges() to include views, materialized views, and foreign tables [PR #2049](https://github.com/pgjdbc/pgjdbc/pull/2049)
+- Fix Resolve ParseError in PGtokenizer fixes #2050
+- Fix return metadata privileges for views and foreign tables
 
 ## [42.2.18]
 ### Fixed
