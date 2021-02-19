@@ -12,9 +12,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
@@ -23,6 +25,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -31,6 +34,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -850,6 +854,30 @@ public class StatementTest {
       TestUtil.closeQuietly(connB);
     }
     assertEquals(0, sharedTimer.getRefCount());
+  }
+
+  @Test(timeout = 30000)
+  public void testCancelQueryWithBrokenNetwork() throws SQLException, IOException, InterruptedException {
+    // check that stmt.cancel() doesn't hang forever if the network is broken
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
+      Properties props = new Properties();
+      props.setProperty(TestUtil.SERVER_HOST_PORT_PROP, String.format("%s:%s", "localhost", proxyServer.getServerPort()));
+      PGProperty.CANCEL_SIGNAL_TIMEOUT.set(props, 1);
+
+      try (Connection conn = TestUtil.openDB(props); Statement stmt = conn.createStatement()) {
+        executor.submit(() -> stmt.execute("select pg_sleep(60)"));
+
+        Thread.sleep(1000);
+        proxyServer.stopForwardingAllClients();
+
+        stmt.cancel();
+      }
+    }
+
+    executor.shutdownNow();
   }
 
   @Test(timeout = 10000)

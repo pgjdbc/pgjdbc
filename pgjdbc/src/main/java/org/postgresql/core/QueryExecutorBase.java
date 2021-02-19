@@ -182,7 +182,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream =
           new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout);
       if (cancelSignalTimeout > 0) {
-        cancelStream.getSocket().setSoTimeout(cancelSignalTimeout);
+        cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
       cancelStream.sendInteger4(16);
       cancelStream.sendInteger2(1234);
