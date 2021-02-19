@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class PGtokenizer {
 
-  private static final Map<Character, Character> CLOSING_TO_OPENING_CHARACTER = new HashMap<>();
+  private static final Map<Character, Character> CLOSING_TO_OPENING_CHARACTER = new HashMap<Character, Character>();
 
   static 	{
     CLOSING_TO_OPENING_CHARACTER.put( ')', '(');
@@ -64,7 +64,7 @@ public class PGtokenizer {
   public int tokenize(String string, char delim) {
     tokens.clear();
 
-    final Deque<Character> stack = new ArrayDeque<>();
+    final Deque<Character> stack = new ArrayDeque<Character>();
 
     // stack keeps track of the levels we are in the current token.
     // if stack.size is > 0 then we don't split a token when delim is matched.
