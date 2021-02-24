@@ -14,12 +14,40 @@ on:
 jobs:
   ubuntu-code-style:
     name: 'Ubuntu, code style (JDK 8)'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: self-hosted
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 50
+
+    - name: 'Get test node ARCH'
+      run: echo "::set-output name=arch_name::$(uname -i)"
+      id: get_arch_name
+
+    - name: 'Set up JDK 8 on ARM64'
+      id: setup_jdk_arm64
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+      run: |
+        env
+        set -ex
+        sudo apt update
+        sudo apt install openjdk-8-jdk -y
+        export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-arm64/ ;
+        export PATH=$JAVA_HOME/bin:$PATH;
+        echo ${{ steps.get_arch_name.outputs.arch_name }};
+        echo "::set-output name=JAVA_HOME_ARM64::${JAVA_HOME}"
+        echo "::set-env name=PATH::${PATH}"
     - name: 'Set up JDK 8'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       uses: actions/setup-java@v1
       with:
         java-version: 8
@@ -28,17 +56,23 @@ jobs:
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        JAVA_HOME: ${{ steps.setup_jdk_arm64.outputs.JAVA_HOME_ARM64 }}
       with:
         job-id: jdk8
         arguments: autostyleCheck checkstyleAll jandex
 
   ubuntu-latest:
     name: 'Ubuntu, PG latest (JDK ${{ matrix.jdk }})'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         jdk: [8, 11]
+        os: [ubuntu-latest, self-hosted]
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 # Service must be started after checkout, because we want to use git-stored files for initialization
 # of the Docker container. So we start it with and explicit docker ... command
 #    services:
@@ -67,8 +101,26 @@ jobs:
     - name: Start PostgreSQL
       working-directory: docker
       run: docker-compose up -d && docker-compose logs
+    - name: 'Get test node ARCH'
+      run: echo "::set-output name=arch_name::$(uname -i)"
+      id: get_arch_name
+
+    - name: 'Set up JDK ${{ matrix.jdk }} on ARM64'
+      id: setup_jdk_arm64
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+      run: |
+        env
+        set -ex
+        sudo apt update
+        sudo apt install openjdk-${{ matrix.jdk }}-jdk -y
+        export JAVA_HOME=/usr/lib/jvm/java-${{ matrix.jdk }}-openjdk-arm64/ ;
+        export PATH=$JAVA_HOME/bin:$PATH;
+        echo ${{ steps.get_arch_name.outputs.arch_name }};
+        echo "::set-output name=JAVA_HOME_ARM64::${JAVA_HOME}"
+        echo "::set-env name=PATH::${PATH}"
     - name: 'Set up JDK ${{ matrix.jdk }}'
       uses: actions/setup-java@v1
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       with:
         java-version: ${{ matrix.jdk }}
     - name: Prepare ssltest.local.properties
@@ -84,15 +136,41 @@ jobs:
         properties: |
           skipReplicationTests=
           port=${{ job.services.postgres.ports['5432'] }}
-
   linux-checkerframework:
     name: 'CheckerFramework (JDK 11)'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: self-hosted
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 50
+      - name: 'Get test node ARCH'
+        run: echo "::set-output name=arch_name::$(uname -i)"
+        id: get_arch_name
+
+      - name: 'Set up JDK 11 on ARM64'
+        id: setup_jdk_arm64
+        if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+        run: |
+          env
+          set -ex
+          sudo apt update
+          sudo apt install openjdk-11-jdk -y
+          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64/ ;
+          export PATH=$JAVA_HOME/bin:$PATH;
+          echo ${{ steps.get_arch_name.outputs.arch_name }};
+          echo "::set-output name=JAVA_HOME_ARM64::${JAVA_HOME}"
+          echo "::set-env name=PATH::${PATH}"
       - name: 'Set up JDK 11'
+        if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
         uses: actions/setup-java@v1
         with:
           java-version: 11
@@ -107,7 +185,16 @@ jobs:
 
   source-distribution-check:
     name: 'Source distribution (JDK 11)'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: self-hosted
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
       - uses: actions/checkout@v2
         with:
@@ -115,7 +202,25 @@ jobs:
       - name: Start PostgreSQL
         working-directory: docker
         run: docker-compose up -d && docker-compose logs
+      - name: 'Get test node ARCH'
+        run: echo "::set-output name=arch_name::$(uname -i)"
+        id: get_arch_name
+
+      - name: 'Set up JDK 11 on ARM64'
+        id: setup_jdk_arm64
+        if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+        run: |
+          env
+          set -ex
+          sudo apt update
+          sudo apt install openjdk-11-jdk -y
+          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64/ ;
+          export PATH=$JAVA_HOME/bin:$PATH;
+          echo ${{ steps.get_arch_name.outputs.arch_name }};
+          echo "::set-output name=JAVA_HOME_ARM64::${JAVA_HOME}"
+          echo "::set-env name=PATH::${PATH}"
       - name: 'Set up JDK 11'
+        if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
         uses: actions/setup-java@v1
         with:
           java-version: 11
@@ -133,14 +238,46 @@ jobs:
           tar xzf postgresql-1.0-jdbc-src.tar.gz
           cd postgresql-1.0-jdbc-src
           mvn --batch-mode --fail-at-end --show-version verify
-
   gss-encryption:
     name: 'Ubuntu, gss encryption (JDK 8)'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: self-hosted
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
     steps:
     - uses: actions/checkout@v2
+    - name: 'Get test node ARCH'
+      run: echo "::set-output name=arch_name::$(uname -i)"
+      id: get_arch_name
+
+    - name: 'Set up JDK 8 on ARM64'
+      id: setup_jdk_arm64
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+      run: |
+        env
+        set -ex
+        sudo apt update
+        sudo apt install openjdk-8-jdk -y
+        export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-arm64/ ;
+        export PATH=$JAVA_HOME/bin:$PATH;
+        #wget https://raw.githubusercontent.com/sormuras/bach/master/install-jdk.sh ;
+        #chmod +x ./install-jdk.sh ;
+        #export JAVA_HOME=$(./install-jdk.sh -o linux-aarch64 --feature 15 -e | tail -1) ;
+        #export PATH=$JAVA_HOME/bin:$PATH;
+        #java --version ;
+        # echo "::set-env name=JAVA_HOME_ARM64::${JAVA_HOME}"
+        echo ${{ steps.get_arch_name.outputs.arch_name }};
+        echo "::set-output name=JAVA_HOME_ARM64::${JAVA_HOME}"
+        echo "::set-env name=PATH::${PATH}"
     - name: 'Set up JDK 8'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       uses: actions/setup-java@v1
       with:
         java-version: 8
@@ -148,12 +285,11 @@ jobs:
       run: |
         sudo apt -y update
         sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
-        
+
     - name: 'Update hosts'
       run: |
         sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
         cat /etc/hosts
-
     - uses: burrunan/gradle-cache-action@v1
       name: Build pgjdbc
       with:
