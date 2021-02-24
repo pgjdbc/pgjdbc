@@ -86,13 +86,14 @@ Connection conn = DriverManager.getConnection(url);
 	are considered to separate command-line arguments, unless escaped with
 	a backslash (`\`); `\\` represents a literal backslash.
 
-	```java
-	props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
-	Connection conn = DriverManager.getConnection(url, props);
+```java
+Properties props = new Properties();
+props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
+Connection conn = DriverManager.getConnection(url, props);
 
-	String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
-	Connection conn = DriverManager.getConnection(url);
-	```
+String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
+Connection conn = DriverManager.getConnection(url);
+```
 
 * **ssl** = boolean
 
@@ -388,13 +389,13 @@ Connection conn = DriverManager.getConnection(url);
 
 * **gssEncMode** = String
 
-    PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
-    enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
-    `disable` is obvious and disables any attempt to connect using GSS encrypted mode
-    `allow` will connect in plain text then if the server requests it will switch to encrypted mode
-    `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
-    an encrypted connection
-    `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
+    PostgreSQL 12 and later now allow GSSAPI encrypted connections.  This parameter controls whether
+    to enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and
+    `require`.  `disable` is obvious and disables any attempt to connect using GSS encrypted mode;
+    `allow` will connect initially in plain text then if the server requests it will switch to
+    encrypted mode; `prefer` will attempt to connect in encrypted mode and fall back to plain text
+    if it fails to acquire an encrypted connection; `require` attempts to connect in encrypted mode
+    and will fail to connect if that is not possible.
 
 * **gsslib** = String
 
@@ -446,12 +447,11 @@ Connection conn = DriverManager.getConnection(url);
 
 * **readOnlyMode** = String
 	
-	Controls the behavior when a connection is set to read only, one of 'ignore', 'transaction', or 'always'. 
-	When set to 'ignore' then the `readOnly` setting has no effect. 
-	When set to 'transaction' and `readOnly` is set to 'true' and autocommit is 'false' the driver will set the transaction to
-	readonly  by sending `BEGIN READ ONLY`.
-	When set to 'always' and `readOnly` is set to 'true' the session will be to READ ONLY if autoCommit is 'true'. 
-	If autocommit is false the driver set the transaction to read only by sending `BEGIN READ ONLY` .
+	One of 'ignore', 'transaction', or 'always'.  Controls the behavior when a connection is set to read only, When set
+	to 'ignore' then the `readOnly` setting has no effect.  When set to 'transaction' and `readOnly` is set to 'true'
+	and autocommit is 'false' the driver will set the transaction to readonly by sending `BEGIN READ ONLY`.  When set to
+	'always' and `readOnly` is set to 'true' the session will be set to READ ONLY if autoCommit is 'true'.  If
+	autocommit is false the driver will set the transaction to read only by sending `BEGIN READ ONLY` .
 	
 	The default the value is 'transaction'
 
@@ -598,8 +598,8 @@ For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
 
 To support simple connection fail-over it is possible to define multiple endpoints
 (host and port pairs) in the connection url separated by commas.
-The driver will try to once connect to each of them in order until the connection succeeds. 
-If none succeed, a normal connection exception is thrown.
+The driver will try once to connect to each of them in order until the connection succeeds. 
+If none succeeds a normal connection exception is thrown.
 
 The syntax for the connection url is:
 
@@ -619,5 +619,5 @@ And read pool balances connections between secondary nodes, but allows connectio
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
 If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
-the primary will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
-will be made to connect to all of the hosts in the URL in order.
+the primary will be tried. If all the servers are marked as "can't connect" in the cache then an attempt
+will be made to connect to all the hosts in the URL, in order.
