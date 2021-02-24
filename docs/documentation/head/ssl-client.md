@@ -51,7 +51,7 @@ to be recognized, the file extension must be ".p12" (supported since 42.2.9) or 
 (In this case the `sslcert` parameter is ignored.)
 
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
-This parameter is the same as the libpq `sslmode` parameter and the currently SSL implements the
+This parameter is the same as the libpq `sslmode` parameter and currently implements the
 following
 
 <div class="tblBasic">
@@ -96,8 +96,8 @@ truststore.
 
 `keytool -keystore $JAVA_HOME/lib/security/cacerts -alias postgresql -import -file server.crt.der`
 
-The default password for the cacerts keystore is `changeit`. The alias to postgresql
-is not important and you may select any name you desire.
+The default password for the cacerts keystore is `changeit`. Setting the alias to postgresql
+is not required.  You may apply any name you wish.
 
 If you do not have access to the system cacerts truststore you can create your
 own truststore.
