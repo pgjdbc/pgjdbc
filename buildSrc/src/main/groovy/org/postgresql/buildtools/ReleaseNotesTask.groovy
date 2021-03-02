@@ -222,7 +222,7 @@ def getContributors(File repoPath, previousRelease) {
 
     @Override
     void apply(Project project) {
-        project.register("releaseNotes") {
+        project.task("releaseNotes") {
             doFirst {
                 releaseNotes()
             }
