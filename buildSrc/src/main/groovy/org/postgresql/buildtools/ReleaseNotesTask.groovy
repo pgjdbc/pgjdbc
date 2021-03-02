@@ -8,31 +8,28 @@ package org.postgresql.buildtools
 import groovy.io.FileType
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.api.model.ObjectFactory
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 
 import javax.inject.Inject
 
-class ReleaseNotesTask implements Plugin <Project> {
+class ReleaseNotesTask extends DefaultTask {
 
     @Internal
-    ObjectFactory objects
-
-    @Internal
-    repositoryDirectory = objects.fileProperty()
+    final File repositoryDirectory
 
     @Inject
-    ReleaseNotesTask(ObjectFactory objects) {
-        this.objects = objects
+    public ReleaseNotesTask()  {
+        repositoryDirectory = getProject().projectDir
     }
 
     @TaskAction
-    releaseNotes() {
+    def releaseNotes() {
         try {
-            def docsDirectory = new File('../pgjdbc.git/docs')
+
+            def docsDirectory = new File("${repositoryDirectory.getAbsolutePath()}/docs")
 
             // get current version
             def gradleProperties = new Properties()
@@ -220,15 +217,6 @@ def getContributors(File repoPath, previousRelease) {
     return authorCommits
     }
 
-    @Override
-    void apply(Project project) {
-        project.task("releaseNotes") {
-            doFirst {
-                releaseNotes()
-            }
-        }
-
-    }
 }
 
 
