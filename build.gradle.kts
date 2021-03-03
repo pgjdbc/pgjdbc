@@ -93,8 +93,9 @@ val isReleaseVersion = rootProject.releaseParams.release.get()
 
 val licenseHeaderFile = file("config/license.header.java")
 
-tasks.register<org.postgresql.buildtools.ReleaseNotesTask>("releaseNotes"){
-
+val releaseNotes = tasks.register<org.postgresql.buildtools.ReleaseNotesTask>("releaseNotes"){
+    group = "Release"
+    description = "Updates release notes"
 }
 
 val jacocoReport by tasks.registering(JacocoReport::class) {
