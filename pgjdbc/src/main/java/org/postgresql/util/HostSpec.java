@@ -9,6 +9,7 @@ import static java.util.regex.Pattern.compile;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,12 +19,18 @@ import java.util.regex.Pattern;
 public class HostSpec {
   public static final String DEFAULT_NON_PROXY_HOSTS = "localhost|127.*|[::1]|0.0.0.0|[::0]";
 
+  protected final @Nullable String localSocketAddress;
   protected final String host;
   protected final int port;
 
   public HostSpec(String host, int port) {
+    this(host, port, null);
+  }
+
+  public HostSpec(String host, int port, @Nullable String localSocketAddress) {
     this.host = host;
     this.port = port;
+    this.localSocketAddress = localSocketAddress;
   }
 
   public String getHost() {
@@ -41,12 +48,16 @@ public class HostSpec {
   @Override
   public boolean equals(@Nullable Object obj) {
     return obj instanceof HostSpec && port == ((HostSpec) obj).port
-        && host.equals(((HostSpec) obj).host);
+        && host.equals(((HostSpec) obj).host) && Objects.equals(localSocketAddress, ((HostSpec) obj).localSocketAddress);
   }
 
   @Override
   public int hashCode() {
-    return port ^ host.hashCode();
+    return Objects.hash(localSocketAddress, host, port);
+  }
+
+  public @Nullable String getLocalSocketAddress() {
+    return localSocketAddress;
   }
 
   public Boolean shouldResolve() {
