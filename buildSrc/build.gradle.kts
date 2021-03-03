@@ -10,6 +10,14 @@ plugins {
     id("com.github.autostyle")
 }
 
+gradlePlugin {
+    plugins {
+        create("releaseNotePlugin") {
+            id = "org.postgres.releasenotes"
+            implementationClass = "org.postgresql.buildtools.ReleaseNotesTask"
+        }
+    }
+}
 repositories {
     mavenCentral()
     gradlePluginPortal()
