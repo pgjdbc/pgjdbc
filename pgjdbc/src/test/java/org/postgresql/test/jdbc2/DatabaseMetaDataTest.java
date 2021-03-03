@@ -1336,11 +1336,15 @@ public class DatabaseMetaDataTest {
       try {
         stmt = con.createStatement();
         stmt.execute(
-            "CREATE TABLE measurement (logdate date not null,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+            "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
+        rs.close();
+        rs = dbmd.getPrimaryKeys("", "", "measurement");
+        assertTrue(rs.next());
+        assertEquals("measurement_pkey", rs.getString(8));
 
       } finally {
         if (stmt != null) {
