@@ -810,7 +810,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testTableTypes() throws SQLException {
-    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX",
+    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
         "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
         "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
         "TEMPORARY VIEW", "TYPE", "VIEW"));
@@ -829,7 +829,7 @@ public class DatabaseMetaDataTest {
     rs.close();
     Collections.sort(expectedTableTypes);
     Collections.sort(foundTableTypes);
-    Assert.assertEquals("The table types received from DatabaseMetaData should match the 17 expected types",
+    Assert.assertEquals("The table types received from DatabaseMetaData should match the 18 expected types",
         true, foundTableTypes.equals(expectedTableTypes));
   }
 
@@ -1344,7 +1344,7 @@ public class DatabaseMetaDataTest {
         rs.close();
         rs = dbmd.getPrimaryKeys("", "", "measurement");
         assertTrue(rs.next());
-        assertEquals("measurement_pkey", rs.getString(8));
+        assertEquals("measurement_pkey", rs.getString(6));
 
       } finally {
         if (stmt != null) {
