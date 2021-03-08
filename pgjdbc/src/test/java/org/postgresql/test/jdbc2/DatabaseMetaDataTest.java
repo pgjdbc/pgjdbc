@@ -1348,7 +1348,7 @@ public class DatabaseMetaDataTest {
 
       } finally {
         if (stmt != null) {
-          stmt.execute("drop table measurement");
+          stmt.execute("drop table if exists measurement");
           stmt.close();
         }
       }
