@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -223,6 +224,10 @@ public class PGStream implements Closeable, Flushable {
 
   private Socket createSocket(int timeout) throws IOException {
     Socket socket = socketFactory.createSocket();
+    String localSocketAddress = hostSpec.getLocalSocketAddress();
+    if (localSocketAddress != null) {
+      socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
+    }
     if (!socket.isConnected()) {
       // When using a SOCKS proxy, the host might not be resolvable locally,
       // thus we defer resolution until the traffic reaches the proxy. If there

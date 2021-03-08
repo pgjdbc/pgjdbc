@@ -5,7 +5,9 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.util.HostSpec;
@@ -82,5 +84,17 @@ public class HostSpecTest {
     System.setProperty("socksNonProxyHosts", "example.com|localhost");
     HostSpec hostSpec = new HostSpec("example.org", 5432);
     assertFalse(hostSpec.shouldResolve());
+  }
+
+  @Test
+  public void testShouldReturnEmptyLocalAddressBind() throws Exception {
+    HostSpec hostSpec = new HostSpec("example.org", 5432);
+    assertNull(hostSpec.getLocalSocketAddress());
+  }
+
+  @Test
+  public void testShouldReturnLocalAddressBind() throws Exception {
+    HostSpec hostSpec = new HostSpec("example.org", 5432, "foo");
+    assertEquals("foo", hostSpec.getLocalSocketAddress());
   }
 }
