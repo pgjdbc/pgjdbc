@@ -1300,6 +1300,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " WHEN 'r' THEN 'TABLE' "
              + " WHEN 'p' THEN 'PARTITIONED TABLE' "
              + " WHEN 'i' THEN 'INDEX' "
+             + " WHEN 'P' then 'PARTITIONED INDEX' "
              + " WHEN 'S' THEN 'SEQUENCE' "
              + " WHEN 'v' THEN 'VIEW' "
              + " WHEN 'c' THEN 'TYPE' "
@@ -1369,6 +1370,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ht.put("SCHEMAS",
         "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
     ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname !~ '^pg_'");
+    ht = new HashMap<String, String>();
+    tableTypeClauses.put("PARTITIONED INDEX", ht);
+    ht.put("SCHEMAS", "c.relkind = 'I' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind = 'I' AND c.relname !~ '^pg_'");
     ht = new HashMap<String, String>();
     tableTypeClauses.put("SEQUENCE", ht);
     ht.put("SCHEMAS", "c.relkind = 'S'");
@@ -2233,7 +2238,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     sql +=
         " WHERE pkn.oid = pkc.relnamespace AND pkc.oid = pka.attrelid AND pka.attnum = con.confkey[pos.n] AND con.confrelid = pkc.oid "
             + " AND fkn.oid = fkc.relnamespace AND fkc.oid = fka.attrelid AND fka.attnum = con.conkey[pos.n] AND con.conrelid = fkc.oid "
-            + " AND con.contype = 'f' AND pkic.relkind = 'i' ";
+            + " AND con.contype = 'f' ";
+    /*
+    In version 11 we added Partitioned indexes indicated by relkind = 'I'
+    I could have done this using lower(relkind) = 'i' but chose to be explicit
+    for clarity
+    */
+
+    if (!connection.haveMinimumServerVersion(ServerVersion.v11)) {
+      sql += "AND pkic.relkind = 'i' ";
+    } else {
+      sql += "AND (pkic.relkind = 'i' OR pkic.relkind = 'I')";
+    }
+
     if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
       sql += " AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
     } else {
