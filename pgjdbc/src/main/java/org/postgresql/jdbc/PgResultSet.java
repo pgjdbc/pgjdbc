@@ -4001,6 +4001,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * to change the fields after the fact rather than try to coerce all the columns
    * to upper case in the queries as this would require surrounding all columns with " and
    * escaping them making them even harder to read than they are now.
+   * @return PgResultSet
    */
   protected PgResultSet upperCaseFieldLabels() {
     for (Field field: fields ) {
