@@ -10,8 +10,6 @@ import org.postgresql.jdbc.FieldMetadata;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
-/*
- */
 public class Field {
   // The V3 protocol defines two constants for the format of data
   public static final int TEXT_FORMAT = 0;
@@ -20,7 +18,7 @@ public class Field {
   private final int length; // Internal Length of this field
   private final int oid; // OID of the type
   private final int mod; // type modifier of this field
-  private final String columnLabel; // Column label
+  private String columnLabel; // Column label
 
   private int format = TEXT_FORMAT; // In the V3 protocol each field has a format
   // 0 = text, 1 = binary
@@ -171,5 +169,9 @@ public class Field {
 
   public boolean isTypeInitialized() {
     return pgType != NOT_YET_LOADED;
+  }
+
+  public void upperCaseLabel() {
+    columnLabel = columnLabel.toUpperCase();
   }
 }
