@@ -11,6 +11,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -30,20 +32,20 @@ public class PgBlobBytea implements java.sql.Blob {
   protected static final int MAX_BYTES = 1073741824; // 1GiB max size of a bytea
 
   public PgBlobBytea() {
-    this.data = null;
+    this.data = castNonNull(null);
   }
 
   public PgBlobBytea(byte[] in) throws SQLException {
-    if (in.length > MAX_BYTES) {
+    if (in != null && in.length > MAX_BYTES) {
       throw new PSQLException(GT.tr("Input data too long for bytea type Blob {0}", in.length),
                               PSQLState.INVALID_PARAMETER_VALUE);
     }
-    this.data = in;
+    this.data = castNonNull(in);
   }
 
   @Override
   public void	free() 	 {
-    this.data = null;
+    this.data = castNonNull(null);
   }
 
   @Override
@@ -51,13 +53,13 @@ public class PgBlobBytea implements java.sql.Blob {
     if (this.data != null) {
       return new ByteArrayInputStream(this.data);
     }
-    return null;
+    return castNonNull(null);
   }
 
   @Override
   public InputStream getBinaryStream​(long pos, long length) throws SQLException {
     if (this.data == null) {
-      return null;
+      return castNonNull(null);
     }
     if (pos < 1) {
       throw new PSQLException(GT.tr("Invalid pos parameter {0}", pos),
@@ -75,7 +77,7 @@ public class PgBlobBytea implements java.sql.Blob {
   @Override
   public byte[]	getBytes​(long pos, int length) throws SQLException {
     if (this.data == null) {
-      return null;
+      return castNonNull(null);
     }
     if (pos < 1) {
       throw new PSQLException(GT.tr("Invalid pos parameter {0}", pos),

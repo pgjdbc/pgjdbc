@@ -11,9 +11,13 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -28,13 +32,13 @@ import java.sql.SQLException;
 
 public class PgClobText implements java.sql.Clob {
 
-  private String data;
+  private @Nullable String data;
 
   public PgClobText() {
     this.data = null;
   }
 
-  public PgClobText(String s) {
+  public PgClobText(@Nullable String s) {
     this.data = s;
   }
 
@@ -48,7 +52,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new ByteArrayInputStream(this.data.getBytes());
     }
-    return null;
+    return castNonNull(null);
   }
 
   @Override
@@ -56,7 +60,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new StringReader(this.data);
     }
-    return null;
+    return castNonNull(null);
   }
 
   @Override
@@ -65,7 +69,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new StringReader(this.data.substring((int)pos, (int)(pos + length)));
     }
-    return null;
+    return castNonNull(null);
   }
 
   @Override
@@ -88,7 +92,7 @@ public class PgClobText implements java.sql.Clob {
       }
       return this.data.substring((int)pos, (int) (pos + length));
     }
-    return null;
+    return castNonNull(null);
   }
 
   @Override
@@ -190,7 +194,7 @@ public class PgClobText implements java.sql.Clob {
   }
 
   public String toString() {
-    return this.data;
+    return castNonNull(this.data);
   }
 
   /*
