@@ -541,6 +541,18 @@ Connection conn = DriverManager.getConnection(url);
     A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
     
 	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
+
+* **blobAsBytea** = boolean
+
+    When true, Blobs are treated as bytea fields, instead of as Large Objects,
+
+    By default blobAsBytea is false.
+
+* **clobAsText** = boolean
+
+    When true, Clobs are treated as text fields, instead of as Large Objects,
+
+    By default clobAsText is false.
 	
 * **adaptiveFetch** = boolean	
 

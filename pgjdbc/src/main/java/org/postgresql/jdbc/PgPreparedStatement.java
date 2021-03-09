@@ -37,6 +37,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.value.qual.IntRange;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -245,9 +247,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.LONGVARBINARY:
         oid = Oid.BYTEA;
         break;
-      case Types.BLOB:
       case Types.CLOB:
-        oid = Oid.OID;
+        oid = connection.getClobAsText() ? (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED) : Oid.OID;
+        break;
+      case Types.BLOB:
+        oid = connection.getBlobAsBytea() ? Oid.BYTEA : Oid.OID;
         break;
       case Types.REF_CURSOR:
         oid = Oid.REF_CURSOR;
@@ -653,9 +657,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.BLOB:
         if (in instanceof Blob) {
           setBlob(parameterIndex, (Blob) in);
+        } else if (in instanceof byte[]) {
+          setBlob(parameterIndex, new ByteArrayInputStream((byte[]) in));
         } else if (in instanceof InputStream) {
-          long oid = createBlob(parameterIndex, (InputStream) in, -1);
-          setLong(parameterIndex, oid);
+          if (connection.getBlobAsBytea()) {
+            setBlobBytea(parameterIndex, (InputStream) in);
+          } else {
+            long oid = createBlob(parameterIndex, (InputStream) in, -1);
+            setLong(parameterIndex, oid);
+          }
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -664,7 +674,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         }
         break;
       case Types.CLOB:
-        if (in instanceof Clob) {
+        if (connection.getClobAsText()) {
+          if (in instanceof PgClobText) {
+            setString(parameterIndex, in.toString());
+          } else {
+            setString(parameterIndex, castToString(in), getStringType());
+          }
+        } else if (in instanceof Clob) {
           setClob(parameterIndex, (Clob) in);
         } else {
           throw new PSQLException(
@@ -1176,8 +1192,22 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return oid;
   }
 
+  private void setBlobBytea(@Positive int i, @Nullable Blob x) throws SQLException {
+    if (x == null) {
+      setNull(i,Types.VARBINARY);
+      return;
+    }
+    byte[] b = x.getBytes(1,(int) x.length());
+    preparedParameters.setBytea(i, b, 0, b.length);
+  }
+
   public void setBlob(@Positive int i, @Nullable Blob x) throws SQLException {
     checkClosed();
+
+    if (connection.getBlobAsBytea()) {
+      setBlobBytea(i, x);
+      return;
+    }
 
     if (x == null) {
       setNull(i, Types.BLOB);
@@ -1544,10 +1574,57 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     throw Driver.notImplemented(this.getClass(), "setClob(int, Reader)");
   }
 
+  private void setBlobBytea(@Positive int parameterIndex,
+      @Nullable InputStream inputStream, @NonNegative long length)
+      throws SQLException {
+
+    if (inputStream == null) {
+      setNull(parameterIndex, Types.VARBINARY);
+      return;
+    }
+
+    byte [] b;
+
+    try {
+      // for JDK 9+ we could use b = inputStream.readNBytes(length). However ...
+      ByteArrayOutputStream os = new ByteArrayOutputStream();
+      byte[] buffer = new byte[4096];
+      long remaining = length;
+      int toRead = remaining > buffer.length ? buffer.length : (int) remaining;
+      int len = inputStream.read(buffer, 0, toRead);
+      while (remaining > 0 && len > -1) {
+        remaining -= len;
+        os.write(buffer, 0, len);
+        toRead = remaining > buffer.length ? buffer.length : (int) remaining;
+        len = inputStream.read(buffer, 0, toRead);
+      }
+      if (remaining > 0) {
+        // not enough bytes
+      }
+      b = os.toByteArray();
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
+          ioe);
+    }
+
+    if (b.length > PgBlobBytea.MAX_BYTES) {
+      throw new PSQLException(GT.tr("Input data too long for bytea type Blob {0}", b.length),
+                              PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    preparedParameters.setBytea(parameterIndex, b, 0, b.length);
+
+  }
+
   public void setBlob(@Positive int parameterIndex,
       @Nullable InputStream inputStream, @NonNegative long length)
       throws SQLException {
     checkClosed();
+
+    if (connection.getBlobAsBytea()) {
+      setBlobBytea(parameterIndex, inputStream, length);
+      return;
+    }
 
     if (inputStream == null) {
       setNull(parameterIndex, Types.BLOB);
@@ -1564,9 +1641,47 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setLong(parameterIndex, oid);
   }
 
+  private void setBlobBytea(@Positive int parameterIndex,
+      @Nullable InputStream inputStream)
+      throws SQLException {
+
+    if (inputStream == null) {
+      setNull(parameterIndex, Types.VARBINARY);
+      return;
+    }
+
+    byte [] b;
+
+    try {
+      // for JDK 9+ we could use b = is.readAllBytes(). However ...
+      ByteArrayOutputStream os = new ByteArrayOutputStream();
+      byte[] buffer = new byte[4096];
+      for (int len = inputStream.read(buffer); len != -1; len = inputStream.read(buffer)) {
+        os.write(buffer, 0, len);
+      }
+      b = os.toByteArray();
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
+          ioe);
+    }
+
+    if (b.length > PgBlobBytea.MAX_BYTES) {
+      throw new PSQLException(GT.tr("Input data too long for bytea type Blob {0}", b.length),
+                              PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    preparedParameters.setBytea(parameterIndex, b, 0, b.length);
+
+  }
+
   public void setBlob(@Positive int parameterIndex,
       @Nullable InputStream inputStream) throws SQLException {
     checkClosed();
+
+    if (connection.getBlobAsBytea()) {
+      setBlobBytea(parameterIndex, inputStream);
+      return;
+    }
 
     if (inputStream == null) {
       setNull(parameterIndex, Types.BLOB);

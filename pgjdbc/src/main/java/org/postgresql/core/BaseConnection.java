@@ -228,4 +228,14 @@ public interface BaseConnection extends PGConnection, Connection {
    * @throws SQLException if the class cannot be found or instantiated.
    */
   PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
+
+  /**
+   * Returns the clobAsText connection setting.
+   */
+  boolean getClobAsText();
+
+  /**
+   * Returns the blobAsBytea connection setting.
+   */
+  boolean getBlobAsBytea();
 }

@@ -146,6 +146,10 @@ public class PgConnection implements BaseConnection {
   private boolean  hideUnprivilegedObjects ;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
+  // use bytea for BLOBs instead of Postgres LOs?
+  private boolean blobAsBytea = false;
+  // use text for CLOBs instead of Postgres LOs?
+  private boolean clobAsText = false;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -276,6 +280,16 @@ public class PgConnection implements BaseConnection {
       }
     } else {
       bindStringAsVarchar = true;
+    }
+
+    // clobAsText?
+    if (PGProperty.CLOB_AS_TEXT.getBoolean(info)) {
+      this.clobAsText = true;
+    }
+
+    // blobAsBytea?
+    if (PGProperty.BLOB_AS_BYTEA.getBoolean(info)) {
+      this.blobAsBytea = true;
     }
 
     // Initialize timestamp stuff
@@ -595,6 +609,16 @@ public class PgConnection implements BaseConnection {
       largeobject = new LargeObjectManager(this);
     }
     return largeobject;
+  }
+
+  // clob_as_text getter
+  public boolean getClobAsText() {
+    return this.clobAsText;
+  }
+
+  // blob_as_bytea getter
+  public boolean getBlobAsBytea() {
+    return this.blobAsBytea;
   }
 
   // This holds a reference to the LargeObject API if already open
@@ -1339,13 +1363,21 @@ public class PgConnection implements BaseConnection {
   @Override
   public Clob createClob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
+    if (clobAsText) {
+      return new PgClobText();
+    } else {
+      throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
+    }
   }
 
   @Override
   public Blob createBlob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
+    if (blobAsBytea) {
+      return new PgBlobBytea();
+    } else {
+      throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
+    }
   }
 
   @Override
