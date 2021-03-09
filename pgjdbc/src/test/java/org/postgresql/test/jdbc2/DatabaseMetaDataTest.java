@@ -1330,22 +1330,40 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testPartitionedTables() throws SQLException {
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+  public void testPartionedTablesIndex() throws SQLException {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       Statement stmt = null;
       try {
         stmt = con.createStatement();
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getPrimaryKeys("", "", "measurement");
+        assertTrue(rs.next());
+        assertEquals("measurement_pkey", rs.getString(6));
+
+      } finally {
+        if (stmt != null) {
+          stmt.execute("drop table if exists measurement");
+          stmt.close();
+        }
+      }
+    }
+
+  }
+  @Test
+  public void testPartitionedTables() throws SQLException {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute(
+            "CREATE TABLE measurement (logdate date not null ,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+        DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
         rs.close();
-        rs = dbmd.getPrimaryKeys("", "", "measurement");
-        assertTrue(rs.next());
-        assertEquals("measurement_pkey", rs.getString(6));
-
       } finally {
         if (stmt != null) {
           stmt.execute("drop table if exists measurement");
