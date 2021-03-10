@@ -179,21 +179,43 @@ public class PgBlobBytea implements java.sql.Blob {
     }
   }
 
-  // shamelessly stolen from
-  // http://www.java2s.com/Code/CSharp/File-Stream/Searchabytearrayforasubbytearray.htm
-  // nice single loop solution
-  private static int indexOf(byte[] array, byte[] pattern, int offset) {
-    int success = 0;
-    for (int i = offset; i < array.length; i++) {
-      if (array[i] == pattern[success]) {
-        success++;
-      } else {
-        success = 0;
+  // adapted from a KMP implementation at https://www.techiedelight.com/implementation-kmp-algorithm-c-cpp-java/
+  private static int indexOf(byte[] haystack, byte[] needle, int offset) {
+    // base case 1: `needle` is null or empty
+    if (needle == null || needle.length == 0) {
+      return -1;
+    }
+
+    // base case 2: `haystack` is NULL, or haystack's length is less than that of needle's
+    if (haystack == null || needle.length > haystack.length) {
+      return -1;
+    }
+
+    // `next[i]` stores the index of the next best partial match
+    int[] next = new int[needle.length + 1];
+    for (int i = 1; i < needle.length; i++) {
+      int j = next[i + 1];
+
+      while (j > 0 && needle[j] != needle[i]) {
+        j = next[j];
       }
-      if (pattern.length == success) {
-        return i - pattern.length + 1;
+
+      if (j > 0 || needle[j] == needle[i]) {
+        next[i + 1] = j + 1;
       }
     }
+
+    for (int i = offset, j = 0; i < haystack.length; i++) {
+      if (j < needle.length && haystack[i] == needle[j]) {
+        if (++j == needle.length) {
+          return (i - j + 1);
+        }
+      } else if (j > 0) {
+        j = next[j];
+        i--;    // since `i` will be incremented in the next iteration
+      }
+    }
+
     return -1;
   }
 
