@@ -449,7 +449,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    return makeBlob(getLong(i));
+    return makeBlob(getColumnOID(i));
   }
 
   public java.io.@Nullable Reader getCharacterStream(String columnName) throws SQLException {
@@ -486,7 +486,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    return makeClob(getLong(i));
+    return makeClob(getColumnOID(i));
   }
 
   public int getConcurrency() throws SQLException {
