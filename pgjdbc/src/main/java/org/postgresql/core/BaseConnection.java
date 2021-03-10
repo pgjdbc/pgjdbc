@@ -231,11 +231,15 @@ public interface BaseConnection extends PGConnection, Connection {
 
   /**
    * Returns the clobAsText connection setting.
+   *
+   * @return clobAsText setting
    */
   boolean getClobAsText();
 
   /**
    * Returns the blobAsBytea connection setting.
+   *
+   * @return blobAsBytea setting
    */
   boolean getBlobAsBytea();
 }
