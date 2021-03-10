@@ -52,7 +52,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new ByteArrayInputStream(this.data.getBytes());
     }
-    return castNonNull(null);
+    return new ByteArrayInputStream(new byte[0]);
   }
 
   @Override
@@ -60,7 +60,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new StringReader(this.data);
     }
-    return castNonNull(null);
+    return new StringReader("");
   }
 
   @Override
@@ -69,7 +69,7 @@ public class PgClobText implements java.sql.Clob {
     if (this.data != null) {
       return new StringReader(this.data.substring((int)pos, (int)(pos + length)));
     }
-    return castNonNull(null);
+    return new StringReader("");
   }
 
   @Override
@@ -92,7 +92,7 @@ public class PgClobText implements java.sql.Clob {
       }
       return this.data.substring((int)pos, (int) (pos + length));
     }
-    return castNonNull(null);
+    return castNonNull(this.data);
   }
 
   @Override

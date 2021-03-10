@@ -32,7 +32,7 @@ public class PgBlobBytea implements java.sql.Blob {
   protected static final int MAX_BYTES = 1073741824; // 1GiB max size of a bytea
 
   public PgBlobBytea() {
-    this.data = castNonNull(null);
+    this.data = new byte[0];
   }
 
   public PgBlobBytea(byte[] in) throws SQLException {
@@ -45,7 +45,7 @@ public class PgBlobBytea implements java.sql.Blob {
 
   @Override
   public void	free() 	 {
-    this.data = castNonNull(null);
+    this.data = new byte[0];
   }
 
   @Override
@@ -53,13 +53,13 @@ public class PgBlobBytea implements java.sql.Blob {
     if (this.data != null) {
       return new ByteArrayInputStream(this.data);
     }
-    return castNonNull(null);
+    return new ByteArrayInputStream(new byte[0]);
   }
 
   @Override
   public InputStream getBinaryStream​(long pos, long length) throws SQLException {
     if (this.data == null) {
-      return castNonNull(null);
+      return new ByteArrayInputStream(new byte[0]);
     }
     if (pos < 1) {
       throw new PSQLException(GT.tr("Invalid pos parameter {0}", pos),
@@ -77,7 +77,7 @@ public class PgBlobBytea implements java.sql.Blob {
   @Override
   public byte[]	getBytes​(long pos, int length) throws SQLException {
     if (this.data == null) {
-      return castNonNull(null);
+      return this.data;
     }
     if (pos < 1) {
       throw new PSQLException(GT.tr("Invalid pos parameter {0}", pos),
