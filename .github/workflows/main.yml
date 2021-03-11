@@ -37,11 +37,11 @@ jobs:
     - name: 'Setup JDK 8 on ARM64'
       if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       uses: AdoptOpenJDK/install-jdk@v1
-        with:
-          impl: hotspot # or openj9
-          version: '8'
-          architecture: aarch64
-          
+      with:
+        impl: hotspot # or openj9
+        version: '8'
+        architecture: aarch64
+
     - uses: burrunan/gradle-cache-action@v1
       name: Verify code style
       env:
