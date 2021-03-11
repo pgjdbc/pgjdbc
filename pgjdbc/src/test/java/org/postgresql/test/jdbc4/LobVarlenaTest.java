@@ -261,6 +261,7 @@ public class LobVarlenaTest {
   @Test
   public void testBlobStatementParams() throws SQLException {
     // test we can set a Blob as a parameter
+    // test has been observed to fail on Travis / Postgres 9.6.6
     conn.setAutoCommit(false);
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO testlobvarlena (byteacol) VALUES (?)");
     byte[] foo = "foo".getBytes();
