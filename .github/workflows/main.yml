@@ -43,11 +43,18 @@ jobs:
 
   ubuntu-latest:
     name: 'Ubuntu, PG latest (JDK ${{ matrix.jdk }})'
-    runs-on: ${{ os.matrix }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         jdk: [8, 11]
+        include:
+          - os: ubuntu-latest
+          - os: self-hosted
+        env:
+          ACTIONS_STEP_DEBUG: true
+          ACTIONS_RUNNER_DEBUG: true
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 # Service must be started after checkout, because we want to use git-stored files for initialization
 # of the Docker container. So we start it with and explicit docker ... command
 #    services:
