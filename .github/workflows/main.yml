@@ -14,7 +14,16 @@ on:
 jobs:
   ubuntu-code-style:
     name: 'Ubuntu, code style (JDK 8)'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: self-hosted
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
     - uses: actions/checkout@v2
       with:
@@ -34,7 +43,7 @@ jobs:
 
   ubuntu-latest:
     name: 'Ubuntu, PG latest (JDK ${{ matrix.jdk }})'
-    runs-on: ubuntu-latest
+    runs-on: ${{ os.matrix }}
     strategy:
       fail-fast: false
       matrix:
@@ -148,7 +157,7 @@ jobs:
       run: |
         sudo apt -y update
         sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
-        
+
     - name: 'Update hosts'
       run: |
         sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
