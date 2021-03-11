@@ -29,14 +29,25 @@ jobs:
       with:
         fetch-depth: 50
     - name: 'Set up JDK 8'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       uses: actions/setup-java@v1
       with:
         java-version: 8
+
+    - name: 'Setup JDK 8 on ARM64'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
+      uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          impl: hotspot # or openj9
+          version: '8'
+          architecture: aarch64
+          
     - uses: burrunan/gradle-cache-action@v1
       name: Verify code style
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        JAVA_HOME: ${{ steps.setup_jdk_arm64.outputs.JAVA_HOME_ARM64 }}
       with:
         read-only: ${{ matrix.os == 'self-hosted' }}
         job-id: jdk8
