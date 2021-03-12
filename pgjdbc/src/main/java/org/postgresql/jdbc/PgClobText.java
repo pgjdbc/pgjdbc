@@ -33,6 +33,7 @@ import java.sql.SQLException;
 public class PgClobText implements java.sql.Clob {
 
   private @Nullable String data;
+  private boolean freed = false;
 
   public PgClobText() {
     this.data = null;
@@ -44,11 +45,22 @@ public class PgClobText implements java.sql.Clob {
 
   @Override
   public void free() {
-    this.data = null;
+    if (! this.freed) {
+      this.data = null;
+    }
+    this.freed = true;
+  }
+
+  // it is forbidden to access a freed Clob
+  private void checkIfFreed() throws SQLException {
+    if (this.freed) {
+      throw new SQLException("Operation forbidden on freed Clob");
+    }
   }
 
   @Override
-  public InputStream	getAsciiStream() {
+  public InputStream	getAsciiStream()  throws SQLException {
+    checkIfFreed();
     if (this.data != null) {
       return new ByteArrayInputStream(this.data.getBytes());
     }
@@ -56,7 +68,8 @@ public class PgClobText implements java.sql.Clob {
   }
 
   @Override
-  public Reader getCharacterStream() {
+  public Reader getCharacterStream()  throws SQLException {
+    checkIfFreed();
     if (this.data != null) {
       return new StringReader(this.data);
     }
@@ -64,7 +77,8 @@ public class PgClobText implements java.sql.Clob {
   }
 
   @Override
-  public Reader getCharacterStream(long pos, long length) {
+  public Reader getCharacterStream(long pos, long length)  throws SQLException {
+    checkIfFreed();
     pos--;
     if (this.data != null) {
       return new StringReader(this.data.substring((int)pos, (int)(pos + length)));
@@ -74,6 +88,7 @@ public class PgClobText implements java.sql.Clob {
 
   @Override
   public String getSubString(long pos, int length)  throws SQLException {
+    checkIfFreed();
     if (this.data != null) {
       if (pos < 1) {
         throw new PSQLException(GT.tr("Invalid pos parameter {0}", pos),
@@ -96,7 +111,8 @@ public class PgClobText implements java.sql.Clob {
   }
 
   @Override
-  public long length() {
+  public long length()  throws SQLException {
+    checkIfFreed();
     if (this.data != null) {
       return this.data.length();
     }
@@ -105,11 +121,13 @@ public class PgClobText implements java.sql.Clob {
 
   @Override
   public long position(Clob searchstr, long start) throws SQLException {
+    checkIfFreed();
     return position(searchstr.getSubString(1L, (int) searchstr.length()), start);
   }
 
   @Override
   public long position(String searchstr, long start) throws SQLException {
+    checkIfFreed();
     if (this.data != null) {
       int pos = this.data.indexOf(searchstr,(int) (start - 1));
       return (pos == -1) ? -1 : (pos + 1);
@@ -119,16 +137,19 @@ public class PgClobText implements java.sql.Clob {
 
   @Override
   public OutputStream setAsciiStream(long pos) throws SQLException {
+    checkIfFreed();
     return new TextClobOutputStream(pos);
   }
 
   @Override
   public Writer setCharacterStream(long pos) throws SQLException {
+    checkIfFreed();
     return new TextClobOutputStreamWriter(new TextClobOutputStream(pos));
   }
 
   @Override
   public int setString(long pos, String str) throws SQLException {
+    checkIfFreed();
     if (pos < 1) {
       throw new PSQLException(GT.tr("Invalid pos parameter {0}", pos),
                               PSQLState.INVALID_PARAMETER_VALUE);
@@ -155,6 +176,7 @@ public class PgClobText implements java.sql.Clob {
 
   @Override
   public int setString(long pos, String str, int offset, int len) throws SQLException {
+    checkIfFreed();
     if (pos < 1) {
       throw new PSQLException(GT.tr("Invalid pos parameter {0}", pos),
                               PSQLState.INVALID_PARAMETER_VALUE);
@@ -181,6 +203,7 @@ public class PgClobText implements java.sql.Clob {
 
   @Override
   public void truncate(long len) throws SQLException {
+    checkIfFreed();
     if (this.data == null) {
       throw new PSQLException(GT.tr("Called truncate on null Clob}"),
                               PSQLState.INVALID_PARAMETER_VALUE);

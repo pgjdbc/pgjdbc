@@ -28,6 +28,7 @@ import java.util.Arrays;
 public class PgBlobBytea implements java.sql.Blob {
 
   private byte[] data;
+  private boolean freed = false;
 
   protected static final int MAX_BYTES = 1073741824; // 1GiB max size of a bytea
 
@@ -44,12 +45,23 @@ public class PgBlobBytea implements java.sql.Blob {
   }
 
   @Override
-  public void	free() 	 {
-    this.data = new byte[0];
+  public void free() {
+    if (! this.freed) {
+      this.data = new byte[0];
+    }
+    this.freed = true;
+  }
+
+  // it is forbidden to access a freed Blob
+  private void checkIfFreed() throws SQLException {
+    if (this.freed) {
+      throw new SQLException("Operation forbidden on freed Blob");
+    }
   }
 
   @Override
-  public InputStream getBinaryStream() {
+  public InputStream getBinaryStream()  throws SQLException {
+    checkIfFreed();
     if (this.data != null) {
       return new ByteArrayInputStream(this.data);
     }
@@ -58,6 +70,7 @@ public class PgBlobBytea implements java.sql.Blob {
 
   @Override
   public InputStream getBinaryStream​(long pos, long length) throws SQLException {
+    checkIfFreed();
     if (this.data == null) {
       return new ByteArrayInputStream(new byte[0]);
     }
@@ -76,6 +89,7 @@ public class PgBlobBytea implements java.sql.Blob {
 
   @Override
   public byte[]	getBytes​(long pos, int length) throws SQLException {
+    checkIfFreed();
     if (this.data == null) {
       return this.data;
     }
@@ -98,12 +112,14 @@ public class PgBlobBytea implements java.sql.Blob {
   }
 
   @Override
-  public long length() {
+  public long length()  throws SQLException {
+    checkIfFreed();
     return this.data == null ? 0 : this.data.length;
   }
 
   @Override
   public long	position​(byte[] pattern, long start) throws SQLException {
+    checkIfFreed();
     if (this.data == null) {
       return -1;
     }
@@ -120,21 +136,25 @@ public class PgBlobBytea implements java.sql.Blob {
 
   @Override
   public long position​(Blob pattern, long start) throws SQLException {
+    checkIfFreed();
     return position(pattern.getBytes(1, (int) pattern.length()), start);
   }
 
   @Override
   public OutputStream setBinaryStream​(long pos) throws SQLException {
+    checkIfFreed();
     return new ByteaBlobOutputStream(pos);
   }
 
   @Override
   public int setBytes​(long pos, byte[] bytes) throws SQLException {
+    checkIfFreed();
     return setBytes(pos, bytes, 0, bytes.length);
   }
 
   @Override
   public int setBytes​(long pos, byte[] bytes, int offset, int len) throws SQLException {
+    checkIfFreed();
     if (this.data == null) {
       if (pos == 1) {
         this.data = new byte[0];
@@ -167,6 +187,7 @@ public class PgBlobBytea implements java.sql.Blob {
 
   @Override
   public void	truncate​(long len) throws SQLException {
+    checkIfFreed();
     if (this.data == null) {
       throw new PSQLException(GT.tr("Called truncate on null Blob}"),
                               PSQLState.INVALID_PARAMETER_VALUE);
