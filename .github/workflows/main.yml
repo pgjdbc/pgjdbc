@@ -35,7 +35,7 @@ jobs:
         java-version: 8
 
     - name: 'Setup JDK 8 on ARM64'
-      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
       uses: AdoptOpenJDK/install-jdk@v1
       with:
         impl: hotspot # or openj9
@@ -95,10 +95,21 @@ jobs:
     - name: Start PostgreSQL
       working-directory: docker
       run: docker-compose up -d && docker-compose logs
+
     - name: 'Set up JDK ${{ matrix.jdk }}'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       uses: actions/setup-java@v1
       with:
         java-version: ${{ matrix.jdk }}
+
+    - name: 'Setup JDK 8 on ARM64'
+      if: ${{ steps.get_arch_name.outputs.arch_name = 'aarch64' }}
+      uses: AdoptOpenJDK/install-jdk@v1
+      with:
+        impl: hotspot # or openj9
+        version: ${{ matrix.jdk }}
+        architecture: aarch64
+
     - name: Prepare ssltest.local.properties
       run: echo enable_ssl_tests=true > ssltest.local.properties
     - uses: burrunan/gradle-cache-action@v1
