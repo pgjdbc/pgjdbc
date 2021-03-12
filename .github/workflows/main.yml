@@ -103,7 +103,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: 'Setup JDK 8 on ARM64'
-      if: ${{ steps.get_arch_name.outputs.arch_name = 'aarch64' }}
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
       uses: AdoptOpenJDK/install-jdk@v1
       with:
         impl: hotspot # or openj9
