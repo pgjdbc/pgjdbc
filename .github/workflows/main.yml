@@ -155,9 +155,19 @@ jobs:
         working-directory: docker
         run: docker-compose up -d && docker-compose logs
       - name: 'Set up JDK 11'
+        if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
         uses: actions/setup-java@v1
         with:
           java-version: 11
+
+      - name: 'Setup JDK 11 on ARM64'
+        if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          impl: hotspot # or openj9
+          version: '11'
+          architecture: aarch64
+
       - uses: burrunan/gradle-cache-action@v1
         name: Prepare source distribution
         env:
@@ -183,6 +193,14 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
+    - name: 'Setup JDK 8 on ARM64'
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+      uses: AdoptOpenJDK/install-jdk@v1
+      with:
+        impl: hotspot # or openj9
+        version: '8'
+        architecture: aarch64
+
     - name: 'Install software'
       run: |
         sudo apt -y update
