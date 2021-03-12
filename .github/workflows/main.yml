@@ -49,6 +49,7 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         JAVA_HOME: ${{ steps.setup_jdk_arm64.outputs.JAVA_HOME_ARM64 }}
       with:
+        read-only: ${{ matrix.os == 'self-hosted' }}
         job-id: jdk8
         arguments: autostyleCheck checkstyleAll jandex
 
@@ -100,6 +101,7 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: ${{ matrix.jdk }}
+        architecture: x64
 
     - name: 'Setup JDK ${{ matrix.jdk }} on ARM64'
       if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
