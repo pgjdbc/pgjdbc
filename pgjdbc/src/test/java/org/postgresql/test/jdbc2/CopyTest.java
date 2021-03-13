@@ -425,14 +425,10 @@ public class CopyTest {
     // on the Connection object fails to deadlock.
     con.setAutoCommit(false);
 
-    // We get the process id before the COPY as we cannot run other commands
-    // on the connection during the COPY operation.
-    int pid = TestUtil.getBackendPid(con);
-
     CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
     CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with " + copyParams);
+    TestUtil.terminateBackend(con);
     try {
-      TestUtil.terminateBackend(pid);
       byte[] bunchOfNulls = ",,\n".getBytes();
       while (true) {
         copyIn.writeToCopy(bunchOfNulls, 0, bunchOfNulls.length);
