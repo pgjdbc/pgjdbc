@@ -71,6 +71,8 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -1904,6 +1906,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             rowBuffer.set(columnIndex, connection.encodeString(
                 connection.getTimestampUtils().toString(
                     getDefaultCalendar(), Timestamp.valueOf((LocalDateTime) valueObject))));
+          } else if (valueObject instanceof OffsetDateTime) {
+            rowBuffer.set(columnIndex, connection.encodeString(
+                connection.getTimestampUtils().toString(
+                    getDefaultCalendar(), Timestamp.valueOf(((OffsetDateTime) valueObject)
+                        .atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime()))));
           } else {
             throw new PSQLException(GT.tr("conversion to {0} from {1} not supported",
                 Types.TIMESTAMP, valueObject.getClass().getName()),
