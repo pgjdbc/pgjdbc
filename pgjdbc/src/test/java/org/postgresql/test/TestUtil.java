@@ -29,6 +29,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -974,6 +975,37 @@ public class TestUtil {
   public static int getBackendPid(Connection conn) throws SQLException {
     PGConnection pgConn = conn.unwrap(PGConnection.class);
     return pgConn.getBackendPID();
+  }
+
+  public static boolean isPidAlive(Connection conn, int pid) throws SQLException {
+    String sql = haveMinimumServerVersion(conn, ServerVersion.v9_2)
+        ? "SELECT EXISTS (SELECT * FROM pg_stat_activity WHERE pid = ?)" // 9.2+ use pid column
+        : "SELECT EXISTS (SELECT * FROM pg_stat_activity WHERE procpid = ?)"; // Use older procpid
+    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+      stmt.setInt(1, pid);
+      try (ResultSet rs = stmt.executeQuery()) {
+        rs.next();
+        return rs.getBoolean(1);
+      }
+    }
+  }
+
+  public static boolean waitForBackendTermination(Connection conn, int pid) throws SQLException, InterruptedException {
+    return waitForBackendTermination(conn, pid, Duration.ofSeconds(30), Duration.ofMillis(10));
+  }
+
+  /**
+   * Wait for a backend process to terminate and return whether it actual terminated within the maximum wait time.
+   */
+  public static boolean waitForBackendTermination(Connection conn, int pid, Duration timeout, Duration sleepDelay) throws SQLException, InterruptedException {
+    long started = System.currentTimeMillis();
+    do {
+      if (!isPidAlive(conn, pid)) {
+        return true;
+      }
+      Thread.sleep(sleepDelay.toMillis());
+    } while ((System.currentTimeMillis() - started) < timeout.toMillis());
+    return !isPidAlive(conn, pid);
   }
 
   /**
