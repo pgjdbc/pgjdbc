@@ -34,6 +34,7 @@ before_script:
   - test "x$PG_VERSION" = 'xHEAD' || psql -U postgres -c "create user test with password 'test';"
   - test "x$REPLICATION" == 'x' || psql -U postgres -c "alter user test with replication;"
   - psql -c 'create database test owner test;' -U postgres
+  - psql -c 'select version()' -U postgres
   - test "x$SSLTEST" == 'x' || ./.travis/travis_ssl_users.sh
   - test "x$REPLICATION" == 'x' || ./.travis/travis_create_slaves.sh
   - if [[ $TRAVIS_BRANCH == release/* ]]; then echo "MAVEN_OPTS='-Xmx1g'" > ~/.mavenrc; else echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc; fi
