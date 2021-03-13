@@ -10,6 +10,7 @@ import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
 import org.postgresql.core.OidValueOfTest;
 import org.postgresql.core.ParserTest;
+import org.postgresql.core.PrintDebugInfoTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
@@ -107,6 +108,7 @@ import org.junit.runners.Suite;
     PGTimeTest.class,
     PgSQLXMLTest.class,
     PreparedStatementTest.class,
+    PrintDebugInfoTest.class,
     QuotationTest.class,
     ReaderInputStreamTest.class,
     RefCursorTest.class,
