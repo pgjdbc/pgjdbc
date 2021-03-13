@@ -58,12 +58,7 @@ public class ReplicationConnectionTest {
   public void testConnectionNotValidWhenSessionTerminated() throws Exception {
     int backendId = ((PGConnection) replConnection).getBackendPID();
 
-    Connection sqlConnection = TestUtil.openDB();
-
-    Statement terminateStatement = sqlConnection.createStatement();
-    terminateStatement.execute("SELECT pg_terminate_backend(" + backendId + ")");
-    terminateStatement.close();
-    sqlConnection.close();
+    TestUtil.terminateBackend(backendId);
 
     boolean result = replConnection.isValid(3);
 
