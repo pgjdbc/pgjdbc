@@ -1009,40 +1009,54 @@ public class TestUtil {
   }
 
   /**
-   * Executed pg_terminate_backend(...) to terminate the server process for
-   * a given process id with the given connection.
+   * Create a new connection to the same database as the supplied connection but with the privileged credentials.
    */
-  public static boolean terminateBackend(Connection conn, int backendPid) throws SQLException {
-    PreparedStatement stmt = conn.prepareStatement("SELECT pg_terminate_backend(?)");
-    stmt.setInt(1, backendPid);
-    ResultSet rs = stmt.executeQuery();
-    rs.next();
-    boolean wasTerminated = rs.getBoolean(1);
-    rs.close();
-    stmt.close();
-    return wasTerminated;
+  private static Connection createPrivilegedConnection(Connection conn) throws SQLException {
+    String url = conn.getMetaData().getURL();
+    Properties props = new Properties(conn.getClientInfo());
+    props.setProperty("user", getPrivilegedUser());
+    props.setProperty("password", getPrivilegedPassword());
+    return DriverManager.getConnection(url, props);
   }
 
   /**
-   * Create a new connection using the default test credentials and use it to
-   * attempt to terminate the specified backend process.
+   * Executed pg_terminate_backend(...) to terminate the server process for
+   * a given process id with the given connection.
+   * This method does not wait for the backend process to exit.
    */
-  public static boolean terminateBackend(int backendPid) throws SQLException {
-    Connection conn = TestUtil.openPrivilegedDB();
-    try {
-      return terminateBackend(conn, backendPid);
-    } finally {
-      conn.close();
+  private static boolean pgTerminateBackend(Connection privConn, int backendPid) throws SQLException {
+    try (PreparedStatement stmt = privConn.prepareStatement("SELECT pg_terminate_backend(?)")) {
+      stmt.setInt(1, backendPid);
+      try (ResultSet rs = stmt.executeQuery()) {
+        rs.next();
+        return rs.getBoolean(1);
+      }
     }
   }
 
   /**
-   * Retrieve the given connection backend process id, then create a new connection
-   * using the default test credentials and attempt to terminate the process.
+   * Open a new privileged connection to the same database as connection and use it to ask to terminate the connection.
+   * If the connection is terminated, wait for its process to actual terminate.
    */
-  public static boolean terminateBackend(Connection conn) throws SQLException {
-    int pid = getBackendPid(conn);
-    return terminateBackend(pid);
+  public static boolean terminateBackend(Connection conn) throws SQLException, InterruptedException {
+    try (Connection privConn = createPrivilegedConnection(conn)) {
+      int pid = getBackendPid(conn);
+      if (!pgTerminateBackend(privConn, pid)) {
+        return false;
+      }
+      return waitForBackendTermination(privConn, pid);
+    }
+  }
+
+  /**
+   * Open a new privileged connection to the same database as connection and use it to ask to terminate the connection.
+   * NOTE: This function does not wait for the process to terminate.
+   */
+  public static boolean terminateBackendNoWait(Connection conn) throws SQLException {
+    try (Connection privConn = createPrivilegedConnection(conn)) {
+      int pid = getBackendPid(conn);
+      return pgTerminateBackend(privConn, pid);
+    }
   }
 
   public static TransactionState getTransactionState(Connection conn) {

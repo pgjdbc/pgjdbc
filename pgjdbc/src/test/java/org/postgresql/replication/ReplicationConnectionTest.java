@@ -56,9 +56,7 @@ public class ReplicationConnectionTest {
 
   @Test
   public void testConnectionNotValidWhenSessionTerminated() throws Exception {
-    int backendId = ((PGConnection) replConnection).getBackendPID();
-
-    TestUtil.terminateBackend(backendId);
+    TestUtil.terminateBackend(replConnection);
 
     boolean result = replConnection.isValid(3);
 
