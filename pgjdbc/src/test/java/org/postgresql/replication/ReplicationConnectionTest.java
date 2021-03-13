@@ -68,7 +68,7 @@ public class ReplicationConnectionTest {
     boolean result = replConnection.isValid(3);
 
     assertThat("When postgresql terminate session with replication connection, "
-            + "isValid methos should return false, because next query on this connection will fail",
+            + "isValid() should return false, because next query on this connection will fail",
         result, equalTo(false)
     );
   }
