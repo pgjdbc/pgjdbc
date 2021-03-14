@@ -5,6 +5,7 @@
 
 package org.postgresql.test;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
@@ -971,13 +972,8 @@ public class TestUtil {
    * Retrieve the backend process id for a given connection.
    */
   public static int getBackendPid(Connection conn) throws SQLException {
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid()");
-    rs.next();
-    int pid = rs.getInt(1);
-    rs.close();
-    stmt.close();
-    return pid;
+    PGConnection pgConn = conn.unwrap(PGConnection.class);
+    return pgConn.getBackendPID();
   }
 
   /**
