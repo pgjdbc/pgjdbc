@@ -200,40 +200,54 @@ public class PgBlobBytea implements java.sql.Blob {
     }
   }
 
-  // adapted from a KMP implementation at https://www.techiedelight.com/implementation-kmp-algorithm-c-cpp-java/
+  // adapted from pseudocode at https://en.wikipedia.org/wiki/Knuth-Morris-Pratt_algorithm
   private static int indexOf(byte[] haystack, byte[] needle, int offset) {
     // base case 1: `needle` is null or empty
     if (needle == null || needle.length == 0) {
       return -1;
     }
 
-    // base case 2: `haystack` is NULL, or haystack's length is less than that of needle's
+    // base case 2: `haystack` is NULL, or haystack's length is less than that of needle
     if (haystack == null || needle.length > haystack.length) {
       return -1;
     }
 
-    // `next[i]` stores the index of the next best partial match
+    // construct the failure table
+    int pos = 1;
+    int cnd = 0;
     int[] next = new int[needle.length + 1];
-    for (int i = 1; i < needle.length; i++) {
-      int j = next[i + 1];
+    next[0] = -1;
 
-      while (j > 0 && needle[j] != needle[i]) {
-        j = next[j];
+    while (pos < needle.length) {
+      if (needle[pos] == needle[cnd]) {
+        next[pos] = next[cnd];
+      } else {
+        next[pos] = cnd;
+        while (cnd >= 0 && needle[pos] != needle[cnd]) {
+          cnd = next[cnd];
+        }
       }
-
-      if (j > 0 || needle[j] == needle[i]) {
-        next[i + 1] = j + 1;
-      }
+      pos++;
+      cnd++;
     }
 
-    for (int i = offset, j = 0; i < haystack.length; i++) {
-      if (j < needle.length && haystack[i] == needle[j]) {
-        if (++j == needle.length) {
-          return (i - j + 1);
+    // run the KMP algorithm.
+    // Start searching at offset
+    int j = offset;
+    int k = 0;
+    while (j < haystack.length) {
+      if (needle[k] == haystack[j]) {
+        j++;
+        k++;
+        if (k == needle.length) {
+          return j - k;
         }
-      } else if (j > 0) {
-        j = next[j];
-        i--;    // since `i` will be incremented in the next iteration
+      } else {
+        k = next[k];
+        if (k < 0) {
+          j++;
+          k++;
+        }
       }
     }
 

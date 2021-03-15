@@ -242,6 +242,12 @@ public class LobVarlenaTest {
     blob.truncate(3);
     assertEquals("truncated blob length = 3", blob.length(), 3);
     assertTrue("truncated blob contents = 'foo'", Arrays.equals(blob.getBytes(1,999),foo));
+    // a few searches to test the KMP algorithm
+    srch = new PgBlobBytea("011123".getBytes());
+    assertEquals("1112 is at position 2", srch.position("1112".getBytes(), 1), 2);
+    assertEquals("112 is at position 3", srch.position("112".getBytes(), 1), 3);
+    srch = new PgBlobBytea("acfacabacabacacdk".getBytes());
+    assertEquals("acabacacd is at position 8", srch.position("acabacacd".getBytes(), 1), 8);
   }
 
   @Test
