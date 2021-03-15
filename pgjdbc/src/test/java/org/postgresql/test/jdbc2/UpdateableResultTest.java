@@ -46,6 +46,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.execute( "alter table compositepktable add primary key ( gen_id, dec_id )", con);
     TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
+    TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
     TestUtil.execute( "insert into booltable (id) values (1)", con);
 
@@ -65,6 +66,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "serialtable");
     TestUtil.dropTable(con, "compositepktable");
     TestUtil.dropTable(con, "stream");
+    TestUtil.dropTable(con, "nopkmulticol");
     TestUtil.dropTable(con, "booltable");
     super.tearDown();
   }
@@ -582,6 +584,23 @@ public class UpdateableResultTest extends BaseTest4 {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("select id1,val from multicol");
+    try {
+      rs.moveToInsertRow();
+      fail("Move to insert row succeeded. It should not");
+    } catch (SQLException sqle) {
+      // Ensure we're reporting that the RS is not updatable.
+      assertEquals("24000", sqle.getSQLState());
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(st);
+    }
+  }
+
+  @Test
+  public void testMultiColumnUpdateWithoutPrimaryKey() throws Exception {
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("select * from nopkmulticol");
     try {
       rs.moveToInsertRow();
       fail("Move to insert row succeeded. It should not");
