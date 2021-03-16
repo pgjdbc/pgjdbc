@@ -830,6 +830,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     final int dbVersion = queryExecutor.getServerVersionNum();
 
     if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
+      SetupQueryRunner.run(queryExecutor, "BEGIN", false);
+    }
+
+    if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
       SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
     }
 
@@ -842,6 +846,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SetupQueryRunner.run(queryExecutor, sql.toString(), false);
     }
 
+    if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
+      SetupQueryRunner.run(queryExecutor, "COMMIT", false);
+    }
   }
 
   private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
