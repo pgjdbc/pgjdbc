@@ -128,6 +128,7 @@ jobs:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
+        read-only: ${{ matrix.os == 'self-hosted' }}
         job-id: jdk${{ matrix.jdk }}
         arguments: --scan --no-parallel --no-daemon jandex test
         properties: |
