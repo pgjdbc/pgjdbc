@@ -233,11 +233,6 @@ jobs:
         version: '8'
         architecture: aarch64
 
-    - name: 'Install software'
-      run: |
-        sudo apt -y update
-        sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
-
     - name: 'Update hosts'
       run: |
         sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
