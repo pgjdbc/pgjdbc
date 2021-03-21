@@ -72,7 +72,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -1867,9 +1866,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
           } else if (valueObject instanceof LocalDate) {
             rowBuffer.set(columnIndex, connection
-                .encodeString(
-                    connection.getTimestampUtils().toString(
-                        getDefaultCalendar(), Date.valueOf((LocalDate) valueObject))));
+                .encodeString(connection.getTimestampUtils().toString((LocalDate) valueObject)));
           } else {
             throw new PSQLException(GT.tr("conversion to {0} from {1} not supported",
                 Types.DATE, valueObject.getClass().getName()),
@@ -1887,8 +1884,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           } else if (valueObject instanceof LocalTime) {
             rowBuffer.set(columnIndex, connection
                 .encodeString(
-                    connection.getTimestampUtils().toString(
-                        getDefaultCalendar(), Time.valueOf((LocalTime) valueObject))));
+                    connection.getTimestampUtils().toString((LocalTime) valueObject)));
           } else {
             throw new PSQLException(GT.tr("conversion to {0} from {1} not supported",
                 Types.TIME, valueObject.getClass().getName()),
@@ -1904,13 +1900,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
           } else if (valueObject instanceof LocalDateTime) {
             rowBuffer.set(columnIndex, connection.encodeString(
-                connection.getTimestampUtils().toString(
-                    getDefaultCalendar(), Timestamp.valueOf((LocalDateTime) valueObject))));
+                connection.getTimestampUtils().toString((LocalDateTime) valueObject)));
           } else if (valueObject instanceof OffsetDateTime) {
             rowBuffer.set(columnIndex, connection.encodeString(
-                connection.getTimestampUtils().toString(
-                    getDefaultCalendar(), Timestamp.valueOf(((OffsetDateTime) valueObject)
-                        .atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime()))));
+                connection.getTimestampUtils().toString((OffsetDateTime) valueObject)));
           } else {
             throw new PSQLException(GT.tr("conversion to {0} from {1} not supported",
                 Types.TIMESTAMP, valueObject.getClass().getName()),
