@@ -3993,4 +3993,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
     return sharedCalendar;
   }
+
+  /**
+   * This is here to be used by metadata functions
+   * to make all column labels upper case.
+   * Because postgres folds columns to lower case in queries it will be easier
+   * to change the fields after the fact rather than try to coerce all the columns
+   * to upper case in the queries as this would require surrounding all columns with " and
+   * escaping them making them even harder to read than they are now.
+   * @return PgResultSet
+   */
+  protected PgResultSet upperCaseFieldLabels() {
+    for (Field field: fields ) {
+      field.upperCaseLabel();
+    }
+    return this;
+  }
 }
