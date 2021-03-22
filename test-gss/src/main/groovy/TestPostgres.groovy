@@ -14,7 +14,7 @@ class TestPostgres {
 
     public void testKerberos() {
         String host='127.0.0.1'
-        String superUser = 'runner'
+        String superUser = System.getProperty("user.name");
         String superPass = 'test'
         PgJDBC pgJDBC
 
