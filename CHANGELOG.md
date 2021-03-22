@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
+- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes Issue #830
 
 ## [42.2.19] (2021-02-18)
 
@@ -38,7 +39,6 @@ is executed a second time it will fail.
 - Fix Resolve ParseError in PGtokenizer fixes #2050
 - Fix return metadata privileges for views and foreign tables
 
-- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes Issue #830
 ## [42.2.18]
 ### Fixed
 - Unfortunately changing the default of gssEncMode to ALLOW was not enough. The GSSEncMode Enum was not changed as well
