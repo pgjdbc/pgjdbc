@@ -90,7 +90,7 @@ public class BlobTest {
     byte[] fullData = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse placerat tristique tellus, id tempus lectus."
             .getBytes("UTF-8");
     byte[] data =
-       "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".getBytes("UTF-8");
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".getBytes("UTF-8");
     PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(fullData), data.length);
