@@ -3,10 +3,11 @@
  * See the LICENSE file in the project root for more information.
  */
 
-/*
- * Implementation of Blob interface backed by Postgres bytea fields.
+/**
+ * This class contains the implementation of the Blob interface backed by
+ * Postgres bytea fields.
  *
- * See PgBlob.java for implementation using Postgres Large Objects.
+ * @see PgBlob
  */
 
 package org.postgresql.jdbc;

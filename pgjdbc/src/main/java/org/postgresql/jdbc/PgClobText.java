@@ -3,10 +3,11 @@
  * See the LICENSE file in the project root for more information.
  */
 
-/*
- * Implementation of Clob interface backed by Postgres varchar/text fields.
+/**
+ * This class contains the implementation of the Clob interface backed by
+ * Postgres varchar/text fields.
  *
- * See PgClob.java for implementation using Postgres Large Objects.
+ * @see PgClob
  */
 
 package org.postgresql.jdbc;
