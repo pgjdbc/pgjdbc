@@ -7,11 +7,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 **Notable Changes**
 - Now the driver use SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
+- There are now options to use bytea database fields as backing for Blobs and text database fields as backing for Clobs.
 
 ### Changed
 
 ### Added
 - Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) [PR #2012](https://github.com/pgjdbc/pgjdbc/pull/2012)
+- Options to use bytea/text fields as backing for Blob/Clob types [PR #2093](https://github.com/pgjdbc/pgjdbc/pull/2093)
 
 ### Fixed
 - Fix "Required class information missing" when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]
