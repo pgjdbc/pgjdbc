@@ -22,6 +22,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,6 +39,9 @@ public class UpdateObject310Test {
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{
+        {new java.sql.Time(3600000), java.sql.Time.class, "time_without_time_zone_column", "'07:23'::TIME WITHOUT TIME ZONE"},
+        {new java.sql.Date(82800000), java.sql.Date.class, "date_column", "'2007-06-03'::DATE"},
+        {Timestamp.from(LocalDateTime.of(2017, 1, 2, 3, 4, 5, 6000).truncatedTo(ChronoUnit.MICROS).toInstant(ZoneOffset.UTC)), Timestamp.class, "timestamp_without_time_zone_column", "'2007-06-03'::TIMESTAMP"},
         {LocalDateTime.of(2017, 1, 2, 3, 4, 5, 6000).truncatedTo(ChronoUnit.MICROS), LocalDateTime.class, "timestamp_without_time_zone_column", "'2003-01-01'::TIMESTAMP"},
         {OffsetDateTime.of(2017, 1, 2, 3, 4, 5, 6000, ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS), OffsetDateTime.class, "timestamp_with_time_zone_column", "'2007-06-03'::TIMESTAMP"},
         {LocalDate.of(2017, 1, 2), LocalDate.class, "date_column", "'2003-01-01'::DATE"},
@@ -65,12 +69,12 @@ public class UpdateObject310Test {
     TestUtil.closeDB(con);
   }
 
-  private Object newValue;
-  private Class newValueClass;
-  private String columnName;
-  private String originalValue;
+  private final Object newValue;
+  private final Class<?> newValueClass;
+  private final String columnName;
+  private final String originalValue;
 
-  public UpdateObject310Test(Object newValue, Class newValueClass, String columnName, String originalValue) {
+  public UpdateObject310Test(Object newValue, Class<?> newValueClass, String columnName, String originalValue) {
     this.newValue = newValue;
     this.newValueClass = newValueClass;
     this.columnName = columnName;

@@ -1862,8 +1862,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             rowBuffer.set(columnIndex, connection
                 .encodeString(
                     connection.getTimestampUtils().toString(
+                        getDefaultCalendar(), (Timestamp) valueObject)));
+          } else if (valueObject instanceof Date) {
+            rowBuffer.set(columnIndex, connection
+                .encodeString(
+                    connection.getTimestampUtils().toString(
                         getDefaultCalendar(), (Date) valueObject)));
-
           } else if (valueObject instanceof LocalDate) {
             rowBuffer.set(columnIndex, connection
                 .encodeString(connection.getTimestampUtils().toString((LocalDate) valueObject)));
@@ -1897,7 +1901,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             rowBuffer.set(columnIndex, connection.encodeString(
                 connection.getTimestampUtils().toString(
                     getDefaultCalendar(), (Timestamp) valueObject)));
-
           } else if (valueObject instanceof LocalDateTime) {
             rowBuffer.set(columnIndex, connection.encodeString(
                 connection.getTimestampUtils().toString((LocalDateTime) valueObject)));
