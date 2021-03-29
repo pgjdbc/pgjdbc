@@ -679,7 +679,13 @@ public class PgConnection implements BaseConnection {
   @Override
   public void addDataType(String type, String name) {
     try {
-      addDataType(type, Class.forName(name).asSubclass(PGobject.class));
+      Class<?> klass;
+      try {
+        klass = Class.forName(name, false, Thread.currentThread().getContextClassLoader());
+      } catch (ClassNotFoundException exception) {
+        klass = Class.forName(name);
+      }
+      addDataType(type, klass.asSubclass(PGobject.class));
     } catch (Exception e) {
       throw new RuntimeException("Cannot register new type: " + e);
     }
@@ -714,12 +720,16 @@ public class PgConnection implements BaseConnection {
         Class<?> klass;
 
         try {
-          klass = Class.forName(className);
-        } catch (ClassNotFoundException cnfe) {
-          throw new PSQLException(
-              GT.tr("Unable to load the class {0} responsible for the datatype {1}",
-                  className, typeName),
-              PSQLState.SYSTEM_ERROR, cnfe);
+          klass = Class.forName(className, false, Thread.currentThread().getContextClassLoader());
+        } catch (ClassNotFoundException exception) {
+          try {
+            klass = Class.forName(className);
+          } catch (ClassNotFoundException cnfe) {
+            throw new PSQLException(
+                GT.tr("Unable to load the class {0} responsible for the datatype {1}",
+                    className, typeName),
+                PSQLState.SYSTEM_ERROR, cnfe);
+          }
         }
 
         addDataType(typeName, klass.asSubclass(PGobject.class));
