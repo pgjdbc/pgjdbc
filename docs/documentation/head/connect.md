@@ -86,14 +86,14 @@ Connection conn = DriverManager.getConnection(url);
 	are considered to separate command-line arguments, unless escaped with
 	a backslash (`\`); `\\` represents a literal backslash.
 
-```java
-Properties props = new Properties();
-props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
-Connection conn = DriverManager.getConnection(url, props);
+    ```java
+    Properties props = new Properties();
+    props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
+    Connection conn = DriverManager.getConnection(url, props);
 
-String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
-Connection conn = DriverManager.getConnection(url);
-```
+    String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
+    Connection conn = DriverManager.getConnection(url);
+    ```
 
 * **ssl** = boolean
 
