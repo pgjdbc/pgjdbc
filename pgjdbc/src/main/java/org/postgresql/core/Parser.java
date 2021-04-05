@@ -211,7 +211,11 @@ public class Parser {
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
         if (currentCommandType == SqlCommandType.BLANK) {
-          if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
+          if (wordLength == 6 && parseCreateKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.CREATE;
+          } else if (wordLength == 5 && parseAlterKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.ALTER;
+          } else if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.UPDATE;
           } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.DELETE;
@@ -654,6 +658,45 @@ public class Parser {
         && (query[offset + 3] | 32) == 'e'
         && (query[offset + 4] | 32) == 'c'
         && (query[offset + 5] | 32) == 't';
+  }
+
+  /**
+   * Parse string to check presence of CREATE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseAlterKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 5)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'a'
+        && (query[offset + 1] | 32) == 'l'
+        && (query[offset + 2] | 32) == 't'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 'r';
+  }
+
+  /**
+   * Parse string to check presence of CREATE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseCreateKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'c'
+        && (query[offset + 1] | 32) == 'r'
+        && (query[offset + 2] | 32) == 'e'
+        && (query[offset + 3] | 32) == 'a'
+        && (query[offset + 4] | 32) == 't'
+        && (query[offset + 5] | 32) == 'e';
   }
 
   /**
