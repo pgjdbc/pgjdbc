@@ -252,7 +252,7 @@ public class ParserTest {
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
-    Assert.assertEquals(SqlCommandType.BLANK, command.getType());
+    Assert.assertEquals(SqlCommandType.CREATE, command.getType());
   }
 
   @Test
@@ -262,6 +262,26 @@ public class ParserTest {
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
-    Assert.assertEquals(SqlCommandType.BLANK, command.getType());
+    Assert.assertEquals(SqlCommandType.CREATE, command.getType());
+  }
+
+  @Test
+  public void alterTableParseWithOnDeleteClause() throws SQLException {
+    String[] returningColumns = {"*"};
+    String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, returningColumns);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
+    Assert.assertEquals(SqlCommandType.ALTER, command.getType());
+  }
+
+  @Test
+  public void alterTableParseWithOnUpdateClause() throws SQLException {
+    String[] returningColumns = {"*"};
+    String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON UPDATE RESTRICT";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, returningColumns);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
+    Assert.assertEquals(SqlCommandType.ALTER, command.getType());
   }
 }
