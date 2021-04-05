@@ -244,4 +244,24 @@ public class ParserTest {
     Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
   }
+
+  @Test
+  public void createTableParseWithOnDeleteClause() throws SQLException {
+    String[] returningColumns = {"*"};
+    String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION)";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, returningColumns);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
+    Assert.assertEquals(SqlCommandType.BLANK, command.getType());
+  }
+
+  @Test
+  public void createTableParseWithOnUpdateClause() throws SQLException {
+    String[] returningColumns = {"*"};
+    String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\")) ON UPDATE NO ACTION";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, returningColumns);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
+    Assert.assertEquals(SqlCommandType.BLANK, command.getType());
+  }
 }
