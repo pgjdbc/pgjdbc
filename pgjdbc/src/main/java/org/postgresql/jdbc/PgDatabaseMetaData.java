@@ -1345,7 +1345,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     String sql = select + orderby;
 
-    return createMetaDataStatement().executeQuery(sql);
+    return ((PgResultSet)createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
   }
 
   private static final Map<String, Map<String, String>> tableTypeClauses;

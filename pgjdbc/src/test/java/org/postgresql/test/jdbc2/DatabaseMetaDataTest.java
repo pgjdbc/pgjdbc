@@ -1564,4 +1564,16 @@ public class DatabaseMetaDataTest {
     stmt.close();
   }
 
+  @Test
+  public void testUpperCaseMetaDataLabels() throws SQLException {
+    ResultSet rs = con.getMetaData().getTables(null, null, null, null);
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    assertEquals("TABLE_CAT", rsmd.getColumnName(1));
+    assertEquals("TABLE_SCHEM", rsmd.getColumnName(2));
+    assertEquals("TABLE_NAME", rsmd.getColumnName(3));
+    assertEquals("TABLE_TYPE", rsmd.getColumnName(4));
+    assertEquals("REMARKS", rsmd.getColumnName(5));
+
+  }
 }
