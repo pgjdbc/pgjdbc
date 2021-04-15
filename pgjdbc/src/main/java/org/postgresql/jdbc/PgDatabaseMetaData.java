@@ -3105,4 +3105,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public boolean supportsStatementPooling() throws SQLException {
     return false;
   }
+
+  /**
+   * Retrieves whether this database supports sharding.
+   *
+   * @return {@code true} if this database supports sharding;
+   * {@code false} otherwise
+   * @throws SQLException if a database access error occurs
+   * @implSpec The default implementation will return {@code false}
+   * @since 9
+   */
+  @Override
+  public boolean supportsSharding() throws SQLException {
+    return false;
+  }
 }
