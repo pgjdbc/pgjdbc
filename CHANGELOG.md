@@ -9,7 +9,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
-- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes Issue #830
+
+[42.2.20]
+### Changed
+
+### Added
+
+### Fixed
+- fix: Partitioned indexes were not found fixes [#2078](https://github.com/pgjdbc/pgjdbc/issues/2078) PR [#2087](https://github.com/pgjdbc/pgjdbc/pull/2087)
+
+- isValid() timeout should not be blocked [#1943](https://github.com/pgjdbc/pgjdbc/pull/1943) Cherry-picked [#2076](https://github.com/pgjdbc/pgjdbc/pull/2076)
+  The usage of `setQueryTimeout();` with the same value as the `setNetworkTimeout();` is blocking the current transaction timeout.
+  The timeouts are blocking each other with this approach.
+- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes [Issue #830](https://github.com/pgjdbc/pgjdbc/issues/830)
 
 ## [42.2.19] (2021-02-18)
 
@@ -454,4 +466,11 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
 [42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
 [42.2.19]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...HEAD
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.19...HEAD
+## [Unreleased]
+### Changed
+
+### Added
+
+### Fixed
+
+[42.2.20]
