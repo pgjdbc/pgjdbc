@@ -26,7 +26,6 @@ import org.junit.runners.Suite;
     JsonbTest.class,
     LogTest.class,
     PGCopyInputStreamTest.class,
-    StreamResultSetTest.class,
     UUIDTest.class,
     WrapperTest.class,
     XmlTest.class,

@@ -31,7 +31,7 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
   private boolean firstTime;
   private @MonotonicNonNull ArrayList<E> buffer;
 
-  public StreamingList(NullableSupplier<E> supplier) {
+  public StreamingList(Supplier<E> supplier) {
     listIterator = new DynamicListIterator<>(supplier);
   }
 
@@ -117,13 +117,13 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
   }
 
   static class DynamicListIterator<E> implements ListIterator<E> {
-    private final NullableSupplier<E> supplier;
+    private final Supplier<E> supplier;
     private @Nullable E prev;
     private @Nullable E next;
     private boolean end;
     private int resultNumber = -1;
 
-    DynamicListIterator(NullableSupplier<E> supplier) {
+    DynamicListIterator(Supplier<E> supplier) {
       this.supplier = supplier;
     }
 

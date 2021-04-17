@@ -5,18 +5,16 @@
 
 package org.postgresql.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * A similar version of Java 8 java.util.function.Supplier interface that allows returning nulls.
  */
 @FunctionalInterface
-public interface NullableSupplier<T> {
+public interface Supplier<T> {
 
   /**
    * Returns next result.
    *
    * @return next result
    */
-  @Nullable T get();
+  T get();
 }
