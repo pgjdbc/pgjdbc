@@ -39,14 +39,15 @@ import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.jdbc.tuple.TupleBuffer;
+import org.postgresql.jdbc.tuple.TupleBufferFactory;
+import org.postgresql.jdbc.tuple.TupleProvider;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
-import org.postgresql.util.StreamingList;
-import org.postgresql.util.Supplier;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -62,8 +63,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -626,7 +625,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return new ResultHandlerDelegate(delegateHandler) {
       private boolean sawBegin = false;
 
-      public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+      public void handleResultRows(Query fromQuery, Field[] fields, TupleBuffer tuples,
           @Nullable ResultCursor cursor) {
         if (sawBegin) {
           super.handleResultRows(fromQuery, fields, tuples, cursor);
@@ -2113,7 +2112,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
     try {
-      StreamingList<Tuple> streamingTuples = castNonNull((StreamingList<Tuple>) castNonNull(streamingState).tuples);
+      TupleBuffer streamingTuples = castNonNull(castNonNull(streamingState).tuples);
       if (buffer) {
         streamingState.streamingSwitchedToBuffer = true;
         streamingTuples.bufferResults();
@@ -2148,7 +2147,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean streamRows;
     boolean streamingSwitchedToBuffer;
 
-    @Nullable List<Tuple> tuples;
+    @Nullable TupleBuffer tuples;
 
     boolean endQuery = false;
 
@@ -2330,7 +2329,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             Field[] fields = currentQuery.getFields();
 
             if (fields != null) { // There was a resultset.
-              handler.handleResultRows(currentQuery, fields, new ArrayList<Tuple>(), null);
+              handler.handleResultRows(currentQuery, fields, TupleBufferFactory.create(), null);
               state.tuples = null;
               state.firstStreamRow = true;
             }
@@ -2359,7 +2358,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && state.tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            state.tuples = state.noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
+            state.tuples = state.noResults ? TupleBufferFactory.empty() : TupleBufferFactory.create();
           }
 
           if (fields != null && state.tuples != null) {
@@ -2425,7 +2424,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
             state.streamRows = false;
-            state.tuples = state.noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
+            state.tuples = state.noResults ? TupleBufferFactory.empty() : TupleBufferFactory.create();
           }
 
           // If we received tuples we must know the structure of the
@@ -2438,11 +2437,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           if (fields != null && state.tuples != null) {
             // There was a resultset.
-            if (state.streamRows) {
-              if (!(state.tuples instanceof StreamingList)) {
-                throw new IllegalStateException("Expecting streaming of results");
-              }
-            } else {
+            if (!state.streamRows) {
               handler.handleResultRows(currentQuery, fields, state.tuples, null);
             }
             state.tuples = null;
@@ -2493,7 +2488,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
 
           if (!state.noResults && tuple != null) {
-            List<Tuple> tuples = state.tuples;
+            TupleBuffer tuples = state.tuples;
             if (tuples == null) {
               if (tuple.fieldCount() == 0) {
                 state.streamRows = false;
@@ -2501,9 +2496,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               tuples = state.tuples = createTupleList(state);
             }
             if (state.streamRows) {
-              if (!(tuples instanceof StreamingList)) {
-                throw new IllegalStateException("Must have dynamic list");
-              }
               if (state.firstStreamRow) {
                 state.firstStreamRow = false;
                 ExecuteRequest executeData = pendingExecuteQueue.peekFirst();
@@ -2592,7 +2584,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             SimpleQuery currentQuery = describeData.query;
             currentQuery.setFields(fields);
 
-            handler.handleResultRows(currentQuery, fields, new ArrayList<Tuple>(), null);
+            handler.handleResultRows(currentQuery, fields, TupleBufferFactory.create(), null);
             state.tuples = null;
             state.firstStreamRow = true;
           }
@@ -2707,16 +2699,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return null;
   }
 
-  private List<Tuple> createTupleList(final ProcessState state) {
+  private TupleBuffer createTupleList(final ProcessState state) {
     if (state.streamRows) {
-      return new StreamingList<>(new Supplier<@Nullable Tuple>() {
+      return TupleBufferFactory.create(new TupleProvider() {
         @Override
         public @Nullable Tuple get() {
           return QueryExecutorImpl.this.processStreamedResultsImpl(state);
         }
       });
     }
-    return new ArrayList<>();
+    return TupleBufferFactory.create();
   }
 
   /**
@@ -2744,7 +2736,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     handler = new ResultHandlerDelegate(delegateHandler) {
       @Override
       public void handleCommandStatus(String status, long updateCount, long insertOID) {
-        handleResultRows(query, NO_FIELDS, new ArrayList<Tuple>(), null);
+        handleResultRows(query, NO_FIELDS, TupleBufferFactory.create(), null);
       }
     };
 

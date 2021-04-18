@@ -18,7 +18,8 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
-import org.postgresql.core.Tuple;
+import org.postgresql.jdbc.tuple.TupleBuffer;
+import org.postgresql.jdbc.tuple.TupleBufferFactory;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -34,7 +35,6 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -161,7 +161,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   @SuppressWarnings("method.invocation.invalid")
-  public ResultSet createResultSet(@Nullable Query originalQuery, Field[] fields, List<Tuple> tuples,
+  public ResultSet createResultSet(@Nullable Query originalQuery, Field[] fields, TupleBuffer tuples,
       @Nullable ResultCursor cursor) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
@@ -212,7 +212,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     @Override
-    public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+    public void handleResultRows(Query fromQuery, Field[] fields, TupleBuffer tuples,
         @Nullable ResultCursor cursor) {
       try {
         // required when users concurrently close the Statement while it is still executing
@@ -1231,7 +1231,7 @@ public class PgStatement implements Statement, BaseStatement {
     synchronized (this) {
       checkClosed();
       if (generatedKeys == null || generatedKeys.getResultSet() == null) {
-        return createDriverResultSet(new Field[0], new ArrayList<Tuple>());
+        return createDriverResultSet(new Field[0], TupleBufferFactory.create());
       }
 
       return generatedKeys.getResultSet();
@@ -1296,7 +1296,7 @@ public class PgStatement implements Statement, BaseStatement {
     return rsHoldability;
   }
 
-  public ResultSet createDriverResultSet(Field[] fields, List<Tuple> tuples)
+  public ResultSet createDriverResultSet(Field[] fields, TupleBuffer tuples)
       throws SQLException {
     return createResultSet(null, fields, tuples, null);
   }

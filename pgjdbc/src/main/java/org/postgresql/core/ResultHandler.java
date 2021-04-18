@@ -6,11 +6,12 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.tuple.TupleBuffer;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.List;
 
 /**
  * <p>Callback interface for passing query results from the protocol-specific layer to the
@@ -38,7 +39,7 @@ public interface ResultHandler {
    * @param cursor a cursor to use to fetch additional data; <code>null</code> if no further results
    *        are present.
    */
-  void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+  void handleResultRows(Query fromQuery, Field[] fields, TupleBuffer tuples,
       @Nullable ResultCursor cursor);
 
   /**

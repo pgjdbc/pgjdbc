@@ -12,8 +12,9 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
-import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.BatchedQuery;
+import org.postgresql.jdbc.tuple.TupleBuffer;
+import org.postgresql.jdbc.tuple.TupleBufferFactory;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -43,8 +44,8 @@ public class BatchResultHandler extends ResultHandlerBase {
   private final boolean expectGeneratedKeys;
   private @Nullable PgResultSet generatedKeys;
   private int committedRows; // 0 means no rows committed. 1 means row 0 was committed, and so on
-  private final @Nullable List<List<Tuple>> allGeneratedRows;
-  private @Nullable List<Tuple> latestGeneratedRows;
+  private final @Nullable List<TupleBuffer> allGeneratedRows;
+  private @Nullable TupleBuffer latestGeneratedRows;
   private @Nullable PgResultSet latestGeneratedKeysRs;
 
   BatchResultHandler(PgStatement pgStatement, Query[] queries,
@@ -55,11 +56,11 @@ public class BatchResultHandler extends ResultHandlerBase {
     this.parameterLists = parameterLists;
     this.longUpdateCounts = new long[queries.length];
     this.expectGeneratedKeys = expectGeneratedKeys;
-    this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<List<Tuple>>();
+    this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<TupleBuffer>();
   }
 
   @Override
-  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+  public void handleResultRows(Query fromQuery, Field[] fields, TupleBuffer tuples,
       @Nullable ResultCursor cursor) {
     // If SELECT, then handleCommandStatus call would just be missing
     resultIndex++;
@@ -72,7 +73,7 @@ public class BatchResultHandler extends ResultHandlerBase {
         // If SELECT, the resulting ResultSet is not valid
         // Thus it is up to handleCommandStatus to decide if resultSet is good enough
         latestGeneratedKeysRs = (PgResultSet) pgStatement.createResultSet(fromQuery, fields,
-            new ArrayList<Tuple>(), cursor);
+            TupleBufferFactory.create(), cursor);
       } catch (SQLException e) {
         handleError(e);
       }
@@ -82,14 +83,14 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void handleCommandStatus(String status, long updateCount, long insertOID) {
-    List<Tuple> latestGeneratedRows = this.latestGeneratedRows;
+    TupleBuffer latestGeneratedRows = this.latestGeneratedRows;
     if (latestGeneratedRows != null) {
       // We have DML. Decrease resultIndex that was just increased in handleResultRows
       resultIndex--;
       // If exception thrown, no need to collect generated keys
       // Note: some generated keys might be secured in generatedKeys
       if (updateCount > 0 && (getException() == null || isAutoCommit())) {
-        List<List<Tuple>> allGeneratedRows = castNonNull(this.allGeneratedRows, "allGeneratedRows");
+        List<TupleBuffer> allGeneratedRows = castNonNull(this.allGeneratedRows, "allGeneratedRows");
         allGeneratedRows.add(latestGeneratedRows);
         if (generatedKeys == null) {
           generatedKeys = latestGeneratedKeysRs;
@@ -126,12 +127,12 @@ public class BatchResultHandler extends ResultHandlerBase {
   }
 
   private void updateGeneratedKeys() {
-    List<List<Tuple>> allGeneratedRows = this.allGeneratedRows;
+    List<TupleBuffer> allGeneratedRows = this.allGeneratedRows;
     if (allGeneratedRows == null || allGeneratedRows.isEmpty()) {
       return;
     }
     PgResultSet generatedKeys = castNonNull(this.generatedKeys, "generatedKeys");
-    for (List<Tuple> rows : allGeneratedRows) {
+    for (TupleBuffer rows : allGeneratedRows) {
       generatedKeys.addRows(rows);
     }
     allGeneratedRows.clear();

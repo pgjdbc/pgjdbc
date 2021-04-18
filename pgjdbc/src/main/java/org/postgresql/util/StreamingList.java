@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.postgresql.core.Provider;
+
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -31,7 +33,7 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
   private boolean firstTime;
   private @MonotonicNonNull ArrayList<E> buffer;
 
-  public StreamingList(Supplier<E> supplier) {
+  public StreamingList(Provider<@Nullable E> supplier) {
     listIterator = new DynamicListIterator<>(supplier);
   }
 
@@ -117,13 +119,13 @@ public class StreamingList<E> extends AbstractSequentialList<E> {
   }
 
   static class DynamicListIterator<E> implements ListIterator<E> {
-    private final Supplier<E> supplier;
+    private final Provider<@Nullable E> supplier;
     private @Nullable E prev;
     private @Nullable E next;
     private boolean end;
     private int resultNumber = -1;
 
-    DynamicListIterator(Supplier<E> supplier) {
+    DynamicListIterator(Provider<@Nullable E> supplier) {
       this.supplier = supplier;
     }
 
