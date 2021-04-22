@@ -17,9 +17,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-          - os: self-hosted
+        os:
+          - ubuntu-latest
+          - self-hosted
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
@@ -65,9 +65,9 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [8, 11]
-        include:
-          - os: ubuntu-latest
-          - os: self-hosted
+        os:
+          - ubuntu-latest
+          - self-hosted
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
@@ -206,10 +206,9 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [8, 11]
-        include:
-          - os: ubuntu-latest
-          - os: self-hosted
-
+        os:
+          - ubuntu-latest
+          - self-hosted
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
@@ -232,7 +231,11 @@ jobs:
         impl: hotspot # or openj9
         version: '8'
         architecture: aarch64
-
+    - name: 'Install software'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
+      run: |
+        sudo apt -y update
+        sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
     - name: 'Update hosts'
       run: |
         sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
