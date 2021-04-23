@@ -1,0 +1,209 @@
+name: Omni CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  matrix_prep:
+    name: Matrix Preparation
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - id: set-matrix
+      run: |
+        node -e "
+          const JDK_OPTIONS = [
+              { version: '8', lts: true },
+              { version: '11', lts: true },
+              { version: '15', lts: false },
+          ];
+
+          const PG_VERSIONS = [
+              '8.4',
+              '9.0',
+              '9.1',
+              '9.2',
+              '9.3',
+              '9.4',
+              '9.5',
+              '9.6',
+              '10',
+              '11',
+              '12',
+              '13',
+              // TODO: Determine the latest and greatest server version automatically so we don't need to periodically update this
+          ];
+
+
+          const LTS_JDK_OPTIONS = JDK_OPTIONS.filter(jdk => jdk.lts);
+          const UNSTABLE_JDK_OPTIONS = JDK_OPTIONS.filter(jdk => !jdk.lts);
+          const LATEST_JDK = LTS_JDK_OPTIONS.slice(-1)[0];
+          const LATEST_PG_VERSION = PG_VERSIONS.slice(-1)[0];
+
+          const list = [];
+
+          const addItem = (opts) => {
+              const os = 'ubuntu-latest';
+              const pg_version = opts.pg_version ?? LATEST_PG_VERSION;
+              const jdk = opts.jdk ?? LATEST_JDK;
+              const slow_tests = opts.slow_tests ?? false;
+              const replication_tests = opts.replication_tests ?? false;
+
+              const isAtLeast = (minVersion) => Number(pg_version) >= Number(minVersion);
+              const scramSupported = isAtLeast('10');
+              const sslSupported = isAtLeast('9.3');
+
+              const tags = [];
+              if (!slow_tests) {
+                  tags.push('!org.postgresql.test.SlowTests');
+              }
+              if (!replication_tests) {
+                  tags.push('!org.postgresql.test.Replication');
+              }
+              const junit_include_tags = tags.join(' & ');
+
+              list.push({
+                  os,
+                  jdk_version: jdk.version,
+                  pg_version,
+                  ssl: opts.ssl ?? sslSupported,
+                  scram: opts.scram ?? scramSupported,
+                  server_tz: opts.server_tz ?? 'Etc/UTC',
+                  slow_tests,
+                  replication_tests,
+                  junit_include_tags,
+                  experimental: opts.experimental ?? false,
+                  query_mode: opts.query_mode,
+                  gradle_args: opts.gradle_args ?? '',
+              });
+          };
+
+          // Latest JDK x each stable PG version
+          for (const pg_version of PG_VERSIONS) {
+              addItem({
+                  pg_version,
+              });
+          }
+
+          // Latest PG version x each remaining JDK
+          for (const jdk of JDK_OPTIONS) {
+              if (jdk == LATEST_JDK) {
+                  continue; // Skip duplicate
+              }
+              addItem({
+                  jdk,
+                  pg_version: LATEST_PG_VERSION,
+                  experimental: !jdk.lts,
+              });
+          }
+
+          // No SSL / No SCRAM (only on latest PG / JDK)
+          addItem({
+              ssl: false,
+              scram: false,
+          });
+
+          // Custom server timezones (only on latest PG / JDK)
+          addItem({
+              server_tz: 'America/New_York'
+          });
+          addItem({
+              server_tz: 'Pacific/Chatham'
+          });
+
+          // Custom query modes (only on latest PG / JDK)
+          addItem({
+              query_mode: 'simple',
+          });
+          addItem({
+              query_mode: 'extendedForPrepared',
+          });
+          addItem({
+              query_mode: 'extendedCacheEverything',
+          });
+
+          // Slow and replication tests (only on latest PG / JDK)
+          // NOTE: Marked experimental for now due to server issues
+          addItem({
+              slow_tests: true,
+              replication_tests: true,
+              experimental: true,
+              gradle_args: '--scan',
+          });
+
+          // TODO: Add latest PG built from source marked as experimental
+          // TODO: Add additional JDK options against latest PG server
+
+          console.log('::set-output name=matrix::' + JSON.stringify({ include: list }));
+        "
+
+  test:
+    name: '${{ toJson(matrix) }}'
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    needs: matrix_prep
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      SSL: ${{ matrix.ssl }}
+      SCRAM: ${{ matrix.scram }}
+      TZ: ${{ matrix.server_tz }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+
+    - name: Start PostgreSQL
+      working-directory: docker
+      run: docker-compose up -d && docker-compose logs
+      env:
+        PGV: ${{ matrix.pg_version }}
+    - name: 'Set up JDK ${{ matrix.jdk_version }}'
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.jdk_version }}
+        architecture: x64
+
+    - name: Java version
+      run: |
+        java -version
+
+    - name: PostgreSQL version
+      env:
+        PGUSER: postgres
+        PGDATABASE: postgres
+        PGHOST: localhost
+      run: |
+        if ! docker/bin/wait_for_pg_isready; then
+            # Server is not online so dump some logs for debugging
+            docker ps
+            (cd docker && docker-compose logs)
+        fi
+        psql -c 'SELECT version()'
+
+    - name: Prepare local properties
+      run: |
+        cat <<EOF >ssltest.local.properties
+        enable_ssl_tests=${{ matrix.ssl }}
+        EOF
+        cat <<EOF >build.local.properties
+        preferQueryMode=${{ matrix.query_mode}}
+        EOF
+
+    - name: Test
+      uses: burrunan/gradle-cache-action@v1
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+      with:
+        job-id: jdk${{ matrix.jdk_version }}_pg${{ matrix.pg_version}}
+        arguments: ${{ matrix.gradle_args }} --no-parallel --no-daemon jandex test
+        properties: |
+          includeTestTags=${{ matrix.junit_include_tags }}
