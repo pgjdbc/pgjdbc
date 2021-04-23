@@ -4,9 +4,17 @@ on:
   push:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'appveyor.xml'
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'appveyor.xml'
 
 # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners
 # GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
