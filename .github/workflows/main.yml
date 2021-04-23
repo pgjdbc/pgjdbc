@@ -21,6 +21,7 @@ on:
 
 jobs:
   matrix_prep:
+    name: Matrix Preparation
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -40,8 +41,8 @@ jobs:
             ],
           })"
 
-  ubuntu-code-style:
-    name: 'Ubuntu, code style (JDK 8)'
+  code-style:
+    name: 'Code style - Ubuntu / JDK 8'
     runs-on: ubuntu-latest
     env:
       ACTIONS_STEP_DEBUG: true
@@ -81,8 +82,8 @@ jobs:
         job-id: jdk8
         arguments: autostyleCheck checkstyleAll jandex
 
-  ubuntu-latest:
-    name: 'Ubuntu, PG latest (JDK ${{ matrix.jdk }}) running on ${{ matrix.os }}'
+  build-test:
+    name: 'Build and Test - Ubuntu, PG latest (JDK ${{ matrix.jdk }}) running on ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
@@ -220,7 +221,7 @@ jobs:
           mvn --batch-mode --fail-at-end --show-version verify
 
   gss-encryption:
-    name: 'Ubuntu, gss encryption (JDK ${{matrix.jdk}}) running on ${{matrix.os}}'
+    name: 'GSS Build and Test - Ubuntu (JDK ${{matrix.jdk}}) running on ${{matrix.os}}'
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
