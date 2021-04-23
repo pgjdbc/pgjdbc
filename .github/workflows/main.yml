@@ -20,6 +20,26 @@ on:
 # GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
 
 jobs:
+  matrix_prep:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - id: set-matrix
+      run: |
+        node -p "
+          '::set-output name=matrix::' + JSON.stringify({
+            jdk: [
+              8,
+              11,
+            ],
+            os: [
+              'ubuntu-latest',
+              // Disable self-hosted on forks:
+              ...(process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc' ? ['self-hosted'] : [])
+            ],
+          })"
+
   ubuntu-code-style:
     name: 'Ubuntu, code style (JDK 8)'
     runs-on: ubuntu-latest
@@ -64,13 +84,10 @@ jobs:
   ubuntu-latest:
     name: 'Ubuntu, PG latest (JDK ${{ matrix.jdk }}) running on ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
+    needs: matrix_prep
     strategy:
       fail-fast: false
-      matrix:
-        jdk: [8, 11]
-        os:
-          - ubuntu-latest
-          - self-hosted
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
@@ -205,13 +222,10 @@ jobs:
   gss-encryption:
     name: 'Ubuntu, gss encryption (JDK ${{matrix.jdk}}) running on ${{matrix.os}}'
     runs-on: ${{ matrix.os }}
+    needs: matrix_prep
     strategy:
       fail-fast: false
-      matrix:
-        jdk: [8, 11]
-        os:
-          - ubuntu-latest
-          - self-hosted
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
