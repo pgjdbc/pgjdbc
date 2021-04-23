@@ -22,6 +22,12 @@ matrix:
     - platform: x86
       pg: master
 
+skip_commits:
+  files:
+    - 'docs/**'
+    - '**/*.md'
+    - '.github/**'
+
 init:
 - set pf=%ProgramFiles%&& set x64=-x64
 - set exe=postgresql-%pg%-windows%x64%.exe
