@@ -22,12 +22,7 @@ on:
 jobs:
   ubuntu-code-style:
     name: 'Ubuntu, code style (JDK 8)'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - self-hosted
+    runs-on: ubuntu-latest
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
