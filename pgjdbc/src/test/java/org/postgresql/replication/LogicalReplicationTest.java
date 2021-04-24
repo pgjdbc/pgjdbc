@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
 import org.postgresql.PGConnection;
-import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.Replication;
@@ -38,7 +37,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,9 +67,9 @@ public class LogicalReplicationTest {
 
   @Before
   public void setUp() throws Exception {
-    sqlConnection = TestUtil.openDB();
+    sqlConnection = TestUtil.openPrivilegedDB();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     TestUtil.createTable(sqlConnection, "test_logic_table",
         "pk serial primary key, name varchar(100)");
 
@@ -451,7 +449,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
 
     stream =
@@ -653,7 +651,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
     stream =
         pgConnection
@@ -721,7 +719,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
     stream =
         pgConnection
@@ -770,10 +768,10 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    Connection tx1Connection = TestUtil.openDB();
+    Connection tx1Connection = TestUtil.openPrivilegedDB();
     tx1Connection.setAutoCommit(false);
 
-    Connection tx2Connection = TestUtil.openDB();
+    Connection tx2Connection = TestUtil.openPrivilegedDB();
     tx2Connection.setAutoCommit(false);
 
     Statement stTx1 = tx1Connection.createStatement();
@@ -802,7 +800,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
     stream =
         pgConnection
@@ -951,12 +949,5 @@ public class LogicalReplicationTest {
       }
       st.close();
     }
-  }
-
-  private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
-    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
-    PGProperty.REPLICATION.set(properties, "database");
-    return TestUtil.openDB(properties);
   }
 }

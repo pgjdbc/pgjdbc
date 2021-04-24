@@ -14,7 +14,6 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.PGConnection;
-import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.Replication;
@@ -34,7 +33,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.util.Properties;
 
 @Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
@@ -49,8 +47,8 @@ public class ReplicationSlotTest {
 
   @Before
   public void setUp() throws Exception {
-    sqlConnection = TestUtil.openDB();
-    replConnection = openReplicationConnection();
+    sqlConnection = TestUtil.openPrivilegedDB();
+    replConnection = TestUtil.openReplicationConnection();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
   }
 
@@ -399,14 +397,5 @@ public class ReplicationSlotTest {
     if (slotName != null) {
       TestUtil.dropReplicationSlot(sqlConnection, slotName);
     }
-  }
-
-  private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
-    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
-    PGProperty.REPLICATION.set(properties, "database");
-    //Only symple query protocol available for replication connection
-    PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
-    return TestUtil.openDB(properties);
   }
 }
