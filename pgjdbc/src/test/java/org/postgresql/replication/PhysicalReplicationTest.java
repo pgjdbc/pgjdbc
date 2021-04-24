@@ -10,7 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeThat;
 
 import org.postgresql.PGConnection;
-import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.Replication;
@@ -32,7 +31,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.Properties;
 
 @Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
@@ -48,9 +46,9 @@ public class PhysicalReplicationTest {
 
   @Before
   public void setUp() throws Exception {
-    sqlConnection = TestUtil.openDB();
+    sqlConnection = TestUtil.openPrivilegedDB();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     TestUtil.createTable(sqlConnection, "test_physic_table",
         "pk serial primary key, name varchar(100)");
     TestUtil.recreatePhysicalReplicationSlot(sqlConnection, SLOT_NAME);
@@ -296,12 +294,5 @@ public class PhysicalReplicationTest {
       }
       st.close();
     }
-  }
-
-  private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
-    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
-    PGProperty.REPLICATION.set(properties, "database");
-    return TestUtil.openDB(properties);
   }
 }

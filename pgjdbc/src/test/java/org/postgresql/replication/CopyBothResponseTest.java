@@ -9,7 +9,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import org.postgresql.PGConnection;
-import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyDual;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
@@ -33,7 +32,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -65,7 +63,7 @@ public class CopyBothResponseTest {
   @Before
   public void setUp() throws Exception {
     sqlConnection = TestUtil.openDB();
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     replConnection.setAutoCommit(true);
   }
 
@@ -198,13 +196,5 @@ public class CopyBothResponseTest {
       }
       st.close();
     }
-  }
-
-  private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
-    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
-    PGProperty.PROTOCOL_VERSION.set(properties, "3");
-    PGProperty.REPLICATION.set(properties, "database");
-    return TestUtil.openDB(properties);
   }
 }

@@ -317,6 +317,18 @@ public class TestUtil {
 
   }
 
+  public static Connection openReplicationConnection() throws Exception {
+    Properties properties = new Properties();
+    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
+    PGProperty.PROTOCOL_VERSION.set(properties, "3");
+    PGProperty.REPLICATION.set(properties, "database");
+    //Only simple query protocol available for replication connection
+    PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
+    properties.setProperty("username", TestUtil.getPrivilegedUser());
+    properties.setProperty("password", TestUtil.getPrivilegedPassword());
+    return TestUtil.openDB(properties);
+  }
+
   /**
    * Helper - opens a connection.
    *
