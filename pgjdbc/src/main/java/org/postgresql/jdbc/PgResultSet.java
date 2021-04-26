@@ -1639,7 +1639,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     /*
     it is only updatable if the primary keys are available in the resultset
      */
-    updateable = (i == numPKcolumns);
+    updateable = (i == numPKcolumns) && (numPKcolumns > 0);
 
     connection.getLogger().log(Level.FINE, "checking primary key {0}", updateable);
 
