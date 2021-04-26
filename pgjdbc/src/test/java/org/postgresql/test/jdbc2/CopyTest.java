@@ -66,7 +66,7 @@ public class CopyTest {
   public void setUp() throws Exception {
     con = TestUtil.openDB();
 
-    TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
+    TestUtil.createTempTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
 
     copyAPI = ((PGConnection) con).getCopyAPI();
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {

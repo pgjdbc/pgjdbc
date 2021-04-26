@@ -160,7 +160,7 @@ public class BatchFailureTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, "batchUpdCnt", "id varchar(512) primary key, data varchar(512)");
+    TestUtil.createTempTable(con, "batchUpdCnt", "id varchar(512) primary key, data varchar(512)");
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO batchUpdCnt(id) VALUES ('key-2')");
     stmt.close();

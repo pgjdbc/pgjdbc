@@ -71,13 +71,13 @@ public class BatchExecuteTest extends BaseTest4 {
 
     // Drop the test table if it already exists for some reason. It is
     // not an error if it doesn't exist.
-    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
+    TestUtil.createTempTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
 
     stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
 
-    TestUtil.createTable(con, "prep", "a integer, b integer, d date");
+    TestUtil.createTempTable(con, "prep", "a integer, b integer, d date");
 
-    TestUtil.createTable(con, "batchUpdCnt", "id varchar(512) primary key, data varchar(512)");
+    TestUtil.createTempTable(con, "batchUpdCnt", "id varchar(512) primary key, data varchar(512)");
     stmt.executeUpdate("INSERT INTO batchUpdCnt(id) VALUES ('key-2')");
 
     stmt.close();
