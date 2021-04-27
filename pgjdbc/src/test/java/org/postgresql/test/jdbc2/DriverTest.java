@@ -290,17 +290,17 @@ public class DriverTest {
     PrintStream buffer = new PrintStream(new ByteArrayOutputStream());
     System.setErr(buffer);
     try {
-      Connection con = DriverManager.getConnection(TestUtil.getURL());
+      Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
       try {
         assertNotNull(con);
       } finally {
         con.close();
       }
-      con = DriverManager.getConnection(TestUtil.getURL());
+      con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
       try {
         assertNotNull(con);
-        System.err.println("");
-        assertFalse(System.err.checkError());
+        System.err.println();
+        assertFalse("The System.err should not be closed.", System.err.checkError());
       } finally {
         con.close();
       }
