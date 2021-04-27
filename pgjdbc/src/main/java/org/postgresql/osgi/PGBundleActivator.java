@@ -31,9 +31,8 @@ public class PGBundleActivator implements BundleActivator {
       registration = context.registerService(DataSourceFactory.class.getName(),
           new PGDataSourceFactory(), properties);
     } catch (NoClassDefFoundError e) {
-      String msg = e.getMessage();
-      if (msg != null && (msg.contains("org/osgi/service/jdbc/DataSourceFactory")
-                       || msg.contains("org.osgi.service.jdbc.DataSourceFactory"))) {
+      String msg = e.getCause().getMessage();
+      if (msg != null && msg.contains("org.osgi.service.jdbc.DataSourceFactory")) {
         if (!Boolean.getBoolean("pgjdbc.osgi.debug")) {
           return;
         }
