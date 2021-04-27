@@ -22,6 +22,6 @@ The following must be considered when using the `ResultSet` interface:
 	connection property, see [Server Prepared Statements](server-prepare.md)). 
 	This may cause unexpected behavior when some methods are called. For example, 
 	results on method calls such as `getString()` on non-string data types, 	
-	while logically　equivalent, may be formatted differently after execution exceeds 
+	while logically equivalent, may be formatted differently after execution exceeds 
 	the set `prepareThreshold` when conversion to object method switches to one 
 	matching the return mode. 
