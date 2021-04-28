@@ -460,7 +460,7 @@ public class CopyTest {
       fail("rollback should have thrown an exception");
     }
 
-    assertTrue("Exception instanceof " + rollbackException.getCause().getClass().getName(), rollbackException.getCause() instanceof PSQLException);
+    assertTrue( rollbackException instanceof SQLException);
   }
 
   private static class Rollback extends Thread {
