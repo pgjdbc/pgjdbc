@@ -19,7 +19,6 @@ import org.postgresql.copy.PGCopyOutputStream;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.ByteBufferByteStreamWriter;
-import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
