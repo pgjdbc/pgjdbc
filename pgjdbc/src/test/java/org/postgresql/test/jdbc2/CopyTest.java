@@ -19,6 +19,7 @@ import org.postgresql.copy.PGCopyOutputStream;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.ByteBufferByteStreamWriter;
+import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
@@ -458,7 +459,7 @@ public class CopyTest {
     if (rollbackException == null) {
       fail("rollback should have thrown an exception");
     }
-    acceptIOCause(rollbackException);
+    assertTrue(rollbackException instanceof PSQLException);
   }
 
   private static class Rollback extends Thread {

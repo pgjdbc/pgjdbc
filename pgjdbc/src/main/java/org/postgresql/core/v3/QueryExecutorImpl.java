@@ -312,11 +312,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           handler.handleWarning(receiveNoticeResponse());
         } else if (pgStream.peekChar() == 'E') {
           pgStream.receiveChar();
-          handler.handleError(receiveErrorResponse());
+          throw receiveErrorResponse();
         }
       }
-    }  catch ( Exception ex ) {
-      ex.printStackTrace();
+    }  catch ( IOException ex ) {
+      throw new SQLException(ex);
     }
     if (parameters == null) {
       parameters = SimpleQuery.NO_PARAMETERS;
