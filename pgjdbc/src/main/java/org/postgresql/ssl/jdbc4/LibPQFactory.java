@@ -38,10 +38,10 @@ public class LibPQFactory extends org.postgresql.ssl.LibPQFactory implements Hos
   /**
    * Verifies if given hostname matches pattern.
    *
-   * @deprecated use {@link PGjdbcHostnameVerifier}
    * @param hostname input hostname
    * @param pattern domain name pattern
    * @return true when domain matches pattern
+   * @deprecated use {@link PGjdbcHostnameVerifier}
    */
   @Deprecated
   public static boolean verifyHostName(String hostname, String pattern) {
@@ -68,11 +68,11 @@ public class LibPQFactory extends org.postgresql.ssl.LibPQFactory implements Hos
    * the certificate will not match subdomains. If the connection is made using an IP address
    * instead of a hostname, the IP address will be matched (without doing any DNS lookups).
    *
-   * @deprecated use PgjdbcHostnameVerifier
    * @param hostname Hostname or IP address of the server.
    * @param session The SSL session.
    * @return true if the certificate belongs to the server, false otherwise.
    * @see PGjdbcHostnameVerifier
+   * @deprecated use PgjdbcHostnameVerifier
    */
   @Deprecated
   public boolean verify(String hostname, SSLSession session) {
