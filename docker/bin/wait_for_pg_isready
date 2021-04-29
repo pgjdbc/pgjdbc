@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper script to wait for a Postgresql server to startup.
+#
+# Environment variables to control wait time:
+#
+#     PG_ISREADY_MAX_WAIT_SECONDS - Maximum wait time in seconds (Default 60)
+#     PG_ISREADY_SLEEP_SECONDS    - Sleep time in seconds per iteration (Default 1)
+#
+# Any command line arguments are passed as-is to pg_isready
+#
+# To wait for up to 60 seconds:
+#
+#     wait_for_pg_isready
+#
+# To wait for up to 15 seconds with additional pg_isready options:
+#
+#    PG_ISREADY_MAX_WAIT_SECONDS=15 wait_for_pg_isready -h localhost -p 12345
+#
+# TO sleep for 5 seconds per iteration:
+#
+#    PG_ISREADY_SLEEP_SECONDS=5 wait_for_pg_isready
+
+err () {
+    echo "$@" 1>&2
+    exit 1
+}
+
+utc_seconds () {
+    date -u +%s
+}
+
+main () {
+    local max_wait_seconds="${PG_ISREADY_MAX_WAIT_SECONDS:-60}"
+    local sleep_seconds="${PG_ISREADY_SLEEP_SECONDS:-1}"
+
+    local positive_int_regex='^[1-9][0-9]*$'
+    [[ "${max_wait_seconds}" =~ ${positive_int_regex} ]] || err "Invalid PG_ISREADY_MAX_WAIT_SECONDS: ${PG_ISREADY_MAX_WAIT_SECONDS}"
+    [[ "${sleep_seconds}" =~ ${positive_int_regex} ]] || err "Invalid PG_ISREADY_SLEEP_SECONDS: ${PG_ISREADY_SLEEP_SECONDS}"
+
+    local started_at=$(utc_seconds)
+    while :;
+    do
+        if pg_isready "$@"; then
+            exit 0
+        fi
+        local elapsed=$(( $(utc_seconds) - ${started_at} ))
+        [[ "${elapsed}" -le "${max_wait_seconds}" ]] || err "Max wait time exceeeded"
+        sleep "${sleep_seconds}"
+    done
+}
+
+main "$@"
