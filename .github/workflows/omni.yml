@@ -22,6 +22,18 @@ jobs:
           ];
 
           const OTHER_JDK_OPTIONS = [
+            // Adopt
+            { version: '8', lts: true, distribution: 'adopt' },
+            { version: '11', lts: true, distribution: 'adopt' },
+
+            // Adopt OpenJ9
+            // TODO: Replace these hard coded versions with something that dynamically picks the most recent
+            { version: '8', lts: true, distribution: 'jdkfile', url: 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10_openj9-0.26.0/OpenJDK8U-jdk_x64_linux_openj9_8u292b10_openj9-0.26.0.tar.gz'},
+            { version: '11', lts: true, distribution: 'jdkfile', url: 'https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.11%2B9_openj9-0.26.0/OpenJDK11U-jdk_x64_linux_openj9_11.0.11_9_openj9-0.26.0.tar.gz'},
+
+            // Amazon Corretto
+            { version: '8', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-8-x64-linux-jdk.tar.gz'},
+            { version: '11', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-11-x64-linux-jdk.tar.gz'},
           ];
 
           const PG_VERSIONS = [
