@@ -16,9 +16,12 @@ jobs:
       run: |
         node -e "
           const JDK_OPTIONS = [
-              { version: '8', lts: true },
-              { version: '11', lts: true },
-              { version: '15', lts: false },
+              { version: '8', lts: true, distribution: 'zulu' },
+              { version: '11', lts: true, distribution: 'zulu' },
+              { version: '15', lts: false, distribution: 'zulu' },
+          ];
+
+          const OTHER_JDK_OPTIONS = [
           ];
 
           const PG_VERSIONS = [
@@ -68,6 +71,8 @@ jobs:
               list.push({
                   os,
                   jdk_version: jdk.version,
+                  jdk_distribution: jdk.distribution,
+                  jdk_url: jdk.url,
                   pg_version,
                   ssl: opts.ssl ?? sslSupported,
                   scram: opts.scram ?? scramSupported,
@@ -135,7 +140,13 @@ jobs:
           });
 
           // TODO: Add latest PG built from source marked as experimental
-          // TODO: Add additional JDK options against latest PG server
+          for(const jdk of OTHER_JDK_OPTIONS) {
+              addItem({
+                  jdk,
+                  pg_version: LATEST_PG_VERSION,
+                  experimental: !jdk.lts,
+              });
+          }
 
           console.log('::set-output name=matrix::' + JSON.stringify({ include: list }));
         "
@@ -165,10 +176,28 @@ jobs:
       run: docker-compose up -d && docker-compose logs
       env:
         PGV: ${{ matrix.pg_version }}
-    - name: 'Set up JDK ${{ matrix.jdk_version }}'
-      uses: actions/setup-java@v1
+
+    # Install built-in JDK
+    - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_distribution }}'
+      uses: actions/setup-java@v2
+      if: ${{ matrix.jdk_distribution != 'jdkfile' }}
       with:
+        distribution: ${{ matrix.jdk_distribution }}
         java-version: ${{ matrix.jdk_version }}
+        architecture: x64
+    # Install custom JDK from URL
+    - name: 'Download JDK ${{ matrix.jdk_distribution }} / ${{ matrix.jdk_version }} from ${{ matrix.jdk_url }}'
+      if: ${{ matrix.jdk_distribution == 'jdkfile' }}
+      run: |
+        jdk_url="${{ matrix.jdk_url }}"
+        wget -nv -O "${{ runner.temp }}/java_package.tar.gz" "${jdk_url}"
+    - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_url }}'
+      uses: actions/setup-java@v2
+      if: ${{ matrix.jdk_distribution == 'jdkfile' }}
+      with:
+        distribution: ${{ matrix.jdk_distribution }}
+        java-version: ${{ matrix.jdk_version }}
+        jdkFile: '${{ runner.temp }}/java_package.tar.gz'
         architecture: x64
 
     - name: Java version
