@@ -46,7 +46,6 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     AdaptiveFetchCacheTest.class,
-    ANTTest.class,
     ArrayTest.class,
     ArraysTest.class,
     ArraysTestSuite.class,
