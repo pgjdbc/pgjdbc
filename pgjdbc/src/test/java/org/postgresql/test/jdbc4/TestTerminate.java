@@ -31,7 +31,7 @@ public class TestTerminate extends BaseTest4 {
     super.setUp();
     TestUtil.createTempTable(con, "bigselect", "i int, t text");
     TestUtil.execute( "insert into bigselect (i, t) values (generate_series(1,10), 'a;kjdf;ajd;akj;kj;kj;j')", con);
-    con2 = TestUtil.openDB();
+    con2 = TestUtil.openPrivilegedDB();
   }
 
   @After
