@@ -228,4 +228,11 @@ public interface BaseConnection extends PGConnection, Connection {
    * @throws SQLException if the class cannot be found or instantiated.
    */
   PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
+
+  /**
+   * Indicates if error details from server used in included in logging and exceptions.
+   *
+   * @return true if should be included and passed on to other exceptions
+   */
+  boolean getLogServerErrorDetail();
 }
