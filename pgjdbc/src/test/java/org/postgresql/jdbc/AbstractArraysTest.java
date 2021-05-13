@@ -942,5 +942,13 @@ public abstract class AbstractArraysTest<A> {
     public boolean hintReadOnly() {
       return false;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean getLogServerErrorDetail() {
+      return false;
+    }
   }
 }
