@@ -6,7 +6,7 @@ on:
       gradle_args:
         description: Gradle arguments
         required: false
-        default: "jandex test"
+        default: "jandex test jacocoReport"
   schedule:
     - cron: "0 6 * * *"
 
@@ -253,3 +253,9 @@ jobs:
         arguments: ${{ matrix.gradle_args }} --no-parallel --no-daemon ${{ github.event.inputs.gradle_args }}
         properties: |
           includeTestTags=${{ matrix.junit_include_tags }}
+
+    - name: 'Upload code coverage'
+      uses: codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27
+      if: ${{ contains(github.event.inputs.gradle_args, 'jacoco') }}
+      with:
+        file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
