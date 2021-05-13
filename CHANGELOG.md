@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
+- Rework OSGi bundle activator so it does not rely on exception message to check DataSourceFactory presence PR [#507](https://github.com/pgjdbc/pgjdbc/pull/507)
 
 ## [42.2.20] (2021-04-19)
 
