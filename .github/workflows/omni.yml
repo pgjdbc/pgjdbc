@@ -7,6 +7,31 @@ on:
         description: Gradle arguments
         required: false
         default: "jandex test jacocoReport"
+      # Filters to limit generated matrix. Empty or "*" values are ignored.
+      matrix_jdk_distribution:
+        description: JDK Distribution (adopt, zulu, ...)
+        required: false
+        default: "*"
+      matrix_jdk_version:
+        description: JDK Version (8, 11, ...)
+        required: false
+        default: "*"
+      matrix_pg_version:
+        description: PostgreSQL Server Version (8.4, 9.0, 9.1, ...)
+        required: false
+        default: "*"
+      matrix_query_mode:
+        description: Query Mode (simple | extended | extendedForPrepared)
+        required: false
+        default: "*"
+      matrix_ssl:
+        description: SSL (true | false)
+        required: false
+        default: "*"
+      matrix_scram:
+        description: SCRAM (true | false)
+        required: false
+        default: "*"
   schedule:
     - cron: "0 6 * * *"
 
@@ -16,6 +41,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+    env:
+      MATRIX_JDK_DISTRIBUTION: '${{ github.event.inputs.matrix_jdk_distribution }}'
+      MATRIX_JDK_VERSION: '${{ github.event.inputs.matrix_jdk_version }}'
+      MATRIX_PG_VERSION: '${{ github.event.inputs.matrix_pg_version }}'
+      MATRIX_QUERY_MODE: '${{ github.event.inputs.matrix_query_mode }}'
+      MATRIX_SCRAM: '${{ github.event.inputs.matrix_scram }}'
+      MATRIX_SSL: '${{ github.event.inputs.matrix_ssl }}'
     steps:
     - id: set-matrix
       run: |
@@ -65,6 +97,15 @@ jobs:
 
           const list = [];
 
+          const matchesMatrixFilter = (name, value) => {
+              const env_value = process.env['MATRIX_' + name];
+              if (!env_value || env_value === '*') {
+                return true;
+              }
+              // TODO: Consider expanding this to do globbing
+              return env_value === ('' + value);
+          };
+
           const addItem = (opts) => {
               const os = 'ubuntu-latest';
               const pg_version = opts.pg_version ?? LATEST_PG_VERSION;
@@ -75,6 +116,19 @@ jobs:
               const isAtLeast = (minVersion) => Number(pg_version) >= Number(minVersion);
               const scramSupported = isAtLeast('10');
               const sslSupported = isAtLeast('9.3');
+
+              const query_mode = opts.query_mode;
+              const ssl = opts.ssl ?? sslSupported;
+              const scram = opts.scram ?? scramSupported;
+
+              if (!matchesMatrixFilter('JDK_DISTRIBUTION', jdk.distribution) ||
+                  !matchesMatrixFilter('JDK_VERSION', jdk.version) ||
+                  !matchesMatrixFilter('PG_VERSION', pg_version) ||
+                  !matchesMatrixFilter('QUERY_MODE', query_mode ?? '') ||
+                  !matchesMatrixFilter('SCRAM', scram) ||
+                  !matchesMatrixFilter('SSL', ssl)) {
+                return;
+              }
 
               const tags = [];
               if (!slow_tests) {
@@ -91,14 +145,14 @@ jobs:
                   jdk_distribution: jdk.distribution,
                   jdk_url: jdk.url,
                   pg_version,
-                  ssl: opts.ssl ?? sslSupported,
-                  scram: opts.scram ?? scramSupported,
+                  ssl,
+                  scram,
                   server_tz: opts.server_tz ?? 'Etc/UTC',
                   slow_tests,
                   replication_tests,
                   junit_include_tags,
                   experimental: opts.experimental ?? false,
-                  query_mode: opts.query_mode,
+                  query_mode,
                   gradle_args: opts.gradle_args ?? '',
               });
           };
@@ -163,6 +217,10 @@ jobs:
                   pg_version: LATEST_PG_VERSION,
                   experimental: !jdk.lts,
               });
+          }
+
+          if (list.length === 0) {
+            throw new Error('Matrix list is empty. Check you matrix filters to ensure they match a valid combination.');
           }
 
           console.log('::set-output name=matrix::' + JSON.stringify({ include: list }));
