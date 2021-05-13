@@ -151,9 +151,11 @@ public class BatchResultHandler extends ResultHandlerBase {
       }
 
       String queryString = "<unknown>";
-      if (resultIndex < queries.length) {
-        queryString = queries[resultIndex].toString(
-            parameterLists == null ? null : parameterLists[resultIndex]);
+      if (pgStatement.getPGConnection().getLogServerErrorDetail()) {
+        if (resultIndex < queries.length) {
+          queryString = queries[resultIndex].toString(
+             parameterLists == null ? null : parameterLists[resultIndex]);
+        }
       }
 
       BatchUpdateException batchException;
