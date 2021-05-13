@@ -2,6 +2,11 @@ name: Omni CI
 
 on:
   workflow_dispatch:
+    inputs:
+      gradle_args:
+        description: Gradle arguments
+        required: false
+        default: "jandex test"
   schedule:
     - cron: "0 6 * * *"
 
@@ -245,6 +250,6 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk${{ matrix.jdk_version }}_pg${{ matrix.pg_version}}
-        arguments: ${{ matrix.gradle_args }} --no-parallel --no-daemon jandex test
+        arguments: ${{ matrix.gradle_args }} --no-parallel --no-daemon ${{ github.event.inputs.gradle_args }}
         properties: |
           includeTestTags=${{ matrix.junit_include_tags }}
