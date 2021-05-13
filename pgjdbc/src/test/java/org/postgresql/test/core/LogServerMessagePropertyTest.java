@@ -15,6 +15,7 @@ import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -34,15 +35,22 @@ public class LogServerMessagePropertyTest {
    * create a temp table with a primary key, run two inserts to generate
    * a duplicate key error, and finally return the exception message.
    */
-  private static String testViolatePrimaryKey(Properties props) throws SQLException {
+  private static String testViolatePrimaryKey(Properties props, boolean batch) throws SQLException {
     Connection conn = TestUtil.openDB(props);
     Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_1));
     try {
       TestUtil.execute(CREATE_TABLE_SQL, conn);
-      // First insert should work
-      TestUtil.execute(INSERT_SQL, conn);
-      // Second insert should throw a duplicate key error
-      TestUtil.execute(INSERT_SQL, conn);
+      if (batch) {
+        PreparedStatement stmt = conn.prepareStatement(INSERT_SQL);
+        stmt.addBatch();
+        stmt.addBatch();
+        stmt.executeBatch();
+      } else {
+        // First insert should work
+        TestUtil.execute(INSERT_SQL, conn);
+        // Second insert should throw a duplicate key error
+        TestUtil.execute(INSERT_SQL, conn);
+      }
     } catch (SQLException e) {
       Assert.assertEquals("SQL state must be for a unique violation", PSQLState.UNIQUE_VIOLATION.getState(), e.getSQLState());
       return e.getMessage();
@@ -52,6 +60,10 @@ public class LogServerMessagePropertyTest {
     // Should never get here:
     Assert.fail("A duplicate key exception should have occurred");
     return null;
+  }
+
+  private static String testViolatePrimaryKey(Properties props) throws SQLException {
+    return testViolatePrimaryKey(props, false);
   }
 
   private static void assertMessageContains(String message, String text) {
@@ -93,6 +105,38 @@ public class LogServerMessagePropertyTest {
     Properties props = new Properties();
     props.setProperty(PGProperty.LOG_SERVER_ERROR_DETAIL.getName(), "false");
     String message = testViolatePrimaryKey(props);
+    assertMessageContains(message, PRIMARY_KEY_NAME);
+    assertMessageDoesNotContain(message, "Detail:");
+    assertMessageDoesNotContain(message, SECRET_VALUE);
+  }
+
+  @Test
+  public void testBatchWithDefaults() throws SQLException {
+    Properties props = new Properties();
+    String message = testViolatePrimaryKey(props, true);
+    assertMessageContains(message, PRIMARY_KEY_NAME);
+    assertMessageContains(message, "Detail:");
+    assertMessageContains(message, SECRET_VALUE);
+  }
+
+  /**
+   * NOTE: This should be the same as the default case as "true" is the default.
+   */
+  @Test
+  public void testBatchExplicitlyEnabled() throws SQLException {
+    Properties props = new Properties();
+    props.setProperty(PGProperty.LOG_SERVER_ERROR_DETAIL.getName(), "true");
+    String message = testViolatePrimaryKey(props, true);
+    assertMessageContains(message, PRIMARY_KEY_NAME);
+    assertMessageContains(message, "Detail:");
+    assertMessageContains(message, SECRET_VALUE);
+  }
+
+  @Test
+  public void testBatchWithLogServerErrorDetailDisabled() throws SQLException {
+    Properties props = new Properties();
+    props.setProperty(PGProperty.LOG_SERVER_ERROR_DETAIL.getName(), "false");
+    String message = testViolatePrimaryKey(props, true);
     assertMessageContains(message, PRIMARY_KEY_NAME);
     assertMessageDoesNotContain(message, "Detail:");
     assertMessageDoesNotContain(message, SECRET_VALUE);
