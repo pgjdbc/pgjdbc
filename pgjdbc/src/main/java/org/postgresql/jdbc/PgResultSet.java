@@ -20,6 +20,7 @@ import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.jdbc.tuple.TupleBuffer;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -106,7 +107,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected final int maxRows; // Maximum rows in this resultset (might be 0).
   protected final int maxFieldSize; // Maximum field size in this resultset (might be 0).
 
-  protected @Nullable List<Tuple> rows; // Current page of results.
+  protected @Nullable TupleBuffer rows; // Current page of results.
   protected int currentRow = -1; // Index into 'rows' of our currrent row (0-based)
   protected int rowOffset; // Offset of row 0 in the actual resultset
   protected @Nullable Tuple thisRow; // copy of the current result row
@@ -144,7 +145,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   PgResultSet(@Nullable Query originalQuery, BaseStatement statement,
-      Field[] fields, List<Tuple> tuples,
+      Field[] fields, TupleBuffer tuples,
       @Nullable ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
       int rsHoldability, boolean adaptiveFetch) throws SQLException {
     // Fail-fast on invalid null inputs
@@ -168,7 +169,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.adaptiveFetch = adaptiveFetch;
 
     // Constructor doesn't have fetch size and can't be sure if fetch size was used so initial value would be the number of rows
-    this.lastUsedFetchSize = tuples.size();
+    // TODO: review how adaptive fetch size integrates with result streaming
+    this.lastUsedFetchSize = statement.getFetchSize();
   }
 
   public java.net.URL getURL(@Positive int columnIndex) throws SQLException {
@@ -838,7 +840,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return false;
     }
 
-    List<Tuple> rows = castNonNull(this.rows, "rows");
+    TupleBuffer rows = castNonNull(this.rows, "rows");
     final int rows_size = rows.size();
 
     if (rows_size == 0) {
@@ -908,7 +910,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   @Override
   public boolean last() throws SQLException {
     checkScrollable();
-    List<Tuple> rows = castNonNull(this.rows, "rows");
+    TupleBuffer rows = castNonNull(this.rows, "rows");
     final int rows_size = rows.size();
     if (rows_size <= 0) {
       return false;
@@ -1011,7 +1013,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
               "Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."),
           PSQLState.INVALID_CURSOR_STATE);
     }
-    List<Tuple> rows = castNonNull(this.rows, "rows");
+    TupleBuffer rows = castNonNull(this.rows, "rows");
     if (rows.isEmpty()) {
       throw new PSQLException(GT.tr("There are no rows in this ResultSet."),
           PSQLState.INVALID_CURSOR_STATE);
@@ -1408,7 +1410,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    List<Tuple> rows = castNonNull(this.rows, "rows");
+    TupleBuffer rows = castNonNull(this.rows, "rows");
     if (isBeforeFirst() || isAfterLast() || rows.isEmpty()) {
       throw new PSQLException(
           GT.tr(
@@ -1934,7 +1936,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public class CursorResultHandler extends ResultHandlerBase {
 
     @Override
-    public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+    public void handleResultRows(Query fromQuery, Field[] fields, TupleBuffer tuples,
         @Nullable ResultCursor cursor) {
       PgResultSet.this.rows = tuples;
       PgResultSet.this.cursor = cursor;
@@ -2018,17 +2020,19 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    if (currentRow + 1 >= rows.size()) {
+    if (rows.advanceTo(currentRow + 1)) {
+      currentRow++;
+    } else {
       ResultCursor cursor = this.cursor;
-      if (cursor == null || (maxRows > 0 && rowOffset + rows.size() >= maxRows)) {
-        currentRow = rows.size();
+      // TODO: fix maxRow condition
+      if (cursor == null || (maxRows > 0 && currentRow >= maxRows)) {
+        currentRow = Integer.MAX_VALUE;
         thisRow = null;
         rowBuffer = null;
         return false; // End of the resultset.
       }
 
       // Ask for some more data.
-      rowOffset += rows.size(); // We are discarding some data.
 
       int fetchRows = fetchSize;
       int adaptiveFetchRows = connection.getQueryExecutor()
@@ -2060,8 +2064,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         rowBuffer = null;
         return false;
       }
-    } else {
-      currentRow++;
     }
 
     initRowBuffer();
@@ -2084,7 +2086,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    */
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
-    rows = null;
+    TupleBuffer rows = this.rows;
+    if (rows != null) {
+      rows.close();
+    }
+    this.rows = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;
     if (cursor != null) {
@@ -3409,7 +3415,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * Used to add rows to an already existing ResultSet that exactly match the existing rows.
    * Currently only used for assembling generated keys from batch statement execution.
    */
-  void addRows(List<Tuple> tuples) {
+  void addRows(TupleBuffer tuples) {
     castNonNull(rows, "rows").addAll(tuples);
   }
 

@@ -876,6 +876,15 @@ public class TestUtil {
     }
   }
 
+  public static void enableAutoCommit(Connection conn) {
+    if (conn != null) {
+      try {
+        conn.setAutoCommit(true);
+      } catch (SQLException ignore) {
+      }
+    }
+  }
+
   public static void recreateLogicalReplicationSlot(Connection connection, String slotName, String outputPlugin)
       throws SQLException, InterruptedException, TimeoutException {
     //drop previous slot

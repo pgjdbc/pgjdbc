@@ -5,11 +5,12 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.tuple.TupleBuffer;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.List;
 
 /**
  * Internal to the driver class, please do not use in the application.
@@ -25,7 +26,7 @@ public class ResultHandlerDelegate implements ResultHandler {
   }
 
   @Override
-  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+  public void handleResultRows(Query fromQuery, Field[] fields, TupleBuffer tuples,
       @Nullable ResultCursor cursor) {
     if (delegate != null) {
       delegate.handleResultRows(fromQuery, fields, tuples, cursor);

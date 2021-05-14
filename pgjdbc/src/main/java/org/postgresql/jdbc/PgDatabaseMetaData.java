@@ -13,6 +13,8 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
+import org.postgresql.jdbc.tuple.TupleBuffer;
+import org.postgresql.jdbc.tuple.TupleBufferFactory;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
@@ -1072,7 +1074,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     int columns = 20;
 
     Field[] f = new Field[columns];
-    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
+    TupleBuffer v = TupleBufferFactory.create(); // The new ResultSet tuple stuff
 
     f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
     f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
@@ -1465,7 +1467,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getCatalogs() throws SQLException {
     Field[] f = new Field[1];
-    List<Tuple> v = new ArrayList<Tuple>();
+    TupleBuffer v = TupleBufferFactory.create();
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
     byte[] @Nullable [] tuple = new byte[1][];
     tuple[0] = connection.encodeString(connection.getCatalog());
@@ -1480,7 +1482,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Arrays.sort(types);
 
     Field[] f = new Field[1];
-    List<Tuple> v = new ArrayList<Tuple>();
+    TupleBuffer v = TupleBufferFactory.create();
     f[0] = new Field("TABLE_TYPE", Oid.VARCHAR);
     for (String type : types) {
       byte[] @Nullable [] tuple = new byte[1][];
@@ -1496,7 +1498,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String columnNamePattern) throws SQLException {
 
     int numberOfFields = 24; // JDBC4
-    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
+    TupleBuffer v = TupleBufferFactory.create(); // The new ResultSet tuple stuff
     Field[] f = new Field[numberOfFields]; // The field descriptors for the new ResultSet
 
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -1707,7 +1709,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getColumnPrivileges(@Nullable String catalog, @Nullable String schema,
       String table, @Nullable String columnNamePattern) throws SQLException {
     Field[] f = new Field[8];
-    List<Tuple> v = new ArrayList<Tuple>();
+    TupleBuffer v = TupleBufferFactory.create();
 
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
     f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
@@ -1792,7 +1794,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getTablePrivileges(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern) throws SQLException {
     Field[] f = new Field[7];
-    List<Tuple> v = new ArrayList<Tuple>();
+    TupleBuffer v = TupleBufferFactory.create();
 
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
     f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
@@ -2027,7 +2029,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String catalog, @Nullable String schema, String table,
       int scope, boolean nullable) throws SQLException {
     Field[] f = new Field[8];
-    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
+    TupleBuffer v = TupleBufferFactory.create(); // The new ResultSet tuple stuff
 
     f[0] = new Field("SCOPE", Oid.INT2);
     f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -2095,7 +2097,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     Field[] f = new Field[8];
-    List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
+    TupleBuffer v = TupleBufferFactory.create(); // The new ResultSet tuple stuff
 
     f[0] = new Field("SCOPE", Oid.INT2);
     f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -2420,10 +2422,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       public int compare(Tuple o1, Tuple o2) {
         int i1 = ByteConverter.bytesToInt(castNonNull(o1.get(18)));
         int i2 = ByteConverter.bytesToInt(castNonNull(o2.get(18)));
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+        return Integer.compare(i1, i2);
       }
     });
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    TupleBuffer tupleBuffer = TupleBufferFactory.create();
+    for (Tuple tuple : v) {
+      tupleBuffer.add(tuple);
+    }
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, tupleBuffer);
   }
 
   public ResultSet getIndexInfo(
@@ -2733,7 +2739,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[2] = new Field("DEFAULT_VALUE", Oid.VARCHAR);
     f[3] = new Field("DESCRIPTION", Oid.VARCHAR);
 
-    List<Tuple> v = new ArrayList<Tuple>();
+    TupleBuffer v = TupleBufferFactory.create();
 
     if (connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
       byte[] @Nullable [] tuple = new byte[4][];
@@ -2818,7 +2824,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     int columns = 17;
 
     Field[] f = new Field[columns];
-    List<Tuple> v = new ArrayList<Tuple>();
+    TupleBuffer v = TupleBufferFactory.create();
 
     f[0] = new Field("FUNCTION_CAT", Oid.VARCHAR);
     f[1] = new Field("FUNCTION_SCHEM", Oid.VARCHAR);

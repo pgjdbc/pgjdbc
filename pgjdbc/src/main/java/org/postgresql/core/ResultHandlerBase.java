@@ -8,11 +8,12 @@ package org.postgresql.core;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.jdbc.tuple.TupleBuffer;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.List;
 
 /**
  * Empty implementation of {@link ResultHandler} interface.
@@ -29,7 +30,7 @@ public class ResultHandlerBase implements ResultHandler {
   private @Nullable SQLWarning lastWarning;
 
   @Override
-  public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
+  public void handleResultRows(Query fromQuery, Field[] fields, TupleBuffer tuples,
       @Nullable ResultCursor cursor) {
   }
 

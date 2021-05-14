@@ -6,11 +6,11 @@
 package org.postgresql.core;
 
 import org.postgresql.PGStatement;
+import org.postgresql.jdbc.tuple.TupleBuffer;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
 
 /**
  * Driver-internal statement interface. Application code should not use this interface.
@@ -24,7 +24,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
-  ResultSet createDriverResultSet(Field[] fields, List<Tuple> tuples) throws SQLException;
+  ResultSet createDriverResultSet(Field[] fields, TupleBuffer tuples) throws SQLException;
 
   /**
    * Create a resultset from data retrieved from the server.
@@ -38,8 +38,8 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
-  ResultSet createResultSet(Query originalQuery, Field[] fields, List<Tuple> tuples,
-      ResultCursor cursor) throws SQLException;
+  ResultSet createResultSet(Query originalQuery, Field[] fields, TupleBuffer tuples,
+                            ResultCursor cursor) throws SQLException;
 
   /**
    * Execute a query, passing additional query flags.
@@ -72,4 +72,16 @@ public interface BaseStatement extends PGStatement, Statement {
    * @throws SQLException if something goes wrong.
    */
   boolean executeWithFlags(int flags) throws SQLException;
+
+  /**
+   * Execute a query, passing additional query flags.
+   *
+   * @param sql the query to execute (JDBC-style query)
+   * @param flags additional {@link QueryExecutor} flags for execution; these are bitwise-ORed into
+   *        the default flags.
+   * @return the new ResultSet
+   * @throws SQLException if something goes wrong.
+   */
+  ResultSet executeQueryWithFlags(String sql, int flags) throws SQLException;
+
 }

@@ -13,6 +13,8 @@ import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Tuple;
 import org.postgresql.jdbc.ArrayDecoding.PgArrayList;
+import org.postgresql.jdbc.tuple.TupleBuffer;
+import org.postgresql.jdbc.tuple.TupleBufferFactory;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
@@ -24,7 +26,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -191,7 +192,7 @@ public class PgArray implements java.sql.Array {
     if (count > 0 && dimensions > 0) {
       dims[0] = Math.min(count, dims[0]);
     }
-    List<Tuple> rows = new ArrayList<Tuple>();
+    TupleBuffer rows = TupleBufferFactory.create();
     Field[] fields = new Field[2];
 
     storeValues(fieldBytes, rows, fields, elementOid, dims, pos, 0, index);
@@ -201,7 +202,7 @@ public class PgArray implements java.sql.Array {
     return stat.createDriverResultSet(fields, rows);
   }
 
-  private int storeValues(byte[] fieldBytes, List<Tuple> rows, Field[] fields, int elementOid,
+  private int storeValues(byte[] fieldBytes, TupleBuffer rows, Field[] fields, int elementOid,
       final int[] dims,
       int pos, final int thisDimension, int index) throws SQLException {
     // handle an empty array
@@ -372,7 +373,7 @@ public class PgArray implements java.sql.Array {
           PSQLState.DATA_ERROR);
     }
 
-    List<Tuple> rows = new ArrayList<Tuple>();
+    TupleBuffer rows = TupleBufferFactory.create();
 
     Field[] fields = new Field[2];
 
