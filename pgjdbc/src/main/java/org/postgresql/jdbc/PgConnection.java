@@ -92,7 +92,7 @@ public class PgConnection implements BaseConnection {
   private enum ReadOnlyBehavior {
     ignore,
     transaction,
-    always;
+    always
   }
 
   //

@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import java.util.regex.Pattern;
 
 public class PgStatement implements Statement, BaseStatement {
   private static final String[] NO_RETURNING_COLUMNS = new String[0];
@@ -1292,4 +1293,131 @@ public class PgStatement implements Statement, BaseStatement {
     return adaptiveFetch;
   }
 
+  /**
+   * Returns a SQL identifier. If {@code identifier} is a simple SQL identifier:
+   * <ul>
+   * <li>Return the original value if {@code alwaysQuote} is
+   * {@code false}</li>
+   * <li>Return a delimited identifier if {@code alwaysQuote} is
+   * {@code true}</li>
+   * </ul>
+   * <p>
+   * If {@code identifier} is not a simple SQL identifier, {@code identifier} will be
+   * enclosed in double quotes if not already present. If the datasource does
+   * not support double quotes for delimited identifiers, the
+   * identifier should be enclosed by the string returned from
+   * {@link DatabaseMetaData#getIdentifierQuoteString}.  If the datasource
+   * does not support delimited identifiers, a
+   * {@code SQLFeatureNotSupportedException} should be thrown.
+   * <p>
+   * A {@code SQLException} will be thrown if {@code identifier} contains any
+   * characters invalid in a delimited identifier or the identifier length is
+   * invalid for the datasource.
+   *
+   * @param identifier  a SQL identifier
+   * @param alwaysQuote indicates if a simple SQL identifier should be
+   *                    returned as a quoted identifier
+   * @return A simple SQL identifier or a delimited identifier
+   * @throws SQLException                    if identifier is not a valid identifier
+   * @throws SQLFeatureNotSupportedException if the datasource does not support
+   *                                         delimited identifiers
+   * @throws NullPointerException            if identifier is {@code null}
+   * @implSpec The default implementation uses the following criteria to
+   * determine a valid simple SQL identifier:
+   * <ul>
+   * <li>The string is not enclosed in double quotes</li>
+   * <li>The first character is an alphabetic character from a through z, or
+   * from A through Z</li>
+   * <li>The name only contains alphanumeric characters or the character "_"</li>
+   * </ul>
+   * <p>
+   * The default implementation will throw a {@code SQLException} if:
+   * <ul>
+   * <li>{@code identifier} contains a {@code null} character or double quote and is not
+   * a simple SQL identifier.</li>
+   * <li>The length of {@code identifier} is less than 1 or greater than 128 characters
+   * </ul>
+   * <blockquote>
+   * <table class="striped" >
+   * <caption>Examples of the conversion:</caption>
+   * <thead>
+   * <tr>
+   * <th scope="col">identifier</th>
+   * <th scope="col">alwaysQuote</th>
+   * <th scope="col">Result</th></tr>
+   * </thead>
+   * <tbody>
+   * <tr>
+   * <th scope="row">Hello</th>
+   * <td>false</td>
+   * <td>Hello</td>
+   * </tr>
+   * <tr>
+   * <th scope="row">Hello</th>
+   * <td>true</td>
+   * <td>"Hello"</td>
+   * </tr>
+   * <tr>
+   * <th scope="row">G'Day</th>
+   * <td>false</td>
+   * <td>"G'Day"</td>
+   * </tr>
+   * <tr>
+   * <th scope="row">"Bruce Wayne"</th>
+   * <td>false</td>
+   * <td>"Bruce Wayne"</td>
+   * </tr>
+   * <tr>
+   * <th scope="row">"Bruce Wayne"</th>
+   * <td>true</td>
+   * <td>"Bruce Wayne"</td>
+   * </tr>
+   * <tr>
+   * <th scope="row">GoodDay$</th>
+   * <td>false</td>
+   * <td>"GoodDay$"</td>
+   * </tr>
+   * <tr>
+   * <th scope="row">Hello"World</th>
+   * <td>false</td>
+   * <td>SQLException</td>
+   * </tr>
+   * <tr>
+   * <th scope="row">"Hello"World"</th>
+   * <td>false</td>
+   * <td>SQLException</td>
+   * </tr>
+   * </tbody>
+   * </table>
+   * </blockquote>
+   * @implNote JDBC driver implementations may need to provide their own implementation
+   * of this method in order to meet the requirements of the underlying
+   * datasource.
+   * @since 9
+   */
+  @Override
+  public String enquoteIdentifier(String identifier, boolean alwaysQuote) throws SQLException {
+    int len = identifier.length();
+    /*
+     identifiers in Postgres can be longer if NAMEDATALEN has been changed at compile time,
+     but the default is 63
+     */
+    if (len < 1 || len > 63) {
+      throw new SQLException("Invalid length for " + identifier);
+    }
+    /*
+    The rest is just copied from the default implementation
+     */
+    if (Pattern.compile("[\\p{Alpha}][\\p{Alnum}_]*").matcher(identifier).matches()) {
+      return alwaysQuote ?  "\"" + identifier + "\"" : identifier;
+    }
+    if (identifier.matches("^\".+\"$")) {
+      identifier = identifier.substring(1, len - 1);
+    }
+    if (Pattern.compile("[^\u0000\"]+").matcher(identifier).matches()) {
+      return "\"" + identifier + "\"";
+    } else {
+      throw new SQLException("Invalid name");
+    }
+  }
 }

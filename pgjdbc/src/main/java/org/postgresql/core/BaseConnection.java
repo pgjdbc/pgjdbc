@@ -16,9 +16,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.dataflow.qual.Pure;
 
+import javax.sql.PooledConnection;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+
 import java.util.TimerTask;
 
 /**
@@ -228,4 +232,227 @@ public interface BaseConnection extends PGConnection, Connection {
    * @throws SQLException if the class cannot be found or instantiated.
    */
   PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
+
+  /**
+   * Hints to the driver that a request, an independent unit of work, is beginning
+   * on this connection. Each request is independent of all other requests
+   * with regard to state local to the connection either on the client or the
+   * server. Work done between {@code beginRequest}, {@code endRequest}
+   * pairs does not depend on any other work done on the connection either as
+   * part of another request or outside of any request. A request may include multiple
+   * transactions. There may be dependencies on committed database state as
+   * that is not local to the connection.
+   * <p>
+   * Local state is defined as any state associated with a Connection that is
+   * local to the current Connection either in the client or the database that
+   * is not transparently reproducible.
+   * <p>
+   * Calls to {@code beginRequest} and {@code endRequest}  are not nested.
+   * Multiple calls to {@code beginRequest} without an intervening call
+   * to {@code endRequest} is not an error. The first {@code beginRequest} call
+   * marks the start of the request and subsequent calls are treated as
+   * a no-op
+   * <p>
+   * Use of {@code beginRequest} and {@code endRequest} is optional, vendor
+   * specific and should largely be transparent. In particular
+   * implementations may detect conditions that indicate dependence on
+   * other work such as an open transaction. It is recommended though not
+   * required that implementations throw a {@code SQLException} if there is an active
+   * transaction and {@code beginRequest} is called.
+   * Using these methods may improve performance or provide other benefits.
+   * Consult your vendors documentation for additional information.
+   * <p>
+   * It is recommended to
+   * enclose each unit of work in {@code beginRequest}, {@code endRequest}
+   * pairs such that there is no open transaction at the beginning or end of
+   * the request and no dependency on local state that crosses request
+   * boundaries. Committed database state is not local.
+   *
+   * @throws SQLException if an error occurs
+   * @implSpec The default implementation is a no-op.
+   * @apiNote This method is to be used by Connection pooling managers.
+   * <p>
+   * The pooling manager should call {@code beginRequest} on the underlying connection
+   * prior to returning a connection to the caller.
+   * <p>
+   * The pooling manager does not need to call {@code beginRequest} if:
+   * <ul>
+   * <li>The connection pool caches {@code PooledConnection} objects</li>
+   * <li>Returns a logical connection handle when {@code getConnection} is
+   * called by the application</li>
+   * <li>The logical {@code Connection} is closed by calling
+   * {@code Connection.close} prior to returning the {@code PooledConnection}
+   * to the cache.</li>
+   * </ul>
+   * @see endRequest
+   * @see PooledConnection
+   * @since 9
+   */
+  @Override
+  default void beginRequest() throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
+
+  /**
+   * Hints to the driver that a request, an independent unit of work,
+   * has completed. Calls to {@code beginRequest}
+   * and {@code endRequest} are not nested. Multiple
+   * calls to {@code endRequest} without an intervening call to {@code beginRequest}
+   * is not an error. The first {@code endRequest} call
+   * marks the request completed and subsequent calls are treated as
+   * a no-op. If {@code endRequest} is called without an initial call to
+   * {@code beginRequest} is a no-op.
+   * <p>
+   * The exact behavior of this method is vendor specific. In particular
+   * implementations may detect conditions that indicate dependence on
+   * other work such as an open transaction. It is recommended though not
+   * required that implementations throw a {@code SQLException} if there is an active
+   * transaction and {@code endRequest} is called.
+   *
+   * @throws SQLException if an error occurs
+   * @implSpec The default implementation is a no-op.
+   * @apiNote This method is to be used by Connection pooling managers.
+   * <p>
+   * The pooling manager should call {@code endRequest} on the underlying connection
+   * when the applications returns the connection back to the connection pool.
+   * <p>
+   * The pooling manager does not need to call {@code endRequest} if:
+   * <ul>
+   * <li>The connection pool caches {@code PooledConnection} objects</li>
+   * <li>Returns a logical connection handle when {@code getConnection} is
+   * called by the application</li>
+   * <li>The logical {@code Connection} is closed by calling
+   * {@code Connection.close} prior to returning the {@code PooledConnection}
+   * to the cache.</li>
+   * </ul>
+   * @see beginRequest
+   * @see PooledConnection
+   * @since 9
+   */
+  @Override
+  default void endRequest() throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
+
+  /**
+   * Sets and validates the sharding keys for this connection. A {@code null}
+   * value may be specified for the sharding Key. The validity
+   * of a {@code null} sharding key is vendor-specific. Consult your vendor&#39;s
+   * documentation for additional information.
+   *
+   * @param shardingKey      the sharding key to be validated against this connection.
+   *                         The sharding key may be {@code null}
+   * @param superShardingKey the super sharding key to be validated against this
+   *                         connection. The super sharding key may be {@code null}.
+   * @param timeout          time in seconds before which the validation process is expected to
+   *                         be completed, otherwise the validation process is aborted. A value
+   *                         of 0 indicates
+   *                         the validation process will not time out.
+   * @return true if the connection is valid and the sharding keys are valid
+   * and set on this connection; false if the sharding keys are not valid or
+   * the timeout period expires before the operation completes.
+   * @throws SQLException                    if an error occurs while performing this validation;
+   *                                         a {@code superSharedingKey} is specified
+   *                                         without a {@code shardingKey};
+   *                                         this method is called on a closed {@code connection}
+   *                                         ; or
+   *                                         the {@code timeout} value is negative.
+   * @throws SQLFeatureNotSupportedException if the driver does not support sharding
+   * @implSpec The default implementation will throw a
+   * {@code SQLFeatureNotSupportedException}.
+   * @apiNote This method validates that the sharding keys are valid for the
+   * {@code Connection}. The timeout value indicates how long the driver
+   * should wait for the {@code Connection} to verify that the sharding key
+   * is valid before {@code setShardingKeyIfValid} returns false.
+   * @see ShardingKey
+   * @see ShardingKeyBuilder
+   * @since 9
+   */
+  @Override
+  default boolean setShardingKeyIfValid(ShardingKey shardingKey, ShardingKey superShardingKey,
+      int timeout) throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
+
+  /**
+   * Sets and validates the sharding key for this connection. A {@code null}
+   * value may be specified for the sharding Key. The validity
+   * of a {@code null} sharding key is vendor-specific. Consult your vendor&#39;s
+   * documentation for additional information.
+   *
+   * @param shardingKey the sharding key to be validated against this connection.
+   *                    The sharding key may be {@code null}
+   * @param timeout     time in seconds before which the validation process is expected to
+   *                    be completed,else the validation process is aborted. A value of 0 indicates
+   *                    the validation process will not time out.
+   * @return true if the connection is valid and the sharding key is valid to be
+   * set on this connection; false if the sharding key is not valid or
+   * the timeout period expires before the operation completes.
+   * @throws SQLException                    if there is an error while performing this validation;
+   *                                         this method is called on a closed {@code connection};
+   *                                         or the {@code timeout} value is negative.
+   * @throws SQLFeatureNotSupportedException if the driver does not support sharding
+   * @implSpec The default implementation will throw a
+   * {@code SQLFeatureNotSupportedException}.
+   * @apiNote This method validates  that the sharding key is valid for the
+   * {@code Connection}. The timeout value indicates how long the driver
+   * should wait for the {@code Connection} to verify that the sharding key
+   * is valid before {@code setShardingKeyIfValid} returns false.
+   * @see ShardingKey
+   * @see ShardingKeyBuilder
+   * @since 9
+   */
+  @Override
+  default boolean setShardingKeyIfValid(ShardingKey shardingKey, int timeout) throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
+
+  /**
+   * Specifies a shardingKey and superShardingKey to use with this Connection
+   *
+   * @param shardingKey      the sharding key to set on this connection. The sharding
+   *                         key may be {@code null}
+   * @param superShardingKey the super sharding key to set on this connection.
+   *                         The super sharding key may be {@code null}
+   * @throws SQLException                    if an error  occurs setting the sharding keys;
+   *                                         this method is called on a closed {@code connection}
+   *                                         ; or
+   *                                         a {@code superSharedingKey} is specified without a
+   *                                         {@code shardingKey}
+   * @throws SQLFeatureNotSupportedException if the driver does not support sharding
+   * @implSpec The default implementation will throw a
+   * {@code SQLFeatureNotSupportedException}.
+   * @apiNote This method sets the specified sharding keys but does not require a
+   * round trip to the database to validate that the sharding keys are valid
+   * for the {@code Connection}.
+   * @see ShardingKey
+   * @see ShardingKeyBuilder
+   * @since 9
+   */
+  @Override
+  default void setShardingKey(ShardingKey shardingKey, ShardingKey superShardingKey) throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
+
+  /**
+   * Specifies a shardingKey to use with this Connection
+   *
+   * @param shardingKey the sharding key to set on this connection. The sharding
+   *                    key may be {@code null}
+   * @throws SQLException                    if an error occurs setting the sharding key; or
+   *                                         this method is called on a closed {@code connection}
+   * @throws SQLFeatureNotSupportedException if the driver does not support sharding
+   * @implSpec The default implementation will throw a
+   * {@code SQLFeatureNotSupportedException}.
+   * @apiNote This method sets the specified sharding key but does not require a
+   * round trip to the database to validate that the sharding key is valid
+   * for the {@code Connection}.
+   * @see ShardingKey
+   * @see ShardingKeyBuilder
+   * @since 9
+   */
+  @Override
+  default void setShardingKey(ShardingKey shardingKey) throws SQLException {
+    throw new SQLFeatureNotSupportedException();
+  }
 }

@@ -72,4 +72,5 @@ public interface BaseStatement extends PGStatement, Statement {
    * @throws SQLException if something goes wrong.
    */
   boolean executeWithFlags(int flags) throws SQLException;
+
 }
