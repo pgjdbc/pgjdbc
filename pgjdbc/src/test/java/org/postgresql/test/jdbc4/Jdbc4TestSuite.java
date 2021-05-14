@@ -24,6 +24,7 @@ import org.junit.runners.Suite;
     DatabaseMetaDataTest.class,
     IsValidTest.class,
     JsonbTest.class,
+    LobVarlenaTest.class,
     LogTest.class,
     PGCopyInputStreamTest.class,
     UUIDTest.class,

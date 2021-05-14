@@ -959,5 +959,20 @@ public abstract class AbstractArraysTest<A> {
       throw new UnsupportedOperationException();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean getClobAsText() {
+      return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean getBlobAsBytea() {
+      return false;
+    }
   }
 }

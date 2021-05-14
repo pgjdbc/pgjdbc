@@ -137,6 +137,8 @@ In addition to the standard connection parameters the driver supports a number o
 | adaptiveFetchMinimum          | Integer | 0       | Specifies minimum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go below this value. 
 | adaptiveFetchMaximum          | Integer | -1      | Specifies maximum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go above this value. Any negative number set as adaptiveFetchMaximum is used by adaptiveFetch as infinity number of rows.
 | localSocketAddress            | String  | null    | Hostname or IP address given to explicitly configure the interface that the driver will bind the client side of the TCP/IP connection to when connecting.
+| blobAsBytea                   | Boolean | false   | Treat Blobs as bytea fields instead of as LargeObjects |
+| clobAsText                    | Boolean | false  | Treat Clobs as text fields instead of as LargeObjects |
 
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)

@@ -864,6 +864,38 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true iff using bytea for Blob API instead of LOs
+   * @see PGProperty#BLOB_AS_BYTEA
+   */
+  public boolean getBlobAsBytea() {
+    return PGProperty.BLOB_AS_BYTEA.getBoolean(properties);
+  }
+
+  /**
+   * @param useBytea use bytea type for Blob API instead of LOs
+   * @see PGProperty#BLOB_AS_BYTEA
+   */
+  public void setBlobAsBytea(boolean useBytea) {
+    PGProperty.BLOB_AS_BYTEA.set(properties, useBytea);
+  }
+
+  /**
+   * @return true iff using text for Clob API instead of LOs
+   * @see PGProperty#CLOB_AS_TEXT
+   */
+  public boolean getClobAsText() {
+    return PGProperty.CLOB_AS_TEXT.getBoolean(properties);
+  }
+
+  /**
+   * @param useText use text type for Clob API instead of LOs
+   * @see PGProperty#CLOB_AS_TEXT
+   */
+  public void setClobAsText(boolean useText) {
+    PGProperty.CLOB_AS_TEXT.set(properties, useText);
+  }
+
+  /**
    * @return true if column sanitizer is disabled
    * @see PGProperty#DISABLE_COLUMN_SANITISER
    */
