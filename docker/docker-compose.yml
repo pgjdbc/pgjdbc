@@ -18,8 +18,8 @@ services:
       - SCRAM=${SCRAM:-yes}
       - TZ=${TZ:-Etc/UTC}
       - FSYNC=${FSYNC:-no}
-      - SYNC_COMMIT="${SYNC_COMMIT:-no}"
-      - FULL_PAGE_WRITES="${FULL_PAGE_WRITES:-no}"
+      - SYNC_COMMIT=${SYNC_COMMIT:-no}
+      - FULL_PAGE_WRITES=${FULL_PAGE_WRITES:-no}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=
       - POSTGRES_DB=postgres
