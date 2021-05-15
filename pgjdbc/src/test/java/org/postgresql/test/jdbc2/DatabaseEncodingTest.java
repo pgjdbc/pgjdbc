@@ -40,7 +40,7 @@ public class DatabaseEncodingTest {
   @Before
   public void setUp() throws Exception {
     con = TestUtil.openDB();
-    TestUtil.createTable(con, "testdbencoding",
+    TestUtil.createTempTable(con, "testdbencoding",
         "unicode_ordinal integer primary key not null, unicode_string varchar(" + STEP + ")");
     // disabling auto commit makes the test run faster
     // by not committing each insert individually.
@@ -51,7 +51,6 @@ public class DatabaseEncodingTest {
   @After
   public void tearDown() throws Exception {
     con.setAutoCommit(true);
-    TestUtil.dropTable(con, "testdbencoding");
     TestUtil.closeDB(con);
   }
 
