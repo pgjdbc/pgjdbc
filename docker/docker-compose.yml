@@ -20,6 +20,8 @@ services:
       - FSYNC=${FSYNC:-no}
       - SYNC_COMMIT=${SYNC_COMMIT:-no}
       - FULL_PAGE_WRITES=${FULL_PAGE_WRITES:-no}
+      - AUTO_VACCUUM=${AUTO_VACCUUM:-no}
+      - TRACK_COUNTS=${TRACK_COUNTS:-no}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=
       - POSTGRES_DB=postgres

@@ -26,6 +26,14 @@ main () {
         add_pg_opt "-c full_page_writes=off"
     fi
 
+    if is_option_disabled "${AUTO_VACCUUM}"; then
+        add_pg_opt "-c autovacuum=off"
+    fi
+
+    if is_option_disabled "${TRACK_COUNTS}"; then
+        add_pg_opt "-c track_counts=off"
+    fi
+
     # Customize pg_hba.conf
     local pg_hba="/home/certdir/pg_hba.conf"
     sed -i 's/127.0.0.1\/32/0.0.0.0\/0/g' "${pg_hba}"
