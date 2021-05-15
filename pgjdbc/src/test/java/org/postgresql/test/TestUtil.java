@@ -313,6 +313,7 @@ public class TestUtil {
     PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
     properties.setProperty("user", getPrivilegedUser());
     properties.setProperty("password", getPrivilegedPassword());
+    properties.setProperty("options", "-c synchronous_commit=on");
     return DriverManager.getConnection(getURL(), properties);
 
   }
@@ -326,6 +327,7 @@ public class TestUtil {
     PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
     properties.setProperty("username", TestUtil.getPrivilegedUser());
     properties.setProperty("password", TestUtil.getPrivilegedPassword());
+    properties.setProperty("options", "-c synchronous_commit=on");
     return TestUtil.openDB(properties);
   }
 
