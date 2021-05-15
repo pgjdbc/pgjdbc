@@ -32,6 +32,10 @@ on:
         description: SCRAM (true | false)
         required: false
         default: "*"
+      matrix_slow_tests:
+        description: Slow Tests (default | always | never)
+        required: false
+        default: default
   schedule:
     - cron: "0 6 * * *"
 
@@ -48,10 +52,20 @@ jobs:
       MATRIX_QUERY_MODE: '${{ github.event.inputs.matrix_query_mode }}'
       MATRIX_SCRAM: '${{ github.event.inputs.matrix_scram }}'
       MATRIX_SSL: '${{ github.event.inputs.matrix_ssl }}'
+      MATRIX_SLOW_TESTS: '${{ github.event.inputs.matrix_slow_tests }}'
     steps:
     - id: set-matrix
       run: |
         node -e "
+          const DEFAULT_SLOW_TESTS = (() => {
+            if (process.env.MATRIX_SLOW_TESTS === 'always') {
+              return true;
+            } else if (process.env.MATRIX_SLOW_TESTS === 'never') {
+              return false;
+            }
+            return undefined;
+          })();
+
           const JDK_OPTIONS = [
               { version: '8', lts: true, distribution: 'zulu' },
               { version: '11', lts: true, distribution: 'zulu' },
@@ -110,7 +124,7 @@ jobs:
               const os = 'ubuntu-latest';
               const pg_version = opts.pg_version ?? LATEST_PG_VERSION;
               const jdk = opts.jdk ?? LATEST_JDK;
-              const slow_tests = opts.slow_tests ?? false;
+              const slow_tests = DEFAULT_SLOW_TESTS ?? opts.slow_tests ?? false;
               const replication_tests = opts.replication_tests ?? false;
 
               const isAtLeast = (minVersion) => Number(pg_version) >= Number(minVersion);
@@ -223,7 +237,14 @@ jobs:
             throw new Error('Matrix list is empty. Check you matrix filters to ensure they match a valid combination.');
           }
 
-          console.log('::set-output name=matrix::' + JSON.stringify({ include: list }));
+          const toKey = (item) => JSON.stringify(Object.entries(item).sort())
+          const include = list.filter((item, i) => {
+            const key = toKey(item);
+            // Deduplicate by picking only the first entry matching this key
+            return i === list.findIndex((other) => key === toKey(other));
+          });
+
+          console.log('::set-output name=matrix::' + JSON.stringify({ include }));
         "
 
   test:
