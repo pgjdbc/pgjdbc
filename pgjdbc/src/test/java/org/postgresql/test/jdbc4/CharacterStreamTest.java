@@ -228,6 +228,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
+  @Category(SlowTests.class)
   public void testKnownLongLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamKnownLongLength(data);
@@ -235,6 +236,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testUnknownLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamUnknownLength(data);
