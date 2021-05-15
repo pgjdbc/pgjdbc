@@ -1097,14 +1097,8 @@ public class TestUtil {
   }
 
   public static void execute(String sql, Connection connection) throws SQLException {
-    Statement stmt = connection.createStatement();
-    try {
+    try (Statement stmt = connection.createStatement()) {
       stmt.execute(sql);
-    } finally {
-      try {
-        stmt.close();
-      } catch (SQLException e) {
-      }
     }
   }
 }
