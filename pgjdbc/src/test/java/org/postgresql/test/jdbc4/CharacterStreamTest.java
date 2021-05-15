@@ -16,7 +16,6 @@ import org.junit.experimental.categories.Category;
 import java.io.Reader;
 import java.io.StringReader;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLFeatureNotSupportedException;
 
 public class CharacterStreamTest extends BaseTest4 {
@@ -74,22 +73,8 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   private void validateContent(String data) throws Exception {
-    PreparedStatement selectPS = con.prepareStatement(_select);
-    try {
-      ResultSet rs = selectPS.executeQuery();
-      try {
-        if (rs.next()) {
-          String actualData = rs.getString(1);
-          Assert.assertEquals("Sent and received data are not the same", data, actualData);
-        } else {
-          Assert.fail("query returned zero rows");
-        }
-      } finally {
-        TestUtil.closeQuietly(rs);
-      }
-    } finally {
-      TestUtil.closeQuietly(selectPS);
-    }
+    String actualData = TestUtil.queryForString(con, _select);
+    Assert.assertEquals("Sent and received data are not the same", data, actualData);
   }
 
   private String getTestData(int size) {
