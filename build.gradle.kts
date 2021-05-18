@@ -527,6 +527,14 @@ allprojects {
                         includeTags.add(includeTestTags)
                     }
                 }
+                inputs.file("../build.properties")
+                if (file("../build.local.properties").exists()) {
+                    inputs.file("../build.local.properties")
+                }
+                inputs.file("../ssltest.properties")
+                if (file("../ssltest.local.properties").exists()) {
+                    inputs.file("../ssltest.local.properties")
+                }
                 testLogging {
                     showStandardStreams = true
                 }
