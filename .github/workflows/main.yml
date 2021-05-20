@@ -42,7 +42,7 @@ jobs:
           })"
 
   code-style:
-    name: 'Code style - Ubuntu / JDK 8'
+    name: 'Code style'
     runs-on: ubuntu-latest
     env:
       ACTIONS_STEP_DEBUG: true
@@ -82,7 +82,7 @@ jobs:
         arguments: autostyleCheck checkstyleAll jandex
 
   build-test:
-    name: 'Build and Test - Ubuntu, PG latest (JDK ${{ matrix.jdk }}) running on ${{ matrix.os }}'
+    name: 'Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
@@ -155,7 +155,7 @@ jobs:
           port=${{ job.services.postgres.ports['5432'] }}
 
   linux-checkerframework:
-    name: 'CheckerFramework (JDK 11)'
+    name: 'CheckerFramework'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -219,7 +219,7 @@ jobs:
           mvn --batch-mode --fail-at-end --show-version verify
 
   gss-encryption:
-    name: 'GSS Build and Test - Ubuntu (JDK ${{matrix.jdk}}) running on ${{matrix.os}}'
+    name: 'GSS Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
