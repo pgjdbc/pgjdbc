@@ -54,9 +54,9 @@ jobs:
         const DEFAULT_TEST_GROUP = process.env.MATRIX_DEFAULT_TEST_GROUP || 'fast';
 
         const JDK_OPTIONS = [
-            { version: '8', lts: true, distribution: 'zulu' },
-            { version: '11', lts: true, distribution: 'zulu' },
-            { version: '15', lts: false, distribution: 'zulu' },
+            { group: 'Zulu', version: '8', lts: true, distribution: 'zulu' },
+            { group: 'Zulu', version: '11', lts: true, distribution: 'zulu' },
+            { group: 'Zulu', version: '15', lts: false, distribution: 'zulu' },
         ];
 
         const OTHER_JDK_OPTIONS = [
@@ -157,6 +157,7 @@ jobs:
                   `${jdk.group} ${jdk.version} x PG ${pg_version}`
                   ].filter(x => x).join(' - '),
                 os,
+                jdk_group: jdk.group,
                 jdk_version: jdk.version,
                 jdk_distribution: jdk.distribution,
                 jdk_url: jdk.url,
@@ -344,7 +345,8 @@ jobs:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
-        job-id: jdk${{ matrix.jdk_version }}_pg${{ matrix.pg_version}}
+        # Separate cache for each JDK distribution and version
+        job-id: jdk${{ matrix.jdk_version}}_${{ matrix.jdk_group }}
         arguments: --no-parallel --no-daemon --scan jandex test jacocoReport
         properties: |
           includeTestTags=${{ matrix.junit_include_tags }}
