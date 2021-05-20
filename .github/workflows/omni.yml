@@ -272,7 +272,6 @@ jobs:
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
       SSL: ${{ matrix.ssl }}
       SCRAM: ${{ matrix.scram }}
       TZ: ${{ matrix.server_tz }}
