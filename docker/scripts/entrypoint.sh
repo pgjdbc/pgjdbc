@@ -60,12 +60,13 @@ main () {
             add_pg_opt "-c max_wal_senders=10"
             add_pg_opt "-c max_replication_slots=10"
         fi
+        echo "local   replication         postgres                          trust" >>"${pg_hba}"
     fi
 
     cp /custom/scripts/post-startup.sh /docker-entrypoint-initdb.d/
     chmod +x /docker-entrypoint-initdb.d/post-startup.sh
 
-    printf "Starting postgres version $PG_MAJOR with options: ${pg_opts} $@"
+    echo "Starting postgres version $PG_MAJOR with options: ${pg_opts} $@"
 
     exec /docker-entrypoint.sh "$@" ${pg_opts}
 }
