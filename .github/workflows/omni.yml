@@ -114,6 +114,7 @@ jobs:
             const jdk = opts.jdk ?? LATEST_JDK;
             const experimental = opts.experimental ?? false;
             const test_group = opts.test_group ?? DEFAULT_TEST_GROUP;
+            const create_replicas = opts.create_replicas ?? false;
 
             const isAtLeast = (minVersion) => Number(pg_version) >= Number(minVersion);
             const scramSupported = isAtLeast('10');
@@ -225,6 +226,7 @@ jobs:
         addItem({
             name: `Slow Tests`,
             test_group: 'slow',
+            create_replicas: true,
         });
         // Replication tests (only on latest PG / JDK)
         addItem({
@@ -275,6 +277,7 @@ jobs:
       SSL: ${{ matrix.ssl }}
       SCRAM: ${{ matrix.scram }}
       TZ: ${{ matrix.server_tz }}
+      CREATE_REPLICAS: ${{ matrix.create_replicas }}
     steps:
     - name: 'Show Matrix'
       env:
