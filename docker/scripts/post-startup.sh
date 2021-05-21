@@ -12,6 +12,42 @@ get_password_encryption () {
     fi
 }
 
+create_replica () {
+    local name="${1}"
+    local port="${2}"
+
+    local name_pattern='^[a-z][a-z0-9_]+[a-z0-9]$'
+    [[ "${name}" =~ ${name_pattern} ]] || err "Invalid replica name: ${name}"
+    local port_pattern='^[1-9][0-9]+$'
+    [[ "${port}" =~ ${port_pattern} ]] || err "Invalid replica port: ${port}"
+
+    log "Creating replica ${name}"
+
+    local full_name="replica_${name}"
+    local replica_data_dir="/tmp/${full_name}"
+    local replication_slot_name="${full_name}"
+    local replication_user="${full_name}"
+    local replication_pass="test"
+
+    psql_super "${POSTGRES_DB}" "
+        SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name = '${replication_slot_name}';
+        DROP USER IF EXISTS ${replication_user};
+        CREATE USER ${replication_user} WITH REPLICATION PASSWORD '${replication_pass}';
+        SELECT * FROM pg_create_physical_replication_slot('${replication_slot_name}');
+    "
+    pg_basebackup -D "${replica_data_dir}" -S "${replication_slot_name}" -X stream -P -Fp -R
+
+    cat <<EOF >>"${replica_data_dir}/postgresql.conf"
+port = ${port}
+max_prepared_transactions = 64
+hba_file = '/home/certdir/pg_hba.conf'
+log_line_prefix = 'REPLICA<${name}>: %m [%p]'
+EOF
+
+    log "Starting replica ${name} that will listen on port ${port}"
+    pg_ctl start -D "${replica_data_dir}"
+}
+
 main () {
     psql_super "${POSTGRES_DB}" "
       SELECT version()
@@ -57,6 +93,11 @@ main () {
             "
         fi
     done
+
+    if is_option_enabled "${CREATE_REPLICAS}"; then
+        create_replica one 5433
+        create_replica two 5434
+    fi
 }
 
 main "$@"

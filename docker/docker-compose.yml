@@ -4,6 +4,8 @@ services:
     image: postgres:${PGV:-latest}
     ports:
       - 5432:5432
+      - 5433:5433
+      - 5434:5434
     security_opt:
       - seccomp:unconfined
     volumes:
@@ -22,6 +24,7 @@ services:
       - FULL_PAGE_WRITES=${FULL_PAGE_WRITES:-no}
       - AUTO_VACCUUM=${AUTO_VACCUUM:-no}
       - TRACK_COUNTS=${TRACK_COUNTS:-no}
+      - CREATE_REPLICAS=${CREATE_REPLICAS:-no}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=
       - POSTGRES_DB=postgres
