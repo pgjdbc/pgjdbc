@@ -1,0 +1,5 @@
+# Ignore everything
+**
+
+# Explicitly included
+!scripts/**
