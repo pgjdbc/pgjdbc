@@ -357,3 +357,54 @@ jobs:
       uses: codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27
       with:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
+
+  test-pg-head:
+    name: Zulu 11 x PG HEAD
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+    - name: Compile and start PostgreSQL
+      working-directory: docker/postgres-head
+      run: docker-compose up -d && docker-compose logs
+    - name: Set up JDK
+      uses: actions/setup-java@v2
+      with:
+        distribution: zulu
+        java-version: 11
+        architecture: x64
+    - name: Java version
+      run: |
+        java -version
+    - name: PostgreSQL version
+      env:
+        PGUSER: postgres
+        PGDATABASE: postgres
+        PGHOST: localhost
+      run: |
+        if ! docker/bin/wait_for_pg_isready; then
+            # Server is not online so dump some logs for debugging
+            docker ps
+            cd docker/postgres-head
+            docker-compose logs
+        fi
+        psql -c 'SELECT version()'
+    - name: Prepare local properties
+      run: |
+        cat <<EOF >ssltest.local.properties
+        enable_ssl_tests=false
+        EOF
+        cat <<EOF >build.local.properties
+        EOF
+    - name: Test
+      uses: burrunan/gradle-cache-action@v1
+      with:
+        arguments: --no-parallel --no-daemon --scan jandex test jacocoReport
+        properties: |
+          includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
+    - name: 'Upload code coverage'
+      uses: codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27
+      with:
+        file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
