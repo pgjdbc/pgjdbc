@@ -45,7 +45,7 @@ installed.
 
 If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
 
-    cd docker
+    cd docker/postgres-server
 
     # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
     docker-compose down && docker-compose up

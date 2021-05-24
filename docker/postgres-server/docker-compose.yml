@@ -10,7 +10,7 @@ services:
       - seccomp:unconfined
     volumes:
       - ./scripts/:/custom/scripts:ro
-      - ../certdir/server:/custom/certdir:ro
+      - ../../certdir/server:/custom/certdir:ro
     entrypoint:
       - bash
       - /custom/scripts/entrypoint.sh

@@ -331,13 +331,17 @@ You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.co
 
 If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
 
-    cd docker
+    cd docker/postgres-server
 
     # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
     docker-compose down && docker-compose up
 
     # Launch PostgreSQL 9.6, with XA, without SSL
     docker-compose down && SSL=no XA=yes docker-compose up
+
+Alternatively, to run the test server with Docker in the foreground:
+
+    docker/bin/postgres-server
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
