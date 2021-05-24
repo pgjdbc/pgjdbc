@@ -52,7 +52,7 @@ main () {
 
     # Determine our current directory and change to be in the same directory as the compose file
     local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-    cd "${script_dir}/.."
+    cd "${script_dir}/../postgres-server"
 
     log "Starting Postgres server and mapping to local port ${publish_port}"
     exec docker-compose run \
