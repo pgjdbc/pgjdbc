@@ -716,8 +716,13 @@ subprojects {
                 } else {
                     "sspiImplementation"("com.github.waffle:waffle-jna")
                 }
-                "osgiImplementation"("org.osgi:org.osgi.core")
-                "osgiImplementation"("org.osgi:org.osgi.enterprise")
+                // The dependencies are provided by OSGi container,
+                // so they should not be exposed as transitive dependencies
+                "osgiCompileOnly"("org.osgi:org.osgi.core")
+                "osgiCompileOnly"("org.osgi:org.osgi.service.jdbc")
+                "testImplementation"("org.osgi:org.osgi.service.jdbc") {
+                    because("DataSourceFactory is needed for PGDataSourceFactoryTest")
+                }
             }
         }
     }
