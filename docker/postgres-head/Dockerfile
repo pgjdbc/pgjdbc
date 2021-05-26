@@ -31,7 +31,7 @@ ARG GIT_SHA
 RUN mkdir -p /build/postgres \
     && git clone -b "${GIT_TAG}" --single-branch "${GIT_URL}" --depth 10 /build/postgres \
     && cd /build/postgres \
-    && [[ -z "${GIT_SHA:-}" ]] || git reset --hard "${GIT_SHA:-}"
+    && [ -z "${GIT_SHA:-}" ] || git reset --hard "${GIT_SHA:-}"
 
 # Default configure options that can be overridden with build arg
 ARG CONFIGURE_OPTS=" \
