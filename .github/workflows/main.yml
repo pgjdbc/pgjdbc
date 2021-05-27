@@ -179,8 +179,7 @@ jobs:
         job-id: jdk${{ matrix.jdk }}
         arguments: --scan --no-parallel --no-daemon jandex test
         properties: |
-          skipReplicationTests=
-          port=${{ job.services.postgres.ports['5432'] }}
+          includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
     - name: Cleanup Docker
       if: ${{ always() }}
       working-directory: docker/postgres-server
