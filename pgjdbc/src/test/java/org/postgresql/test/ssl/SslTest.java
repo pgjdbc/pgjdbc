@@ -9,7 +9,6 @@ import org.postgresql.PGProperty;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -22,7 +21,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.SocketException;
 import java.security.cert.CertPathValidatorException;
-import java.sql.ResultSet;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +32,7 @@ import java.util.Properties;
 import javax.net.ssl.SSLHandshakeException;
 
 @RunWith(Parameterized.class)
-public class SslTest extends BaseTest4 {
+public class SslTest {
   enum Hostname {
     GOOD("localhost"),
     BAD("127.0.0.1"),
@@ -172,51 +171,6 @@ public class SslTest extends BaseTest4 {
 
   private static boolean contains(@Nullable String value, String substring) {
     return value != null && value.contains(substring);
-  }
-
-  @Override
-  protected void updateProperties(Properties props) {
-    super.updateProperties(props);
-    props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
-    props.put(TestUtil.DATABASE_PROP, db.toString());
-    PGProperty.SSL_MODE.set(props, sslmode.value);
-    PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
-    if (clientCertificate == ClientCertificate.EMPTY) {
-      PGProperty.SSL_CERT.set(props, "");
-      PGProperty.SSL_KEY.set(props, "");
-    } else {
-      PGProperty.SSL_CERT.set(props,
-          certdir + "/" + clientCertificate.fileName + ".crt");
-      PGProperty.SSL_KEY.set(props,
-          certdir + "/" + clientCertificate.fileName + ".pk8");
-    }
-    if (clientRootCertificate == ClientRootCertificate.EMPTY) {
-      PGProperty.SSL_ROOT_CERT.set(props, "");
-    } else {
-      PGProperty.SSL_ROOT_CERT.set(props,
-          certdir + "/" + clientRootCertificate.fileName + ".crt");
-    }
-  }
-
-  @Override
-  public void setUp() throws Exception {
-    SQLException e = null;
-    try {
-      super.setUp();
-    } catch (SQLException ex) {
-      e = ex;
-    }
-
-    try {
-      // Note that checkErrorCodes throws AssertionError for unexpected cases
-      checkErrorCodes(e);
-    } catch (AssertionError ae) {
-      // Make sure original SQLException is printed as well even in case of AssertionError
-      if (e != null) {
-        ae.initCause(e);
-      }
-      throw ae;
-    }
   }
 
   private void assertClientCertRequired(SQLException e, String caseName) {
@@ -503,23 +457,40 @@ public class SslTest extends BaseTest4 {
 
   @Test
   public void run() throws SQLException {
-    if (con == null) {
-      // e.g. expected failure to connect
-      return;
-    }
-    ResultSet rs = con.createStatement().executeQuery("select ssl_is_used()");
-    Assert.assertTrue("select ssl_is_used() should return a row", rs.next());
-    boolean sslUsed = rs.getBoolean(1);
-    if (sslmode == SslMode.ALLOW) {
-      Assert.assertEquals("ssl_is_used: ",
-          db.requiresSsl(),
-          sslUsed);
+    Properties props = new Properties();
+    props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
+    props.put(TestUtil.DATABASE_PROP, db.toString());
+    PGProperty.SSL_MODE.set(props, sslmode.value);
+    PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
+    if (clientCertificate == ClientCertificate.EMPTY) {
+      PGProperty.SSL_CERT.set(props, "");
+      PGProperty.SSL_KEY.set(props, "");
     } else {
-      Assert.assertEquals("ssl_is_used: ",
-          sslmode != SslMode.DISABLE && !db.rejectsSsl(),
-          sslUsed);
+      PGProperty.SSL_CERT.set(props, certdir + "/" + clientCertificate.fileName + ".crt");
+      PGProperty.SSL_KEY.set(props, certdir + "/" + clientCertificate.fileName + ".pk8");
     }
-    TestUtil.closeQuietly(rs);
-  }
+    if (clientRootCertificate == ClientRootCertificate.EMPTY) {
+      PGProperty.SSL_ROOT_CERT.set(props, "");
+    } else {
+      PGProperty.SSL_ROOT_CERT.set(props,certdir + "/" + clientRootCertificate.fileName + ".crt");
+    }
 
+    try (Connection conn = TestUtil.openDB(props)) {
+      boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
+      if (sslmode == SslMode.ALLOW) {
+        Assert.assertEquals("SSL should be used if the DB requires SSL", db.requiresSsl(), sslUsed);
+      } else {
+        Assert.assertEquals("SSL should be used unless it is disabled or the DB rejects it", sslmode != SslMode.DISABLE && !db.rejectsSsl(), sslUsed);
+      }
+    } catch (SQLException e) {
+      try {
+        // Note that checkErrorCodes throws AssertionError for unexpected cases
+        checkErrorCodes(e);
+      } catch (AssertionError ae) {
+        // Make sure original SQLException is printed as well even in case of AssertionError
+        ae.initCause(e);
+        throw ae;
+      }
+    }
+  }
 }
