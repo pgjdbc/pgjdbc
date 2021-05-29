@@ -27,6 +27,8 @@ skip_commits:
     - 'docs/**'
     - '**/*.md'
     - '.github/**'
+    - '.travis.yml'
+    - '.travis/**'
 
 init:
 - set pf=%ProgramFiles%&& set x64=-x64

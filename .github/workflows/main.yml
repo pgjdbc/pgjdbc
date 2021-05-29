@@ -8,6 +8,8 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'appveyor.xml'
+      - '.travis.yml'
+      - '.travis/**'
   pull_request:
     branches:
       - '*'
@@ -15,6 +17,8 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'appveyor.xml'
+      - '.travis.yml'
+      - '.travis/**'
 
 # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners
 # GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
