@@ -17,7 +17,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.SocketException;
 import java.security.cert.CertPathValidatorException;
@@ -25,7 +24,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -112,24 +110,13 @@ public class SslTest {
   public ClientRootCertificate clientRootCertificate;
 
   @Parameterized.Parameter(5)
-  public String certdir;
-
-  @Parameterized.Parameter(6)
   public GSSEncMode gssEncMode;
 
-  @Parameterized.Parameters(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}, gssEncMode={6}")
+  @Parameterized.Parameters(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}, gssEncMode={5}")
   public static Iterable<Object[]> data() {
-    Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
-    String enableSslTests = prop.getProperty("enable_ssl_tests");
-    if (!Boolean.parseBoolean(enableSslTests)) {
-      System.out.println("enableSslTests is " + enableSslTests + ", skipping SSL tests");
-      return Collections.emptyList();
-    }
+    TestUtil.assumeSslTestsEnabled();
 
     Collection<Object[]> tests = new ArrayList<Object[]>();
-
-    File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
-    String certdir = certDirFile.getAbsolutePath();
 
     for (SslMode sslMode : SslMode.VALUES) {
       for (Hostname hostname : Hostname.values()) {
@@ -156,9 +143,7 @@ public class SslTest {
                   // TODO: support gss tests in /certdir/pg_hba.conf
                   continue;
                 }
-                tests.add(
-                    new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate,
-                        certdir, gssEncMode});
+                tests.add(new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate, gssEncMode});
               }
             }
           }
@@ -466,13 +451,13 @@ public class SslTest {
       PGProperty.SSL_CERT.set(props, "");
       PGProperty.SSL_KEY.set(props, "");
     } else {
-      PGProperty.SSL_CERT.set(props, certdir + "/" + clientCertificate.fileName + ".crt");
-      PGProperty.SSL_KEY.set(props, certdir + "/" + clientCertificate.fileName + ".pk8");
+      PGProperty.SSL_CERT.set(props, TestUtil.getSslTestCertPath(clientCertificate.fileName + ".crt"));
+      PGProperty.SSL_KEY.set(props, TestUtil.getSslTestCertPath(clientCertificate.fileName + ".pk8"));
     }
     if (clientRootCertificate == ClientRootCertificate.EMPTY) {
       PGProperty.SSL_ROOT_CERT.set(props, "");
     } else {
-      PGProperty.SSL_ROOT_CERT.set(props,certdir + "/" + clientRootCertificate.fileName + ".crt");
+      PGProperty.SSL_ROOT_CERT.set(props, TestUtil.getSslTestCertPath(clientRootCertificate.fileName + ".crt"));
     }
 
     try (Connection conn = TestUtil.openDB(props)) {

@@ -7,48 +7,26 @@ package org.postgresql.test.ssl;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.sql.ResultSet;
+import java.sql.Connection;
 import java.util.Properties;
 
-public class PKCS12KeyTest extends BaseTest4 {
-  @Override
-  @Before
-  public void setUp() throws Exception {
-
-    super.setUp();
-  }
-
-  @Override
-  protected void updateProperties(Properties props) {
-    Properties prop = TestUtil.loadPropertyFiles("ssltest.properties");
-    props.put(TestUtil.DATABASE_PROP, "hostssldb");
-    PGProperty.SSL_MODE.set(props, "prefer");
-    String enableSslTests = prop.getProperty("enable_ssl_tests");
-    Assume.assumeTrue(
-        "Skipping the test as enable_ssl_tests is not set",
-        Boolean.parseBoolean(enableSslTests)
-    );
-
-    File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
-    String certdir = certDirFile.getAbsolutePath();
-
-    PGProperty.SSL_KEY.set(props, certdir + "/" + "goodclient" + ".p12");
-
-  }
-
+public class PKCS12KeyTest {
   @Test
   public void TestGoodClientP12() throws Exception {
+    TestUtil.assumeSslTestsEnabled();
 
-    ResultSet rs = con.createStatement().executeQuery("select ssl_is_used()");
-    Assert.assertTrue("select ssl_is_used() should return a row", rs.next());
-    boolean sslUsed = rs.getBoolean(1);
+    Properties props = new Properties();
+    props.put(TestUtil.DATABASE_PROP, "hostssldb");
+    PGProperty.SSL_MODE.set(props, "prefer");
+    PGProperty.SSL_KEY.set(props, TestUtil.getSslTestCertPath("goodclient.p12"));
+
+    try (Connection conn = TestUtil.openDB(props)) {
+      boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
+      Assert.assertTrue("SSL should be in use", sslUsed);
+    }
   }
 }
