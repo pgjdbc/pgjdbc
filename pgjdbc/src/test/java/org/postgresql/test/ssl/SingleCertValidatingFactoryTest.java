@@ -9,62 +9,23 @@ import org.postgresql.test.TestUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
-public class SingleCertValidatingFactoryTestSuite {
-  private static final String IS_ENABLED_PROP_NAME = "testsinglecertfactory";
-
-  /**
-   * <p>This method returns the parameters that JUnit will use when constructing this class for
-   * testing. It returns a collection of arrays, each containing a single value for the JDBC URL to
-   * test against.</p>
-   *
-   * <p>To point the test at a different set of test databases edit the JDBC URL list accordingly. By
-   * default it points to the test databases setup by the pgjdbc-test-vm virtual machine.</p>
-   *
-   * <p>Note: The test assumes that the username as password for all the test databases are the same
-   * (pulled from system properties).</p>
-   */
-  @Parameters
-  public static Collection<Object[]> data() throws IOException {
-    Properties props = new Properties();
-    File sslTestFile =
-        TestUtil.getFile(System.getProperty("ssltest.properties", "ssltest.properties"));
-    props.load(new FileInputStream(sslTestFile));
-    String testSingleCertFactory = props.getProperty(IS_ENABLED_PROP_NAME);
-    boolean skipTest = testSingleCertFactory == null || "".equals(testSingleCertFactory);
-    if (skipTest) {
-      System.out.println("Skipping SingleCertSocketFactoryTests. To enable set the property "
-          + IS_ENABLED_PROP_NAME + "=true in the ssltest.properties file.");
-      return Collections.emptyList();
-    }
-
-    return Arrays.asList(new Object[][]{
-        {"jdbc:postgresql://localhost:5432/test"},
-        //        {"jdbc:postgresql://localhost:10090/test"},
-        //        {"jdbc:postgresql://localhost:10091/test"},
-        //        {"jdbc:postgresql://localhost:10092/test"},
-        //        {"jdbc:postgresql://localhost:10093/test"},
-    });
+public class SingleCertValidatingFactoryTest {
+  @BeforeClass
+  public static void setUp() {
+    TestUtil.assumeSslTestsEnabled();
   }
 
   // The valid and invalid server SSL certfiicates:
@@ -85,29 +46,6 @@ public class SingleCertValidatingFactoryTestSuite {
 
   protected @Nullable String getPassword() {
     return System.getProperty("password");
-  }
-
-  private String serverJdbcUrl;
-
-  public SingleCertValidatingFactoryTestSuite(String serverJdbcUrl) {
-    this.serverJdbcUrl = serverJdbcUrl;
-  }
-
-  protected String getServerJdbcUrl() {
-    return serverJdbcUrl;
-  }
-
-  /**
-   * Helper method to create a connection using the additional properties specified in the "info"
-   * paramater.
-   *
-   * @param info The additional properties to use when creating a connection
-   */
-  protected Connection getConnection(Properties info) throws SQLException {
-    String url = getServerJdbcUrl();
-    info.setProperty("user", getUsername());
-    info.setProperty("password", getPassword());
-    return DriverManager.getConnection(url, info);
   }
 
   /**
@@ -135,9 +73,8 @@ public class SingleCertValidatingFactoryTestSuite {
    */
   protected void testConnect(Properties info, boolean sslExpected,
       @Nullable Class<? extends Throwable> expectedThrowable) throws SQLException {
-    Connection conn = null;
-    try {
-      conn = getConnection(info);
+    info.setProperty(TestUtil.DATABASE_PROP, "hostdb");
+    try (Connection conn = TestUtil.openDB(info)) {
       Statement stmt = conn.createStatement();
       // Basic SELECT test:
       ResultSet rs = stmt.executeQuery("SELECT 1");
@@ -163,13 +100,6 @@ public class SingleCertValidatingFactoryTestSuite {
           throw new RuntimeException(e);
         }
       }
-    } finally {
-      if (conn != null) {
-        try {
-          conn.close();
-        } catch (Exception e) {
-        }
-      }
     }
 
     if (expectedThrowable != null) {
@@ -185,6 +115,7 @@ public class SingleCertValidatingFactoryTestSuite {
   public void connectSSLWithValidationNoCert() throws SQLException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
+    info.setProperty("sslfactory", "org.postgresql.ssl.DefaultJavaSSLFactory");
     testConnect(info, true, javax.net.ssl.SSLHandshakeException.class);
   }
 
