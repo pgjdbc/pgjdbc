@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.net.SocketException;
 import java.security.cert.CertPathValidatorException;
@@ -396,26 +397,30 @@ public class SslTest {
               + ", got " + e.getSQLState());
     }
 
-    // Two exceptions are possible
+    // Three exceptions are possible
     // SSLHandshakeException: Received fatal alert: unknown_ca
+    // EOFException
     // SocketException: broken pipe (write failed)
 
     // decrypt_error does not look to be a valid case, however, we allow it for now
     // SSLHandshakeException: Received fatal alert: decrypt_error
 
     SocketException brokenPipe = findCause(e, SocketException.class);
+    if (brokenPipe != null) {
+      if (!contains(brokenPipe.getMessage(), "Broken pipe")) {
+        Assert.fail(
+            caseName + " ==> server should have terminated the connection (broken pipe expected)"
+                + ", actual exception was " + brokenPipe.getMessage());
+      }
+      return true;
+    }
+
+    EOFException eofException = findCause(e, EOFException.class);
+    if (eofException != null) {
+      return true;
+    }
+
     SSLHandshakeException handshakeException = findCause(e, SSLHandshakeException.class);
-
-    if (brokenPipe == null && handshakeException == null) {
-      Assert.fail(caseName + " ==> exception should be caused by SocketException(broken pipe)"
-          + " or SSLHandshakeException. No exceptions of such kind are present in the getCause chain");
-    }
-    if (brokenPipe != null && !contains(brokenPipe.getMessage(), "Broken pipe")) {
-      Assert.fail(
-          caseName + " ==> server should have terminated the connection (broken pipe expected)"
-              + ", actual exception was " + brokenPipe.getMessage());
-    }
-
     if (handshakeException != null) {
       final String handshakeMessage = handshakeException.getMessage();
       if (!contains(handshakeMessage, "unknown_ca")
@@ -425,8 +430,13 @@ public class SslTest {
                 + " ==> server should have terminated the connection (expected 'unknown_ca' or 'decrypt_error')"
                 + ", actual exception was " + handshakeMessage);
       }
+      return true;
     }
-    return true;
+
+    Assert.fail(caseName + " ==> exception should be caused by SocketException(broken pipe)"
+        + " or EOFException,"
+        + " or SSLHandshakeException. No exceptions of such kind are present in the getCause chain");
+    return false;
   }
 
   private static <@Nullable T extends Throwable> T findCause(@Nullable Throwable t,
