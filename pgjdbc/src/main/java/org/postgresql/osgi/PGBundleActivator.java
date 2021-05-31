@@ -23,28 +23,33 @@ public class PGBundleActivator implements BundleActivator {
   private @Nullable ServiceRegistration<?> registration;
 
   public void start(BundleContext context) throws Exception {
+    if (!Driver.isRegistered()) {
+      Driver.register();
+    }
+    if (dataSourceFactoryExists()) {
+      registerDataSourceFactory(context);
+    }
+  }
+
+  private static boolean dataSourceFactoryExists() {
+    try {
+      Class.forName("org.osgi.service.jdbc.DataSourceFactory");
+      return true;
+    } catch (ClassNotFoundException ignored) {
+      // DataSourceFactory does not exist => no reason to register the service
+    }
+    return false;
+  }
+
+  private void registerDataSourceFactory(BundleContext context) {
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
-    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, org.postgresql.util.DriverInfo.DRIVER_NAME);
-    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, org.postgresql.util.DriverInfo.DRIVER_VERSION);
-    try {
-      registration = context.registerService(DataSourceFactory.class.getName(),
-          new PGDataSourceFactory(), properties);
-    } catch (NoClassDefFoundError e) {
-      String msg = e.getMessage();
-      if (msg != null && msg.contains("org/osgi/service/jdbc/DataSourceFactory")) {
-        if (!Boolean.getBoolean("pgjdbc.osgi.debug")) {
-          return;
-        }
-
-        new IllegalArgumentException("Unable to load DataSourceFactory. "
-            + "Will ignore DataSourceFactory registration. If you need one, "
-            + "ensure org.osgi.enterprise is on the classpath", e).printStackTrace();
-        // just ignore. Assume OSGi-enterprise is not loaded
-        return;
-      }
-      throw e;
-    }
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME,
+        org.postgresql.util.DriverInfo.DRIVER_NAME);
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
+        org.postgresql.util.DriverInfo.DRIVER_VERSION);
+    registration = context.registerService(DataSourceFactory.class,
+        new PGDataSourceFactory(), properties);
   }
 
   public void stop(BundleContext context) throws Exception {

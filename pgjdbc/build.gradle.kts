@@ -199,7 +199,7 @@ val osgiJar by tasks.registering(Bundle::class) {
             """
             -exportcontents: !org.postgresql.shaded.*, org.postgresql.*
             -removeheaders: Created-By
-            Bundle-Descriptiona: Java JDBC driver for PostgreSQL database
+            Bundle-Description: Java JDBC driver for PostgreSQL database
             Bundle-DocURL: https://jdbc.postgresql.org/
             Bundle-Vendor: PostgreSQL Global Development Group
             Import-Package: javax.sql, javax.transaction.xa, javax.naming, javax.security.sasl;resolution:=optional, *;resolution:=optional
@@ -208,7 +208,7 @@ val osgiJar by tasks.registering(Bundle::class) {
             Bundle-Name: PostgreSQL JDBC Driver
             Bundle-Copyright: Copyright (c) 2003-2020, PostgreSQL Global Development Group
             Require-Capability: osgi.ee;filter:="(&(|(osgi.ee=J2SE)(osgi.ee=JavaSE))(version>=1.8))"
-            Provide-Capability: osgi.service;effective:=active;objectClass=org.osgi.service.jdbc.DataSourceFactory
+            Provide-Capability: osgi.service;effective:=active;objectClass=org.osgi.service.jdbc.DataSourceFactory;osgi.jdbc.driver.class=org.postgresql.Driver;osgi.jdbc.driver.name=PostgreSQL JDBC Driver
             """
         )
     }
@@ -224,9 +224,11 @@ karaf {
             details = "Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database"
             feature("transaction-api")
             includeProject = true
-            bundle(project.group.toString(), closureOf<com.github.lburgazzoli.gradle.plugin.karaf.features.model.BundleDescriptor> {
-                wrap = false
-            })
+            bundle(
+                project.group.toString(),
+                closureOf<com.github.lburgazzoli.gradle.plugin.karaf.features.model.BundleDescriptor> {
+                    wrap = false
+                })
             // List argument clears the "default" configurations
             configurations(listOf(karafFeatures))
         })
@@ -369,3 +371,42 @@ val extraMavenPublications by configurations.getting
         classifier = "features"
     }
 }
+
+// <editor-fold defaultstate="collapsed" desc="Populates build/local-maven-repo with artifacts produced by the current project for testing purposes">
+val localRepoElements by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+    description =
+        "Shares local maven repository directory that contains the artifacts produced by the current project"
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named("maven-repository"))
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+    }
+}
+
+val localRepoDir = layout.buildDirectory.dir("local-maven-repo")
+
+publishing {
+    repositories {
+        maven {
+            name = "local"
+            url = uri(localRepoDir)
+        }
+    }
+}
+
+localRepoElements.outgoing.artifact(localRepoDir) {
+    builtBy(tasks.named("publishAllPublicationsToLocalRepository"))
+}
+
+val cleanLocalRepository by tasks.registering(Delete::class) {
+    description = "Clears local-maven-repo so timestamp-based snapshot artifacts do not consume space"
+    delete(localRepoDir)
+}
+
+tasks.withType<PublishToMavenRepository>()
+    .matching { it.name.contains("ToLocalRepository") }
+    .configureEach {
+        dependsOn(cleanLocalRepository)
+    }
+// </editor-fold>
