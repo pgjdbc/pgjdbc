@@ -214,42 +214,43 @@ public class DatabaseMetaDataTest {
     int minFuncCount = 1000;
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getFunctions("", "", "");
-    int count = assertGetFunctionRS(rs);
-    assertThat(count > minFuncCount, is(true));
+    final int totalCount;
+    try (ResultSet rs = dbmd.getFunctions("", "", "")) {
+      List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
+      totalCount = list.size(); // Rest of this test will validate against this value
+      assertThat(totalCount > minFuncCount, is(true));
+      assertListContains("getFunctions('', '', '') must contain addfunction", list, "hasfunctions", "addfunction");
+    }
 
     // Should be same as blank pattern
-    ResultSet rs2 = dbmd.getFunctions(null, null, null);
-    int count2 = assertGetFunctionRS(rs2);
-    assertThat(count2 > minFuncCount, is(true));
-    assertThat(count2, is(count));
+    try (ResultSet rs = dbmd.getFunctions(null, null, null)) {
+      int count = assertGetFunctionRS(rs);
+      assertThat(count, is(totalCount));
+    }
 
     // Catalog parameter has no affect on our getFunctions filtering
-    ResultSet rs3 = dbmd.getFunctions("ANYTHING_WILL_WORK", null, null);
-    int count3 = assertGetFunctionRS(rs3);
-    assertThat(count3 > minFuncCount, is(true));
-    assertThat(count3, is(count));
+    try (ResultSet rs = dbmd.getFunctions("ANYTHING_WILL_WORK", null, null)) {
+      int count = assertGetFunctionRS(rs);
+      assertThat(count, is(totalCount));
+    }
 
     // Filter by schema
-    ResultSet rs4 = dbmd.getFunctions("", "pg_catalog", null);
-    int count4 = assertGetFunctionRS(rs4);
-    assertThat(count4 > minFuncCount, is(true));
+    try (ResultSet rs = dbmd.getFunctions("", "pg_catalog", null)) {
+      int count = assertGetFunctionRS(rs);
+      assertThat(count > minFuncCount, is(true));
+    }
 
     // Filter by schema and function name
-    ResultSet rs5 = dbmd.getFunctions("", "pg_catalog", "abs");
-    int count5 = assertGetFunctionRS(rs5);
-    assertThat(count5 >= 1, is(true));
+    try (ResultSet rs = dbmd.getFunctions("", "pg_catalog", "abs")) {
+      int count = assertGetFunctionRS(rs);
+      assertThat(count >= 1, is(true));
+    }
 
     // Filter by function name only
-    rs5 = dbmd.getFunctions("", "", "abs");
-    count5 = assertGetFunctionRS(rs5);
-    assertThat(count5 >= 1, is(true));
-
-    rs.close();
-    rs2.close();
-    rs3.close();
-    rs4.close();
-    rs5.close();
+    try (ResultSet rs = dbmd.getFunctions("", "", "abs")) {
+      int count = assertGetFunctionRS(rs);
+      assertThat(count >= 1, is(true));
+    }
   }
 
   private static class CatalogObject implements Comparable<CatalogObject> {
