@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Rework OSGi bundle activator so it does not rely on exception message to check DataSourceFactory presence PR [#507](https://github.com/pgjdbc/pgjdbc/pull/507)
 - Fix "Avoid leaking server error details through BatchUpdateException when logServerErrorDetail=false" [PR #2148](https://github.com/pgjdbc/pgjdbc/pull/2148) fixes Issue #2147
+- Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2174)
 
 ## [42.2.20] (2021-04-19)
 
