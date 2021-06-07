@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc4;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -155,11 +156,11 @@ public class DatabaseMetaDataTest {
 
     // Search for procedures in schema "hasfunctions" (which should expect a record only for PostgreSQL < 11)
     try (ResultSet rs = dbmd.getProcedures("", "hasfunctions",null)) {
-      boolean found = rs.next();
       if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
-        assertFalse("PostgreSQL11+ should not return functions from getProcedures", found);
+        assertFalse("PostgreSQL11+ should not return functions from getProcedures", rs.next());
       } else {
-        assertTrue("PostgreSQL prior to 11 should return functions from getProcedures", found);
+        // PostgreSQL prior to 11 should return functions from getProcedures
+        assertProcedureRS(rs);
       }
     }
 
@@ -170,11 +171,11 @@ public class DatabaseMetaDataTest {
 
     // Search for procedures by function name "addfunction" within schema "hasfunctions" (which should expect a record for PostgreSQL < 11)
     try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", "addfunction")) {
-      boolean found = rs.next();
       if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
-        assertFalse("PostgreSQL11+ should not return functions from getProcedures", found);
+        assertFalse("PostgreSQL11+ should not return functions from getProcedures", rs.next());
       } else {
-        assertTrue("PostgreSQL prior to 11 should return functions from getProcedures", found);
+        // PostgreSQL prior to 11 should return functions from getProcedures
+        assertProcedureRS(rs);
       }
     }
 
@@ -192,7 +193,8 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     try (ResultSet rs = dbmd.getProcedures("", "hasprocedures", null)) {
-      assertTrue("getProcedures() should be non-empty for the hasprocedures schema", rs.next());
+      int count = assertProcedureRS(rs);
+      assertTrue("getProcedures() should be non-empty for the hasprocedures schema", count == 1);
     }
 
     try (ResultSet rs = dbmd.getProcedures("", "noprocedures", null)) {
@@ -340,6 +342,48 @@ public class DatabaseMetaDataTest {
           rs.getString("FUNCTION_CAT"),
           rs.getString("FUNCTION_SCHEM"),
           rs.getString("FUNCTION_NAME"),
+          rs.getString("SPECIFIC_NAME"));
+      result.add(obj);
+    } while (rs.next());
+
+    List<CatalogObject> orderedResult = new ArrayList<>(result);
+    Collections.sort(orderedResult);
+    assertThat(result, is(orderedResult));
+
+    return result;
+  }
+
+  private int assertProcedureRS(ResultSet rs) throws SQLException {
+    return assertProcedureRSAndReturnList(rs).size();
+  }
+
+  private List<CatalogObject> assertProcedureRSAndReturnList(ResultSet rs) throws SQLException {
+    // There should be at least one row
+    assertThat(rs.next(), is(true));
+    assertThat(rs.getString("PROCEDURE_CAT"), nullValue());
+    assertThat(rs.getString("PROCEDURE_SCHEM"), notNullValue());
+    assertThat(rs.getString("PROCEDURE_NAME"), notNullValue());
+    assertThat(rs.getShort("PROCEDURE_TYPE") >= 0, is(true));
+    assertThat(rs.getString("SPECIFIC_NAME"), notNullValue());
+
+    // Ensure there is enough column and column value retrieve by index should be same as column name (ordered)
+    assertThat(rs.getMetaData().getColumnCount(), is(9));
+    assertThat(rs.getString(1), is(rs.getString("PROCEDURE_CAT")));
+    assertThat(rs.getString(2), is(rs.getString("PROCEDURE_SCHEM")));
+    assertThat(rs.getString(3), is(rs.getString("PROCEDURE_NAME")));
+    // Per JDBC spec, indexes 4, 5, and 6 are reserved for future use
+    assertThat(rs.getString(7), is(rs.getString("REMARKS")));
+    assertThat(rs.getShort(8), is(rs.getShort("PROCEDURE_TYPE")));
+    assertThat(rs.getString(9), is(rs.getString("SPECIFIC_NAME")));
+
+    // Get all result and assert they are ordered per javadoc spec:
+    //   FUNCTION_CAT, FUNCTION_SCHEM, FUNCTION_NAME and SPECIFIC_NAME
+    List<CatalogObject> result = new ArrayList<>();
+    do {
+      CatalogObject obj = new CatalogObject(
+          rs.getString("PROCEDURE_CAT"),
+          rs.getString("PROCEDURE_SCHEM"),
+          rs.getString("PROCEDURE_NAME"),
           rs.getString("SPECIFIC_NAME"));
       result.add(obj);
     } while (rs.next());
