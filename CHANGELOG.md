@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - make sure the table has defined primary keys when using updateable resultset backpatch [PR#2101](https://github.com/pgjdbc/pgjdbc/pull/2101) fixes [Issue 1975](https://github.com/pgjdbc/pgjdbc/issues/1975) [PR #2106](https://github.com/pgjdbc/pgjdbc/pull/2106)
 - backpatch [PR #2143](https://github.com/pgjdbc/pgjdbc/pull/2143) read notifies or errors that come in asynchronously after the ready for query [PR #2168](https://github.com/pgjdbc/pgjdbc/pull/2168)
 - backpatch [PR #507](https://github.com/pgjdbc/pgjdbc/pull/507) which reworks OSGI bundle activator fixes [ISSUE #2133](https://github.com/pgjdbc/pgjdbc/issues/2133)
-- Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified. backpatch [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2148)
+- Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified. backpatch [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2174)
   fixes [Issue 2173](https://github.com/pgjdbc/pgjdbc/issues/2173)
 
 [42.2.20] (2021-04-19 15:38:44 -0400)
