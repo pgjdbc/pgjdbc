@@ -480,7 +480,6 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
 [42.2.18]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...REL42.2.18
 [42.2.19]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.19...REL42.2.20
-[42.2.20]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...REL42.2.20
 [42.2.20]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...REL42.2.21
 [Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.21...HEAD
 
