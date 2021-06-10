@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+[42.2.21] (2021-06-10 10:08:21 -0400)
+### Changed
+- update docs to reflect deprecated DataSource API setServerName backpatch [PR#2057](https://github.com/pgjdbc/pgjdbc/pull/2057) [PR #2105](https://github.com/pgjdbc/pgjdbc/pull/2105)
+### Added
+
+### Fixed
+- make sure the table has defined primary keys when using updateable resultset backpatch [PR#2101](https://github.com/pgjdbc/pgjdbc/pull/2101) fixes [Issue 1975](https://github.com/pgjdbc/pgjdbc/issues/1975) [PR #2106](https://github.com/pgjdbc/pgjdbc/pull/2106)
+- backpatch [PR #2143](https://github.com/pgjdbc/pgjdbc/pull/2143) read notifies or errors that come in asynchronously after the ready for query [PR #2168](https://github.com/pgjdbc/pgjdbc/pull/2168)
+- backpatch [PR #507](https://github.com/pgjdbc/pgjdbc/pull/507) which reworks OSGI bundle activator fixes [ISSUE #2133](https://github.com/pgjdbc/pgjdbc/issues/2133)
+- Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified. backpatch [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2148)
+  fixes [Issue 2173](https://github.com/pgjdbc/pgjdbc/issues/2173)
+
 [42.2.20] (2021-04-19 15:38:44 -0400)
 
 ### Changed
@@ -23,8 +35,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   The usage of `setQueryTimeout();` with the same value as the `setNetworkTimeout();` is blocking the current transaction timeout.
   The timeouts are blocking each other with this approach.
 - DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes [Issue #830](https://github.com/pgjdbc/pgjdbc/issues/830)
-- Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified. backpatch [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2148) 
-  fixes issue [2173](https://github.com/pgjdbc/pgjdbc/issues/2173)
 
 ## [42.2.19] (2021-02-18)
 
@@ -470,5 +480,7 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
 [42.2.18]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...REL42.2.18
 [42.2.19]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.19...REL42.2.20
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...HEAD
+[42.2.20]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...REL42.2.20
+[42.2.20]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...REL42.2.21
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.21...HEAD
 
