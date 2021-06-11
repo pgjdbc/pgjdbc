@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.2.21] (2021-06-10 10:08:21 -0400)
 ### Changed
 - update docs to reflect deprecated DataSource API setServerName backpatch [PR#2057](https://github.com/pgjdbc/pgjdbc/pull/2057) [PR #2105](https://github.com/pgjdbc/pgjdbc/pull/2105)
+
 ### Added
 
 ### Fixed
