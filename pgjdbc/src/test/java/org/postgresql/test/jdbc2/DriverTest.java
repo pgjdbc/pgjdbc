@@ -21,6 +21,8 @@ import org.postgresql.util.URLCoder;
 
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -272,6 +274,40 @@ public class DriverTest {
       DriverManager.setLogStream(null);
       setProperty("loggerLevel", loggerLevel);
       setProperty("loggerFile", loggerFile);
+    }
+  }
+
+  @Test
+  public void testSystemErrIsNotClosedWhenCreatedMultipleConnections() throws Exception {
+    TestUtil.initDriver();
+    PrintStream err = System.err;
+    String loggerLevel = System.getProperty("loggerLevel");
+    String loggerFile = System.getProperty("loggerFile");
+
+    System.clearProperty("loggerLevel");
+    System.clearProperty("loggerFile");
+    System.setProperty("loggerLevel", "INFO");
+    PrintStream buffer = new PrintStream(new ByteArrayOutputStream());
+    System.setErr(buffer);
+    try {
+      Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
+      try {
+        assertNotNull(con);
+      } finally {
+        con.close();
+      }
+      con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
+      try {
+        assertNotNull(con);
+        System.err.println();
+        assertFalse("The System.err should not be closed.", System.err.checkError());
+      } finally {
+        con.close();
+      }
+    } finally {
+      System.setProperty("loggerLevel", loggerLevel);
+      System.setProperty("loggerFile", loggerFile);
+      System.setErr(err);
     }
   }
 

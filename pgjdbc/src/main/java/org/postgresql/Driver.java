@@ -36,6 +36,7 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -343,7 +344,7 @@ public class Driver implements java.sql.Driver {
       } else if ( DriverManager.getLogStream() != null) {
         handler = new StreamHandler(DriverManager.getLogStream(), formatter);
       } else {
-        handler = new StreamHandler(System.err, formatter);
+        handler = new ConsoleHandler();
       }
     } else {
       handler.setFormatter(formatter);
