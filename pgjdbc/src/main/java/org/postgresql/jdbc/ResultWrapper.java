@@ -6,6 +6,9 @@
 
 package org.postgresql.jdbc;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.sql.ResultSet;
 
 /**
@@ -15,7 +18,7 @@ import java.sql.ResultSet;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public class ResultWrapper {
-  public ResultWrapper(ResultSet rs) {
+  public ResultWrapper(@Nullable ResultSet rs) {
     this.rs = rs;
     this.updateCount = -1;
     this.insertOID = -1;
@@ -27,7 +30,8 @@ public class ResultWrapper {
     this.insertOID = insertOID;
   }
 
-  public ResultSet getResultSet() {
+  @Pure
+  public @Nullable ResultSet getResultSet() {
     return rs;
   }
 
@@ -39,7 +43,7 @@ public class ResultWrapper {
     return insertOID;
   }
 
-  public ResultWrapper getNext() {
+  public @Nullable ResultWrapper getNext() {
     return next;
   }
 
@@ -52,8 +56,8 @@ public class ResultWrapper {
     tail.next = newResult;
   }
 
-  private final ResultSet rs;
+  private final @Nullable ResultSet rs;
   private final long updateCount;
   private final long insertOID;
-  private ResultWrapper next;
+  private @Nullable ResultWrapper next;
 }

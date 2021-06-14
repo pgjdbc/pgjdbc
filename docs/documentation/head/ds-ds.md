@@ -148,33 +148,27 @@ Code to initialize a pooling `DataSource` might look like this:
 ```java
 PGPoolingDataSource source = new PGPoolingDataSource();
 source.setDataSourceName("A Data Source");
-source.setServerName("localhost");
+source.setServerNames(new String[] {"localhost"});
 source.setDatabaseName("test");
 source.setUser("testuser");
 source.setPassword("testpassword");
 source.setMaxConnections(10);
 ```
 
+note: setServerName has been deprecated in favour of setServerNames. This was
+done to support multiple hosts.
+
 Then code to use a connection from the pool might look like this. Note that it
 is critical that the connections are eventually closed.  Else the pool will
 “leak” connections and will eventually lock all the clients out.
 
 ```java
-Connection conn = null;
-try
+try (Connection conn = source.getConnection())
 {
-    conn = source.getConnection();
     // use connection
 }
 catch (SQLException e)
 {
     // log error
-}
-finally
-{
-    if (con != null)
-    {
-        try { conn.close(); } catch (SQLException e) {}
-    }
 }
 ```

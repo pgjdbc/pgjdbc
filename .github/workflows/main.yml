@@ -1,0 +1,227 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'appveyor.xml'
+      - '.travis.yml'
+      - '.travis/**'
+  pull_request:
+    branches:
+      - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'appveyor.xml'
+      - '.travis.yml'
+      - '.travis/**'
+
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners
+# GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
+
+jobs:
+  code-style:
+    name: 'Code style'
+    runs-on: ubuntu-latest
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+    - name: 'Set up JDK 8'
+      uses: actions/setup-java@v2
+      with:
+        distribution: zulu
+        java-version: 8
+    - uses: burrunan/gradle-cache-action@v1
+      name: Verify code style
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+      with:
+        job-id: jdk8
+        arguments: autostyleCheck checkstyleAll jandex
+
+  linux-checkerframework:
+    name: 'CheckerFramework'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 11'
+        uses: actions/setup-java@v2
+        with:
+          distribution: zulu
+          java-version: 11
+      - uses: burrunan/gradle-cache-action@v1
+        name: Run CheckerFramework
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          read-only: ${{ matrix.os == 'self-hosted' }}
+          job-id: checker-jdk11
+          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
+
+  source-distribution-check:
+    name: 'Source distribution (JDK 11)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - name: Start PostgreSQL
+        working-directory: docker/postgres-server
+        run: docker-compose up -d && docker-compose logs
+      - name: 'Set up JDK 11'
+        uses: actions/setup-java@v2
+        with:
+          distribution: zulu
+          java-version: 11
+      - uses: burrunan/gradle-cache-action@v1
+        name: Prepare source distribution
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: source-release-jdk11
+          arguments: --scan --no-parallel --no-daemon sourceDistribution -Ppgjdbc.version=1.0 -Prelease
+      - name: Verify source distribution
+        working-directory: pgjdbc/build/distributions
+        run: |
+          tar xzf postgresql-1.0-jdbc-src.tar.gz
+          cd postgresql-1.0-jdbc-src
+          mvn --batch-mode --fail-at-end --show-version verify
+
+  matrix_prep:
+    name: Matrix Preparation
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - id: set-matrix
+      run: |
+        node -p "
+          '::set-output name=matrix::' + JSON.stringify({
+            jdk: [
+              8,
+              11,
+            ],
+            os: [
+              'ubuntu-latest',
+              // Disable self-hosted on forks:
+              ...(process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc' ? ['self-hosted'] : [])
+            ],
+          })"
+
+  build-test:
+    name: 'Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    needs: matrix_prep
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+    - name: Start PostgreSQL
+      working-directory: docker/postgres-server
+      run: |
+        docker-compose down -v --rmi local || true
+        sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
+        docker-compose up -d
+        docker-compose logs
+    - name: 'Get test node ARCH'
+      run: echo "::set-output name=arch_name::$(uname -i)"
+      id: get_arch_name
+    - name: 'Set up JDK ${{ matrix.jdk }}'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.jdk }}
+        architecture: x64
+    - name: 'Setup JDK ${{ matrix.jdk }} on ARM64'
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+      uses: AdoptOpenJDK/install-jdk@v1
+      with:
+        impl: hotspot # or openj9
+        version: ${{ matrix.jdk }}
+        architecture: aarch64
+    - name: Prepare ssltest.local.properties
+      run: echo enable_ssl_tests=true > ssltest.local.properties
+    - uses: burrunan/gradle-cache-action@v1
+      name: Test
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+      with:
+        read-only: ${{ matrix.os == 'self-hosted' }}
+        job-id: jdk${{ matrix.jdk }}
+        arguments: --scan --no-parallel --no-daemon jandex test
+        properties: |
+          includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
+    - name: Cleanup Docker
+      if: ${{ always() }}
+      working-directory: docker/postgres-server
+      run: |
+        docker-compose ps
+        docker-compose down -v --rmi local
+
+  gss-encryption:
+    name: 'GSS Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    needs: matrix_prep
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+    steps:
+    - uses: actions/checkout@v2
+    - name: 'Get test node ARCH'
+      run: echo "::set-output name=arch_name::$(uname -i)"
+      id: get_arch_name
+    - name: 'Set up JDK 8'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+    - name: 'Setup JDK 8 on ARM64'
+      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
+      uses: AdoptOpenJDK/install-jdk@v1
+      with:
+        impl: hotspot # or openj9
+        version: '8'
+        architecture: aarch64
+    - name: 'Install software'
+      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
+      run: |
+        sudo apt -y update
+        sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
+    - name: 'Update hosts'
+      run: |
+        sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
+        cat /etc/hosts
+    - uses: burrunan/gradle-cache-action@v1
+      name: Build pgjdbc
+      with:
+        read-only: ${{ matrix.os == 'self-hosted' }}
+        job-id: gss-jdk8
+        arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
+    - name: Run tests
+      run: |
+        cd test-gss
+        ./gradlew assemble
+        ./gradlew run

@@ -10,11 +10,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.core.Encoding;
+import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -39,7 +42,7 @@ public class DatabaseEncodingTest {
   @Before
   public void setUp() throws Exception {
     con = TestUtil.openDB();
-    TestUtil.createTable(con, "testdbencoding",
+    TestUtil.createTempTable(con, "testdbencoding",
         "unicode_ordinal integer primary key not null, unicode_string varchar(" + STEP + ")");
     // disabling auto commit makes the test run faster
     // by not committing each insert individually.
@@ -50,7 +53,6 @@ public class DatabaseEncodingTest {
   @After
   public void tearDown() throws Exception {
     con.setAutoCommit(true);
-    TestUtil.dropTable(con, "testdbencoding");
     TestUtil.closeDB(con);
   }
 
@@ -68,22 +70,10 @@ public class DatabaseEncodingTest {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testEncoding() throws Exception {
-    // Check that we have a UTF8 server encoding, or we must skip this test.
-    Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT getdatabaseencoding()");
-    assertTrue(rs.next());
-
-    String dbEncoding = rs.getString(1);
-    if (!dbEncoding.equals("UTF8")) {
-      System.err.println(
-          "DatabaseEncodingTest: Skipping UTF8 database tests as test database encoding is "
-              + dbEncoding);
-      rs.close();
-      return; // not a UTF8 database.
-    }
-
-    rs.close();
+    String databaseEncoding = TestUtil.queryForString(con, "SELECT getdatabaseencoding()");
+    Assume.assumeTrue("Database encoding must be UTF8", databaseEncoding.equals("UTF8"));
 
     boolean testHighUnicode = true;
 
@@ -142,8 +132,9 @@ public class DatabaseEncodingTest {
     con.commit();
 
     // Check data.
+    Statement stmt = con.createStatement();
     stmt.setFetchSize(1);
-    rs = stmt.executeQuery(
+    ResultSet rs = stmt.executeQuery(
         "SELECT unicode_ordinal, unicode_string FROM testdbencoding ORDER BY unicode_ordinal");
     for (int i = 1; i < 0xd800; i += STEP) {
       assertTrue(rs.next());

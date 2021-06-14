@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Oid;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -30,8 +31,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,10 +88,11 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSetPrimitiveObjects() throws SQLException {
+    final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
-    pstmt.setObject(1, new int[]{1,2,3}, Types.ARRAY);
+    pstmt.setObject(1, new int[]{1, 2, 3}, Types.ARRAY);
     pstmt.setObject(2, new double[]{3.1d, 1.4d}, Types.ARRAY);
-    pstmt.setObject(3, new String[]{"abc", "f'a", "fa\"b"}, Types.ARRAY);
+    pstmt.setObject(3, new String[]{stringWithNonAsciiWhiteSpace, "f'a", " \tfa\"b  "}, Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -120,9 +120,171 @@ public class ArrayTest extends BaseTest4 {
     String[] strarr = (String[]) arr.getArray(2, 2);
     assertEquals(2, strarr.length);
     assertEquals("f'a", strarr[0]);
-    assertEquals("fa\"b", strarr[1]);
+    assertEquals(" \tfa\"b  ", strarr[1]);
+
+    strarr = (String[]) arr.getArray();
+    assertEquals(stringWithNonAsciiWhiteSpace, strarr[0]);
 
     rs.close();
+  }
+
+  @Test
+  public void testIndexAccess() throws SQLException {
+    final int[][][] origIntArray = new int[2][2][2];
+    final double[][][] origDblArray = new double[2][2][2];
+    final String[][][] origStringArray = new String[2][2][2];
+    final Object[][][] origIntObjArray = new Object[2][2][2];
+    final Object[][][] origDblObjArray = new Object[2][2][2];
+    final Object[][][] origStringObjArray = new Object[2][2][2];
+    int i = 0;
+    for (int x = 0; x < 2; ++x) {
+      for (int y = 0; y < 2; ++y) {
+        for (int z = 0; z < 2; ++z) {
+          origIntArray[x][y][z] = i;
+          origDblArray[x][y][z] = i / 10;
+          origStringArray[x][y][z] = Integer.toString(i);
+          origIntObjArray[x][y][z] = i;
+          origDblObjArray[x][y][z] = i / 10;
+          origStringObjArray[x][y][z] = Integer.toString(i);
+          i++;
+        }
+      }
+    }
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, origIntArray[0][0], Types.ARRAY);
+    pstmt.setObject(2, origDblArray[0][0], Types.ARRAY);
+    pstmt.setObject(3, origStringArray[0][0], Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT intarr[1], decarr[1], strarr[1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray[0][0]), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray[0][0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray[0][0]), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1], decarr[1], strarr[1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntArray[0]), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblArray[0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringArray[0]), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1], decarr[1][1], strarr[1][1], intarr[2][1], decarr[2][1], strarr[2][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[0][1][0], rs.getInt(4));
+    assertEquals(origDblArray[0][1][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[0][1][0], rs.getString(6));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray[0]), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray[0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray[0]), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1], decarr[1][1], strarr[1][1], intarr[2][1], decarr[2][1], strarr[2][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[0][1][0], rs.getInt(4));
+    assertEquals(origDblArray[0][1][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[0][1][0], rs.getString(6));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntArray), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblArray), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringArray), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1][1], decarr[1][1][1], strarr[1][1][1], intarr[2][1][1], decarr[2][1][1], strarr[2][1][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[1][0][0], rs.getInt(4));
+    assertEquals(origDblArray[1][0][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[1][0][0], rs.getString(6));
+    rs.close();
+    stmt.close();
+
+    pstmt = conn.prepareStatement("delete from arrtest");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+
+    pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray), Types.ARRAY);
+    pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray), Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    stmt = conn.createStatement();
+    rs = stmt.executeQuery("SELECT intarr[1][1][1], decarr[1][1][1], strarr[1][1][1], intarr[2][1][1], decarr[2][1][1], strarr[2][1][1] FROM arrtest");
+    Assert.assertTrue(rs.next());
+
+    assertEquals(origIntArray[0][0][0], rs.getInt(1));
+    assertEquals(origDblArray[0][0][0], rs.getDouble(2), 0.001);
+    assertEquals(origStringArray[0][0][0], rs.getString(3));
+    assertEquals(origIntArray[1][0][0], rs.getInt(4));
+    assertEquals(origDblArray[1][0][0], rs.getDouble(5), 0.001);
+    assertEquals(origStringArray[1][0][0], rs.getString(6));
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -175,65 +337,6 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
-  public void testSetArraysWithFullDataTypeNames() throws SQLException {
-    // Create a test table and insert arrays with data types identified by their full names
-    TestUtil.createTable(conn, "arrtest_fullnames", "floatarr double precision[], varchararr character varying(20)[], timearr time without time zone[], tzarr timestamp with time zone[]");
-
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest_fullnames VALUES (?,?,?,?)");
-
-    final PGConnection arraySupport = conn.unwrap(PGConnection.class);
-
-    pstmt.setArray(1, arraySupport.createArrayOf("double precision", new Object[] { 1d, 2d, 3d }));
-    pstmt.setObject(2, arraySupport.createArrayOf("character varying", new String[] { "abc", "f'a", "fa\"b" }));
-    pstmt.setObject(3, arraySupport.createArrayOf("time without time zone", new Object[] { Time.valueOf("12:34:56"), Time.valueOf("03:30:25"), Time.valueOf("05:14:53") }));
-    pstmt.setObject(4, arraySupport.createArrayOf("timestamp with time zone", new Object[] { "1996-01-23 12:00:00-08", "1996-07-09 05:07:30+00", "1997-08-16 16:51:00-04" }));
-
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    // Select the created record and ensure the returned data has the correct type and content
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT floatarr, varchararr, timearr, tzarr FROM arrtest_fullnames");
-    Assert.assertTrue(rs.next());
-
-    Array arr = rs.getArray(1);
-    Assert.assertEquals(Types.DOUBLE, arr.getBaseType());
-    Double[] doublearr = (Double[]) arr.getArray();
-    Assert.assertEquals(3, doublearr.length);
-    Assert.assertEquals(1d, doublearr[0].intValue(), 0);
-    Assert.assertEquals(2d, doublearr[1].intValue(), 0);
-    Assert.assertEquals(3d, doublearr[2].intValue(), 0);
-
-    arr = rs.getArray(2);
-    Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
-    String[] varchararr = (String[]) arr.getArray();
-    Assert.assertEquals(3, varchararr.length);
-    Assert.assertEquals("abc", varchararr[0]);
-    Assert.assertEquals("f'a", varchararr[1]);
-    Assert.assertEquals("fa\"b", varchararr[2]);
-
-    arr = rs.getArray(3);
-    Assert.assertEquals(Types.TIME, arr.getBaseType());
-    Time[] timearr = (Time []) arr.getArray();
-    Assert.assertEquals(3, timearr.length);
-    Assert.assertEquals(Time.valueOf("12:34:56"), timearr[0]);
-    Assert.assertEquals(Time.valueOf("03:30:25"), timearr[1]);
-    Assert.assertEquals(Time.valueOf("05:14:53"), timearr[2]);
-
-    arr = rs.getArray(4);
-    Assert.assertEquals(Types.TIMESTAMP, arr.getBaseType());
-    Timestamp[] tzarr = (Timestamp[]) arr.getArray();
-    Assert.assertEquals(3, timearr.length);
-    Assert.assertEquals(822427200000L, tzarr[0].getTime());
-    Assert.assertEquals(836888850000L, tzarr[1].getTime());
-    Assert.assertEquals(871764660000L, tzarr[2].getTime());
-
-    rs.close();
-
-    TestUtil.dropTable(conn, "arrtest_fullnames");
-  }
-
-  @Test
   public void testSetNullArrays() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
 
@@ -268,7 +371,7 @@ public class ArrayTest extends BaseTest4 {
 
     // you need a lot of backslashes to get a double quote in.
     stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '"
-        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
+        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def, un  quot\u000B \u2001 \r}") + "')");
 
     ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
     Assert.assertTrue(rs.next());
@@ -295,6 +398,10 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals("f'a", strarr[0]);
     Assert.assertEquals("fa\"b", strarr[1]);
 
+    strarr = (String[]) arr.getArray();
+    assertEquals(5, strarr.length);
+    assertEquals("un  quot\u000B \u2001", strarr[4]);
+
     rs.close();
     stmt.close();
   }
@@ -303,9 +410,10 @@ public class ArrayTest extends BaseTest4 {
   public void testRetrieveResultSets() throws SQLException {
     Statement stmt = conn.createStatement();
 
+    final String stringWithNonAsciiWhiteSpace = "a\u2001b";
     // you need a lot of backslashes to get a double quote in.
     stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '"
-        + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
+        + TestUtil.escapeString(conn, "{\"a\u2001b\",f'a,\"fa\\\"b\",def}") + "')");
 
     ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
     Assert.assertTrue(rs.next());
@@ -348,6 +456,13 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(3, arrrs.getInt(1));
     Assert.assertEquals("fa\"b", arrrs.getString(2));
     Assert.assertTrue(!arrrs.next());
+    arrrs.close();
+
+    arrrs = arr.getResultSet(1, 1);
+    Assert.assertTrue(arrrs.next());
+    Assert.assertEquals(1, arrrs.getInt(1));
+    Assert.assertEquals(stringWithNonAsciiWhiteSpace, arrrs.getString(2));
+    Assert.assertFalse(arrrs.next());
     arrrs.close();
 
     rs.close();
@@ -450,6 +565,63 @@ public class ArrayTest extends BaseTest4 {
   public void testNullFieldString() throws SQLException {
     Array arr = new PgArray((BaseConnection) conn, 1, (String) null);
     Assert.assertNull(arr.toString());
+  }
+
+  @Test
+  public void testDirectFieldString() throws SQLException {
+    Array arr = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY,
+        "{\" lead\t\",  unquot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
+    final String[] array = (String[]) arr.getArray();
+    assertEquals(4, array.length);
+    assertEquals(" lead\t", array[0]);
+    assertEquals(" \fnew \n ", array[2]);
+    assertEquals(" ", array[3]);
+
+    // PostgreSQL drops leading and trailing whitespace, so does the driver
+    assertEquals("unquot\u2001", array[1]);
+  }
+
+  @Test
+  public void testStringEscaping() throws SQLException {
+
+    final String stringArray = "{f'a,\"fa\\\"b\",def, un  quot\u000B \u2001 \r, someString }";
+
+    final Statement stmt = conn.createStatement();
+    try {
+
+      stmt.executeUpdate("INSERT INTO arrtest VALUES (NULL, NULL, '" + TestUtil.escapeString(conn, stringArray) + "')");
+
+      final ResultSet rs = stmt.executeQuery("SELECT strarr FROM arrtest");
+      Assert.assertTrue(rs.next());
+
+      Array arr = rs.getArray(1);
+      Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+      String[] strarr = (String[]) arr.getArray();
+      assertEquals(5, strarr.length);
+      assertEquals("f'a", strarr[0]);
+      assertEquals("fa\"b", strarr[1]);
+      assertEquals("def", strarr[2]);
+      assertEquals("un  quot\u000B \u2001", strarr[3]);
+      assertEquals("someString", strarr[4]);
+
+      rs.close();
+    } finally {
+      stmt.close();
+    }
+
+    final Array directArray = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, stringArray);
+    final String[] actual = (String[]) directArray.getArray();
+    assertEquals(5, actual.length);
+    assertEquals("f'a", actual[0]);
+    assertEquals("fa\"b", actual[1]);
+    assertEquals("def", actual[2]);
+    assertEquals("someString", actual[4]);
+
+    // the driver strips out ascii white spaces from an unescaped string, even in
+    // the middle of the value. while this does not exactly match the behavior of
+    // the backend, it will always quote values where ascii white spaces are
+    // present, making this difference not worth the complexity involved addressing.
+    assertEquals("unquot\u2001", actual[3]);
   }
 
   @Test
@@ -635,4 +807,3 @@ public class ArrayTest extends BaseTest4 {
   }
 
 }
-

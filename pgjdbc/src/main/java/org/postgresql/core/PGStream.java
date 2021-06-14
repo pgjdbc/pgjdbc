@@ -5,12 +5,18 @@
 
 package org.postgresql.core;
 
+import org.postgresql.gss.GSSInputStream;
+import org.postgresql.gss.GSSOutputStream;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.MessageProp;
 
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
@@ -21,8 +27,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 
@@ -45,7 +53,21 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private OutputStream pgOutput;
-  private byte[] streamBuffer;
+  private byte @Nullable [] streamBuffer;
+
+  public boolean isGssEncrypted() {
+    return gssEncrypted;
+  }
+
+  boolean gssEncrypted = false;
+
+  public void setSecContext(GSSContext secContext) {
+    MessageProp messageProp =  new MessageProp(0, true);
+    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput.getWrapped(), secContext, messageProp ), 8192);
+    pgOutput = new GSSOutputStream(pgOutput, secContext, messageProp, 16384);
+    gssEncrypted = true;
+
+  }
 
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
@@ -58,6 +80,8 @@ public class PGStream implements Closeable, Flushable {
   private long maxResultBuffer = -1;
   private long resultBufferByteCount = 0;
 
+  private int maxRowSizeBytes = -1;
+
   /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
@@ -66,25 +90,60 @@ public class PGStream implements Closeable, Flushable {
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
 
-    Socket socket = socketFactory.createSocket();
-    if (!socket.isConnected()) {
-      // When using a SOCKS proxy, the host might not be resolvable locally,
-      // thus we defer resolution until the traffic reaches the proxy. If there
-      // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = hostSpec.shouldResolve()
-          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
-          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
-      socket.connect(address, timeout);
-    }
+    Socket socket = createSocket(timeout);
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
     int2Buf = new byte[2];
     int4Buf = new byte[4];
+  }
+
+  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
+  public PGStream(PGStream pgStream, int timeout ) throws IOException {
+
+    /*
+    Some defaults
+     */
+    int sendBufferSize = 1024;
+    int receiveBufferSize = 1024;
+    int soTimeout = 0;
+    boolean keepAlive = false;
+
+    /*
+    Get the existing values before closing the stream
+     */
+    try {
+      sendBufferSize = pgStream.getSocket().getSendBufferSize();
+      receiveBufferSize = pgStream.getSocket().getReceiveBufferSize();
+      soTimeout = pgStream.getSocket().getSoTimeout();
+      keepAlive = pgStream.getSocket().getKeepAlive();
+
+    } catch ( SocketException ex ) {
+      // ignore it
+    }
+    //close the existing stream
+    pgStream.close();
+
+    this.socketFactory = pgStream.socketFactory;
+    this.hostSpec = pgStream.hostSpec;
+
+    Socket socket = createSocket(timeout);
+    changeSocket(socket);
+    setEncoding(Encoding.getJVMEncoding("UTF-8"));
+    // set the buffer sizes and timeout
+    socket.setReceiveBufferSize(receiveBufferSize);
+    socket.setSendBufferSize(sendBufferSize);
+    setNetworkTimeout(soTimeout);
+    socket.setKeepAlive(keepAlive);
+
+    int2Buf = new byte[2];
+    int4Buf = new byte[4];
+
   }
 
   /**
@@ -163,6 +222,24 @@ public class PGStream implements Closeable, Flushable {
     this.minStreamAvailableCheckDelay = delay;
   }
 
+  private Socket createSocket(int timeout) throws IOException {
+    Socket socket = socketFactory.createSocket();
+    String localSocketAddress = hostSpec.getLocalSocketAddress();
+    if (localSocketAddress != null) {
+      socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
+    }
+    if (!socket.isConnected()) {
+      // When using a SOCKS proxy, the host might not be resolvable locally,
+      // thus we defer resolution until the traffic reaches the proxy. If there
+      // is no proxy, we must resolve the host to an IP to connect the socket.
+      InetSocketAddress address = hostSpec.shouldResolve()
+          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      socket.connect(address, timeout);
+    }
+    return socket;
+  }
+
   /**
    * Switch this stream to using a new socket. Any existing socket is <em>not</em> closed; it's
    * assumed that we are changing to a new socket that delegates to the original socket (e.g. SSL).
@@ -171,6 +248,10 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if something goes wrong
    */
   public void changeSocket(Socket socket) throws IOException {
+    assert connection != socket : "changeSocket is called with the current socket as argument."
+        + " This is a no-op, however, it re-allocates buffered streams, so refrain from"
+        + " excessive changeSocket calls";
+
     this.connection = socket;
 
     // Submitted by Jason Venner <jason@idiom.com>. Disable Nagle
@@ -274,7 +355,6 @@ public class PGStream implements Closeable, Flushable {
     if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
       throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
     }
-
     int2Buf[0] = (byte) (val >>> 8);
     int2Buf[1] = (byte) val;
     pgOutput.write(int2Buf);
@@ -477,6 +557,8 @@ public class PGStream implements Closeable, Flushable {
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
+    setMaxRowSizeBytes(dataToReadSize);
+
     byte[][] answer = new byte[nf][];
 
     increaseByteCounter(dataToReadSize);
@@ -639,24 +721,64 @@ public class PGStream implements Closeable, Flushable {
    *              multiplier)
    * @throws PSQLException exception returned when occurred parsing problem.
    */
-  public void setMaxResultBuffer(String value) throws PSQLException {
+  public void setMaxResultBuffer(@Nullable String value) throws PSQLException {
     maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
   }
 
   /**
-   * Method to clear count of byte buffer.
+   * Get MaxResultBuffer from PGStream.
+   *
+   * @return size of MaxResultBuffer
+   */
+  public long getMaxResultBuffer() {
+    return maxResultBuffer;
+  }
+
+  /**
+   * The idea behind this method is to keep in maxRowSize the size of biggest read data row. As
+   * there may be many data rows send after each other for a query, then value in maxRowSize would
+   * contain value noticed so far, because next data rows and their sizes are not read for that
+   * moment. We want it increasing, because the size of the biggest among data rows will be used
+   * during computing new adaptive fetch size for the query.
+   *
+   * @param rowSizeBytes new value to be set as maxRowSizeBytes
+   */
+  public void setMaxRowSizeBytes(int rowSizeBytes) {
+    if (rowSizeBytes > maxRowSizeBytes) {
+      maxRowSizeBytes = rowSizeBytes;
+    }
+  }
+
+  /**
+   * Get actual max row size noticed so far.
+   *
+   * @return value of max row size
+   */
+  public int getMaxRowSizeBytes() {
+    return maxRowSizeBytes;
+  }
+
+  /**
+   * Clear value of max row size noticed so far.
+   */
+  public void clearMaxRowSizeBytes() {
+    maxRowSizeBytes = -1;
+  }
+
+  /**
+   * Clear count of byte buffer.
    */
   public void clearResultBufferCount() {
     resultBufferByteCount = 0;
   }
 
   /**
-   * Method to increase actual count of buffer. If buffer count is bigger than max result buffer
-   * limit, then gonna return an exception.
+   * Increase actual count of buffer. If buffer count is bigger than max result buffer limit, then
+   * gonna return an exception.
    *
    * @param value size of bytes to add to byte buffer.
    * @throws SQLException exception returned when result buffer count is bigger than max result
-   *                          buffer.
+   *                      buffer.
    */
   private void increaseByteCounter(long value) throws SQLException {
     if (maxResultBuffer != -1) {

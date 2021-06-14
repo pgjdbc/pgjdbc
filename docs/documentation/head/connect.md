@@ -79,12 +79,21 @@ Connection conn = DriverManager.getConnection(url);
 
 * **options** = String
 
-	Specify 'options' connection initialization parameter.
+	Specify 'options' connection initialization parameter. For example setting this to `-c statement_timeout=5min` would set the statement timeout parameter for this session to 5 minutes.
 
 	The value of this property may contain spaces or other special characters,
 	and it should be properly encoded if provided in the connection URL. Spaces
 	are considered to separate command-line arguments, unless escaped with
 	a backslash (`\`); `\\` represents a literal backslash.
+
+    ```java
+    Properties props = new Properties();
+    props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
+    Connection conn = DriverManager.getConnection(url, props);
+
+    String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
+    Connection conn = DriverManager.getConnection(url);
+    ```
 
 * **ssl** = boolean
 
@@ -113,26 +122,30 @@ Connection conn = DriverManager.getConnection(url);
 	. `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
 	validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
 	verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
-	host connected to has the same hostname as the certificate.
+	host connected to has the same hostname as the certificate. Default is `prefer`
 
 	Setting these will necessitate storing the server certificate on the client machine see
 	["Configuring the client"](ssl-client.html) for details.
 
 * **sslcert** = String
 
-	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
+	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt, where defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows.
 
     It can be a PEM encoded X509v3 certificate
 
-	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
+	*Note:* This parameter is ignored when using PKCS-12 keys, since in that case the certificate is also retrieved from the same keyfile.
 
 * **sslkey** = String
 
 	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
 	
-	*Note:* The key file **must** be in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+	*Note:* The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
-	`openssl pkcs8 -topk8 -inform PEM -in my.key -outform DER -out my.key.der -v1 PBE-MD5-DES`
+	`openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+
+	PKCS-12 key files are only recognized if they have the ".p12" (42.2.9+) or the ".pfx" (42.2.16+) extension.
+
+	If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 
     *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
     by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
@@ -219,15 +232,6 @@ Connection conn = DriverManager.getConnection(url);
     performed.
      
     The default is 'false'
-
-* **raiseExceptionOnSilentRollback** = boolean
-
-    since 42.2.11
-
-    Certain database versions perform a silent rollback instead of commit in case the transaction was in a failed state.
-    See https://www.postgresql.org/message-id/b9fb50dc-0f6e-15fb-6555-8ddb86f4aa71%40postgresfriends.org
-
-    The default is 'true'
 
 * **binaryTransfer** = boolean
 
@@ -329,9 +333,9 @@ Connection conn = DriverManager.getConnection(url);
 
 * **cancelSignalTimeout** = int
 
-  Cancel command is sent out of band over its own connection, so cancel message can itself get
-  stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
-  The timeout is specified in seconds. Default value is 10 seconds.
+	Cancel command is sent out of band over its own connection, so cancel message can itself get
+	stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
+	The timeout is specified in seconds. Default value is 10 seconds.
 
 
 * **tcpKeepAlive** = boolean
@@ -359,6 +363,12 @@ Connection conn = DriverManager.getConnection(url);
 	you are unable to change the application to use an appropriate method
 	such as `setInt()`.
 
+* **ApplicationName** = String
+
+    Specifies the name of the application that is using the connection.
+    This allows a database administrator to see what applications are
+    connected to the server and what resources they are using through views like pg_stat_activity.
+
 * **kerberosServerName** = String
 
 	The Kerberos service name to use when authenticating with GSSAPI. This
@@ -377,11 +387,15 @@ Connection conn = DriverManager.getConnection(url);
 	authenticating. To skip the JAAS login, for example if the native GSS
 	implementation is being used to obtain credentials, set this to `false`.
 
-* **ApplicationName** = String
+* **gssEncMode** = String
 
-	Specifies the name of the application that is using the connection. 
-	This allows a database administrator to see what applications are 
-	connected to the server and what resources they are using through views like pg_stat_activity.
+    PostgreSQL 12 and later now allow GSSAPI encrypted connections.  This parameter controls whether
+    to enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and
+    `require`.  `disable` is obvious and disables any attempt to connect using GSS encrypted mode;
+    `allow` will connect initially in plain text then if the server requests it will switch to
+    encrypted mode; `prefer` will attempt to connect in encrypted mode and fall back to plain text
+    if it fails to acquire an encrypted connection; `require` attempts to connect in encrypted mode
+    and will fail to connect if that is not possible.
 
 * **gsslib** = String
 
@@ -430,6 +444,16 @@ Connection conn = DriverManager.getConnection(url);
 * **readOnly** = boolean
 
 	Put the connection in read-only mode
+
+* **readOnlyMode** = String
+	
+	One of 'ignore', 'transaction', or 'always'.  Controls the behavior when a connection is set to read only, When set
+	to 'ignore' then the `readOnly` setting has no effect.  When set to 'transaction' and `readOnly` is set to 'true'
+	and autocommit is 'false' the driver will set the transaction to readonly by sending `BEGIN READ ONLY`.  When set to
+	'always' and `readOnly` is set to 'true' the session will be set to READ ONLY if autoCommit is 'true'.  If
+	autocommit is false the driver will set the transaction to read only by sending `BEGIN READ ONLY` .
+	
+	The default the value is 'transaction'
 
 * **disableColumnSanitiser** = boolean
 
@@ -488,14 +512,15 @@ Connection conn = DriverManager.getConnection(url);
 
 * **replication** = String
 
-   Connection parameter passed in the startup message. This parameter accepts two values; "true"
-   and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
-   of replication commands can be issued instead of SQL statements. Only the simple query protocol
-   can be used in walsender mode. Passing "database" as the value instructs walsender to connect
-   to the database specified in the dbname parameter, which will allow the connection to be used
-   for logical replication from that database. <p>Parameter should be use together with 
-   `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)</p>
-    
+	Connection parameter passed in the startup message. This parameter accepts two values; "true"
+	and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
+	of replication commands can be issued instead of SQL statements. Only the simple query protocol
+	can be used in walsender mode. Passing "database" as the value instructs walsender to connect
+	to the database specified in the dbname parameter, which will allow the connection to be used
+	for logical replication from that database.
+	
+	Parameter should be use together with `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
+
 * **escapeSyntaxCallMode** = String
 
 	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
@@ -517,6 +542,38 @@ Connection conn = DriverManager.getConnection(url);
     
 	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
 	
+* **adaptiveFetch** = boolean	
+
+    Specifies if number of rows, fetched in `ResultSet` by one fetch with trip to the database, should be dynamic.
+    Using dynamic number of rows, computed by adaptive fetch, allows to use most of the buffer declared in `maxResultBuffer` property.
+    Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed so far, rounded down.
+    First fetch will have number of rows declared in `defaultRowFetchSize`.
+    Number of rows can be limited by `adaptiveFetchMinimum` and `adaptiveFetchMaximum`. 
+    Requires declaring of `maxResultBuffer` and `defaultRowFetchSize` to work.	
+    
+    By default, adaptiveFetch is false.
+    
+* **adaptiveFetchMinimum** = int
+
+    Specifies the lowest number of rows which can be calculated by `adaptiveFetch`.
+    Requires `adaptiveFetch` set to true to work.
+    
+    By default, minimum of rows calculated by `adaptiveFetch` is 0. 
+
+* **adaptiveFetchMaximum** = int
+
+	Specifies the highest number of rows which can be calculated by `adaptiveFetch`.
+    Requires `adaptiveFetch` set to true to work.
+
+    By default, maximum of rows calculated by `adaptiveFetch` is -1, which is understood as infinite.
+
+* **logServerErrorDetail** == boolean
+
+    Whether to include server error details in exceptions and log messages (for example inlined query parameters). 
+	Setting to false will only include minimal, not sensitive messages.
+
+	By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
+
 <a name="unix sockets"></a>
 ## Unix sockets
 
@@ -548,8 +605,8 @@ For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
 
 To support simple connection fail-over it is possible to define multiple endpoints
 (host and port pairs) in the connection url separated by commas.
-The driver will try to once connect to each of them in order until the connection succeeds. 
-If none succeed, a normal connection exception is thrown.
+The driver will try once to connect to each of them in order until the connection succeeds. 
+If none succeeds a normal connection exception is thrown.
 
 The syntax for the connection url is:
 
@@ -568,12 +625,6 @@ And read pool balances connections between secondary nodes, but allows connectio
 
 `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
-<<<<<<< HEAD
-If a slave fails, all slaves in the list will be tried first. If the case that there are no available slaves
-the master will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
-will be made to connect to all of the hosts in the URL in order.
-=======
-If a secondary fails, all secondaries in the list will be tried first. If the case that there are no available secondaries
-the primary will be tried. If all of the servers are marked as "can't connect" in the cache then an attempt
-will be made to connect to all of the hosts in the URL in order.
->>>>>>> 263d23605b9e4900fc161da165829a6b2ae168fc
+If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
+the primary will be tried. If all the servers are marked as "can't connect" in the cache then an attempt
+will be made to connect to all the hosts in the URL, in order.

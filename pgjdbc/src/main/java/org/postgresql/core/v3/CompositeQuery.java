@@ -10,6 +10,8 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -33,7 +35,7 @@ class CompositeQuery implements Query {
     return new CompositeParameterList(subparams, offsets);
   }
 
-  public String toString(ParameterList parameters) {
+  public String toString(@Nullable ParameterList parameters) {
     StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
     for (int i = 1; i < subqueries.length; ++i) {
       sbuf.append(';');
@@ -53,7 +55,7 @@ class CompositeQuery implements Query {
   }
 
   @Override
-  public SqlCommand getSqlCommand() {
+  public @Nullable SqlCommand getSqlCommand() {
     return null;
   }
 
@@ -94,7 +96,7 @@ class CompositeQuery implements Query {
   }
 
   @Override
-  public Map<String, Integer> getResultSetColumnNameIndexMap() {
+  public @Nullable Map<String, Integer> getResultSetColumnNameIndexMap() {
     return null; // unsupported
   }
 

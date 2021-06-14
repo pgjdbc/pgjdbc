@@ -13,10 +13,13 @@ import org.postgresql.core.ParserTest;
 import org.postgresql.core.ReturningParserTest;
 import org.postgresql.core.UTF8EncodingTest;
 import org.postgresql.core.v3.V3ParameterListTests;
+import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCacheTest;
+import org.postgresql.jdbc.ArraysTest;
+import org.postgresql.jdbc.ArraysTestSuite;
+import org.postgresql.jdbc.BitFieldTest;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
 import org.postgresql.jdbc.PgSQLXMLTest;
-import org.postgresql.jdbc.PrimitiveArraySupportTest;
 import org.postgresql.test.core.FixedLengthOutputStreamTest;
 import org.postgresql.test.core.JavaVersionTest;
 import org.postgresql.test.core.LogServerMessagePropertyTest;
@@ -30,7 +33,9 @@ import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
+import org.postgresql.util.BigDecimalByteConverterTest;
 import org.postgresql.util.ReaderInputStreamTest;
+import org.postgresql.util.UnusualBigDecimalByteConverterTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -40,11 +45,15 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    ANTTest.class,
+    AdaptiveFetchCacheTest.class,
     ArrayTest.class,
+    ArraysTest.class,
+    ArraysTestSuite.class,
     BatchedInsertReWriteEnabledTest.class,
     BatchExecuteTest.class,
     BatchFailureTest.class,
+    BigDecimalByteConverterTest.class,
+    BitFieldTest.class,
     BlobTest.class,
     BlobTransactionTest.class,
     CallableStmtTest.class,
@@ -97,7 +106,6 @@ import org.junit.runners.Suite;
     PGTimeTest.class,
     PgSQLXMLTest.class,
     PreparedStatementTest.class,
-    PrimitiveArraySupportTest.class,
     QuotationTest.class,
     ReaderInputStreamTest.class,
     RefCursorTest.class,
@@ -118,12 +126,12 @@ import org.junit.runners.Suite;
     TimeTest.class,
     TimezoneCachingTest.class,
     TimezoneTest.class,
-    TransactionTest.class,
     TypeCacheDLLStressTest.class,
+    UnusualBigDecimalByteConverterTest.class,
     UpdateableResultTest.class,
     UpsertTest.class,
     UTF8EncodingTest.class,
-    V3ParameterListTests.class,
+    V3ParameterListTests.class
 })
 public class Jdbc2TestSuite {
 }

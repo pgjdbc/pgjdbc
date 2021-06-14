@@ -162,9 +162,6 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   public void tearDown() throws SQLException {
     try {
       con.setAutoCommit(true);
-    } catch (Exception ignored) {
-    }
-    try {
       TestUtil.dropTable(con, "rollbacktest");
     } catch (Exception e) {
       e.printStackTrace();
@@ -295,46 +292,15 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     switch (continueMode) {
       case COMMIT:
         try {
-          TransactionState transactionState = pgConnection.getTransactionState();
           doCommit();
-          Assert.assertNotEquals(
-              ".commit() should throw exception since the transaction was in failed state",
-                TransactionState.FAILED, transactionState);
-          Assert.assertEquals("Transaction should be IDLE after .commit()",
-              TransactionState.IDLE, pgConnection.getTransactionState());
-          // Commit might fail in case the transaction is in aborted state
+          // No assert here: commit should always succeed with exception of well known failure cases in catch
         } catch (SQLException e) {
-          if (!PSQLState.INVALID_SQL_STATEMENT_NAME.getState().equals(e.getSQLState())) {
-            // In preferQueryMode=extendedCacheEverything mode it might be that "commit"
-            // statement is using server-prepared mode, and it might result in
-            // ERROR: prepared statement "S_4" does not exist
-            try {
-              Assert.assertEquals("Transaction should be IDLE after .commit()",
-                  TransactionState.IDLE, pgConnection.getTransactionState());
-            } catch (AssertionError ae) {
-              ae.initCause(e);
-              throw ae;
-            }
-          }
-          if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())
-              && (!flushCacheOnDeallocate && DEALLOCATES.contains(failMode)
-              || autoCommit == AutoCommit.NO)) {
-            // We have two cases here:
-            // 1) autocommit=false, so transaction was in progress, so it is expected that commit
-            //    fails with IN_FAILED_SQL_TRANSACTION
-            // 2) commit might fail due to <<ERROR: prepared statement "S_4" does not exist>>
-            //    However, if flushCacheOnDeallocate is false, then autosave can't really work, so
-            //    it is expected that commit fails
-            // Commit terminates the transaction, so "autosave" can't really "rollback"
-            return;
-          }
           if (!flushCacheOnDeallocate && DEALLOCATES.contains(failMode)
               && autoSave == AutoSave.NEVER) {
             Assert.assertEquals(
                 "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
                     + " error message is " + e.getMessage(),
                 PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
-            // Commit terminates the transaction, so "autosave" can't really "rollback"
             return;
           }
           throw e;

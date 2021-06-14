@@ -21,7 +21,7 @@ public class messages_ru extends java.util.ResourceBundle {
     t[34] = "Premature end of input stream, expected {0} bytes, but only read {1}.";
     t[35] = "Раннее завершение входного потока, ожидалось байт: {0}, но считано только {1}";
     t[44] = "An I/O error occurred while sending to the backend.";
-    t[45] = "Ошибка ввода/ввывода при отправке бэкенду";
+    t[45] = "Ошибка ввода/вывода при отправке бэкенду";
     t[46] = "Prepare called before end. prepare xid={0}, state={1}";
     t[47] = "Вызов prepare должен происходить только после вызова end. prepare xid={0}, state={1}";
     t[48] = "Transaction isolation level {0} not supported.";

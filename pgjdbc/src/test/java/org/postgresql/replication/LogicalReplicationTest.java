@@ -11,9 +11,9 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
 import org.postgresql.PGConnection;
-import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -25,6 +25,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 import java.nio.ByteBuffer;
@@ -36,7 +37,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,6 +44,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+@Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
 public class LogicalReplicationTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
@@ -66,9 +67,9 @@ public class LogicalReplicationTest {
 
   @Before
   public void setUp() throws Exception {
-    sqlConnection = TestUtil.openDB();
+    sqlConnection = TestUtil.openPrivilegedDB();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     TestUtil.createTable(sqlConnection, "test_logic_table",
         "pk serial primary key, name varchar(100)");
 
@@ -360,8 +361,12 @@ public class LogicalReplicationTest {
     replConnection.close();
 
     boolean isActive = isActiveOnView();
-    //we doesn't wait replay from server about stop connection that why some delay exists on update view and should wait some time before check view
-    if (!isActive) {
+
+    /*
+     * we don't wait for replay from server about stop connection that's why some
+     * delay exists on update view and should wait some time before check view
+     */
+    if (isActive) {
       TimeUnit.SECONDS.sleep(2L);
       isActive = isActiveOnView();
     }
@@ -444,7 +449,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
 
     stream =
@@ -646,7 +651,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
     stream =
         pgConnection
@@ -714,7 +719,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
     stream =
         pgConnection
@@ -763,10 +768,10 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    Connection tx1Connection = TestUtil.openDB();
+    Connection tx1Connection = TestUtil.openPrivilegedDB();
     tx1Connection.setAutoCommit(false);
 
-    Connection tx2Connection = TestUtil.openDB();
+    Connection tx2Connection = TestUtil.openPrivilegedDB();
     tx2Connection.setAutoCommit(false);
 
     Statement stTx1 = tx1Connection.createStatement();
@@ -795,7 +800,7 @@ public class LogicalReplicationTest {
     replConnection.close();
     waitStopReplicationSlot();
 
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     pgConnection = (PGConnection) replConnection;
     stream =
         pgConnection
@@ -944,12 +949,5 @@ public class LogicalReplicationTest {
       }
       st.close();
     }
-  }
-
-  private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
-    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
-    PGProperty.REPLICATION.set(properties, "database");
-    return TestUtil.openDB(properties);
   }
 }

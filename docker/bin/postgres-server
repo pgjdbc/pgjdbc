@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper script to start a postgres container for testing the PGJDBC driver.
+#
+# This is the same container used by the automated CI platform and can be used
+# to reproduce CI errors locally. It respects all the same environment variables
+# used by the CI matrix:
+#
+#    PGV   = "8.4" | "9.0" | ... "13" ...   - PostgreSQL server version (defaults to latest)
+#    SSL   = "yes" | "no"                   - Whether to enable SSL
+#    XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
+#    SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
+#    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
+#    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
+#
+# The container is started in the foreground. It will remain running until it
+# is killed via Ctrl-C.
+#
+# To start the default (latest) version:
+#
+#     docker/bin/postgres-server
+#
+# To start a v8.4 server without SSL:
+#
+#     PGV=8.4 SSL=off docker/bin/postgres-server
+#
+# To start a v10 server with SCRAM disabled:
+#
+#     PGV=10 SCRAM=no docker/bin/postgres-server
+#
+# To start a v11 server with a custom timezone:
+#
+#     PGV=11 TZ=Americas/New_York docker/bin/postgres-server
+#
+# To start a v13 server with the defaults (SSL + XA + SCRAM):
+#
+#     PGV=13 docker/bin/postgres-server
+#
+# To start the default (latest) version with read only replicas:
+#
+#     CREATE_REPLICAS=on docker/bin/postgres-server
+
+log () {
+    echo "$@" 1>&2
+}
+
+main () {
+    local publish_port="${PG_PUBLISH_PORT:-5432}"
+    local replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5433}"
+    local replica_two_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5434}"
+
+    # Determine our current directory and change to be in the same directory as the compose file
+    local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    cd "${script_dir}/../postgres-server"
+
+    log "Starting Postgres server and mapping to local port ${publish_port}"
+    exec docker-compose run \
+        --rm \
+        --publish="${publish_port}:5432" \
+        --publish="${replica_one_port}:5433" \
+        --publish="${replica_two_port}:5434" \
+        pgdb
+}
+
+main "$@"

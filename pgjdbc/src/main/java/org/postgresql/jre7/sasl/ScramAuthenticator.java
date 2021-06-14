@@ -5,6 +5,8 @@
 
 package org.postgresql.jre7.sasl;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -17,6 +19,7 @@ import com.ongres.scram.common.exception.ScramInvalidServerSignatureException;
 import com.ongres.scram.common.exception.ScramParseException;
 import com.ongres.scram.common.exception.ScramServerErrorException;
 import com.ongres.scram.common.stringprep.StringPreparations;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,10 +34,9 @@ public class ScramAuthenticator {
   private final String user;
   private final String password;
   private final PGStream pgStream;
-  private ScramClient scramClient;
-  private ScramSession scramSession;
-  private ScramSession.ServerFirstProcessor serverFirstProcessor;
-  private ScramSession.ClientFinalProcessor clientFinalProcessor;
+  private @Nullable ScramClient scramClient;
+  private @Nullable ScramSession scramSession;
+  private @Nullable ScramSession.ClientFinalProcessor clientFinalProcessor;
 
   private interface BodySender {
     void sendBody(PGStream pgStream) throws IOException;
@@ -68,10 +70,11 @@ public class ScramAuthenticator {
       );
     }
 
+    ScramClient scramClient;
     try {
       scramClient = ScramClient
           .channelBinding(ScramClient.ChannelBinding.NO)
-          .stringPreparation(StringPreparations.NO_PREPARATION)
+          .stringPreparation(StringPreparations.SASL_PREPARATION)
           .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[]{}))
           .setup();
     } catch (IllegalArgumentException e) {
@@ -84,15 +87,18 @@ public class ScramAuthenticator {
       LOGGER.log(Level.FINEST, " Using SCRAM mechanism {0}", scramClient.getScramMechanism().getName());
     }
 
+    this.scramClient = scramClient;
     scramSession =
         scramClient.scramSession("*");   // Real username is ignored by server, uses startup one
   }
 
   public void sendScramClientFirstMessage() throws IOException {
-    String clientFirstMessage = scramSession.clientFirstMessage();
+    ScramSession scramSession = this.scramSession;
+    String clientFirstMessage = castNonNull(scramSession).clientFirstMessage();
     LOGGER.log(Level.FINEST, " FE=> SASLInitialResponse( {0} )", clientFirstMessage);
 
-    String scramMechanismName = scramClient.getScramMechanism().getName();
+    ScramClient scramClient = this.scramClient;
+    String scramMechanismName = castNonNull(scramClient).getScramMechanism().getName();
     final byte[] scramMechanismNameBytes = scramMechanismName.getBytes(StandardCharsets.UTF_8);
     final byte[] clientFirstMessageBytes = clientFirstMessage.getBytes(StandardCharsets.UTF_8);
     sendAuthenticationMessage(
@@ -113,6 +119,15 @@ public class ScramAuthenticator {
     String serverFirstMessage = pgStream.receiveString(length);
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue( {0} )", serverFirstMessage);
 
+    ScramSession scramSession = this.scramSession;
+    if (scramSession == null) {
+      throw new PSQLException(
+          GT.tr("SCRAM session does not exist"),
+          PSQLState.UNKNOWN_STATE
+      );
+    }
+
+    ScramSession.ServerFirstProcessor serverFirstProcessor;
     try {
       serverFirstProcessor = scramSession.receiveServerFirstMessage(serverFirstMessage);
     } catch (ScramException e) {
@@ -150,6 +165,13 @@ public class ScramAuthenticator {
     String serverFinalMessage = pgStream.receiveString(length);
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLFinal( {0} )", serverFinalMessage);
 
+    ScramSession.ClientFinalProcessor clientFinalProcessor = this.clientFinalProcessor;
+    if (clientFinalProcessor == null) {
+      throw new PSQLException(
+          GT.tr("SCRAM client final processor does not exist"),
+          PSQLState.UNKNOWN_STATE
+      );
+    }
     try {
       clientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);
     } catch (ScramParseException e) {

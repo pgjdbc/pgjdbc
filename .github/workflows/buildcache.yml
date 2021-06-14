@@ -1,0 +1,55 @@
+name: Seed build cache
+
+on:
+  push:
+    branches:
+      - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'appveyor.xml'
+
+jobs:
+  check_secrets:
+    name: Check if required secrets are available
+    runs-on: ubuntu-latest
+    env:
+      S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+      S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+    outputs:
+      secrets_available: ${{ steps.set-matrix.outputs.secrets_available }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [[ -n "${S3_BUILD_CACHE_ACCESS_KEY_ID:-}" ]] && [[ -n "${S3_BUILD_CACHE_SECRET_KEY:-}" ]]; then
+            echo "::set-output name=secrets_available::true"
+          else
+            echo "::set-output name=secrets_available::false"
+          fi
+
+  seed-build-cache:
+    needs: check_secrets
+    if: ${{ needs.check_secrets.outputs.secrets_available == 'true' }}
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+        jdk: [8, 11]
+
+    name: '${{ matrix.os }}, ${{ matrix.jdk }} seed build cache'
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK ${{ matrix.jdk }}'
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.jdk }}
+      - uses: burrunan/gradle-cache-action@v1
+        name: Build pgjdbc
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          arguments: build -x test --scan -i

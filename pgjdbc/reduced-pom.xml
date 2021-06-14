@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2019, PostgreSQL Global Development Group
+  ~ See the LICENSE file in the project root for more information.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <packaging>jar</packaging>
+    <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
+    <version>%{pgjdbc.version}</version>
+    <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
+    <url>https://github.com/pgjdbc/pgjdbc</url>
+
+    <licenses>
+        <license>
+            <name>BSD-2-Clause</name>
+            <url>https://jdbc.postgresql.org/about/license.html</url>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>PostgreSQL Global Development Group</name>
+        <url>https://jdbc.postgresql.org/</url>
+    </organization>
+
+    <properties>
+        <!-- Require JDK 1.8 or later -->
+        <javac.target>1.8</javac.target>
+        <encoding>UTF-8</encoding>
+        <project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
+        <project.resources.sourceEncoding>${encoding}</project.resources.sourceEncoding>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+        <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
+        <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ongres.scram</groupId>
+            <artifactId>client</artifactId>
+            <version>%{com.ongres.scram.client.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>se.jiderhamn</groupId>
+            <artifactId>classloader-leak-test-framework</artifactId>
+            <version>%{classloader-leak-test-framework.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>%{junit4.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>%{junit5.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>%{junit5.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>%{junit5.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <version>%{junit5.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>${javac.target}</source>
+                    <target>${javac.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <argLine>-Xmx1536m</argLine>
+                    <systemPropertyVariables>
+                        <build.properties.relative.path>.</build.properties.relative.path>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+                <configuration>
+                    <archive>
+                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+          By default, source distribution does not build javadocs, however it can be activated with
+          -Pjavadoc
+          -->
+        <profile>
+            <id>javadoc</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc-plugin.version}</version>
+                        <configuration>
+                            <source>8</source>
+                            <detectJavaApiLink>false</detectJavaApiLink>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!--
+          By default, all the dependencies are shaded, however, -DskipShadeDependencies=true
+          can be added to avoid bundling the dependencies.
+          -->
+        <profile>
+            <id>shade-dependencies</id>
+            <activation>
+                <property>
+                    <name>!skipShadeDependencies</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <minimizeJar>true</minimizeJar>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>com.github.waffle:waffle-jna</exclude>
+                                    <exclude>org.slf4j:jcl-over-slf4j</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>com.ongres.scram:client</artifact>
+                                    <excludes>
+                                        <exclude>LICENSE</exclude>
+                                        <exclude>META-INF/maven/**</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>com/sun/jna/**</exclude>
+                                        <exclude>LICENSE</exclude>
+                                        <exclude>META-INF/maven/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <relocations>
+                                        <relocation>
+                                            <pattern>com.ongres</pattern>
+                                            <shadedPattern>org.postgresql.shaded.com.ongres</shadedPattern>
+                                        </relocation>
+                                    </relocations>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

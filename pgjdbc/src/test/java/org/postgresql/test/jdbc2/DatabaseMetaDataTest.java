@@ -11,13 +11,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -29,21 +33,44 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  *
  */
+@RunWith(Parameterized.class)
 public class DatabaseMetaDataTest {
   private Connection con;
+  private final BinaryMode binaryMode;
+
+  public DatabaseMetaDataTest(BinaryMode binaryMode) {
+    this.binaryMode = binaryMode;
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Before
   public void setUp() throws Exception {
-    con = TestUtil.openDB();
+    if (binaryMode == BinaryMode.FORCE) {
+      final Properties props = new Properties();
+      PGProperty.PREPARE_THRESHOLD.set(props, -1);
+      con = TestUtil.openDB(props);
+    } else {
+      con = TestUtil.openDB();
+    }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
@@ -53,6 +80,7 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
+    TestUtil.createView(con, "viewtest", "SELECT id, quest FROM metadatatest");
     TestUtil.dropType(con, "custom");
     TestUtil.dropType(con, "_custom");
     TestUtil.createCompositeType(con, "custom", "i int", false);
@@ -97,6 +125,7 @@ public class DatabaseMetaDataTest {
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION f4(int)");
 
+    TestUtil.dropView(con, "viewtest");
     TestUtil.dropTable(con, "metadatatest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
@@ -547,11 +576,15 @@ public class DatabaseMetaDataTest {
       assertEquals(rownum + 1, rs.getInt("ORDINAL_POSITION"));
       if (rownum == 0) {
         assertEquals("int4", rs.getString("TYPE_NAME"));
+
       } else if (rownum == 1) {
         assertEquals("serial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       } else if (rownum == 2) {
         assertEquals("bigserial", rs.getString("TYPE_NAME"));
+        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
       }
+
       rownum++;
     }
     assertEquals(3, rownum);
@@ -593,6 +626,24 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testViewPrivileges() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getTablePrivileges(null, null, "viewtest");
+    boolean foundSelect = false;
+    while (rs.next()) {
+      if (rs.getString("GRANTEE").equals(TestUtil.getUser())
+          && rs.getString("PRIVILEGE").equals("SELECT")) {
+        foundSelect = true;
+      }
+    }
+    rs.close();
+    // Test that the view owner has select priv
+    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
+        foundSelect);
   }
 
   @Test
@@ -759,7 +810,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testTableTypes() throws SQLException {
-    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX",
+    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
         "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
         "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
         "TEMPORARY VIEW", "TYPE", "VIEW"));
@@ -778,7 +829,7 @@ public class DatabaseMetaDataTest {
     rs.close();
     Collections.sort(expectedTableTypes);
     Collections.sort(foundTableTypes);
-    Assert.assertEquals("The table types received from DatabaseMetaData should match the 17 expected types",
+    Assert.assertEquals("The table types received from DatabaseMetaData should match the 18 expected types",
         true, foundTableTypes.equals(expectedTableTypes));
   }
 
@@ -1279,21 +1330,44 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testPartionedTablesIndex() throws SQLException {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute(
+            "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getPrimaryKeys("", "", "measurement");
+        assertTrue(rs.next());
+        assertEquals("measurement_pkey", rs.getString(6));
+
+      } finally {
+        if (stmt != null) {
+          stmt.execute("drop table if exists measurement");
+          stmt.close();
+        }
+      }
+    }
+
+  }
+
+  @Test
   public void testPartitionedTables() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
       Statement stmt = null;
       try {
         stmt = con.createStatement();
         stmt.execute(
-            "CREATE TABLE measurement (logdate date not null,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+            "CREATE TABLE measurement (logdate date not null ,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
-
+        rs.close();
       } finally {
         if (stmt != null) {
-          stmt.execute("drop table measurement");
+          stmt.execute("drop table if exists measurement");
           stmt.close();
         }
       }
@@ -1456,5 +1530,69 @@ public class DatabaseMetaDataTest {
     assertTrue(!rs.next());
 
     rs.close();
+  }
+
+  @Test
+  public void testSmallSerialColumns() throws SQLException {
+    org.junit.Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+    TestUtil.createTable(con, "smallserial_test", "a smallserial");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "smallserial_test", "a");
+    assertTrue(rs.next());
+    assertEquals("smallserial_test", rs.getString("TABLE_NAME"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
+    assertEquals("smallserial", rs.getString("TYPE_NAME"));
+    assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+    assertEquals("nextval('smallserial_test_a_seq'::regclass)", rs.getString("COLUMN_DEF"));
+    assertFalse(rs.next());
+    rs.close();
+
+    TestUtil.dropTable(con, "smallserial_test");
+  }
+
+  @Test
+  public void testSmallSerialSequenceLikeColumns() throws SQLException {
+    Statement stmt = con.createStatement();
+    // This is the equivalent of the smallserial, not the actual smallserial
+    stmt.execute("CREATE SEQUENCE smallserial_test_a_seq;\n"
+        + "CREATE TABLE smallserial_test (\n"
+        + "    a smallint NOT NULL DEFAULT nextval('smallserial_test_a_seq')\n"
+        + ");\n"
+        + "ALTER SEQUENCE smallserial_test_a_seq OWNED BY smallserial_test.a;");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "smallserial_test", "a");
+    assertTrue(rs.next());
+    assertEquals("smallserial_test", rs.getString("TABLE_NAME"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2)) {
+      // in Pg 9.2+ it behaves like smallserial
+      assertEquals("smallserial", rs.getString("TYPE_NAME"));
+    } else {
+      assertEquals("int2", rs.getString("TYPE_NAME"));
+    }
+    assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+    assertEquals("nextval('smallserial_test_a_seq'::regclass)", rs.getString("COLUMN_DEF"));
+    assertFalse(rs.next());
+    rs.close();
+
+    stmt.execute("DROP TABLE smallserial_test");
+    stmt.close();
+  }
+
+  @Test
+  public void testUpperCaseMetaDataLabels() throws SQLException {
+    ResultSet rs = con.getMetaData().getTables(null, null, null, null);
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    assertEquals("TABLE_CAT", rsmd.getColumnName(1));
+    assertEquals("TABLE_SCHEM", rsmd.getColumnName(2));
+    assertEquals("TABLE_NAME", rsmd.getColumnName(3));
+    assertEquals("TABLE_TYPE", rsmd.getColumnName(4));
+    assertEquals("REMARKS", rsmd.getColumnName(5));
+
   }
 }

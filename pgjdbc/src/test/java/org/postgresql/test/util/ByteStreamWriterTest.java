@@ -10,12 +10,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.ByteStreamWriter;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -103,6 +105,7 @@ public class ByteStreamWriterTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testLength100Kb() throws Exception {
     ByteBuffer testData = testData(100 * 1024);
     insertStream(testData);
@@ -110,6 +113,7 @@ public class ByteStreamWriterTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testLength200Kb() throws Exception {
     ByteBuffer testData = testData(200 * 1024);
     insertStream(testData);

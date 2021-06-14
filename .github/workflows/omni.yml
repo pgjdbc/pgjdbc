@@ -1,0 +1,410 @@
+name: Omni CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      # Filters to limit generated matrix. Empty or "*" values are ignored.
+      matrix_jdk_distribution:
+        description: JDK Distribution (adopt, zulu, ...)
+        required: false
+        default: "*"
+      matrix_jdk_version:
+        description: JDK Version (8, 11, ...)
+        required: false
+        default: "*"
+      matrix_pg_version:
+        description: PostgreSQL Server Version (8.4, 9.0, 9.1, ...)
+        required: false
+        default: "*"
+      matrix_query_mode:
+        description: Query Mode (simple | extended | extendedForPrepared)
+        required: false
+        default: "*"
+      matrix_ssl:
+        description: SSL (true | false)
+        required: false
+        default: "*"
+      matrix_scram:
+        description: SCRAM (true | false)
+        required: false
+        default: "*"
+      matrix_default_test_group:
+        description: Default test group (fast | slow | all)
+        required: false
+        default: fast
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  matrix_prep:
+    name: Matrix Preparation
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    env:
+      MATRIX_JDK_DISTRIBUTION: '${{ github.event.inputs.matrix_jdk_distribution }}'
+      MATRIX_JDK_VERSION: '${{ github.event.inputs.matrix_jdk_version }}'
+      MATRIX_PG_VERSION: '${{ github.event.inputs.matrix_pg_version }}'
+      MATRIX_QUERY_MODE: '${{ github.event.inputs.matrix_query_mode }}'
+      MATRIX_SCRAM: '${{ github.event.inputs.matrix_scram }}'
+      MATRIX_SSL: '${{ github.event.inputs.matrix_ssl }}'
+      MATRIX_DEFAULT_TEST_GROUP: '${{ github.event.inputs.matrix_default_test_group }}'
+      # Script as an environment variable so we don't have to worry shell substitions
+      MATRIX_GENERATION_NODE_JS_SCRIPT: |
+        const DEFAULT_TEST_GROUP = process.env.MATRIX_DEFAULT_TEST_GROUP || 'fast';
+
+        const JDK_OPTIONS = [
+            { group: 'Zulu', version: '8', lts: true, distribution: 'zulu' },
+            { group: 'Zulu', version: '11', lts: true, distribution: 'zulu' },
+            { group: 'Zulu', version: '15', lts: false, distribution: 'zulu' },
+        ];
+
+        const OTHER_JDK_OPTIONS = [
+          // Adopt
+          { group: 'Adopt Hotspot', version: '8', lts: true, distribution: 'adopt-hotspot' },
+          { group: 'Adopt Hotspot', version: '11', lts: true, distribution: 'adopt-hotspot' },
+
+          // Adopt OpenJ9
+          // TODO: Replace these hard coded versions with something that dynamically picks the most recent
+          { group: 'Adopt OpenJ9', version: '8', lts: true, distribution: 'adopt-openj9'},
+          { group: 'Adopt OpenJ9', version: '11', lts: true, distribution: 'adopt-openj9'},
+
+          // Amazon Corretto
+          { group: 'Corretto', version: '8', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-8-x64-linux-jdk.tar.gz'},
+          { group: 'Corretto', version: '11', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-11-x64-linux-jdk.tar.gz'},
+        ];
+
+        const PG_VERSIONS = [
+            '8.4',
+            '9.0',
+            '9.1',
+            '9.2',
+            '9.3',
+            '9.4',
+            '9.5',
+            '9.6',
+            '10',
+            '11',
+            '12',
+            '13',
+            // TODO: Determine the latest and greatest server version automatically so we don't need to periodically update this
+        ];
+
+
+        const LTS_JDK_OPTIONS = JDK_OPTIONS.filter(jdk => jdk.lts);
+        const UNSTABLE_JDK_OPTIONS = JDK_OPTIONS.filter(jdk => !jdk.lts);
+        const LATEST_JDK = LTS_JDK_OPTIONS.slice(-1)[0];
+        const LATEST_PG_VERSION = PG_VERSIONS.slice(-1)[0];
+
+        const list = [];
+
+        const matchesMatrixFilter = (name, value) => {
+            const env_value = process.env['MATRIX_' + name];
+            if (!env_value || env_value === '*') {
+              return true;
+            }
+            // TODO: Consider expanding this to do globbing
+            return env_value === ('' + value);
+        };
+
+        const addItem = (opts) => {
+            const name = opts.name ?? '';
+            const os = 'ubuntu-latest';
+            const pg_version = opts.pg_version ?? LATEST_PG_VERSION;
+            const jdk = opts.jdk ?? LATEST_JDK;
+            const experimental = opts.experimental ?? false;
+            const test_group = opts.test_group ?? DEFAULT_TEST_GROUP;
+            const create_replicas = opts.create_replicas ?? false;
+
+            const isAtLeast = (minVersion) => Number(pg_version) >= Number(minVersion);
+            const scramSupported = isAtLeast('10');
+            const sslSupported = isAtLeast('9.3');
+
+            const query_mode = opts.query_mode;
+            const ssl = opts.ssl ?? sslSupported;
+            const scram = opts.scram ?? scramSupported;
+
+            if (!matchesMatrixFilter('JDK_DISTRIBUTION', jdk.distribution) ||
+                !matchesMatrixFilter('JDK_VERSION', jdk.version) ||
+                !matchesMatrixFilter('PG_VERSION', pg_version) ||
+                !matchesMatrixFilter('QUERY_MODE', query_mode ?? '') ||
+                !matchesMatrixFilter('SCRAM', scram) ||
+                !matchesMatrixFilter('SSL', ssl)) {
+              return;
+            }
+
+            const junit_include_tags = (() => {
+              switch (test_group) {
+                case 'replication':
+                  // Only replication tests
+                  return 'org.postgresql.test.Replication';
+                case 'fast':
+                  // Fast group does not run slow or replication tests
+                  return '!org.postgresql.test.SlowTests & !org.postgresql.test.Replication';
+                case 'slow':
+                  // Everything but replication tests (which includes all the really slow ones)
+                  return '!org.postgresql.test.Replication';
+                case 'all':
+                  // Everything
+                  return ''
+              }
+              throw new Error('Invalid test group: ' + test_group);
+            })();
+
+            list.push({
+                name: [
+                  experimental ? 'Experimental' : '',
+                  name,
+                  `${jdk.group} ${jdk.version} x PG ${pg_version}`
+                  ].filter(x => x).join(' - '),
+                os,
+                jdk_group: jdk.group,
+                jdk_version: jdk.version,
+                jdk_distribution: jdk.distribution,
+                jdk_url: jdk.url,
+                pg_version,
+                ssl,
+                scram,
+                server_tz: opts.server_tz ?? 'Etc/UTC',
+                experimental,
+                junit_include_tags,
+                query_mode,
+            });
+        };
+
+        // Latest JDK x each stable PG version
+        for (const pg_version of PG_VERSIONS) {
+            addItem({
+                pg_version,
+            });
+        }
+
+        // Latest PG version x each remaining JDK
+        for (const jdk of JDK_OPTIONS) {
+            if (jdk == LATEST_JDK) {
+                continue; // Skip duplicate
+            }
+            addItem({
+                jdk,
+                pg_version: LATEST_PG_VERSION,
+                experimental: !jdk.lts,
+            });
+        }
+
+        // No SSL / No SCRAM (only on latest PG / JDK)
+        addItem({
+            name: `No SSL / No SCRAM`,
+            ssl: false,
+            scram: false,
+        });
+
+        // Custom server timezones (only on latest PG / JDK)
+        addItem({
+            name: `Server TZ - America/New_York`,
+            server_tz: 'America/New_York'
+        });
+        addItem({
+            name: `Server TZ - Pacific/Chatham`,
+            server_tz: 'Pacific/Chatham'
+        });
+
+        // Custom query modes (only on latest PG / JDK)
+        addItem({
+            name: `Query Mode - simple`,
+            query_mode: 'simple',
+        });
+        addItem({
+            name: `Query Mode - extendedForPrepared`,
+            query_mode: 'extendedForPrepared',
+        });
+        addItem({
+            name: `Query Mode - extendedCacheEverything`,
+            query_mode: 'extendedCacheEverything',
+        });
+
+        // Slow tests (only on latest PG / JDK)
+        addItem({
+            name: `Slow Tests`,
+            test_group: 'slow',
+            create_replicas: true,
+        });
+        // Replication tests (only on latest PG / JDK)
+        addItem({
+            name: `Replication Tests`,
+            test_group: 'replication',
+        });
+
+        // TODO: Add latest PG built from source marked as experimental
+
+        for(const jdk of OTHER_JDK_OPTIONS) {
+            addItem({
+                jdk,
+                pg_version: LATEST_PG_VERSION,
+                experimental: !jdk.lts,
+            });
+        }
+
+        if (list.length === 0) {
+          throw new Error('Matrix list is empty. Check you matrix filters to ensure they match a valid combination.');
+        }
+
+        const toKey = (item) => JSON.stringify(Object.entries(item).filter(([field]) => field != 'name').sort())
+        const include = list.filter((item, i) => {
+          const key = toKey(item);
+          // Deduplicate by picking only the first entry matching this key
+          return i === list.findIndex((other) => key === toKey(other));
+        });
+        // Sort so that all the experimental jobs appear at the end of the list
+        include.sort((a, b) => (a.experimental ? 1 : 0) - (b.experimental ? 1 : 0))
+
+        console.log('::set-output name=matrix::' + JSON.stringify({ include }));
+    steps:
+    - id: set-matrix
+      run: |
+        node -e "${MATRIX_GENERATION_NODE_JS_SCRIPT}"
+
+  test:
+    name: '${{ matrix.name }}'
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    needs: matrix_prep
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+    env:
+      ACTIONS_STEP_DEBUG: true
+      ACTIONS_RUNNER_DEBUG: true
+      SSL: ${{ matrix.ssl }}
+      SCRAM: ${{ matrix.scram }}
+      TZ: ${{ matrix.server_tz }}
+      CREATE_REPLICAS: ${{ matrix.create_replicas }}
+    steps:
+    - name: 'Show Matrix'
+      env:
+          MATRIX_JSON: ${{ toJSON(matrix) }}
+      run: echo "${MATRIX_JSON}"
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+
+    - name: Start PostgreSQL
+      working-directory: docker/postgres-server
+      run: docker-compose up -d && docker-compose logs
+      env:
+        PGV: ${{ matrix.pg_version }}
+
+    # Install built-in JDK
+    - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_distribution }}'
+      uses: actions/setup-java@v2
+      if: ${{ matrix.jdk_distribution != 'jdkfile' }}
+      with:
+        distribution: ${{ matrix.jdk_distribution }}
+        java-version: ${{ matrix.jdk_version }}
+        architecture: x64
+    # Install custom JDK from URL
+    - name: 'Download JDK ${{ matrix.jdk_distribution }} / ${{ matrix.jdk_version }} from ${{ matrix.jdk_url }}'
+      if: ${{ matrix.jdk_distribution == 'jdkfile' }}
+      run: |
+        jdk_url="${{ matrix.jdk_url }}"
+        wget -nv -O "${{ runner.temp }}/java_package.tar.gz" "${jdk_url}"
+    - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_url }}'
+      uses: actions/setup-java@v2
+      if: ${{ matrix.jdk_distribution == 'jdkfile' }}
+      with:
+        distribution: ${{ matrix.jdk_distribution }}
+        java-version: ${{ matrix.jdk_version }}
+        jdkFile: '${{ runner.temp }}/java_package.tar.gz'
+        architecture: x64
+
+    - name: Java version
+      run: |
+        java -version
+
+    - name: PostgreSQL version
+      env:
+        PGUSER: postgres
+        PGDATABASE: postgres
+        PGHOST: localhost
+      run: |
+        if ! docker/bin/wait_for_pg_isready; then
+            # Server is not online so dump some logs for debugging
+            docker ps
+            cd docker/postgres-server
+            docker-compose logs
+        fi
+        psql -c 'SELECT version()'
+
+    - name: Prepare local properties
+      run: |
+        cat <<EOF >ssltest.local.properties
+        enable_ssl_tests=${{ matrix.ssl }}
+        EOF
+        cat <<EOF >build.local.properties
+        preferQueryMode=${{ matrix.query_mode}}
+        EOF
+    - name: Test
+      uses: burrunan/gradle-cache-action@v1
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+      with:
+        # Separate cache for each JDK distribution and version
+        job-id: jdk${{ matrix.jdk_version}}_${{ matrix.jdk_group }}
+        arguments: --no-parallel --no-daemon --scan jandex test jacocoReport
+        properties: |
+          includeTestTags=${{ matrix.junit_include_tags }}
+    - name: 'Upload code coverage'
+      uses: codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27
+      with:
+        file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
+
+  test-pg-head:
+    name: Zulu 11 x PG HEAD
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
+    - name: Compile and start PostgreSQL
+      working-directory: docker/postgres-head
+      run: docker-compose up -d && docker-compose logs
+    - name: Set up JDK
+      uses: actions/setup-java@v2
+      with:
+        distribution: zulu
+        java-version: 11
+        architecture: x64
+    - name: Java version
+      run: |
+        java -version
+    - name: PostgreSQL version
+      env:
+        PGUSER: postgres
+        PGDATABASE: postgres
+        PGHOST: localhost
+      run: |
+        if ! docker/bin/wait_for_pg_isready; then
+            # Server is not online so dump some logs for debugging
+            docker ps
+            cd docker/postgres-head
+            docker-compose logs
+        fi
+        psql -c 'SELECT version()'
+    - name: Prepare local properties
+      run: |
+        cat <<EOF >ssltest.local.properties
+        enable_ssl_tests=false
+        EOF
+        cat <<EOF >build.local.properties
+        EOF
+    - name: Test
+      uses: burrunan/gradle-cache-action@v1
+      with:
+        arguments: --no-parallel --no-daemon --scan jandex test jacocoReport
+        properties: |
+          includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
+    - name: 'Upload code coverage'
+      uses: codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27
+      with:
+        file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml

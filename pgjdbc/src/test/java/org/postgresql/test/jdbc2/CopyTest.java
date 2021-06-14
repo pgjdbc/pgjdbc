@@ -66,7 +66,7 @@ public class CopyTest {
   public void setUp() throws Exception {
     con = TestUtil.openDB();
 
-    TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
+    TestUtil.createTempTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
 
     copyAPI = ((PGConnection) con).getCopyAPI();
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
@@ -218,6 +218,28 @@ public class CopyTest {
     copyAPI.copyIn(sql, new ByteBufferByteStreamWriter(ByteBuffer.wrap(getData(origData))));
     int rowCount = getCount();
     assertEquals(dataRows, rowCount);
+  }
+
+  /**
+   * Tests writing to a COPY ... FROM STDIN using both the standard OutputStream API
+   * write(byte[]) and the driver specific write(ByteStreamWriter) API interleaved.
+   */
+  @Test
+  public void testCopyMultiApi() throws SQLException, IOException {
+    TestUtil.execute("CREATE TABLE pg_temp.copy_api_test (data text)", con);
+    String sql = "COPY pg_temp.copy_api_test (data) FROM STDIN";
+    PGCopyOutputStream out = new PGCopyOutputStream(copyAPI.copyIn(sql));
+    try {
+      out.write("a".getBytes());
+      out.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap("b".getBytes())));
+      out.write("c".getBytes());
+      out.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap("d".getBytes())));
+      out.write("\n".getBytes());
+    } finally {
+      out.close();
+    }
+    String data = TestUtil.queryForString(con, "SELECT data FROM pg_temp.copy_api_test");
+    assertEquals("The writes to the COPY should be in order", "abcd", data);
   }
 
   @Test
@@ -403,14 +425,10 @@ public class CopyTest {
     // on the Connection object fails to deadlock.
     con.setAutoCommit(false);
 
-    // We get the process id before the COPY as we cannot run other commands
-    // on the connection during the COPY operation.
-    int pid = TestUtil.getBackendPid(con);
-
     CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
     CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with " + copyParams);
+    TestUtil.terminateBackend(con);
     try {
-      TestUtil.terminateBackend(pid);
       byte[] bunchOfNulls = ",,\n".getBytes();
       while (true) {
         copyIn.writeToCopy(bunchOfNulls, 0, bunchOfNulls.length);
@@ -440,7 +458,8 @@ public class CopyTest {
     if (rollbackException == null) {
       fail("rollback should have thrown an exception");
     }
-    acceptIOCause(rollbackException);
+
+    assertTrue( rollbackException instanceof SQLException);
   }
 
   private static class Rollback extends Thread {

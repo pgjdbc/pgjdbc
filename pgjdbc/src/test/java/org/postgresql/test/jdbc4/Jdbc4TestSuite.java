@@ -19,6 +19,7 @@ import org.junit.runners.Suite;
     BlobTest.class,
     CharacterStreamTest.class,
     ClientInfoTest.class,
+    ConnectionValidTimeoutTest.class,
     DatabaseMetaDataHideUnprivilegedObjectsTest.class,
     DatabaseMetaDataTest.class,
     IsValidTest.class,
@@ -31,4 +32,3 @@ import org.junit.runners.Suite;
 })
 public class Jdbc4TestSuite {
 }
-

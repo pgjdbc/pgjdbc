@@ -5,12 +5,14 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
+import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
@@ -32,8 +34,15 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
   public void testInvokeFunction() throws Throwable {
     // escapeSyntaxCallMode=call will cause a CALL statement to be used for the JDBC escape call
     // syntax used below. "myiofunc" is a function, so the attempted invocation should fail.
+    PSQLState expected = PSQLState.WRONG_OBJECT_TYPE;
     assumeCallableStatementsSupported();
     assumeMinimumServerVersion(ServerVersion.v11);
+
+    // version 14 changes this to undefined function
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
+      expected = PSQLState.UNDEFINED_FUNCTION;
+    }
+
     CallableStatement cs = con.prepareCall("{ call myiofunc(?,?) }");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.registerOutParameter(2, Types.INTEGER);
@@ -42,7 +51,7 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.WRONG_OBJECT_TYPE.getState()));
+      assertEquals(expected.getState(),ex.getSQLState());
     }
   }
 
@@ -50,6 +59,14 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
   public void testInvokeFunctionHavingReturnParameter() throws Throwable {
     // escapeSyntaxCallMode=call will cause a CALL statement to be used for the JDBC escape call
     // syntax used below. "mysumfunc" is a function, so the attempted invocation should fail.
+
+    //version 14 changes this to undefined function
+    PSQLState expected = PSQLState.WRONG_OBJECT_TYPE;
+
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
+      expected = PSQLState.UNDEFINED_FUNCTION;
+    }
+
     assumeCallableStatementsSupported();
     assumeMinimumServerVersion(ServerVersion.v11);
     CallableStatement cs = con.prepareCall("{ ? = call mysumfunc(?,?) }");
@@ -60,7 +77,7 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.WRONG_OBJECT_TYPE.getState()));
+      assertEquals(expected.getState(), ex.getSQLState());
     }
   }
 

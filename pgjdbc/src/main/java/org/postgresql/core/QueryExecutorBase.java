@@ -16,6 +16,9 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -38,9 +41,9 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private int cancelPid;
   private int cancelKey;
   private boolean closed = false;
-  private String serverVersion;
+  private @MonotonicNonNull String serverVersion;
   private int serverVersionNum = 0;
-  private TransactionState transactionState;
+  private TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
@@ -48,12 +51,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
   protected final boolean logServerErrorDetail;
-  private boolean raiseExceptionOnSilentRollback;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
 
-  private SQLWarning warnings;
+  private @Nullable SQLWarning warnings;
   private final ArrayList<PGNotification> notifications = new ArrayList<PGNotification>();
 
   private final LruCache<Object, CachedQuery> statementCache;
@@ -63,6 +65,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final TreeMap<String,String> parameterStatuses
       = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
 
+  @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible"})
   protected QueryExecutorBase(PGStream pgStream, String user,
       String database, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
@@ -77,10 +80,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
+    // assignment.type.incompatible, argument.type.incompatible
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
-        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
+        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024L * 1024L),
         false,
         cachedQueryCreateAction,
         new LruCache.EvictAction<CachedQuery>() {
@@ -178,7 +182,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream =
           new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout);
       if (cancelSignalTimeout > 0) {
-        cancelStream.getSocket().setSoTimeout(cancelSignalTimeout);
+        cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
       cancelStream.sendInteger4(16);
       cancelStream.sendInteger2(1234);
@@ -221,7 +225,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public synchronized SQLWarning getWarnings() {
+  public synchronized @Nullable SQLWarning getWarnings() {
     SQLWarning chain = warnings;
     warnings = null;
     return chain;
@@ -229,6 +233,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public String getServerVersion() {
+    String serverVersion = this.serverVersion;
+    if (serverVersion == null) {
+      throw new IllegalStateException("serverVersion must not be null");
+    }
     return serverVersion;
   }
 
@@ -237,7 +245,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     if (serverVersionNum != 0) {
       return serverVersionNum;
     }
-    return serverVersionNum = Utils.parseServerVersionStr(serverVersion);
+    return serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
   }
 
   public void setServerVersion(String serverVersion) {
@@ -291,7 +299,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final CachedQuery borrowReturningQuery(String sql, String[] columnNames) throws SQLException {
+  public final CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
+      throws SQLException {
     return statementCache.borrow(new QueryWithReturningColumnsKey(sql, true, true,
         columnNames
     ));
@@ -309,7 +318,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public final Object createQueryKey(String sql, boolean escapeProcessing,
-      boolean isParameterized, String... columnNames) {
+      boolean isParameterized, String @Nullable ... columnNames) {
     Object key;
     if (columnNames == null || columnNames.length != 0) {
       // Null means "return whatever sensible columns are" (e.g. primary key, or serial, or something like that)
@@ -330,7 +339,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public final CachedQuery createQuery(String sql, boolean escapeProcessing,
-      boolean isParameterized, String... columnNames)
+      boolean isParameterized, String @Nullable ... columnNames)
       throws SQLException {
     Object key = createQueryKey(sql, escapeProcessing, isParameterized, columnNames);
     // Note: cache is not reused here for two reasons:
@@ -386,7 +395,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       return false;
     }
     // "cached plan must not change result type"
-    String routine = pe.getServerErrorMessage().getRoutine();
+    String routine = serverErrorMessage.getRoutine();
     return "RevalidateCachedQuery".equals(routine) // 9.2+
         || "RevalidateCachedPlan".equals(routine); // <= 9.1
   }
@@ -409,16 +418,6 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
   }
 
-  @Override
-  public boolean isRaiseExceptionOnSilentRollback() {
-    return raiseExceptionOnSilentRollback;
-  }
-
-  @Override
-  public void setRaiseExceptionOnSilentRollback(boolean raiseExceptionOnSilentRollback) {
-    this.raiseExceptionOnSilentRollback = raiseExceptionOnSilentRollback;
-  }
-
   protected boolean hasNotifications() {
     return notifications.size() > 0;
   }
@@ -429,7 +428,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final String getParameterStatus(String parameterName) {
+  public final @Nullable String getParameterStatus(String parameterName) {
     return parameterStatuses.get(parameterName);
   }
 

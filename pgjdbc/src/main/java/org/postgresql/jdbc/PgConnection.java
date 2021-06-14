@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
@@ -15,7 +17,6 @@ import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
-import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
@@ -37,6 +38,13 @@ import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.xml.DefaultPGXmlFactoryFactory;
+import org.postgresql.xml.LegacyInsecurePGXmlFactoryFactory;
+import org.postgresql.xml.PGXmlFactoryFactory;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.IOException;
 import java.sql.Array;
@@ -68,7 +76,6 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
@@ -98,7 +105,7 @@ public class PgConnection implements BaseConnection {
 
   private final ReadOnlyBehavior readOnlyBehavior;
 
-  private Throwable openStackTrace;
+  private @Nullable Throwable openStackTrace;
 
   /* Actual network handler */
   private final QueryExecutor queryExecutor;
@@ -137,17 +144,19 @@ public class PgConnection implements BaseConnection {
   private boolean readOnly = false;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
   private boolean  hideUnprivilegedObjects ;
+  // Whether to include error details in logging and exceptions
+  private final boolean logServerErrorDetail;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
 
   // Current warnings; there might be more on queryExecutor too.
-  private SQLWarning firstWarning = null;
+  private @Nullable SQLWarning firstWarning;
 
   // Timer for scheduling TimerTasks for this connection.
   // Only instantiated if a task is actually scheduled.
-  private volatile Timer cancelTimer = null;
+  private volatile @Nullable Timer cancelTimer;
 
-  private PreparedStatement checkConnectionQuery;
+  private @Nullable PreparedStatement checkConnectionQuery;
   /**
    * Replication protocol in current version postgresql(10devel) supports a limited number of
    * commands.
@@ -155,6 +164,9 @@ public class PgConnection implements BaseConnection {
   private final boolean replicationConnection;
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
+
+  private final @Nullable String xmlFactoryFactoryClass;
+  private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -164,7 +176,8 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.borrowCallableQuery(sql);
   }
 
-  private CachedQuery borrowReturningQuery(String sql, String[] columnNames) throws SQLException {
+  private CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
+      throws SQLException {
     return queryExecutor.borrowReturningQuery(sql, columnNames);
   }
 
@@ -188,6 +201,7 @@ public class PgConnection implements BaseConnection {
   //
   // Ctor.
   //
+  @SuppressWarnings({"method.invocation.invalid", "argument.type.incompatible"})
   public PgConnection(HostSpec[] hostSpecs,
                       String user,
                       String database,
@@ -247,10 +261,6 @@ public class PgConnection implements BaseConnection {
       LOGGER.log(Level.FINEST, "    integer date/time = {0}", queryExecutor.getIntegerDateTimes());
     }
 
-    queryExecutor.setRaiseExceptionOnSilentRollback(
-        PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.getBoolean(info)
-    );
-
     //
     // String -> text or unknown?
     //
@@ -271,12 +281,8 @@ public class PgConnection implements BaseConnection {
     }
 
     // Initialize timestamp stuff
-    timestampUtils = new TimestampUtils(!queryExecutor.getIntegerDateTimes(), new Provider<TimeZone>() {
-      @Override
-      public TimeZone get() {
-        return queryExecutor.getTimeZone();
-      }
-    });
+    timestampUtils = new TimestampUtils(!queryExecutor.getIntegerDateTimes(),
+        new QueryExecutorTimeZoneProvider(queryExecutor));
 
     // Initialize common queries.
     // isParameterized==true so full parse is performed and the engine knows the query
@@ -293,6 +299,7 @@ public class PgConnection implements BaseConnection {
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
       openStackTrace = new Throwable("Connection was created at this point:");
     }
+    this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -311,10 +318,12 @@ public class PgConnection implements BaseConnection {
 
     fieldMetadataCache = new LruCache<FieldMetadata.Key, FieldMetadata>(
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
-            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024 * 1024),
+            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024L * 1024L),
         false);
 
     replicationConnection = PGProperty.REPLICATION.get(info) != null;
+
+    xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.get(info);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
@@ -337,14 +346,17 @@ public class PgConnection implements BaseConnection {
         Oid.INT8,
         Oid.FLOAT4,
         Oid.FLOAT8,
+        Oid.NUMERIC,
         Oid.TIME,
         Oid.DATE,
         Oid.TIMETZ,
         Oid.TIMESTAMP,
         Oid.TIMESTAMPTZ,
+        Oid.BYTEA_ARRAY,
         Oid.INT2_ARRAY,
         Oid.INT4_ARRAY,
         Oid.INT8_ARRAY,
+        Oid.OID_ARRAY,
         Oid.FLOAT4_ARRAY,
         Oid.FLOAT8_ARRAY,
         Oid.VARCHAR_ARRAY,
@@ -362,9 +374,15 @@ public class PgConnection implements BaseConnection {
       binaryOids.addAll(SUPPORTED_BINARY_OIDS);
     }
 
-    binaryOids.addAll(getOidSet(PGProperty.BINARY_TRANSFER_ENABLE.get(info)));
-    binaryOids.removeAll(getOidSet(PGProperty.BINARY_TRANSFER_DISABLE.get(info)));
-    binaryOids.retainAll(SUPPORTED_BINARY_OIDS);
+    String oids = PGProperty.BINARY_TRANSFER_ENABLE.get(info);
+    if (oids != null) {
+      binaryOids.addAll(getOidSet(oids));
+    }
+    oids = PGProperty.BINARY_TRANSFER_DISABLE.get(info);
+    if (oids != null) {
+      binaryOids.removeAll(getOidSet(oids));
+    }
+
     return binaryOids;
   }
 
@@ -401,7 +419,7 @@ public class PgConnection implements BaseConnection {
   /**
    * The current type mappings.
    */
-  protected Map<String, Class<?>> typemap;
+  protected Map<String, Class<?>> typemap = new HashMap<String, Class<?>>();
 
   @Override
   public Statement createStatement() throws SQLException {
@@ -474,7 +492,7 @@ public class PgConnection implements BaseConnection {
       addWarning(warnings);
     }
 
-    return stat.getResultSet();
+    return castNonNull(stat.getResultSet(), "hasResultSet==true, yet getResultSet()==null");
   }
 
   @Override
@@ -535,7 +553,7 @@ public class PgConnection implements BaseConnection {
    * @return the current cursor name
    * @throws SQLException if a database access error occurs
    */
-  public String getCursorName() throws SQLException {
+  public @Nullable String getCursorName() throws SQLException {
     checkClosed();
     return null;
   }
@@ -572,7 +590,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // This holds a reference to the Fastpath API if already open
-  private Fastpath fastpath = null;
+  private @Nullable Fastpath fastpath;
 
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
     checkClosed();
@@ -583,7 +601,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // This holds a reference to the LargeObject API if already open
-  private LargeObjectManager largeobject = null;
+  private @Nullable LargeObjectManager largeobject;
 
   /*
    * This method is used internally to return an object based around org.postgresql's more unique
@@ -600,7 +618,8 @@ public class PgConnection implements BaseConnection {
    * @exception SQLException if value is not correct for this type
    */
   @Override
-  public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
+  public Object getObject(String type, @Nullable String value, byte @Nullable [] byteValue)
+      throws SQLException {
     if (typemap != null) {
       Class<?> c = typemap.get(type);
       if (c != null) {
@@ -632,14 +651,14 @@ public class PgConnection implements BaseConnection {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
         } else {
-          obj.setValue(value);
+          obj.setValue(castNonNull(value));
         }
       } else {
         // If className is null, then the type is unknown.
         // so return a PGobject with the type set, and the value set
         obj = new PGobject();
         obj.setType(type);
-        obj.setValue(value);
+        obj.setValue(castNonNull(value));
       }
 
       return obj;
@@ -692,9 +711,9 @@ public class PgConnection implements BaseConnection {
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
       String propertyName = (String) e.nextElement();
-      if (propertyName.startsWith("datatype.")) {
+      if (propertyName != null && propertyName.startsWith("datatype.")) {
         String typeName = propertyName.substring(9);
-        String className = info.getProperty(propertyName);
+        String className = castNonNull(info.getProperty(propertyName));
         Class<?> klass;
 
         try {
@@ -738,12 +757,12 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public synchronized SQLWarning getWarnings() throws SQLException {
+  public synchronized @Nullable SQLWarning getWarnings() throws SQLException {
     checkClosed();
     SQLWarning newWarnings = queryExecutor.getWarnings(); // NB: also clears them.
     if (firstWarning == null) {
       firstWarning = newWarnings;
-    } else {
+    } else if (newWarnings != null) {
       firstWarning.setNextWarning(newWarnings); // Chain them on.
     }
 
@@ -753,6 +772,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public synchronized void clearWarnings() throws SQLException {
     checkClosed();
+    //noinspection ThrowableNotThrown
     queryExecutor.getWarnings(); // Clear and discard.
     firstWarning = null;
   }
@@ -937,7 +957,7 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", isolationLevelName);
   }
 
-  protected String getIsolationLevelName(int level) {
+  protected @Nullable String getIsolationLevelName(int level) {
     switch (level) {
       case Connection.TRANSACTION_READ_COMMITTED:
         return "READ COMMITTED";
@@ -1033,13 +1053,14 @@ public class PgConnection implements BaseConnection {
     return haveMinimumServerVersion(ver.getVersionNum());
   }
 
+  @Pure
   @Override
   public Encoding getEncoding() {
     return queryExecutor.getEncoding();
   }
 
   @Override
-  public byte[] encodeString(String str) throws SQLException {
+  public byte @PolyNull [] encodeString(@PolyNull String str) throws SQLException {
     try {
       return getEncoding().encode(str);
     } catch (IOException ioe) {
@@ -1060,7 +1081,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // This is a cache of the DatabaseMetaData instance for this connection
-  protected java.sql.DatabaseMetaData metadata;
+  protected java.sql.@Nullable DatabaseMetaData metadata;
 
   @Override
   public boolean isClosed() throws SQLException {
@@ -1084,7 +1105,7 @@ public class PgConnection implements BaseConnection {
     getQueryExecutor().processNotifies(timeoutMillis);
     // Backwards-compatibility hand-holding.
     PGNotification[] notifications = queryExecutor.getNotifications();
-    return (notifications.length == 0 ? null : notifications);
+    return notifications;
   }
 
   /**
@@ -1148,7 +1169,7 @@ public class PgConnection implements BaseConnection {
     return bindStringAsVarchar;
   }
 
-  private CopyManager copyManager = null;
+  private @Nullable CopyManager copyManager;
 
   public CopyManager getCopyAPI() throws SQLException {
     checkClosed();
@@ -1244,33 +1265,6 @@ public class PgConnection implements BaseConnection {
     return new PGReplicationConnectionImpl(this);
   }
 
-  private static void appendArray(StringBuilder sb, Object elements, char delim) {
-    sb.append('{');
-
-    int nElements = java.lang.reflect.Array.getLength(elements);
-    for (int i = 0; i < nElements; i++) {
-      if (i > 0) {
-        sb.append(delim);
-      }
-
-      Object o = java.lang.reflect.Array.get(elements, i);
-      if (o == null) {
-        sb.append("NULL");
-      } else if (o.getClass().isArray()) {
-        final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(o);
-        if (arraySupport != null) {
-          arraySupport.appendArray(sb, delim, o);
-        } else {
-          appendArray(sb, o, delim);
-        }
-      } else {
-        String s = o.toString();
-        PgArray.escapeArrayElement(sb, s);
-      }
-    }
-    sb.append('}');
-  }
-
   // Parse a "dirty" integer surrounded by non-numeric characters
   private static int integerPart(String dirtyString) {
     int start = 0;
@@ -1329,7 +1323,7 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 
-  protected Array makeArray(int oid, String fieldString) throws SQLException {
+  protected Array makeArray(int oid, @Nullable String fieldString) throws SQLException {
     return new PgArray(this, oid, fieldString);
   }
 
@@ -1375,8 +1369,9 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Override
-  public Array createArrayOf(String typeName, Object elements) throws SQLException {
+  public Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException {
     checkClosed();
 
     final TypeInfo typeInfo = getTypeInfo();
@@ -1393,52 +1388,19 @@ public class PgConnection implements BaseConnection {
       return makeArray(oid, null);
     }
 
-    final String arrayString;
-
-    final PrimitiveArraySupport arraySupport = PrimitiveArraySupport.getArraySupport(elements);
-
-    if (arraySupport != null) {
-      // if the oid for the given type matches the default type, we might be
-      // able to go straight to binary representation
-      if (oid == arraySupport.getDefaultArrayTypeOid(typeInfo) && arraySupport.supportBinaryRepresentation()
-          && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements));
-      }
-      arrayString = arraySupport.toArrayString(delim, elements);
-    } else {
-      final Class<?> clazz = elements.getClass();
-      if (!clazz.isArray()) {
-        throw new PSQLException(GT.tr("Invalid elements {0}", elements), PSQLState.INVALID_PARAMETER_TYPE);
-      }
-      StringBuilder sb = new StringBuilder();
-      appendArray(sb, elements, delim);
-      arrayString = sb.toString();
+    final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(elements);
+    if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
 
+    final String arrayString = arraySupport.toArrayString(delim, elements);
     return makeArray(oid, arrayString);
   }
 
   @Override
-  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-    checkClosed();
-
-    int oid = getTypeInfo().getPGArrayType(typeName);
-
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(
-          GT.tr("Unable to find server array type for provided name {0}.", typeName),
-          PSQLState.INVALID_NAME);
-    }
-
-    if (elements == null) {
-      return makeArray(oid, null);
-    }
-
-    char delim = getTypeInfo().getArrayDelimiter(oid);
-    StringBuilder sb = new StringBuilder();
-    appendArray(sb, elements, delim);
-
-    return makeArray(oid, sb.toString());
+  public Array createArrayOf(String typeName, @Nullable Object @Nullable [] elements)
+      throws SQLException {
+    return createArrayOf(typeName, (Object) elements);
   }
 
   @Override
@@ -1450,10 +1412,17 @@ public class PgConnection implements BaseConnection {
     if (isClosed()) {
       return false;
     }
+    boolean changedNetworkTimeout = false;
     try {
-      int savedNetworkTimeOut = getNetworkTimeout();
+      int oldNetworkTimeout = getNetworkTimeout();
+      int newNetworkTimeout = (int) Math.min(timeout * 1000L, Integer.MAX_VALUE);
       try {
-        setNetworkTimeout(null, timeout * 1000);
+        // change network timeout only if the new value is less than the current
+        // (zero means infinite timeout)
+        if (newNetworkTimeout != 0 && (oldNetworkTimeout == 0 || newNetworkTimeout < oldNetworkTimeout)) {
+          changedNetworkTimeout = true;
+          setNetworkTimeout(null, newNetworkTimeout);
+        }
         if (replicationConnection) {
           Statement statement = createStatement();
           statement.execute("IDENTIFY_SYSTEM");
@@ -1462,12 +1431,13 @@ public class PgConnection implements BaseConnection {
           if (checkConnectionQuery == null) {
             checkConnectionQuery = prepareStatement("");
           }
-          checkConnectionQuery.setQueryTimeout(timeout);
           checkConnectionQuery.executeUpdate();
         }
         return true;
       } finally {
-        setNetworkTimeout(null, savedNetworkTimeOut);
+        if (changedNetworkTimeout) {
+          setNetworkTimeout(null, oldNetworkTimeout);
+        }
       }
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
@@ -1480,7 +1450,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public void setClientInfo(String name, String value) throws SQLClientInfoException {
+  public void setClientInfo(String name, @Nullable String value) throws SQLClientInfoException {
     try {
       checkClosed();
     } catch (final SQLException cause) {
@@ -1549,7 +1519,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public String getClientInfo(String name) throws SQLException {
+  public @Nullable String getClientInfo(String name) throws SQLException {
     checkClosed();
     clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
     return clientInfo.getProperty(name);
@@ -1567,6 +1537,10 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
   }
 
+  public boolean getLogServerErrorDetail() {
+    return logServerErrorDetail;
+  }
+
   @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     checkClosed();
@@ -1582,7 +1556,7 @@ public class PgConnection implements BaseConnection {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
-  public String getSchema() throws SQLException {
+  public @Nullable String getSchema() throws SQLException {
     checkClosed();
     Statement stmt = createStatement();
     try {
@@ -1600,7 +1574,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  public void setSchema(String schema) throws SQLException {
+  public void setSchema(@Nullable String schema) throws SQLException {
     checkClosed();
     Statement stmt = createStatement();
     try {
@@ -1639,7 +1613,8 @@ public class PgConnection implements BaseConnection {
     executor.execute(command);
   }
 
-  public void setNetworkTimeout(Executor executor /*not used*/, int milliseconds) throws SQLException {
+  public void setNetworkTimeout(@Nullable Executor executor /*not used*/, int milliseconds)
+      throws SQLException {
     checkClosed();
 
     if (milliseconds < 0) {
@@ -1785,7 +1760,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
+  public PreparedStatement prepareStatement(String sql, int @Nullable [] columnIndexes) throws SQLException {
     if (columnIndexes != null && columnIndexes.length == 0) {
       return prepareStatement(sql);
     }
@@ -1796,7 +1771,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
+  public PreparedStatement prepareStatement(String sql, String @Nullable[] columnNames) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return prepareStatement(sql);
     }
@@ -1823,8 +1798,53 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public final String getParameterStatus(String parameterName) {
+  public final @Nullable String getParameterStatus(String parameterName) {
     return queryExecutor.getParameterStatus(parameterName);
   }
 
+  @Override
+  public boolean getAdaptiveFetch() {
+    return queryExecutor.getAdaptiveFetch();
+  }
+
+  @Override
+  public void setAdaptiveFetch(boolean adaptiveFetch) {
+    queryExecutor.setAdaptiveFetch(adaptiveFetch);
+  }
+
+  @Override
+  public PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException {
+    PGXmlFactoryFactory xmlFactoryFactory = this.xmlFactoryFactory;
+    if (xmlFactoryFactory != null) {
+      return xmlFactoryFactory;
+    }
+    if (xmlFactoryFactoryClass == null || xmlFactoryFactoryClass.equals("")) {
+      xmlFactoryFactory = DefaultPGXmlFactoryFactory.INSTANCE;
+    } else if (xmlFactoryFactoryClass.equals("LEGACY_INSECURE")) {
+      xmlFactoryFactory = LegacyInsecurePGXmlFactoryFactory.INSTANCE;
+    } else {
+      Class<?> clazz;
+      try {
+        clazz = Class.forName(xmlFactoryFactoryClass);
+      } catch (ClassNotFoundException ex) {
+        throw new PSQLException(
+            GT.tr("Could not instantiate xmlFactoryFactory: {0}", xmlFactoryFactoryClass),
+            PSQLState.INVALID_PARAMETER_VALUE, ex);
+      }
+      if (!clazz.isAssignableFrom(PGXmlFactoryFactory.class)) {
+        throw new PSQLException(
+            GT.tr("Connection property xmlFactoryFactory must implement PGXmlFactoryFactory: {0}", xmlFactoryFactoryClass),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
+      try {
+        xmlFactoryFactory = (PGXmlFactoryFactory) clazz.newInstance();
+      } catch (Exception ex) {
+        throw new PSQLException(
+            GT.tr("Could not instantiate xmlFactoryFactory: {0}", xmlFactoryFactoryClass),
+            PSQLState.INVALID_PARAMETER_VALUE, ex);
+      }
+    }
+    this.xmlFactoryFactory = xmlFactoryFactory;
+    return xmlFactoryFactory;
+  }
 }

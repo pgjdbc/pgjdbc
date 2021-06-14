@@ -15,12 +15,14 @@ import static org.junit.Assert.fail;
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.LogWriterHandler;
 import org.postgresql.util.NullOutputStream;
 import org.postgresql.util.URLCoder;
-import org.postgresql.util.WriterHandler;
 
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -222,6 +224,7 @@ public class DriverTest {
     String loggerLevel = System.getProperty("loggerLevel");
     String loggerFile = System.getProperty("loggerFile");
 
+    PrintWriter prevLog = DriverManager.getLogWriter();
     try {
       PrintWriter printWriter = new PrintWriter(new NullOutputStream(System.err));
       DriverManager.setLogWriter(printWriter);
@@ -236,12 +239,12 @@ public class DriverTest {
 
       Logger logger = Logger.getLogger("org.postgresql");
       Handler[] handlers = logger.getHandlers();
-      assertTrue(handlers[0] instanceof WriterHandler );
+      assertTrue(handlers[0] instanceof LogWriterHandler );
       con.close();
     } finally {
-      DriverManager.setLogWriter(null);
-      System.setProperty("loggerLevel", loggerLevel);
-      System.setProperty("loggerFile", loggerFile);
+      DriverManager.setLogWriter(prevLog);
+      setProperty("loggerLevel", loggerLevel);
+      setProperty("loggerFile", loggerFile);
     }
   }
 
@@ -265,12 +268,54 @@ public class DriverTest {
 
       Logger logger = Logger.getLogger("org.postgresql");
       Handler []handlers = logger.getHandlers();
-      assertTrue( handlers[0] instanceof WriterHandler );
+      assertTrue( handlers[0] instanceof LogWriterHandler );
       con.close();
     } finally {
       DriverManager.setLogStream(null);
+      setProperty("loggerLevel", loggerLevel);
+      setProperty("loggerFile", loggerFile);
+    }
+  }
+
+  @Test
+  public void testSystemErrIsNotClosedWhenCreatedMultipleConnections() throws Exception {
+    TestUtil.initDriver();
+    PrintStream err = System.err;
+    String loggerLevel = System.getProperty("loggerLevel");
+    String loggerFile = System.getProperty("loggerFile");
+
+    System.clearProperty("loggerLevel");
+    System.clearProperty("loggerFile");
+    System.setProperty("loggerLevel", "INFO");
+    PrintStream buffer = new PrintStream(new ByteArrayOutputStream());
+    System.setErr(buffer);
+    try {
+      Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
+      try {
+        assertNotNull(con);
+      } finally {
+        con.close();
+      }
+      con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
+      try {
+        assertNotNull(con);
+        System.err.println();
+        assertFalse("The System.err should not be closed.", System.err.checkError());
+      } finally {
+        con.close();
+      }
+    } finally {
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
+      System.setErr(err);
+    }
+  }
+
+  private void setProperty(String key, String value) {
+    if (value == null) {
+      System.clearProperty(key);
+    } else {
+      System.setProperty(key, value);
     }
   }
 }

@@ -6,24 +6,78 @@
 package org.postgresql.util;
 
 import java.math.BigDecimal;
-import java.nio.CharBuffer;
+import java.math.BigInteger;
+import java.util.Arrays;
 
 /**
  * Helper methods to parse java base types from byte arrays.
  *
  * @author Mikko Tiihonen
+ * @author Brett Okken
  */
 public class ByteConverter {
 
-  private static final int NBASE = 10000;
+  /**
+   * Simple stack structure for non-negative {@code short} values.
+   */
+  private static final class PositiveShorts {
+    private short[] shorts = new short[8];
+    private int idx = 0;
+
+    PositiveShorts() {
+    }
+
+    public void push(short s) {
+      if (s < 0) {
+        throw new IllegalArgumentException("only non-negative values accepted: " + s);
+      }
+      if (idx == shorts.length) {
+        grow();
+      }
+      shorts[idx++] = s;
+    }
+
+    public int size() {
+      return idx;
+    }
+
+    public boolean isEmpty() {
+      return idx == 0;
+    }
+
+    public short pop() {
+      return idx > 0 ? shorts[--idx] : -1;
+    }
+
+    private void grow() {
+      final int newSize = shorts.length <= 1024 ? shorts.length << 1 : (int) (shorts.length * 1.5);
+      shorts = Arrays.copyOf(shorts, newSize);
+    }
+  }
+
   private static final int NUMERIC_DSCALE_MASK = 0x00003FFF;
   private static final short NUMERIC_POS = 0x0000;
   private static final short NUMERIC_NEG = 0x4000;
   private static final short NUMERIC_NAN = (short) 0xC000;
-  private static final int DEC_DIGITS = 4;
-  private static final int[] round_powers = {0, 1000, 100, 10};
   private static final int SHORT_BYTES = 2;
   private static final int LONG_BYTES = 4;
+  private static final int[] INT_TEN_POWERS = new int[6];
+  private static final long[] LONG_TEN_POWERS = new long[19];
+  private static final BigInteger[] BI_TEN_POWERS = new BigInteger[32];
+  private static final BigInteger BI_TEN_THOUSAND = BigInteger.valueOf(10000);
+  private static final BigInteger BI_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
+
+  static {
+    for (int i = 0; i < INT_TEN_POWERS.length; ++i) {
+      INT_TEN_POWERS[i] = (int) Math.pow(10, i);
+    }
+    for (int i = 0; i < LONG_TEN_POWERS.length; ++i) {
+      LONG_TEN_POWERS[i] = (long) Math.pow(10, i);
+    }
+    for (int i = 0; i < BI_TEN_POWERS.length; ++i) {
+      BI_TEN_POWERS[i] = BigInteger.TEN.pow(i);
+    }
+  }
 
   private ByteConverter() {
     // prevent instantiation of static helper class
@@ -49,96 +103,6 @@ public class ByteConverter {
   }
 
   /**
-   * Convert a number from binary representation to text representation.
-   * @param idx index of the digit to be converted in the digits array
-   * @param digits array of shorts that can be decoded as the number String
-   * @param buffer the character buffer to put the text representation in
-   * @param alwaysPutIt a flag that indicate whether or not to put the digit char even if it is zero
-   * @return String the number as String
-   */
-  private static void digitToString(int idx, short[] digits, CharBuffer buffer, boolean alwaysPutIt) {
-    short dig = (idx >= 0 && idx < digits.length) ? digits[idx] : 0;
-    for (int p = 1; p < round_powers.length; p++) {
-      int pow = round_powers[p];
-      short d1 = (short)(dig / pow);
-      dig -= d1 * pow;
-      boolean putit = (d1 > 0);
-      if (putit || alwaysPutIt) {
-        buffer.put((char)(d1 + '0'));
-      }
-    }
-
-    buffer.put((char)(dig + '0'));
-  }
-
-  /**
-   * Convert a number from binary representation to text representation.
-   * @param digits array of shorts that can be decoded as the number String
-   * @param scale the scale of the number binary representation
-   * @param weight the weight of the number binary representation
-   * @param sign the sign of the number
-   * @return String the number as String
-   */
-  private static String numberBytesToString(short[] digits, int scale, int weight, int sign) {
-    CharBuffer buffer;
-    int i;
-    int d;
-
-    /*
-     * Allocate space for the result.
-     *
-     * i is set to the # of decimal digits before decimal point. dscale is the
-     * # of decimal digits we will print after decimal point. We may generate
-     * as many as DEC_DIGITS-1 excess digits at the end, and in addition we
-     * need room for sign, decimal point, null terminator.
-     */
-    i = (weight + 1) * DEC_DIGITS;
-    if (i <= 0) {
-      i = 1;
-    }
-
-    buffer = CharBuffer.allocate((i + scale + DEC_DIGITS + 2));
-
-    /*
-     * Output a dash for negative values
-     */
-    if (sign == NUMERIC_NEG) {
-      buffer.put('-');
-    }
-
-    /*
-     * Output all digits before the decimal point
-     */
-    if (weight < 0) {
-      d = weight + 1;
-      buffer.put('0');
-    } else {
-      for (d = 0; d <= weight; d++) {
-        /* In the first digit, suppress extra leading decimal zeroes */
-        digitToString(d, digits, buffer, d != 0);
-      }
-    }
-
-    /*
-     * If requested, output a decimal point and all the digits that follow it.
-     * We initially put out a multiple of DEC_DIGITS digits, then truncate if
-     * needed.
-     */
-    if (scale > 0) {
-      buffer.put('.');
-      for (i = 0; i < scale; d++, i += DEC_DIGITS) {
-        digitToString(d, digits, buffer, true);
-      }
-    }
-
-    /*
-     * terminate the string and return it
-     */
-    int extra = (i - scale) % DEC_DIGITS;
-    return new String(buffer.array(), 0, buffer.position() - extra);
-  }
-
-  /**
    * Convert a variable length array of bytes to an integer
    * @param bytes array of bytes that can be decoded as an integer
    * @return integer
@@ -148,22 +112,46 @@ public class ByteConverter {
   }
 
   /**
-   * Convert a variable length array of bytes to an integer
-   * @param bytes array of bytes that can be decoded as an integer
+   * Convert a variable length array of bytes to a {@link Number}. The result will
+   * always be a {@link BigDecimal} or {@link Double#NaN}.
+   *
+   * @param bytes array of bytes to be decoded from binary numeric representation.
    * @param pos index of the start position of the bytes array for number
    * @param numBytes number of bytes to use, length is already encoded
    *                in the binary format but this is used for double checking
-   * @return integer
+   * @return BigDecimal representation of numeric or {@link Double#NaN}.
    */
   public static Number numeric(byte [] bytes, int pos, int numBytes) {
+
     if (numBytes < 8) {
       throw new IllegalArgumentException("number of bytes should be at-least 8");
     }
 
+    //number of 2-byte shorts representing 4 decimal digits
     short len = ByteConverter.int2(bytes, pos);
+    //0 based number of 4 decimal digits (i.e. 2-byte shorts) before the decimal
+    //a value <= 0 indicates an absolute value < 1.
     short weight = ByteConverter.int2(bytes, pos + 2);
+    //indicates positive, negative or NaN
     short sign = ByteConverter.int2(bytes, pos + 4);
+    //number of digits after the decimal. This must be >= 0.
+    //a value of 0 indicates a whole number (integer).
     short scale = ByteConverter.int2(bytes, pos + 6);
+
+    //An integer should be built from the len number of 2 byte shorts, treating each
+    //as 4 digits.
+    //The weight, if > 0, indicates how many of those 4 digit chunks should be to the
+    //"left" of the decimal. If the weight is 0, then all 4 digit chunks start immediately
+    //to the "right" of the decimal. If the weight is < 0, the absolute distance from 0
+    //indicates 4 leading "0" digits to the immediate "right" of the decimal, prior to the
+    //digits from "len".
+    //A weight which is positive, can be a number larger than what len defines. This means
+    //there are trailing 0s after the "len" integer and before the decimal.
+    //The scale indicates how many significant digits there are to the right of the decimal.
+    //A value of 0 indicates a whole number (integer).
+    //The combination of weight, len, and scale can result in either trimming digits provided
+    //by len (only to the right of the decimal) or adding significant 0 values to the right
+    //of len (on either side of the decimal).
 
     if (numBytes != (len * SHORT_BYTES + 8)) {
       throw new IllegalArgumentException("invalid length of bytes \"numeric\" value");
@@ -183,21 +171,292 @@ public class ByteConverter {
       throw new IllegalArgumentException("invalid scale in \"numeric\" value");
     }
 
-    short[] digits = new short[len];
-    int idx = pos + 8;
-    for (int i = 0; i < len; i++) {
-      short d = ByteConverter.int2(bytes, idx);
-      idx += 2;
-
-      if (d < 0 || d >= NBASE) {
-        throw new IllegalArgumentException("invalid digit in \"numeric\" value");
-      }
-
-      digits[i] = d;
+    if (len == 0) {
+      return new BigDecimal(BigInteger.ZERO, scale);
     }
 
-    String numString = numberBytesToString(digits, scale, weight, sign);
-    return new BigDecimal(numString);
+    int idx = pos + 8;
+
+    short d = ByteConverter.int2(bytes, idx);
+
+    //if the absolute value is (0, 1), then leading '0' values
+    //do not matter for the unscaledInt, but trailing 0s do
+    if (weight < 0) {
+      assert scale > 0;
+      int effectiveScale = scale;
+      ++weight;
+      if (weight < 0) {
+        effectiveScale += (4 * weight);
+      }
+
+      int i = 1;
+      //typically there should not be leading 0 short values, as it is more
+      //efficient to represent that in the weight value
+      for ( ; i < len && d == 0; ++i) {
+        effectiveScale -= 4;
+        idx += 2;
+        d = ByteConverter.int2(bytes, idx);
+      }
+
+      BigInteger unscaledBI = null;
+      assert effectiveScale > 0;
+      if (effectiveScale >= 4) {
+        effectiveScale -= 4;
+      } else {
+        d = (short) (d / INT_TEN_POWERS[4 - effectiveScale]);
+        effectiveScale = 0;
+      }
+      long unscaledInt = d;
+      for ( ; i < len; ++i) {
+        if (i == 4 && effectiveScale > 2) {
+          unscaledBI = BigInteger.valueOf(unscaledInt);
+        }
+        idx += 2;
+        d = ByteConverter.int2(bytes, idx);
+        if (effectiveScale >= 4) {
+          if (unscaledBI == null) {
+            unscaledInt *= 10000;
+          } else {
+            unscaledBI = unscaledBI.multiply(BI_TEN_THOUSAND);
+          }
+          effectiveScale -= 4;
+        } else {
+          if (unscaledBI == null) {
+            unscaledInt *= INT_TEN_POWERS[effectiveScale];
+          } else {
+            unscaledBI = unscaledBI.multiply(tenPower(effectiveScale));
+          }
+          d = (short) (d / INT_TEN_POWERS[4 - effectiveScale]);
+          effectiveScale = 0;
+        }
+        if (unscaledBI == null) {
+          unscaledInt += d;
+        } else {
+          if (d != 0) {
+            unscaledBI = unscaledBI.add(BigInteger.valueOf(d));
+          }
+        }
+      }
+      if (unscaledBI == null) {
+        unscaledBI = BigInteger.valueOf(unscaledInt);
+      }
+      if (effectiveScale > 0) {
+        unscaledBI = unscaledBI.multiply(tenPower(effectiveScale));
+      }
+      if (sign == NUMERIC_NEG) {
+        unscaledBI = unscaledBI.negate();
+      }
+
+      return new BigDecimal(unscaledBI, scale);
+    }
+
+    //if there is no scale, then shorts are the unscaled int
+    if (scale == 0) {
+      BigInteger unscaledBI = null;
+      long unscaledInt = d;
+      for (int i = 1; i < len; ++i) {
+        if (i == 4) {
+          unscaledBI = BigInteger.valueOf(unscaledInt);
+        }
+        idx += 2;
+        d = ByteConverter.int2(bytes, idx);
+        if (unscaledBI == null) {
+          unscaledInt *= 10000;
+          unscaledInt += d;
+        } else {
+          unscaledBI = unscaledBI.multiply(BI_TEN_THOUSAND);
+          if (d != 0) {
+            unscaledBI = unscaledBI.add(BigInteger.valueOf(d));
+          }
+        }
+      }
+      if (unscaledBI == null) {
+        unscaledBI = BigInteger.valueOf(unscaledInt);
+      }
+      if (sign == NUMERIC_NEG) {
+        unscaledBI = unscaledBI.negate();
+      }
+      final int bigDecScale = (len - (weight + 1)) * 4;
+      //string representation always results in a BigDecimal with scale of 0
+      //the binary representation, where weight and len can infer trailing 0s, can result in a negative scale
+      //to produce a consistent BigDecimal, we return the equivalent object with scale set to 0
+      return bigDecScale == 0 ? new BigDecimal(unscaledBI) : new BigDecimal(unscaledBI, bigDecScale).setScale(0);
+    }
+
+    BigInteger unscaledBI = null;
+    long unscaledInt = d;
+    int effectiveWeight = weight;
+    int effectiveScale = scale;
+    for (int i = 1 ; i < len; ++i) {
+      if (i == 4) {
+        unscaledBI = BigInteger.valueOf(unscaledInt);
+      }
+      idx += 2;
+      d = ByteConverter.int2(bytes, idx);
+      if (effectiveWeight > 0) {
+        --effectiveWeight;
+        if (unscaledBI == null) {
+          unscaledInt *= 10000;
+        } else {
+          unscaledBI = unscaledBI.multiply(BI_TEN_THOUSAND);
+        }
+      } else if (effectiveScale >= 4) {
+        effectiveScale -= 4;
+        if (unscaledBI == null) {
+          unscaledInt *= 10000;
+        } else {
+          unscaledBI = unscaledBI.multiply(BI_TEN_THOUSAND);
+        }
+      } else {
+        if (unscaledBI == null) {
+          unscaledInt *= INT_TEN_POWERS[effectiveScale];
+        } else {
+          unscaledBI = unscaledBI.multiply(tenPower(effectiveScale));
+        }
+        d = (short) (d / INT_TEN_POWERS[4 - effectiveScale]);
+        effectiveScale = 0;
+      }
+      if (unscaledBI == null) {
+        unscaledInt += d;
+      } else {
+        if (d != 0) {
+          unscaledBI = unscaledBI.add(BigInteger.valueOf(d));
+        }
+      }
+    }
+
+    if (unscaledBI == null) {
+      unscaledBI = BigInteger.valueOf(unscaledInt);
+    }
+    if (effectiveScale > 0) {
+      unscaledBI = unscaledBI.multiply(tenPower(effectiveScale));
+    }
+    if (sign == NUMERIC_NEG) {
+      unscaledBI = unscaledBI.negate();
+    }
+
+    return new BigDecimal(unscaledBI, scale);
+  }
+
+  /**
+   * Converts a non-null {@link BigDecimal} to binary format for {@link org.postgresql.core.Oid#NUMERIC}.
+   * @param nbr The instance to represent in binary.
+   * @return The binary representation of <i>nbr</i>.
+   */
+  public static byte[] numeric(BigDecimal nbr) {
+    final PositiveShorts shorts = new PositiveShorts();
+    BigInteger unscaled = nbr.unscaledValue().abs();
+    int scale = nbr.scale();
+    if (unscaled.equals(BigInteger.ZERO)) {
+      final byte[] bytes = new byte[] {0,0,-1,-1,0,0,0,0};
+      ByteConverter.int2(bytes, 6, Math.max(0, scale));
+      return bytes;
+    }
+    int weight = -1;
+    if (scale <= 0) {
+      //this means we have an integer
+      //adjust unscaled and weight
+      if (scale < 0) {
+        scale = Math.abs(scale);
+        //weight value covers 4 digits
+        weight += scale / 4;
+        //whatever remains needs to be incorporated to the unscaled value
+        int mod = scale % 4;
+        unscaled = unscaled.multiply(tenPower(mod));
+        scale = 0;
+      }
+
+      while (unscaled.compareTo(BI_MAX_LONG) > 0) {
+        final BigInteger[] pair = unscaled.divideAndRemainder(BI_TEN_THOUSAND);
+        unscaled = pair[0];
+        final short shortValue = pair[1].shortValue();
+        if (shortValue != 0 || !shorts.isEmpty()) {
+          shorts.push(shortValue);
+        }
+        ++weight;
+      }
+      long unscaledLong = unscaled.longValueExact();
+      do {
+        final short shortValue = (short) (unscaledLong % 10000);
+        if (shortValue != 0 || !shorts.isEmpty()) {
+          shorts.push(shortValue);
+        }
+        unscaledLong = unscaledLong / 10000L;
+        ++weight;
+      } while (unscaledLong != 0);
+    } else {
+      final BigInteger[] split = unscaled.divideAndRemainder(tenPower(scale));
+      BigInteger decimal = split[1];
+      BigInteger wholes = split[0];
+      weight = -1;
+      if (!BigInteger.ZERO.equals(decimal)) {
+        int mod = scale % 4;
+        int segments = scale / 4;
+        if (mod != 0) {
+          decimal = decimal.multiply(tenPower(4 - mod));
+          ++segments;
+        }
+        do {
+          final BigInteger[] pair = decimal.divideAndRemainder(BI_TEN_THOUSAND);
+          decimal = pair[0];
+          final short shortValue = pair[1].shortValue();
+          if (shortValue != 0 || !shorts.isEmpty()) {
+            shorts.push(shortValue);
+          }
+          --segments;
+        } while (!BigInteger.ZERO.equals(decimal));
+
+        //for the leading 0 shorts we either adjust weight (if no wholes)
+        // or push shorts
+        if (BigInteger.ZERO.equals(wholes)) {
+          weight -= segments;
+        } else {
+          //now add leading 0 shorts
+          for (int i = 0; i < segments; ++i) {
+            shorts.push((short) 0);
+          }
+        }
+      }
+
+      while (!BigInteger.ZERO.equals(wholes)) {
+        ++weight;
+        final BigInteger[] pair = wholes.divideAndRemainder(BI_TEN_THOUSAND);
+        wholes = pair[0];
+        final short shortValue = pair[1].shortValue();
+        if (shortValue != 0 || !shorts.isEmpty()) {
+          shorts.push(shortValue);
+        }
+      }
+    }
+
+    //8 bytes for "header" and then 2 for each short
+    final byte[] bytes = new byte[8 + (2 * shorts.size())];
+    int idx = 0;
+
+    //number of 2-byte shorts representing 4 decimal digits
+    ByteConverter.int2(bytes, idx, shorts.size());
+    idx += 2;
+    //0 based number of 4 decimal digits (i.e. 2-byte shorts) before the decimal
+    ByteConverter.int2(bytes, idx, weight);
+    idx += 2;
+    //indicates positive, negative or NaN
+    ByteConverter.int2(bytes, idx, nbr.signum() == -1 ? NUMERIC_NEG : NUMERIC_POS);
+    idx += 2;
+    //number of digits after the decimal
+    ByteConverter.int2(bytes, idx, Math.max(0, scale));
+    idx += 2;
+
+    short s;
+    while ((s = shorts.pop()) != -1) {
+      ByteConverter.int2(bytes, idx, s);
+      idx += 2;
+    }
+
+    return bytes;
+  }
+
+  private static BigInteger tenPower(int exponent) {
+    return BI_TEN_POWERS.length > exponent ? BI_TEN_POWERS[exponent] : BigInteger.TEN.pow(exponent);
   }
 
   /**

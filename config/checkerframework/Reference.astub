@@ -1,0 +1,7 @@
+package javax.naming;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class Reference {
+    Reference(String className, String factory, @Nullable String factoryLocation);
+}

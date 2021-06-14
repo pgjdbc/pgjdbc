@@ -8,6 +8,9 @@ package org.postgresql.ds.common;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.postgresql.ds.PGPoolingDataSource;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.postgresql.util.internal.Nullness;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Hashtable;
 
@@ -30,7 +33,7 @@ public class PGObjectFactory implements ObjectFactory {
   /**
    * Dereferences a PostgreSQL DataSource. Other types of references are ignored.
    */
-  public Object getObjectInstance(Object obj, Name name, Context nameCtx,
+  public @Nullable Object getObjectInstance(Object obj, Name name, Context nameCtx,
       Hashtable<?, ?> environment) throws Exception {
     Reference ref = (Reference) obj;
     String className = ref.getClassName();
@@ -54,7 +57,7 @@ public class PGObjectFactory implements ObjectFactory {
 
   private Object loadPoolingDataSource(Reference ref) {
     // If DataSource exists, return it
-    String name = getProperty(ref, "dataSourceName");
+    String name = Nullness.castNonNull(getProperty(ref, "dataSourceName"));
     PGPoolingDataSource pds = PGPoolingDataSource.getDataSource(name);
     if (pds != null) {
       return pds;
@@ -90,7 +93,7 @@ public class PGObjectFactory implements ObjectFactory {
     return ds;
   }
 
-  protected String getProperty(Reference ref, String s) {
+  protected @Nullable String getProperty(Reference ref, String s) {
     RefAddr addr = ref.get(s);
     if (addr == null) {
       return null;

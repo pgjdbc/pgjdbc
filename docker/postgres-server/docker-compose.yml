@@ -1,0 +1,34 @@
+version: "3"
+services:
+  pgdb:
+    image: postgres:${PGV:-latest}
+    ports:
+      - 5432:5432
+      - 5433:5433
+      - 5434:5434
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - ./scripts/:/custom/scripts:ro
+      - ../../certdir/server:/custom/certdir:ro
+    entrypoint:
+      - bash
+      - /custom/scripts/entrypoint.sh
+    environment:
+      - SSL=${SSL:-yes}
+      - XA=${XA:-yes}
+      - SCRAM=${SCRAM:-yes}
+      - TZ=${TZ:-Etc/UTC}
+      - FSYNC=${FSYNC:-no}
+      - SYNC_COMMIT=${SYNC_COMMIT:-yes}
+      - FULL_PAGE_WRITES=${FULL_PAGE_WRITES:-no}
+      - AUTO_VACCUUM=${AUTO_VACCUUM:-no}
+      - TRACK_COUNTS=${TRACK_COUNTS:-no}
+      - CREATE_REPLICAS=${CREATE_REPLICAS:-no}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - GITHUB_ACTIONS=true
+    command: >-
+      postgres

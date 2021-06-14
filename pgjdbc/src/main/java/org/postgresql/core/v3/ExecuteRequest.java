@@ -5,6 +5,8 @@
 
 package org.postgresql.core.v3;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Information for "pending execute queue".
  *
@@ -12,10 +14,10 @@ package org.postgresql.core.v3;
  */
 class ExecuteRequest {
   public final SimpleQuery query;
-  public final Portal portal;
+  public final @Nullable Portal portal;
   public final boolean asSimple;
 
-  ExecuteRequest(SimpleQuery query, Portal portal, boolean asSimple) {
+  ExecuteRequest(SimpleQuery query, @Nullable Portal portal, boolean asSimple) {
     this.query = query;
     this.portal = portal;
     this.asSimple = asSimple;

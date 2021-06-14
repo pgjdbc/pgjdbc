@@ -13,6 +13,8 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.PGobject;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -40,7 +42,7 @@ public interface PGConnection {
    *           If for some reason the array cannot be created.
    * @see java.sql.Connection#createArrayOf(String, Object[])
    */
-  Array createArrayOf(String typeName, Object elements) throws SQLException;
+  Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException;
 
   /**
    * This method returns any notifications that have been received since the last call to this
@@ -312,5 +314,20 @@ public interface PGConnection {
    * @see #getParameterStatuses
    * @since 42.2.6
    */
-  String getParameterStatus(String parameterName);
+  @Nullable String getParameterStatus(String parameterName);
+
+  /**
+   * Turn on/off adaptive fetch for connection. Existing statements and resultSets won't be affected
+   * by change here.
+   *
+   * @param adaptiveFetch desired state of adaptive fetch.
+   */
+  void setAdaptiveFetch(boolean adaptiveFetch);
+
+  /**
+   * Get state of adaptive fetch for connection.
+   *
+   * @return state of adaptive fetch (turned on or off)
+   */
+  boolean getAdaptiveFetch();
 }

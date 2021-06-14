@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Represents a query that is ready for execution by backend. The main difference from JDBC is ? are
  * replaced with $1, $2, etc.
@@ -45,7 +47,7 @@ public class NativeQuery {
    *        method, or {@code null} to leave the parameter placeholders unsubstituted.
    * @return a human-readable representation of this query
    */
-  public String toString(ParameterList parameters) {
+  public String toString(@Nullable ParameterList parameters) {
     if (bindPositions.length == 0) {
       return nativeSql;
     }

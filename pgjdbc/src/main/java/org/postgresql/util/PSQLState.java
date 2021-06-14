@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * This class is used for holding SQLState codes.
  */
@@ -73,6 +75,7 @@ public enum PSQLState {
 
   INVALID_SQL_STATEMENT_NAME("26000"),
   INVALID_AUTHORIZATION_SPECIFICATION("28000"),
+  INVALID_PASSWORD("28P01"),
 
   INVALID_TRANSACTION_TERMINATION("2D000"),
 
@@ -80,6 +83,7 @@ public enum PSQLState {
 
   INVALID_SAVEPOINT_SPECIFICATION("3B000"),
 
+  SERIALIZATION_FAILURE("40001"),
   DEADLOCK_DETECTED("40P01"),
   SYNTAX_ERROR("42601"),
   UNDEFINED_COLUMN("42703"),
@@ -102,6 +106,8 @@ public enum PSQLState {
   SYSTEM_ERROR("60000"),
   IO_ERROR("58030"),
 
+  ERROR_CODE_CRASH_SHUTDOWN("57P02"),
+
   UNEXPECTED_ERROR("99999");
 
   private final String state;
@@ -114,7 +120,7 @@ public enum PSQLState {
     return this.state;
   }
 
-  public static boolean isConnectionError(String psqlState) {
+  public static boolean isConnectionError(@Nullable String psqlState) {
     return PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(psqlState)
         || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
         || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)

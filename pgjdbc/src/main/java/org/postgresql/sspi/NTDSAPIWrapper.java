@@ -9,6 +9,7 @@ package org.postgresql.sspi;
 import com.sun.jna.LastErrorException;
 import com.sun.jna.WString;
 import com.sun.jna.ptr.IntByReference;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class NTDSAPIWrapper {
 
@@ -27,8 +28,8 @@ public class NTDSAPIWrapper {
    * @see <a href="https://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx">
    *     https://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx</a>
    */
-  public String DsMakeSpn(String serviceClass, String serviceName, String instanceName,
-      short instancePort, String referrer) throws LastErrorException {
+  public String DsMakeSpn(String serviceClass, String serviceName, @Nullable String instanceName,
+      short instancePort, @Nullable String referrer) throws LastErrorException {
     IntByReference spnLength = new IntByReference(2048);
     char[] spn = new char[spnLength.getValue()];
 

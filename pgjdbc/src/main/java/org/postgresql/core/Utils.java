@@ -10,8 +10,9 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.sql.SQLException;
 
 /**
@@ -34,26 +35,6 @@ public class Utils {
   }
 
   /**
-   * Keep a local copy of the UTF-8 Charset so we can avoid synchronization overhead from looking up
-   * the Charset by name as String.getBytes(String) requires.
-   */
-  private static final Charset utf8Charset = Charset.forName("UTF-8");
-
-  /**
-   * Encode a string as UTF-8.
-   *
-   * @param str the string to encode
-   * @return the UTF-8 representation of {@code str}
-   */
-  public static byte[] encodeUTF8(String str) {
-    // See org.postgresql.benchmark.encoding.UTF8Encoding#string_getBytes
-    // for performance measurements.
-    // In OracleJDK 6u65, 7u55, and 8u40 String.getBytes(Charset) is
-    // 3 times faster than other JDK approaches.
-    return str.getBytes(utf8Charset);
-  }
-
-  /**
    * Escape the given literal {@code value} and append it to the string builder {@code sbuf}. If
    * {@code sbuf} is {@code null}, a new StringBuilder will be returned. The argument
    * {@code standardConformingStrings} defines whether the backend expects standard-conforming
@@ -65,7 +46,7 @@ public class Utils {
    * @return the sbuf argument; or a new string builder for sbuf == null
    * @throws SQLException if the string contains a {@code \0} character
    */
-  public static StringBuilder escapeLiteral(StringBuilder sbuf, String value,
+  public static StringBuilder escapeLiteral(@Nullable StringBuilder sbuf, String value,
       boolean standardConformingStrings) throws SQLException {
     if (sbuf == null) {
       sbuf = new StringBuilder((value.length() + 10) / 10 * 11); // Add 10% for escaping.
@@ -133,7 +114,7 @@ public class Utils {
    * @return the sbuf argument; or a new string builder for sbuf == null
    * @throws SQLException if the string contains a {@code \0} character
    */
-  public static StringBuilder escapeIdentifier(StringBuilder sbuf, String value)
+  public static StringBuilder escapeIdentifier(@Nullable StringBuilder sbuf, String value)
       throws SQLException {
     if (sbuf == null) {
       sbuf = new StringBuilder(2 + (value.length() + 10) / 10 * 11); // Add 10% for escaping.
@@ -191,7 +172,7 @@ public class Utils {
    * @deprecated use specific {@link Version} instance
    */
   @Deprecated
-  public static int parseServerVersionStr(String serverVersion) throws NumberFormatException {
+  public static int parseServerVersionStr(@Nullable String serverVersion) throws NumberFormatException {
     return ServerVersion.parseServerVersionStr(serverVersion);
   }
 }

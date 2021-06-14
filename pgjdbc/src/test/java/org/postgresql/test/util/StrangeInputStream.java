@@ -16,15 +16,10 @@ import java.util.Random;
  * array. This allows to stress test {@link org.postgresql.copy.CopyManager} or other consumers.
  */
 public class StrangeInputStream extends FilterInputStream {
-  private Random rand; // generator of fun events
+  private final Random rand = new Random(); // generator of fun events
 
-  public StrangeInputStream(InputStream is) throws FileNotFoundException {
+  public StrangeInputStream(InputStream is, long seed) throws FileNotFoundException {
     super(is);
-    rand = new Random();
-    long seed = Long.getLong("StrangeInputStream.seed", System.currentTimeMillis());
-    System.out
-        .println("Using seed = " + seed + " for StrangeInputStream. Set -DStrangeInputStream.seed="
-            + seed + " to reproduce the test");
     rand.setSeed(seed);
   }
 

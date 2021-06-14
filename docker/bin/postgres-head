@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper script to start a postgres container built from source for testing the PGJDBC driver.
+
+log () {
+    echo "$@" 1>&2
+}
+
+main () {
+    local publish_port="${PG_PUBLISH_PORT:-5432}"
+
+
+    local branch_name="${PG_BRANCH_NAME:-master}"
+    local branch_json
+    branch_json=$(curl -q -s -f "https://api.github.com/repos/postgres/postgres/branches/${branch_name}")
+    branch_json_field () {
+        jq -r -c <<<"${branch_json}" "${1}"
+    }
+    local branch_sha
+    branch_sha="$(branch_json_field .commit.sha)"
+    local branch_message
+    branch_message="$(branch_json_field .commit.commit.message)"
+
+    log "================================================================================"
+    log "Will build branch ${branch_name} with SHA=${branch_sha}"
+    log ""
+    log "${branch_message}"
+    log ""
+    log "================================================================================"
+
+    # Determine our current directory and change to be in the same directory as the compose file
+    local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    cd "${script_dir}/../postgres-head"
+
+    log "Building container for PostgreSQL built from source"
+    docker-compose build \
+        --build-arg "GIT_SHA=${branch_sha}" \
+        --build-arg "GIT_TAG=${branch_name}"
+    
+    log "Starting Postgres built from source and mapping to local port ${publish_port}"
+    exec docker-compose run --rm --publish=${publish_port}:5432 pgdb
+}
+
+main "$@"

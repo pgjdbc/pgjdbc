@@ -5,15 +5,21 @@
 
 package org.postgresql.test;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
+import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.PSQLException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
+import org.junit.Assume;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -24,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -168,6 +175,13 @@ public class TestUtil {
   }
 
   /*
+   *  Return the GSSEncMode for the tests
+   */
+  public static GSSEncMode getGSSEncMode() throws PSQLException {
+    return GSSEncMode.of(System.getProperties());
+  }
+
+  /*
    * Returns the user for SSPI authentication tests
    */
   public static String getSSPIUser() {
@@ -254,6 +268,28 @@ public class TestUtil {
     return p;
   }
 
+  private static Properties sslTestProperties = null;
+
+  private static synchronized void initSslTestProperties() {
+    if (sslTestProperties == null) {
+      sslTestProperties = TestUtil.loadPropertyFiles("ssltest.properties");
+    }
+  }
+
+  private static String getSslTestProperty(String name) {
+    initSslTestProperties();
+    return sslTestProperties.getProperty(name);
+  }
+
+  public static void assumeSslTestsEnabled() {
+    Assume.assumeTrue(Boolean.parseBoolean(getSslTestProperty("enable_ssl_tests")));
+  }
+
+  public static String getSslTestCertPath(String name) {
+    File certdir = TestUtil.getFile(getSslTestProperty("certdir"));
+    return new File(certdir, name).getAbsolutePath();
+  }
+
   public static void initDriver() {
     synchronized (TestUtil.class) {
       if (initialized) {
@@ -296,10 +332,26 @@ public class TestUtil {
   public static Connection openPrivilegedDB() throws SQLException {
     initDriver();
     Properties properties = new Properties();
+
+    PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
     properties.setProperty("user", getPrivilegedUser());
     properties.setProperty("password", getPrivilegedPassword());
+    properties.setProperty("options", "-c synchronous_commit=on");
     return DriverManager.getConnection(getURL(), properties);
 
+  }
+
+  public static Connection openReplicationConnection() throws Exception {
+    Properties properties = new Properties();
+    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
+    PGProperty.PROTOCOL_VERSION.set(properties, "3");
+    PGProperty.REPLICATION.set(properties, "database");
+    //Only simple query protocol available for replication connection
+    PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
+    properties.setProperty("username", TestUtil.getPrivilegedUser());
+    properties.setProperty("password", TestUtil.getPrivilegedPassword());
+    properties.setProperty("options", "-c synchronous_commit=on");
+    return TestUtil.openDB(properties);
   }
 
   /**
@@ -328,11 +380,14 @@ public class TestUtil {
           "user name is not specified. Please specify 'username' property via -D or build.properties");
     }
     props.setProperty("user", user);
-    String password = getPassword();
+
+    // Allow properties to override the password.
+    String password = props.getProperty("password");
     if (password == null) {
-      password = "";
+      password = getPassword() != null ? getPassword() : "";
     }
     props.setProperty("password", password);
+
     String sslPassword = getSslPassword();
     if (sslPassword != null) {
       PGProperty.SSL_PASSWORD.set(props, sslPassword);
@@ -351,13 +406,18 @@ public class TestUtil {
     String hostport = props.getProperty(SERVER_HOST_PORT_PROP, getServer() + ":" + getPort());
     String database = props.getProperty(DATABASE_PROP, getDatabase());
 
+    // Set GSSEncMode for tests only in the case the property is already missing
+    if (PGProperty.GSS_ENC_MODE.getSetString(props) == null) {
+      PGProperty.GSS_ENC_MODE.set(props, getGSSEncMode().value);
+    }
+
     return DriverManager.getConnection(getURL(hostport, database), props);
   }
 
   /*
    * Helper - closes an open connection.
    */
-  public static void closeDB(Connection con) throws SQLException {
+  public static void closeDB(@Nullable Connection con) throws SQLException {
     if (con != null) {
       con.close();
     }
@@ -385,18 +445,7 @@ public class TestUtil {
    * Helper - drops a schema
    */
   public static void dropSchema(Connection con, String schema) throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP SCHEMA " + schema + " CASCADE");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "SCHEMA", schema);
   }
 
   /*
@@ -424,7 +473,6 @@ public class TestUtil {
    * @param table String
    * @param columns String
    */
-
   public static void createTempTable(Connection con, String table, String columns)
       throws SQLException {
     Statement st = con.createStatement();
@@ -459,6 +507,24 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a view
+   */
+  public static void createView(Connection con, String viewName, String query)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the view
+      dropView(con, viewName);
+
+      String sql = "CREATE VIEW " + viewName + " AS " + query;
+
+      st.executeUpdate(sql);
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
   /**
    * Helper creates an enum type.
    *
@@ -466,7 +532,6 @@ public class TestUtil {
    * @param name String
    * @param values String
    */
-
   public static void createEnumType(Connection con, String name, String values)
       throws SQLException {
     Statement st = con.createStatement();
@@ -516,22 +581,11 @@ public class TestUtil {
    * Drops a domain.
    *
    * @param con Connection
-   * @param name String
+   * @param domain String
    */
-  public static void dropDomain(Connection con, String name)
+  public static void dropDomain(Connection con, String domain)
       throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP DOMAIN IF EXISTS " + name + " CASCADE");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP DOMAIN " + name + " CASCADE");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "DOMAIN", domain);
   }
 
   /**
@@ -557,50 +611,39 @@ public class TestUtil {
    * drop a sequence because older versions don't have dependency information for serials
    */
   public static void dropSequence(Connection con, String sequence) throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP SEQUENCE IF EXISTS " + sequence + " CASCADE");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP SEQUENCE " + sequence + " CASCADE");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "SEQUENCE", sequence);
   }
 
   /*
    * Helper - drops a table
    */
   public static void dropTable(Connection con, String table) throws SQLException {
-    Statement stmt = con.createStatement();
-    try {
-      if (con.getAutoCommit()) {
-        // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP TABLE IF EXISTS " + table + " CASCADE ");
-      } else {
-        // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP TABLE " + table + " CASCADE ");
-      }
-    } finally {
-      closeQuietly(stmt);
-    }
+    dropObject(con, "TABLE", table);
+  }
+
+  /*
+   * Helper - drops a view
+   */
+  public static void dropView(Connection con, String view) throws SQLException {
+    dropObject(con, "VIEW", view);
   }
 
   /*
    * Helper - drops a type
    */
   public static void dropType(Connection con, String type) throws SQLException {
+    dropObject(con, "TYPE", type);
+  }
+
+  private static void dropObject(Connection con, String type, String name) throws SQLException {
     Statement stmt = con.createStatement();
     try {
       if (con.getAutoCommit()) {
         // Not in a transaction so ignore error for missing object
-        stmt.executeUpdate("DROP TYPE IF EXISTS " + type + " CASCADE");
+        stmt.executeUpdate("DROP " + type + " IF EXISTS " + name + " CASCADE");
       } else {
         // In a transaction so do not ignore errors for missing object
-        stmt.executeUpdate("DROP TYPE " + type + " CASCADE");
+        stmt.executeUpdate("DROP " + type + " " + name + " CASCADE");
       }
     } finally {
       closeQuietly(stmt);
@@ -811,9 +854,21 @@ public class TestUtil {
   }
 
   /**
+   * Close a resource and ignore any errors during closing.
+   */
+  public static void closeQuietly(@Nullable Closeable resource) {
+    if (resource != null) {
+      try {
+        resource.close();
+      } catch (Exception ignore) {
+      }
+    }
+  }
+
+  /**
    * Close a Connection and ignore any errors during closing.
    */
-  public static void closeQuietly(Connection conn) {
+  public static void closeQuietly(@Nullable Connection conn) {
     if (conn != null) {
       try {
         conn.close();
@@ -825,7 +880,7 @@ public class TestUtil {
   /**
    * Close a Statement and ignore any errors during closing.
    */
-  public static void closeQuietly(Statement stmt) {
+  public static void closeQuietly(@Nullable Statement stmt) {
     if (stmt != null) {
       try {
         stmt.close();
@@ -837,7 +892,7 @@ public class TestUtil {
   /**
    * Close a ResultSet and ignore any errors during closing.
    */
-  public static void closeQuietly(ResultSet rs) {
+  public static void closeQuietly(@Nullable ResultSet rs) {
     if (rs != null) {
       try {
         rs.close();
@@ -937,53 +992,126 @@ public class TestUtil {
   }
 
   /**
+   * Execute a SQL query with a given connection, fetch the first row, and return its
+   * string value.
+   */
+  public static String queryForString(Connection conn, String sql) throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery(sql);
+    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    String value = rs.getString(1);
+    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    rs.close();
+    stmt.close();
+    return value;
+  }
+
+  /**
+   * Execute a SQL query with a given connection, fetch the first row, and return its
+   * boolean value.
+   */
+  public static Boolean queryForBoolean(Connection conn, String sql) throws SQLException {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery(sql);
+    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    Boolean value = rs.getBoolean(1);
+    if (rs.wasNull()) {
+      value = null;
+    }
+    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    rs.close();
+    stmt.close();
+    return value;
+  }
+
+  /**
    * Retrieve the backend process id for a given connection.
    */
   public static int getBackendPid(Connection conn) throws SQLException {
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid()");
-    rs.next();
-    int pid = rs.getInt(1);
-    rs.close();
-    stmt.close();
-    return pid;
+    PGConnection pgConn = conn.unwrap(PGConnection.class);
+    return pgConn.getBackendPID();
+  }
+
+  public static boolean isPidAlive(Connection conn, int pid) throws SQLException {
+    String sql = haveMinimumServerVersion(conn, ServerVersion.v9_2)
+        ? "SELECT EXISTS (SELECT * FROM pg_stat_activity WHERE pid = ?)" // 9.2+ use pid column
+        : "SELECT EXISTS (SELECT * FROM pg_stat_activity WHERE procpid = ?)"; // Use older procpid
+    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+      stmt.setInt(1, pid);
+      try (ResultSet rs = stmt.executeQuery()) {
+        rs.next();
+        return rs.getBoolean(1);
+      }
+    }
+  }
+
+  public static boolean waitForBackendTermination(Connection conn, int pid) throws SQLException, InterruptedException {
+    return waitForBackendTermination(conn, pid, Duration.ofSeconds(30), Duration.ofMillis(10));
+  }
+
+  /**
+   * Wait for a backend process to terminate and return whether it actual terminated within the maximum wait time.
+   */
+  public static boolean waitForBackendTermination(Connection conn, int pid, Duration timeout, Duration sleepDelay) throws SQLException, InterruptedException {
+    long started = System.currentTimeMillis();
+    do {
+      if (!isPidAlive(conn, pid)) {
+        return true;
+      }
+      Thread.sleep(sleepDelay.toMillis());
+    } while ((System.currentTimeMillis() - started) < timeout.toMillis());
+    return !isPidAlive(conn, pid);
+  }
+
+  /**
+   * Create a new connection to the same database as the supplied connection but with the privileged credentials.
+   */
+  private static Connection createPrivilegedConnection(Connection conn) throws SQLException {
+    String url = conn.getMetaData().getURL();
+    Properties props = new Properties(conn.getClientInfo());
+    props.setProperty("user", getPrivilegedUser());
+    props.setProperty("password", getPrivilegedPassword());
+    return DriverManager.getConnection(url, props);
   }
 
   /**
    * Executed pg_terminate_backend(...) to terminate the server process for
    * a given process id with the given connection.
+   * This method does not wait for the backend process to exit.
    */
-  public static boolean terminateBackend(Connection conn, int backendPid) throws SQLException {
-    PreparedStatement stmt = conn.prepareStatement("SELECT pg_terminate_backend(?)");
-    stmt.setInt(1, backendPid);
-    ResultSet rs = stmt.executeQuery();
-    rs.next();
-    boolean wasTerminated = rs.getBoolean(1);
-    rs.close();
-    stmt.close();
-    return wasTerminated;
-  }
-
-  /**
-   * Create a new connection using the default test credentials and use it to
-   * attempt to terminate the specified backend process.
-   */
-  public static boolean terminateBackend(int backendPid) throws SQLException {
-    Connection conn = TestUtil.openPrivilegedDB();
-    try {
-      return terminateBackend(conn, backendPid);
-    } finally {
-      conn.close();
+  private static boolean pgTerminateBackend(Connection privConn, int backendPid) throws SQLException {
+    try (PreparedStatement stmt = privConn.prepareStatement("SELECT pg_terminate_backend(?)")) {
+      stmt.setInt(1, backendPid);
+      try (ResultSet rs = stmt.executeQuery()) {
+        rs.next();
+        return rs.getBoolean(1);
+      }
     }
   }
 
   /**
-   * Retrieve the given connection backend process id, then create a new connection
-   * using the default test credentials and attempt to terminate the process.
+   * Open a new privileged connection to the same database as connection and use it to ask to terminate the connection.
+   * If the connection is terminated, wait for its process to actual terminate.
    */
-  public static boolean terminateBackend(Connection conn) throws SQLException {
-    int pid = getBackendPid(conn);
-    return terminateBackend(pid);
+  public static boolean terminateBackend(Connection conn) throws SQLException, InterruptedException {
+    try (Connection privConn = createPrivilegedConnection(conn)) {
+      int pid = getBackendPid(conn);
+      if (!pgTerminateBackend(privConn, pid)) {
+        return false;
+      }
+      return waitForBackendTermination(privConn, pid);
+    }
+  }
+
+  /**
+   * Open a new privileged connection to the same database as connection and use it to ask to terminate the connection.
+   * NOTE: This function does not wait for the process to terminate.
+   */
+  public static boolean terminateBackendNoWait(Connection conn) throws SQLException {
+    try (Connection privConn = createPrivilegedConnection(conn)) {
+      int pid = getBackendPid(conn);
+      return pgTerminateBackend(privConn, pid);
+    }
   }
 
   public static TransactionState getTransactionState(Connection conn) {
@@ -1010,14 +1138,8 @@ public class TestUtil {
   }
 
   public static void execute(String sql, Connection connection) throws SQLException {
-    Statement stmt = connection.createStatement();
-    try {
+    try (Statement stmt = connection.createStatement()) {
       stmt.execute(sql);
-    } finally {
-      try {
-        stmt.close();
-      } catch (SQLException e) {
-      }
     }
   }
 }

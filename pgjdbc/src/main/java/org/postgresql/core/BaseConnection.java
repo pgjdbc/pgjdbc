@@ -10,6 +10,11 @@ import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
+import org.postgresql.xml.PGXmlFactoryFactory;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -72,14 +77,17 @@ public interface BaseConnection extends PGConnection, Connection {
    * <p>If no class is registered as handling the given type, then a generic
    * {@link org.postgresql.util.PGobject} instance is returned.</p>
    *
+   * <p>value or byteValue must be non-null</p>
    * @param type the backend typename
    * @param value the type-specific string representation of the value
    * @param byteValue the type-specific binary representation of the value
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
    */
-  Object getObject(String type, String value, byte[] byteValue) throws SQLException;
+  Object getObject(String type, @Nullable String value, byte @Nullable [] byteValue)
+      throws SQLException;
 
+  @Pure
   Encoding getEncoding() throws SQLException;
 
   TypeInfo getTypeInfo();
@@ -115,7 +123,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return an encoded representation of the string
    * @throws SQLException if something goes wrong.
    */
-  byte[] encodeString(String str) throws SQLException;
+  byte @PolyNull [] encodeString(@PolyNull String str) throws SQLException;
 
   /**
    * Escapes a string for use as string-literal within an SQL command. The method chooses the
@@ -212,4 +220,19 @@ public interface BaseConnection extends PGConnection, Connection {
    * @see PGProperty#READ_ONLY_MODE
    */
   boolean hintReadOnly();
+
+  /**
+   * Retrieve the factory to instantiate XML processing factories.
+   *
+   * @return The factory to use to instantiate XML processing factories
+   * @throws SQLException if the class cannot be found or instantiated.
+   */
+  PGXmlFactoryFactory getXmlFactoryFactory() throws SQLException;
+
+  /**
+   * Indicates if error details from server used in included in logging and exceptions.
+   *
+   * @return true if should be included and passed on to other exceptions
+   */
+  boolean getLogServerErrorDetail();
 }

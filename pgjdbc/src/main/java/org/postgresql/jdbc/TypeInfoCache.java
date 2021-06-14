@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Oid;
@@ -16,6 +18,8 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,6 +28,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,6 +39,8 @@ public class TypeInfoCache implements TypeInfo {
 
   // pgname (String) -> java.sql.Types (Integer)
   private Map<String, Integer> pgNameToSQLType;
+
+  private Map<Integer, Integer> oidToSQLType;
 
   // pgname (String) -> java class name (String)
   // ie "text" -> "java.lang.String"
@@ -52,16 +60,16 @@ public class TypeInfoCache implements TypeInfo {
   // array type oid -> base type array element delimiter
   private Map<Integer, Character> arrayOidToDelimiter;
 
-  private BaseConnection conn;
+  private final BaseConnection conn;
   private final int unknownLength;
-  private PreparedStatement getOidStatementSimple;
-  private PreparedStatement getOidStatementComplexNonArray;
-  private PreparedStatement getOidStatementComplexArray;
-  private PreparedStatement getNameStatement;
-  private PreparedStatement getArrayElementOidStatement;
-  private PreparedStatement getArrayDelimiterStatement;
-  private PreparedStatement getTypeInfoStatement;
-  private PreparedStatement getAllTypeInfoStatement;
+  private @Nullable PreparedStatement getOidStatementSimple;
+  private @Nullable PreparedStatement getOidStatementComplexNonArray;
+  private @Nullable PreparedStatement getOidStatementComplexArray;
+  private @Nullable PreparedStatement getNameStatement;
+  private @Nullable PreparedStatement getArrayElementOidStatement;
+  private @Nullable PreparedStatement getArrayDelimiterStatement;
+  private @Nullable PreparedStatement getTypeInfoStatement;
+  private @Nullable PreparedStatement getAllTypeInfoStatement;
 
   // basic pg types info:
   // 0 - type name
@@ -77,11 +85,9 @@ public class TypeInfoCache implements TypeInfo {
       {"money", Oid.MONEY, Types.DOUBLE, "java.lang.Double", Oid.MONEY_ARRAY},
       {"numeric", Oid.NUMERIC, Types.NUMERIC, "java.math.BigDecimal", Oid.NUMERIC_ARRAY},
       {"float4", Oid.FLOAT4, Types.REAL, "java.lang.Float", Oid.FLOAT4_ARRAY},
-      {"double precision", Oid.FLOAT8, Types.DOUBLE, "java.lang.Double", Oid.FLOAT8_ARRAY},
       {"float8", Oid.FLOAT8, Types.DOUBLE, "java.lang.Double", Oid.FLOAT8_ARRAY},
       {"char", Oid.CHAR, Types.CHAR, "java.lang.String", Oid.CHAR_ARRAY},
       {"bpchar", Oid.BPCHAR, Types.CHAR, "java.lang.String", Oid.BPCHAR_ARRAY},
-      {"character varying", Oid.VARCHAR, Types.VARCHAR, "java.lang.String", Oid.VARCHAR_ARRAY},
       {"varchar", Oid.VARCHAR, Types.VARCHAR, "java.lang.String", Oid.VARCHAR_ARRAY},
       {"text", Oid.TEXT, Types.VARCHAR, "java.lang.String", Oid.TEXT_ARRAY},
       {"name", Oid.NAME, Types.VARCHAR, "java.lang.String", Oid.NAME_ARRAY},
@@ -90,16 +96,11 @@ public class TypeInfoCache implements TypeInfo {
       {"bit", Oid.BIT, Types.BIT, "java.lang.Boolean", Oid.BIT_ARRAY},
       {"date", Oid.DATE, Types.DATE, "java.sql.Date", Oid.DATE_ARRAY},
       {"time", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
-      {"time without time zone", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
       {"timetz", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
-      {"time with time zone", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
       {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
-      {"timestamp without time zone", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
-      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMPTZ_ARRAY},
-      {"timestamp with time zone", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMPTZ_ARRAY},
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp",
+          Oid.TIMESTAMPTZ_ARRAY},
       {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
-      //#endif
       {"json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY},
       {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY}
   };
@@ -107,20 +108,32 @@ public class TypeInfoCache implements TypeInfo {
   /**
    * PG maps several alias to real type names. When we do queries against pg_catalog, we must use
    * the real type, not an alias, so use this mapping.
+   * <p>
+   * Additional values used at runtime (including case variants) will be added to the map.
+   * </p>
    */
-  private static final HashMap<String, String> typeAliases;
+  private static final ConcurrentMap<String, String> TYPE_ALIASES = new ConcurrentHashMap<>(20);
 
   static {
-    typeAliases = new HashMap<String, String>();
-    typeAliases.put("smallint", "int2");
-    typeAliases.put("integer", "int4");
-    typeAliases.put("int", "int4");
-    typeAliases.put("bigint", "int8");
-    typeAliases.put("float", "float8");
-    typeAliases.put("boolean", "bool");
-    typeAliases.put("decimal", "numeric");
+    TYPE_ALIASES.put("bool", "bool");
+    TYPE_ALIASES.put("boolean", "bool");
+    TYPE_ALIASES.put("smallint", "int2");
+    TYPE_ALIASES.put("int2", "int2");
+    TYPE_ALIASES.put("int", "int4");
+    TYPE_ALIASES.put("integer", "int4");
+    TYPE_ALIASES.put("int4", "int4");
+    TYPE_ALIASES.put("long", "int8");
+    TYPE_ALIASES.put("int8", "int8");
+    TYPE_ALIASES.put("bigint", "int8");
+    TYPE_ALIASES.put("float", "float4");
+    TYPE_ALIASES.put("float4", "float4");
+    TYPE_ALIASES.put("double", "float8");
+    TYPE_ALIASES.put("float8", "float8");
+    TYPE_ALIASES.put("decimal", "numeric");
+    TYPE_ALIASES.put("numeric", "numeric");
   }
 
+  @SuppressWarnings("method.invocation.invalid")
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;
     this.unknownLength = unknownLength;
@@ -134,6 +147,7 @@ public class TypeInfoCache implements TypeInfo {
     // needs to be synchronized because the iterator is returned
     // from getPGTypeNamesWithSQLTypes()
     pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>((int) Math.round(types.length * 1.5)));
+    oidToSQLType = Collections.synchronizedMap(new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5)));
 
     for (Object[] type : types) {
       String pgTypeName = (String) type[0];
@@ -155,6 +169,7 @@ public class TypeInfoCache implements TypeInfo {
     oidToPgName.put(oid, pgTypeName);
     pgArrayToPgType.put(arrayOid, oid);
     pgNameToSQLType.put(pgTypeName, sqlType);
+    oidToSQLType.put(oid, sqlType);
 
     // Currently we hardcode all core types array delimiter
     // to a comma. In a stock install the only exception is
@@ -167,6 +182,7 @@ public class TypeInfoCache implements TypeInfo {
     String pgArrayTypeName = pgTypeName + "[]";
     pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
     pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+    oidToSQLType.put(arrayOid, Types.ARRAY);
     pgNameToOid.put(pgArrayTypeName, arrayOid);
     pgArrayTypeName = "_" + pgTypeName;
     if (!pgNameToJavaClass.containsKey(pgArrayTypeName)) {
@@ -187,7 +203,11 @@ public class TypeInfoCache implements TypeInfo {
     return pgNameToSQLType.keySet().iterator();
   }
 
-  private String getSQLTypeQuery(boolean typnameParam) {
+  public Iterator<Integer> getPGTypeOidsWithSQLTypes() {
+    return oidToSQLType.keySet().iterator();
+  }
+
+  private String getSQLTypeQuery(boolean typoidParam) {
     // There's no great way of telling what's an array type.
     // People can name their own types starting with _.
     // Other types use typelem that aren't actually arrays, like box.
@@ -198,7 +218,7 @@ public class TypeInfoCache implements TypeInfo {
     // (keeping old behaviour of finding types, that should not be found without correct search
     // path)
     StringBuilder sql = new StringBuilder();
-    sql.append("SELECT typinput='array_in'::regproc as is_array, typtype, typname ");
+    sql.append("SELECT typinput='array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
     sql.append("  FROM pg_catalog.pg_type ");
     sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
     sql.append("          from pg_namespace as ns ");
@@ -208,8 +228,8 @@ public class TypeInfoCache implements TypeInfo {
     sql.append("         using ( nspname ) ");
     sql.append("       ) as sp ");
     sql.append("    ON sp.nspoid = typnamespace ");
-    if (typnameParam) {
-      sql.append(" WHERE typname = ? ");
+    if (typoidParam) {
+      sql.append(" WHERE pg_type.oid = ? ");
     }
     sql.append(" ORDER BY sp.r, pg_type.oid DESC;");
     return sql.toString();
@@ -234,47 +254,67 @@ public class TypeInfoCache implements TypeInfo {
     return type;
   }
 
-  public void cacheSQLTypes() throws SQLException {
-    LOGGER.log(Level.FINEST, "caching all SQL typecodes");
+  private PreparedStatement prepareGetAllTypeInfoStatement() throws SQLException {
+    PreparedStatement getAllTypeInfoStatement = this.getAllTypeInfoStatement;
     if (getAllTypeInfoStatement == null) {
       getAllTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(false));
+      this.getAllTypeInfoStatement = getAllTypeInfoStatement;
     }
+    return getAllTypeInfoStatement;
+  }
+
+  public void cacheSQLTypes() throws SQLException {
+    LOGGER.log(Level.FINEST, "caching all SQL typecodes");
+    PreparedStatement getAllTypeInfoStatement = prepareGetAllTypeInfoStatement();
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getAllTypeInfoStatement)
         .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
-    ResultSet rs = getAllTypeInfoStatement.getResultSet();
+    ResultSet rs = castNonNull(getAllTypeInfoStatement.getResultSet());
     while (rs.next()) {
-      String typeName = rs.getString("typname");
+      String typeName = castNonNull(rs.getString("typname"));
       Integer type = getSQLTypeFromQueryResult(rs);
       if (!pgNameToSQLType.containsKey(typeName)) {
         pgNameToSQLType.put(typeName, type);
+      }
+
+      Integer typeOid = castNonNull(rs.getInt("oid"));
+      if (!oidToSQLType.containsKey(typeOid)) {
+        oidToSQLType.put(typeOid, type);
       }
     }
     rs.close();
   }
 
-  public int getSQLType(int oid) throws SQLException {
-    return getSQLType(getPGType(oid));
+  private PreparedStatement prepareGetTypeInfoStatement() throws SQLException {
+    PreparedStatement getTypeInfoStatement = this.getTypeInfoStatement;
+    if (getTypeInfoStatement == null) {
+      getTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(true));
+      this.getTypeInfoStatement = getTypeInfoStatement;
+    }
+    return getTypeInfoStatement;
   }
 
   public synchronized int getSQLType(String pgTypeName) throws SQLException {
-    if (pgTypeName.endsWith("[]")) {
-      return Types.ARRAY;
+    return getSQLType(castNonNull(getPGType(pgTypeName)));
+  }
+
+  public synchronized int getSQLType(int typeOid) throws SQLException {
+    if (typeOid == Oid.UNSPECIFIED) {
+      return Types.OTHER;
     }
-    Integer i = pgNameToSQLType.get(pgTypeName);
+
+    Integer i = oidToSQLType.get(typeOid);
     if (i != null) {
       return i;
     }
 
-    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type '{0}'", pgTypeName);
+    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", typeOid);
 
-    if (getTypeInfoStatement == null) {
-      getTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(true));
-    }
+    PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
 
-    getTypeInfoStatement.setString(1, pgTypeName);
+    getTypeInfoStatement.setInt(1, typeOid);
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getTypeInfoStatement)
@@ -282,16 +322,16 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    ResultSet rs = getTypeInfoStatement.getResultSet();
+    ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
 
-    Integer type = Types.OTHER;
+    int sqlType = Types.OTHER;
     if (rs.next()) {
-      type = getSQLTypeFromQueryResult(rs);
+      sqlType = getSQLTypeFromQueryResult(rs);
     }
     rs.close();
 
-    pgNameToSQLType.put(pgTypeName, type);
-    return type;
+    oidToSQLType.put(typeOid, sqlType);
+    return sqlType;
   }
 
   private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
@@ -414,10 +454,10 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     oid = Oid.UNSPECIFIED;
-    ResultSet rs = oidStatement.getResultSet();
+    ResultSet rs = castNonNull(oidStatement.getResultSet());
     if (rs.next()) {
       oid = (int) rs.getLong(1);
-      String internalName = rs.getString(2);
+      String internalName = castNonNull(rs.getString(2));
       oidToPgName.put(oid, internalName);
       pgNameToOid.put(internalName, oid);
     }
@@ -427,8 +467,9 @@ public class TypeInfoCache implements TypeInfo {
     return oid;
   }
 
-  public synchronized String getPGType(int oid) throws SQLException {
+  public synchronized @Nullable String getPGType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
+      // TODO: it would be great to forbid UNSPECIFIED argument, and make the return type non-nullable
       return null;
     }
 
@@ -437,14 +478,7 @@ public class TypeInfoCache implements TypeInfo {
       return pgTypeName;
     }
 
-    if (getNameStatement == null) {
-      String sql;
-      sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
-            + "FROM pg_catalog.pg_type t "
-            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
-
-      getNameStatement = conn.prepareStatement(sql);
-    }
+    PreparedStatement getNameStatement = prepareGetNameStatement();
 
     getNameStatement.setInt(1, oid);
 
@@ -453,11 +487,11 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    ResultSet rs = getNameStatement.getResultSet();
+    ResultSet rs = castNonNull(getNameStatement.getResultSet());
     if (rs.next()) {
       boolean onPath = rs.getBoolean(1);
-      String schema = rs.getString(2);
-      String name = rs.getString(3);
+      String schema = castNonNull(rs.getString(2), "schema");
+      String name = castNonNull(rs.getString(3), "name");
       if (onPath) {
         pgTypeName = name;
         pgNameToOid.put(schema + "." + name, oid);
@@ -477,6 +511,19 @@ public class TypeInfoCache implements TypeInfo {
     rs.close();
 
     return pgTypeName;
+  }
+
+  private PreparedStatement prepareGetNameStatement() throws SQLException {
+    PreparedStatement getNameStatement = this.getNameStatement;
+    if (getNameStatement == null) {
+      String sql;
+      sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
+            + "FROM pg_catalog.pg_type t "
+            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
+
+      this.getNameStatement = getNameStatement = conn.prepareStatement(sql);
+    }
+    return getNameStatement;
   }
 
   public int getPGArrayType(String elementTypeName) throws SQLException {
@@ -511,12 +558,7 @@ public class TypeInfoCache implements TypeInfo {
       return delim;
     }
 
-    if (getArrayDelimiterStatement == null) {
-      String sql;
-      sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e "
-            + "WHERE t.oid = ? and t.typelem = e.oid";
-      getArrayDelimiterStatement = conn.prepareStatement(sql);
-    }
+    PreparedStatement getArrayDelimiterStatement = prepareGetArrayDelimiterStatement();
 
     getArrayDelimiterStatement.setInt(1, oid);
 
@@ -526,12 +568,12 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    ResultSet rs = getArrayDelimiterStatement.getResultSet();
+    ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
     if (!rs.next()) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    String s = rs.getString(1);
+    String s = castNonNull(rs.getString(1));
     delim = s.charAt(0);
 
     arrayOidToDelimiter.put(oid, delim);
@@ -539,6 +581,17 @@ public class TypeInfoCache implements TypeInfo {
     rs.close();
 
     return delim;
+  }
+
+  private PreparedStatement prepareGetArrayDelimiterStatement() throws SQLException {
+    PreparedStatement getArrayDelimiterStatement = this.getArrayDelimiterStatement;
+    if (getArrayDelimiterStatement == null) {
+      String sql;
+      sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e "
+            + "WHERE t.oid = ? and t.typelem = e.oid";
+      this.getArrayDelimiterStatement = getArrayDelimiterStatement = conn.prepareStatement(sql);
+    }
+    return getArrayDelimiterStatement;
   }
 
   public synchronized int getPGArrayElement(int oid) throws SQLException {
@@ -552,13 +605,7 @@ public class TypeInfoCache implements TypeInfo {
       return pgType;
     }
 
-    if (getArrayElementOidStatement == null) {
-      String sql;
-      sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname "
-            + "FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid "
-            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
-      getArrayElementOidStatement = conn.prepareStatement(sql);
-    }
+    PreparedStatement getArrayElementOidStatement = prepareGetArrayElementOidStatement();
 
     getArrayElementOidStatement.setInt(1, oid);
 
@@ -568,7 +615,7 @@ public class TypeInfoCache implements TypeInfo {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
-    ResultSet rs = getArrayElementOidStatement.getResultSet();
+    ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
     if (!rs.next()) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
@@ -576,7 +623,7 @@ public class TypeInfoCache implements TypeInfo {
     pgType = (int) rs.getLong(1);
     boolean onPath = rs.getBoolean(2);
     String schema = rs.getString(3);
-    String name = rs.getString(4);
+    String name = castNonNull(rs.getString(4));
     pgArrayToPgType.put(oid, pgType);
     pgNameToOid.put(schema + "." + name, pgType);
     String fullName = "\"" + schema + "\".\"" + name + "\"";
@@ -593,12 +640,30 @@ public class TypeInfoCache implements TypeInfo {
     return pgType;
   }
 
-  public synchronized Class<? extends PGobject> getPGobject(String type) {
+  private PreparedStatement prepareGetArrayElementOidStatement() throws SQLException {
+    PreparedStatement getArrayElementOidStatement = this.getArrayElementOidStatement;
+    if (getArrayElementOidStatement == null) {
+      String sql;
+      sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname "
+            + "FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid "
+            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
+      this.getArrayElementOidStatement = getArrayElementOidStatement = conn.prepareStatement(sql);
+    }
+    return getArrayElementOidStatement;
+  }
+
+  public synchronized @Nullable Class<? extends PGobject> getPGobject(String type) {
     return pgNameToPgObject.get(type);
   }
 
   public synchronized String getJavaClass(int oid) throws SQLException {
     String pgTypeName = getPGType(oid);
+    if (pgTypeName == null) {
+      // Technically speaking, we should not be here
+      // null result probably means oid == UNSPECIFIED which has no clear way
+      // to map to Java
+      return "java.lang.String";
+    }
 
     String result = pgNameToJavaClass.get(pgTypeName);
     if (result != null) {
@@ -610,21 +675,21 @@ public class TypeInfoCache implements TypeInfo {
       pgNameToJavaClass.put(pgTypeName, result);
     }
 
-    return result;
+    return result == null ? "java.lang.String" : result;
   }
 
   public String getTypeForAlias(String alias) {
-    String type = typeAliases.get(alias);
+    String type = TYPE_ALIASES.get(alias);
     if (type != null) {
       return type;
     }
-    if (alias.indexOf('"') == -1) {
-      type = typeAliases.get(alias.toLowerCase());
-      if (type != null) {
-        return type;
-      }
+    type = TYPE_ALIASES.get(alias.toLowerCase());
+    if (type == null) {
+      type = alias;
     }
-    return alias;
+    //populate for future use
+    TYPE_ALIASES.put(alias, type);
+    return type;
   }
 
   public int getPrecision(int oid, int typmod) {

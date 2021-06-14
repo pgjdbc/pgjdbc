@@ -5,17 +5,17 @@
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.Reader;
 import java.io.StringReader;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 
 public class CharacterStreamTest extends BaseTest4 {
@@ -23,12 +23,10 @@ public class CharacterStreamTest extends BaseTest4 {
   private static final String TEST_TABLE_NAME = "charstream";
   private static final String TEST_COLUMN_NAME = "cs";
 
-  private static final String _delete;
   private static final String _insert;
   private static final String _select;
 
   static {
-    _delete = String.format("DELETE FROM %s", TEST_TABLE_NAME);
     _insert = String.format("INSERT INTO %s (%s) VALUES (?)", TEST_TABLE_NAME, TEST_COLUMN_NAME);
     _select = String.format("SELECT %s FROM %s", TEST_COLUMN_NAME, TEST_TABLE_NAME);
   }
@@ -36,13 +34,7 @@ public class CharacterStreamTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, TEST_TABLE_NAME, "cs text");
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, TEST_TABLE_NAME);
-    super.tearDown();
+    TestUtil.createTempTable(con, TEST_TABLE_NAME, "cs text");
   }
 
   private void insertStreamKnownIntLength(String data) throws Exception {
@@ -81,22 +73,8 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   private void validateContent(String data) throws Exception {
-    PreparedStatement selectPS = con.prepareStatement(_select);
-    try {
-      ResultSet rs = selectPS.executeQuery();
-      try {
-        if (rs.next()) {
-          String actualData = rs.getString(1);
-          Assert.assertEquals("Sent and received data are not the same", data, actualData);
-        } else {
-          Assert.fail("query returned zero rows");
-        }
-      } finally {
-        TestUtil.closeQuietly(rs);
-      }
-    } finally {
-      TestUtil.closeQuietly(selectPS);
-    }
+    String actualData = TestUtil.queryForString(con, _select);
+    Assert.assertEquals("Sent and received data are not the same", data, actualData);
   }
 
   private String getTestData(int size) {
@@ -203,6 +181,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testKnownIntLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamKnownIntLength(data);
@@ -210,6 +189,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
+  @Category(SlowTests.class)
   public void testKnownLongLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamKnownLongLength(data);
@@ -217,6 +197,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testUnknownLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamUnknownLength(data);
@@ -224,6 +205,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testKnownIntLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamKnownIntLength(data);
@@ -231,6 +213,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
+  @Category(SlowTests.class)
   public void testKnownLongLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamKnownLongLength(data);
@@ -238,6 +221,7 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
+  @Category(SlowTests.class)
   public void testUnknownLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamUnknownLength(data);

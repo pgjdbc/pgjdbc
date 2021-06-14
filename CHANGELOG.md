@@ -4,27 +4,200 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- If assumeMinServerVersion is not defined and server is at least 9.0, group startup statements into a single transaction PR [#1977](https://github.com/pgjdbc/pgjdbc/pull/1977)
 
-## [42.2.10] (2020-01-30)
+### Added
+
+### Fixed
+- Rework OSGi bundle activator so it does not rely on exception message to check DataSourceFactory presence PR [#507](https://github.com/pgjdbc/pgjdbc/pull/507)
+- Fix "Avoid leaking server error details through BatchUpdateException when logServerErrorDetail=false" [PR #2148](https://github.com/pgjdbc/pgjdbc/pull/2148) fixes Issue #2147
+- Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2174)
+
+## [42.2.20] (2021-04-19)
+
 ### Changed
 
 ### Added
- - Add maxResultBuffer property (#1657)
- - add caller push of binary data (rebase of #953) (#1659)
+
+### Fixed
+- fix: Partitioned indexes were not found fixes [#2078](https://github.com/pgjdbc/pgjdbc/issues/2078) PR [#2087](https://github.com/pgjdbc/pgjdbc/pull/2087)
+
+- isValid() timeout should not be blocked [#1943](https://github.com/pgjdbc/pgjdbc/pull/1943) Cherry-picked [#2076](https://github.com/pgjdbc/pgjdbc/pull/2076)
+  The usage of `setQueryTimeout();` with the same value as the `setNetworkTimeout();` is blocking the current transaction timeout.
+  The timeouts are blocking each other with this approach.
+- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes [Issue #830](https://github.com/pgjdbc/pgjdbc/issues/830)
+
+## [42.2.19] (2021-02-18)
+
+**Notable Changes**
+- Now the driver uses SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.
+- If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.
+
+### Changed
+- Perf: avoid duplicate PGStream#changeSocket calls
+- Fix: Actually close unclosed results. Previously was not closing the first unclosed result fixes #1903 (#1905)
+There is a small behaviour change here as a result. If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.
+
+### Added
+- Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) [PR #2012](https://github.com/pgjdbc/pgjdbc/pull/2012)
+
+### Fixed
+- Fix Binary transfer for numeric fixes #1935
+- Fix Allow specifying binaryTransferEnable even for those types that are not enabled by default
+- Fix: properly set cancel socket timeout (#2044)
+- Fix "Required class information missing" when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]
+- Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]
+- Fix Connnection.isValid() to not wait longer than existing network timeout [PR #2040](https://github.com/pgjdbc/pgjdbc/pull/2040)
+- Fix Passwords with spaces (ASCII and non-ASCII) now work with SCRAM authentication (driver now uses SASLprep normalization) [PR #2052](https://github.com/pgjdbc/pgjdbc/pull/2052)
+- Fix DatabaseMetaData.getTablePrivileges() to include views, materialized views, and foreign tables [PR #2049](https://github.com/pgjdbc/pgjdbc/pull/2049)
+- Fix Resolve ParseError in PGtokenizer fixes #2050
+- Fix return metadata privileges for views and foreign tables
+- DatabaseMetaData.getTables returns columns in UPPER case as per the spec [PR #2092](https://github.com/pgjdbc/pgjdbc/pull/2092) fixes Issue #830
+
+## [42.2.18]
+### Fixed
+- Unfortunately changing the default of gssEncMode to ALLOW was not enough. The GSSEncMode Enum was not changed as well
+  fixed in #1920
+
+## [42.2.17]
+### Changed
+- Change default of gssEncMode to ALLOW. PostgreSQL can deal with PREFER but there are cloud providers that did not implement the protocol properly. Libpq gets around this by checking for a GSS credential cache before attempting the connection. This is possible in JDK 8 and up, but not JDK6, or JDK7 fixes Issue #1868 [PR #1913](https://github.com/pgjdbc/pgjdbc/pull/1913)
+
+### Added
+- Add smallserial metadata [PR #899(https://github.com/pgjdbc/pgjdbc/pull/899)
+
+### Fixed
+- Avoid NullPointerException when receiving PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney [PR 1873] (https://github.com/pgjdbc/pgjdbc/pull/1873).
+- The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) [PR 1879](https://github.com/pgjdbc/pgjdbc/pull/1879).
+- PgTokenizer was ignoring last empty token [PR #1882](https://github.com/pgjdbc/pgjdbc/pull/1882)
+- Remove osgi from karaf fixes Issue #1891 [PR #1902](https://github.com/pgjdbc/pgjdbc/pull/1902)
+
+## [42.2.16] (2020-08-20)
+### Known issues
+- The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)
+
+### Fixed
+- Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays.
+  Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default
+  for Postgres when sent as strings such as '{1,2,3}'. Fixes [issue 1860](https://github.com/pgjdbc/pgjdbc/issues/1860) in [PR 1863](https://github.com/pgjdbc/pgjdbc/pull/1863).
+
+## [42.2.15] (2020-08-14)
+### Known issues
+- The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)
+
+### Changed
+- Rename source distribution archive to `postgresql-$version-jdbc-src.tar.gz`, and add top-level archive folder [ba017507](https://github.com/pgjdbc/pgjdbc/commit/ba0175072ee9c751c1496d2fe170f4af7256f1a5)
+- Add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
+are possible. Now the driver will attempt to connect to the server with a GSSAPI encrypted connection. If that fails then
+attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
+and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required. [PR 1821](https://github.com/pgjdbc/pgjdbc/pull/1821) [ad921b9e](https://github.com/pgjdbc/pgjdbc/commit/ad921b9e3563b28b9a03b1e2dfaad0e34efc02f1)
+- Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact [f0301eb9](https://github.com/pgjdbc/pgjdbc/commit/f0301eb901f880059b00b0fb0a3ee93ef7d749a8)
+- Refactor decoding arrays [PR 1194](https://github.com/pgjdbc/pgjdbc/pull/1194)
+
+### Added
+- Verify nullness with CheckerFramework [6e524ae5](https://github.com/pgjdbc/pgjdbc/commit/6e524ae51cee67b25426c09a7083465c820c0a0d)
+
+### Fixed
+- Avoid preparedStatement leak when using updateable ResultSet via insert/update/refreshRow [PR 1815](https://github.com/pgjdbc/pgjdbc/pull/1815) [9a0d2b18](https://github.com/pgjdbc/pgjdbc/commit/9a0d2b18a81c7ec5974d4caf2ff2d218312da25f)
+- Change order of checks for oid vs primary keys. OID's have been deprecated. [PR 1613](https://github.com/pgjdbc/pgjdbc/pull/1613)
+- Close certificate file stream. [PR 1837](https://github.com/pgjdbc/pgjdbc/pull/1837)
+- Make sure socketTimeout is enforced [PR 1831](https://github.com/pgjdbc/pgjdbc/pull/1831)
+- Assume PKCS-8 SSL key format by default [PR 1819](https://github.com/pgjdbc/pgjdbc/pull/1819)
+- Preserve unquoted unicode whitespace in array literals [PR 1266](https://github.com/pgjdbc/pgjdbc/pull/1266)
+
+## [42.2.14] (2020-06-10)
+### Changed
+- Reverted com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies to optional=true in Maven [PR 1797](https://github.com/pgjdbc/pgjdbc/pull/1797).
+
+## [42.2.13] (2020-06-04)
+
+**Notable Changes**
+
+- Security: The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
+Reported by David Dworken, this is an XXE and more information can be found [here](https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html).
+Sehrope Sarkuni reworked the XML parsing to provide a solution in commit [14b62aca4](https://github.com/pgjdbc/pgjdbc/commit/14b62aca4764d496813f55a43d050b017e01eb65).
+- The build system has been changed to Gradle thanks to Vladimir [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627).
+- Regression: com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies are listed as non-optional [issue 1975](https://github.com/pgjdbc/pgjdbc/issues/1795).
+
+### Changed
+
+### Added
+- jre-6 was added back to allow us to release fixes for all artifacts in the 42.2.x branch [PR 1787](https://github.com/pgjdbc/pgjdbc/pull/1787)
+
+### Fixed
+- I/O error ru translation [PR 1756](https://github.com/pgjdbc/pgjdbc/pull/1756)
+- Issue [1771](https://github.com/pgjdbc/pgjdbc/issues/1771)  PgDatabaseMetaData.getFunctions() returns
+ procedures fixed in [PR 1774](https://github.com/pgjdbc/pgjdbc/pull/1774)
+- getTypeMap() returning null [PR 1781](https://github.com/pgjdbc/pgjdbc/pull/1774)
+- Updated openssl example command [PR 1763](https://github.com/pgjdbc/pgjdbc/pull/1763)
+- fix documentation with ordered list to be displayed correctly [PR 1783](https://github.com/pgjdbc/pgjdbc/pull/1783)
+
+## [42.2.12] (2020-03-31)
+
+**Notable changes**
+
+We have released 42.2.12 to correct regressions in this version: Specifically
+- [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729) was reverted as this is a breaking change
+- [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719) has been reverted as it introduced errors in the PgType Cache
+
+We recommend that version 42.2.11 not be used.
+### Changed
+ - reverted [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)  throw an error instead of silently rolling back a commit error. 
+ This change introduced a breaking change which will be moved to 42.3.0
+ - reverted [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719)  add support for full names of data types (#1719)
+
+
+## [42.2.11] (2020-03-07)
+
+**Notable changes**
+As mentioned above this version is broken and should not be used.
+### Changed
+ - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals. 
+ - `DatabaseMetaData#getProcedures` returns only procedures (not functions) for PostgreSQL 11+ [PR 1723](https://github.com/pgjdbc/pgjdbc/pull/1723)
+ - Convert silent rollbacks into exception if application sends `commit` or `xa.prepare` command [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)
+
+### Added
+ - feat: `raiseExceptionOnSilentRollback` connection option to configure if silent rollback should raise an exception [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)
+ - feat: Expose `ByteStreamWriter` in CopyManager [PR 1702](https://github.com/pgjdbc/pgjdbc/pull/1702)
+ - feat: add way to distinguish base and partitioned tables in PgDatabaseMetaData.getTables [PR 1708](https://github.com/pgjdbc/pgjdbc/pull/1708)
+ - refactor: introduce tuple abstraction (rebased) [PR 1701](https://github.com/pgjdbc/pgjdbc/pull/1701)
+ - refactor: make PSQLState enum consts for integrity constraint violations [PR 1699](https://github.com/pgjdbc/pgjdbc/pull/1699)
+ - test: add makefile to create ssl certs [PR 1706](https://github.com/pgjdbc/pgjdbc/pull/1706)
+
+### Fixed
+ - fix: Always use `.` as decimal separator in PGInterval [PR 1705](https://github.com/pgjdbc/pgjdbc/pull/1705)
+ - fix: allow DatabaseMetaData.getColumns to describe an unset scale [PR 1716](https://github.com/pgjdbc/pgjdbc/pull/1716)
+
+### Changed
+ - Build system update from Maven to Gradle [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627)
+
+### Added
+ - docker-compose image for creating test databases (see `docker` folder)
+
+## [42.2.10] (2020-01-30)
+### Changed
+ - (!) Regression: remove receiving EOF from backend after cancel [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The regression is that the subsequent query might receive the cancel signal.
+
+### Added
+ - Add maxResultBuffer property [PR 1657](https://github.com/pgjdbc/pgjdbc/pull/1657)
+ - add caller push of binary data (rebase of #953) [PR 1659](https://github.com/pgjdbc/pgjdbc/pull/1659)
  
 ### Fixed
- - Cleanup PGProperty, sort values, and add some missing to docs (#1686)
- - Fixing LocalTime rounding (losing precision) (#1570)
- - Network Performance of PgDatabaseMetaData.getTypeInfo() method (#1668)
- - Issue #1680 updating a boolean field requires special handling to set it to t or f instead of true or false (#1682)
- - bug in pgstream for replication (#1681)
- - Issue #1677 NumberFormatException when fetching PGInterval with small value (#1678)
- - Metadata queries improvements with large schemas. (#1673)
- - Utf 8 encoding optimizations (#1444)
- - interval overflow (#1658)
- - Issue #1482 where the port was being added to the GSSAPI service name (#1651)
- - remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) (#1641)
- - Unable to register out parameter Issue #1646 (#1648)
+ - Cleanup PGProperty, sort values, and add some missing to docs [PR 1686](https://github.com/pgjdbc/pgjdbc/pull/1686)
+ - Fixing LocalTime rounding (losing precision) [PR 1570](https://github.com/pgjdbc/pgjdbc/pull/1570)
+ - Network Performance of PgDatabaseMetaData.getTypeInfo() method [PR 1668](https://github.com/pgjdbc/pgjdbc/pull/1668)
+ - Issue #1680 updating a boolean field requires special handling to set it to t or f instead of true or false [PR 1682](https://github.com/pgjdbc/pgjdbc/pull/1682)
+ - bug in pgstream for replication [PR 1681](https://github.com/pgjdbc/pgjdbc/pull/1681)
+ - Issue #1677 NumberFormatException when fetching PGInterval with small value [PR 1678](https://github.com/pgjdbc/pgjdbc/pull/1678)
+ - Metadata queries improvements with large schemas. [PR 1673](https://github.com/pgjdbc/pgjdbc/pull/1673)
+ - Utf 8 encoding optimizations [PR 1444](https://github.com/pgjdbc/pgjdbc/pull/1444)
+ - interval overflow [PR 1658](https://github.com/pgjdbc/pgjdbc/pull/1658)
+ - Issue #1482 where the port was being added to the GSSAPI service name [PR 1651](https://github.com/pgjdbc/pgjdbc/pull/1651)
+ - remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1641)
+ - Unable to register out parameter Issue #1646 [PR 1648](https://github.com/pgjdbc/pgjdbc/pull/1648)
   
 ## [42.2.9] (2019-12-06)
 ### Changed
@@ -290,4 +463,15 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.7]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.6...REL42.2.7
 [42.2.8]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.7...REL42.2.8
 [42.2.9]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.8...REL42.2.9
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...HEAD
+[42.2.10]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.9...REL42.2.10
+[42.2.11]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.10...REL42.2.11
+[42.2.12]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.11...REL42.2.12
+[42.2.13]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.12...REL42.2.13
+[42.2.14]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.13...REL42.2.14
+[42.2.15]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.14...REL42.2.15
+[42.2.16]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.15...REL42.2.16
+[42.2.17]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.16...REL42.2.17
+[42.2.18]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...REL42.2.18
+[42.2.19]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.18...REL42.2.19
+[42.2.20]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.19...REL42.2.20
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...HEAD

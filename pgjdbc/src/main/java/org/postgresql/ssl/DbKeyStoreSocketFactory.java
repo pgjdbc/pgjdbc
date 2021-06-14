@@ -20,11 +20,14 @@ public abstract class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
    * certificate to send to the server, as well as checking the server's certificate against a set
    * of trusted CAs.
    */
+  @SuppressWarnings("nullness:method.invocation.invalid")
   public DbKeyStoreSocketFactory() throws DbKeyStoreSocketException {
     KeyStore keys;
     char[] password;
     try {
       keys = KeyStore.getInstance("JKS");
+      // Call of the sub-class method during object initialization is generally a bad idea
+      // Currently we suppress it with method.invocation.invalid
       password = getKeyStorePassword();
       keys.load(getKeyStoreStream(), password);
     } catch (java.security.GeneralSecurityException gse) {

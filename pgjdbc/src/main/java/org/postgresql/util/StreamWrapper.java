@@ -6,6 +6,10 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -117,7 +121,18 @@ public class StreamWrapper {
             // forcibly close it because super.finalize() may keep the FD open, which may prevent
             // file deletion
             close();
-            super.finalize();
+            // javac 13 assumes it can throw Throwable
+            try {
+              super.finalize();
+            } catch (RuntimeException e) {
+              throw e;
+            } catch (Error e) {
+              throw e;
+            } catch (IOException e) {
+              throw e;
+            } catch (Throwable e) {
+              throw new RuntimeException("Unexpected exception from finalize", e);
+            }
           }
         };
       } else {
@@ -137,7 +152,7 @@ public class StreamWrapper {
       return stream;
     }
 
-    return new java.io.ByteArrayInputStream(rawData, offset, length);
+    return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
   }
 
   public int getLength() {
@@ -148,7 +163,7 @@ public class StreamWrapper {
     return offset;
   }
 
-  public byte[] getBytes() {
+  public byte @Nullable [] getBytes() {
     return rawData;
   }
 
@@ -172,8 +187,8 @@ public class StreamWrapper {
     return totalLength;
   }
 
-  private final InputStream stream;
-  private final byte[] rawData;
+  private final @Nullable InputStream stream;
+  private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;
 }

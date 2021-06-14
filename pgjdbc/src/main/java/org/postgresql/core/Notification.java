@@ -42,4 +42,3 @@ public class Notification implements PGNotification {
   }
 
 }
-

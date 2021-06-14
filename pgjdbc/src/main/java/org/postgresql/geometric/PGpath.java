@@ -11,6 +11,8 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -26,7 +28,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   /**
    * The points defining this path.
    */
-  public PGpoint[] points;
+  public PGpoint @Nullable [] points;
 
   /**
    * @param points the PGpoints that define the path
@@ -42,13 +44,14 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * Required by the driver.
    */
   public PGpath() {
-    setType("path");
+    type = "path";
   }
 
   /**
    * @param s definition of the path in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGpath(String s) throws SQLException {
     this();
     setValue(s);
@@ -73,7 +76,8 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
 
     PGtokenizer t = new PGtokenizer(s, ',');
     int npoints = t.getSize();
-    points = new PGpoint[npoints];
+    PGpoint[] points = new PGpoint[npoints];
+    this.points = points;
     for (int p = 0; p < npoints; p++) {
       points[p] = new PGpoint(t.getToken(p));
     }
@@ -83,15 +87,23 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two paths are identical
    */
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpath) {
       PGpath p = (PGpath) obj;
 
-      if (p.points.length != points.length) {
+      if (p.open != open) {
         return false;
       }
 
-      if (p.open != open) {
+      if (points == null ^ p.points == null) {
+        return false;
+      }
+
+      if (points == null) {
+        return true;
+      }
+
+      if (p.points.length != points.length) {
         return false;
       }
 
@@ -108,9 +120,12 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
 
   public int hashCode() {
     // XXX not very good..
-    int hash = 0;
+    int hash = open ? 1231 : 1237;
+    if (points == null) {
+      return hash;
+    }
     for (int i = 0; i < points.length && i < 5; ++i) {
-      hash = hash ^ points[i].hashCode();
+      hash = hash * 31 + points[i].hashCode();
     }
     return hash;
   }
@@ -118,9 +133,10 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   public Object clone() throws CloneNotSupportedException {
     PGpath newPGpath = (PGpath) super.clone();
     if (newPGpath.points != null) {
-      newPGpath.points = (PGpoint[]) newPGpath.points.clone();
+      PGpoint[] newPoints = newPGpath.points.clone();
+      newPGpath.points = newPoints;
       for (int i = 0; i < newPGpath.points.length; ++i) {
-        newPGpath.points[i] = (PGpoint) newPGpath.points[i].clone();
+        newPoints[i] = (PGpoint) newPGpath.points[i].clone();
       }
     }
     return newPGpath;
@@ -132,7 +148,8 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   public String getValue() {
     StringBuilder b = new StringBuilder(open ? "[" : "(");
 
-    for (int p = 0; p < points.length; p++) {
+    PGpoint[] points = this.points;
+    for (int p = 0; points != null && p < points.length; p++) {
       if (p > 0) {
         b.append(",");
       }

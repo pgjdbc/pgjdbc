@@ -5,16 +5,20 @@
 
 package org.postgresql;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.LogWriterHandler;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
-import org.postgresql.util.WriterHandler;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +36,7 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,12 +62,11 @@ import java.util.logging.StreamHandler;
  */
 public class Driver implements java.sql.Driver {
 
-  private static Driver registeredDriver;
+  private static @Nullable Driver registeredDriver;
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
-  private static SharedTimer sharedTimer = new SharedTimer();
-  private static final String DEFAULT_PORT =
-      /*$"\""+mvn.project.property.template.default.pg.port+"\";"$*//*-*/"5432";
+  private static final SharedTimer SHARED_TIMER = new SharedTimer();
+  private static final String DEFAULT_PORT = "5432";
 
   static {
     try {
@@ -78,7 +82,7 @@ public class Driver implements java.sql.Driver {
 
   // Helper to retrieve default properties from classloader resource
   // properties files.
-  private Properties defaultProperties;
+  private @Nullable Properties defaultProperties;
 
   private synchronized Properties getDefaultProperties() throws IOException {
     if (defaultProperties != null) {
@@ -202,11 +206,11 @@ public class Driver implements java.sql.Driver {
    * @param info a list of arbitrary tag/value pairs as connection arguments
    * @return a connection to the URL or null if it isnt us
    * @exception SQLException if a database access error occurs or the url is
-   * {@code null}
+   *            {@code null}
    * @see java.sql.Driver#connect
    */
   @Override
-  public Connection connect(String url, Properties info) throws SQLException {
+  public @Nullable Connection connect(String url, @Nullable Properties info) throws SQLException {
     if (url == null) {
       throw new SQLException("url is null");
     }
@@ -286,7 +290,7 @@ public class Driver implements java.sql.Driver {
   }
 
   // Used to check if the handler file is the same
-  private static String loggerHandlerFile;
+  private static @Nullable String loggerHandlerFile;
 
   /**
    * <p>Setup java.util.logging.Logger using connection properties.</p>
@@ -336,17 +340,20 @@ public class Driver implements java.sql.Driver {
 
     if ( handler == null ) {
       if (DriverManager.getLogWriter() != null) {
-        handler = new WriterHandler(DriverManager.getLogWriter());
+        handler = new LogWriterHandler(DriverManager.getLogWriter());
       } else if ( DriverManager.getLogStream() != null) {
         handler = new StreamHandler(DriverManager.getLogStream(), formatter);
       } else {
-        handler = new StreamHandler(System.err, formatter);
+        handler = new ConsoleHandler();
       }
     } else {
       handler.setFormatter(formatter);
     }
 
-    handler.setLevel(PARENT_LOGGER.getLevel());
+    Level loggerLevel = PARENT_LOGGER.getLevel();
+    if (loggerLevel != null) {
+      handler.setLevel(loggerLevel);
+    }
     PARENT_LOGGER.setUseParentHandlers(false);
     PARENT_LOGGER.addHandler(handler);
   }
@@ -441,8 +448,8 @@ public class Driver implements java.sql.Driver {
 
     private final String url;
     private final Properties props;
-    private Connection result;
-    private Throwable resultException;
+    private @Nullable Connection result;
+    private @Nullable Throwable resultException;
     private boolean abandoned;
   }
 
@@ -543,7 +550,7 @@ public class Driver implements java.sql.Driver {
    * @param defaults Default properties
    * @return Properties with elements added from the url
    */
-  public static Properties parseURL(String url, Properties defaults) {
+  public static @Nullable Properties parseURL(String url, @Nullable Properties defaults) {
     Properties urlProps = new Properties(defaults);
 
     String urlServer = url;
@@ -637,11 +644,12 @@ public class Driver implements java.sql.Driver {
    * @return the address portion of the URL
    */
   private static HostSpec[] hostSpecs(Properties props) {
-    String[] hosts = props.getProperty("PGHOST").split(",");
-    String[] ports = props.getProperty("PGPORT").split(",");
+    String[] hosts = castNonNull(props.getProperty("PGHOST")).split(",");
+    String[] ports = castNonNull(props.getProperty("PGPORT")).split(",");
+    String localSocketAddress = props.getProperty("localSocketAddress");
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {
-      hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]));
+      hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);
     }
     return hostSpecs;
   }
@@ -693,15 +701,13 @@ public class Driver implements java.sql.Driver {
         PSQLState.NOT_IMPLEMENTED.getState());
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
   public java.util.logging.Logger getParentLogger() {
     return PARENT_LOGGER;
   }
-  //#endif
 
   public static SharedTimer getSharedTimer() {
-    return sharedTimer;
+    return SHARED_TIMER;
   }
 
   /**
@@ -731,7 +737,7 @@ public class Driver implements java.sql.Driver {
    * @throws SQLException if deregistering the driver fails
    */
   public static void deregister() throws SQLException {
-    if (!isRegistered()) {
+    if (registeredDriver == null) {
       throw new IllegalStateException(
           "Driver is not registered (or it has not been registered using Driver.register() method)");
     }

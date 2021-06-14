@@ -11,6 +11,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -209,7 +211,11 @@ public class Parser {
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
         if (currentCommandType == SqlCommandType.BLANK) {
-          if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
+          if (wordLength == 6 && parseCreateKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.CREATE;
+          } else if (wordLength == 5 && parseAlterKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.ALTER;
+          } else if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.UPDATE;
           } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.DELETE;
@@ -298,7 +304,7 @@ public class Parser {
     return nativeQueries;
   }
 
-  private static SqlCommandType parseWithCommandType(char[] aChars, int i, int keywordStart,
+  private static @Nullable SqlCommandType parseWithCommandType(char[] aChars, int i, int keywordStart,
       int wordLength) {
     // This parses `with x as (...) ...`
     // Corner case is `with select as (insert ..) select * from select
@@ -373,7 +379,7 @@ public class Parser {
    * @param list input list
    * @return output array
    */
-  private static int[] toIntArray(List<Integer> list) {
+  private static int[] toIntArray(@Nullable List<Integer> list) {
     if (list == null || list.isEmpty()) {
       return NO_BINDS;
     }
@@ -655,6 +661,45 @@ public class Parser {
   }
 
   /**
+   * Parse string to check presence of CREATE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseAlterKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 5)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'a'
+        && (query[offset + 1] | 32) == 'l'
+        && (query[offset + 2] | 32) == 't'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 'r';
+  }
+
+  /**
+   * Parse string to check presence of CREATE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseCreateKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'c'
+        && (query[offset + 1] | 32) == 'r'
+        && (query[offset + 2] | 32) == 'e'
+        && (query[offset + 3] | 32) == 'a'
+        && (query[offset + 4] | 32) == 't'
+        && (query[offset + 5] | 32) == 'e';
+  }
+
+  /**
    * Parse string to check presence of UPDATE keyword regardless of case.
    *
    * @param query char[] of the query statement
@@ -774,11 +819,34 @@ public class Parser {
   }
 
   /**
+   * Identifies characters which the backend scanner considers to be whitespace.
+   *
+   * <p>
+   * https://github.com/postgres/postgres/blob/17bb62501787c56e0518e61db13a523d47afd724/src/backend/parser/scan.l#L194-L198
+   * </p>
+   *
    * @param c character
    * @return true if the character is a whitespace character as defined in the backend's parser
    */
   public static boolean isSpace(char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+  }
+
+  /**
+   * Identifies white space characters which the backend uses to determine if a
+   * {@code String} value needs to be quoted in array representation.
+   *
+   * <p>
+   * https://github.com/postgres/postgres/blob/f2c587067a8eb9cf1c8f009262381a6576ba3dd0/src/backend/utils/adt/arrayfuncs.c#L421-L438
+   * </p>
+   *
+   * @param c
+   *          Character to examine.
+   * @return Indication if the character is a whitespace which back end will
+   *         escape.
+   */
+  public static boolean isArrayWhiteSpace(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == 0x0B;
   }
 
   /**
@@ -1363,7 +1431,8 @@ public class Parser {
       if (targetException instanceof SQLException) {
         throw (SQLException) targetException;
       } else {
-        throw new PSQLException(targetException.getMessage(), PSQLState.SYSTEM_ERROR);
+        String message = targetException == null ? "no message" : targetException.getMessage();
+        throw new PSQLException(message, PSQLState.SYSTEM_ERROR);
       }
     } catch (IllegalAccessException e) {
       throw new PSQLException(e.getMessage(), PSQLState.SYSTEM_ERROR);
@@ -1390,13 +1459,14 @@ public class Parser {
 
     private final char[] escapeKeyword;
     private final char[] allowedValues;
-    private final String replacementKeyword;
+    private final @Nullable String replacementKeyword;
 
     SqlParseState() {
       this("", new char[0], null);
     }
 
-    SqlParseState(String escapeKeyword, char[] allowedValues, String replacementKeyword) {
+    SqlParseState(String escapeKeyword, char[] allowedValues,
+        @Nullable String replacementKeyword) {
       this.escapeKeyword = escapeKeyword.toCharArray();
       this.allowedValues = allowedValues;
       this.replacementKeyword = replacementKeyword;

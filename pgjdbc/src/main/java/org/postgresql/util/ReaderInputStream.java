@@ -11,9 +11,9 @@ import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
+import java.nio.charset.StandardCharsets;
 
 /**
  * <p>ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
@@ -24,8 +24,6 @@ import java.nio.charset.CoderResult;
  */
 public class ReaderInputStream extends InputStream {
   private static final int DEFAULT_CHAR_BUFFER_SIZE = 8 * 1024;
-
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   private final Reader reader;
   private final CharsetEncoder encoder;
@@ -60,7 +58,7 @@ public class ReaderInputStream extends InputStream {
     }
 
     this.reader = reader;
-    this.encoder = UTF_8.newEncoder();
+    this.encoder = StandardCharsets.UTF_8.newEncoder();
     // encoder.maxBytesPerChar() always returns 3.0 for UTF-8
     this.bbuf = ByteBuffer.allocate(3 * charBufferSize);
     this.bbuf.flip(); // prepare for subsequent write

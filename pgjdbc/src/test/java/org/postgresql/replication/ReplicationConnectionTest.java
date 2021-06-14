@@ -9,28 +9,33 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.postgresql.PGConnection;
-import org.postgresql.PGProperty;
+import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Properties;
 
+@Category(Replication.class)
 @HaveMinimalServerVersion("9.4")
 public class ReplicationConnectionTest {
+  @Rule
+  public ServerVersionRule versionRule = new ServerVersionRule();
 
   private Connection replConnection;
 
   @Before
   public void setUp() throws Exception {
-    replConnection = openReplicationConnection();
+    replConnection = TestUtil.openReplicationConnection();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
   }
 
@@ -53,19 +58,12 @@ public class ReplicationConnectionTest {
 
   @Test
   public void testConnectionNotValidWhenSessionTerminated() throws Exception {
-    int backendId = ((PGConnection) replConnection).getBackendPID();
-
-    Connection sqlConnection = TestUtil.openDB();
-
-    Statement terminateStatement = sqlConnection.createStatement();
-    terminateStatement.execute("SELECT pg_terminate_backend(" + backendId + ")");
-    terminateStatement.close();
-    sqlConnection.close();
+    TestUtil.terminateBackend(replConnection);
 
     boolean result = replConnection.isValid(3);
 
     assertThat("When postgresql terminate session with replication connection, "
-            + "isValid methos should return false, because next query on this connection will fail",
+            + "isValid() should return false, because next query on this connection will fail",
         result, equalTo(false)
     );
   }
@@ -108,14 +106,5 @@ public class ReplicationConnectionTest {
             + "and result fetch via ResultSet",
         xlogpos, CoreMatchers.notNullValue()
     );
-  }
-
-  private Connection openReplicationConnection() throws Exception {
-    Properties properties = new Properties();
-    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
-    PGProperty.REPLICATION.set(properties, "database");
-    //Only symple query protocol available for replication connection
-    PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
-    return TestUtil.openDB(properties);
   }
 }

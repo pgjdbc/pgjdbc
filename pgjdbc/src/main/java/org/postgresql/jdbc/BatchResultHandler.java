@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
@@ -15,6 +17,8 @@ import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -35,15 +39,16 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   private final Query[] queries;
   private final long[] longUpdateCounts;
-  private final ParameterList[] parameterLists;
+  private final @Nullable ParameterList @Nullable [] parameterLists;
   private final boolean expectGeneratedKeys;
-  private PgResultSet generatedKeys;
+  private @Nullable PgResultSet generatedKeys;
   private int committedRows; // 0 means no rows committed. 1 means row 0 was committed, and so on
-  private final List<List<Tuple>> allGeneratedRows;
-  private List<Tuple> latestGeneratedRows;
-  private PgResultSet latestGeneratedKeysRs;
+  private final @Nullable List<List<Tuple>> allGeneratedRows;
+  private @Nullable List<Tuple> latestGeneratedRows;
+  private @Nullable PgResultSet latestGeneratedKeysRs;
 
-  BatchResultHandler(PgStatement pgStatement, Query[] queries, ParameterList[] parameterLists,
+  BatchResultHandler(PgStatement pgStatement, Query[] queries,
+      @Nullable ParameterList @Nullable [] parameterLists,
       boolean expectGeneratedKeys) {
     this.pgStatement = pgStatement;
     this.queries = queries;
@@ -55,7 +60,7 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
-      ResultCursor cursor) {
+      @Nullable ResultCursor cursor) {
     // If SELECT, then handleCommandStatus call would just be missing
     resultIndex++;
     if (!expectGeneratedKeys) {
@@ -77,18 +82,20 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void handleCommandStatus(String status, long updateCount, long insertOID) {
+    List<Tuple> latestGeneratedRows = this.latestGeneratedRows;
     if (latestGeneratedRows != null) {
       // We have DML. Decrease resultIndex that was just increased in handleResultRows
       resultIndex--;
       // If exception thrown, no need to collect generated keys
       // Note: some generated keys might be secured in generatedKeys
       if (updateCount > 0 && (getException() == null || isAutoCommit())) {
+        List<List<Tuple>> allGeneratedRows = castNonNull(this.allGeneratedRows, "allGeneratedRows");
         allGeneratedRows.add(latestGeneratedRows);
         if (generatedKeys == null) {
           generatedKeys = latestGeneratedKeysRs;
         }
       }
-      latestGeneratedRows = null;
+      this.latestGeneratedRows = null;
     }
 
     if (resultIndex >= queries.length) {
@@ -119,9 +126,11 @@ public class BatchResultHandler extends ResultHandlerBase {
   }
 
   private void updateGeneratedKeys() {
+    List<List<Tuple>> allGeneratedRows = this.allGeneratedRows;
     if (allGeneratedRows == null || allGeneratedRows.isEmpty()) {
       return;
     }
+    PgResultSet generatedKeys = castNonNull(this.generatedKeys, "generatedKeys");
     for (List<Tuple> rows : allGeneratedRows) {
       generatedKeys.addRows(rows);
     }
@@ -142,22 +151,18 @@ public class BatchResultHandler extends ResultHandlerBase {
       }
 
       String queryString = "<unknown>";
-      if (resultIndex < queries.length) {
-        queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
+      if (pgStatement.getPGConnection().getLogServerErrorDetail()) {
+        if (resultIndex < queries.length) {
+          queryString = queries[resultIndex].toString(
+             parameterLists == null ? null : parameterLists[resultIndex]);
+        }
       }
 
       BatchUpdateException batchException;
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
       batchException = new BatchUpdateException(
           GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see other errors in the batch.",
               resultIndex, queryString, newError.getMessage()),
           newError.getSQLState(), 0, uncompressLongUpdateCount(), newError);
-      //#else
-      batchException = new BatchUpdateException(
-          GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see other errors in the batch.",
-              resultIndex, queryString, newError.getMessage()),
-          newError.getSQLState(), 0, uncompressUpdateCount(), newError);
-      //#endif
 
       super.handleError(batchException);
     }
@@ -174,21 +179,12 @@ public class BatchResultHandler extends ResultHandlerBase {
       if (isAutoCommit()) {
         // Re-create batch exception since rows after exception might indeed succeed.
         BatchUpdateException newException;
-        //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
         newException = new BatchUpdateException(
             batchException.getMessage(),
             batchException.getSQLState(), 0,
             uncompressLongUpdateCount(),
             batchException.getCause()
         );
-        //#else
-        newException = new BatchUpdateException(
-            batchException.getMessage(),
-            batchException.getSQLState(), 0,
-            uncompressUpdateCount(),
-            batchException.getCause()
-        );
-        //#endif
 
         SQLException next = batchException.getNextException();
         if (next != null) {
@@ -200,7 +196,7 @@ public class BatchResultHandler extends ResultHandlerBase {
     }
   }
 
-  public ResultSet getGeneratedKeys() {
+  public @Nullable ResultSet getGeneratedKeys() {
     return generatedKeys;
   }
 

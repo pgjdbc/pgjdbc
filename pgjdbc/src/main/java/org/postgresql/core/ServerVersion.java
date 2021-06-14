@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.text.NumberFormat;
 import java.text.ParsePosition;
 
@@ -26,7 +28,11 @@ public enum ServerVersion implements Version {
   v9_6("9.6.0"),
   v10("10"),
   v11("11"),
-  v12("12")
+  v12("12"),
+  v13("13"),
+  v14("14"),
+  v15("15"),
+  v16("16")
   ;
 
   private final int version;
@@ -54,7 +60,7 @@ public enum ServerVersion implements Version {
    * @param version version in numeric XXYYZZ form, e.g. "090401" for 9.4.1
    * @return a {@link Version} representing the specified version string.
    */
-  public static Version from(String version) {
+  public static Version from(@Nullable String version) {
     final int versionNum = parseServerVersionStr(version);
     return new Version() {
       @Override
@@ -63,7 +69,7 @@ public enum ServerVersion implements Version {
       }
 
       @Override
-      public boolean equals(Object obj) {
+      public boolean equals(@Nullable Object obj) {
         if (obj instanceof Version) {
           return this.getVersionNum() == ((Version) obj).getVersionNum();
         }
@@ -99,14 +105,14 @@ public enum ServerVersion implements Version {
    * @param serverVersion server vertion in a XXYYZZ form
    * @return server version in number form
    */
-  static int parseServerVersionStr(String serverVersion) throws NumberFormatException {
-    NumberFormat numformat = NumberFormat.getIntegerInstance();
-    numformat.setGroupingUsed(false);
-    ParsePosition parsepos = new ParsePosition(0);
-
+  static int parseServerVersionStr(@Nullable String serverVersion) throws NumberFormatException {
     if (serverVersion == null) {
       return 0;
     }
+
+    NumberFormat numformat = NumberFormat.getIntegerInstance();
+    numformat.setGroupingUsed(false);
+    ParsePosition parsepos = new ParsePosition(0);
 
     int[] parts = new int[3];
     int versionParts;

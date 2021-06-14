@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
@@ -16,15 +18,15 @@ import java.util.List;
  * for the interface methods</p>
  */
 public class ResultHandlerDelegate implements ResultHandler {
-  private final ResultHandler delegate;
+  private final @Nullable ResultHandler delegate;
 
-  public ResultHandlerDelegate(ResultHandler delegate) {
+  public ResultHandlerDelegate(@Nullable ResultHandler delegate) {
     this.delegate = delegate;
   }
 
   @Override
   public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
-      ResultCursor cursor) {
+      @Nullable ResultCursor cursor) {
     if (delegate != null) {
       delegate.handleResultRows(fromQuery, fields, tuples, cursor);
     }
@@ -66,7 +68,7 @@ public class ResultHandlerDelegate implements ResultHandler {
   }
 
   @Override
-  public SQLException getException() {
+  public @Nullable SQLException getException() {
     if (delegate != null) {
       return delegate.getException();
     }
@@ -74,7 +76,7 @@ public class ResultHandlerDelegate implements ResultHandler {
   }
 
   @Override
-  public SQLWarning getWarning() {
+  public @Nullable SQLWarning getWarning() {
     if (delegate != null) {
       return delegate.getWarning();
     }

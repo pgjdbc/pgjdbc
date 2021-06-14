@@ -7,6 +7,8 @@ package org.postgresql.ssl;
 
 import org.postgresql.util.GT;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.net.IDN;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -146,7 +148,7 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
         continue;
       }
       String san = (String) sanItem.get(1);
-      if (sanType == TYPE_IP_ADDRESS && san.startsWith("*")) {
+      if (sanType == TYPE_IP_ADDRESS && san != null && san.startsWith("*")) {
         // Wildcards should not be present in the IP Address field
         continue;
       }
@@ -220,7 +222,7 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
     return result;
   }
 
-  public boolean verifyHostName(String hostname, String pattern) {
+  public boolean verifyHostName(@Nullable String hostname, @Nullable String pattern) {
     if (hostname == null || pattern == null) {
       return false;
     }

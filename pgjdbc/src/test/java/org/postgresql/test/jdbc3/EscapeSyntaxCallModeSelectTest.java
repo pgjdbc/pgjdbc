@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -73,7 +74,7 @@ public class EscapeSyntaxCallModeSelectTest extends EscapeSyntaxCallModeBaseTest
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.WRONG_OBJECT_TYPE.getState()));
+      assertEquals(PSQLState.WRONG_OBJECT_TYPE.getState(),ex.getSQLState());
     }
   }
 

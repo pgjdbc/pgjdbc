@@ -5,8 +5,12 @@
 
 package org.postgresql.util;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class is used to tokenize the text output of org.postgres. It's mainly used by the geometric
@@ -20,8 +24,21 @@ import java.util.List;
  * @see org.postgresql.geometric.PGpolygon
  */
 public class PGtokenizer {
+
+  private static final Map<Character, Character> CLOSING_TO_OPENING_CHARACTER = new HashMap<>();
+
+  static 	{
+    CLOSING_TO_OPENING_CHARACTER.put( ')', '(');
+
+    CLOSING_TO_OPENING_CHARACTER.put( ']', '[');
+
+    CLOSING_TO_OPENING_CHARACTER.put( '>', '<');
+
+    CLOSING_TO_OPENING_CHARACTER.put( '"', '"');
+  }
+
   // Our tokens
-  protected List<String> tokens;
+  protected List<String> tokens = new ArrayList<String>();
 
   /**
    * <p>Create a tokeniser.</p>
@@ -32,6 +49,7 @@ public class PGtokenizer {
    * @param string containing tokens
    * @param delim single character to split the tokens
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGtokenizer(String string, char delim) {
     tokenize(string, delim);
   }
@@ -44,27 +62,28 @@ public class PGtokenizer {
    * @return number of tokens
    */
   public int tokenize(String string, char delim) {
-    tokens = new ArrayList<String>();
+    tokens.clear();
 
-    // nest holds how many levels we are in the current token.
-    // if this is > 0 then we don't split a token when delim is matched.
+    final Deque<Character> stack = new ArrayDeque<>();
+
+    // stack keeps track of the levels we are in the current token.
+    // if stack.size is > 0 then we don't split a token when delim is matched.
     //
     // The Geometric datatypes use this, because often a type may have others
-    // (usualls PGpoint) imbedded within a token.
+    // (usually PGpoint) embedded within a token.
     //
     // Peter 1998 Jan 6 - Added < and > to the nesting rules
-    int nest = 0;
     int p;
     int s;
     boolean skipChar = false;
     boolean nestedDoubleQuote = false;
-
+    char c = (char)0;
     for (p = 0, s = 0; p < string.length(); p++) {
-      char c = string.charAt(p);
+      c = string.charAt(p);
 
       // increase nesting if an open character is found
       if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
-        nest++;
+        stack.push(c);
         if (c == '"') {
           nestedDoubleQuote = true;
           skipChar = true;
@@ -73,15 +92,24 @@ public class PGtokenizer {
 
       // decrease nesting if a close character is found
       if (c == ')' || c == ']' || c == '>' || (nestedDoubleQuote && !skipChar && c == '"')) {
-        nest--;
+
         if (c == '"') {
+          while (!stack.isEmpty() && !Character.valueOf('"').equals(stack.peek())) {
+            stack.pop();
+          }
           nestedDoubleQuote = false;
+          stack.pop();
+        } else {
+          final Character ch = CLOSING_TO_OPENING_CHARACTER.get(c);
+          if (!stack.isEmpty() && ch != null && ch.equals(stack.peek())) {
+            stack.pop();
+          }
         }
       }
 
       skipChar = c == '\\';
 
-      if (nest == 0 && c == delim) {
+      if (stack.isEmpty() && c == delim) {
         tokens.add(string.substring(s, p));
         s = p + 1; // +1 to skip the delimiter
       }
@@ -91,6 +119,11 @@ public class PGtokenizer {
     // Don't forget the last token ;-)
     if (s < string.length()) {
       tokens.add(string.substring(s));
+    }
+
+    // check for last token empty
+    if ( s == string.length() && c == delim) {
+      tokens.add("");
     }
 
     return tokens.size();
