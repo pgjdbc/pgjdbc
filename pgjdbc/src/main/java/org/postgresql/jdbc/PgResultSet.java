@@ -600,6 +600,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   @Override
   public @Nullable Timestamp getTimestamp(
       int i, java.util.@Nullable Calendar cal) throws SQLException {
+
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -612,28 +613,29 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     int oid = fields[col].getOID();
 
     if (isBinary(i)) {
-      castNonNull(thisRow,"thisRow");
+
+      byte [] row = castNonNull(thisRow).get(col);
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
         boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
         TimeZone tz = cal.getTimeZone();
-        return connection.getTimestampUtils().toTimestampBin(tz, castNonNull(thisRow.get(col)), hasTimeZone);
+        return connection.getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
       } else if (oid == Oid.TIME) {
         // JDBC spec says getTimestamp of Time and Date must be supported
-        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(thisRow.get(col)), false);
+        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
         // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal).getTime()));
+        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
         return tsUnixEpochDate;
       } else if (oid == Oid.TIMETZ) {
         TimeZone tz = cal.getTimeZone();
-        byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(castNonNull(thisRow.get(col)), 0, 8);
+        byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(castNonNull(row), 0, 8);
         Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
         // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal).getTime()));
+        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
         return tsUnixEpochDate;
       } else if (oid == Oid.DATE) {
-        new Timestamp(castNonNull(getDate(i, cal).getTime()));
+        new Timestamp(castNonNull(getDate(i, cal)).getTime());
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",

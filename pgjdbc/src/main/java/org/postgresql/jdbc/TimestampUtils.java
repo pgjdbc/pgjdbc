@@ -1126,7 +1126,7 @@ public class TimestampUtils {
     return ts;
   }
 
-  private ParsedBinaryTimestamp toParsedTimestampBinPlain(byte[] bytes)
+  private ParsedBinaryTimestamp toParsedTimestampBinPlain( byte[] bytes)
       throws PSQLException {
 
     if (bytes.length != 8) {
