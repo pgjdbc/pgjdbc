@@ -612,27 +612,28 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     int oid = fields[col].getOID();
 
     if (isBinary(i)) {
+      byte [] row = castNonNull(thisRow).get(col);
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
         boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
         TimeZone tz = cal.getTimeZone();
-        return connection.getTimestampUtils().toTimestampBin(tz, Objects.requireNonNull(thisRow.get(col)), hasTimeZone);
+        return connection.getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
       } else if (oid == Oid.TIME) {
         // JDBC spec says getTimestamp of Time and Date must be supported
-        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(cal.getTimeZone(), Objects.requireNonNull(thisRow.get(col)), false);
+        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
         // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(Objects.requireNonNull(getTime(i, cal)).getTime());
+        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
         return tsUnixEpochDate;
       } else if (oid == Oid.TIMETZ) {
         TimeZone tz = cal.getTimeZone();
-        byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(Objects.requireNonNull(thisRow.get(col)), 0, 8);
+        byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(castNonNull(row), 0, 8);
         Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
         // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(Objects.requireNonNull(getTime(i, cal)).getTime());
+        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
         return tsUnixEpochDate;
       } else if (oid == Oid.DATE) {
-        new Timestamp(Objects.requireNonNull(getTime(i, cal)).getTime());
+        new Timestamp(castNonNull(getTime(i, cal)).getTime());
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
