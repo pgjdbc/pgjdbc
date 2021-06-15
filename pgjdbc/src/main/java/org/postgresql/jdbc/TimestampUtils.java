@@ -1111,7 +1111,7 @@ public class TimestampUtils {
    * @return The parsed timestamp object.
    * @throws PSQLException If binary format could not be parsed.
    */
-  public Timestamp toTimestampBin(@Nullable TimeZone tz, @Nullable byte[] bytes, boolean timestamptz)
+  public Timestamp toTimestampBin(@Nullable TimeZone tz, byte[] bytes, boolean timestamptz)
       throws PSQLException {
 
     ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(tz, bytes, timestamptz);
