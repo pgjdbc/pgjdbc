@@ -291,19 +291,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
           new Object[]{handler, maxRows, fetchSize, flags});
     }
-    try {
-      if (pgStream.hasMessagePending()) {
-        if (pgStream.peekChar() == 'N') {
-          pgStream.receiveChar();
-          handler.handleWarning(receiveNoticeResponse());
-        } else if (pgStream.peekChar() == 'E') {
-          pgStream.receiveChar();
-          throw receiveErrorResponse();
-        }
-      }
-    }  catch ( IOException ex ) {
-      throw new SQLException(ex);
-    }
     if (parameters == null) {
       parameters = SimpleQuery.NO_PARAMETERS;
     }
@@ -2382,16 +2369,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             }
           }
           endQuery = true;
-          if (pgStream.hasMessagePending()) {
-            if (pgStream.peekChar() == 'N') {
-              pgStream.receiveChar();
-              handler.handleWarning(receiveNoticeResponse());
-            }
-            if (pgStream.peekChar() == 'E') {
-              pgStream.receiveChar();
-              handler.handleError(receiveErrorResponse());
-            }
-          }
           // Reset the statement name of Parses that failed.
           while (!pendingParseQueue.isEmpty()) {
             SimpleQuery failedQuery = pendingParseQueue.removeFirst();
