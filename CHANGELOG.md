@@ -10,6 +10,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+[42.2.22] (2021-06-16 10:09:33 -0400)
+### Changed
+
+### Added
+
+### Fixed
+- Regression caused by https://github.com/pgjdbc/pgjdbc/commit/4fa2d5bc1ed8c0086a3a197fc1c28f7173d53cac. Unfortunately
+  due to the blocking nature of the driver and issues with seeing if there is a byte available on a blocking stream when it is encrypted
+  this introduces unacceptable delays in returning from peek(). At this time there is no simple solution to this.
+  
 [42.2.21] (2021-06-10 10:08:21 -0400)
 ### Changed
 - update docs to reflect deprecated DataSource API setServerName backpatch [PR#2057](https://github.com/pgjdbc/pgjdbc/pull/2057) [PR #2105](https://github.com/pgjdbc/pgjdbc/pull/2105)
@@ -482,5 +492,6 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.18]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.17...REL42.2.18
 [42.2.19]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.19...REL42.2.20
 [42.2.20]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.20...REL42.2.21
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.21...HEAD
+[42.2.21]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.21...REL42.2.22
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.22...HEAD
 
