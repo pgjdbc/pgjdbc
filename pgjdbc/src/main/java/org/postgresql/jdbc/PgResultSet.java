@@ -635,7 +635,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
         return tsUnixEpochDate;
       } else if (oid == Oid.DATE) {
-        new Timestamp(castNonNull(getDate(i, cal)).getTime());
+        new Timestamp(castNonNull(getTime(i, cal)).getTime());
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
