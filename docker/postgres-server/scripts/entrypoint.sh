@@ -68,7 +68,16 @@ main () {
 
     echo "Starting postgres version $PG_MAJOR with options: ${pg_opts} $@"
 
-    exec /docker-entrypoint.sh "$@" ${pg_opts}
+    local entrypoint_script
+    if [[ -x /docker-entrypoint.sh ]]; then
+        entrypoint_script='/docker-entrypoint.sh'
+    elif [[ -x /usr/local/bin/docker-entrypoint.sh ]]; then
+        # On 13+ the script is not longer symlinked to the root
+        entrypoint_script='/usr/local/bin/docker-entrypoint.sh'
+    else
+        err "Could not find postgres container entry point script"
+    fi
+    exec "${entrypoint_script}" "$@" ${pg_opts}
 }
 
 main "$@"
