@@ -684,7 +684,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             PSQLState.DATA_TYPE_MISMATCH);
       }
     }
-
     // If this is actually a timestamptz, the server-provided timezone will override
     // the one we pass in, which is the desired behaviour. Otherwise, we'll
     // interpret the timezone-less value in the provided timezone.
