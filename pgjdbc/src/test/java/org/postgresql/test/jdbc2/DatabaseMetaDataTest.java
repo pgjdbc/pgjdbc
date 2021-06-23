@@ -73,7 +73,7 @@ public class DatabaseMetaDataTest {
     }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
-    TestUtil.createTable(con, "t", "implicit_precision numeric");
+    TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
     TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial");
@@ -131,7 +131,7 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
-    TestUtil.dropTable(con, "t");
+    TestUtil.dropTable(con, "precision_test");
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
@@ -501,10 +501,11 @@ public class DatabaseMetaDataTest {
   public void testNumericPrecision() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getColumns(null, "public", "t", "%");
+    ResultSet rs = dbmd.getColumns(null, "public", "precision_test", "%");
     if ( rs.next() ) {
-      assertEquals(0, rs.getInt(7));
-    }
+      assertTrue("It should have a row for the first column", rs.next());
+      assertEquals("The column size should be zero", 0, rs.getInt("COLUMN_SIZE"));
+      assertFalse("It should have a single column", rs.next());    }
   }
 
   @Test
