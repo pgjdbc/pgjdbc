@@ -1647,7 +1647,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       } else {
         decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
         columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-        if (columnSize == 0) {
+        if ( sqlType != Types.NUMERIC && columnSize == 0) {
           columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
         }
       }

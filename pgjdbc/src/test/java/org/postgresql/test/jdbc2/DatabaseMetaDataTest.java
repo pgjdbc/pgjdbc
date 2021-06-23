@@ -73,6 +73,7 @@ public class DatabaseMetaDataTest {
     }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
+    TestUtil.createTable(con, "t", "implicit_precision numeric");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
     TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial");
@@ -130,6 +131,7 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
+    TestUtil.dropTable(con, "t");
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
@@ -493,6 +495,17 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con1, "people");
     TestUtil.dropTable(con1, "policy");
     TestUtil.closeDB(con1);
+  }
+
+  @Test
+  public void testNumericPrecision() throws SQLException {
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getColumns(null, "public", "t", "%");
+    if ( rs.next() ) {
+     assertEquals(0, rs.getInt(7));
+    }
   }
 
   @Test
