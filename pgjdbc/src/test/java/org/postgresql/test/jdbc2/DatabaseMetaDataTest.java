@@ -499,12 +499,11 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testNumericPrecision() throws SQLException {
-
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getColumns(null, "public", "t", "%");
     if ( rs.next() ) {
-     assertEquals(0, rs.getInt(7));
+      assertEquals(0, rs.getInt(7));
     }
   }
 
