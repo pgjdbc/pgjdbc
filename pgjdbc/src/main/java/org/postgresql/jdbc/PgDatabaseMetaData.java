@@ -2064,16 +2064,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[8][];
       int typeOid = (int) rs.getLong("atttypid");
+      int sqlType = connection.getTypeInfo().getSQLType(typeOid);
       int typeMod = rs.getInt("atttypmod");
       int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
       int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-      if (columnSize == 0) {
+      if ( sqlType == Types.NUMERIC && columnSize == 0) {
         columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
       }
       tuple[0] = connection.encodeString(Integer.toString(scope));
       tuple[1] = rs.getBytes("attname");
       tuple[2] =
-          connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(typeOid)));
+          connection.encodeString(Integer.toString(sqlType));
       tuple[3] = connection.encodeString(connection.getTypeInfo().getPGType(typeOid));
       tuple[4] = connection.encodeString(Integer.toString(columnSize));
       tuple[5] = null; // unused
