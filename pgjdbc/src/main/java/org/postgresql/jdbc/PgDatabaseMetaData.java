@@ -2069,7 +2069,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeMod = rs.getInt("atttypmod");
       int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
       int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-      if ( sqlType == Types.NUMERIC && columnSize == 0) {
+      if ( sqlType != Types.NUMERIC && columnSize == 0) {
         columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
       }
       tuple[0] = connection.encodeString(Integer.toString(scope));
