@@ -502,10 +502,9 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getColumns(null, "public", "precision_test", "%");
-    if ( rs.next() ) {
-      assertTrue("It should have a row for the first column", rs.next());
-      assertEquals("The column size should be zero", 0, rs.getInt("COLUMN_SIZE"));
-      assertFalse("It should have a single column", rs.next());    }
+    assertTrue("It should have a row for the first column", rs.next());
+    assertEquals("The column size should be zero", 0, rs.getInt("COLUMN_SIZE"));
+    assertFalse("It should have a single column", rs.next());
   }
 
   @Test
