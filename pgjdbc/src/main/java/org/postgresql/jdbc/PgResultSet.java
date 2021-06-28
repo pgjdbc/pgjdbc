@@ -1385,8 +1385,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       PgResultSet rs = (PgResultSet) selectStatement.executeQuery();
 
       if (rs.next()) {
-        // we know
-        rowBuffer = rs.thisRow.updateableCopy();
+        // we know that the row is updatable as it was tested above.
+        if ( rs.thisRow == null ) {
+          rowBuffer = null;
+        } else {
+          rowBuffer = castNonNull(rs.thisRow).updateableCopy();
+        }
       }
 
       castNonNull(rows).set(currentRow, castNonNull(rowBuffer));
