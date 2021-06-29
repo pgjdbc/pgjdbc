@@ -12,7 +12,6 @@ import static org.junit.Assert.fail;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
-import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
@@ -38,11 +37,6 @@ public class EscapeSyntaxCallModeCallIfNoReturnTest extends EscapeSyntaxCallMode
     PSQLState expected = PSQLState.WRONG_OBJECT_TYPE;
     assumeCallableStatementsSupported();
     assumeMinimumServerVersion(ServerVersion.v11);
-
-    // version 14 changes this to undefined function
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
-      expected = PSQLState.UNDEFINED_FUNCTION;
-    }
 
     CallableStatement cs = con.prepareCall("{ call myiofunc(?,?) }");
     cs.registerOutParameter(1, Types.INTEGER);
