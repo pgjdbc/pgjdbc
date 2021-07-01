@@ -1646,7 +1646,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     @Nullable String[] s = quotelessTableName(castNonNull(tableName));
     String quotelessTableName = castNonNull(s[0]);
     @Nullable String quotelessSchemaName = s[1];
-    java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
+    java.sql.ResultSet rs = ((PgDatabaseMetaData)connection.getMetaData()).getPrimaryUniqueKeys("",
         quotelessSchemaName, quotelessTableName);
 
     while (rs.next()) {
