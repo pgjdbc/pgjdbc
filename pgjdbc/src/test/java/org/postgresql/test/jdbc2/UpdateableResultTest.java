@@ -56,6 +56,8 @@ public class UpdateableResultTest extends BaseTest4 {
     // put some dummy data into second
     st2.execute("insert into second values (1,'anyvalue' )");
     st2.close();
+    TestUtil.createTable(con, "uniqueconstraint", "u1 int unique, name1 text");
+    TestUtil.execute("insert into uniqueconstraint values (1, 'dave')", con);
 
   }
 
@@ -68,6 +70,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "stream");
     TestUtil.dropTable(con, "nopkmulticol");
     TestUtil.dropTable(con, "booltable");
+    TestUtil.dropTable(con, "uniqueconstraint");
     super.tearDown();
   }
 
@@ -700,6 +703,18 @@ public class UpdateableResultTest extends BaseTest4 {
     assertTrue(rs.next());
     assertTrue(rs.first());
     rs.updateString("relname", "pg_class");
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueUpdatable() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT * from uniqueconstraint");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    rs.updateString("name1", "bob");
     rs.close();
     st.close();
   }

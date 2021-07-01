@@ -2170,6 +2170,49 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return createMetaDataStatement().executeQuery(sql);
   }
 
+  /*
+  This is for internal use only to see if a resultset is updateable.
+  Unique keys can also be used so we add them to the query.
+   */
+  protected ResultSet getPrimaryUniqueKeys(@Nullable String catalog, @Nullable String schema, String table)
+      throws SQLException {
+    String sql;
+    sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+        + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
+        + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
+        + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM "
+        + "FROM pg_catalog.pg_class ct "
+        + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
+        + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+        + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
+        + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
+        + "WHERE true ";
+
+    if (schema != null && !schema.isEmpty()) {
+      sql += " AND n.nspname = " + escapeQuotes(schema);
+    }
+
+    if (table != null && !table.isEmpty()) {
+      sql += " AND ct.relname = " + escapeQuotes(table);
+    }
+
+    sql += " AND (i.indisprimary or i.indisunique) ";
+    sql = "SELECT "
+        + "       result.TABLE_CAT, "
+        + "       result.TABLE_SCHEM, "
+        + "       result.TABLE_NAME, "
+        + "       result.COLUMN_NAME, "
+        + "       result.KEY_SEQ, "
+        + "       result.PK_NAME "
+        + "FROM "
+        + "     (" + sql + " ) result"
+        + " where "
+        + " result.A_ATTNUM = (result.KEYS).x ";
+    sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
+
+    return createMetaDataStatement().executeQuery(sql);
+  }
+
   /**
    * @param primaryCatalog primary catalog
    * @param primarySchema primary schema
