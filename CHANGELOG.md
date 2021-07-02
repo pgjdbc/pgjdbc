@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
+- Fix: refreshRow made the row readOnly. Fixes Issue #2193
 
 [42.2.22] (2021-06-16 10:09:33 -0400)
 ### Changed

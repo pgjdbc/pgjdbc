@@ -448,6 +448,26 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
+  public void test2193() throws Exception {
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("select * from updateable");
+    assertNotNull(rs);
+    rs.moveToInsertRow();
+    rs.updateInt(1, 1);
+    rs.updateString(2, "jake");
+    rs.updateString(3, "avalue");
+    rs.insertRow();
+    rs.first();
+
+    rs.updateString(2, "bob");
+    rs.updateRow();
+    rs.refreshRow();
+    rs.updateString(2, "jake");
+    rs.updateRow();
+  }
+
+  @Test
   public void testInsertRowIllegalMethods() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
