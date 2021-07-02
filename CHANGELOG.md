@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 fix getColumnPrecision for Numeric when scale and precision not specified fixes: Issue #2188
+- Fix: refreshRow made the row readOnly. Fixes Issue #2193
 
 [42.2.22] (2021-06-16 10:09:33 -0400)
 ### Changed
