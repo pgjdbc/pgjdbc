@@ -63,6 +63,7 @@ dependencies {
 }
 
 val preprocessMain by tasks.registering(JavaCommentPreprocessorTask::class) {
+    dependsOn(sourceWithoutCheckerAnnotations)
     baseDir.set(layout.file(provider { sourceWithoutCheckerAnnotations.singleFile }))
     sourceFolders.addAll("src/main/java", "src/main/version")
 }
