@@ -5,12 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-
+- renewed the SSL keys for testing 
 ### Added
 
 ### Fixed
-fix getColumnPrecision for Numeric when scale and precision not specified fixes: Issue #2188
-- Fix: refreshRow made the row readOnly. Fixes Issue #2193
+- getColumnPrecision for Numeric when scale and precision not specified now returns 0 instead of 131089 fixes: Issue #2188
+- Calling refreshRow on an updateable resultset made the row readOnly. Fixes Issue #2193
+- results should be updateable if there is a unique index available PR#2199 Fixes Issue #2196
+- Rework sql type gathering to use OID instead of typname. 
+  This does not have the issue of name shadowing / qual-names, and has the added benefit of fixing #1948.
 
 [42.2.22] (2021-06-16 10:09:33 -0400)
 ### Changed
