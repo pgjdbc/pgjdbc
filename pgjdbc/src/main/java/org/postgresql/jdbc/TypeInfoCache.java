@@ -38,6 +38,8 @@ public class TypeInfoCache implements TypeInfo {
   // pgname (String) -> java.sql.Types (Integer)
   private Map<String, Integer> pgNameToSQLType;
 
+  private Map<Integer, Integer> oidToSQLType;
+
   // pgname (String) -> java class name (String)
   // ie "text" -> "java.lang.String"
   private Map<String, String> pgNameToJavaClass;
@@ -134,6 +136,7 @@ public class TypeInfoCache implements TypeInfo {
     // needs to be synchronized because the iterator is returned
     // from getPGTypeNamesWithSQLTypes()
     pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>((int) Math.round(types.length * 1.5)));
+    oidToSQLType = Collections.synchronizedMap(new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5)));
 
     for (Object[] type : types) {
       String pgTypeName = (String) type[0];
@@ -155,6 +158,7 @@ public class TypeInfoCache implements TypeInfo {
     oidToPgName.put(oid, pgTypeName);
     pgArrayToPgType.put(arrayOid, oid);
     pgNameToSQLType.put(pgTypeName, sqlType);
+    oidToSQLType.put(oid, sqlType);
 
     // Currently we hardcode all core types array delimiter
     // to a comma. In a stock install the only exception is
@@ -167,6 +171,7 @@ public class TypeInfoCache implements TypeInfo {
     String pgArrayTypeName = pgTypeName + "[]";
     pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
     pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+    oidToSQLType.put(arrayOid, Types.ARRAY);
     pgNameToOid.put(pgArrayTypeName, arrayOid);
     pgArrayTypeName = "_" + pgTypeName;
     if (!pgNameToJavaClass.containsKey(pgArrayTypeName)) {
@@ -187,7 +192,11 @@ public class TypeInfoCache implements TypeInfo {
     return pgNameToSQLType.keySet().iterator();
   }
 
-  private String getSQLTypeQuery(boolean typnameParam) {
+  public Iterator<Integer> getPGTypeOidsWithSQLTypes() {
+    return oidToSQLType.keySet().iterator();
+  }
+
+  private String getSQLTypeQuery(boolean typoidParam) {
     // There's no great way of telling what's an array type.
     // People can name their own types starting with _.
     // Other types use typelem that aren't actually arrays, like box.
@@ -198,7 +207,7 @@ public class TypeInfoCache implements TypeInfo {
     // (keeping old behaviour of finding types, that should not be found without correct search
     // path)
     StringBuilder sql = new StringBuilder();
-    sql.append("SELECT typinput='array_in'::regproc as is_array, typtype, typname ");
+    sql.append("SELECT typinput='array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
     sql.append("  FROM pg_catalog.pg_type ");
     sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
     sql.append("          from pg_namespace as ns ");
@@ -208,8 +217,8 @@ public class TypeInfoCache implements TypeInfo {
     sql.append("         using ( nspname ) ");
     sql.append("       ) as sp ");
     sql.append("    ON sp.nspoid = typnamespace ");
-    if (typnameParam) {
-      sql.append(" WHERE typname = ? ");
+    if (typoidParam) {
+      sql.append(" WHERE pg_type.oid = ? ");
     }
     sql.append(" ORDER BY sp.r, pg_type.oid DESC;");
     return sql.toString();
@@ -258,12 +267,13 @@ public class TypeInfoCache implements TypeInfo {
       if (!pgNameToSQLType.containsKey(typeName)) {
         pgNameToSQLType.put(typeName, type);
       }
+
+      Integer typeOid = castNonNull(rs.getInt("oid"));
+      if (!oidToSQLType.containsKey(typeOid)) {
+        oidToSQLType.put(typeOid, type);
+      }
     }
     rs.close();
-  }
-
-  public int getSQLType(int oid) throws SQLException {
-    return getSQLType(castNonNull(getPGType(oid)));
   }
 
   private PreparedStatement prepareGetTypeInfoStatement() throws SQLException {
@@ -276,19 +286,24 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public synchronized int getSQLType(String pgTypeName) throws SQLException {
-    if (pgTypeName.endsWith("[]")) {
-      return Types.ARRAY;
+    return getSQLType(castNonNull(getPGType(pgTypeName)));
+  }
+
+  public synchronized int getSQLType(int typeOid) throws SQLException {
+    if (typeOid == Oid.UNSPECIFIED) {
+      return Types.OTHER;
     }
-    Integer i = pgNameToSQLType.get(pgTypeName);
+
+    Integer i = oidToSQLType.get(typeOid);
     if (i != null) {
       return i;
     }
 
-    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type '{0}'", pgTypeName);
+    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", typeOid);
 
     PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
 
-    getTypeInfoStatement.setString(1, pgTypeName);
+    getTypeInfoStatement.setInt(1, typeOid);
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getTypeInfoStatement)
@@ -298,14 +313,14 @@ public class TypeInfoCache implements TypeInfo {
 
     ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
 
-    int type = Types.OTHER;
+    int sqlType = Types.OTHER;
     if (rs.next()) {
-      type = getSQLTypeFromQueryResult(rs);
+      sqlType = getSQLTypeFromQueryResult(rs);
     }
     rs.close();
 
-    pgNameToSQLType.put(pgTypeName, type);
-    return type;
+    oidToSQLType.put(typeOid, sqlType);
+    return sqlType;
   }
 
   private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
