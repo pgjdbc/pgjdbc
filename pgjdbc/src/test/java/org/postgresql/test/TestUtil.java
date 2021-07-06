@@ -525,6 +525,24 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a materialized view
+   */
+  public static void createMaterializedView(Connection con, String matViewName, String query)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the view
+      dropView(con, matViewName);
+
+      String sql = "CREATE MATERIALIZED VIEW " + matViewName + " AS " + query;
+
+      st.executeUpdate(sql);
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
   /**
    * Helper creates an enum type.
    *
@@ -626,6 +644,13 @@ public class TestUtil {
    */
   public static void dropView(Connection con, String view) throws SQLException {
     dropObject(con, "VIEW", view);
+  }
+
+  /*
+   * Helper - drops a materialized view
+   */
+  public static void dropMaterializedView(Connection con, String matView) throws SQLException {
+    dropObject(con, "MATERIALIZED VIEW", matView);
   }
 
   /*

@@ -81,6 +81,7 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
     TestUtil.createView(con, "viewtest", "SELECT id, quest FROM metadatatest");
+    TestUtil.createMaterializedView(con, "matViewtest", "SELECT id, quest FROM metadatatest");
     TestUtil.dropType(con, "custom");
     TestUtil.dropType(con, "_custom");
     TestUtil.createCompositeType(con, "custom", "i int", false);
@@ -126,6 +127,7 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f4(int)");
 
     TestUtil.dropView(con, "viewtest");
+    TestUtil.dropMaterializedView(con, "matViewtest");
     TestUtil.dropTable(con, "metadatatest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
@@ -208,7 +210,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getTables(null, null, "metadatates%", new String[]{"TABLE"});
+    ResultSet rs = dbmd.getTables(null, null, "metadatatest", new String[]{"TABLE"});
     assertTrue(rs.next());
     String tableName = rs.getString("TABLE_NAME");
     assertEquals("metadatatest", tableName);
