@@ -602,22 +602,45 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testTablePrivileges() throws SQLException {
+  /*
+   * Helper function - this logic is used several times to test relation privileges
+   */
+  public void relationPrivilegesHelper(String relationName) throws SQLException {
+    // Query PG catalog for privileges
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
+    ResultSet rs = dbmd.getTablePrivileges(null, null, relationName);
+
+    // Parse result to check if table/view owner has select privileges
     boolean foundSelect = false;
     while (rs.next()) {
       if (rs.getString("GRANTEE").equals(TestUtil.getUser())
-          && rs.getString("PRIVILEGE").equals("SELECT")) {
-        foundSelect = true;
+          && rs.getString("PRIVILEGE").equals("SELECT"))
+      {
+          foundSelect = true;
       }
     }
     rs.close();
-    // Test that the table owner has select priv
-    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        foundSelect);
+
+    // Check test condition
+    assertTrue("Couldn't find SELECT priv on relation "
+                + relationName + "  for " + TestUtil.getUser(),
+              foundSelect);
+  }
+
+  @Test
+  public void testTablePrivileges() throws SQLException {
+    relationPrivilegesHelper("metadatatest");
+  }
+
+  @Test
+  public void testViewPrivileges() throws SQLException {
+    relationPrivilegesHelper("viewtest");
+  }
+
+  @Test
+  public void testMaterializedViewPrivileges() throws SQLException {
+    relationPrivilegesHelper("matviewtest");
   }
 
   @Test
@@ -628,42 +651,6 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
     assertTrue(!rs.next());
-  }
-
-  @Test
-  public void testViewPrivileges() throws SQLException {
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
-    ResultSet rs = dbmd.getTablePrivileges(null, null, "viewtest");
-    boolean foundSelect = false;
-    while (rs.next()) {
-      if (rs.getString("GRANTEE").equals(TestUtil.getUser())
-          && rs.getString("PRIVILEGE").equals("SELECT")) {
-        foundSelect = true;
-      }
-    }
-    rs.close();
-    // Test that the view owner has select priv
-    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        foundSelect);
-  }
-
-  @Test
-  public void testMaterializedViewPrivileges() throws SQLException {
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
-    ResultSet rs = dbmd.getTablePrivileges(null, null, "matviewtest");
-    boolean foundSelect = false;
-    while (rs.next()) {
-      if (rs.getString("GRANTEE").equals(TestUtil.getUser())
-          && rs.getString("PRIVILEGE").equals("SELECT")) {
-        foundSelect = true;
-      }
-    }
-    rs.close();
-    // Test that the view owner has select priv
-    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        foundSelect);
   }
 
   @Test
