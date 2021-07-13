@@ -1652,20 +1652,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     }
 
+    // remove unique keys if we have primary keys
     if ( usingPrimaryKeys ) {
-      boolean uniqueKeys = false;
-      do  {
-        for (int j = 0; j < i; j++) {
-          if (!primaryKeys.get(j).isPrimary) {
-            primaryKeys.remove(j);
-            uniqueKeys = true;
-            i--;
-            numPKcolumns--;
-            break;
-          }
+      Iterator<PrimaryKey> iter = primaryKeys.iterator();
+      while ( iter.hasNext() ){
+        if ( !iter.next().isPrimary ) {
+          iter.remove();
         }
-      } while ( uniqueKeys );
+      }
     }
+
     rs.close();
     connection.getLogger().log(Level.FINE, "no of keys={0}", i);
 
