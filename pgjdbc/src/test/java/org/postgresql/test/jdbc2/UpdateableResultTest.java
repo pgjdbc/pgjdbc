@@ -23,7 +23,14 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.TimeZone;
 
 public class UpdateableResultTest extends BaseTest4 {
@@ -444,7 +451,7 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
-  public void testUpdateDate() throws Exception{
+  public void testUpdateDate() throws Exception {
     Date testDate = Date.valueOf("2021-01-01");
     TestUtil.execute( "insert into hasdate values (1,'2021-01-01'::date)", con);
     con.setAutoCommit(false);
