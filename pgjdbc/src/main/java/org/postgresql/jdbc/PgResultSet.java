@@ -1446,6 +1446,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
     int numKeys = primaryKeys.size();
 
+    // since we now return both primary and unique keys in order to optimize finding unique keys to
+    // use in updateRow we want to know if we are using primary keys or unique keys to do the update
+    // primary keys cannot be null, unique keys can. If we have a primary key then we don't need
+    // the unique keys. If we have no primary keys then we have to handle null unique keys.
     for (int i = 0; i < numKeys; i++) {
       PrimaryKey primaryKey = primaryKeys.get(i);
       Utils.escapeIdentifier(updateSQL, primaryKey.name);
@@ -1662,7 +1666,29 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       /* make sure that the user has included the primary key in the resultset */
       if (index > 0) {
         i++;
-        primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
+        primaryKeys.add(new PrimaryKey(index, columnName, rs.getBoolean("IS_PRIMARY"))); // get the primary key information
+      }
+    }
+
+    // look to see if we have primary keys, if we do remove the unique keys, we added them so they could be used without any primary keys
+    // this is convoluted but easier to do in java than in SQL.
+
+    boolean usingPrimaryKeys = false;
+    for ( int j = 0; j < i; j++ ) {
+      if (primaryKeys.get(j).isPrimary) {
+        usingPrimaryKeys = true;
+      }
+    }
+
+    // remove unique keys if we have primary keys
+    if ( usingPrimaryKeys ) {
+      Iterator<PrimaryKey> iter = primaryKeys.iterator();
+      while ( iter.hasNext() ) {
+        if ( !iter.next().isPrimary ) {
+          iter.remove();
+          i--;
+          numPKcolumns--;
+        }
       }
     }
 
@@ -1686,7 +1712,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
       // oidIndex will be >0 if the oid was in the select list
       if (oidIndex > 0) {
-        primaryKeys.add(new PrimaryKey(oidIndex, "oid"));
+        primaryKeys.add(new PrimaryKey(oidIndex, "oid", true));
         usingOID = true;
         updateable = true;
       }
@@ -3383,10 +3409,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private class PrimaryKey {
     int index; // where in the result set is this primaryKey
     String name; // what is the columnName of this primary Key
+    boolean isPrimary; // in order to allow unique keys to be used for updating rows we include them as primary keys
 
-    PrimaryKey(int index, String name) {
+    PrimaryKey(int index, String name, boolean isPrimary) {
       this.index = index;
       this.name = name;
+      this.isPrimary = isPrimary;
     }
 
     @Nullable Object getValue() throws SQLException {

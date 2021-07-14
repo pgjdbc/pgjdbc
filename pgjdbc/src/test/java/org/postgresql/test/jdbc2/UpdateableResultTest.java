@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.sql.Array;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,6 +40,7 @@ public class UpdateableResultTest extends BaseTest4 {
     super.setUp();
     TestUtil.createTable(con, "updateable",
         "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
+    TestUtil.createTable(con, "hasdate", "id int primary key, dt date unique, name text");
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
     TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
@@ -71,6 +73,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "nopkmulticol");
     TestUtil.dropTable(con, "booltable");
     TestUtil.dropTable(con, "uniqueconstraint");
+    TestUtil.dropTable(con, "hasdate");
     super.tearDown();
   }
 
@@ -445,6 +448,26 @@ public class UpdateableResultTest extends BaseTest4 {
 
     rs.close();
     st.close();
+  }
+
+  @Test
+  public void testUpdateDate() throws Exception {
+    Date testDate = Date.valueOf("2021-01-01");
+    TestUtil.execute( "insert into hasdate values (1,'2021-01-01'::date)", con);
+    con.setAutoCommit(false);
+    String sql = "SELECT * FROM hasdate where id=1";
+    ResultSet rs = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE ).executeQuery(sql);
+    assertTrue(rs.next());
+    assertEquals(testDate, rs.getDate("dt"));
+    rs.updateDate("dt", Date.valueOf("2020-01-01"));
+    rs.updateRow();
+    assertEquals(Date.valueOf("2020-01-01"), rs.getDate("dt"));
+    System.out.println("After Update: " + rs.getDate("dt"));
+    con.commit();
+    rs = con.createStatement().executeQuery("select dt from hasdate where id=1");
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2020-01-01"), rs.getDate("dt"));
+    rs.close();
   }
 
   @Test
