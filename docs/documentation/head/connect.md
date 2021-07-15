@@ -577,25 +577,20 @@ Connection conn = DriverManager.getConnection(url);
 <a name="unix sockets"></a>
 ## Unix sockets
 
-Aleksander Blomskøld has forked junixsocket and added a [Unix SocketFactory](https://github.com/fiken/junixsocket/blob/master/junixsocket-common/src/main/java/org/newsclub/net/unix/socketfactory/PostgresqlAFUNIXSocketFactory.java) that works with the driver.
-His code can be found at [https://github.com/fiken/junixsocket](https://github.com/fiken/junixsocket).
+By adding junixsocket you can obtain a socket factory that works with the driver.
+Code can be found at [https://github.com/kohlschutter/junixsocket](https://github.com/kohlschutter/junixsocket). and instructions at [https://kohlschutter.github.io/junixsocket/dependency.html](https://kohlschutter.github.io/junixsocket/dependency.html)
 
 Dependencies for junixsocket are :
 
 ```xml
-<dependency>
-  <groupId>no.fiken.oss.junixsocket</groupId>
-  <artifactId>junixsocket-common</artifactId>
-  <version>1.0.2</version>
-</dependency>
-<dependency>
-  <groupId>no.fiken.oss.junixsocket</groupId>
-  <artifactId>junixsocket-native-common</artifactId>
-  <version>1.0.2</version>
+<<dependency>
+  <groupId>com.kohlschutter.junixsocket</groupId>
+  <artifactId>junixsocket-core</artifactId>
+  <version>2.3.3</version>
 </dependency>
 ```
 Simply add
-`?socketFactory=org.newsclub.net.unix.socketfactory.PostgresqlAFUNIXSocketFactory&socketFactoryArg=[path-to-the-unix-socket]`
+`?socketFactory=org.newsclub.net.unix.AFUNIXSocketFactory$FactoryArg&socketFactoryArg=[path-to-the-unix-socket]`
 to the connection URL.
 
 For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
