@@ -583,7 +583,7 @@ Code can be found at [https://github.com/kohlschutter/junixsocket](https://githu
 Dependencies for junixsocket are :
 
 ```xml
-<<dependency>
+<dependency>
   <groupId>com.kohlschutter.junixsocket</groupId>
   <artifactId>junixsocket-core</artifactId>
   <version>2.3.3</version>
