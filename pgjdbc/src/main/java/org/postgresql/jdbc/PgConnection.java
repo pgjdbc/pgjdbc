@@ -7,7 +7,6 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -38,6 +37,7 @@ import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.SharedTimer;
 import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.LegacyInsecurePGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
@@ -79,6 +79,7 @@ import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -153,8 +154,8 @@ public class PgConnection implements BaseConnection {
   private @Nullable SQLWarning firstWarning;
 
   // Timer for scheduling TimerTasks for this connection.
-  // Only instantiated if a task is actually scheduled.
-  private volatile @Nullable Timer cancelTimer;
+  // Only populated if a task is actually scheduled.
+  private final AtomicReference<@Nullable Timer> cancelTimerRef = new AtomicReference<>();
 
   private @Nullable PreparedStatement checkConnectionQuery;
   /**
@@ -696,18 +697,6 @@ public class PgConnection implements BaseConnection {
 
   // This initialises the objectTypes hash map
   private void initObjectTypes(Properties info) throws SQLException {
-    // Add in the types that come packaged with the driver.
-    // These can be overridden later if desired.
-    addDataType("box", org.postgresql.geometric.PGbox.class);
-    addDataType("circle", org.postgresql.geometric.PGcircle.class);
-    addDataType("line", org.postgresql.geometric.PGline.class);
-    addDataType("lseg", org.postgresql.geometric.PGlseg.class);
-    addDataType("path", org.postgresql.geometric.PGpath.class);
-    addDataType("point", org.postgresql.geometric.PGpoint.class);
-    addDataType("polygon", org.postgresql.geometric.PGpolygon.class);
-    addDataType("money", org.postgresql.util.PGmoney.class);
-    addDataType("interval", org.postgresql.util.PGInterval.class);
-
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
       String propertyName = (String) e.nextElement();
@@ -1216,17 +1205,25 @@ public class PgConnection implements BaseConnection {
     queryExecutor.abort();
   }
 
-  private synchronized Timer getTimer() {
+  private Timer getTimer() {
+    Timer cancelTimer = cancelTimerRef.get();
     if (cancelTimer == null) {
-      cancelTimer = Driver.getSharedTimer().getTimer();
+      cancelTimer = SharedTimer.getSharedInstance().getTimer();
+      //if another thread has concurrent populated this instance, then we need to "release"
+      //the timer to keep the SharedTimer's ref count accurate, as we are logically only
+      //keeping one reference from this instance (released at close)
+      if (!cancelTimerRef.compareAndSet(null, cancelTimer)) {
+        SharedTimer.getSharedInstance().releaseTimer();
+      }
     }
     return cancelTimer;
   }
 
-  private synchronized void releaseTimer() {
-    if (cancelTimer != null) {
-      cancelTimer = null;
-      Driver.getSharedTimer().releaseTimer();
+  private void releaseTimer() {
+    //here we atomically get the old value and set to null
+    //if the old value was not null, that means we need to "release" shared instance
+    if (cancelTimerRef.getAndSet(null) != null) {
+      SharedTimer.getSharedInstance().releaseTimer();
     }
   }
 
@@ -1238,7 +1235,7 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void purgeTimerTasks() {
-    Timer timer = cancelTimer;
+    Timer timer = cancelTimerRef.get();
     if (timer != null) {
       timer.purge();
     }

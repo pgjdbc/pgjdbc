@@ -36,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -2668,11 +2667,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
     StringBuilder sqlwhen = new StringBuilder();
-    for (Iterator<Integer> i = connection.getTypeInfo().getPGTypeOidsWithSQLTypes(); i.hasNext(); ) {
-      Integer typOid = i.next();
-      int sqlType = connection.getTypeInfo().getSQLType(typOid);
-      sqlwhen.append(" when t.oid = ").append(typOid).append(" then ").append(sqlType);
-    }
+    connection.getTypeInfo().forEachSQLOidType((o,t) -> {
+      sqlwhen.append(" when t.oid = ").append(o).append(" then ").append(t);
+    });
     sql += sqlwhen.toString();
 
     sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "

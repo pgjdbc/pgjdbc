@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.IntBiConsumer;
 import org.postgresql.util.PGobject;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -13,6 +14,7 @@ import java.sql.SQLException;
 import java.util.Iterator;
 
 public interface TypeInfo {
+
   void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass,
       Integer arrayOid);
 
@@ -116,4 +118,13 @@ public interface TypeInfo {
    * @throws SQLException if something goes wrong
    */
   boolean requiresQuotingSqlType(int sqlType) throws SQLException;
+
+  /**
+   * Calls <i>action</i> for every known pgTypeOid with the {@link java.sql.Types sql type}.
+   * @param action Action to be called with each known pair. <b>MUST NOT</b> call any function which re-enters
+   *        this instance.
+   * @see #getPGTypeOidsWithSQLTypes()
+   * @see #getSQLType(int)
+   */
+  void forEachSQLOidType(IntBiConsumer action);
 }
