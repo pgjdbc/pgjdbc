@@ -965,7 +965,7 @@ public class TypeInfoCache implements TypeInfo {
 
   @Override
   public int longOidToInt(long oid) throws SQLException {
-    if ((oid & 0xFFFF_FFFF_0000_0000L) != 0) {
+    if ((oid & 0xFFFFFFFF00000000L) != 0) {
       throw new PSQLException(GT.tr("Value is not an OID: {0}", oid), PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
 
