@@ -268,7 +268,7 @@ public class TypeInfoCache implements TypeInfo {
         pgNameToSQLType.put(typeName, type);
       }
 
-      Integer typeOid = castNonNull(rs.getInt("oid"));
+      Integer typeOid = longOidToInt(castNonNull(rs.getLong("oid")));
       if (!oidToSQLType.containsKey(typeOid)) {
         oidToSQLType.put(typeOid, type);
       }
@@ -299,11 +299,11 @@ public class TypeInfoCache implements TypeInfo {
       return i;
     }
 
-    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", typeOid);
+    LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", intOidToLong(typeOid));
 
     PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
 
-    getTypeInfoStatement.setInt(1, typeOid);
+    getTypeInfoStatement.setLong(1, intOidToLong(typeOid));
 
     // Go through BaseStatement to avoid transaction start.
     if (!((BaseStatement) getTypeInfoStatement)
@@ -961,5 +961,19 @@ public class TypeInfoCache implements TypeInfo {
         return false;
     }
     return true;
+  }
+
+  @Override
+  public int longOidToInt(long oid) throws SQLException {
+    if ((oid & 0xFFFFFFFF00000000L) != 0) {
+      throw new PSQLException(GT.tr("Value is not an OID: {0}", oid), PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+    }
+
+    return (int) oid;
+  }
+
+  @Override
+  public long intOidToLong(int oid) {
+    return ((long) oid) & 0xFFFFFFFFL;
   }
 }

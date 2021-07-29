@@ -9,7 +9,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.TypeInfo;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +22,7 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
 
 public class DatabaseMetaDataTest {
@@ -101,5 +106,52 @@ public class DatabaseMetaDataTest {
     assertEquals("Correctly detects type of shadowed name", Types.ARRAY, rs.getInt("DATA_TYPE"));
 
     assertFalse(rs.next());
+  }
+
+  @Test
+  public void testLargeOidIsHandledCorrectly() throws SQLException {
+    TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
+
+    try {
+      ti.getSQLType((int) 4294967295L); // (presumably) unused OID 4294967295, which is 2**32 - 1
+    } catch (PSQLException ex) {
+      assertEquals(ex.getSQLState(), PSQLState.NO_DATA.getState());
+    }
+  }
+
+  @Test
+  public void testOidConversion() throws SQLException {
+    TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
+    int oid = 0;
+    long loid = 0;
+    assertEquals(oid, ti.longOidToInt(loid));
+    assertEquals(loid, ti.intOidToLong(oid));
+
+    oid = Integer.MAX_VALUE;
+    loid = Integer.MAX_VALUE;
+    assertEquals(oid, ti.longOidToInt(loid));
+    assertEquals(loid, ti.intOidToLong(oid));
+
+    oid = Integer.MIN_VALUE;
+    loid = 1L << 31;
+    assertEquals(oid, ti.longOidToInt(loid));
+    assertEquals(loid, ti.intOidToLong(oid));
+
+    oid = -1;
+    loid = 0xFFFFFFFFL;
+    assertEquals(oid, ti.longOidToInt(loid));
+    assertEquals(loid, ti.intOidToLong(oid));
+  }
+
+  @Test(expected = PSQLException.class)
+  public void testOidConversionThrowsForNegativeLongValues() throws SQLException {
+    TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
+    ti.longOidToInt(-1);
+  }
+
+  @Test(expected = PSQLException.class)
+  public void testOidConversionThrowsForTooLargeLongValues() throws SQLException {
+    TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
+    ti.longOidToInt(1L << 32);
   }
 }
