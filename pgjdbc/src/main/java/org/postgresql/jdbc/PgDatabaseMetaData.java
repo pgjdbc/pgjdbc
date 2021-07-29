@@ -2666,12 +2666,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + java.sql.Types.DISTINCT
         + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
         + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
+    TypeInfo typeInfo = connection.getTypeInfo();
 
     StringBuilder sqlwhen = new StringBuilder();
-    for (Iterator<Integer> i = connection.getTypeInfo().getPGTypeOidsWithSQLTypes(); i.hasNext(); ) {
+    for (Iterator<Integer> i = typeInfo.getPGTypeOidsWithSQLTypes(); i.hasNext(); ) {
       Integer typOid = i.next();
-      int sqlType = connection.getTypeInfo().getSQLType(typOid);
-      sqlwhen.append(" when t.oid = ").append(typOid).append(" then ").append(sqlType);
+      // NB: Java Integers are signed 32-bit integers, but oids are unsigned 32-bit integers.
+      // We must therefore map it to a positive long value before writing it into the query,
+      // or we'll be unable to correctly handle ~ half of the oid space.
+      long longTypOid = typeInfo.intOidToLong(typOid);
+      int sqlType = typeInfo.getSQLType(typOid);
+
+      sqlwhen.append(" when t.oid = ").append(longTypOid).append(" then ").append(sqlType);
     }
     sql += sqlwhen.toString();
 
