@@ -667,7 +667,7 @@ public class TypeInfoCache implements TypeInfo {
     return result == null ? "java.lang.String" : result;
   }
 
-  public String getTypeForAlias(@Nullable String alias) {
+  public @Nullable String getTypeForAlias(@Nullable String alias) {
     if (alias == null ) {
       return null;
     }

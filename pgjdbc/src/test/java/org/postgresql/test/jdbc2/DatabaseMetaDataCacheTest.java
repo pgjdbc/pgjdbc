@@ -5,8 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.PgConnection;
