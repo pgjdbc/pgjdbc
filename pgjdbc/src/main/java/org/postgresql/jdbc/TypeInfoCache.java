@@ -429,7 +429,12 @@ public class TypeInfoCache implements TypeInfo {
     return oidStatementComplex;
   }
 
-  public synchronized int getPGType(String pgTypeName) throws SQLException {
+  public synchronized int getPGType(@Nullable String pgTypeName) throws SQLException {
+    // there really isn't anything else to return other than UNSPECIFIED here.
+    if ( pgTypeName == null ) {
+      return Oid.UNSPECIFIED;
+    }
+
     Integer oid = pgNameToOid.get(pgTypeName);
     if (oid != null) {
       return oid;
@@ -515,7 +520,7 @@ public class TypeInfoCache implements TypeInfo {
     return getNameStatement;
   }
 
-  public int getPGArrayType(String elementTypeName) throws SQLException {
+  public int getPGArrayType(@Nullable  String elementTypeName) throws SQLException {
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
   }
