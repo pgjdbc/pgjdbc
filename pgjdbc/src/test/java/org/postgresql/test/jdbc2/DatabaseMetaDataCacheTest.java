@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.PgConnection;
@@ -80,5 +81,15 @@ public class DatabaseMetaDataCacheTest {
 
     List<LogRecord> typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
     assertEquals("PgDatabaseMetadata.getTypeInfo() resulted in individual queries for SQL typecodes", 0, typeQueries.size());
+  }
+
+  @Test
+  public void testTypeForAlias() {
+    TypeInfo ti = con.getTypeInfo();
+    assertEquals("bool", ti.getTypeForAlias("boolean"));
+    assertEquals("bool", ti.getTypeForAlias("Boolean"));
+    assertEquals("bool", ti.getTypeForAlias("Bool"));
+    assertEquals("bogus", ti.getTypeForAlias("bogus"));
+    assertNull(ti.getTypeForAlias(null));
   }
 }
