@@ -2188,7 +2188,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
         + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
         + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
-        + "WHERE true ";
+        // all primary keys will pass this test
+        // uniaue keys must pass this test as well
+        + "WHERE a.attnotnull = true "
+        // partial indexes are also not allowed indpred will not be null if this is a partial index
+        + "and i.indpred is null ";
 
     if (schema != null && !schema.isEmpty()) {
       sql += " AND n.nspname = " + escapeQuotes(schema);

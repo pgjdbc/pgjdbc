@@ -41,6 +41,9 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.createTable(con, "updateable",
         "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
     TestUtil.createTable(con, "hasdate", "id int primary key, dt date unique, name text");
+    TestUtil.createTable(con, "uniquekeys", "id int unique not null, id2 int unique,  dt date");
+    TestUtil.createTable(con, "partialunique", "subject text, target text, success boolean");
+    TestUtil.execute("CREATE UNIQUE INDEX tests_success_constraint ON partialunique (subject, target) WHERE success", con);
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
     TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
@@ -51,6 +54,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
     TestUtil.execute( "insert into booltable (id) values (1)", con);
+    TestUtil.execute( "insert into uniquekeys(id, id2, dt) values (1, 2, now())", con);
 
     Statement st2 = con.createStatement();
     // create pk for multicol table
@@ -74,6 +78,9 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "booltable");
     TestUtil.dropTable(con, "uniqueconstraint");
     TestUtil.dropTable(con, "hasdate");
+    TestUtil.dropTable(con, "uniquekeys");
+    TestUtil.dropTable(con, "partialunique");
+
     super.tearDown();
   }
 
@@ -746,6 +753,7 @@ public class UpdateableResultTest extends BaseTest4 {
     assertTrue(rs.next());
     assertTrue(rs.first());
     rs.updateString("relname", "pg_class");
+    rs.updateRow();
     rs.close();
     st.close();
   }
@@ -758,6 +766,62 @@ public class UpdateableResultTest extends BaseTest4 {
     assertTrue(rs.next());
     assertTrue(rs.first());
     rs.updateString("name1", "bob");
+    rs.updateRow();
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueUpdateable1() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    int id = 0;
+    ResultSet rs = st.executeQuery("SELECT id, dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    id = rs.getInt(("id"));
+    rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    rs.updateRow();
+    rs.close();
+    rs = st.executeQuery("select id, dt from uniquekeys where id = " + id);
+    assertNotNull(rs);
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueUpdateable2() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT id, id2, dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    int id = rs.getInt(("id"));
+    rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    rs.updateRow();
+    rs.close();
+    rs = st.executeQuery("select id, dt from uniquekeys where id = " + id);
+    assertNotNull(rs);
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueNotUpdatable() throws SQLException {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    try {
+      rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    } catch ( SQLException ex ) {
+      assertEquals("No primary key found for table uniquekeys.", ex.getMessage());
+    }
     rs.close();
     st.close();
   }
