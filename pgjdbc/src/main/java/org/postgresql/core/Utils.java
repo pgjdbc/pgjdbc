@@ -131,8 +131,13 @@ public class Utils {
    * @param value value to append
    */
   private static void doAppendEscapedIdentifier(Appendable sbuf, String value) throws SQLException {
+
+    boolean alreadyQuoted = value.startsWith("\"") && value.endsWith("\"");
+
     try {
-      sbuf.append('"');
+      if ( !alreadyQuoted ) {
+        sbuf.append('"');
+      }
 
       for (int i = 0; i < value.length(); ++i) {
         char ch = value.charAt(i);
@@ -146,7 +151,9 @@ public class Utils {
         sbuf.append(ch);
       }
 
-      sbuf.append('"');
+      if ( !alreadyQuoted ) {
+        sbuf.append('"');
+      }
     } catch (IOException e) {
       throw new PSQLException(GT.tr("No IOException expected from StringBuffer or StringBuilder"),
           PSQLState.UNEXPECTED_ERROR, e);
