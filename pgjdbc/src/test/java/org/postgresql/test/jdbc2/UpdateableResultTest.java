@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.sql.Array;
+import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -747,7 +748,8 @@ public class UpdateableResultTest extends BaseTest4 {
 
   @Test
   public void testOidUpdatable() throws Exception {
-    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+    Connection privilegedCon = TestUtil.openPrivilegedDB();
+    Statement st = privilegedCon.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("SELECT oid,* FROM pg_class WHERE relname = 'pg_class'");
     assertTrue(rs.next());
@@ -756,6 +758,7 @@ public class UpdateableResultTest extends BaseTest4 {
     rs.updateRow();
     rs.close();
     st.close();
+    privilegedCon.close();
   }
 
   @Test
