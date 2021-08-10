@@ -37,6 +37,7 @@ public class GeneratedKeysTest extends BaseTest4 {
     A("a"),
     AB("a", "b"),
     STAR("*"),
+    QUOTED("\"a\""),
     NO();
     final String[] columns;
 
@@ -331,7 +332,8 @@ public class GeneratedKeysTest extends BaseTest4 {
         assertEquals("a", rs.getString("b"));
         break;
       case A:
-        assertEquals("Just one column should be returned since returning clause was " + returningClause,
+      case QUOTED:
+      assertEquals("Just one column should be returned since returning clause was " + returningClause,
             "a", columnNames);
         assertEquals(1, rs.getInt(1));
         assertEquals(1, rs.getInt("a"));
@@ -368,6 +370,7 @@ public class GeneratedKeysTest extends BaseTest4 {
         assertEquals("b", rs.getString(2));
         break;
       case A:
+      case QUOTED:
         assertEquals("Just one column should be returned since returning clause was " + returningClause,
             1, rs.getMetaData().getColumnCount());
         assertEquals(2, rs.getInt(1));
