@@ -37,7 +37,7 @@ public class GeneratedKeysTest extends BaseTest4 {
     A("a"),
     AB("a", "b"),
     STAR("*"),
-    QUOTED("\"a\""),
+    QUOTED("\"MixedCase\""),
     NO();
     final String[] columns;
 
@@ -91,7 +91,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTempTable(con, "genkeys", "a serial, b varchar(5), c int");
+    TestUtil.createTempTable(con, "genkeys", "a serial, b varchar(5), c int, \"MixedCase\" varchar(5) ");
   }
 
   @Override
@@ -102,12 +102,14 @@ public class GeneratedKeysTest extends BaseTest4 {
 
   @Test
   public void testGeneratedKeys() throws SQLException {
-    testGeneratedKeysWithSuffix("");
+    if (!returningInQuery.equals(ReturningInQuery.QUOTED)) {
+      testGeneratedKeysWithSuffix("");
+    }
   }
 
   private void testGeneratedKeysWithSuffix(String suffix) throws SQLException {
     Statement stmt = con.createStatement();
-    int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)" + returningClause + suffix,
+    int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2, 'c')" + returningClause + suffix,
         Statement.RETURN_GENERATED_KEYS);
     assertEquals(1, count);
     ResultSet rs = stmt.getGeneratedKeys();
@@ -126,13 +128,17 @@ public class GeneratedKeysTest extends BaseTest4 {
       assertEquals("2", rs.getString(3));
       assertEquals(2, rs.getInt("c"));
     }
+    if (returningInQuery.columnsReturned() >= 4) {
+      assertEquals("c", rs.getString(4));
+      assertEquals("c", rs.getString("MixedCase"));
+    }
     assertTrue(!rs.next());
   }
 
   @Test
   public void testStatementUpdateCount() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)" + returningClause,
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2, 'c')" + returningClause,
         Statement.RETURN_GENERATED_KEYS);
     assertEquals(1, stmt.getUpdateCount());
     assertNull(stmt.getResultSet());
@@ -142,7 +148,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Test
   public void testCloseStatementClosesRS() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)" + returningClause,
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2, 'c')" + returningClause,
         Statement.RETURN_GENERATED_KEYS);
     ResultSet rs = stmt.getGeneratedKeys();
     stmt.close();
@@ -156,7 +162,9 @@ public class GeneratedKeysTest extends BaseTest4 {
 
   @Test
   public void testReturningWithTrailingSemicolon() throws SQLException {
-    testGeneratedKeysWithSuffix("; ");
+    if (!returningInQuery.equals(ReturningInQuery.QUOTED)) {
+      testGeneratedKeysWithSuffix("; ");
+    }
   }
 
   @Test
@@ -164,7 +172,7 @@ public class GeneratedKeysTest extends BaseTest4 {
     Statement stmt = con.createStatement();
     try {
       int count =
-          stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)" + returningClause + "; ",
+          stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2, 'c')" + returningClause + "; ",
               Statement.NO_GENERATED_KEYS);
       assertEquals(1, count);
       if (returningInQuery.columnsReturned() > 0) {
@@ -186,7 +194,7 @@ public class GeneratedKeysTest extends BaseTest4 {
   public void testMultipleRows() throws SQLException {
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "INSERT INTO genkeys VALUES (1, 'a', 2), (2, 'b', 4)" + returningClause + "; ",
+        "INSERT INTO genkeys VALUES (1, 'a', 2, 'c'), (2, 'b', 4, 'd')" + returningClause + "; ",
         new String[]{"c", "b"});
     assertEquals(2, count);
     ResultSet rs = stmt.getGeneratedKeys();
@@ -199,6 +207,10 @@ public class GeneratedKeysTest extends BaseTest4 {
 
   @Test
   public void testSerialWorks() throws SQLException {
+    // ignore QUOTED
+    if ( returningInQuery.equals(ReturningInQuery.QUOTED) ) {
+      return;
+    }
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
         "INSERT/*fool parser*/ INTO genkeys (b,c) VALUES ('a', 2), ('b', 4)" + returningClause + "; ",
@@ -215,8 +227,8 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Test
   public void testUpdate() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 3)");
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 3, 'c')");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4, 'd')");
     stmt.executeUpdate("UPDATE genkeys SET c=2 WHERE a = 1" + returningClause,
         new String[]{"c", "b"});
     ResultSet rs = stmt.getGeneratedKeys();
@@ -230,7 +242,7 @@ public class GeneratedKeysTest extends BaseTest4 {
     assumeMinimumServerVersion(ServerVersion.v9_1);
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "WITH x as (INSERT INTO genkeys (b,c) VALUES ('a', 2) returning c) insert into genkeys(a,b,c) VALUES (1, 'a', 2)" + returningClause + "",
+        "WITH x as (INSERT INTO genkeys (b,c) VALUES ('a', 2) returning c) insert into genkeys(a,b,c, \"MixedCase\") VALUES (1, 'a', 2, 'c')" + returningClause + "",
         new String[]{"c", "b"});
     assertEquals(1, count);
     ResultSet rs = stmt.getGeneratedKeys();
@@ -245,7 +257,7 @@ public class GeneratedKeysTest extends BaseTest4 {
     Assume.assumeTrue(returningInQuery != ReturningInQuery.NO);
     Statement stmt = con.createStatement();
     int count = stmt.executeUpdate(
-        "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) " + returningClause
+        "WITH x as (INSERT INTO genkeys(a,b,c, \"MixedCase\") VALUES (1, 'a', 2, 'c') " + returningClause
             + ") select * from x",
         new String[]{"c", "b"});
     assertEquals("rowcount", -1, count);
@@ -259,8 +271,8 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Test
   public void testDelete() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2, 'c')");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4, 'd')");
     stmt.executeUpdate("DELETE FROM genkeys WHERE a = 1" + returningClause,
         new String[]{"c", "b"});
     ResultSet rs = stmt.getGeneratedKeys();
@@ -272,8 +284,8 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Test
   public void testPSUpdate() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', -3)");
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', -3, 'c')");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4, 'd')");
     stmt.close();
 
     PreparedStatement ps =
@@ -290,8 +302,8 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Test
   public void testPSDelete() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2, 'c')");
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4, 'd')");
     stmt.close();
 
     PreparedStatement ps =
@@ -332,8 +344,7 @@ public class GeneratedKeysTest extends BaseTest4 {
         assertEquals("a", rs.getString("b"));
         break;
       case A:
-      case QUOTED:
-      assertEquals("Just one column should be returned since returning clause was " + returningClause,
+        assertEquals("Just one column should be returned since returning clause was " + returningClause,
             "a", columnNames);
         assertEquals(1, rs.getInt(1));
         assertEquals(1, rs.getInt("a"));
@@ -347,14 +358,22 @@ public class GeneratedKeysTest extends BaseTest4 {
         assertEquals("a", rs.getString("b"));
         break;
       case STAR:
-        assertEquals("Three columns should be returned since returning clause was " + returningClause,
-            "a, b, c", columnNames);
+        assertEquals("Four columns should be returned since returning clause was " + returningClause,
+            "a, b, c, MixedCase", columnNames);
         assertEquals(1, rs.getInt(1));
         assertEquals("a", rs.getString(2));
         assertEquals(2, rs.getInt(3));
         assertEquals(1, rs.getInt("a"));
         assertEquals("a", rs.getString("b"));
         assertEquals(2, rs.getInt("c"));
+        assertEquals("c", rs.getString(4) );
+        assertEquals("c", rs.getString("MixedCase") );
+        break;
+      case QUOTED:
+        assertEquals("Just one column should be returned since returning clause was " + returningClause,
+            "MixedCase", columnNames);
+        assertEquals("c", rs.getString(1) );
+        assertEquals("c", rs.getString("MixedCase") );
         break;
       default:
         fail("Unexpected test kind: " + returningInQuery);
@@ -370,7 +389,6 @@ public class GeneratedKeysTest extends BaseTest4 {
         assertEquals("b", rs.getString(2));
         break;
       case A:
-      case QUOTED:
         assertEquals("Just one column should be returned since returning clause was " + returningClause,
             1, rs.getMetaData().getColumnCount());
         assertEquals(2, rs.getInt(1));
@@ -382,11 +400,17 @@ public class GeneratedKeysTest extends BaseTest4 {
         assertEquals("b", rs.getString(2));
         break;
       case STAR:
-        assertEquals("Three columns should be returned since returning clause was " + returningClause,
-            3, rs.getMetaData().getColumnCount());
+        assertEquals("Four columns should be returned since returning clause was " + returningClause,
+            4, rs.getMetaData().getColumnCount());
         assertEquals(2, rs.getInt(1));
         assertEquals("b", rs.getString(2));
         assertEquals(4, rs.getInt(3));
+        assertEquals("d", rs.getString(4));
+        break;
+      case QUOTED:
+        assertEquals("Just one column should be returned since returning clause was " + returningClause,
+            1, rs.getMetaData().getColumnCount());
+        assertEquals("d", rs.getString(1));
         break;
       default:
         fail("Unexpected test kind: " + returningInQuery);
@@ -396,11 +420,11 @@ public class GeneratedKeysTest extends BaseTest4 {
   @Test
   public void testGeneratedKeysCleared() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)" + returningClause + "; ", Statement.RETURN_GENERATED_KEYS);
+    stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2, 'c')" + returningClause + "; ", Statement.RETURN_GENERATED_KEYS);
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
     try {
-      stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 3)" + returningClause);
+      stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 3, 'd')" + returningClause);
       if (returningInQuery.columnsReturned() > 0) {
         fail("A result was returned when none was expected error should happen when executing executeUpdate('... returning ...')");
       }
@@ -417,6 +441,9 @@ public class GeneratedKeysTest extends BaseTest4 {
 
   @Test
   public void testBatchGeneratedKeys() throws SQLException {
+    if (returningInQuery.equals(ReturningInQuery.QUOTED)) {
+      return;
+    }
     PreparedStatement ps = con.prepareStatement("INSERT INTO genkeys(c) VALUES (?)" + returningClause + "",
         Statement.RETURN_GENERATED_KEYS);
     ps.setInt(1, 4);
