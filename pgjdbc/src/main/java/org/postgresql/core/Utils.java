@@ -111,15 +111,16 @@ public class Utils {
    *
    * @param sbuf the string builder to append to; or {@code null}
    * @param value the string value
+   * @param quoteIdentifier whether to quote the identifier or not
    * @return the sbuf argument; or a new string builder for sbuf == null
    * @throws SQLException if the string contains a {@code \0} character
    */
-  public static StringBuilder escapeIdentifier(@Nullable StringBuilder sbuf, String value)
+  public static StringBuilder escapeIdentifier(@Nullable StringBuilder sbuf, String value, boolean quoteIdentifier)
       throws SQLException {
     if (sbuf == null) {
       sbuf = new StringBuilder(2 + (value.length() + 10) / 10 * 11); // Add 10% for escaping.
     }
-    doAppendEscapedIdentifier(sbuf, value);
+    doAppendEscapedIdentifier(sbuf, value, quoteIdentifier);
     return sbuf;
   }
 
@@ -129,13 +130,13 @@ public class Utils {
    * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
    *        thrown.
    * @param value value to append
+   * @param quoteIdentifier some ORM's send quote the identifier. If this is the case they can set
+   *                        the QUOTE_RETURNING_IDENTIFIER property to false
    */
-  private static void doAppendEscapedIdentifier(Appendable sbuf, String value) throws SQLException {
-
-    boolean alreadyQuoted = value.startsWith("\"") && value.endsWith("\"");
+  private static void doAppendEscapedIdentifier(Appendable sbuf, String value, boolean quoteIdentifier) throws SQLException {
 
     try {
-      if ( !alreadyQuoted ) {
+      if ( quoteIdentifier ) {
         sbuf.append('"');
       }
 
@@ -151,7 +152,7 @@ public class Utils {
         sbuf.append(ch);
       }
 
-      if ( !alreadyQuoted ) {
+      if ( quoteIdentifier ) {
         sbuf.append('"');
       }
     } catch (IOException e) {

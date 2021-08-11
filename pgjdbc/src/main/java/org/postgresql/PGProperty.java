@@ -449,6 +449,17 @@ public enum PGProperty {
       new String[] {"3"}),
 
   /**
+   * Quote returning columns.
+   * There are some ORM's that quote everything, including returning columns
+   * If we quote them, then we end up with a column that looks like ""colname""
+   * which will not be found
+   */
+  QUOTE_RETURNING_IDENTIFIERS(
+    "quoteReturningIdentifiers",
+    "true",
+    "Quote identifiers provided in returning array",
+      false),
+  /**
    * Puts this connection in read-only mode.
    */
   READ_ONLY(

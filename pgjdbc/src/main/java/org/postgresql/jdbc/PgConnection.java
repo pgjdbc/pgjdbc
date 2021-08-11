@@ -1246,7 +1246,7 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public String escapeIdentifier(String identifier) throws SQLException {
-    return Utils.escapeIdentifier(null, identifier).toString();
+    return Utils.escapeIdentifier(null, identifier, true).toString();
   }
 
   @Override
