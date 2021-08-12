@@ -263,7 +263,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           String cursorName = castNonNull(getString(columnIndex));
 
           StringBuilder sb = new StringBuilder("FETCH ALL IN ");
-          Utils.escapeIdentifier(sb, cursorName, true);
+          Utils.escapeIdentifier(sb, cursorName);
 
           // nb: no BEGIN triggered here. This is fine. If someone
           // committed, and the cursor was not holdable (closing the
@@ -285,7 +285,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
           sb.setLength(0);
           sb.append("CLOSE ");
-          Utils.escapeIdentifier(sb, cursorName, true);
+          Utils.escapeIdentifier(sb, cursorName);
           connection.execSQLUpdate(sb.toString());
           ((PgResultSet) rs).setRefCursor(cursorName);
           return rs;
@@ -1024,7 +1024,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           new StringBuilder("DELETE FROM ").append(onlyTable).append(tableName).append(" where ");
 
       for (int i = 0; i < numKeys; i++) {
-        Utils.escapeIdentifier(deleteSQL, primaryKeys.get(i).name, true);
+        Utils.escapeIdentifier(deleteSQL, primaryKeys.get(i).name);
         deleteSQL.append(" = ?");
         if (i < numKeys - 1) {
           deleteSQL.append(" and ");
@@ -1072,7 +1072,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (int i = 0; columnNames.hasNext(); i++) {
       String columnName = columnNames.next();
 
-      Utils.escapeIdentifier(insertSQL, columnName, true);
+      Utils.escapeIdentifier(insertSQL, columnName);
       if (i < numColumns - 1) {
         insertSQL.append(", ");
         paramSQL.append("?,");
@@ -1433,7 +1433,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     for (int i = 0; columns.hasNext(); i++) {
       String column = columns.next();
-      Utils.escapeIdentifier(updateSQL, column, true);
+      Utils.escapeIdentifier(updateSQL, column);
       updateSQL.append(" = ?");
 
       if (i < numColumns - 1) {
@@ -1448,7 +1448,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     for (int i = 0; i < numKeys; i++) {
       PrimaryKey primaryKey = primaryKeys.get(i);
-      Utils.escapeIdentifier(updateSQL, primaryKey.name, true);
+      Utils.escapeIdentifier(updateSQL, primaryKey.name);
       updateSQL.append(" = ?");
 
       if (i < numKeys - 1) {

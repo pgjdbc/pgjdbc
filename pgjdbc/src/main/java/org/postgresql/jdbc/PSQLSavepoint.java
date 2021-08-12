@@ -78,7 +78,7 @@ public class PSQLSavepoint implements Savepoint {
       // We need to quote and escape the name in case it
       // contains spaces/quotes/etc.
       //
-      return Utils.escapeIdentifier(null, name, true).toString();
+      return Utils.escapeIdentifier(null, name).toString();
     }
 
     return "JDBC_SAVEPOINT_" + id;

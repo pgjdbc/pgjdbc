@@ -369,7 +369,12 @@ public class Parser {
       if (col > 0) {
         nativeSql.append(", ");
       }
-      Utils.escapeIdentifier(nativeSql, columnName, quoteReturningIdentifiers);
+      /*
+      If the client quotes identifiers then doing so again would create an error
+       */
+      if (quoteReturningIdentifiers) {
+        Utils.escapeIdentifier(nativeSql, columnName);
+      }
     }
     return true;
   }
