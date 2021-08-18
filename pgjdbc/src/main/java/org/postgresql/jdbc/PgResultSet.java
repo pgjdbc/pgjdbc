@@ -988,17 +988,19 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
     int numKeys = primaryKeys.size();
-    final List<Object> primaryKeyValues;
+    List<@Nullable Object> primaryKeyValues = new ArrayList<@Nullable Object>(numKeys);
+    for (PrimaryKey primaryKey : primaryKeys) {
+      Object value = primaryKey.getValue();
+      primaryKeyValues.add(value);
+    }
 
     if (deleteStatement == null) {
       StringBuilder deleteSQL =
           new StringBuilder("DELETE FROM ").append(onlyTable).append(tableName).append(" where ");
 
-      primaryKeyValues = new ArrayList<Object>(numKeys);
       for (int i = 0; i < numKeys; i++) {
         PrimaryKey primaryKey = primaryKeys.get(i);
-        Object value = primaryKey.getValue();
-        primaryKeyValues.add(value);
+        Object value = primaryKeyValues.get(i);
 
         Utils.escapeIdentifier(deleteSQL, primaryKey.name);
         deleteSQL.append(primaryKey.isPrimary || value != null ? " = ?" : " IS NULL");
@@ -1008,13 +1010,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
 
       deleteStatement = connection.prepareStatement(deleteSQL.toString());
-    } else {
-      primaryKeyValues = new ArrayList<Object>(numKeys);
-      for (int i = 0; i < numKeys; i++) {
-        PrimaryKey primaryKey = primaryKeys.get(i);
-        Object value = primaryKey.getValue();
-        primaryKeyValues.add(value);
-      }
     }
     deleteStatement.clearParameters();
 
@@ -1346,7 +1341,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
     int numKeys = primaryKeys.size();
-    List<Object> primaryKeyValues = new ArrayList<Object>(numKeys);
+    List<@Nullable Object> primaryKeyValues = new ArrayList<@Nullable Object>(numKeys);
 
     for (int i = 0; i < numKeys; i++) {
       PrimaryKey primaryKey = primaryKeys.get(i);
@@ -1441,7 +1436,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
     int numKeys = primaryKeys.size();
-    List<Object> primaryKeyValues = new ArrayList<Object>(numKeys);
+    List<@Nullable Object> primaryKeyValues = new ArrayList<@Nullable Object>(numKeys);
 
     for (int i = 0; i < numKeys; i++) {
       PrimaryKey primaryKey = primaryKeys.get(i);
