@@ -231,7 +231,7 @@ public abstract class AbstractArraysTest<A> {
   @Test
   public void testObject2dArrayCopy() throws Exception {
     final Object[][] copy = new Object[testData.length][];
-    for (int  i =0; i < testData.length; ++i) {
+    for (int  i = 0; i < testData.length; ++i) {
       copy[i] = testData[i];
     }
 
