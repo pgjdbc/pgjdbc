@@ -374,6 +374,8 @@ public class Parser {
        */
       if (quoteReturningIdentifiers) {
         Utils.escapeIdentifier(nativeSql, columnName);
+      } else {
+        nativeSql.append( columnName );
       }
     }
     return true;

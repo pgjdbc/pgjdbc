@@ -106,6 +106,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     rs.close();
 
     pstmt.close();
+    pstmt.close();
   }
 
   @Test

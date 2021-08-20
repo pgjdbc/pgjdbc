@@ -22,7 +22,8 @@ import java.util.Properties;
 
 public class PreparedStatementTest extends BaseTest4 {
   protected void updateProperties(Properties props) {
-    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
+    PGProperty.PREFER_QUERY_MODE.set(props, "extended");
+    PGProperty.PREPARE_THRESHOLD.set(props, "0");
   }
 
   @Override
