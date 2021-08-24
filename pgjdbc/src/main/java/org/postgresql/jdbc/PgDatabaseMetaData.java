@@ -2190,9 +2190,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
         + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
         // primary as well as unique keys can be used to uniquely identify a row to update
-        + "WHERE (i.indisprimary or i.indisunique) "
+        + "WHERE (i.indisprimary OR ( "
+        + "    i.indisunique "
+        + "    AND i.indisvalid "
         // partial indexes are not allowed - indpred will not be null if this is a partial index
-        + "  AND i.indpred IS NULL ";
+        + "    AND i.indpred IS NULL "
+        // indexes with expressions are not allowed
+        + "    AND i.indexprs IS NULL "
+        + "  )) ";
 
     if (schema != null && !schema.isEmpty()) {
       sql += " AND n.nspname = " + escapeQuotes(schema);
