@@ -1672,12 +1672,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       numPKcolumns++;
 
       String columnName = castNonNull(rs.getString(4)); // get the columnName
-      int index = findColumnIndex(columnName);
+      boolean isNotNull = rs.getBoolean("IS_NOT_NULL");
 
-      /* make sure that the user has included the primary key in the resultset */
-      if (index > 0) {
-        i++;
-        primaryKeys.add(new PrimaryKey(index, columnName, rs.getBoolean("IS_PRIMARY"))); // get the primary key information
+      /* make sure that only unique keys with all non-null attributes are handled */
+      if (isNotNull) {
+        int index = findColumnIndex(columnName);
+
+        /* make sure that the user has included the primary key in the resultset */
+        if (index > 0) {
+          i++;
+          primaryKeys.add(new PrimaryKey(index, columnName, rs.getBoolean("IS_PRIMARY"))); // get the primary key information
+        }
       }
     }
 

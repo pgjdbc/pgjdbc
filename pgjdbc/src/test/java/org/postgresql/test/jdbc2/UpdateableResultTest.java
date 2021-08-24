@@ -47,7 +47,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.createTable(con, "partialunique", "subject text, target text, success boolean");
     TestUtil.execute("CREATE UNIQUE INDEX tests_success_constraint ON partialunique (subject, target) WHERE success", con);
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
-    TestUtil.createTable(con, "primaryunique", "id int primary key, name text unique, dt date");
+    TestUtil.createTable(con, "primaryunique", "id int primary key, name text unique not null, dt date");
     TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
     TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
     TestUtil.execute( "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10", con);
@@ -768,37 +768,19 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
-  public void testUniqueNonNullUpdatable() throws Exception {
+  public void testUniqueWithNullableColumnsNotUpdatable() throws Exception {
     Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_UPDATABLE);
-    ResultSet rs = st.executeQuery("SELECT * from unique_null_constraint where u1 = 1");
+    ResultSet rs = st.executeQuery("SELECT u1, name1 from unique_null_constraint");
     assertTrue(rs.next());
     assertTrue(rs.first());
-    rs.updateString("name1", "bob");
-    rs.updateRow();
-    assertFalse(rs.next());
-    rs.close();
-    rs = st.executeQuery("select name1 from unique_null_constraint where u1 = 1");
-    assertTrue(rs.next());
-    assertEquals("bob", rs.getString("name1"));
-    rs.close();
-    st.close();
-  }
-
-  @Test
-  public void testUniqueNullUpdatable() throws Exception {
-    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
-    ResultSet rs = st.executeQuery("SELECT * from unique_null_constraint where u1 is null");
-    assertTrue(rs.next());
-    assertTrue(rs.first());
-    rs.updateString("name1", "bob");
-    rs.updateRow();
-    assertFalse(rs.next());
-    rs.close();
-    rs = st.executeQuery("select name1 from unique_null_constraint where u1 is null");
-    assertTrue(rs.next());
-    assertEquals("bob", rs.getString("name1"));
+    try {
+      rs.updateString("name1", "bob");
+      fail("Should have failed since unique column u1 is nullable");
+    } catch (SQLException ex) {
+      assertEquals("No eligible primary or unique key found for table unique_null_constraint.",
+          ex.getMessage());
+    }
     rs.close();
     st.close();
   }
@@ -842,7 +824,29 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
-  public void testUniqueUpdateable1() throws Exception {
+  public void testUniqueWithNullAndNotNullableColumnUpdateable() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    int id = 0;
+    int id2 = 0;
+    ResultSet rs = st.executeQuery("SELECT id, id2, dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    id = rs.getInt(("id"));
+    id2 = rs.getInt(("id2"));
+    rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    rs.updateRow();
+    rs.close();
+    rs = st.executeQuery("select dt from uniquekeys where id = " + id + " and id2 = " + id2);
+    assertNotNull(rs);
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueWithNotNullableColumnUpdateable() throws Exception {
     Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_UPDATABLE);
     int id = 0;
@@ -862,26 +866,25 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
-  public void testUniqueUpdateable2() throws Exception {
+  public void testUniqueWithNullableColumnNotUpdateable() throws Exception {
     Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("SELECT id2, dt from uniquekeys");
     assertTrue(rs.next());
     assertTrue(rs.first());
-    int id = rs.getInt(("id2"));
-    rs.updateDate("dt", Date.valueOf("1999-01-01"));
-    rs.updateRow();
-    rs.close();
-    rs = st.executeQuery("select id2, dt from uniquekeys where id2 = " + id);
-    assertNotNull(rs);
-    assertTrue(rs.next());
-    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    try {
+      rs.updateDate("dt", Date.valueOf("1999-01-01"));
+      fail("Should have failed since id2 is nullable column");
+    } catch (SQLException ex) {
+      assertEquals("No eligible primary or unique key found for table uniquekeys.",
+          ex.getMessage());
+    }
     rs.close();
     st.close();
   }
 
   @Test
-  public void testUniqueNotUpdatable() throws SQLException {
+  public void testNoUniqueNotUpdateable() throws SQLException {
     Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("SELECT dt from uniquekeys");
@@ -889,6 +892,7 @@ public class UpdateableResultTest extends BaseTest4 {
     assertTrue(rs.first());
     try {
       rs.updateDate("dt", Date.valueOf("1999-01-01"));
+      fail("Should have failed since no UK/PK are in the select statement");
     } catch (SQLException ex) {
       assertEquals("No eligible primary or unique key found for table uniquekeys.",
           ex.getMessage());
