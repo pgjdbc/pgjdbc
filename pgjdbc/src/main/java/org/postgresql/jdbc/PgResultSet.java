@@ -988,22 +988,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
     int numKeys = primaryKeys.size();
-    List<@Nullable Object> primaryKeyValues = new ArrayList<@Nullable Object>(numKeys);
-    for (PrimaryKey primaryKey : primaryKeys) {
-      Object value = primaryKey.getValue();
-      primaryKeyValues.add(value);
-    }
-
     if (deleteStatement == null) {
       StringBuilder deleteSQL =
           new StringBuilder("DELETE FROM ").append(onlyTable).append(tableName).append(" where ");
 
       for (int i = 0; i < numKeys; i++) {
-        PrimaryKey primaryKey = primaryKeys.get(i);
-        Object value = primaryKeyValues.get(i);
-
-        Utils.escapeIdentifier(deleteSQL, primaryKey.name);
-        deleteSQL.append(primaryKey.isPrimary || value != null ? " = ?" : " IS NULL");
+        Utils.escapeIdentifier(deleteSQL, primaryKeys.get(i).name);
+        deleteSQL.append(" = ?");
         if (i < numKeys - 1) {
           deleteSQL.append(" and ");
         }
@@ -1013,11 +1004,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
     deleteStatement.clearParameters();
 
-    for (int i = 0, j = 0; i < numKeys; i++) {
-      Object value = primaryKeyValues.get(i);
-      if (value != null) {
-        deleteStatement.setObject(++j, value);
-      }
+    for (int i = 0; i < numKeys; i++) {
+      deleteStatement.setObject(i + 1, primaryKeys.get(i).getValue());
     }
 
     deleteStatement.executeUpdate();
@@ -1341,15 +1329,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
     int numKeys = primaryKeys.size();
-    List<@Nullable Object> primaryKeyValues = new ArrayList<@Nullable Object>(numKeys);
 
     for (int i = 0; i < numKeys; i++) {
+
       PrimaryKey primaryKey = primaryKeys.get(i);
-      Object value = primaryKey.getValue();
-      primaryKeyValues.add(value);
-      selectSQL
-          .append(primaryKey.name)
-          .append(primaryKey.isPrimary || value != null ? " = ?" : " IS NULL");
+      selectSQL.append(primaryKey.name).append(" = ?");
 
       if (i < numKeys - 1) {
         selectSQL.append(" and ");
@@ -1366,11 +1350,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       selectStatement = connection.prepareStatement(sqlText,
           ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-      for (int i = 0, j = 0; i < numKeys; i++) {
-        Object value = primaryKeyValues.get(i);
-        if (value != null) {
-          selectStatement.setObject(++j, value);
-        }
+      for (int i = 0; i < numKeys; i++) {
+        selectStatement.setObject(i + 1, primaryKeys.get(i).getValue());
       }
 
       PgResultSet rs = (PgResultSet) selectStatement.executeQuery();
@@ -1436,15 +1417,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
     int numKeys = primaryKeys.size();
-    List<@Nullable Object> primaryKeyValues = new ArrayList<@Nullable Object>(numKeys);
 
     for (int i = 0; i < numKeys; i++) {
       PrimaryKey primaryKey = primaryKeys.get(i);
-      Object value = primaryKey.getValue();
-      primaryKeyValues.add(value);
-
       Utils.escapeIdentifier(updateSQL, primaryKey.name);
-      updateSQL.append(primaryKey.isPrimary || value != null ? " = ?" : " IS NULL");
+      updateSQL.append(" = ?");
 
       if (i < numKeys - 1) {
         updateSQL.append(" and ");
@@ -1466,11 +1443,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         updateStatement.setObject(i + 1, o);
       }
 
-      for (int j = 0; j < numKeys; j++) {
-        Object keyValue = primaryKeyValues.get(j);
-        if (keyValue != null) {
-          updateStatement.setObject(++i, keyValue);
-        }
+      for (int j = 0; j < numKeys; j++, i++) {
+        updateStatement.setObject(i + 1, primaryKeys.get(j).getValue());
       }
 
       updateStatement.executeUpdate();
@@ -1671,17 +1645,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
       numPKcolumns++;
 
-      String columnName = castNonNull(rs.getString(4)); // get the columnName
       boolean isNotNull = rs.getBoolean("IS_NOT_NULL");
 
       /* make sure that only unique keys with all non-null attributes are handled */
       if (isNotNull) {
+        String columnName = castNonNull(rs.getString(4)); // get the columnName
         int index = findColumnIndex(columnName);
 
         /* make sure that the user has included the primary key in the resultset */
         if (index > 0) {
           i++;
-          primaryKeys.add(new PrimaryKey(index, columnName, rs.getBoolean("IS_PRIMARY"))); // get the primary key information
+          primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
         }
       }
     }
@@ -1706,7 +1680,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
       // oidIndex will be >0 if the oid was in the select list
       if (oidIndex > 0) {
-        primaryKeys.add(new PrimaryKey(oidIndex, "oid", true));
+        primaryKeys.add(new PrimaryKey(oidIndex, "oid"));
         usingOID = true;
         updateable = true;
       }
@@ -3341,12 +3315,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private class PrimaryKey {
     int index; // where in the result set is this primaryKey
     String name; // what is the columnName of this primary Key
-    boolean isPrimary; // is this part of primary or unique key
 
-    PrimaryKey(int index, String name, boolean isPrimary) {
+    PrimaryKey(int index, String name) {
       this.index = index;
       this.name = name;
-      this.isPrimary = isPrimary;
     }
 
     @Nullable Object getValue() throws SQLException {
