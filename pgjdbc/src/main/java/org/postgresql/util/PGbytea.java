@@ -15,6 +15,39 @@ import java.sql.SQLException;
 public class PGbytea {
   private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
+  private static final byte[][] HEX_LOOKUP = new byte[103][103];
+
+  static {
+    // build the hex lookup table
+    for (int i = 0; i < 256; ++i) {
+      int lo = i & 0x0f;
+      int lo2 = lo;
+      int hi = (i & 0xf0) >> 4;
+      int hi2 = hi;
+      // 0-9 == 48-57
+      // a-f == 97-102
+      // A-F == 65-70
+      if (lo < 10) {
+        lo += 48;
+        lo2 = lo;
+      } else {
+        lo += 87;
+        lo2 += 55;
+      }
+      if (hi < 10) {
+        hi += 48;
+        hi2 = hi;
+      } else {
+        hi += 87;
+        hi2 += 55;
+      }
+      HEX_LOOKUP[lo] [hi] = (byte)i;
+      HEX_LOOKUP[lo2][hi] = (byte)i;
+      HEX_LOOKUP[lo] [hi2] = (byte)i;
+      HEX_LOOKUP[lo2][hi2] = (byte)i;
+    }
+  }
+
   /*
    * Converts a PG bytea raw value (i.e. the raw binary representation of the bytea data type) into
    * a java byte[]
@@ -34,31 +67,12 @@ public class PGbytea {
     return toBytesHexEscaped(s);
   }
 
-  private static byte[] toBytesHexEscaped(byte[] s) {
-    byte[] output = new byte[(s.length - 2) / 2];
+  private static byte[] toBytesHexEscaped(final byte[] s) {
+    final byte[] output = new byte[(s.length - 2) / 2];
     for (int i = 0; i < output.length; i++) {
-      byte b1 = gethex(s[2 + i * 2]);
-      byte b2 = gethex(s[2 + i * 2 + 1]);
-      // squid:S3034
-      // Raw byte values should not be used in bitwise operations in combination with shifts
-      output[i] = (byte) ((b1 << 4) | (b2 & 0xff));
+      output[i] = HEX_LOOKUP[s[2 + i * 2 + 1]][s[2 + i * 2]];
     }
     return output;
-  }
-
-  private static byte gethex(byte b) {
-    // 0-9 == 48-57
-    if (b <= 57) {
-      return (byte) (b - 48);
-    }
-
-    // a-f == 97-102
-    if (b >= 97) {
-      return (byte) (b - 97 + 10);
-    }
-
-    // A-F == 65-70
-    return (byte) (b - 65 + 10);
   }
 
   private static byte[] toBytesOctalEscaped(byte[] s) {
