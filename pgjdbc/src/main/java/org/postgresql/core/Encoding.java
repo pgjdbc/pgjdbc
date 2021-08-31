@@ -257,7 +257,7 @@ public class Encoding {
    * @throws IOException if something goes wrong
    */
   public String decode(byte[] encodedString, int offset, int length) throws IOException {
-    return length > 0 ? new String(encodedString, offset, length, encoding) : "";
+    return new String(encodedString, offset, length, encoding);
   }
 
   /**
@@ -279,6 +279,7 @@ public class Encoding {
     if (length == 0) {
       return "";
     }
+    // if fastASCIINumbers is false, then no chance of the byte[] being ascii compatible characters
     return fastASCIINumbers ? INTERNER.getString(encodedString, offset, length, this)
                             : decode(encodedString, offset, length);
   }

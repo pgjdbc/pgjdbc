@@ -22,7 +22,7 @@ final class ByteOptimizedUTF8Encoder extends OptimizedUTF8Encoder {
   public String decode(byte[] encodedString, int offset, int length) throws IOException {
     //for very short strings going straight to chars is up to 30% faster
     if (length <= 32) {
-      return length > 0 ? charDecode(encodedString, offset, length) : "";
+      return charDecode(encodedString, offset, length);
     }
     for (int i = offset, j = offset + length; i < j; ++i) {
       // bytes are signed values. all ascii values are positive
