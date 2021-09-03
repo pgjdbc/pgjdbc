@@ -574,6 +574,13 @@ Connection conn = DriverManager.getConnection(url);
 
 	By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
 
+* **quoteReturningIdentifiers** == boolean
+
+  Quote returning columns.
+  There are some ORM's that quote everything, including returning columns
+  If we quote them, then we end up sending ""colname"" to the backend instead of "colname"
+  which will not be found.
+
 <a name="unix sockets"></a>
 ## Unix sockets
 
