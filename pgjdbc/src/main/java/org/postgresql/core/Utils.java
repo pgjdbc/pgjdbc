@@ -131,9 +131,9 @@ public class Utils {
    * @param value value to append
    */
   private static void doAppendEscapedIdentifier(Appendable sbuf, String value) throws SQLException {
-
     try {
       sbuf.append('"');
+
       for (int i = 0; i < value.length(); ++i) {
         char ch = value.charAt(i);
         if (ch == '\0') {
