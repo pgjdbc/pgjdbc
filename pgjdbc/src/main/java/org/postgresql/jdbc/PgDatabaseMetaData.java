@@ -1311,9 +1311,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " '' as TYPE_CAT, '' as TYPE_SCHEM, '' as TYPE_NAME, "
              + "'' AS SELF_REFERENCING_COL_NAME, '' AS REF_GENERATION "
              + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c "
-             + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0) "
-             + " LEFT JOIN pg_catalog.pg_class dc ON (d.classoid=dc.oid AND dc.relname='pg_class') "
-             + " LEFT JOIN pg_catalog.pg_namespace dn ON (dn.oid=dc.relnamespace AND dn.nspname='pg_catalog') "
+             + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
              + " WHERE c.relnamespace = n.oid ";
 
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
