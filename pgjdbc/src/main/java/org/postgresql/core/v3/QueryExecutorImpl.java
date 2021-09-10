@@ -880,6 +880,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           break;
 
+        case 'S': // Parameter Status
+          try {
+            receiveParameterStatus();
+          } catch (SQLException e) {
+            if (error == null) {
+              error = e;
+            } else {
+              error.setNextException(e);
+            }
+            endQuery = true;
+          }
+          break;
+
         default:
           throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
               PSQLState.CONNECTION_FAILURE);
