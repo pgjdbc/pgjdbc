@@ -92,7 +92,7 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "duplicate", "x text");
     TestUtil.execute("comment on table duplicate is 'duplicate table'", con);
     TestUtil.execute("create or replace function bar() returns integer language sql as $$ select 1 $$", con);
-    TestUtil.execute("comment on function bar is 'bar function'", con);
+    TestUtil.execute("comment on function bar() is 'bar function'", con);
     TestUtil.execute("update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc",conPriv);
 
     // 8.2 does not support arrays of composite types
