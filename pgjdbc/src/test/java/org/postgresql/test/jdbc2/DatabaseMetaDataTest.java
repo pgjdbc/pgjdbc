@@ -64,7 +64,6 @@ public class DatabaseMetaDataTest {
 
   @Before
   public void setUp() throws Exception {
-    Connection conPriv = TestUtil.openPrivilegedDB();
     if (binaryMode == BinaryMode.FORCE) {
       final Properties props = new Properties();
       PGProperty.PREPARE_THRESHOLD.set(props, -1);
@@ -93,7 +92,9 @@ public class DatabaseMetaDataTest {
     TestUtil.execute("comment on table duplicate is 'duplicate table'", con);
     TestUtil.execute("create or replace function bar() returns integer language sql as $$ select 1 $$", con);
     TestUtil.execute("comment on function bar() is 'bar function'", con);
-    TestUtil.execute("update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc",conPriv);
+    try (Connection conPriv = TestUtil.openPrivilegedDB()) {
+      TestUtil.execute("update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc", conPriv);
+    }
 
     // 8.2 does not support arrays of composite types
     TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
