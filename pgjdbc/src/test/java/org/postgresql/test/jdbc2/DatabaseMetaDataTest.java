@@ -120,6 +120,12 @@ public class DatabaseMetaDataTest {
           "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
     }
 
+    // create a custom `&` operator, which caused failure with `&` usage in getIndexInfo()
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION f6(numeric, integer) returns integer as 'BEGIN return $1::integer & $2;END;' language plpgsql immutable;");
+    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+    stmt.execute("CREATE OPERATOR & (LEFTARG = numeric, RIGHTARG = integer, PROCEDURE = f6)");
+
     TestUtil.createDomain(con, "nndom", "int not null");
     TestUtil.createDomain(con, "varbit2", "varbit(3)");
     TestUtil.createDomain(con, "float83", "numeric(8,3)");
@@ -154,6 +160,8 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     stmt.execute("DROP FUNCTION f2(int, varchar)");
     stmt.execute("DROP FUNCTION f3(int, varchar)");
+    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+    stmt.execute("DROP FUNCTION f6(numeric, integer)");
     TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
     TestUtil.dropDomain(con, "varbit2");
