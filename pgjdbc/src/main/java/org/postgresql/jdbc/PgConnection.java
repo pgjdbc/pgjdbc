@@ -144,6 +144,8 @@ public class PgConnection implements BaseConnection {
   private boolean readOnly = false;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
   private boolean  hideUnprivilegedObjects ;
+  // Whether to include error details in logging and exceptions
+  private final boolean logServerErrorDetail;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
 
@@ -297,6 +299,7 @@ public class PgConnection implements BaseConnection {
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
       openStackTrace = new Throwable("Connection was created at this point:");
     }
+    this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -1531,6 +1534,10 @@ public class PgConnection implements BaseConnection {
   public <T> T createQueryObject(Class<T> ifc) throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
+  }
+
+  public boolean getLogServerErrorDetail() {
+    return logServerErrorDetail;
   }
 
   @Override

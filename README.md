@@ -125,6 +125,7 @@ In addition to the standard connection parameters the driver supports a number o
 | receiveBufferSize             | Integer | -1      | Socket read buffer size  |
 | loggerLevel                   | String  | null    | Logger level of the driver using java.util.logging. Allowed values: OFF, DEBUG or TRACE. |
 | loggerFile                    | String  | null    | File name output of the Logger, if set, the Logger will use a FileHandler to write to a specified file. If the parameter is not set or the file can't be created the ConsoleHandler will be used instead. |
+| logServerErrorDetail          | Boolean | true    | Allows server error detail (such as sql statements and values) to be logged and passed on in exceptions.  Setting to false will mask these errors so they won't be exposed to users, or logs. |
 | allowEncodingChanges          | Boolean | false   | Allow for changes in client_encoding |
 | logUnclosedConnections        | Boolean | false   | When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source |
 | binaryTransferEnable          | String  | ""      | Comma separated list of types to enable binary transfer. Either OID numbers or names |

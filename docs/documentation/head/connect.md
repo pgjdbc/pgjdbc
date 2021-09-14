@@ -540,7 +540,14 @@ Connection conn = DriverManager.getConnection(url);
     A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
     
 	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
-	
+
+* **logServerErrorDetail** == boolean
+
+    Whether to include server error details in exceptions and log messages (for example inlined query parameters). 
+	Setting to false will only include minimal, not sensitive messages.
+
+	By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
+
 <a name="unix sockets"></a>
 ## Unix sockets
 
