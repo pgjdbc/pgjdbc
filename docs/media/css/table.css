@@ -7,7 +7,7 @@ div.tblBasic h2 {
 }
 
 div.tblBasic table {
-        background: #F5F5F5 url(media/img/layout/nav_tbl_top_lft.png) top left no-repeat;
+        background: #F5F5F5 url(/media/img/layout/nav_tbl_top_lft.png) top left no-repeat;
 	margin-left: 2ex;
         margin-bottom: 15px;
 }
@@ -47,25 +47,25 @@ div.tblBasic table.tblCompact tr.lastrow td {
 
 div.tblBasic table tr.lastrow td.colFirstT,
 div.tblBasic table tr.lastrow td.colFirst {
-        background: url(media/img/layout/nav_tbl_btm_lft.png) bottom left no-repeat;
+        background: url(/media/img/layout/nav_tbl_btm_lft.png) bottom left no-repeat;
 }
 
 div.tblBasic table.tblBasicGrey th.colLast,
 div.tblBasic table.tblCompact th.colLast {
-        background: #F5F5F5 url(media/img/layout/nav_tbl_top_rgt.png) top right no-repeat;
+        background: #F5F5F5 url(/media/img/layout/nav_tbl_top_rgt.png) top right no-repeat;
 }
 
 div.tblBasic table.tblBasicGrey tr.lastrow td.colLastT,
 div.tblBasic table.tblBasicGrey tr.lastrow td.colLast,
 div.tblBasic table.tblCompact tr.lastrow td.colLast,
 div.tblBasic table.tblCompact tr.lastrow td.colLastT{
-        background: #F5F5F5 url(media/img/layout/nav_tbl_btm_rgt.png) bottom right no-repeat;
+        background: #F5F5F5 url(/media/img/layout/nav_tbl_btm_rgt.png) bottom right no-repeat;
 }
 
 div.tblBasic table.tblBasicGrey tr.firstrow td.colLastT,
 div.tblBasic table.tblBasicGrey tr.firstrow td.colLast,
 div tblBasic table.tblCompact tr.firstrow td.colLast {
-        background: #F5F5F5 url(media/img/layout/nav_tbl_top_rgt.png) top right no-repeat;
+        background: #F5F5F5 url(/media/img/layout/nav_tbl_top_rgt.png) top right no-repeat;
 }
 
 div.tblBasic table th.colMid,
