@@ -286,7 +286,26 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public synchronized int getSQLType(String pgTypeName) throws SQLException {
-    return getSQLType(castNonNull(getPGType(pgTypeName)));
+    /*
+    Get a few things out of the way such as arrays and known types
+     */
+    if (pgTypeName.endsWith("[]")) {
+      return Types.ARRAY;
+    }
+    Integer i = this.pgNameToSQLType.get(pgTypeName);
+    if (i != null) {
+      return i;
+    }
+
+    /*
+      All else fails then we will query the database.
+      save for future calls
+    */
+    i = getSQLType(castNonNull(getPGType(pgTypeName)));
+
+    pgNameToSQLType.put(pgTypeName, i);
+    return i;
+
   }
 
   public synchronized int getSQLType(int typeOid) throws SQLException {
