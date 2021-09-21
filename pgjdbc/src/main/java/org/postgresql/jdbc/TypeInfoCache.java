@@ -291,7 +291,7 @@ public class TypeInfoCache implements TypeInfo {
      */
     if (pgTypeName.endsWith("[]")) {
       return Types.ARRAY;
-    }else {
+    } else {
       Integer i = (Integer) this.pgNameToSQLType.get(pgTypeName);
       if (i != null) {
         return i;
