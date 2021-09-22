@@ -9,7 +9,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
-- Fix "Avoid leaking server error details through BatchUpdateException when logServerErrorDetail=false" [PR #2148](https://github.com/pgjdbc/pgjdbc/pull/2148) fixes Issue #2147
+- fix startup regressions caused by [PR #1949](https://github.com/pgjdbc/pgjdbc/pull/1949) . Instead of checking all types by OID, we can return types for well known types [PR #2257](https://github.com/pgjdbc/pgjdbc/pull/2257)
+- Backport [PR2148](https://github.com/pgjdbc/pgjdbc/pull/2148)  
+  Avoid leaking error message details in JDBC batches when logServerErrorDetail is disabled [PR #2254](https://github.com/pgjdbc/pgjdbc/pull/2254)
+- Backpatch [PR #2247](https://github.com/pgjdbc/pgjdbc/pull/2247)
+  QueryExecutorImpl.receiveFastpathResult did not properly handle ParameterStatus messages.
+  This in turn caused failures for some LargeObjectManager operations. Closes [Issue #2237](https://github.com/pgjdbc/pgjdbc/issues/2237)
+  Fixed by adding the missing code path, based on the existing handling in processResults. [PR #2253](https://github.com/pgjdbc/pgjdbc/pull/2253)
+- Backpatch [PR #2242](https://github.com/pgjdbc/pgjdbc/pull/2242) PgDatabaseMetaData.getIndexInfo() cast operands to smallint  [PR#2253](https://github.com/pgjdbc/pgjdbc/pull/2253) 
+  It is possible to break method PgDatabaseMetaData.getIndexInfo() by adding certain custom operators. This PR fixes it.
+- Backpatching [PR #2251](https://github.com/pgjdbc/pgjdbc/pull/2251) into 42.2 Clean up open connections to fix test failures on omni and appveyor
+  use older syntax for COMMENT ON FUNCTION with explicit no-arg parameter parentheses as it is required on server versions before v10.
+  Handle cleanup of connection creation in StatementTest, handle cleanup of privileged connection in DatabaseMetaDataTest
+- backpatch [PR #2245](https://github.com/pgjdbc/pgjdbc/pull/2245) fixes case where duplicate tables are returned if there are duplicate descriptions oids are not guaranteed to be unique in the catalog [PR #2248](https://github.com/pgjdbc/pgjdbc/pull/2248)
+- change to updatable result set to use correctly primary or unique keys [PR #2228](https://github.com/pgjdbc/pgjdbc/pull/2228) 
+    fixes issues introduced in [PR #2199](https://github.com/pgjdbc/pgjdbc/pull/2199) closes [Issue #2196](https://github.com/pgjdbc/pgjdbc/issues/2196)
+- NPE calling getTypeInfo when alias is null [PR #2220](https://github.com/pgjdbc/pgjdbc/pull/2220)
+- backpatch [PR #2217](https://github.com/pgjdbc/pgjdbc/pull/2217) to fix [Issue #2215](https://github.com/pgjdbc/pgjdbc/issues/2215). OIDs are unsigned integers and were not being handled correctly when they exceeded the size of signed integers
+- Avoid leaking server error details through BatchUpdateException when logServerErrorDetail=false" [PR #2148](https://github.com/pgjdbc/pgjdbc/pull/2148) fixes [Issue #2147](https://github.com/pgjdbc/pgjdbc/issues/2147)
 
 [42.2.23] (2021-07-06 09:17:32 -0400)
 
