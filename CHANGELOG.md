@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - fix startup regressions caused by [PR #1949](https://github.com/pgjdbc/pgjdbc/pull/1949) . Instead of checking all types by OID, we can return types for well known types [PR #2257](https://github.com/pgjdbc/pgjdbc/pull/2257)
-- Backport [PR2148](https://github.com/pgjdbc/pgjdbc/pull/2148)  
+- Backport [PR #2148](https://github.com/pgjdbc/pgjdbc/pull/2148)  
   Avoid leaking error message details in JDBC batches when logServerErrorDetail is disabled [PR #2254](https://github.com/pgjdbc/pgjdbc/pull/2254)
 - Backpatch [PR #2247](https://github.com/pgjdbc/pgjdbc/pull/2247)
   QueryExecutorImpl.receiveFastpathResult did not properly handle ParameterStatus messages.
