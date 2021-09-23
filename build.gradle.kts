@@ -278,11 +278,6 @@ allprojects {
         }
 
         jacocoReport {
-            if (this@allprojects.path.startsWith(":postgresql-jre")) {
-                // Caused by: java.lang.IllegalStateException: Can't add different class with same name: org/postgresql/geometric/PGpath
-                // Ignore coverage results from Java 1.7 so far
-                return@jacocoReport
-            }
             // Note: this creates a lazy collection
             // Some of the projects might fail to create a file (e.g. no tests or no coverage),
             // So we check for file existence. Otherwise JacocoMerge would fail
@@ -424,8 +419,7 @@ allprojects {
             }
         }
 
-        if (!project.path.startsWith(":postgresql-jre")) {
-            if (enableCheckerframework) {
+        if (enableCheckerframework) {
                 apply(plugin = "org.checkerframework")
                 dependencies {
                     "checkerFramework"("org.checkerframework:checker:${"checkerframework".v}")
@@ -458,9 +452,8 @@ allprojects {
                     // extraJavacArgs.add("-Alint=redundantNullComparison")
                 }
             }
-        }
 
-        if (jacocoEnabled && !project.path.startsWith(":postgresql-jre")) {
+        if (jacocoEnabled) {
             // Add each project to combined report
             val mainCode = sourceSets["main"]
             jacocoReport.configure {
@@ -711,11 +704,8 @@ subprojects {
                 }
             }
             dependencies {
-                if (project.path.startsWith(":postgresql-jre")) {
-                    "sspiImplementation"("com.github.dblock.waffle:waffle-jna:${"waffle-jna-jre7".v}")
-                } else {
-                    "sspiImplementation"("com.github.waffle:waffle-jna")
-                }
+                "sspiImplementation"("com.github.waffle:waffle-jna")
+
                 // The dependencies are provided by OSGi container,
                 // so they should not be exposed as transitive dependencies
                 "osgiCompileOnly"("org.osgi:org.osgi.core")
