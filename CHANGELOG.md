@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 
-## [42.2.24] (2021-09-22)
+## [42.2.24] (2021-09-23)
 ### Fixed
 - Fix startup regressions caused by [PR #1949](https://github.com/pgjdbc/pgjdbc/pull/1949). Instead of checking all types by OID, we can return types for well known types [PR #2257](https://github.com/pgjdbc/pgjdbc/pull/2257)
 - Backport [PR #2148](https://github.com/pgjdbc/pgjdbc/pull/2148)
