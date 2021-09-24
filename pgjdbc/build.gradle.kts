@@ -54,7 +54,8 @@ dependencies {
     shaded(platform(project(":bom")))
     shaded("com.ongres.scram:client")
 
-    implementation("org.checkerframework:checker-qual")
+    compileOnly("org.checkerframework:checker-qual-android")
+    testCompileOnly("org.checkerframework:checker-qual-android")
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
 }
 
