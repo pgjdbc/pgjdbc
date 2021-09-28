@@ -1,8 +1,8 @@
 ---
 layout: todos
 title: PostgreSQL JDBC Todo
-resource: ../media
-nav: ../
+resource: /media
+nav: /development/
 ---
 
 
