@@ -2,7 +2,7 @@
 layout: default_docs
 title: Using Java 8 Date and Time classes
 header: Chapter 5. Using Java 8 Date and Time classes
-resource: media
+resource: /documentation/head/media
 previoustitle: Creating and Modifying Database Objects
 previous: ddl.html
 nexttitle: Chapter 6. Calling Stored Functions

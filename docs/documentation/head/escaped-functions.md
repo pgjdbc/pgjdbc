@@ -2,7 +2,7 @@
 layout: default_docs
 title: Escaped scalar functions
 header: Chapter 8. JDBC escapes
-resource: media
+resource: /documentation/head/media
 previoustitle: Date-time escapes
 previous: escapes-datetime.html
 nexttitle: Chapter 9. PostgreSQL™ Extensions to the JDBC API

@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 11. Connection Pools and Data Sources
 header: Chapter 11. Connection Pools and Data Sources
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 10. Using the Driver in a Multithreaded or a Servlet Environment
 previous: thread.html
 nexttitle: Application Servers ConnectionPoolDataSource

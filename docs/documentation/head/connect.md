@@ -2,7 +2,7 @@
 layout: default_docs
 title: Connecting to the Database
 header: Chapter 3. Initializing the Driver
-resource: media
+resource: /documentation/head/media
 previoustitle: Loading the Driver
 previous: load.html
 nexttitle: Chapter 4. Using SSL
