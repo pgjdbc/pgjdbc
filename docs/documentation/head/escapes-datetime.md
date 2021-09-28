@@ -2,7 +2,7 @@
 layout: default_docs
 title: Date-time escapes
 header: Chapter 8. JDBC escapes
-resource: media
+resource: /documentation/head/media
 previoustitle: Escape for outer joins
 previous: outer-joins-escape.html
 nexttitle: Escaped scalar functions

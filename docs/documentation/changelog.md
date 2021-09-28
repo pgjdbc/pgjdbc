@@ -1,8 +1,8 @@
 ---
 layout: changes
 title: PostgreSQL JDBC Changelog
-resource: ../media
-nav: ../
+resource: /media
+nav: /
 ---
 
 # History of Changes
