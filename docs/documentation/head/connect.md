@@ -389,13 +389,14 @@ Connection conn = DriverManager.getConnection(url);
 
 * **gssEncMode** = String
 
-    PostgreSQL 12 and later now allow GSSAPI encrypted connections.  This parameter controls whether
-    to enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and
-    `require`.  `disable` is obvious and disables any attempt to connect using GSS encrypted mode;
-    `allow` will connect initially in plain text then if the server requests it will switch to
-    encrypted mode; `prefer` will attempt to connect in encrypted mode and fall back to plain text
-    if it fails to acquire an encrypted connection; `require` attempts to connect in encrypted mode
-    and will fail to connect if that is not possible.
+    PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
+    enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
+    `disable` is obvious and disables any attempt to connect using GSS encrypted mode
+    `allow` will connect in plain text then if the server requests it will switch to encrypted mode
+    `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
+    an encrypted connection
+    `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
+    The default is `allow`.
 
 * **gsslib** = String
 
