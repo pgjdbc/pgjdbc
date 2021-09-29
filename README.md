@@ -16,7 +16,7 @@ PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a P
 ## Supported PostgreSQL and Java versions
 The current version of the driver should be compatible with **PostgreSQL 8.4 and higher** using the version 3.0 of the protocol and **Java 8** (JDBC 4.2) or above. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
 
-PgJDBC regression tests are run against all PostgreSQL versions since 8.4, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please fill an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
+PgJDBC regression tests are run against all PostgreSQL versions since 9.1, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but they have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please file an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
 
 ## Get the Driver
 Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
@@ -24,17 +24,17 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.2.16-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.2.24-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.16</version>
+    <version>42.2.24</version>
 </dependency>
 ```
 
-[mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.16|bundle
+[mvn-search]: https://search.maven.org/search?q=g:org.postgresql%20AND%20a:postgresql "Search on Maven Central"
+[mvn-jre8]: https://search.maven.org/artifact/org.postgresql/postgresql/42.2.24/jar
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -42,7 +42,7 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.3.0-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.3.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -118,7 +118,7 @@ In addition to the standard connection parameters the driver supports a number o
 | socketTimeout                 | Integer | 0       | The timeout value used for socket read operations. |
 | tcpKeepAlive                  | Boolean | false   | Enable or disable TCP keep-alive. |
 | ApplicationName               | String  | PostgreSQL JDBC Driver    | The application name (require server version >= 9.0). If assumeMinServerVersion is set to >= 9.0 this will be sent in the startup packets, otherwise after the connection is made |
-| readOnly                      | Boolean | true    | Puts this connection in read-only mode |
+| readOnly                      | Boolean | false   | Puts this connection in read-only mode |
 | disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
 | assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
 | currentSchema                 | String  | null    | Specify the schema (or several schema separated by commas) to be set in the search-path |
