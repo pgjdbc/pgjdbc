@@ -75,6 +75,7 @@ is executed a second time it will fail.
 - The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) [PR 1879](https://github.com/pgjdbc/pgjdbc/pull/1879).
 - PgTokenizer was ignoring last empty token [PR #1882](https://github.com/pgjdbc/pgjdbc/pull/1882)
 - Remove osgi from karaf fixes Issue #1891 [PR #1902](https://github.com/pgjdbc/pgjdbc/pull/1902)
+- Handle nulls when the following clasess are used: PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney.
 
 ## [42.2.16] (2020-08-20)
 ### Known issues
