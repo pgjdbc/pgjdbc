@@ -60,4 +60,5 @@ public class JsonbTest extends BaseTest4 {
     rs.close();
     stmt.close();
   }
+
 }
