@@ -46,6 +46,7 @@ dependencies {
         apiv("org.hamcrest:hamcrest-core", "hamcrest")
         apiv("org.hamcrest:hamcrest-library", "hamcrest")
         apiv("org.junit.jupiter:junit-jupiter-api", "junit5")
+        apiv("uk.org.webcompere:system-stubs-jupiter", "junit5-system-stubs-jupiter")
         apiv("org.junit.jupiter:junit-jupiter-params", "junit5")
         apiv("org.openjdk.jmh:jmh-generator-annprocess", "jmh")
         apiv("org.ops4j.pax.exam:pax-exam-container-native", "org.ops4j.pax.exam")

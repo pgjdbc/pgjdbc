@@ -179,6 +179,7 @@ allprojects {
             val testImplementation by configurations
             val testRuntimeOnly by configurations
             testImplementation("org.junit.jupiter:junit-jupiter-api")
+            testImplementation("uk.org.webcompere:system-stubs-jupiter")
             testImplementation("org.junit.jupiter:junit-jupiter-params")
             testImplementation("org.hamcrest:hamcrest")
             testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
