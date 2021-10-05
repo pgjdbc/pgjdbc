@@ -214,11 +214,11 @@ public enum PGProperty {
       new String[] {"select", "callIfNoReturn", "call"}),
 
   GSS_ENC_MODE(
-        "gssEncMode",
-        "allow",
-        "Force Encoded GSS Mode",
-        false,
-        new String[] {"disable", "allow", "prefer", "require"}
+      "gssEncMode",
+      "allow",
+      "Force Encoded GSS Mode",
+      false,
+      new String[] {"disable", "allow", "prefer", "require"}
   ),
 
   /**
