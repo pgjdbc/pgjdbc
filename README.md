@@ -70,6 +70,7 @@ jdbc:postgresql://host/database
 jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
 jdbc:postgresql://host:port/
+jdbc:postgresql://?service=myservice
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
@@ -90,6 +91,7 @@ In addition to the standard connection parameters the driver supports a number o
 | user                          | String  | null    | The database user on whose behalf the connection is being made. |
 | password                      | String  | null    | The database user's password. |
 | options                       | String  | null    | Specify 'options' connection initialization parameter. |
+| service                       | String  | null    | Specify 'service' name described in pg_service.conf file. References: [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html) and [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html). 'service' file can provide all properties including 'hostname=', 'port=' and 'dbname='. |
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
 | sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
