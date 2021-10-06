@@ -8,7 +8,6 @@ package org.postgresql.benchmark.bytea;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
@@ -20,41 +19,36 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @Fork(value = 5, jvmArgsPrepend = "-Xmx128m")
-@Measurement(iterations = 10, time = 10)
-@Warmup(iterations = 1, time = 10)
 @State(Scope.Thread)
 @Threads(1)
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class ByteaEncoding {
 
-  private static char[] hexdigit = new char[]{
+  private static final char[] hexdigit = new char[]{
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'B', 'c', 'D', 'e', 'F',
   };
-  private static final byte[] testInput1k = generateTestInput(1000);
-  private static final byte[] testInput100k = generateTestInput(100000);
+  private static final byte[] testInput100k = generateTestInput();
 
+  @Warmup(iterations = 1, time = 1)
+  @BenchmarkMode(Mode.AverageTime)
+  @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void runOriginalBenchmark() throws Exception {
-    new OriginalTest(testInput1k).run();
-    new OriginalTest(testInput100k).run();
+  public byte[] runOriginalBenchmark() {
+    return OriginalTest.toBytesHexEscaped(testInput100k);
   }
 
+  @Warmup(iterations = 1, time = 1)
+  @BenchmarkMode(Mode.AverageTime)
+  @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void runArray2DBenchmark() throws Exception {
-    new Array2DTest(testInput1k).run();
-    new Array2DTest(testInput100k).run();
+  public byte[] runArray2DBenchmark() throws Exception {
+    return Array2DTest.toBytesHexEscaped(testInput100k);
   }
 
-  interface TestRun {
-    void run() throws Exception;
-  }
+  private static byte[] generateTestInput() {
+    Random rand = new Random(1000000); // predictable seed
 
-  private static byte[] generateTestInput(int length) {
-    Random rand = new Random(length); // predictable seed
-
-    byte[] result = new byte[length];
-    for (int i = 2; i < length; i += 2) {
+    byte[] result = new byte[1000000];
+    for (int i = 2; i < 1000000; i += 2) {
       int randByte = rand.nextInt(256);
       result[i] = (byte) hexdigit[randByte >> 4];
       result[i + 1] = (byte) hexdigit[randByte & 15];
@@ -63,24 +57,16 @@ public class ByteaEncoding {
     return result;
   }
 
-  private static final class OriginalTest implements TestRun {
-    private final byte[] input;
+  private static final class OriginalTest {
 
-    OriginalTest(final byte[] input) {
-      this.input = input;
-    }
-
-    public void run() throws Exception {
-      toBytesHexEscaped(input);
-    }
-
-    private static void toBytesHexEscaped(final byte[] s) {
+    private static byte[] toBytesHexEscaped(final byte[] s) {
       final byte[] output = new byte[(s.length - 2) / 2];
       for (int i = 0; i < output.length; i++) {
         byte b1 = gethex(s[2 + i * 2]);
         byte b2 = gethex(s[2 + i * 2 + 1]);
         output[i] = (byte) ((b1 << 4) | b2);
       }
+      return output;
     }
 
     private static byte gethex(byte b) {
@@ -97,14 +83,9 @@ public class ByteaEncoding {
       // A-F == 65-70
       return (byte) (b - 65 + 10);
     }
-
-    public String toString() {
-      return "original code, " + input.length;
-    }
   }
 
-  private static final class Array2DTest implements TestRun {
-    private final byte[] input;
+  private static final class Array2DTest {
 
     private static final byte[][] HEX_LOOKUP = new byte[103][103];
 
@@ -139,24 +120,14 @@ public class ByteaEncoding {
       }
     }
 
-    Array2DTest(final byte[] input) {
-      this.input = input;
-    }
-
-    public void run() throws Exception {
-      toBytesHexEscaped(input);
-    }
-
-    private static void toBytesHexEscaped(final byte[] s) {
+    private static byte[] toBytesHexEscaped(final byte[] s) {
       final byte[] output = new byte[(s.length - 2) / 2];
       for (int i = 0; i < output.length; i++) {
         output[i] = HEX_LOOKUP[s[2 + i * 2 + 1]][s[2 + i * 2]];
       }
+      return output;
     }
 
-    public String toString() {
-      return "2D array lookup, " + input.length;
-    }
   }
 
 }
