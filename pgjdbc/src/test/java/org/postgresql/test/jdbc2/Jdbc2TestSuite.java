@@ -18,6 +18,8 @@ import org.postgresql.jdbc.ArraysTest;
 import org.postgresql.jdbc.ArraysTestSuite;
 import org.postgresql.jdbc.BitFieldTest;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
+import org.postgresql.jdbc.EscapeReturningColumnsOffTest;
+import org.postgresql.jdbc.EscapeReturningColumnsOnTest;
 import org.postgresql.jdbc.NoColumnMetadataIssue1613Test;
 import org.postgresql.jdbc.PgSQLXMLTest;
 import org.postgresql.test.core.FixedLengthOutputStreamTest;
@@ -77,6 +79,8 @@ import org.junit.runners.Suite;
     DeepBatchedInsertStatementTest.class,
     DriverTest.class,
     EncodingTest.class,
+    EscapeReturningColumnsOffTest.class,
+    EscapeReturningColumnsOnTest.class,
     ExpressionPropertiesTest.class,
     GeometricTest.class,
     GetXXXTest.class,

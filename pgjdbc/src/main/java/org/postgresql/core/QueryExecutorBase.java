@@ -45,6 +45,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private int serverVersionNum = 0;
   private TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
+  private final boolean escapeReturningColumns;
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final PreferQueryMode preferQueryMode;
@@ -73,6 +74,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.database = database;
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
+    this.escapeReturningColumns = PGProperty.ESCAPE_RETURNING_COLUMNS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
     String callMode = PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(info);
     this.escapeSyntaxCallMode = EscapeSyntaxCallMode.of(callMode);
@@ -286,6 +288,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public boolean isReWriteBatchedInsertsEnabled() {
     return this.reWriteBatchedInserts;
+  }
+
+  @Override
+  public boolean isEscapeReturningColumns() {
+    return this.escapeReturningColumns;
   }
 
   @Override

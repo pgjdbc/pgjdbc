@@ -198,6 +198,18 @@ public enum PGProperty {
       "Enable optimization that disables column name sanitiser"),
 
   /**
+   * Instructs the {@link org.postgresql.core.Parser} to escape (with double quotes) the column
+   * identifiers appended to the returning clause. A value of {@code true} (default) will make the
+   * parser escape the column identifiers in the returning clause. A value of {@code false} will
+   * disable this behavior and leave the column identifiers unchanged.
+   */
+  ESCAPE_RETURNING_COLUMNS(
+      "escapeReturningColumns",
+      "true",
+      "Escaping column identifiers when appending them to the `RETURNING` clause"
+  ),
+
+  /**
    * Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions. (backend &gt;= 11)
    * In {@code escapeSyntaxCallMode=select} mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
    * In {@code escapeSyntaxCallMode=callIfNoReturn} mode, the driver uses a CALL statement (allowing procedure invocation) if there is no return parameter specified, otherwise the driver uses a SELECT statement.

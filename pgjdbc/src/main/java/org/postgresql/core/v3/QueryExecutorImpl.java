@@ -237,7 +237,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Query createSimpleQuery(String sql) throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
         getStandardConformingStrings(), false, true,
-        isReWriteBatchedInsertsEnabled());
+        isReWriteBatchedInsertsEnabled(), true);
     return wrap(queries);
   }
 
