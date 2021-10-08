@@ -70,7 +70,6 @@ public class ArrayTest extends BaseTest4 {
         "id serial, name character(10), description character varying, parent integer");
     TestUtil.createTable(conn, "\"CorrectCasing\"", "id serial");
     TestUtil.createTable(conn, "\"Evil.Table\"", "id serial");
-    TestUtil.createTable(con, "jsonbarray", "jbarray jsonb[]" );
   }
 
   @Override
@@ -79,7 +78,6 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.dropTable(conn, "arrcompprnttest");
     TestUtil.dropTable(conn, "arrcompchldttest");
     TestUtil.dropTable(conn, "\"CorrectCasing\"");
-    TestUtil.dropTable(con, "jsonbarray");
 
     super.tearDown();
   }
@@ -693,6 +691,8 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testJsonbArray() throws  SQLException {
+    Assume.assumeTrue("jsonb requires PostgreSQL 9.4+", TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4));
+    TestUtil.createTempTable(con, "jsonbarray", "jbarray jsonb[]" );
     try (Statement stmt = con.createStatement()) {
       stmt.executeUpdate("insert into jsonbarray values( ARRAY['{\"a\":\"a\"}'::jsonb, '{\"b\":\"b\"}'::jsonb] )");
       try (ResultSet rs = stmt.executeQuery("select jbarray from jsonbarray")) {
