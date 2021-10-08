@@ -147,6 +147,8 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected boolean adaptiveFetch = false;
 
+  private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
+
   @SuppressWarnings("method.invocation.invalid")
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
@@ -1292,4 +1294,10 @@ public class PgStatement implements Statement, BaseStatement {
     return adaptiveFetch;
   }
 
+  protected TimestampUtils getTimestampUtils() {
+    if (timestampUtils == null) {
+      timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+    }
+    return timestampUtils;
+  }
 }
