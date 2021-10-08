@@ -50,6 +50,7 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
   private static Map<String, ServerVersion> oidsMinimumVersions = new HashMap<String, ServerVersion>() {{
       put("JSON", ServerVersion.v9_2);
       put("JSON_ARRAY", ServerVersion.v9_2);
+      put("JSONB", ServerVersion.v9_4);
       put("JSONB_ARRAY", ServerVersion.v9_4);
       put("MACADDR8", ServerVersion.v10);
     }};
