@@ -26,8 +26,8 @@ jobs:
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        ORG_GRADLE_PROJECT_ghNexuUsername: ${{ secrets.NEXUS_USERNAME }}
+        ORG_GRADLE_PROJECT_ghNexusUsername: ${{ secrets.NEXUS_USERNAME }}
         ghNexusPassword: ${{ secrets.NEXUS_PASSWORD }}
       with:
         job-id: jdk8
-        arguments: publishToNexus  -Pgh -PghNexuUsername=${{ secrets.NEXUS_USERNAME }}
+        arguments: publishToNexus  -Pgh
