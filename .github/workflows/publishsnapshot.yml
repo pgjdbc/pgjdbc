@@ -22,12 +22,12 @@ jobs:
         distribution: zulu
         java-version: 8
     - uses: burrunan/gradle-cache-action@v1
-      name: Verify code style
+      name: Publish Snapshot
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        USERNAME: ${{ github.actor }}
-        TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ghNexuUsername: ${{ secrets.NEXUS_USERNAME }}
+        ghNexusPassword: ${{ secrets.NEXUS_PASSWORD }}
       with:
         job-id: jdk8
         arguments: publishToNexus  -Pgh
