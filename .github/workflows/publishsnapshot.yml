@@ -1,8 +1,9 @@
 name: Nightly Snapshot
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
+  workflow_dispatch:
+#  schedule:
+#    - cron: '0 0 * * *'
 
 jobs:
   snapshot:
