@@ -30,4 +30,4 @@ jobs:
         ghNexusPassword: ${{ secrets.NEXUS_PASSWORD }}
       with:
         job-id: jdk8
-        arguments: publishToNexus  -Pgh -P ghNexuUsername=${{ secrets.NEXUS_USERNAME }}
+        arguments: publishToNexus  -Pgh -PghNexuUsername=${{ secrets.NEXUS_USERNAME }}
