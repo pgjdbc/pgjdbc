@@ -459,6 +459,11 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public synchronized int getPGType(String pgTypeName) throws SQLException {
+    // there really isn't anything else to return other than UNSPECIFIED here.
+    if ( pgTypeName == null ) {
+      return Oid.UNSPECIFIED;
+    }
+
     Integer oid = pgNameToOid.get(pgTypeName);
     if (oid != null) {
       return oid;
@@ -544,7 +549,7 @@ public class TypeInfoCache implements TypeInfo {
     return getNameStatement;
   }
 
-  public int getPGArrayType(String elementTypeName) throws SQLException {
+  public int getPGArrayType(@Nullable String elementTypeName) throws SQLException {
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
   }
@@ -696,7 +701,10 @@ public class TypeInfoCache implements TypeInfo {
     return result == null ? "java.lang.String" : result;
   }
 
-  public String getTypeForAlias(String alias) {
+  public @Nullable String getTypeForAlias(@Nullable String alias) {
+    if ( alias == null ) {
+      return null;
+    }
     String type = TYPE_ALIASES.get(alias);
     if (type != null) {
       return type;
