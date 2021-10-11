@@ -91,7 +91,7 @@ public interface TypeInfo {
 
   String getJavaClass(int oid) throws SQLException;
 
-  String getTypeForAlias(String alias);
+  @Nullable String getTypeForAlias(String alias);
 
   int getPrecision(int oid, int typmod);
 
