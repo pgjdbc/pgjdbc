@@ -30,4 +30,4 @@ jobs:
           ORG_GRADLE_PROJECT_ghNexusPassword: ${{ secrets.NEXUS_PASSWORD }}
         with:
           job-id: jdk8
-          arguments: publishToNexus -Pgh
+          arguments: postgresql:publishToNexus -Pgh
