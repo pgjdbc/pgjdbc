@@ -12,7 +12,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Rework OSGi bundle activator so it does not rely on exception message to check DataSourceFactory presence PR [#507](https://github.com/pgjdbc/pgjdbc/pull/507)
 - Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2174)
-- Fix refreshRow made the row readOnly. Fixes Issue #2193
+- Fix refreshRow made the row readOnly. [PR #2195](https://github.com/pgjdbc/pgjdbc/pull/2195 Fixes [Issue #2193](https://github.com/pgjdbc/pgjdbc/issues/2193)
+- Fix do not add double quotes to identifiers already double quoted [PR #2224](https://github.com/pgjdbc/pgjdbc/pull/2224) Fixes [Issue #2223](https://github.com/pgjdbc/pgjdbc/issues/2223)
+  Add a property QUOTE_RETURNING_IDENTIFIERS which determines if we put double quotes
+  around identifiers that are provided in the returning array.
+- Fix Provide useful error message for empty or missing passwords for SCRAM auth [PR #2290](https://github.com/pgjdbc/pgjdbc/pull/2290) fixes [Issue #2288](https://github.com/pgjdbc/pgjdbc/issues/2288)
+- 
 
 ## [42.2.24] (2021-09-23)
 ### Fixed
