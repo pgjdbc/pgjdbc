@@ -316,7 +316,6 @@ public class TypeInfoCache implements TypeInfo {
 
     pgNameToSQLType.put(pgTypeName, i);
     return i;
-
   }
 
   public synchronized int getSQLType(int typeOid) throws SQLException {
@@ -550,7 +549,7 @@ public class TypeInfoCache implements TypeInfo {
     return getNameStatement;
   }
 
-  public int getPGArrayType(@Nullable  String elementTypeName) throws SQLException {
+  public int getPGArrayType(@Nullable String elementTypeName) throws SQLException {
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
   }
@@ -703,7 +702,7 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public @Nullable String getTypeForAlias(@Nullable String alias) {
-    if (alias == null ) {
+    if ( alias == null ) {
       return null;
     }
     String type = TYPE_ALIASES.get(alias);

@@ -765,6 +765,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
+                if (password == null) {
+                  throw new PSQLException(
+                      GT.tr(
+                          "The server requested SCRAM-based authentication, but no password was provided."),
+                      PSQLState.CONNECTION_REJECTED);
+                }
+                if (password.equals("")) {
+                  throw new PSQLException(
+                      GT.tr(
+                          "The server requested SCRAM-based authentication, but the password is an empty string."),
+                      PSQLState.CONNECTION_REJECTED);
+                }
                 scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();

@@ -89,7 +89,7 @@ public class JsonbTest extends BaseTest4 {
 
   @Test
   public void jsonArray() throws SQLException {
-    jsonArrayGet("json", PGobject.class);
+    jsonArrayGet("json", String.class);
   }
 
   private void jsonArrayGet(String type, Class<?> arrayElement) throws SQLException {

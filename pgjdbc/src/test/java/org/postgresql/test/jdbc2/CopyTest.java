@@ -458,8 +458,7 @@ public class CopyTest {
     if (rollbackException == null) {
       fail("rollback should have thrown an exception");
     }
-
-    assertTrue( rollbackException instanceof SQLException);
+    acceptIOCause(rollbackException);
   }
 
   private static class Rollback extends Thread {

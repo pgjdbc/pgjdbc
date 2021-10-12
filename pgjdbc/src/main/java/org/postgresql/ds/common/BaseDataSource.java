@@ -379,6 +379,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return quoteReturningIdentifiers
+   * @see PGProperty#QUOTE_RETURNING_IDENTIFIERS
+   */
+  public boolean getQuoteReturningIdentifiers() {
+    return PGProperty.QUOTE_RETURNING_IDENTIFIERS.getBoolean(properties);
+  }
+
+  /**
+   * @param quoteIdentifiers indicate whether to quote identifiers
+   * @see PGProperty#QUOTE_RETURNING_IDENTIFIERS
+   */
+  public void setQuoteReturningIdentifiers(boolean quoteIdentifiers) {
+    PGProperty.QUOTE_RETURNING_IDENTIFIERS.set(properties, quoteIdentifiers);
+  }
+
+  /**
    * @return receive buffer size
    * @see PGProperty#RECEIVE_BUFFER_SIZE
    */
