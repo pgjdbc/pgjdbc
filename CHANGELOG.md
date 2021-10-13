@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+- No longer build for Java 6 or Java 7
 - If assumeMinServerVersion is not defined and server is at least 9.0, group startup statements into a single transaction PR [#1977](https://github.com/pgjdbc/pgjdbc/pull/1977)
 
 ### Added
@@ -14,10 +15,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified [PR #2174](https://github.com/pgjdbc/pgjdbc/pull/2174)
 - Fix refreshRow made the row readOnly. [PR #2195](https://github.com/pgjdbc/pgjdbc/pull/2195 Fixes [Issue #2193](https://github.com/pgjdbc/pgjdbc/issues/2193)
 - Fix do not add double quotes to identifiers already double quoted [PR #2224](https://github.com/pgjdbc/pgjdbc/pull/2224) Fixes [Issue #2223](https://github.com/pgjdbc/pgjdbc/issues/2223)
-  Add a property QUOTE_RETURNING_IDENTIFIERS which determines if we put double quotes
+  Add a property `QUOTE_RETURNING_IDENTIFIERS` which determines if we put double quotes
   around identifiers that are provided in the returning array.
 - Fix Provide useful error message for empty or missing passwords for SCRAM auth [PR #2290](https://github.com/pgjdbc/pgjdbc/pull/2290) fixes [Issue #2288](https://github.com/pgjdbc/pgjdbc/issues/2288)
-- 
 
 ## [42.2.24] (2021-09-23)
 ### Fixed
