@@ -1385,7 +1385,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testPartitionedTables() throws SQLException {
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       Statement stmt = null;
       try {
         stmt = con.createStatement();
