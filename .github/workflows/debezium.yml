@@ -6,7 +6,7 @@ on: [push,workflow_dispatch]
 jobs:
   snapshot:
     name: Debezium
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     #only for master
     #if: ${{ github.ref == 'refs/heads/master' }}
     env:
