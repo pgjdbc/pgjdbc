@@ -29,7 +29,7 @@ jobs:
         with:
           job-id: jdk8
           arguments: postgresql:publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
-      - name clone debezium and run tests
+      - name: clone debezium and run tests
         run: |
           git clone --depth 1 --branch v1.7.0.Finalhttps://github.com/debezium/debezium.git
           cd debezium
