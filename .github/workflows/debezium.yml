@@ -31,6 +31,6 @@ jobs:
           arguments: postgresql:publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
       - name: clone debezium and run tests
         run: |
-          git clone --depth 1 --branch v1.7.0.Final https://github.com/debezium/debezium.git
+          git clone --depth 1  https://github.com/debezium/debezium.git
           cd debezium
-          mvn clean verify -pl :debezium-connector-postgres -am -Dversion.postgres.server=14 -Dversion.postgresql.driver=42.2.24
+          mvn clean verify -pl :debezium-connector-postgres -am -Dversion.postgres.server=14 -Dversion.postgresql.driver=-Ppgjdbc.version=1.0.0-dev-master-SNAPSHOT
