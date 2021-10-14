@@ -1,11 +1,11 @@
-name: Nightly Snapshot
+name: Test Debezium
 
 # only on push or allow us to do this manually using workflow dispatch
 on: [push,workflow_dispatch]
 
 jobs:
   snapshot:
-    name: Snapshot
+    name: Debezium
     runs-on: ubuntu-latest
     #only for master
     #if: ${{ github.ref == 'refs/heads/master' }}
@@ -33,4 +33,4 @@ jobs:
         run: |
           git clone --depth 1 --branch v1.7.0.Final https://github.com/debezium/debezium.git
           cd debezium
-          mvn clean verify -pl :debezium-connector-postgres -am -Dversion.postgresql.driver=1.0.0-dev-master
+          mvn clean verify -pl :debezium-connector-postgres -am -Dversion.postgresql.driver=1.0.0-dev-master-SNAPSHOT
