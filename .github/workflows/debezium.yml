@@ -8,7 +8,7 @@ jobs:
     name: Debezium
     runs-on: ubuntu-20.04
     #only for master
-    #if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.ref == 'refs/heads/master' }}
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
