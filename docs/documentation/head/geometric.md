@@ -26,7 +26,7 @@ import org.postgresql.geometric.PGcircle;
 
 public class GeometricTest {
     public static void main(String args[]) throws Exception {
-        String url = "jdbc:postgresql://localhost:5432/test";
+        String url = "jdbc:yugabytedb://localhost:5432/test";
         try (Connection conn = DriverManager.getConnection(url, "test", "")) {
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("CREATE TEMP TABLE geomtest(mycirc circle)");

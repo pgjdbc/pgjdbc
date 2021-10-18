@@ -38,7 +38,7 @@ public class NotificationTest
 	public static void main(String args[]) throws Exception
 	{
 		Class.forName("org.postgresql.Driver");
-		String url = "jdbc:postgresql://localhost:5432/test";
+		String url = "jdbc:yugabytedb://localhost:5432/test";
 
 		// Create two distinct connections, one for the notifier
 		// and another for the listener to show the communication

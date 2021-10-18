@@ -2,6 +2,21 @@
  * Copyright (c) 2004, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
+/*
+ * The following only applies to changes made to this file as part of YugaByte development.
+ *
+ * Portions Copyright (c) YugaByte, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied.  See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 package org.postgresql;
 
@@ -502,6 +517,16 @@ public enum PGProperty {
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
           + "(backend >= 9.4)"),
+
+  YB_LOAD_BALANCE(
+      "load-balance",
+      "false",
+      "Load Balance connections across multiple tservers"),
+
+  YB_TOPOLOGY_KEYS(
+      "topology-keys",
+      null,
+      "Load Balance connections only in the given topolgies"),
 
   /**
    * Configure optimization to enable batch insert re-writing.

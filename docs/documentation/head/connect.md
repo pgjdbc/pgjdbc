@@ -12,12 +12,12 @@ next: ssl.html
 With JDBC, a database is represented by a URL (Uniform Resource Locator). With
 PostgreSQL, this takes one of the following forms:
 
-* jdbc:postgresql:*`database`*
-* jdbc:postgresql:/
-* jdbc:postgresql://*`host/database`*
-* jdbc:postgresql://*`host/`*
-* jdbc:postgresql://*`host:port/database`*
-* jdbc:postgresql://*`host:port/`*
+* jdbc:yugabytedb:*`database`*
+* jdbc:yugabytedb:/
+* jdbc:yugabytedb://*`host/database`*
+* jdbc:yugabytedb://*`host/`*
+* jdbc:yugabytedb://*`host:port/database`*
+* jdbc:yugabytedb://*`host:port/`*
 
 The parameters have the following meanings:
 
@@ -27,7 +27,7 @@ The parameters have the following meanings:
 	address your must enclose the `host` parameter with square brackets, for
 	example:
 
-	jdbc:postgresql://[::1]:5740/accounting
+	jdbc:yugabytedb://[::1]:5740/accounting
 
 * *`port`*
 
@@ -58,14 +58,14 @@ If a property is specified both in URL and in `Properties` object, the value fro
 `Properties` object is ignored.
 
 ```java
-String url = "jdbc:postgresql://localhost/test";
+String url = "jdbc:yugabytedb://localhost/test";
 Properties props = new Properties();
 props.setProperty("user","fred");
 props.setProperty("password","secret");
 props.setProperty("ssl","true");
 Connection conn = DriverManager.getConnection(url, props);
 
-String url = "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=true";
+String url = "jdbc:yugabytedb://localhost/test?user=fred&password=secret&ssl=true";
 Connection conn = DriverManager.getConnection(url);
 ```
 
@@ -91,7 +91,7 @@ Connection conn = DriverManager.getConnection(url);
     props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
     Connection conn = DriverManager.getConnection(url, props);
 
-    String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
+    String url = "jdbc:yugabytedb://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
     Connection conn = DriverManager.getConnection(url);
     ```
 
@@ -605,7 +605,7 @@ If none succeeds a normal connection exception is thrown.
 
 The syntax for the connection url is:
 
-`jdbc:postgresql://host1:port1,host2:port2/database`
+`jdbc:yugabytedb://host1:port1,host2:port2/database`
 
 The simple connection fail-over is useful when running against a high availability 
 postgres installation that has identical data on each node. 
@@ -614,11 +614,11 @@ For example streaming replication postgres or postgres-xc cluster.
 For example an application can create two connection pools. 
 One data source is for writes, another for reads. The write pool limits connections only to a primary node:
 
-`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=primary`.
+`jdbc:yugabytedb://node1,node2,node3/accounting?targetServerType=primary`.
 
 And read pool balances connections between secondary nodes, but allows connections also to a primary if no secondaries are available:
 
-`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
+`jdbc:yugabytedb://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
 If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
 the primary will be tried. If all the servers are marked as "can't connect" in the cache then an attempt

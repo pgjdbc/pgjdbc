@@ -46,7 +46,7 @@ public class TestNullsFirst {
     public static void main(String []args) throws Exception {
 
 
-        String url = "jdbc:postgresql://localhost:5432/test";
+        String url = "jdbc:yugabytedb://localhost:5432/test";
 
         Properties props = new Properties();
         props.setProperty("user", "test");

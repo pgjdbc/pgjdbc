@@ -1056,7 +1056,7 @@ Author:Craig Ringer <craig@2ndquadrant.com>
     The PgJDBC driver is not an executable Java program.
     
     You must install it according to the JDBC driver installation instructions for your application / container / appserver, then use it by specifying a JDBC URL of the form
-        jdbc:postgresql://
+        jdbc:yugabytedb://
     or using an application specific method.
     
     See the PgJDBC documentation: http://jdbc.postgresql.org/documentation/head/index.html
@@ -1680,7 +1680,7 @@ Date:   Fri Oct 25 16:18:10 2013 +0800
     
     You need this patch if attempts to use a URL like
     
-        jdbc:postgresql://ipaddress:port/dbname?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory
+        jdbc:yugabytedb://ipaddress:port/dbname?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory
     
     fails with:
     

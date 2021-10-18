@@ -2,6 +2,21 @@
  * Copyright (c) 2004, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
+/*
+ * The following only applies to changes made to this file as part of YugaByte development.
+ *
+ * Portions Copyright (c) YugaByte, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied.  See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 package org.postgresql.jdbc;
 
@@ -42,6 +57,7 @@ import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.LegacyInsecurePGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
+import com.yugabyte.ysql.ClusterAwareLoadBalancer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.dataflow.qual.Pure;
@@ -164,6 +180,8 @@ public class PgConnection implements BaseConnection {
   private final boolean replicationConnection;
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
+
+  private ClusterAwareLoadBalancer loadBalancer;
 
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
@@ -746,6 +764,14 @@ public class PgConnection implements BaseConnection {
     releaseTimer();
     queryExecutor.close();
     openStackTrace = null;
+    String host = queryExecutor.getHostSpec().getHost();
+    if (loadBalancer != null && host != null) {
+      loadBalancer.updateConnectionMap(host, -1);
+    }
+  }
+
+  public void setLoadBalancer(ClusterAwareLoadBalancer lb) {
+    this.loadBalancer = lb;
   }
 
   @Override

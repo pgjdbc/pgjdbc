@@ -1,148 +1,137 @@
-<img height="90" alt="Slonik Duke" align="right" src="docs/media/img/slonik_duke.png" />
+# YugabyteDB JDBC Driver
+This is a distributed JDBC driver for YugabyteDB SQL. This driver is based on the [PostgreSQL JDBC Driver](https://github.com/pgjdbc/pgjdbc).
 
-# PostgreSQL JDBC Driver
+## Features
 
-PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a PostgreSQL database using standard, database independent Java code. Is an open source JDBC driver written in Pure Java (Type 4), and communicates in the PostgreSQL native network protocol.
+This JDBC driver has the following features:
 
-### Status
-[![Build status](https://ci.appveyor.com/api/projects/status/d8ucmegnmourohwu/branch/master?svg=true)](https://ci.appveyor.com/project/davecramer/pgjdbc/branch/master)
-[![Build Status](https://travis-ci.com/pgjdbc/pgjdbc.svg?branch=master)](https://travis-ci.com/pgjdbc/pgjdbc)
-[![codecov.io](http://codecov.io/github/pgjdbc/pgjdbc/coverage.svg?branch=master)](http://codecov.io/github/pgjdbc/pgjdbc?branch=master)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
-[![Javadocs](http://javadoc.io/badge/org.postgresql/postgresql.svg)](http://javadoc.io/doc/org.postgresql/postgresql)
-[![License](https://img.shields.io/badge/License-BSD--2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![Join the chat at https://gitter.im/pgjdbc/pgjdbc](https://badges.gitter.im/pgjdbc/pgjdbc.svg)](https://gitter.im/pgjdbc/pgjdbc?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+### Cluster Awareness to eliminate need for a load balancer
 
-## Supported PostgreSQL and Java versions
-The current version of the driver should be compatible with **PostgreSQL 8.4 and higher** using the version 3.0 of the protocol and **Java 8** (JDBC 4.2) or above. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
+This driver adds a `YBClusterAwareDataSource` that requires only an initial _contact point_ for the YugabyteDB cluster, using which it discovers the rest of the nodes. Additionally, it automatically learns about the nodes being started/added or stopped/removed. Internally the driver keeps track of number of connections it has created to each server endpoint and every new connection request is connected to the least loaded server as per the driver's view.
 
-PgJDBC regression tests are run against all PostgreSQL versions since 8.4, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please fill an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
+### Topology Awareness to enable geo-distributed apps
 
-## Get the Driver
-Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
+This is similar to 'Cluster Awareness' but uses those servers which are part of a given set of geo-locations specified by _topology-keys_.
 
-### Maven Central
-You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
+### Shard awareness for high performance
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.2.16-blue.svg)][mvn-jre8]
-```xml
+> **NOTE:** This feature is still in the design phase.
+
+### Connection Properties added for load balancing
+
+- _load-balance_   - It takes 'true' or 'false' as valid values. By default it is 'false' for now.
+- _topology-keys_  - It takes a comma separated geo-location values. The geo-location can be given as 'cloud:region:zone'.
+
+Please refer to the [Use the Driver](#Use the Driver) section for examples.
+
+### Get the Driver
+
+### From Maven
+
+Either add the following lines to your maven project in pom.xml file.
+```
 <dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>42.2.16</version>
+  <groupId>com.yugabyte</groupId>
+  <artifactId>jdbc-yugabytedb</artifactId>
+  <version>42.3.0-yb-beta.1</version>
 </dependency>
 ```
 
-[mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.16|bundle
+or you can visit to this link for the latest version of dependency: https://search.maven.org/artifact/com.yugabyte/jdbc-yugabytedb
 
-#### Development snapshots
-Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
-```xml
-<dependency>
-  <groupId>org.postgresql</groupId>
-  <artifactId>postgresql</artifactId>
-  <version>42.3.0-SNAPSHOT</version> <!-- Java 8 -->
-</dependency>
-```
+### Build locally
 
-There are also available (snapshot) binary RPMs in [Fedora's Copr repository](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/).
+0. Build environment
 
-----------------------------------------------------
-## Documentation
-For more information you can read [the PgJDBC driver documentation](https://jdbc.postgresql.org/documentation/head/) or for general JDBC documentation please refer to [The Java™ Tutorials](http://docs.oracle.com/javase/tutorial/jdbc/).
+   gpgsuite needs to be present on the machine where build is performed.
+   ```
+   https://gpgtools.org/
+   ```
+   Please install gpg and create a key.
 
-### Driver and DataSource class
+1. Clone this repository.
 
-| Implements                          | Class                                          |
-| ----------------------------------- | ---------------------------------------------- |
-| java.sql.Driver                     | **org.postgresql.Driver**                      |
-| javax.sql.DataSource                | org.postgresql.ds.PGSimpleDataSource           |
-| javax.sql.ConnectionPoolDataSource  | org.postgresql.ds.PGConnectionPoolDataSource   |
-| javax.sql.XADataSource              | org.postgresql.xa.PGXADataSource               |
+    ```
+    git clone https://github.com/yugabyte/pgjdbc.git && cd pgjdbc
+    ```
+2. Checkout the 'yugabyte' branch.
 
-### Building the Connection URL
-The driver recognises JDBC URLs of the form:
-```
-jdbc:postgresql:database
-jdbc:postgresql:
-jdbc:postgresql://host/database
-jdbc:postgresql://host/
-jdbc:postgresql://host:port/database
-jdbc:postgresql://host:port/
-```
-The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
-```
-jdbc:postgresql:[//host[:port]/][database][?property1=value1[&property2=value2]...]
-```
-where:
- * **jdbc:postgresql:** (Required) is known as the sub-protocol and is constant.
- * **host** (Optional) is the server address to connect. This could be a DNS or IP address, or it could be *localhost* or *127.0.0.1* for the local computer. To specify an IPv6 address your must enclose the host parameter with square brackets (jdbc:postgresql://[::1]:5740/accounting). Defaults to `localhost`.
- * **port** (Optional) is the port number listening on the host. Defaults to `5432`.
- * **database** (Optional) is the database name. Defaults to the same name as the *user name* used in the connection.
- * **propertyX** (Optional) is one or more option connection properties. For more information see *Connection properties*.
+    ```
+     git checkout yugabyte
+    ```
 
-#### Connection Properties
-In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL™. These properties may be specified in either the connection URL or an additional Properties object parameter to DriverManager.getConnection.
+3. Build and install into your local maven folder.
 
-| Property                      | Type    | Default | Description   |
-| ----------------------------- | ------- | :-----: | ------------- |
-| user                          | String  | null    | The database user on whose behalf the connection is being made. |
-| password                      | String  | null    | The database user's password. |
-| options                       | String  | null    | Specify 'options' connection initialization parameter. |
-| ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
-| sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
-| sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
-| sslmode                       | String  | prefer  | Controls the preference for opening using an SSL encrypted connection. |
-| sslcert                       | String  | null    | The location of the client's SSL certificate |
-| sslkey                        | String  | null    | The location of the client's PKCS#8 SSL key |
-| sslrootcert                   | String  | null    | The location of the root certificate for authenticating the server. |
-| sslhostnameverifier           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.net.ssl.HostnameVerifier and can verify the server hostname. |
-| sslpasswordcallback           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.security.auth.callback.CallbackHandler and can handle PasswordCallback for the ssl password. |
-| sslpassword                   | String  | null    | The password for the client's ssl key (ignored if sslpasswordcallback is set) |
-| sendBufferSize                | Integer | -1      | Socket write buffer size |
-| receiveBufferSize             | Integer | -1      | Socket read buffer size  |
-| loggerLevel                   | String  | null    | Logger level of the driver using java.util.logging. Allowed values: OFF, DEBUG or TRACE. |
-| loggerFile                    | String  | null    | File name output of the Logger, if set, the Logger will use a FileHandler to write to a specified file. If the parameter is not set or the file can't be created the ConsoleHandler will be used instead. |
-| logServerErrorDetail          | Boolean | true    | Allows server error detail (such as sql statements and values) to be logged and passed on in exceptions.  Setting to false will mask these errors so they won't be exposed to users, or logs. |
-| allowEncodingChanges          | Boolean | false   | Allow for changes in client_encoding |
-| logUnclosedConnections        | Boolean | false   | When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source |
-| binaryTransferEnable          | String  | ""      | Comma separated list of types to enable binary transfer. Either OID numbers or names |
-| binaryTransferDisable         | String  | ""      | Comma separated list of types to disable binary transfer. Either OID numbers or names. Overrides values in the driver default set and values set with binaryTransferEnable. |
-| prepareThreshold              | Integer | 5       | Statement prepare threshold. A value of -1 stands for forceBinary |
-| preparedStatementCacheQueries | Integer | 256     | Specifies the maximum number of entries in per-connection cache of prepared statements. A value of 0 disables the cache. |
-| preparedStatementCacheSizeMiB | Integer | 5       | Specifies the maximum size (in megabytes) of a per-connection prepared statement cache. A value of 0 disables the cache. |
-| defaultRowFetchSize           | Integer | 0       | Positive number of rows that should be fetched from the database when more rows are needed for ResultSet by each fetch iteration |
-| loginTimeout                  | Integer | 0       | Specify how long to wait for establishment of a database connection.|
-| connectTimeout                | Integer | 10      | The timeout value used for socket connect operations. |
-| socketTimeout                 | Integer | 0       | The timeout value used for socket read operations. |
-| tcpKeepAlive                  | Boolean | false   | Enable or disable TCP keep-alive. |
-| ApplicationName               | String  | PostgreSQL JDBC Driver    | The application name (require server version >= 9.0). If assumeMinServerVersion is set to >= 9.0 this will be sent in the startup packets, otherwise after the connection is made |
-| readOnly                      | Boolean | true    | Puts this connection in read-only mode |
-| disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
-| assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
-| currentSchema                 | String  | null    | Specify the schema (or several schema separated by commas) to be set in the search-path |
-| targetServerType              | String  | any     | Specifies what kind of server to connect, possible values: any, master, slave (deprecated), secondary, preferSlave (deprecated), preferSecondary |
-| hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after which the host status is checked again in case it has changed |
-| loadBalanceHosts              | Boolean | false   | If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates |
-| socketFactory                 | String  | null    | Specify a socket factory for socket creation |
-| socketFactoryArg (deprecated) | String  | null    | Argument forwarded to constructor of SocketFactory class. |
-| autosave                      | String  | never   | Specifies what the driver should do if a query fails, possible values: always, never, conservative |
-| cleanupSavepoints             | Boolean | false   | In Autosave mode the driver sets a SAVEPOINT for every query. It is possible to exhaust the server shared buffers. Setting this to true will release each SAVEPOINT at the cost of an additional round trip. |
-| preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, possible values: extended, extendedForPrepared, extendedCacheEverything, simple |
-| reWriteBatchedInserts         | Boolean | false   | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
-| escapeSyntaxCallMode          | String  | select  | Specifies how JDBC escape call syntax is transformed into underlying SQL (CALL/SELECT), for invoking procedures or functions (requires server version >= 11), possible values: select, callIfNoReturn, call |
-| maxResultBuffer               | String  | null    | Specifies size of result buffer in bytes, which can't be exceeded during reading result set. Can be specified as particular size (i.e. "100", "200M" "2G") or as percent of max heap memory (i.e. "10p", "20pct", "50percent") |
-| gssEncMode                    | String  | allow  | Controls the preference for using GSSAPI encryption for the connection,  values are disable, allow, prefer, and require |
-| adaptiveFetch                 | Boolean | false   | Specifies if number of rows fetched in ResultSet by each fetch iteration should be dynamic. Number of rows will be calculated by dividing maxResultBuffer size into max row size observed so far. Requires declaring maxResultBuffer and defaultRowFetchSize for first iteration. 
-| adaptiveFetchMinimum          | Integer | 0       | Specifies minimum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go below this value. 
-| adaptiveFetchMaximum          | Integer | -1      | Specifies maximum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go above this value. Any negative number set as adaptiveFetchMaximum is used by adaptiveFetch as infinity number of rows.
-| localSocketAddress            | String  | null    | Hostname or IP address given to explicitly configure the interface that the driver will bind the client side of the TCP/IP connection to when connecting.
+    ```
+     ./gradlew publishToMavenLocal -x test -x checkstyleMain
+    ```
 
-## Contributing
-For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
+4. Finally, use it by adding the lines below to your project.
 
-----------------------------------------------------
-### Sponsors
+    ```xml
+    <dependency>
+        <groupId>com.yugabyte</groupId>
+        <artifactId>jdbc-yugabytedb</artifactId>
+        <version>42.3.1-SNAPSHOT</version>
+    </dependency> 
+    ```
+####Note: You need to have installed 2.7.2.0-b0 or above version of YugabyteDB on your system for load balancing to work.
 
-* [PostgreSQL International](http://www.postgresintl.com)
+## Use the Driver
+
+- Passing new connection properties for load balancing in connection url or properties bag
+
+  For uniform load balancing across all the server you just need to specify the _load-balance=true_ property in the url.
+    ```
+    String yburl = "jdbc:yugabytedb://127.0.0.1:5433/yugabyte?user=yugabyte&password=yugabyte&load-balance=true";
+    DriverManager.getConnection(yburl);
+    ```
+
+  For specifying topology keys you need to set the additional property with a valid comma separated value, for example _topology-keys=region1.zone1,region1.zone2_.
+
+    ```
+    String yburl = "jdbc:yugabytedb://127.0.0.1:5433/yugabyte?user=yugabyte&password=yugabyte&load-balance=true&topology-keys=region1.zone1,region1.zone2";
+    DriverManager.getConnection(yburl);
+    ```
+
+- Create and setup the DataSource for uniform load balancing
+  A datasource for Yugabyte has been added. It can be configured like this for load balancing behaviour.
+    ```
+    String jdbcUrl = "jdbc:yugabytedb://127.0.0.1:5433/yugabyte";
+    YBClusterAwareDataSource ds = new YBClusterAwareDataSource();
+    ds.setUrl(jdbcUrl);
+    // If topology aware distribution to be enabled then
+    ds.setTopologyKeys("cloud1.region1.zone1,cloud1.region2.zone2");
+    // If you want to provide more endpoints to safeguard against even first connection failure due
+    to the possible unavailability of initial contact point.
+    ds.setAdditionalEndpoints("127.0.0.2:5433,127.0.0.3:5433");
+
+    Connection conn = ds.getConnection();
+    ```
+
+- Create and setup the DataSource with a popular pooling solution like Hikari
+
+    ```
+    Properties poolProperties = new Properties();
+    poolProperties.setProperty("dataSourceClassName", "com.yugabyte.ysql.YBClusterAwareDataSource");
+    poolProperties.setProperty("maximumPoolSize", 10);
+    poolProperties.setProperty("dataSource.serverName", "127.0.0.1");
+    poolProperties.setProperty("dataSource.portNumber", "5433");
+    poolProperties.setProperty("dataSource.databaseName", "yugabyte");
+    poolProperties.setProperty("dataSource.user", "yugabyte");
+    poolProperties.setProperty("dataSource.password", "yugabyte");
+    // If you want to provide additional end points
+    String additionalEndpoints = "127.0.0.2:5433,127.0.0.3:5433,127.0.0.4:5433,127.0.0.5:5433";
+    poolProperties.setProperty("dataSource.additionalEndpoints", additionalEndpoints);
+    // If you want to load balance between specific geo locations using topology keys
+    String geoLocations = "region1.zone1,region2.zone2";
+    poolProperties.setProperty("dataSource.topologyKeys", geoLocations);
+
+    poolProperties.setProperty("poolName", name);
+
+    HikariConfig config = new HikariConfig(poolProperties);
+    config.validate();
+    HikariDataSource ds = new HikariDataSource(config);
+
+    Connection conn = ds.getConnection();
+    ```

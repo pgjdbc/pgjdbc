@@ -92,7 +92,7 @@ execute SQL commands, and can only be used with replication API. This is a restr
 **Example 9.4. Create replication connection.**
 
 ```java
-    String url = "jdbc:postgresql://localhost:5432/postgres";
+    String url = "jdbc:yugabytedb://localhost:5432/postgres";
     Properties props = new Properties();
     PGProperty.USER.set(props, "postgres");
     PGProperty.PASSWORD.set(props, "postgres");
@@ -260,7 +260,7 @@ The API provides the following feedback mechanism to indicate the successfully a
 **Example 9.14. Full example of logical replication**
 
 ```java
-    String url = "jdbc:postgresql://localhost:5432/test";
+    String url = "jdbc:yugabytedb://localhost:5432/test";
     Properties props = new Properties();
     PGProperty.USER.set(props, "postgres");
     PGProperty.PASSWORD.set(props, "postgres");

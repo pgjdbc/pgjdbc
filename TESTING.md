@@ -176,7 +176,7 @@ This is the JDBC 2 test suite that includes J2EE requirements.
 4. In $J2EE_HOME/config/default.properties:
 
        jdbc.drivers=org.postgresql.Driver
-       jdbc.datasources=jdbc/DB1|jdbc:postgresql://localhost:5432/DB1|jdbc/DB2|jdbc:postgresq://localhost:5432/DB2
+       jdbc.datasources=jdbc/DB1|jdbc:yugabytedb://localhost:5432/DB1|jdbc/DB2|jdbc:postgresq://localhost:5432/DB2
 
     Of course, if PostgreSQL is running on a computer different from
     the one running the application server, localhost should be changed

@@ -27,7 +27,7 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
   protected void initializeDataSource() {
     if (bds == null) {
       bds = new SimpleDataSource();
-      bds.setURL(String.format("jdbc:postgresql://%s:%d/%s?prepareThreshold=%d&loggerLevel=%s", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getPrepareThreshold(),
+      bds.setURL(String.format("jdbc:yugabytedb://%s:%d/%s?prepareThreshold=%d&loggerLevel=%s", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getPrepareThreshold(),
               TestUtil.getLogLevel()));
       bds.setUser(TestUtil.getUser());
       bds.setPassword(TestUtil.getPassword());

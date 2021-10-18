@@ -49,7 +49,7 @@ public class ConnectionUtil {
    * @return connection url to server
    */
   public static String getURL() {
-    return "jdbc:postgresql://" + ConnectionUtil.getServer() + ":" + ConnectionUtil.getPort() + "/"
+    return "jdbc:yugabytedb://" + ConnectionUtil.getServer() + ":" + ConnectionUtil.getPort() + "/"
         + ConnectionUtil
         .getDatabase();
   }

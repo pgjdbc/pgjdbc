@@ -23,7 +23,7 @@ import java.util.Properties;
 public class ConnectTimeoutTest {
   // The IP below is non-routable (see http://stackoverflow.com/a/904609/1261287)
   private static final String UNREACHABLE_HOST = "10.255.255.1";
-  private static final String UNREACHABLE_URL = "jdbc:postgresql://" + UNREACHABLE_HOST + ":5432/test";
+  private static final String UNREACHABLE_URL = "jdbc:yugabytedb://" + UNREACHABLE_HOST + ":5432/test";
   private static final int CONNECT_TIMEOUT = 5;
 
   @Before

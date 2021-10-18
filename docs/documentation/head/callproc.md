@@ -145,7 +145,7 @@ This example shows how to call a PostgreSQL™ procedure that uses transaction c
 
 ```java
 // set up a connection
-String url = "jdbc:postgresql://localhost/test";
+String url = "jdbc:yugabytedb://localhost/test";
 Properties props = new Properties();
 ... other properties ...
 // Ensure EscapeSyntaxCallmode property set to support procedures if no return value

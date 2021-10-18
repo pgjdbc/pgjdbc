@@ -32,7 +32,7 @@ public class PgJDBC {
     }
 
     public Connection tryConnect(String dataBase, String host, int port, String user, String password) throws Exception {
-        String url = "jdbc:postgresql://$host:$port/$dataBase"
+        String url = "jdbc:yugabytedb://$host:$port/$dataBase"
         PGProperty.USER.set(properties,user)
         PGProperty.PASSWORD.set(properties,password)
         DriverManager.getConnection(url,properties)
@@ -53,7 +53,7 @@ public class PgJDBC {
 
 
     public void createUser(String superuser, String superPass, String user, String password) {
-        String url = "jdbc:postgresql://$host:$port/postgres"
+        String url = "jdbc:yugabytedb://$host:$port/postgres"
         PGProperty.USER.set(properties, superuser)
         PGProperty.PASSWORD.set(properties,superPass)
         Connection conn = DriverManager.getConnection(url,properties)
@@ -66,7 +66,7 @@ public class PgJDBC {
 
 
     public void createDatabase(String superuser, String superPass, String owner, String database) {
-        String url = "jdbc:postgresql://$host:$port/postgres"
+        String url = "jdbc:yugabytedb://$host:$port/postgres"
         PGProperty.USER.set(properties, superuser)
         PGProperty.PASSWORD.set(properties,superPass)
         Connection conn = DriverManager.getConnection(url,properties)

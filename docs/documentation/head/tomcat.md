@@ -30,7 +30,7 @@ conf/server.xml
 	</parameter>
 	<parameter>
 		<name>url</name>
-		<value>jdbc:postgresql://localhost/davec</value>
+		<value>jdbc:yugabytedb://localhost/davec</value>
 	</parameter>
 	<parameter>
 		<name>password</name>

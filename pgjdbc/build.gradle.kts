@@ -187,7 +187,12 @@ tasks.shadowJar {
     listOf(
             "com.ongres"
     ).forEach {
-        relocate(it, "${project.group}.shaded.$it")
+        relocate(it, "com.yugabyte.shaded.$it") //modified
+    }
+    listOf( // added
+            "org.postgresql"
+    ).forEach {
+        relocate(it, "com.yugabyte")
     }
 }
 
@@ -392,6 +397,15 @@ publishing {
             name = "local"
             url = uri(localRepoDir)
         }
+        maven {
+            name = "remote"
+            url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+            credentials {
+                username = System.getenv("OSSRH_USERNAME")
+                password = System.getenv("OSSRH_PASSWORD")
+            }
+        }
+
     }
 }
 

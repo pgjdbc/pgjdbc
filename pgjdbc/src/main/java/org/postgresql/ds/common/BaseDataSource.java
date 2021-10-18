@@ -2,6 +2,21 @@
  * Copyright (c) 2004, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
+/*
+ * The following only applies to changes made to this file as part of YugaByte development.
+ *
+ * Portions Copyright (c) YugaByte, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied.  See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 package org.postgresql.ds.common;
 
@@ -54,9 +69,10 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   private @Nullable String user;
   private @Nullable String password;
   private int[] portNumbers = new int[] {0};
+  private int portNumber = 0;
 
   // Map for all other properties
-  private Properties properties = new Properties();
+  protected Properties properties = new Properties();
 
   /*
    * Ensure the driver is loaded as JDBC Driver might be invisible to Java's ServiceLoader.
@@ -1215,14 +1231,44 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public String getUrl() {
     StringBuilder url = new StringBuilder(100);
-    url.append("jdbc:postgresql://");
-    for (int i = 0; i < serverNames.length; i++) {
-      if (i > 0) {
-        url.append(",");
-      }
-      url.append(serverNames[i]);
-      if (portNumbers != null && portNumbers.length >= i && portNumbers[i] != 0) {
-        url.append(":").append(portNumbers[i]);
+    url.append("jdbc:yugabytedb://");
+    String serverName = serverNames[0];
+    boolean isIpv6 = serverName.contains(":");
+    if (serverName.contains(":")) {
+      url.append('[');
+      url.append(serverName);
+      url.append(']');
+    } else {
+      url.append(serverName);
+    }
+    if (portNumber != 0) {
+      url.append(":").append(portNumber);
+    }
+    String moreEndPoints = getAdditionalEndPoints();
+    if (moreEndPoints != null) {
+      url.append(",");
+      boolean isIpv6Address = isIpv6Address(moreEndPoints);
+      if (isIpv6Address) {
+        // It is an Ipv6 address
+        String[] endpointArr = moreEndPoints.split(",");
+        boolean appendedIpv6Addr = false;
+        for (String ipv6addr : endpointArr) {
+          int lastColIdx = ipv6addr.lastIndexOf(":");
+          String ipAddr = ipv6addr.substring(0, lastColIdx);
+          String port = ipv6addr.substring(lastColIdx + 1, ipv6addr.length());
+          appendedIpv6Addr = true;
+          url.append('[');
+          url.append(ipAddr);
+          url.append(']');
+          url.append(':');
+          url.append(port);
+          url.append(',');
+        }
+        if (appendedIpv6Addr) {
+          url.setLength(url.length() - 1);
+        }
+      } else {
+        url.append(moreEndPoints);
       }
     }
     url.append("/");
@@ -1249,6 +1295,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
 
     return url.toString();
+  }
+
+  private boolean isIpv6Address(String moreEndPoints) {
+    String[] splits = moreEndPoints.split(",");
+    if (splits.length > 0) {
+      String oneElement = splits[0];
+      String[] subSplits = oneElement.split(":");
+      if (subSplits.length > 2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  protected String getAdditionalEndPoints() {
+    return null;
   }
 
   /**

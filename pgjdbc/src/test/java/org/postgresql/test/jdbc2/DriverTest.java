@@ -70,29 +70,29 @@ public class DriverTest {
     assertNotNull(drv);
 
     // These are always correct
-    verifyUrl(drv, "jdbc:postgresql:test", "localhost", "5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost/test", "localhost", "5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5432/test", "localhost", "5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://127.0.0.1/anydbname", "127.0.0.1", "5432", "anydbname");
-    verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden", "127.0.0.1", "5433", "hidden");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "[::1]", "5740", "db");
+    verifyUrl(drv, "jdbc:yugabytedb:test", "localhost", "5432", "test");
+    verifyUrl(drv, "jdbc:yugabytedb://localhost/test", "localhost", "5432", "test");
+    verifyUrl(drv, "jdbc:yugabytedb://localhost:5432/test", "localhost", "5432", "test");
+    verifyUrl(drv, "jdbc:yugabytedb://127.0.0.1/anydbname", "127.0.0.1", "5432", "anydbname");
+    verifyUrl(drv, "jdbc:yugabytedb://127.0.0.1:5433/hidden", "127.0.0.1", "5433", "hidden");
+    verifyUrl(drv, "jdbc:yugabytedb://[::1]:5740/db", "[::1]", "5740", "db");
 
     // Badly formatted url's
     assertFalse(drv.acceptsURL("jdbc:postgres:test"));
     assertFalse(drv.acceptsURL("postgresql:test"));
     assertFalse(drv.acceptsURL("db"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:5432a/test"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:500000/test"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:0/test"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:-2/test"));
+    assertFalse(drv.acceptsURL("jdbc:yugabytedb://localhost:5432a/test"));
+    assertFalse(drv.acceptsURL("jdbc:yugabytedb://localhost:500000/test"));
+    assertFalse(drv.acceptsURL("jdbc:yugabytedb://localhost:0/test"));
+    assertFalse(drv.acceptsURL("jdbc:yugabytedb://localhost:-2/test"));
 
     // failover urls
-    verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",
+    verifyUrl(drv, "jdbc:yugabytedb://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",
         "5432,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1",
+    verifyUrl(drv, "jdbc:yugabytedb://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1",
         "5433,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432",
+    verifyUrl(drv, "jdbc:yugabytedb://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db");
+    verifyUrl(drv, "jdbc:yugabytedb://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432",
         "db");
   }
 
@@ -140,7 +140,7 @@ public class DriverTest {
    */
   @Test
   public void testConnectFailover() throws Exception {
-    String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":"
+    String url = "jdbc:yugabytedb://invalidhost.not.here," + TestUtil.getServer() + ":"
         + TestUtil.getPort() + "/" + TestUtil.getDatabase() + "?connectTimeout=5";
     Connection con = DriverManager.getConnection(url, TestUtil.getUser(), TestUtil.getPassword());
     assertNotNull(con);

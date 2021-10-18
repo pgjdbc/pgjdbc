@@ -100,8 +100,8 @@ This parameter should be use together with `loggerLevel`.
 The following is an example of how to use connection properties to enable logging:
 
 ```
-jdbc:postgresql://localhost:5432/mydb?loggerLevel=DEBUG
-jdbc:postgresql://localhost:5432/mydb?loggerLevel=TRACE&loggerFile=pgjdbc.log
+jdbc:yugabytedb://localhost:5432/mydb?loggerLevel=DEBUG
+jdbc:yugabytedb://localhost:5432/mydb?loggerLevel=TRACE&loggerFile=pgjdbc.log
 ```
 
 <a name="fileprop"></a>

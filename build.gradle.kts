@@ -2,7 +2,10 @@
  * Copyright (c) 2019, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
-
+ 
+/*
+ * Modified by Yugabyte for smart driver functionality
+*/
 import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
@@ -83,9 +86,10 @@ val gitProps by tasks.registering(FindGitAttributes::class) {
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
 
+// val buildVersion = "jdbc-yugabytedb".v + releaseParams.snapshotSuffix
 val buildVersion = "pgjdbc".v + releaseParams.snapshotSuffix
 
-println("Building pgjdbc $buildVersion")
+println("Building jdbc-yugabytedb $buildVersion")
 
 val isReleaseVersion = rootProject.releaseParams.release.get()
 
@@ -99,9 +103,9 @@ val jacocoReport by tasks.registering(JacocoReport::class) {
 }
 
 releaseParams {
-    tlp.set("pgjdbc")
-    organizationName.set("pgjdbc")
-    componentName.set("pgjdbc")
+    tlp.set("yugabyte")
+    organizationName.set("yugabyte")
+    componentName.set("jdbc-yugabytedb")
     prefixForProperties.set("gh")
     svnDistEnabled.set(false)
     sitePreviewEnabled.set(false)
@@ -120,7 +124,7 @@ releaseParams {
 }
 
 allprojects {
-    group = "org.postgresql"
+    group = "com.yugabyte"
     version = buildVersion
 
     apply(plugin = "com.github.vlsi.gradle-extensions")
@@ -505,16 +509,16 @@ allprojects {
             configureEach<Jar> {
                 manifest {
                     attributes["Bundle-License"] = "BSD-2-Clause"
-                    attributes["Implementation-Title"] = "PostgreSQL JDBC Driver"
+                    attributes["Implementation-Title"] = "YugabyteDB JDBC Driver"
                     attributes["Implementation-Version"] = project.version
                     val jdbcSpec = props.string("jdbc.specification.version")
                     if (jdbcSpec.isNotBlank()) {
-                        attributes["Specification-Vendor"] = "Oracle Corporation"
+                        attributes["Specification-Vendor"] = "Yugabyte Inc"
                         attributes["Specification-Version"] = jdbcSpec
                         attributes["Specification-Title"] = "JDBC"
                     }
-                    attributes["Implementation-Vendor"] = "PostgreSQL Global Development Group"
-                    attributes["Implementation-Vendor-Id"] = "org.postgresql"
+                    attributes["Implementation-Vendor"] = "Yugabyte"
+                    attributes["Implementation-Vendor-Id"] = "com.yugabyte"
                 }
             }
 
@@ -623,7 +627,7 @@ allprojects {
                 // </editor-fold>
                 // <editor-fold defaultstate="collapsed" desc="Configuration of the published pom.xml">
                 create<MavenPublication>(project.name) {
-                    artifactId = project.name
+                    artifactId = "jdbc-yugabytedb"
                     version = rootProject.version.toString()
                     from(components["java"])
 
@@ -639,12 +643,13 @@ allprojects {
                         name.set(
                             (project.findProperty("artifact.name") as? String) ?: "pgdjbc ${project.name.capitalize()}"
                         )
-                        description.set(project.description ?: "PostgreSQL JDBC Driver ${project.name.capitalize()}")
-                        inceptionYear.set("1997")
-                        url.set("https://jdbc.postgresql.org")
+                        description.set(project.description ?: "YugabyteDB JDBC Driver ${project.name.capitalize()}")
+                        inceptionYear.set("2016")
+                        url.set("https://www.yugabyte.com/")
                         licenses {
                             license {
                                 name.set("BSD-2-Clause")
+                                // let the original license be the same itself. TODO verify?
                                 url.set("https://jdbc.postgresql.org/about/license.html")
                                 comments.set("BSD-2-Clause, copyright PostgreSQL Global Development Group")
                                 distribution.set("repo")
@@ -694,9 +699,9 @@ allprojects {
                             }
                         }
                         scm {
-                            connection.set("scm:git:https://github.com/pgjdbc/pgjdbc.git")
-                            developerConnection.set("scm:git:https://github.com/pgjdbc/pgjdbc.git")
-                            url.set("https://github.com/pgjdbc/pgjdbc")
+                            connection.set("scm:git:https://github.com/yugabyte/pgjdbc.git")
+                            developerConnection.set("scm:git:https://github.com/yugabyte/pgjdbc.git")
+                            url.set("https://github.com/yugabyte/pgjdbc.git")
                             tag.set("HEAD")
                         }
                     }

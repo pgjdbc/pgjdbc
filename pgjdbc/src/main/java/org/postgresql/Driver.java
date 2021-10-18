@@ -3,6 +3,22 @@
  * See the LICENSE file in the project root for more information.
  */
 
+/*
+ * The following only applies to changes made to this file as part of YugaByte development.
+ *
+ * Portions Copyright (c) YugaByte, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied.  See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
+
 package org.postgresql;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
@@ -18,6 +34,8 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
 
+import com.yugabyte.ysql.ClusterAwareLoadBalancer;
+import com.yugabyte.ysql.LoadBalanceProperties;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -33,6 +51,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +85,7 @@ public class Driver implements java.sql.Driver {
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static final SharedTimer SHARED_TIMER = new SharedTimer();
-  private static final String DEFAULT_PORT = "5432";
+  private static final String DEFAULT_PORT = "5433";
 
   static {
     try {
@@ -199,7 +218,7 @@ public class Driver implements java.sql.Driver {
    * <p>Our protocol takes the forms:</p>
    *
    * <pre>
-   *  jdbc:postgresql://host:port/database?param1=val1&amp;...
+   *  jdbc:yugabytedb://host:port/database?param1=val1&amp;...
    * </pre>
    *
    * @param url the URL of the database to connect to
@@ -217,7 +236,7 @@ public class Driver implements java.sql.Driver {
     // get defaults
     Properties defaults;
 
-    if (!url.startsWith("jdbc:postgresql:")) {
+    if (!url.startsWith("jdbc:yugabytedb:")) {
       return null;
     }
     try {
@@ -462,14 +481,132 @@ public class Driver implements java.sql.Driver {
    * @return a new connection
    * @throws SQLException if the connection could not be made
    */
-  private static Connection makeConnection(String url, Properties props) throws SQLException {
-    return new PgConnection(hostSpecs(props), user(props), database(props), props, url);
+  private static Connection makeConnection(String url, Properties properties) throws SQLException {
+    LoadBalanceProperties lbprops = new LoadBalanceProperties(url, properties);
+    if (lbprops.hasLoadBalance()) {
+      Connection conn = getConnectionBalanced(lbprops);
+      if (conn != null) {
+        return conn;
+      }
+      LOGGER.log(Level.WARNING, "Failed to apply load balance. Trying normal connection");
+    }
+    // Cleanup extra properties used for load balancing
+    url = lbprops.getStrippedURL();
+    properties = lbprops.getStrippedProperties();
+    return new PgConnection(hostSpecs(properties), user(properties), database(properties), properties, url);
+  }
+
+  private static Connection getConnectionBalanced(LoadBalanceProperties lbprops) {
+    LOGGER.log(Level.FINE, "GetConnectionBalanced called");
+    ClusterAwareLoadBalancer loadBalancer = lbprops.getAppropriateLoadBalancer();
+    Properties props = lbprops.getStrippedProperties();
+    String url = lbprops.getStrippedURL();
+    Set<String> unreachableHosts = loadBalancer.getUnreachableHosts();
+    List<String> failedHosts = new ArrayList<>(unreachableHosts);
+    String chosenHost = loadBalancer.getLeastLoadedServer(failedHosts);
+    PgConnection newConnection = null;
+    Connection controlConnection = null;
+    SQLException firstException = null;
+    if (chosenHost == null) {
+      boolean connectionCreated = false;
+      boolean gotException = false;
+      try {
+        HostSpec[] hspec = hostSpecs(lbprops.getOriginalProperties());
+        controlConnection = new PgConnection(
+            hspec, user(lbprops.getOriginalProperties()),
+            database(lbprops.getOriginalProperties()), props, url);
+        connectionCreated = true;
+        if (!loadBalancer.refresh(controlConnection)) {
+          LOGGER.log(Level.WARNING, "yb_servers() refresh failed in first"
+              + " attempt itself. Falling back to default behaviour");
+          return null;
+        }
+        controlConnection.close();
+      } catch (SQLException ex) {
+        if (PSQLState.UNDEFINED_FUNCTION.getState().equals(ex.getSQLState())) {
+          return null;
+        }
+        gotException = true;
+      } finally {
+        if (gotException && connectionCreated) {
+          try {
+            controlConnection.close();
+          } catch (SQLException throwables) {
+            // ignore it was to be closed
+          }
+        }
+      }
+      chosenHost = loadBalancer.getLeastLoadedServer(failedHosts);
+    }
+    if (chosenHost == null) {
+      return null;
+    }
+    // refresh can also fail on a particular server so try in loop till
+    // options are exhausted
+    while (chosenHost != null) {
+      try {
+        props.setProperty("PGHOST", chosenHost);
+        String port = loadBalancer.getPort(chosenHost);
+        if (port != null) {
+          props.setProperty("PGPORT", port);
+        }
+        newConnection = new PgConnection(
+            hostSpecs(props), user(lbprops.getOriginalProperties()), database(props), props, url);
+        newConnection.setLoadBalancer(loadBalancer);
+        if (!loadBalancer.refresh(newConnection)) {
+          // There seems to be a problem with the current chosen host as well.
+          // Close the connection and try next
+          LOGGER.log(Level.WARNING, "yb_servers() refresh returned no servers");
+          loadBalancer.updateConnectionMap(chosenHost, -1);
+          failedHosts.add(chosenHost);
+          // but let the refresh be forced the next time it is tried.
+          loadBalancer.setForRefresh();
+          try {
+            newConnection.close();
+          } catch (Exception e) {
+            // ignore as exception is expected. This close is for any other cleanup
+            // which the driver side may be doing
+          }
+        } else {
+          return newConnection;
+        }
+      } catch (SQLException ex) {
+        // Let the refresh be forced the next time it is tried.
+        loadBalancer.setForRefresh();
+        // close the connection for any cleanup. We can ignore the exception here
+        try {
+          newConnection.close();
+        } catch (Exception e) {
+          // ignore as the connection is already bad that's why we are here. Calling
+          // close so that client side cleanup can happen.
+        }
+        failedHosts.add(chosenHost);
+        if (PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(ex.getSQLState())) {
+          if (firstException == null) {
+            firstException = ex;
+          }
+          // TODO log exception go to the next one after adding to failed list
+          LOGGER.log(Level.WARNING,
+              "couldn't connect to " + chosenHost + ", adding it to failed host list");
+          loadBalancer.updateFailedHosts(chosenHost);
+        } else {
+          // Log the exception. Consider other failures as temporary and not as serious as
+          // PSQLState.CONNECTION_UNABLE_TO_CONNECT. So for other failures it will be ignored
+          // only in this attempt, instead of adding it in the failed host list of the
+          // load balancer itself because it won't be tried till the next refresh happens.
+          LOGGER.log(Level.WARNING,
+              "got exception " + ex.getMessage() + ", while connecting to " + chosenHost);
+        }
+      }
+      chosenHost = loadBalancer.getLeastLoadedServer(failedHosts);
+    }
+    return null;
   }
 
   /**
    * Returns true if the driver thinks it can open a connection to the given URL. Typically, drivers
    * will return true if they understand the subprotocol specified in the URL and false if they
-   * don't. Our protocols start with jdbc:postgresql:
+   * don't. Our protocols start with jdbc:yugabytedb:
    *
    * @param url the URL of the driver
    * @return true if this driver accepts the given URL
@@ -562,11 +699,11 @@ public class Driver implements java.sql.Driver {
       urlArgs = url.substring(qPos + 1);
     }
 
-    if (!urlServer.startsWith("jdbc:postgresql:")) {
-      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
+    if (!urlServer.startsWith("jdbc:yugabytedb:")) {
+      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:yugabytedb:\" but was: {0}", url);
       return null;
     }
-    urlServer = urlServer.substring("jdbc:postgresql:".length());
+    urlServer = urlServer.substring("jdbc:yugabytedb:".length());
 
     if (urlServer.startsWith("//")) {
       urlServer = urlServer.substring(2);
@@ -634,6 +771,16 @@ public class Driver implements java.sql.Driver {
         urlProps.setProperty(token, "");
       } else {
         urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
+      }
+    }
+
+    // Check for new load balance properties
+    if (defaults != null) {
+      if (defaults.containsKey("load-balance")) {
+        urlProps.setProperty("load-balance", defaults.getProperty("load-balance"));
+      }
+      if (defaults.containsKey("topology-keys")) {
+        urlProps.setProperty("topology-keys", defaults.getProperty("topology-keys"));
       }
     }
 

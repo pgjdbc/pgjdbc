@@ -21,7 +21,7 @@ public class SimpleDataSourceWithUrlTest extends BaseDataSourceTest {
   protected void initializeDataSource() {
     if (bds == null) {
       bds = new SimpleDataSource();
-      bds.setUrl("jdbc:postgresql://" + TestUtil.getServer() + ":" + TestUtil.getPort() + "/"
+      bds.setUrl("jdbc:yugabytedb://" + TestUtil.getServer() + ":" + TestUtil.getPort() + "/"
           + TestUtil.getDatabase() + "?prepareThreshold=" + TestUtil.getPrepareThreshold()
           + "&logLevel=" + TestUtil.getLogLevel());
       bds.setUser(TestUtil.getUser());

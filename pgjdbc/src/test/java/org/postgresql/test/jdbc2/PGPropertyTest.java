@@ -106,7 +106,7 @@ public class PGPropertyTest {
   public void testDriverGetPropertyInfo() {
     Driver driver = new Driver();
     DriverPropertyInfo[] infos = driver.getPropertyInfo(
-        "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=true",
+        "jdbc:yugabytedb://localhost/test?user=fred&password=secret&ssl=true",
         // this is the example we give in docs
         new Properties());
     for (DriverPropertyInfo info : infos) {
@@ -171,7 +171,7 @@ public class PGPropertyTest {
   public void testOverWriteDSProperties() throws Exception {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     dataSource.setAutosave(AutoSave.CONSERVATIVE);
-    dataSource.setURL("jdbc:postgresql://localhost:5432/postgres");
+    dataSource.setURL("jdbc:yugabytedb://localhost:5432/postgres");
     assertSame(dataSource.getAutosave(),AutoSave.CONSERVATIVE);
   }
 
@@ -229,7 +229,7 @@ public class PGPropertyTest {
     String databaseName = "d&a%ta+base";
     String userName = "&u%ser";
     String password = "p%a&s^s#w!o@r*";
-    String url = "jdbc:postgresql://"
+    String url = "jdbc:yugabytedb://"
         + "localhost" + ":" + 5432 + "/"
         + URLCoder.encode(databaseName)
         + "?user=" + URLCoder.encode(userName)

@@ -103,7 +103,7 @@ public class TestUtil {
       ssl = "&ssl=" + getSSL();
     }
 
-    return "jdbc:postgresql://"
+    return "jdbc:yugabytedb://"
         + hostport + "/"
         + database
         + "?ApplicationName=Driver Tests"
