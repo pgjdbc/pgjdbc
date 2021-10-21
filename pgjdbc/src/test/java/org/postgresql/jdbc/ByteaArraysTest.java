@@ -6,10 +6,12 @@
 package org.postgresql.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.postgresql.core.Oid;
 
 import org.junit.Assert;
+import org.junit.Test;
 
 import java.lang.reflect.Array;
 
@@ -40,6 +42,19 @@ public class ByteaArraysTest extends AbstractArraysTest<byte[][]> {
     assertEquals(message + " size", expectedLength, Array.getLength(actual));
     for (int i = 0; i < expectedLength; ++i) {
       Assert.assertArrayEquals(message + " value at " + i, expected[i], (byte[]) Array.get(actual, i));
+    }
+  }
+
+  @Test
+  public void testObjectArrayWrapper() throws Exception {
+    final Object[] array = new Object[] { new byte[] { 0x1, 0x2, (byte) 0xFF, 0x4 }, new byte[] { 0x5, 0x6, 0x7, (byte) 0xFF }};
+
+    final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(array);
+    try {
+      copySupport.toArrayString(',', array);
+      fail("byte[] in Object[] should not be supported");
+    } catch (UnsupportedOperationException e) {
+      assertEquals("byte[] nested inside Object[]", e.getMessage());
     }
   }
 }
