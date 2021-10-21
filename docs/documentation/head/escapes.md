@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 8. JDBC escapes
 header: Chapter 8. JDBC escapes
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 7. Storing Binary Data
 previous: binary-data.html
 nexttitle: Escape for outer joins

@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 7. Storing Binary Data
 header: Chapter 7. Storing Binary Data
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 6. Calling Stored Functions and Procedures
 previous: callproc.html
 nexttitle: Chapter 8. JDBC escapes

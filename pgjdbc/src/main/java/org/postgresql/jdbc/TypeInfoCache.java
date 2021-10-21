@@ -297,7 +297,25 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public synchronized int getSQLType(String pgTypeName) throws SQLException {
-    return getSQLType(castNonNull(getPGType(pgTypeName)));
+    /*
+    Get a few things out of the way such as arrays and known types
+     */
+    if (pgTypeName.endsWith("[]")) {
+      return Types.ARRAY;
+    }
+    Integer i = this.pgNameToSQLType.get(pgTypeName);
+    if (i != null) {
+      return i;
+    }
+
+    /*
+      All else fails then we will query the database.
+      save for future calls
+    */
+    i = getSQLType(castNonNull(getPGType(pgTypeName)));
+
+    pgNameToSQLType.put(pgTypeName, i);
+    return i;
   }
 
   public synchronized int getSQLType(int typeOid) throws SQLException {
@@ -441,6 +459,11 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public synchronized int getPGType(String pgTypeName) throws SQLException {
+    // there really isn't anything else to return other than UNSPECIFIED here.
+    if ( pgTypeName == null ) {
+      return Oid.UNSPECIFIED;
+    }
+
     Integer oid = pgNameToOid.get(pgTypeName);
     if (oid != null) {
       return oid;
@@ -526,7 +549,7 @@ public class TypeInfoCache implements TypeInfo {
     return getNameStatement;
   }
 
-  public int getPGArrayType(String elementTypeName) throws SQLException {
+  public int getPGArrayType(@Nullable String elementTypeName) throws SQLException {
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
   }
@@ -678,7 +701,10 @@ public class TypeInfoCache implements TypeInfo {
     return result == null ? "java.lang.String" : result;
   }
 
-  public String getTypeForAlias(String alias) {
+  public @Nullable String getTypeForAlias(@Nullable String alias) {
+    if ( alias == null ) {
+      return null;
+    }
     String type = TYPE_ALIASES.get(alias);
     if (type != null) {
       return type;

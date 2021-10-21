@@ -5,6 +5,8 @@
 
 package org.postgresql.geometric;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
@@ -24,7 +26,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   /**
    * These are the two points.
    */
-  public PGpoint[] point = new PGpoint[2];
+  public PGpoint @Nullable [] point;
 
   /**
    * @param x1 first x coordinate
@@ -33,9 +35,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @param y2 second y coordinate
    */
   public PGbox(double x1, double y1, double x2, double y2) {
-    this();
-    this.point[0] = new PGpoint(x1, y1);
-    this.point[1] = new PGpoint(x2, y2);
+    this(new PGpoint(x1, y1), new PGpoint(x2, y2));
   }
 
   /**
@@ -44,8 +44,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    */
   public PGbox(PGpoint p1, PGpoint p2) {
     this();
-    this.point[0] = p1;
-    this.point[1] = p2;
+    this.point = new PGpoint[]{p1, p2};
   }
 
   /**
@@ -73,7 +72,11 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @throws SQLException thrown if value is invalid for this type
    */
   @Override
-  public void setValue(String value) throws SQLException {
+  public void setValue(@Nullable String value) throws SQLException {
+    if (value == null) {
+      this.point = null;
+      return;
+    }
     PGtokenizer t = new PGtokenizer(value, ',');
     if (t.getSize() != 2) {
       throw new PSQLException(
@@ -81,6 +84,10 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
           PSQLState.DATA_TYPE_MISMATCH);
     }
 
+    PGpoint[] point = this.point;
+    if (point == null) {
+      this.point = point = new PGpoint[2];
+    }
     point[0] = new PGpoint(t.getToken(0));
     point[1] = new PGpoint(t.getToken(1));
   }
@@ -89,10 +96,15 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @param b Definition of this point in PostgreSQL's binary syntax
    */
   public void setByteValue(byte[] b, int offset) {
+    PGpoint[] point = this.point;
+    if (point == null) {
+      this.point = point = new PGpoint[2];
+    }
     point[0] = new PGpoint();
     point[0].setByteValue(b, offset);
     point[1] = new PGpoint();
     point[1].setByteValue(b, offset + point[0].lengthInBytes());
+    this.point = point;
   }
 
   /**
@@ -104,26 +116,34 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
       PGbox p = (PGbox) obj;
 
       // Same points.
-      if (p.point[0].equals(point[0]) && p.point[1].equals(point[1])) {
+      PGpoint[] point = this.point;
+      PGpoint[] pPoint = p.point;
+      if (point == null) {
+        return pPoint == null;
+      } else if (pPoint == null) {
+        return false;
+      }
+
+      if (pPoint[0].equals(point[0]) && pPoint[1].equals(point[1])) {
         return true;
       }
 
       // Points swapped.
-      if (p.point[0].equals(point[1]) && p.point[1].equals(point[0])) {
+      if (pPoint[0].equals(point[1]) && pPoint[1].equals(point[0])) {
         return true;
       }
 
       // Using the opposite two points of the box:
       // (x1,y1),(x2,y2) -> (x1,y2),(x2,y1)
-      if (p.point[0].x == point[0].x && p.point[0].y == point[1].y
-          && p.point[1].x == point[1].x && p.point[1].y == point[0].y) {
+      if (pPoint[0].x == point[0].x && pPoint[0].y == point[1].y
+          && pPoint[1].x == point[1].x && pPoint[1].y == point[0].y) {
         return true;
       }
 
       // Using the opposite two points of the box, and the points are swapped
       // (x1,y1),(x2,y2) -> (x2,y1),(x1,y2)
-      if (p.point[0].x == point[1].x && p.point[0].y == point[0].y
-          && p.point[1].x == point[0].x && p.point[1].y == point[1].y) {
+      if (pPoint[0].x == point[1].x && pPoint[0].y == point[0].y
+          && pPoint[1].x == point[0].x && pPoint[1].y == point[1].y) {
         return true;
       }
     }
@@ -136,7 +156,8 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
     // its X and Y components; we end up with an exclusive-OR of the two X and
     // two Y components, which is equal whenever equals() would return true
     // since xor is commutative.
-    return point[0].hashCode() ^ point[1].hashCode();
+    PGpoint[] point = this.point;
+    return point == null ? 0 : point[0].hashCode() ^ point[1].hashCode();
   }
 
   public Object clone() throws CloneNotSupportedException {
@@ -155,15 +176,21 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   /**
    * @return the PGbox in the syntax expected by org.postgresql
    */
-  public String getValue() {
-    return point[0].toString() + "," + point[1].toString();
+  public @Nullable String getValue() {
+    PGpoint[] point = this.point;
+    return point == null ? null : point[0].toString() + "," + point[1].toString();
   }
 
   public int lengthInBytes() {
+    PGpoint[] point = this.point;
+    if (point == null) {
+      return 0;
+    }
     return point[0].lengthInBytes() + point[1].lengthInBytes();
   }
 
   public void toBytes(byte[] bytes, int offset) {
+    PGpoint[] point = castNonNull(this.point);
     point[0].toBytes(bytes, offset);
     point[1].toBytes(bytes, offset + point[0].lengthInBytes());
   }
