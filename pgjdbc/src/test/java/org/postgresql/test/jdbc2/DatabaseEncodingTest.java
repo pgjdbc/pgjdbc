@@ -237,8 +237,7 @@ public class DatabaseEncodingTest {
     for (int i = 0; i < shortSequences.length; ++i) {
       byte[] sequence = shortSequences[i];
       String expected = "\uFFFD";
-      for (int j=1; j<sequence.length; ++j)
-      {
+      for (int j = 1; j < sequence.length; ++j) {
         expected += "\uFFFD";
       }
 
