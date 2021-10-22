@@ -15,6 +15,10 @@ import java.sql.SQLException;
 public class PGbytea {
   private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
+  /**
+   * Lookup table for each of the valid ascii code points (offset by {@code '0'})
+   * to the 4 bit numeric value.
+   */
   private static final int[] HEX_VALS = new int['f' + 1 - '0'];
 
   static {
@@ -47,7 +51,8 @@ public class PGbytea {
   }
 
   private static byte[] toBytesHexEscaped(byte[] s) {
-    //first 2 bytes of s indicate the byte[] is hex encoded
+    // first 2 bytes of s indicate the byte[] is hex encoded
+    // so they need to be ignored here
     final int realLength = s.length - 2;
     byte[] output = new byte[realLength >>> 1];
     for (int i = 0; i < realLength; i += 2) {

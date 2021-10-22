@@ -34,6 +34,7 @@ import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.BigDecimalByteConverterTest;
+import org.postgresql.util.PGbyteaTest;
 import org.postgresql.util.ReaderInputStreamTest;
 import org.postgresql.util.UnusualBigDecimalByteConverterTest;
 
@@ -100,6 +101,7 @@ import org.junit.runners.Suite;
     ByteBufferByteStreamWriterTest.class,
     ParameterStatusTest.class,
     ParserTest.class,
+    PGbyteaTest.class,
     PGPropertyMaxResultBufferParserTest.class,
     PGPropertyTest.class,
     PGTimestampTest.class,
