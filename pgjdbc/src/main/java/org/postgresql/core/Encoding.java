@@ -245,6 +245,15 @@ public class Encoding {
                             : decode(encodedString, offset, length);
   }
 
+  public String decodeCanonicalizedIfPresent(byte[] encodedString, int offset, int length) throws IOException {
+    if (length == 0) {
+      return "";
+    }
+    // if fastASCIINumbers is false, then no chance of the byte[] being ascii compatible characters
+    return fastASCIINumbers ? INTERNER.getStringIfPresent(encodedString, offset, length, this)
+                            : decode(encodedString, offset, length);
+  }
+
   /**
    * Decode an array of bytes possibly into a canonicalized string.
    *

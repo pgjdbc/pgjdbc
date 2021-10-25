@@ -243,6 +243,50 @@ final class AsciiStringInterner {
   }
 
   /**
+   * Produces a {@link String} instance for the given <i>bytes</i>.
+   *
+   * <p>
+   * If all are valid ascii (i.e. {@code >= 0}) and a corresponding {@code String} value exists, it
+   * will be returned. If no value exists, a {@code String} will be created, but not stored.
+   * </p>
+   *
+   * <p>
+   * If non-ascii bytes are discovered, the <i>encoding</i> will be used to
+   * {@link Encoding#decode(byte[], int, int) decode} and that value will be returned (but not stored).
+   * </p>
+   *
+   * @param bytes The bytes of the String. Must not be {@code null}.
+   * @param offset Offset into <i>bytes</i> to start.
+   * @param length The number of bytes in <i>bytes</i> which are relevant.
+   * @param encoding To use if non-ascii bytes seen.
+   * @return Decoded {@code String} from <i>bytes</i>.
+   * @throws IOException If error decoding from <i>Encoding</i>.
+   */
+  public String getStringIfPresent(byte[] bytes, int offset, int length, Encoding encoding) throws IOException {
+    if (length == 0) {
+      return "";
+    }
+
+    final int hash = hashKey(bytes, offset, length);
+    // 0 indicates the presence of a non-ascii character - defer to encoding to create the string
+    if (hash == 0) {
+      return encoding.decode(bytes, offset, length);
+    }
+    cleanQueue();
+    // create a TempKey with the byte[] given
+    final TempKey tempKey = new TempKey(hash, bytes, offset, length);
+    SoftReference<String> ref = cache.get(tempKey);
+    if (ref != null) {
+      final String val = ref.get();
+      if (val != null) {
+        return val;
+      }
+    }
+
+    return new String(bytes, offset, length, StandardCharsets.US_ASCII);
+  }
+
+  /**
    * Process any entries in {@link #refQueue} to purge from the {@link #cache}.
    * @see StringReference#dispose()
    */

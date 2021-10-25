@@ -2810,8 +2810,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
     pgStream.receiveInteger4(); // MESSAGE SIZE
-    final String name = pgStream.receiveCanonicalString();
-    final String value = pgStream.receiveCanonicalString();
+    final String name = pgStream.receiveCanonicalStringIfPresent();
+    final String value = pgStream.receiveCanonicalStringIfPresent();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
