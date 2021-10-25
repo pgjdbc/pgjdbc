@@ -5,12 +5,27 @@
 
 package org.postgresql.core;
 
+import org.postgresql.PGProperty;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 public class PasswordAuthentication implements AuthenticationPlugin {
 
   @Override
-  public byte[] getEncodedPassword(String userName, String password) {
+  public byte[] getEncodedPassword(Properties info) throws PSQLException {
+    String password = PGProperty.PASSWORD.getSetString(info);
+
+    if (password == null) {
+      throw new PSQLException(
+          GT.tr(
+              "The server requested password-based authentication, but no password was provided."),
+          PSQLState.CONNECTION_REJECTED);
+    }
+
     return password.getBytes(StandardCharsets.UTF_8);
   }
 }

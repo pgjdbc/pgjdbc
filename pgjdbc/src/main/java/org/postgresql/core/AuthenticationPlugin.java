@@ -5,6 +5,12 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.PSQLException;
+
+import java.util.Properties;
+
 public interface AuthenticationPlugin {
-  byte[] getEncodedPassword(String userName, String password);
+
+  byte[] getEncodedPassword(Properties info) throws PSQLException, PSQLException;
+
 }
