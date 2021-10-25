@@ -1310,7 +1310,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return the class name to use for the Authentication Plugin.
    *         This can be null in which case the default password authentication plugin will be used
    */
-  public String getAuthenticationPluginClassName() {
+  public @Nullable String getAuthenticationPluginClassName() {
     return PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.get(properties);
   }
 
