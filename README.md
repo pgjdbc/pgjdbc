@@ -24,17 +24,17 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.2.24-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.3.0-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.24</version>
+    <version>42.3.0</version>
 </dependency>
 ```
 
 [mvn-search]: https://search.maven.org/search?q=g:org.postgresql%20AND%20a:postgresql "Search on Maven Central"
-[mvn-jre8]: https://search.maven.org/artifact/org.postgresql/postgresql/42.2.24/jar
+[mvn-jre8]: https://search.maven.org/artifact/org.postgresql/postgresql/42.3.0/jar
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -42,7 +42,7 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.3.0-SNAPSHOT</version>
+  <version>42.3.1-SNAPSHOT</version>
 </dependency>
 ```
 
