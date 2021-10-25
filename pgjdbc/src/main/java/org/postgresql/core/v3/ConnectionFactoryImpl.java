@@ -8,8 +8,6 @@ package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-
 import org.postgresql.PGProperty;
 import org.postgresql.core.AuthenticationPlugin;
 import org.postgresql.core.AuthenticationPluginManager;
@@ -450,7 +448,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (user == null) {
       throw new PSQLException("GSSAPI encryption required but was impossible user is null", PSQLState.CONNECTION_REJECTED);
     }
-    
+
     // attempt to acquire a GSS encrypted connection
     String password = PGProperty.PASSWORD.get(info);
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
