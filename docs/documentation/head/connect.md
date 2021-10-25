@@ -340,28 +340,28 @@ Connection conn = DriverManager.getConnection(url);
 
 * **tcpKeepAlive** = boolean
 
-	Enable or disable TCP keep-alive probe. The default is `false`.
+    Enable or disable TCP keep-alive probe. The default is `false`.
 
 * **unknownLength** = int
 
-	Certain postgresql types such as `TEXT` do not have a well defined length.
-	When returning meta-data about these types through functions like
-	`ResultSetMetaData.getColumnDisplaySize` and `ResultSetMetaData.getPrecision`
-	we must provide a value and various client tools have different ideas
-	about what they would like to see. This parameter specifies the length
-	to return for types of unknown length.
+    Certain postgresql types such as `TEXT` do not have a well defined length.
+    When returning meta-data about these types through functions like
+    `ResultSetMetaData.getColumnDisplaySize` and `ResultSetMetaData.getPrecision`
+    we must provide a value and various client tools have different ideas
+    about what they would like to see. This parameter specifies the length
+    to return for types of unknown length.
 
 * **stringtype** = String
 
-	Specify the type to use when binding `PreparedStatement` parameters set
-	via `setString()`. If `stringtype` is set to `VARCHAR` (the default), such
-	parameters will be sent to the server as varchar parameters. If `stringtype`
-	is set to `unspecified`, parameters will be sent to the server as untyped
-	values, and the server will attempt to infer an appropriate type. This
-	is useful if you have an existing application that uses `setString()` to
-	set parameters that are actually some other type, such as integers, and
-	you are unable to change the application to use an appropriate method
-	such as `setInt()`.
+    Specify the type to use when binding `PreparedStatement` parameters set
+    via `setString()`. If `stringtype` is set to `VARCHAR` (the default), such
+    parameters will be sent to the server as varchar parameters. If `stringtype`
+    is set to `unspecified`, parameters will be sent to the server as untyped
+    values, and the server will attempt to infer an appropriate type. This
+    is useful if you have an existing application that uses `setString()` to
+    set parameters that are actually some other type, such as integers, and
+    you are unable to change the application to use an appropriate method
+    such as `setInt()`.
 
 * **ApplicationName** = String
 
@@ -371,21 +371,21 @@ Connection conn = DriverManager.getConnection(url);
 
 * **kerberosServerName** = String
 
-	The Kerberos service name to use when authenticating with GSSAPI. This
-	is equivalent to libpq's PGKRBSRVNAME environment variable and defaults
-	to "postgres".
+    The Kerberos service name to use when authenticating with GSSAPI. This
+    is equivalent to libpq's PGKRBSRVNAME environment variable and defaults
+    to "postgres".
 
 * **jaasApplicationName** = String
 
-	Specifies the name of the JAAS system or application login configuration.
+    Specifies the name of the JAAS system or application login configuration.
 
 * **jaasLogin** = boolean
 
-	Specifies whether to perform a JAAS login before authenticating with GSSAPI.
-	If set to `true` (the default), the driver will attempt to obtain GSS credentials
-	using the configured JAAS login module(s) (e.g. `Krb5LoginModule`) before
-	authenticating. To skip the JAAS login, for example if the native GSS
-	implementation is being used to obtain credentials, set this to `false`.
+    Specifies whether to perform a JAAS login before authenticating with GSSAPI.
+    If set to `true` (the default), the driver will attempt to obtain GSS credentials
+    using the configured JAAS login module(s) (e.g. `Krb5LoginModule`) before
+    authenticating. To skip the JAAS login, for example if the native GSS
+    implementation is being used to obtain credentials, set this to `false`.
 
 * **gssEncMode** = String
 
@@ -400,137 +400,137 @@ Connection conn = DriverManager.getConnection(url);
 
 * **gsslib** = String
 
-	Force either SSPI (Windows transparent single-sign-on) or GSSAPI (Kerberos, via JSSE)
-	to be used when the server requests Kerberos or SSPI authentication. 
-	Permissible values are auto (default, see below), sspi (force SSPI) or gssapi (force GSSAPI-JSSE).
+    Force either SSPI (Windows transparent single-sign-on) or GSSAPI (Kerberos, via JSSE)
+    to be used when the server requests Kerberos or SSPI authentication. 
+    Permissible values are auto (default, see below), sspi (force SSPI) or gssapi (force GSSAPI-JSSE).
 
-	If this parameter is auto, SSPI is attempted if the server requests SSPI authentication, 
-	the JDBC client is running on Windows, and the Waffle libraries required 
-	for SSPI are on the CLASSPATH. Otherwise Kerberos/GSSAPI via JSSE is used. 
-	Note that this behaviour does not exactly match that of libpq, which uses 
-	Windows' SSPI libraries for Kerberos (GSSAPI) requests by default when on Windows.
+    If this parameter is auto, SSPI is attempted if the server requests SSPI authentication, 
+    the JDBC client is running on Windows, and the Waffle libraries required 
+    for SSPI are on the CLASSPATH. Otherwise Kerberos/GSSAPI via JSSE is used. 
+    Note that this behaviour does not exactly match that of libpq, which uses 
+    Windows' SSPI libraries for Kerberos (GSSAPI) requests by default when on Windows.
 
-	gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour.
+    gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour.
 
-	On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
+    On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
 
         To use SSPI with PgJDBC you must ensure that
         [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/)
-	and its dependencies are present on the `CLASSPATH`. PgJDBC does *not*
+    and its dependencies are present on the `CLASSPATH`. PgJDBC does *not*
         bundle `waffle-jna` in the PgJDBC jar.
 
-	Since: 9.4
+    Since: 9.4
 
 * **sspiServiceClass** = String
 
-	Specifies the name of the Windows SSPI service class that forms the service 
-	class part of the SPN. The default, POSTGRES, is almost always correct.
+    Specifies the name of the Windows SSPI service class that forms the service 
+    class part of the SPN. The default, POSTGRES, is almost always correct.
 
-	See: SSPI authentication (Pg docs) Service Principal Names (MSDN), DsMakeSpn (MSDN) Configuring SSPI (Pg wiki).
+    See: SSPI authentication (Pg docs) Service Principal Names (MSDN), DsMakeSpn (MSDN) Configuring SSPI (Pg wiki).
 
-	This parameter is ignored on non-Windows platforms.
+    This parameter is ignored on non-Windows platforms.
 
 * **useSpnego** = boolean
 
-	Use SPNEGO in SSPI authentication requests
+    Use SPNEGO in SSPI authentication requests
 
 * **sendBufferSize** = int
 
-	Sets SO_SNDBUF on the connection stream
+    Sets SO_SNDBUF on the connection stream
 
 * **receiveBufferSize** = int
 
-	Sets SO_RCVBUF on the connection stream
+    Sets SO_RCVBUF on the connection stream
 
 * **readOnly** = boolean
 
-	Put the connection in read-only mode
+    Put the connection in read-only mode
 
 * **readOnlyMode** = String
 	
-	One of 'ignore', 'transaction', or 'always'.  Controls the behavior when a connection is set to read only, When set
-	to 'ignore' then the `readOnly` setting has no effect.  When set to 'transaction' and `readOnly` is set to 'true'
-	and autocommit is 'false' the driver will set the transaction to readonly by sending `BEGIN READ ONLY`.  When set to
-	'always' and `readOnly` is set to 'true' the session will be set to READ ONLY if autoCommit is 'true'.  If
-	autocommit is false the driver will set the transaction to read only by sending `BEGIN READ ONLY` .
+    One of 'ignore', 'transaction', or 'always'.  Controls the behavior when a connection is set to read only, When set
+    to 'ignore' then the `readOnly` setting has no effect.  When set to 'transaction' and `readOnly` is set to 'true'
+    and autocommit is 'false' the driver will set the transaction to readonly by sending `BEGIN READ ONLY`.  When set to
+    'always' and `readOnly` is set to 'true' the session will be set to READ ONLY if autoCommit is 'true'.  If
+    autocommit is false the driver will set the transaction to read only by sending `BEGIN READ ONLY` .
 	
-	The default the value is 'transaction'
+    The default the value is 'transaction'
 
 * **disableColumnSanitiser** = boolean
 
-	Setting this to true disables column name sanitiser. 
-	The sanitiser folds columns in the resultset to lowercase. 
-	The default is to sanitise the columns (off).
+    Setting this to true disables column name sanitiser. 
+    The sanitiser folds columns in the resultset to lowercase. 
+    The default is to sanitise the columns (off).
 
 * **assumeMinServerVersion** = String
 
-	Assume that the server is at least the given version, 
-	thus enabling to some optimization at connection time instead of trying to be version blind.
+    Assume that the server is at least the given version, 
+    thus enabling to some optimization at connection time instead of trying to be version blind.
 
 * **currentSchema** = String
 
-	Specify the schema (or several schema separated by commas) to be set in the search-path. 
-	This schema will be used to resolve unqualified object names used in statements over this connection.
+    Specify the schema (or several schema separated by commas) to be set in the search-path. 
+    This schema will be used to resolve unqualified object names used in statements over this connection.
 
 * **targetServerType** = String
 
-	Allows opening connections to only servers with required state, 
-	the allowed values are any, primary, master, slave, secondary, preferSlave and preferSecondary. 
-	The primary/secondary distinction is currently done by observing if the server allows writes. 
-	The value preferSecondary tries to connect to secondary if any are available, 
-	otherwise allows falls back to connecting also to primary.
-	- *N.B.* the words master and slave are being deprecated. We will silently accept them, but primary
-	and secondary are encouraged.
+    Allows opening connections to only servers with required state, 
+    the allowed values are any, primary, master, slave, secondary, preferSlave and preferSecondary. 
+    The primary/secondary distinction is currently done by observing if the server allows writes. 
+    The value preferSecondary tries to connect to secondary if any are available, 
+    otherwise allows falls back to connecting also to primary.
+    - *N.B.* the words master and slave are being deprecated. We will silently accept them, but primary
+    and secondary are encouraged.
 
 * **hostRecheckSeconds** = int
 
-	Controls how long in seconds the knowledge about a host state 
-	is cached in JVM wide global cache. The default value is 10 seconds.
+    Controls how long in seconds the knowledge about a host state 
+    is cached in JVM wide global cache. The default value is 10 seconds.
 
 * **loadBalanceHosts** = boolean
 
-	In default mode (disabled) hosts are connected in the given order. 
-	If enabled hosts are chosen randomly from the set of suitable candidates.
+    In default mode (disabled) hosts are connected in the given order. 
+    If enabled hosts are chosen randomly from the set of suitable candidates.
 
 * **socketFactory** = String
 
-	The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
-	This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` 
-	must extend `javax.net.SocketFactory` and be available to the driver's classloader.
-	This class must have a zero-argument constructor, a single-argument constructor taking a String argument, or
-	a single-argument constructor taking a Properties argument. The Properties object will contain all the
-	connection parameters. The String argument will have the value of the `socketFactoryArg` connection parameter.
+    The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
+    This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` 
+    must extend `javax.net.SocketFactory` and be available to the driver's classloader.
+    This class must have a zero-argument constructor, a single-argument constructor taking a String argument, or
+    a single-argument constructor taking a Properties argument. The Properties object will contain all the
+    connection parameters. The String argument will have the value of the `socketFactoryArg` connection parameter.
 
 * **socketFactoryArg** (deprecated) = String
 
-	This value is an optional argument to the constructor of the socket factory
-	class provided above. 
+    This value is an optional argument to the constructor of the socket factory
+    class provided above. 
 
 * **reWriteBatchedInserts** = boolean
 
-	This will change batch inserts from insert into foo (col1, col2, col3) values (1,2,3) into 
-	insert into foo (col1, col2, col3) values (1,2,3), (4,5,6) this provides 2-3x performance improvement
+    This will change batch inserts from insert into foo (col1, col2, col3) values (1,2,3) into 
+    insert into foo (col1, col2, col3) values (1,2,3), (4,5,6) this provides 2-3x performance improvement
 
 * **replication** = String
 
-	Connection parameter passed in the startup message. This parameter accepts two values; "true"
-	and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
-	of replication commands can be issued instead of SQL statements. Only the simple query protocol
-	can be used in walsender mode. Passing "database" as the value instructs walsender to connect
-	to the database specified in the dbname parameter, which will allow the connection to be used
-	for logical replication from that database.
+    Connection parameter passed in the startup message. This parameter accepts two values; "true"
+    and `database`. Passing `true` tells the backend to go into walsender mode, wherein a small set
+    of replication commands can be issued instead of SQL statements. Only the simple query protocol
+    can be used in walsender mode. Passing "database" as the value instructs walsender to connect
+    to the database specified in the dbname parameter, which will allow the connection to be used
+    for logical replication from that database.
 	
-	Parameter should be use together with `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
+    Parameter should be use together with `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
 
 * **escapeSyntaxCallMode** = String
 
-	Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
-	In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
-	In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there is no 
-	return parameter specified, otherwise the driver uses a SELECT statement.
-	In `escapeSyntaxCallMode=call` mode, the driver always uses a CALL statement (allowing procedure invocation only).
+    Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
+    In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only).
+    In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there is no 
+    return parameter specified, otherwise the driver uses a SELECT statement.
+    In `escapeSyntaxCallMode=call` mode, the driver always uses a CALL statement (allowing procedure invocation only).
 
-	The default is `select` 
+    The default is `select` 
 
 * **maxResultBuffer** = String
 
@@ -541,7 +541,7 @@ Connection conn = DriverManager.getConnection(url);
     
     A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
     
-	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
+    By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
 	
 * **adaptiveFetch** = boolean	
 
@@ -563,7 +563,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **adaptiveFetchMaximum** = int
 
-	Specifies the highest number of rows which can be calculated by `adaptiveFetch`.
+    Specifies the highest number of rows which can be calculated by `adaptiveFetch`.
     Requires `adaptiveFetch` set to true to work.
 
     By default, maximum of rows calculated by `adaptiveFetch` is -1, which is understood as infinite.
@@ -571,9 +571,9 @@ Connection conn = DriverManager.getConnection(url);
 * **logServerErrorDetail** == boolean
 
     Whether to include server error details in exceptions and log messages (for example inlined query parameters). 
-	Setting to false will only include minimal, not sensitive messages.
+    Setting to false will only include minimal, not sensitive messages.
 
-	By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
+    By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
 
 * **quoteReturningIdentifiers** == boolean
 
@@ -581,6 +581,11 @@ Connection conn = DriverManager.getConnection(url);
   There are some ORM's that quote everything, including returning columns
   If we quote them, then we end up sending ""colname"" to the backend instead of "colname"
   which will not be found.
+
+* **authenticationPluginClassName** == String
+
+  Fully qualified class name of the class implementing the AuthenticationPlugin interface. 
+  If this is null, the default PasswordAuthentication plugin will be used.
 
 <a name="unix sockets"></a>
 ## Unix sockets

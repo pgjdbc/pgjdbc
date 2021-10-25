@@ -139,6 +139,7 @@ In addition to the standard connection parameters the driver supports a number o
 | adaptiveFetchMaximum          | Integer | -1      | Specifies maximum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go above this value. Any negative number set as adaptiveFetchMaximum is used by adaptiveFetch as infinity number of rows.
 | localSocketAddress            | String  | null    | Hostname or IP address given to explicitly configure the interface that the driver will bind the client side of the TCP/IP connection to when connecting.
 | quoteReturningIdentifiers     | Boolean | true    | By default we double quote returning identifiers. Some ORM's already quote them. Switch allows them to turn this off
+| authenticationPluginClassName | STRING  | null    | fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the default PasswordAuthentication plugin will be used
 
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)

@@ -9,6 +9,8 @@ package org.postgresql.core.v3;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.AuthenticationPlugin;
+import org.postgresql.core.AuthenticationPluginManager;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
@@ -95,6 +97,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       Properties info, SocketFactory socketFactory, HostSpec hostSpec,
       SslMode sslMode, GSSEncMode gssEncMode)
       throws SQLException, IOException {
+
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
@@ -595,6 +598,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
+    AuthenticationPlugin authenticationPlugin;
+    try {
+      authenticationPlugin = AuthenticationPluginManager.getAuthenticationPlugin(info);
+    } catch ( Exception ex ) {
+      throw new PSQLException(ex.getMessage(), PSQLState.UNEXPECTED_ERROR);
+    }
+
     String password = PGProperty.PASSWORD.get(info);
 
     /* SSPI negotiation state, if used */
@@ -672,7 +682,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       PSQLState.CONNECTION_REJECTED);
                 }
 
-                byte[] encodedPassword = password.getBytes(StandardCharsets.UTF_8);
+                byte[] encodedPassword = authenticationPlugin.getEncodedPassword(user, password);
 
                 pgStream.sendChar('p');
                 pgStream.sendInteger4(4 + encodedPassword.length + 1);

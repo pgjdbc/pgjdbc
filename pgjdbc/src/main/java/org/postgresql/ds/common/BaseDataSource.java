@@ -1305,6 +1305,26 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     setUrl(url);
   }
 
+  /**
+   *
+   * @return the class name to use for the Authentication Plugin.
+   *         This can be null in which case the default password authentication plugin will be used
+   */
+  public String getAuthenticationPluginClassName() {
+    return PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.get(properties);
+  }
+
+  /**
+   *
+   * @param className name of a class which implements {@link org.postgresql.core.AuthenticationPlugin}
+   *                  This class will be used to get the encoded bytes to be sent to the server as the
+   *                  password to authenticate the user.
+   *
+   */
+  public void setAuthenticationPluginClassName(String className) {
+    PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.set(properties, className);
+  }
+
   public @Nullable String getProperty(String name) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
