@@ -52,7 +52,7 @@ public class ReturningParserTest {
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
 
     boolean expectedReturning = this.returning.equalsIgnoreCase("returning")

@@ -47,6 +47,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
+  private final boolean quoteReturningIdentifiers;
   private final PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
@@ -76,6 +77,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
     String callMode = PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(info);
     this.escapeSyntaxCallMode = EscapeSyntaxCallMode.of(callMode);
+    this.quoteReturningIdentifiers = PGProperty.QUOTE_RETURNING_IDENTIFIERS.getBoolean(info);
     String preferMode = PGProperty.PREFER_QUERY_MODE.get(info);
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
@@ -167,9 +169,6 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public void sendQueryCancel() throws SQLException {
-    if (cancelPid <= 0) {
-      return;
-    }
 
     PGStream cancelStream = null;
 
@@ -267,6 +266,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public synchronized boolean getStandardConformingStrings() {
     return standardConformingStrings;
+  }
+
+  @Override
+  public boolean getQuoteReturningIdentifiers() {
+    return quoteReturningIdentifiers;
   }
 
   @Override

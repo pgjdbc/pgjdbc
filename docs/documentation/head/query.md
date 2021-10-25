@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 5. Issuing a Query and Processing the Result
 header: Chapter 5. Issuing a Query and Processing the Result
-resource: media
+resource: /documentation/head/media
 previoustitle: Custom SSLSocketFactory
 previous: ssl-factory.html
 nexttitle: Using the Statement or PreparedStatement Interface

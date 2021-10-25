@@ -25,5 +25,5 @@ In order to configure PostgreSQL for SSL tests, the following changes should be 
 The certificates are generated with Makefile.
 
 * To remove all certificates: `make clean`
-* To generate certificatess: `make all`
+* To generate certificates: `make all`
 * To update a single certificate: remove the file, and execute `make all`

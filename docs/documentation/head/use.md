@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 3. Initializing the Driver
 header: Chapter 3. Initializing the Driver
-resource: media
+resource: /documentation/head/media
 previoustitle: Creating a Database
 previous: your-database.html
 nexttitle: Chapter 3. Loading the Driver

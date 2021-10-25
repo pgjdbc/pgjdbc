@@ -476,57 +476,58 @@ public class StatementTest {
   @Test
   public void testWarningsAreAvailableAsap()
       throws Exception {
-    final Connection outerLockCon = TestUtil.openDB();
-    outerLockCon.setAutoCommit(false);
-    //Acquire an exclusive lock so we can block the notice generating statement
-    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
-    con.createStatement()
-            .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
-                + "$BODY$ "
-                + "BEGIN "
-                + "RAISE NOTICE 'Test 1'; "
-                + "RAISE NOTICE 'Test 2'; "
-                + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE; "
-                + "END "
-                + "$BODY$ "
-                + "LANGUAGE plpgsql;");
-    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
-    //If we never receive the two warnings the statement will just hang, so set a low timeout
-    con.createStatement().execute("SET SESSION statement_timeout = 1000");
-    final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
-    final Callable<Void> warningReader = new Callable<Void>() {
-      @Override
-      public Void call() throws SQLException, InterruptedException {
-        while (true) {
-          SQLWarning warning = preparedStatement.getWarnings();
-          if (warning != null) {
-            assertEquals("First warning received not first notice raised",
-                "Test 1", warning.getMessage());
-            SQLWarning next = warning.getNextWarning();
-            if (next != null) {
-              assertEquals("Second warning received not second notice raised",
-                  "Test 2", next.getMessage());
-              //Release the lock so that the notice generating statement can end.
-              outerLockCon.commit();
-              return null;
+    try (Connection outerLockCon = TestUtil.openDB()) {
+      outerLockCon.setAutoCommit(false);
+      //Acquire an exclusive lock so we can block the notice generating statement
+      outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
+      con.createStatement()
+              .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
+                  + "$BODY$ "
+                  + "BEGIN "
+                  + "RAISE NOTICE 'Test 1'; "
+                  + "RAISE NOTICE 'Test 2'; "
+                  + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE; "
+                  + "END "
+                  + "$BODY$ "
+                  + "LANGUAGE plpgsql;");
+      con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
+      //If we never receive the two warnings the statement will just hang, so set a low timeout
+      con.createStatement().execute("SET SESSION statement_timeout = 1000");
+      final PreparedStatement preparedStatement = con.prepareStatement("SELECT notify_then_sleep()");
+      final Callable<Void> warningReader = new Callable<Void>() {
+        @Override
+        public Void call() throws SQLException, InterruptedException {
+          while (true) {
+            SQLWarning warning = preparedStatement.getWarnings();
+            if (warning != null) {
+              assertEquals("First warning received not first notice raised",
+                  "Test 1", warning.getMessage());
+              SQLWarning next = warning.getNextWarning();
+              if (next != null) {
+                assertEquals("Second warning received not second notice raised",
+                    "Test 2", next.getMessage());
+                //Release the lock so that the notice generating statement can end.
+                outerLockCon.commit();
+                return null;
+              }
             }
+            //Break the loop on InterruptedException
+            Thread.sleep(0);
           }
-          //Break the loop on InterruptedException
-          Thread.sleep(0);
         }
-      }
-    };
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
-    try {
-      Future<Void> future = executorService.submit(warningReader);
-      //Statement should only finish executing once we have
-      //received the two notices and released the outer lock.
-      preparedStatement.execute();
+      };
+      ExecutorService executorService = Executors.newSingleThreadExecutor();
+      try {
+        Future<Void> future = executorService.submit(warningReader);
+        //Statement should only finish executing once we have
+        //received the two notices and released the outer lock.
+        preparedStatement.execute();
 
-      //If test takes longer than 2 seconds its a failure.
-      future.get(2, TimeUnit.SECONDS);
-    } finally {
-      executorService.shutdownNow();
+        //If test takes longer than 2 seconds its a failure.
+        future.get(2, TimeUnit.SECONDS);
+      } finally {
+        executorService.shutdownNow();
+      }
     }
   }
 

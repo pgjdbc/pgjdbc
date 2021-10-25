@@ -2,7 +2,7 @@
 layout: default_docs
 title: Setting up the Class Path
 header: Chapter 2. Setting up the JDBC Driver
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 2. Setting up the JDBC Driver
 previous: setup.html
 nexttitle: Preparing the Database Server for JDBC

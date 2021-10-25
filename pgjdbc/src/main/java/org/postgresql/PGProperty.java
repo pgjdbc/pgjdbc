@@ -214,11 +214,11 @@ public enum PGProperty {
       new String[] {"select", "callIfNoReturn", "call"}),
 
   GSS_ENC_MODE(
-        "gssEncMode",
-        "allow",
-        "Force Encoded GSS Mode",
-        false,
-        new String[] {"disable", "allow", "prefer", "require"}
+      "gssEncMode",
+      "allow",
+      "Force Encoded GSS Mode",
+      false,
+      new String[] {"disable", "allow", "prefer", "require"}
   ),
 
   /**
@@ -448,6 +448,17 @@ public enum PGProperty {
       false,
       new String[] {"3"}),
 
+  /**
+   * Quote returning columns.
+   * There are some ORM's that quote everything, including returning columns
+   * If we quote them, then we end up sending ""colname"" to the backend
+   * which will not be found
+   */
+  QUOTE_RETURNING_IDENTIFIERS(
+    "quoteReturningIdentifiers",
+    "true",
+    "Quote identifiers provided in returning array",
+      false),
   /**
    * Puts this connection in read-only mode.
    */

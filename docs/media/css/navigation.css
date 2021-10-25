@@ -11,7 +11,7 @@
   margin: 0;
   padding: 0;
   height: 23px;
-  background: #B7B7B7 url("../img/layout/nav_fill.png") top left repeat-x;
+  background: #B7B7B7 url("/media/img/layout/nav_fill.png") top left repeat-x;
   overflow: visible;
   margin-top: 2px;
 }
@@ -63,7 +63,7 @@
 
 #pgTopNavList li a {
   color: #fff;
-  font-weight: bold; 
+  font-weight: bold;
   text-decoration: none;
 }
 

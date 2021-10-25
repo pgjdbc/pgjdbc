@@ -1361,7 +1361,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (int i = 0; i < numKeys; i++) {
 
       PrimaryKey primaryKey = primaryKeys.get(i);
-      selectSQL.append(primaryKey.name).append("= ?");
+      selectSQL.append(primaryKey.name).append(" = ?");
 
       if (i < numKeys - 1) {
         selectSQL.append(" and ");
@@ -1378,8 +1378,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       selectStatement = connection.prepareStatement(sqlText,
           ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-      for (int j = 0, i = 1; j < numKeys; j++, i++) {
-        selectStatement.setObject(i, primaryKeys.get(j).getValue());
+      for (int i = 0; i < numKeys; i++) {
+        selectStatement.setObject(i + 1, primaryKeys.get(i).getValue());
       }
 
       PgResultSet rs = (PgResultSet) selectStatement.executeQuery();
@@ -1654,20 +1654,42 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     java.sql.ResultSet rs = ((PgDatabaseMetaData)connection.getMetaData()).getPrimaryUniqueKeys("",
         quotelessSchemaName, quotelessTableName);
 
-    while (rs.next()) {
-      numPKcolumns++;
-      String columnName = castNonNull(rs.getString(4)); // get the columnName
-      int index = findColumnIndex(columnName);
+    String lastConstraintName = null;
 
-      /* make sure that the user has included the primary key in the resultset */
-      if (index > 0) {
-        i++;
-        primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
+    while (rs.next()) {
+      String constraintName = castNonNull(rs.getString(6)); // get the constraintName
+      if (lastConstraintName == null || !lastConstraintName.equals(constraintName)) {
+        if (lastConstraintName != null) {
+          if (i == numPKcolumns && numPKcolumns > 0) {
+            break;
+          }
+          connection.getLogger().log(Level.FINE, "no of keys={0} from constraint {1}", new Object[]{i, lastConstraintName});
+        }
+        i = 0;
+        numPKcolumns = 0;
+
+        primaryKeys.clear();
+        lastConstraintName = constraintName;
+      }
+      numPKcolumns++;
+
+      boolean isNotNull = rs.getBoolean("IS_NOT_NULL");
+
+      /* make sure that only unique keys with all non-null attributes are handled */
+      if (isNotNull) {
+        String columnName = castNonNull(rs.getString(4)); // get the columnName
+        int index = findColumnIndex(columnName);
+
+        /* make sure that the user has included the primary key in the resultset */
+        if (index > 0) {
+          i++;
+          primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
+        }
       }
     }
 
     rs.close();
-    connection.getLogger().log(Level.FINE, "no of keys={0}", i);
+    connection.getLogger().log(Level.FINE, "no of keys={0} from constraint {1}", new Object[]{i, lastConstraintName});
 
     /*
     it is only updatable if the primary keys are available in the resultset
@@ -1693,7 +1715,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     if (!updateable) {
-      throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
+      throw new PSQLException(GT.tr("No eligible primary or unique key found for table {0}.", tableName),
           PSQLState.INVALID_CURSOR_STATE);
     }
 

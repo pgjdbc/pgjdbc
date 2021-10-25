@@ -36,6 +36,8 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    */
   public double c;
 
+  private boolean isNull;
+
   /**
    * @param a coefficient of x
    * @param b coefficient of y
@@ -54,8 +56,49 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param x2 coordinate for second point on the line
    * @param y2 coordinate for second point on the line
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PGline(double x1, double y1, double x2, double y2) {
     this();
+    setValue(x1, y1, x2, y2);
+  }
+
+  /**
+   * @param p1 first point on the line
+   * @param p2 second point on the line
+   */
+  @SuppressWarnings("method.invocation.invalid")
+  public PGline(@Nullable PGpoint p1, @Nullable PGpoint p2) {
+    this();
+    setValue(p1, p2);
+  }
+
+  /**
+   * @param lseg Line segment which calls on this line.
+   */
+  @SuppressWarnings("method.invocation.invalid")
+  public PGline(@Nullable PGlseg lseg) {
+    this();
+    if (lseg == null) {
+      isNull = true;
+      return;
+    }
+    PGpoint[] point = lseg.point;
+    if (point == null) {
+      isNull = true;
+      return;
+    }
+    setValue(point[0], point[1]);
+  }
+
+  private void setValue(@Nullable PGpoint p1, @Nullable PGpoint p2) {
+    if (p1 == null || p2 == null) {
+      isNull = true;
+    } else {
+      setValue(p1.x, p1.y, p2.x, p2.y);
+    }
+  }
+
+  private void setValue(double x1, double y1, double x2, double y2) {
     if (x1 == x2) {
       a = -1;
       b = 0;
@@ -64,21 +107,6 @@ public class PGline extends PGobject implements Serializable, Cloneable {
       b = -1;
     }
     c = y1 - a * x1;
-  }
-
-  /**
-   * @param p1 first point on the line
-   * @param p2 second point on the line
-   */
-  public PGline(PGpoint p1, PGpoint p2) {
-    this(p1.x, p1.y, p2.x, p2.y);
-  }
-
-  /**
-   * @param lseg Line segment which calls on this line.
-   */
-  public PGline(PGlseg lseg) {
-    this(lseg.point[0], lseg.point[1]);
   }
 
   /**
@@ -103,7 +131,11 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @throws SQLException on conversion failure
    */
   @Override
-  public void setValue(String s) throws SQLException {
+  public void setValue(@Nullable String s) throws SQLException {
+    isNull = s == null;
+    if (s == null) {
+      return;
+    }
     if (s.trim().startsWith("{")) {
       PGtokenizer t = new PGtokenizer(PGtokenizer.removeCurlyBrace(s), ',');
       if (t.getSize() != 3) {
@@ -143,6 +175,11 @@ public class PGline extends PGobject implements Serializable, Cloneable {
     }
 
     PGline pGline = (PGline) obj;
+    if (isNull) {
+      return pGline.isNull;
+    } else if (pGline.isNull) {
+      return false;
+    }
 
     return Double.compare(pGline.a, a) == 0
         && Double.compare(pGline.b, b) == 0
@@ -150,6 +187,9 @@ public class PGline extends PGobject implements Serializable, Cloneable {
   }
 
   public int hashCode() {
+    if (isNull) {
+      return 0;
+    }
     int result = super.hashCode();
     long temp;
     temp = Double.doubleToLongBits(a);
@@ -164,8 +204,8 @@ public class PGline extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGline in the syntax expected by org.postgresql
    */
-  public String getValue() {
-    return "{" + a + "," + b + "," + c + "}";
+  public @Nullable String getValue() {
+    return isNull ? null : "{" + a + "," + b + "," + c + "}";
   }
 
   @Override

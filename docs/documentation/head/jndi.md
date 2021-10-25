@@ -2,7 +2,7 @@
 layout: default_docs
 title: Data Sources and JNDI
 header: Chapter 11. Connection Pools and Data Sources
-resource: media
+resource: /documentation/head/media
 previoustitle: Tomcat setup
 previous: tomcat.html
 nexttitle: Chapter 12. Logging with java.util.logging
