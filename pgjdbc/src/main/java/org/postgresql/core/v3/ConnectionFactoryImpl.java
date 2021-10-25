@@ -8,6 +8,8 @@ package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.AuthenticationPlugin;
 import org.postgresql.core.AuthenticationPluginManager;
@@ -100,6 +102,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
     String user = PGProperty.USER.get(info);
     String database = PGProperty.PG_DBNAME.get(info);
+    if (user == null) {
+      throw new PSQLException(GT.tr("User cannot  be null"),
+          PSQLState.INVALID_NAME);
+    }
+    if (database == null) {
+      throw new PSQLException(GT.tr("Database cannot  be null"),
+          PSQLState.INVALID_NAME);
+    }
+
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
     // Set the socket timeout if the "socketTimeout" property has been set.
@@ -158,7 +169,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (socketTimeout > 0) {
       newStream.setNetworkTimeout(socketTimeout * 1000);
     }
-
+    
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
 

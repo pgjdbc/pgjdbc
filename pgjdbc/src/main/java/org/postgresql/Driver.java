@@ -657,7 +657,7 @@ public class Driver implements java.sql.Driver {
   /**
    * @return the username of the URL
    */
-  private static String user(Properties props) {
+  private static @Nullable String user(Properties props) {
     return PGProperty.USER.get(props);
   }
 
