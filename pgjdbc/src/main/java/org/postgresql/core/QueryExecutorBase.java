@@ -169,9 +169,6 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public void sendQueryCancel() throws SQLException {
-    if (cancelPid <= 0) {
-      return;
-    }
 
     PGStream cancelStream = null;
 
