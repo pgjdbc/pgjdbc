@@ -169,7 +169,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (socketTimeout > 0) {
       newStream.setNetworkTimeout(socketTimeout * 1000);
     }
-    
+
     List<String[]> paramList = getParametersForStartup(user, database, info);
     sendStartupPacket(newStream, paramList);
 
@@ -237,11 +237,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE,gssEncMode);
               LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
                   hostSpec);
-            } catch (SQLException ee) {
+            } catch (SQLException | IOException ee) {
               ex = ee;
-            } catch (IOException ee) {
-              ex = ee; // Can't use multi-catch in Java 6 :(
             }
+
             if (ex != null) {
               log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", ex);
               // non-SSL failed as well, so re-throw original exception
@@ -448,6 +447,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     String user = PGProperty.USER.get(info);
+    if (user == null) {
+      throw new PSQLException("GSSAPI encryption required but was impossible user is null", PSQLState.CONNECTION_REJECTED);
+    }
+    
     // attempt to acquire a GSS encrypted connection
     String password = PGProperty.PASSWORD.get(info);
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
