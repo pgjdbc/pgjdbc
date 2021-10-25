@@ -92,6 +92,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Encoding.canonicalize("integer_datetimes");
     Encoding.canonicalize("off");
     Encoding.canonicalize("on");
+    Encoding.canonicalize("server_encoding");
     Encoding.canonicalize("server_version");
     Encoding.canonicalize("server_version_num");
     Encoding.canonicalize("standard_conforming_strings");
