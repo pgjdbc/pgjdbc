@@ -24,7 +24,7 @@ public class AuthenticationPluginManager {
       try {
         return (AuthenticationPlugin) Class.forName(authenticationClassName).getDeclaredConstructor().newInstance();
       } catch (Exception ex ) {
-        LOGGER.log(Level.FINE, "Unable to load Authentication Plugin" + ex.getMessage() );
+        LOGGER.log(Level.FINE, "Unable to load Authentication Plugin " + ex.toString() );
         throw ex;
       }
     }
