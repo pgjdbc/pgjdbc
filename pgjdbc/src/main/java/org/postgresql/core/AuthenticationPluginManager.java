@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGProperty;
+import org.postgresql.util.ObjectFactory;
 
 import java.util.Properties;
 import java.util.logging.Level;
@@ -19,10 +20,10 @@ public class AuthenticationPluginManager {
     String authenticationClassName = PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.getSetString(info);
 
     if ( authenticationClassName == null ) {
-      return new PasswordAuthentication();
+      return new PasswordAuthentication(info);
     } else {
       try {
-        return (AuthenticationPlugin) Class.forName(authenticationClassName).getDeclaredConstructor().newInstance();
+        return (AuthenticationPlugin) ObjectFactory.instantiate(authenticationClassName, info, false, null);
       } catch (Exception ex ) {
         LOGGER.log(Level.FINE, "Unable to load Authentication Plugin " + ex.toString() );
         throw ex;
