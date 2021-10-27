@@ -15,10 +15,10 @@ import java.util.Properties;
 
 public class PasswordAuthentication implements AuthenticationPlugin {
 
-  public PasswordAuthentication(Properties info){
+  public PasswordAuthentication(Properties info) {
     // ignore we don't need it.
   }
-  
+
   @Override
   public byte[] getEncodedPassword(Properties info) throws PSQLException {
     String password = PGProperty.PASSWORD.getSetString(info);
