@@ -328,6 +328,9 @@ public class ByteConverter {
     if (unscaledBI == null) {
       unscaledBI = BigInteger.valueOf(unscaledInt);
     }
+    if (effectiveWeight > 0) {
+      unscaledBI = unscaledBI.multiply(tenPower(effectiveWeight * 4));
+    }
     if (effectiveScale > 0) {
       unscaledBI = unscaledBI.multiply(tenPower(effectiveScale));
     }
