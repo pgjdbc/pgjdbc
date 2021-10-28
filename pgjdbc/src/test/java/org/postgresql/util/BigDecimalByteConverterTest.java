@@ -63,11 +63,11 @@ public class BigDecimalByteConverterTest {
     numbers.add(new Object[] {new BigDecimal(BigInteger.valueOf(-1234567890987654321L), -3)});
     numbers.add(new Object[] {new BigDecimal(BigInteger.valueOf(6), -8)});
     numbers.add(new Object[] {new BigDecimal("30000")});
-    numbers.add(new Object[] {new BigDecimal("40000").setScale(20)});
-    numbers.add(new Object[] {new BigDecimal("20000.00000000000000000000")});
-    numbers.add(new Object[] {new BigDecimal("9990000").setScale(20)});
-    numbers.add(new Object[] {new BigDecimal("1000000").setScale(20)});
-    numbers.add(new Object[] {new BigDecimal("10000000000000000000000000000000000000").setScale(20)});
+    numbers.add(new Object[] {new BigDecimal("40000").setScale(15)});
+    numbers.add(new Object[] {new BigDecimal("20000.000000000000000000")});
+    numbers.add(new Object[] {new BigDecimal("9990000").setScale(8)});
+    numbers.add(new Object[] {new BigDecimal("1000000").setScale(31)});
+    numbers.add(new Object[] {new BigDecimal("10000000000000000000000000000000000000").setScale(14)});
     numbers.add(new Object[] {new BigDecimal("90000000000000000000000000000000000000")});
     return numbers;
   }
