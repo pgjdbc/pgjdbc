@@ -5,7 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
@@ -90,7 +91,7 @@ public class NumericTransferTest2 extends BaseTest4 {
   @Test
   public void receiveValue() throws SQLException {
     final String valString = value.toPlainString();
-    try(Statement statement = con.createStatement()) {
+    try (Statement statement = con.createStatement()) {
       final String sql = "SELECT " + valString + "::numeric";
       try (ResultSet rs = statement.executeQuery(sql)) {
         assertTrue(rs.next());
@@ -102,9 +103,9 @@ public class NumericTransferTest2 extends BaseTest4 {
   @Test
   public void sendReceiveValue() throws SQLException {
     final String valString = value.toPlainString();
-    try(PreparedStatement statement = con.prepareStatement("select ?::numeric")) {
+    try (PreparedStatement statement = con.prepareStatement("select ?::numeric")) {
       statement.setBigDecimal(1, value);
-      try(ResultSet rs = statement.executeQuery()) {
+      try (ResultSet rs = statement.executeQuery()) {
         rs.next();
         assertEquals("getBigDecimal for " + valString, valString, rs.getBigDecimal(1).toPlainString());
       }
