@@ -5,6 +5,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+
+### Added
+
+### Fixed
+
+## [42.3.1] (2021-10-29)
+### Changed
+- improv: Arrays in Object[] [PR 2330](https://github.com/pgjdbc/pgjdbc/pull/2330) when an Object[] contains other arrays, treat as though it were a
+multi-dimensional array the one exception is byte[], which is not supported.
+- improv: Use jre utf-8 decoding [PR 2317](https://github.com/pgjdbc/pgjdbc/pull/2317) Remove use of custom utf-8 decoding.
+- perf: improve performance of bytea string decoding [PR 2320](https://github.com/pgjdbc/pgjdbc/pull/2320)
+improve the parsing of bytea hex encoded string by making a lookup table for each of the valid ascii code points to the 4 bit numeric value
+- feat: intern/canonicalize common strings [PR 2234](https://github.com/pgjdbc/pgjdbc/pull/2234)
+### Added
+
+### Fixed
+- numeric binary decode for even 10 thousands [PR #2327](https://github.com/pgjdbc/pgjdbc/pull/2327) fixes  [Issue 2326](https://github.com/pgjdbc/pgjdbc/issues/2326)
+binary numeric values which represented integers multiples of 10,000 from 10,000-9,990,000 were not decoded correctly
+- [typo] typo in certdir/README.md [PR #2309](https://github.com/pgjdbc/pgjdbc/pull/2309) certificatess => certificates
+- [typo] typo in TimestampUtils.java [PR #2314](https://github.com/pgjdbc/pgjdbc/pull/2314) Change `Greagorian` to `Gregorian`.
+- remove check for negative pid in cancel request. Apparently pgbouncer can send one fixes [Issue 2317](https://github.com/pgjdbc/pgjdbc/issues/2317) [PR #2319](https://github.com/pgjdbc/pgjdbc/pull/2319)
+
+## [42.3.0] (2021-10-18)
+### Changed
 - No longer build for Java 6 or Java 7
 - If assumeMinServerVersion is not defined and server is at least 9.0, group startup statements into a single transaction PR [#1977](https://github.com/pgjdbc/pgjdbc/pull/1977)
 
@@ -530,4 +554,6 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.22]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.21...REL42.2.22
 [42.2.23]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.22...REL42.2.23
 [42.2.24]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.23...REL42.2.24
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.24...HEAD
+[42.3.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.24...REL42.3.1
+[42.3.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.0...REL42.3.1
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...HEAD
