@@ -21,8 +21,6 @@ improve the parsing of bytea hex encoded string by making a lookup table for eac
 ### Added
 
 ### Fixed
-- remove unused OptimizedUTF8Encoder [PR 2329](https://github.com/pgjdbc/pgjdbc/pull/2329)
-I missed removing the base OptimizedUTF8Encoder class as part of [PR 2317](https://github.com/pgjdbc/pgjdbc/pull/2317)
 - numeric binary decode for even 10 thousands [PR #2327](https://github.com/pgjdbc/pgjdbc/pull/2327) fixes  [Issue 2326](https://github.com/pgjdbc/pgjdbc/issues/2326)
 binary numeric values which represented integers multiples of 10,000 from 10,000-9,990,000 were not decoded correctly
 - [typo] typo in certdir/README.md [PR #2309](https://github.com/pgjdbc/pgjdbc/pull/2309) certificatess => certificates
@@ -556,5 +554,6 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.22]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.21...REL42.2.22
 [42.2.23]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.22...REL42.2.23
 [42.2.24]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.23...REL42.2.24
-[42.3.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.0...REL42.3.1
+[42.3.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.24...REL42.3.1
+[42.3.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.0...REL42.3.1
 [Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...HEAD
