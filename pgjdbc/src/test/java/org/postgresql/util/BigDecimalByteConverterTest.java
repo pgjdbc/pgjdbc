@@ -30,6 +30,12 @@ public class BigDecimalByteConverterTest {
   @Parameterized.Parameters(name = "number = {0,number,#,###.##################################################}")
   public static Iterable<Object[]> data() {
     final Collection<Object[]> numbers = new ArrayList<Object[]>();
+    numbers.add(new Object[] {new BigDecimal("0.1")});
+    numbers.add(new Object[] {new BigDecimal("0.10")});
+    numbers.add(new Object[] {new BigDecimal("0.01")});
+    numbers.add(new Object[] {new BigDecimal("0.001")});
+    numbers.add(new Object[] {new BigDecimal("0.0001")});
+    numbers.add(new Object[] {new BigDecimal("0.00001")});
     numbers.add(new Object[] {new BigDecimal("1.0")});
     numbers.add(new Object[] {new BigDecimal("0.000000000000000000000000000000000000000000000000000")});
     numbers.add(new Object[] {new BigDecimal("0.100000000000000000000000000000000000000000000009900")});
