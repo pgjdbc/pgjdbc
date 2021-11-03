@@ -13,8 +13,6 @@ It should be 2.7.2.0-b0 or above version of YugabyteDB to run these load balanci
 === 2. Build the demo examples
 Run `mvn package` before starting the `run` script
 
-Note: Before executing the script, make sure either you have locally build and install the 'jdbc-yugabytedb' project on your system or you can visit https://search.maven.org/artifact/com.yugabyte/jdbc-yugabytedb and replace the latest dependency with the existing one in pom.xml 
-
 === 3. Run this script for a demo
 Once you have YugaByteDB installed in your system, then for a demo you just need to run this script.
 The script can be run in verbose and/or interactive mode. Check the help of the script to understand
