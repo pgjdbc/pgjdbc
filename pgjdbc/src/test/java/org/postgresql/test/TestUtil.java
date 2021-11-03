@@ -466,6 +466,25 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a test table for use by a test with a primary key
+   */
+  public static void createTableWithPrimaryKey(Connection con, String table, String columns)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the table
+      dropTable(con, table);
+
+      // Now create the table
+      String sql = "CREATE TABLE " + table + " (" + table + "_id SERIAL PRIMARY KEY, " + columns + ")";
+
+      st.executeUpdate(sql);
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
   /**
    * Helper creates a temporary table.
    *
