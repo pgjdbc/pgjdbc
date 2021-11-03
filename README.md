@@ -19,7 +19,7 @@ This is similar to 'Cluster Awareness' but uses those servers which are part of 
 
 ### Connection Properties added for load balancing
 
-- _load-balance_   - It takes 'true' or 'false' as valid values. By default it is 'false' for now.
+- _load-balance_   - It takes 'true' or 'false' as valid values. By default it is 'true' for YBClusterAwareDataSource but in case of DriverManager.getConnection() API it needs to be set 'true' because default it is 'false'.
 - _topology-keys_  - It takes a comma separated geo-location values. The geo-location can be given as 'cloud:region:zone'.
 
 Please refer to the [Use the Driver](#Use the Driver) section for examples.
@@ -33,7 +33,7 @@ Either add the following lines to your maven project in pom.xml file.
 <dependency>
   <groupId>com.yugabyte</groupId>
   <artifactId>jdbc-yugabytedb</artifactId>
-  <version>42.3.0-yb-beta.1</version>
+  <version>42.3.0</version>
 </dependency>
 ```
 
@@ -54,28 +54,23 @@ or you can visit to this link for the latest version of dependency: https://sear
     ```
     git clone https://github.com/yugabyte/pgjdbc.git && cd pgjdbc
     ```
-2. Checkout the 'yugabyte' branch.
 
-    ```
-     git checkout yugabyte
-    ```
-
-3. Build and install into your local maven folder.
+2. Build and install into your local maven folder.
 
     ```
      ./gradlew publishToMavenLocal -x test -x checkstyleMain
     ```
 
-4. Finally, use it by adding the lines below to your project.
+3. Finally, use it by adding the lines below to your project.
 
     ```xml
     <dependency>
         <groupId>com.yugabyte</groupId>
         <artifactId>jdbc-yugabytedb</artifactId>
-        <version>42.3.1-SNAPSHOT</version>
+        <version>42.3.0</version>
     </dependency> 
     ```
-####Note: You need to have installed 2.7.2.0-b0 or above version of YugabyteDB on your system for load balancing to work.
+> **Note:** You need to have installed 2.7.2.0-b0 or above version of YugabyteDB on your system for load balancing to work.
 
 ## Use the Driver
 
