@@ -19,7 +19,7 @@ This is similar to 'Cluster Awareness' but uses those servers which are part of 
 
 ### Connection Properties added for load balancing
 
-- _load-balance_   - It takes 'true' or 'false' as valid values. By default it is 'true' for YBClusterAwareDataSource but in case of DriverManager.getConnection() API it needs to be set 'true' because default it is 'false'.
+- _load-balance_   - It expects **true/false** as its possible values. In YBClusterAwareDataSource load balancing is true by default. However when using the DriverManager.getConnection() API the 'load-balance' property needs to be set to 'true'.
 - _topology-keys_  - It takes a comma separated geo-location values. The geo-location can be given as 'cloud:region:zone'.
 
 Please refer to the [Use the Driver](#Use the Driver) section for examples.
