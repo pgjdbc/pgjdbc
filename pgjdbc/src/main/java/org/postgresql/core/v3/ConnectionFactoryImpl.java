@@ -870,7 +870,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (inHotStandby != null && inHotStandby.equalsIgnoreCase("on")) {
       return false;
     }
-    // Host may not be in recovery but still have transaction_read_only = 'off' set,
+    // Host may not be in recovery but still have 'transaction_read_only=on' set,
     // hence explicit check
     Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
     Tuple nonNullResults = castNonNull(results);
