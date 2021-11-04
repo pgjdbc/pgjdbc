@@ -76,6 +76,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_SASL_CONTINUE = 11;
   private static final int AUTH_REQ_SASL_FINAL = 12;
 
+  private static final String IN_HOT_STANDBY = "in_hot_standby";
+
   private ISSPIClient createSSPI(PGStream pgStream,
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
@@ -864,7 +866,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
-    String inHotStandby = queryExecutor.getParameterStatus("in_hot_standby");
+    String inHotStandby = queryExecutor.getParameterStatus(IN_HOT_STANDBY);
     if (inHotStandby != null && inHotStandby.equalsIgnoreCase("on")) {
       return false;
     }
