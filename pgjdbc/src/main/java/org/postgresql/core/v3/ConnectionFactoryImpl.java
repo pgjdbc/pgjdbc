@@ -867,14 +867,22 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
     String inHotStandby = queryExecutor.getParameterStatus(IN_HOT_STANDBY);
-    if (inHotStandby != null && inHotStandby.equalsIgnoreCase("on")) {
+    if ("on".equalsIgnoreCase(inHotStandby)) {
       return false;
     }
     // Host may not be in recovery but still have transaction_read_only = 'off' set,
     // hence explicit check
-    Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
+    Tuple results = SetupQueryRunner.run(queryExecutor, showIsPrimaryGuc(queryExecutor), true);
     Tuple nonNullResults = castNonNull(results);
     String queriedTransactionReadonly = queryExecutor.getEncoding().decode(castNonNull(nonNullResults.get(0)));
     return queriedTransactionReadonly.equalsIgnoreCase("off");
+  }
+
+  private String showIsPrimaryGuc(QueryExecutor queryExecutor) {
+    if (queryExecutor.getServerVersionNum() >= ServerVersion.v14.getVersionNum()) {
+      return "show in_hot_standby";
+    } else {
+      return "show transaction_read_only";
+    }
   }
 }
