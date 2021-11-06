@@ -878,7 +878,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * during initial connection:</p>
    *
    * <ul>
-   * <li>{@code in_hot_standby} was reported and the value was "on" them the server is replica
+   * <li>{@code in_hot_standby} was reported and the value was "on" then the server is a replica
    * and database is read-only by definition, false is returned.</li>
    * <li>{@code in_hot_standby} was reported and the value was "off"
    * then the server is indeed primary but database may be in
