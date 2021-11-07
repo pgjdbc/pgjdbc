@@ -239,10 +239,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   tryConnect(user, database, info, socketFactory, hostSpec, SslMode.DISABLE,gssEncMode);
               LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
                   hostSpec);
-            } catch (SQLException ee) {
+            } catch (SQLException | IOException ee) {
               ex = ee;
-            } catch (IOException ee) {
-              ex = ee; // Can't use multi-catch in Java 6 :(
             }
             if (ex != null) {
               log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", ex);
