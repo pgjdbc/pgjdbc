@@ -4024,7 +4024,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private TimestampUtils getTimestampUtils() {
     if (timestampUtils == null) {
-        timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider< TimeZone>)new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+      timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>)new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
     }
     return timestampUtils;
   }

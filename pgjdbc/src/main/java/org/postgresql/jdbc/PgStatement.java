@@ -1298,7 +1298,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected TimestampUtils getTimestampUtils() {
     if (timestampUtils == null) {
-        timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+      timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
     }
     return timestampUtils;
   }
