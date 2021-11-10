@@ -99,6 +99,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Encoding.canonicalize("TimeZone");
     Encoding.canonicalize("UTF8");
     Encoding.canonicalize("UTF-8");
+    Encoding.canonicalize("in_hot_standby");
   }
 
   /**
