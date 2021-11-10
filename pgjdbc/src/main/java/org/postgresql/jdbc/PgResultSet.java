@@ -14,6 +14,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
@@ -102,6 +103,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected final BaseStatement statement; // the statement we belong to
   protected final Field[] fields; // Field metadata for this resultset.
   protected final @Nullable Query originalQuery; // Query we originated from
+  private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
 
   protected final int maxRows; // Maximum rows in this resultset (might be 0).
   protected final int maxFieldSize; // Maximum field size in this resultset (might be 0).
@@ -510,13 +512,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       int oid = fields[col].getOID();
       TimeZone tz = cal.getTimeZone();
       if (oid == Oid.DATE) {
-        return connection.getTimestampUtils().toDateBin(tz, value);
+        return getTimestampUtils().toDateBin(tz, value);
       } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
         // If backend provides just TIMESTAMP, we use "cal" timezone
         // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
         Timestamp timestamp = castNonNull(getTimestamp(i, cal));
         // Here we just truncate date to 00:00 in a given time zone
-        return connection.getTimestampUtils().convertToDate(timestamp.getTime(), tz);
+        return getTimestampUtils().convertToDate(timestamp.getTime(), tz);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -525,7 +527,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     }
 
-    return connection.getTimestampUtils().toDate(cal, castNonNull(getString(i)));
+    return getTimestampUtils().toDate(cal, castNonNull(getString(i)));
   }
 
   @Override
@@ -544,7 +546,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       int oid = fields[col].getOID();
       TimeZone tz = cal.getTimeZone();
       if (oid == Oid.TIME || oid == Oid.TIMETZ) {
-        return connection.getTimestampUtils().toTimeBin(tz, value);
+        return getTimestampUtils().toTimeBin(tz, value);
       } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
         // If backend provides just TIMESTAMP, we use "cal" timezone
         // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
@@ -559,7 +561,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return new Time(timeMillis % TimeUnit.DAYS.toMillis(1));
         }
         // Here we just truncate date part
-        return connection.getTimestampUtils().convertToTime(timeMillis, tz);
+        return getTimestampUtils().convertToTime(timeMillis, tz);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -569,7 +571,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     String string = getString(i);
-    return connection.getTimestampUtils().toTime(cal, string);
+    return getTimestampUtils().toTime(cal, string);
   }
 
   private java.time.@Nullable LocalTime getLocalTime(int i) throws SQLException {
@@ -582,7 +584,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       int col = i - 1;
       int oid = fields[col].getOID();
       if (oid == Oid.TIME) {
-        return connection.getTimestampUtils().toLocalTimeBin(value);
+        return getTimestampUtils().toLocalTimeBin(value);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -592,7 +594,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     String string = getString(i);
-    return connection.getTimestampUtils().toLocalTime(string);
+    return getTimestampUtils().toLocalTime(string);
   }
 
   @Pure
@@ -613,7 +615,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
         boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
         TimeZone tz = cal.getTimeZone();
-        return connection.getTimestampUtils().toTimestampBin(tz, value, hasTimeZone);
+        return getTimestampUtils().toTimestampBin(tz, value, hasTimeZone);
       } else {
         // JDBC spec says getTimestamp of Time and Date must be supported
         long millis;
@@ -645,9 +647,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     String string = castNonNull(getString(i));
     if (oid == Oid.TIME || oid == Oid.TIMETZ) {
       // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-      return new Timestamp(connection.getTimestampUtils().toTime(cal, string).getTime());
+      return new Timestamp(getTimestampUtils().toTime(cal, string).getTime());
     }
-    return connection.getTimestampUtils().toTimestamp(cal, string);
+    return getTimestampUtils().toTimestamp(cal, string);
   }
 
   private java.time.@Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
@@ -661,14 +663,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (isBinary(i)) {
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
-        return connection.getTimestampUtils().toOffsetDateTimeBin(value);
+        return getTimestampUtils().toOffsetDateTimeBin(value);
       } else if (oid == Oid.TIMETZ) {
         // JDBC spec says timetz must be supported
         Time time = getTime(i);
         if (time == null) {
           return null;
         }
-        return connection.getTimestampUtils().toOffsetDateTime(time);
+        return getTimestampUtils().toOffsetDateTime(time);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -685,10 +687,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       // JDBC spec says timetz must be supported
       // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
       Calendar cal = getDefaultCalendar();
-      Time time = connection.getTimestampUtils().toTime(cal, string);
-      return connection.getTimestampUtils().toOffsetDateTime(time);
+      Time time = getTimestampUtils().toTime(cal, string);
+      return getTimestampUtils().toOffsetDateTime(time);
     }
-    return connection.getTimestampUtils().toOffsetDateTime(string);
+    return getTimestampUtils().toOffsetDateTime(string);
   }
 
   private java.time.@Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
@@ -706,11 +708,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
               PSQLState.DATA_TYPE_MISMATCH);
     }
     if (isBinary(i)) {
-      return connection.getTimestampUtils().toLocalDateTimeBin(value);
+      return getTimestampUtils().toLocalDateTimeBin(value);
     }
 
     String string = castNonNull(getString(i));
-    return connection.getTimestampUtils().toLocalDateTime(string);
+    return getTimestampUtils().toLocalDateTime(string);
   }
 
   public java.sql.@Nullable Date getDate(
@@ -1883,20 +1885,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         case Types.DATE:
           rowBuffer.set(columnIndex, connection
               .encodeString(
-                  connection.getTimestampUtils().toString(
+                  getTimestampUtils().toString(
                       getDefaultCalendar(), (Date) valueObject)));
           break;
 
         case Types.TIME:
           rowBuffer.set(columnIndex, connection
               .encodeString(
-                  connection.getTimestampUtils().toString(
+                  getTimestampUtils().toString(
                       getDefaultCalendar(), (Time) valueObject)));
           break;
 
         case Types.TIMESTAMP:
           rowBuffer.set(columnIndex, connection.encodeString(
-              connection.getTimestampUtils().toString(
+              getTimestampUtils().toString(
                   getDefaultCalendar(), (Timestamp) valueObject)));
           break;
 
@@ -2150,7 +2152,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       // hack to be compatible with text protocol
       if (obj instanceof java.util.Date) {
         int oid = field.getOID();
-        return connection.getTimestampUtils().timeToString((java.util.Date) obj,
+        return getTimestampUtils().timeToString((java.util.Date) obj,
             oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ);
       }
       if ("hstore".equals(getPGType(columnIndex))) {
@@ -4010,15 +4012,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   private Calendar getDefaultCalendar() {
-    TimestampUtils timestampUtils = connection.getTimestampUtils();
-    if (timestampUtils.hasFastDefaultTimeZone()) {
-      return timestampUtils.getSharedCalendar(null);
+    if (getTimestampUtils().hasFastDefaultTimeZone()) {
+      return getTimestampUtils().getSharedCalendar(null);
     }
-    Calendar sharedCalendar = timestampUtils.getSharedCalendar(defaultTimeZone);
+    Calendar sharedCalendar = getTimestampUtils().getSharedCalendar(defaultTimeZone);
     if (defaultTimeZone == null) {
       defaultTimeZone = sharedCalendar.getTimeZone();
     }
     return sharedCalendar;
+  }
+
+  private TimestampUtils getTimestampUtils() {
+    if (timestampUtils == null) {
+      timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>)new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+    }
+    return timestampUtils;
   }
 
   /**
