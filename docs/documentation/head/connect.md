@@ -307,7 +307,7 @@ Connection conn = DriverManager.getConnection(url);
 	Determine the number of rows fetched in `ResultSet`
 	by one fetch with trip to the database. Limiting the number of rows are fetch with 
 	each trip to the database allow avoids unnecessary memory consumption 
-	and as a consequence `OutOfMemoryException`.
+	and as a consequence `OutOfMemoryError`.
 
 	The default is zero, meaning that in `ResultSet` will be fetch all rows at once. 
 	Negative number is not available.
