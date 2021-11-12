@@ -5,10 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-
+- perf: read in_hot_standby GUC on connection [PR #2334](https://github.com/pgjdbc/pgjdbc/pull/2334)
+- test: materialized view privileges [PR #2209](https://github.com/pgjdbc/pgjdbc/pull/2209 fixes [Issue #2060](https://github.com/pgjdbc/pgjdbc/issues/2060)
 ### Added
 
 ### Fixed
+- Use local TimestampUtil in PgStatement and PgResultset for thread safety [PR #2291](https://github.com/pgjdbc/pgjdbc/pull/2291)
+  fixes [Issue #921](https://github.com/pgjdbc/pgjdbc/issues/921) synchronize modification of shared calendar
 
 ## [42.3.1] (2021-10-29)
 ### Changed
