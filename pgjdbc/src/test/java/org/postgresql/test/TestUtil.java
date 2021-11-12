@@ -512,7 +512,7 @@ public class TestUtil {
    */
   public static void createView(Connection con, String viewName, String query)
       throws SQLException {
-    try (Statement st = con.createStatement()){
+    try ( Statement st = con.createStatement() ) {
       // Drop the view
       dropView(con, viewName);
 
@@ -527,7 +527,7 @@ public class TestUtil {
    */
   public static void createMaterializedView(Connection con, String matViewName, String query)
       throws SQLException {
-    try (Statement st = con.createStatement()){
+    try ( Statement st = con.createStatement() ) {
       // Drop the view
       dropMaterializedView(con, matViewName);
 
