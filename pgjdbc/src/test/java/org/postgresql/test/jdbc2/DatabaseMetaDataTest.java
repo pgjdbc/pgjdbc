@@ -210,7 +210,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getTables(null, null, "metadatatest", new String[]{"TABLE"});
+    ResultSet rs = dbmd.getTables(null, null, "metadatates%", new String[]{"TABLE"});
     assertTrue(rs.next());
     String tableName = rs.getString("TABLE_NAME");
     assertEquals("metadatatest", tableName);
