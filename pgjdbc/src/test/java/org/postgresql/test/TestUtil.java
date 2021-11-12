@@ -23,7 +23,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.Thread.State;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -512,7 +511,7 @@ public class TestUtil {
    * Helper - creates a view
    */
   public static void createView(Connection con, String viewName, String query)
-      throws SQLException {        
+      throws SQLException {
     try (Statement st = con.createStatement()){
       // Drop the view
       dropView(con, viewName);
@@ -520,7 +519,7 @@ public class TestUtil {
       String sql = "CREATE VIEW " + viewName + " AS " + query;
 
       st.executeUpdate(sql);
-    } 
+    }
   }
 
   /*
@@ -535,7 +534,7 @@ public class TestUtil {
       String sql = "CREATE MATERIALIZED VIEW " + matViewName + " AS " + query;
 
       st.executeUpdate(sql);
-    } 
+    }
   }
 
   /**
