@@ -43,6 +43,14 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.SearchResult;
+
 /**
  * <p>The Java SQL framework allows for multiple database drivers. Each driver should supply a class
  * that implements the Driver interface</p>
@@ -552,18 +560,42 @@ public class Driver implements java.sql.Driver {
    */
   public static @Nullable Properties parseURL(String url, @Nullable Properties defaults) {
     Properties urlProps = new Properties(defaults);
+    // If there are no defaults set or any one of PORT, HOST, DBNAME not set
+    // then set it to default
+    if (defaults == null || !defaults.containsKey("PGPORT")) {
+      urlProps.setProperty("PGPORT", DEFAULT_PORT);
+    }
+    if (defaults == null || !defaults.containsKey("PGHOST")) {
+      urlProps.setProperty("PGHOST", "localhost");
+    }
+    if (url.startsWith("jdbc:postgresql:@ldap")) {
+      // Send only ldap URL
+      return parseLDAP(url.substring("jdbc:postgresql:@".length()), urlProps);
+    } else {
+      // Send full JDBC URL
+      return parseJDBC(url, urlProps);
+    }
+  }
 
-    String urlServer = url;
+  /**
+   * Loads Properties for JDBC Connection from LDAP URL
+   *
+   * @param jdbcURL JDBC URL to parse and use to load Properties
+   * @param urlProps Properties to update
+   * @return Properties with elements added or null if not valid
+   */
+  public static Properties parseJDBC(String jdbcURL, Properties urlProps) {
+    String urlServer = jdbcURL;
     String urlArgs = "";
 
-    int qPos = url.indexOf('?');
+    int qPos = jdbcURL.indexOf('?');
     if (qPos != -1) {
-      urlServer = url.substring(0, qPos);
-      urlArgs = url.substring(qPos + 1);
+      urlServer = jdbcURL.substring(0, qPos);
+      urlArgs = jdbcURL.substring(qPos + 1);
     }
 
     if (!urlServer.startsWith("jdbc:postgresql:")) {
-      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
+      LOGGER.log(Level.WARNING, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", jdbcURL);
       return null;
     }
     urlServer = urlServer.substring("jdbc:postgresql:".length());
@@ -572,7 +604,7 @@ public class Driver implements java.sql.Driver {
       urlServer = urlServer.substring(2);
       int slash = urlServer.indexOf('/');
       if (slash == -1) {
-        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", jdbcURL);
         return null;
       }
       urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer.substring(slash + 1)));
@@ -608,21 +640,9 @@ public class Driver implements java.sql.Driver {
       urlProps.setProperty("PGPORT", ports.toString());
       urlProps.setProperty("PGHOST", hosts.toString());
     } else {
-      /*
-       if there are no defaults set or any one of PORT, HOST, DBNAME not set
-       then set it to default
-      */
-      if (defaults == null || !defaults.containsKey("PGPORT")) {
-        urlProps.setProperty("PGPORT", DEFAULT_PORT);
-      }
-      if (defaults == null || !defaults.containsKey("PGHOST")) {
-        urlProps.setProperty("PGHOST", "localhost");
-      }
-      if (defaults == null || !defaults.containsKey("PGDBNAME")) {
-        urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
-      }
+      // jdbcURL format is "jdbc:postgresql:database"
+      urlProps.setProperty("PGDBNAME", URLCoder.decode(urlServer));
     }
-
     // parse the args part of the url
     String[] args = urlArgs.split("&");
     for (String token : args) {
@@ -636,7 +656,75 @@ public class Driver implements java.sql.Driver {
         urlProps.setProperty(token.substring(0, pos), URLCoder.decode(token.substring(pos + 1)));
       }
     }
+    return urlProps;
+  }
 
+  /**
+   * Loads Properties for JDBC Connection from LDAP URL
+   *
+   * @param ldapURL LDAP URL to parse and use to load Properties
+   * @param urlProps Properties to update
+   * @return Properties with elements added or null if not valid
+   */
+  public static Properties parseLDAP(String ldapURL, Properties urlProps) {
+    // Ldap implementation to load server host port dbname
+    // First look for entry "url" in LDAP, url will look like
+    // standard PostgreSQL jdbc url
+    // If url not defined, look for libpq attributes host, port, dbname
+    NamingEnumeration<SearchResult> entries = null;
+    try {
+      // Perform search using URL
+      DirContext ctx = new InitialDirContext();
+      entries = ctx.search(ldapURL, "", null);
+      ctx.close();
+      if (entries.hasMore()) {
+        SearchResult sr = (SearchResult) entries.next();
+        if (entries.hasMore()) {
+          LOGGER.log(Level.WARNING, "LDAP URL returned more than one element : {0}", ldapURL);
+          return null;
+        }
+        Attributes atts = sr.getAttributes();
+        // Loop over all attributes retrieved
+        NamingEnumeration<? extends Attribute> attsEnum = atts.getAll();
+        while (attsEnum.hasMore()) {
+          Attribute att = attsEnum.next();
+          // Loop over all attribute values
+          NamingEnumeration<?> attValues = att.getAll();
+          while (attValues.hasMore()) {
+            String attValue = (String) attValues.next();
+            // Look for "key=value" entries only
+            int pos = attValue.indexOf("=");
+            if (pos != -1) {
+              String key = attValue.substring(0, pos);
+              String value = attValue.substring(pos + 1);
+              // Is it the jdbc specific parameter 'url'
+              if (key.equals("url")) {
+                // Specific case, we just use this as a standard jdbc url later
+                // to allow specific functions from jdbc driver to be used such as fail-over
+                String jdbcURL = value;
+                // Call standard JDBC parse
+                return parseJDBC(jdbcURL, urlProps);
+              } else if (key.equals("host")) {
+                urlProps.setProperty("PGHOST", value);
+              } else if (key.equals("port")) {
+                urlProps.setProperty("PGPORT", value);
+              } else if (key.equals("dbname")) {
+                urlProps.setProperty("PGDBNAME", value);
+              } else {
+                // Simply put as extra properties on driver
+                urlProps.setProperty(key, value);
+              }
+            }
+          }
+        }
+      } else {
+        LOGGER.log(Level.WARNING, "LDAP URL returned no result : {0}", ldapURL);
+        return null;
+      }
+    } catch (NamingException e) {
+      LOGGER.log(Level.WARNING, "JDBC LDAP URL not valid : {0}, error = " + e.toString(), ldapURL);
+      return null;
+    }
     return urlProps;
   }
 
