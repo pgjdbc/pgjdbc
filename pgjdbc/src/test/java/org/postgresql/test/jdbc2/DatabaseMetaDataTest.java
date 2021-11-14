@@ -18,6 +18,7 @@ import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -82,7 +83,6 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
     TestUtil.createView(con, "viewtest", "SELECT id, quest FROM metadatatest");
-    TestUtil.createMaterializedView(con, "matviewtest", "SELECT id, quest FROM metadatatest");
     TestUtil.dropType(con, "custom");
     TestUtil.dropType(con, "_custom");
     TestUtil.createCompositeType(con, "custom", "i int", false);
@@ -145,7 +145,6 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con, "duplicate");
 
     TestUtil.dropView(con, "viewtest");
-    TestUtil.dropMaterializedView(con, "matviewtest");
     TestUtil.dropTable(con, "metadatatest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
@@ -670,7 +669,13 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testMaterializedViewPrivileges() throws SQLException {
-    relationPrivilegesHelper("matviewtest");
+    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
+    TestUtil.createMaterializedView(con, "matviewtest", "SELECT id, quest FROM metadatatest");
+    try {
+      relationPrivilegesHelper("matviewtest");
+    } finally {
+      TestUtil.dropMaterializedView(con, "matviewtest");
+    }
   }
 
   @Test
