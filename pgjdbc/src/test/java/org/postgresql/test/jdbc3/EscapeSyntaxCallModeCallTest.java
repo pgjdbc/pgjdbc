@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
+import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
@@ -60,7 +61,12 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.WRONG_OBJECT_TYPE.getState()));
+      // version 14 changes this to undefined function
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
+        assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.UNDEFINED_FUNCTION.getState()));
+      } else {
+        assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.WRONG_OBJECT_TYPE.getState()));
+      }
     }
   }
 
