@@ -816,6 +816,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @param enabled if TCP no delay should be enabled
+   * @see PGProperty#TCP_NO_DELAY
+   */
+  public void setTcpNoDelay( boolean enabled ) {
+    PGProperty.TCP_NO_DELAY.set(properties,enabled);
+  }
+
+  /**
+   * @return true if TCP no delay is enabled
+   * @see PGProperty#TCP_NO_DELAY
+   */
+  public boolean getTcpNoDelay() {
+    return PGProperty.TCP_NO_DELAY.getBoolean( properties );
+  }
+
+  /**
    * @param enabled if binary transfer should be enabled
    * @see PGProperty#BINARY_TRANSFER
    */

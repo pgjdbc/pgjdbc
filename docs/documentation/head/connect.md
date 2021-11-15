@@ -342,6 +342,10 @@ Connection conn = DriverManager.getConnection(url);
 
 	Enable or disable TCP keep-alive probe. The default is `false`.
 
+* **tcpNoDelay** = boolean
+
+  Enable or disable TCP nodelay. The default is `false`.
+
 * **unknownLength** = int
 
 	Certain postgresql types such as `TEXT` do not have a well defined length.

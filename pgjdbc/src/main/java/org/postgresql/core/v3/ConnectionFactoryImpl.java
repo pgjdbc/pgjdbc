@@ -114,6 +114,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
     newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
 
+    // Enable TCP no delay if required
+    boolean requireTCPNoDelay = PGProperty.TCP_NO_DELAY.getBoolean(info);
+    newStream.getSocket().setTcpNoDelay(requireTCPNoDelay);
+
     // Try to set SO_SNDBUF and SO_RECVBUF socket options, if requested.
     // If receiveBufferSize and send_buffer_size are set to a value greater
     // than 0, adjust. -1 means use the system default, 0 is ignored since not

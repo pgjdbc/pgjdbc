@@ -117,6 +117,7 @@ In addition to the standard connection parameters the driver supports a number o
 | connectTimeout                | Integer | 10      | The timeout value used for socket connect operations. |
 | socketTimeout                 | Integer | 0       | The timeout value used for socket read operations. |
 | tcpKeepAlive                  | Boolean | false   | Enable or disable TCP keep-alive. |
+| tcpNoDelay                    | Boolean | false   | Enable or disable TCP no delay. |
 | ApplicationName               | String  | PostgreSQL JDBC Driver    | The application name (require server version >= 9.0). If assumeMinServerVersion is set to >= 9.0 this will be sent in the startup packets, otherwise after the connection is made |
 | readOnly                      | Boolean | false   | Puts this connection in read-only mode |
 | disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
