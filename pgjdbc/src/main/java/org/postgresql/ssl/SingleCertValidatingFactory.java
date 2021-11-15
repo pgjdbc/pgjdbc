@@ -125,6 +125,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
           throw new GeneralSecurityException(GT.tr(
               "The environment variable containing the server's SSL certificate must not be empty."));
         }
+        cert = cert.replaceAll(" ", System.lineSeparator());
         in = new ByteArrayInputStream(cert.getBytes(StandardCharsets.UTF_8));
       } else if (sslFactoryArg.startsWith(SYS_PROP_PREFIX)) {
         String name = sslFactoryArg.substring(SYS_PROP_PREFIX.length());
