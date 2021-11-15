@@ -34,7 +34,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * @param points the PGpoints that define the path
    * @param open True if the path is open, false if closed
    */
-  public PGpath(PGpoint[] points, boolean open) {
+  public PGpath(PGpoint @Nullable [] points, boolean open) {
     this();
     this.points = points;
     this.open = open;
@@ -61,7 +61,11 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * @param s Definition of the path in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
-  public void setValue(String s) throws SQLException {
+  public void setValue(@Nullable String s) throws SQLException {
+    if (s == null) {
+      points = null;
+      return;
+    }
     // First test to see if were open
     if (s.startsWith("[") && s.endsWith("]")) {
       open = true;
@@ -91,24 +95,24 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
     if (obj instanceof PGpath) {
       PGpath p = (PGpath) obj;
 
+      PGpoint[] points = this.points;
+      PGpoint[] pPoints = p.points;
+      if (points == null) {
+        return pPoints == null;
+      } else if (pPoints == null) {
+        return false;
+      }
+
       if (p.open != open) {
         return false;
       }
 
-      if (points == null ^ p.points == null) {
-        return false;
-      }
-
-      if (points == null) {
-        return true;
-      }
-
-      if (p.points.length != points.length) {
+      if (pPoints.length != points.length) {
         return false;
       }
 
       for (int i = 0; i < points.length; i++) {
-        if (!points[i].equals(p.points[i])) {
+        if (!points[i].equals(pPoints[i])) {
           return false;
         }
       }
@@ -119,11 +123,12 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   }
 
   public int hashCode() {
+    PGpoint[] points = this.points;
+    if (points == null) {
+      return 0;
+    }
     // XXX not very good..
     int hash = open ? 1231 : 1237;
-    if (points == null) {
-      return hash;
-    }
     for (int i = 0; i < points.length && i < 5; ++i) {
       hash = hash * 31 + points[i].hashCode();
     }
@@ -144,12 +149,16 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
 
   /**
    * This returns the path in the syntax expected by org.postgresql.
+   * @return the value of this object
    */
-  public String getValue() {
+  public @Nullable String getValue() {
+    PGpoint[] points = this.points;
+    if (points == null) {
+      return null;
+    }
     StringBuilder b = new StringBuilder(open ? "[" : "(");
 
-    PGpoint[] points = this.points;
-    for (int p = 0; points != null && p < points.length; p++) {
+    for (int p = 0; p < points.length; p++) {
       if (p > 0) {
         b.append(",");
       }
@@ -161,11 +170,11 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
   }
 
   public boolean isOpen() {
-    return open;
+    return open && points != null;
   }
 
   public boolean isClosed() {
-    return !open;
+    return !open && points != null;
   }
 
   public void closePath() {

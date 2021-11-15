@@ -38,11 +38,6 @@ public class EscapeSyntaxCallModeCallTest extends EscapeSyntaxCallModeBaseTest {
     assumeCallableStatementsSupported();
     assumeMinimumServerVersion(ServerVersion.v11);
 
-    // version 14 changes this to undefined function
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
-      expected = PSQLState.UNDEFINED_FUNCTION;
-    }
-
     CallableStatement cs = con.prepareCall("{ call myiofunc(?,?) }");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.registerOutParameter(2, Types.INTEGER);

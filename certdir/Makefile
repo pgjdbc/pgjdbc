@@ -35,7 +35,7 @@ goodroot.crt : $(SERVER_CRT_DIR)
 
 %root.crt : %root.key
 	@echo Creating root certificate $@
-	openssl req -x509 -new -nodes -key $< -passin pass:$(ROOT_CA_PASSWORD) -sha256 -days 1024 -out $@ -subj "/C=US/ST=CA/O=PgJdbc test/CN=root certificate"
+	openssl req -x509 -new -nodes -key $< -passin pass:$(ROOT_CA_PASSWORD) -sha256 -days 3650 -out $@ -subj "/C=US/ST=CA/O=PgJdbc test/CN=root certificate"
 	@echo
 
 
@@ -44,7 +44,7 @@ $(SERVER_CRT_DIR)server.crt : $(SERVER_CRT_DIR)root.key $(SERVER_CRT_DIR)root.cr
 	@echo Creating good client certificate $@
 	openssl genrsa -out $($@_CERT_FILE).key 2048
 	openssl req -new -sha256 -key $($@_CERT_FILE).key -passin pass:$(ROOT_CA_PASSWORD) -subj "/C=US/ST=CA/O=PgJdbc tests/CN=localhost" -out $($@_CERT_FILE).csr
-	openssl x509 -req -in $($@_CERT_FILE).csr -CA $(SERVER_CRT_DIR)root.crt -CAkey $(SERVER_CRT_DIR)root.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 500 -sha256
+	openssl x509 -req -in $($@_CERT_FILE).csr -CA $(SERVER_CRT_DIR)root.crt -CAkey $(SERVER_CRT_DIR)root.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 3650 -sha256
 	@rm $($@_CERT_FILE).csr
 	@echo
 
@@ -54,7 +54,7 @@ goodclient.crt goodclient.key : $(SERVER_CRT_DIR)root.key $(SERVER_CRT_DIR)root.
 	openssl genrsa -out $($@_CERT_FILE).key 2048
 	# CN=test has to match user name
 	openssl req -new -sha256 -key $($@_CERT_FILE).key -subj "/C=US/ST=CA/O=PgJdbc tests/CN=test" -out $($@_CERT_FILE).csr
-	openssl x509 -req -in $($@_CERT_FILE).csr -CA $(SERVER_CRT_DIR)root.crt -CAkey $(SERVER_CRT_DIR)root.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 500 -sha256
+	openssl x509 -req -in $($@_CERT_FILE).csr -CA $(SERVER_CRT_DIR)root.crt -CAkey $(SERVER_CRT_DIR)root.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 3650 -sha256
 	@rm $($@_CERT_FILE).csr
 	@echo
 
@@ -64,6 +64,6 @@ badclient.crt badclient.key : badroot.key badroot.crt
 	openssl genrsa -out $($@_CERT_FILE).key 2048
 	# CN=test has to match user name
 	openssl req -new -sha256 -key $($@_CERT_FILE).key -subj "/C=US/ST=CA/O=PgJdbc tests/CN=test" -out $($@_CERT_FILE).csr
-	openssl x509 -req -in $($@_CERT_FILE).csr -CA badroot.crt -CAkey badroot.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 500 -sha256
+	openssl x509 -req -in $($@_CERT_FILE).csr -CA badroot.crt -CAkey badroot.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 3650 -sha256
 	@rm $($@_CERT_FILE).csr
 	@echo

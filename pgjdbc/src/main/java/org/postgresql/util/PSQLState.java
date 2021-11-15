@@ -106,8 +106,6 @@ public enum PSQLState {
   SYSTEM_ERROR("60000"),
   IO_ERROR("58030"),
 
-  ERROR_CODE_CRASH_SHUTDOWN("57P02"),
-
   UNEXPECTED_ERROR("99999");
 
   private final String state;

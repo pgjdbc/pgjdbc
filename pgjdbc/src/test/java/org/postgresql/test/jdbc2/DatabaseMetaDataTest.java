@@ -18,6 +18,7 @@ import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,6 +74,7 @@ public class DatabaseMetaDataTest {
     }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
+    TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
     TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial");
@@ -85,6 +87,15 @@ public class DatabaseMetaDataTest {
     TestUtil.dropType(con, "_custom");
     TestUtil.createCompositeType(con, "custom", "i int", false);
     TestUtil.createCompositeType(con, "_custom", "f float", false);
+
+    // create a table and multiple comments on it
+    TestUtil.createTable(con, "duplicate", "x text");
+    TestUtil.execute("comment on table duplicate is 'duplicate table'", con);
+    TestUtil.execute("create or replace function bar() returns integer language sql as $$ select 1 $$", con);
+    TestUtil.execute("comment on function bar() is 'bar function'", con);
+    try (Connection conPriv = TestUtil.openPrivilegedDB()) {
+      TestUtil.execute("update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc", conPriv);
+    }
 
     // 8.2 does not support arrays of composite types
     TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
@@ -110,6 +121,12 @@ public class DatabaseMetaDataTest {
           "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
     }
 
+    // create a custom `&` operator, which caused failure with `&` usage in getIndexInfo()
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION f6(numeric, integer) returns integer as 'BEGIN return $1::integer & $2;END;' language plpgsql immutable;");
+    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+    stmt.execute("CREATE OPERATOR & (LEFTARG = numeric, RIGHTARG = integer, PROCEDURE = f6)");
+
     TestUtil.createDomain(con, "nndom", "int not null");
     TestUtil.createDomain(con, "varbit2", "varbit(3)");
     TestUtil.createDomain(con, "float83", "numeric(8,3)");
@@ -124,12 +141,15 @@ public class DatabaseMetaDataTest {
     // metadatatest table's type
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION f4(int)");
+    TestUtil.execute("drop function bar()", con);
+    TestUtil.dropTable(con, "duplicate");
 
     TestUtil.dropView(con, "viewtest");
     TestUtil.dropTable(con, "metadatatest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
+    TestUtil.dropTable(con, "precision_test");
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
@@ -141,6 +161,8 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     stmt.execute("DROP FUNCTION f2(int, varchar)");
     stmt.execute("DROP FUNCTION f3(int, varchar)");
+    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+    stmt.execute("DROP FUNCTION f6(numeric, integer)");
     TestUtil.dropTable(con, "domaintable");
     TestUtil.dropDomain(con, "nndom");
     TestUtil.dropDomain(con, "varbit2");
@@ -496,6 +518,16 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testNumericPrecision() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getColumns(null, "public", "precision_test", "%");
+    assertTrue("It should have a row for the first column", rs.next());
+    assertEquals("The column size should be zero", 0, rs.getInt("COLUMN_SIZE"));
+    assertFalse("It should have a single column", rs.next());
+  }
+
+  @Test
   public void testColumns() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
     String [] metadataColumns = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME",
@@ -600,11 +632,16 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testTablePrivileges() throws SQLException {
+  /*
+   * Helper function - this logic is used several times to test relation privileges
+   */
+  public void relationPrivilegesHelper(String relationName) throws SQLException {
+    // Query PG catalog for privileges
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
+    ResultSet rs = dbmd.getTablePrivileges(null, null, relationName);
+
+    // Parse result to check if table/view owner has select privileges
     boolean foundSelect = false;
     while (rs.next()) {
       if (rs.getString("GRANTEE").equals(TestUtil.getUser())
@@ -613,9 +650,32 @@ public class DatabaseMetaDataTest {
       }
     }
     rs.close();
-    // Test that the table owner has select priv
-    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        foundSelect);
+
+    // Check test condition
+    assertTrue("Couldn't find SELECT priv on relation "
+                + relationName + "  for " + TestUtil.getUser(),
+              foundSelect);
+  }
+
+  @Test
+  public void testTablePrivileges() throws SQLException {
+    relationPrivilegesHelper("metadatatest");
+  }
+
+  @Test
+  public void testViewPrivileges() throws SQLException {
+    relationPrivilegesHelper("viewtest");
+  }
+
+  @Test
+  public void testMaterializedViewPrivileges() throws SQLException {
+    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
+    TestUtil.createMaterializedView(con, "matviewtest", "SELECT id, quest FROM metadatatest");
+    try {
+      relationPrivilegesHelper("matviewtest");
+    } finally {
+      TestUtil.dropMaterializedView(con, "matviewtest");
+    }
   }
 
   @Test
@@ -626,24 +686,6 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
     assertTrue(!rs.next());
-  }
-
-  @Test
-  public void testViewPrivileges() throws SQLException {
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
-    ResultSet rs = dbmd.getTablePrivileges(null, null, "viewtest");
-    boolean foundSelect = false;
-    while (rs.next()) {
-      if (rs.getString("GRANTEE").equals(TestUtil.getUser())
-          && rs.getString("PRIVILEGE").equals("SELECT")) {
-        foundSelect = true;
-      }
-    }
-    rs.close();
-    // Test that the view owner has select priv
-    assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
-        foundSelect);
   }
 
   @Test
@@ -1354,17 +1396,21 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testPartitionedTables() throws SQLException {
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       Statement stmt = null;
       try {
         stmt = con.createStatement();
         stmt.execute(
-            "CREATE TABLE measurement (logdate date not null ,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+            "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
         rs.close();
+        rs = dbmd.getPrimaryKeys("", "", "measurement");
+        assertTrue(rs.next());
+        assertEquals("measurement_pkey", rs.getString(6));
+
       } finally {
         if (stmt != null) {
           stmt.execute("drop table if exists measurement");

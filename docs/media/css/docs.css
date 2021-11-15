@@ -27,7 +27,7 @@ div.NAVHEADER table {
 }
 
 #docHeader {
-  background-image: url("media/img/docs/bg_hdr.png");
+  background-image: url("/media/img/docs/bg_hdr.png");
   height: 83px;
   margin: 0px;
   padding: 0px;
@@ -92,7 +92,7 @@ div.NAVHEADER table {
 #docSearch form input {
   font-size: 0.95em;
 }
-  
+
 #docSearch form #submit {
   font-size: 0.95em;
   background: #7A7A7A;
@@ -100,7 +100,7 @@ div.NAVHEADER table {
   border: 1px solid #7A7A7A;
   padding: 1px 4px;
 }
-  
+
 #docSearch form #q {
   width: 170px;
   font-size: 0.95em;
@@ -131,9 +131,9 @@ div.NAVHEADER table {
 
 #docFooter {
   position: relative;
-  font-size: 0.9em; 
-  color: #666; 
-  line-height: 1.3em; 
+  font-size: 0.9em;
+  color: #666;
+  line-height: 1.3em;
   margin-left: 10px;
   margin-right: 10px;
 }
@@ -199,7 +199,7 @@ p, ol, ul, li {
 }
 
 .txtCommentsWrap {
-  border: 2px solid #F5F5F5; 
+  border: 2px solid #F5F5F5;
   width: 100%;
 }
 

@@ -212,6 +212,54 @@ public abstract class AbstractArraysTest<A> {
     }
   }
 
+  @Test
+  public void testObjectArrayCopy() throws Exception {
+    final Object[] copy = new Object[testData.length];
+    for (int i = 0; i < testData.length; ++i) {
+      copy[i] = testData[i];
+    }
+
+    final ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
+    final String arrayString = support.toArrayString(',', testData);
+
+    final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(copy);
+    final String actual = copySupport.toArrayString(',', copy);
+
+    assertEquals(arrayString, actual);
+  }
+
+  @Test
+  public void testObject2dArrayCopy() throws Exception {
+    final Object[][] copy = new Object[testData.length][];
+    for (int  i = 0; i < testData.length; ++i) {
+      copy[i] = testData[i];
+    }
+
+    final ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
+    final String arrayString = support.toArrayString(',', testData);
+
+    final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(copy);
+    final String actual = copySupport.toArrayString(',', copy);
+
+    assertEquals(arrayString, actual);
+  }
+
+  @Test
+  public void testObject3dArrayCopy() throws Exception {
+    final A[][][] source = (A[][][]) Array.newInstance(testData.getClass(), 2);
+    source[0] = testData;
+    source[1] = testData;
+    final Object[][][] copy = new Object[][][] { testData, testData };
+
+    final ArrayEncoding.ArrayEncoder<A[][][]> support = ArrayEncoding.getArrayEncoder(source);
+    final String arrayString = support.toArrayString(',', source);
+
+    final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(copy);
+    final String actual = copySupport.toArrayString(',', copy);
+
+    assertEquals(arrayString, actual);
+  }
+
   private static final class EncodingConnection implements BaseConnection {
     private final Encoding encoding;
     private final TypeInfo typeInfo = new TypeInfoCache(this, -1);

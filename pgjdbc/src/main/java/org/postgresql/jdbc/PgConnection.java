@@ -651,14 +651,14 @@ public class PgConnection implements BaseConnection {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
         } else {
-          obj.setValue(castNonNull(value));
+          obj.setValue(value);
         }
       } else {
         // If className is null, then the type is unknown.
         // so return a PGobject with the type set, and the value set
         obj = new PGobject();
         obj.setType(type);
-        obj.setValue(castNonNull(value));
+        obj.setValue(value);
       }
 
       return obj;

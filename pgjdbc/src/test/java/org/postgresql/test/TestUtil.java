@@ -512,16 +512,28 @@ public class TestUtil {
    */
   public static void createView(Connection con, String viewName, String query)
       throws SQLException {
-    Statement st = con.createStatement();
-    try {
+    try ( Statement st = con.createStatement() ) {
       // Drop the view
       dropView(con, viewName);
 
       String sql = "CREATE VIEW " + viewName + " AS " + query;
 
       st.executeUpdate(sql);
-    } finally {
-      closeQuietly(st);
+    }
+  }
+
+  /*
+   * Helper - creates a materialized view
+   */
+  public static void createMaterializedView(Connection con, String matViewName, String query)
+      throws SQLException {
+    try ( Statement st = con.createStatement() ) {
+      // Drop the view
+      dropMaterializedView(con, matViewName);
+
+      String sql = "CREATE MATERIALIZED VIEW " + matViewName + " AS " + query;
+
+      st.executeUpdate(sql);
     }
   }
 
@@ -626,6 +638,13 @@ public class TestUtil {
    */
   public static void dropView(Connection con, String view) throws SQLException {
     dropObject(con, "VIEW", view);
+  }
+
+  /*
+   * Helper - drops a materialized view
+   */
+  public static void dropMaterializedView(Connection con, String matView) throws SQLException {
+    dropObject(con, "MATERIALIZED VIEW", matView);
   }
 
   /*

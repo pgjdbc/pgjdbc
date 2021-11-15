@@ -71,7 +71,11 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
    * @throws SQLException on conversion failure
    */
   @Override
-  public void setValue(String s) throws SQLException {
+  public void setValue(@Nullable String s) throws SQLException {
+    if (s == null) {
+      center = null;
+      return;
+    }
     PGtokenizer t = new PGtokenizer(PGtokenizer.removeAngle(s), ',');
     if (t.getSize() != 2) {
       throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
@@ -94,17 +98,26 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGcircle) {
       PGcircle p = (PGcircle) obj;
-      return p.radius == radius && equals(p.center, center);
+      PGpoint center = this.center;
+      PGpoint pCenter = p.center;
+      if (center == null) {
+        return pCenter == null;
+      } else if (pCenter == null) {
+        return false;
+      }
+
+      return p.radius == radius && equals(pCenter, center);
     }
     return false;
   }
 
   public int hashCode() {
-    long bits = Double.doubleToLongBits(radius);
-    int v = (int)(bits ^ (bits >>> 32));
-    if (center != null) {
-      v = v * 31 + center.hashCode();
+    if (center == null) {
+      return 0;
     }
+    long bits = Double.doubleToLongBits(radius);
+    int v = (int) (bits ^ (bits >>> 32));
+    v = v * 31 + center.hashCode();
     return v;
   }
 
@@ -119,7 +132,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGcircle in the syntax expected by org.postgresql
    */
-  public String getValue() {
-    return "<" + center + "," + radius + ">";
+  public @Nullable String getValue() {
+    return center == null ? null : "<" + center + "," + radius + ">";
   }
 }

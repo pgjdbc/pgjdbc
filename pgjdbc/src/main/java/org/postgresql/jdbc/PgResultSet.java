@@ -14,6 +14,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
@@ -103,6 +104,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected final BaseStatement statement; // the statement we belong to
   protected final Field[] fields; // Field metadata for this resultset.
   protected final @Nullable Query originalQuery; // Query we originated from
+  private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
 
   protected final int maxRows; // Maximum rows in this resultset (might be 0).
   protected final int maxFieldSize; // Maximum field size in this resultset (might be 0).
@@ -511,13 +513,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       int oid = fields[col].getOID();
       TimeZone tz = cal.getTimeZone();
       if (oid == Oid.DATE) {
-        return connection.getTimestampUtils().toDateBin(tz, value);
+        return getTimestampUtils().toDateBin(tz, value);
       } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
         // If backend provides just TIMESTAMP, we use "cal" timezone
         // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
         Timestamp timestamp = castNonNull(getTimestamp(i, cal));
         // Here we just truncate date to 00:00 in a given time zone
-        return connection.getTimestampUtils().convertToDate(timestamp.getTime(), tz);
+        return getTimestampUtils().convertToDate(timestamp.getTime(), tz);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -526,7 +528,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     }
 
-    return connection.getTimestampUtils().toDate(cal, castNonNull(getString(i)));
+    return getTimestampUtils().toDate(cal, castNonNull(getString(i)));
   }
 
   @Override
@@ -545,7 +547,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       int oid = fields[col].getOID();
       TimeZone tz = cal.getTimeZone();
       if (oid == Oid.TIME || oid == Oid.TIMETZ) {
-        return connection.getTimestampUtils().toTimeBin(tz, value);
+        return getTimestampUtils().toTimeBin(tz, value);
       } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
         // If backend provides just TIMESTAMP, we use "cal" timezone
         // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
@@ -560,7 +562,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return new Time(timeMillis % TimeUnit.DAYS.toMillis(1));
         }
         // Here we just truncate date part
-        return connection.getTimestampUtils().convertToTime(timeMillis, tz);
+        return getTimestampUtils().convertToTime(timeMillis, tz);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -570,7 +572,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     String string = getString(i);
-    return connection.getTimestampUtils().toTime(cal, string);
+    return getTimestampUtils().toTime(cal, string);
   }
 
   private java.time.@Nullable LocalTime getLocalTime(int i) throws SQLException {
@@ -583,7 +585,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       int col = i - 1;
       int oid = fields[col].getOID();
       if (oid == Oid.TIME) {
-        return connection.getTimestampUtils().toLocalTimeBin(value);
+        return getTimestampUtils().toLocalTimeBin(value);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -593,7 +595,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     String string = getString(i);
-    return connection.getTimestampUtils().toLocalTime(string);
+    return getTimestampUtils().toLocalTime(string);
   }
 
   @Pure
@@ -656,6 +658,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     return connection.getTimestampUtils().toTimestamp(cal, string);
+
   }
 
   private java.time.@Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
@@ -669,14 +672,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (isBinary(i)) {
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
-        return connection.getTimestampUtils().toOffsetDateTimeBin(value);
+        return getTimestampUtils().toOffsetDateTimeBin(value);
       } else if (oid == Oid.TIMETZ) {
         // JDBC spec says timetz must be supported
         Time time = getTime(i);
         if (time == null) {
           return null;
         }
-        return connection.getTimestampUtils().toOffsetDateTime(time);
+        return getTimestampUtils().toOffsetDateTime(time);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -692,10 +695,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       // JDBC spec says timetz must be supported
       // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
       Calendar cal = getDefaultCalendar();
-      Time time = connection.getTimestampUtils().toTime(cal, string);
-      return connection.getTimestampUtils().toOffsetDateTime(time);
+      Time time = getTimestampUtils().toTime(cal, string);
+      return getTimestampUtils().toOffsetDateTime(time);
     }
-    return connection.getTimestampUtils().toOffsetDateTime(string);
+    return getTimestampUtils().toOffsetDateTime(string);
   }
 
   private java.time.@Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
@@ -713,11 +716,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
               PSQLState.DATA_TYPE_MISMATCH);
     }
     if (isBinary(i)) {
-      return connection.getTimestampUtils().toLocalDateTimeBin(value);
+      return getTimestampUtils().toLocalDateTimeBin(value);
     }
 
     String string = castNonNull(getString(i));
-    return connection.getTimestampUtils().toLocalDateTime(string);
+    return getTimestampUtils().toLocalDateTime(string);
   }
 
   public java.sql.@Nullable Date getDate(
@@ -1368,7 +1371,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (int i = 0; i < numKeys; i++) {
 
       PrimaryKey primaryKey = primaryKeys.get(i);
-      selectSQL.append(primaryKey.name).append("= ?");
+      selectSQL.append(primaryKey.name).append(" = ?");
 
       if (i < numKeys - 1) {
         selectSQL.append(" and ");
@@ -1385,14 +1388,19 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       selectStatement = connection.prepareStatement(sqlText,
           ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-      for (int j = 0, i = 1; j < numKeys; j++, i++) {
-        selectStatement.setObject(i, primaryKeys.get(j).getValue());
+      for (int i = 0; i < numKeys; i++) {
+        selectStatement.setObject(i + 1, primaryKeys.get(i).getValue());
       }
 
       PgResultSet rs = (PgResultSet) selectStatement.executeQuery();
 
       if (rs.next()) {
-        rowBuffer = rs.thisRow;
+        // we know that the row is updatable as it was tested above.
+        if ( rs.thisRow == null ) {
+          rowBuffer = null;
+        } else {
+          rowBuffer = castNonNull(rs.thisRow).updateableCopy();
+        }
       }
 
       castNonNull(rows).set(currentRow, castNonNull(rowBuffer));
@@ -1653,23 +1661,45 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     @Nullable String[] s = quotelessTableName(castNonNull(tableName));
     String quotelessTableName = castNonNull(s[0]);
     @Nullable String quotelessSchemaName = s[1];
-    java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
+    java.sql.ResultSet rs = ((PgDatabaseMetaData)connection.getMetaData()).getPrimaryUniqueKeys("",
         quotelessSchemaName, quotelessTableName);
 
-    while (rs.next()) {
-      numPKcolumns++;
-      String columnName = castNonNull(rs.getString(4)); // get the columnName
-      int index = findColumnIndex(columnName);
+    String lastConstraintName = null;
 
-      /* make sure that the user has included the primary key in the resultset */
-      if (index > 0) {
-        i++;
-        primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
+    while (rs.next()) {
+      String constraintName = castNonNull(rs.getString(6)); // get the constraintName
+      if (lastConstraintName == null || !lastConstraintName.equals(constraintName)) {
+        if (lastConstraintName != null) {
+          if (i == numPKcolumns && numPKcolumns > 0) {
+            break;
+          }
+          connection.getLogger().log(Level.FINE, "no of keys={0} from constraint {1}", new Object[]{i, lastConstraintName});
+        }
+        i = 0;
+        numPKcolumns = 0;
+
+        primaryKeys.clear();
+        lastConstraintName = constraintName;
+      }
+      numPKcolumns++;
+
+      boolean isNotNull = rs.getBoolean("IS_NOT_NULL");
+
+      /* make sure that only unique keys with all non-null attributes are handled */
+      if (isNotNull) {
+        String columnName = castNonNull(rs.getString(4)); // get the columnName
+        int index = findColumnIndex(columnName);
+
+        /* make sure that the user has included the primary key in the resultset */
+        if (index > 0) {
+          i++;
+          primaryKeys.add(new PrimaryKey(index, columnName)); // get the primary key information
+        }
       }
     }
 
     rs.close();
-    connection.getLogger().log(Level.FINE, "no of keys={0}", i);
+    connection.getLogger().log(Level.FINE, "no of keys={0} from constraint {1}", new Object[]{i, lastConstraintName});
 
     /*
     it is only updatable if the primary keys are available in the resultset
@@ -1695,7 +1725,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     if (!updateable) {
-      throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
+      throw new PSQLException(GT.tr("No eligible primary or unique key found for table {0}.", tableName),
           PSQLState.INVALID_CURSOR_STATE);
     }
 
@@ -1863,20 +1893,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         case Types.DATE:
           rowBuffer.set(columnIndex, connection
               .encodeString(
-                  connection.getTimestampUtils().toString(
+                  getTimestampUtils().toString(
                       getDefaultCalendar(), (Date) valueObject)));
           break;
 
         case Types.TIME:
           rowBuffer.set(columnIndex, connection
               .encodeString(
-                  connection.getTimestampUtils().toString(
+                  getTimestampUtils().toString(
                       getDefaultCalendar(), (Time) valueObject)));
           break;
 
         case Types.TIMESTAMP:
           rowBuffer.set(columnIndex, connection.encodeString(
-              connection.getTimestampUtils().toString(
+              getTimestampUtils().toString(
                   getDefaultCalendar(), (Timestamp) valueObject)));
           break;
 
@@ -2130,7 +2160,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       // hack to be compatible with text protocol
       if (obj instanceof java.util.Date) {
         int oid = field.getOID();
-        return connection.getTimestampUtils().timeToString((java.util.Date) obj,
+        return getTimestampUtils().timeToString((java.util.Date) obj,
             oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ);
       }
       if ("hstore".equals(getPGType(columnIndex))) {
@@ -3990,15 +4020,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   private Calendar getDefaultCalendar() {
-    TimestampUtils timestampUtils = connection.getTimestampUtils();
-    if (timestampUtils.hasFastDefaultTimeZone()) {
-      return timestampUtils.getSharedCalendar(null);
+    if (getTimestampUtils().hasFastDefaultTimeZone()) {
+      return getTimestampUtils().getSharedCalendar(null);
     }
-    Calendar sharedCalendar = timestampUtils.getSharedCalendar(defaultTimeZone);
+    Calendar sharedCalendar = getTimestampUtils().getSharedCalendar(defaultTimeZone);
     if (defaultTimeZone == null) {
       defaultTimeZone = sharedCalendar.getTimeZone();
     }
     return sharedCalendar;
+  }
+
+  private TimestampUtils getTimestampUtils() {
+    if (timestampUtils == null) {
+      timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>)new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+    }
+    return timestampUtils;
   }
 
   /**

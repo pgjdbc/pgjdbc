@@ -24,6 +24,8 @@ import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.sql.Array;
+import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,7 +41,13 @@ public class UpdateableResultTest extends BaseTest4 {
     super.setUp();
     TestUtil.createTable(con, "updateable",
         "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
+    TestUtil.createTable(con, "hasdate", "id int primary key, dt date unique, name text");
+    TestUtil.createTable(con, "unique_null_constraint", "u1 int unique, name1 text");
+    TestUtil.createTable(con, "uniquekeys", "id int unique not null, id2 int unique, dt date");
+    TestUtil.createTable(con, "partialunique", "subject text, target text, success boolean");
+    TestUtil.execute("CREATE UNIQUE INDEX tests_success_constraint ON partialunique (subject, target) WHERE success", con);
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
+    TestUtil.createTable(con, "primaryunique", "id int primary key, name text unique not null, dt date");
     TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
     TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
     TestUtil.execute( "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10", con);
@@ -48,7 +56,8 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
-    TestUtil.execute( "insert into booltable (id) values (1)", con);
+    TestUtil.execute("insert into booltable (id) values (1)", con);
+    TestUtil.execute("insert into uniquekeys(id, id2, dt) values (1, 2, now())", con);
 
     Statement st2 = con.createStatement();
     // create pk for multicol table
@@ -56,6 +65,9 @@ public class UpdateableResultTest extends BaseTest4 {
     // put some dummy data into second
     st2.execute("insert into second values (1,'anyvalue' )");
     st2.close();
+    TestUtil.execute("insert into unique_null_constraint values (1, 'dave')", con);
+    TestUtil.execute("insert into unique_null_constraint values (null, 'unknown')", con);
+    TestUtil.execute("insert into primaryunique values (1, 'dave', now())", con);
 
   }
 
@@ -68,6 +80,11 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "stream");
     TestUtil.dropTable(con, "nopkmulticol");
     TestUtil.dropTable(con, "booltable");
+    TestUtil.dropTable(con, "unique_null_constraint");
+    TestUtil.dropTable(con, "hasdate");
+    TestUtil.dropTable(con, "uniquekeys");
+    TestUtil.dropTable(con, "partialunique");
+    TestUtil.dropTable(con, "primaryunique");
     super.tearDown();
   }
 
@@ -445,6 +462,46 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
+  public void testUpdateDate() throws Exception {
+    Date testDate = Date.valueOf("2021-01-01");
+    TestUtil.execute("insert into hasdate values (1,'2021-01-01'::date)", con);
+    con.setAutoCommit(false);
+    String sql = "SELECT * FROM hasdate where id=1";
+    ResultSet rs = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE).executeQuery(sql);
+    assertTrue(rs.next());
+    assertEquals(testDate, rs.getDate("dt"));
+    rs.updateDate("dt", Date.valueOf("2020-01-01"));
+    rs.updateRow();
+    assertEquals(Date.valueOf("2020-01-01"), rs.getDate("dt"));
+    con.commit();
+    rs = con.createStatement().executeQuery("select dt from hasdate where id=1");
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2020-01-01"), rs.getDate("dt"));
+    rs.close();
+  }
+
+  @Test
+  public void test2193() throws Exception {
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("select * from updateable");
+    assertNotNull(rs);
+    rs.moveToInsertRow();
+    rs.updateInt(1, 1);
+    rs.updateString(2, "jake");
+    rs.updateString(3, "avalue");
+    rs.insertRow();
+    rs.first();
+
+    rs.updateString(2, "bob");
+    rs.updateRow();
+    rs.refreshRow();
+    rs.updateString(2, "jake");
+    rs.updateRow();
+  }
+
+  @Test
   public void testInsertRowIllegalMethods() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -694,12 +751,152 @@ public class UpdateableResultTest extends BaseTest4 {
 
   @Test
   public void testOidUpdatable() throws Exception {
+    Connection privilegedCon = TestUtil.openPrivilegedDB();
+    try {
+      Statement st = privilegedCon.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE);
+      ResultSet rs = st.executeQuery("SELECT oid,* FROM pg_class WHERE relname = 'pg_class'");
+      assertTrue(rs.next());
+      assertTrue(rs.first());
+      rs.updateString("relname", "pg_class");
+      rs.updateRow();
+      rs.close();
+      st.close();
+    } finally {
+      privilegedCon.close();
+    }
+  }
+
+  @Test
+  public void testUniqueWithNullableColumnsNotUpdatable() throws Exception {
     Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_UPDATABLE);
-    ResultSet rs = st.executeQuery("SELECT oid,* FROM pg_class WHERE relname = 'pg_class'");
+    ResultSet rs = st.executeQuery("SELECT u1, name1 from unique_null_constraint");
     assertTrue(rs.next());
     assertTrue(rs.first());
-    rs.updateString("relname", "pg_class");
+    try {
+      rs.updateString("name1", "bob");
+      fail("Should have failed since unique column u1 is nullable");
+    } catch (SQLException ex) {
+      assertEquals("No eligible primary or unique key found for table unique_null_constraint.",
+          ex.getMessage());
+    }
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testPrimaryAndUniqueUpdateableByPrimary() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT id, dt from primaryunique");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    int id = rs.getInt("id");
+    rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    rs.updateRow();
+    assertFalse(rs.next());
+    rs.close();
+    rs = st.executeQuery("select dt from primaryunique where id = " + id);
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testPrimaryAndUniqueUpdateableByUnique() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT name, dt from primaryunique");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    String name = rs.getString("name");
+    rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    rs.updateRow();
+    assertFalse(rs.next());
+    rs.close();
+    rs = st.executeQuery("select dt from primaryunique where name = '" + name + "'");
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueWithNullAndNotNullableColumnUpdateable() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    int id = 0;
+    int id2 = 0;
+    ResultSet rs = st.executeQuery("SELECT id, id2, dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    id = rs.getInt(("id"));
+    id2 = rs.getInt(("id2"));
+    rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    rs.updateRow();
+    rs.close();
+    rs = st.executeQuery("select dt from uniquekeys where id = " + id + " and id2 = " + id2);
+    assertNotNull(rs);
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueWithNotNullableColumnUpdateable() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    int id = 0;
+    ResultSet rs = st.executeQuery("SELECT id, dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    id = rs.getInt(("id"));
+    rs.updateDate("dt", Date.valueOf("1999-01-01"));
+    rs.updateRow();
+    rs.close();
+    rs = st.executeQuery("select id, dt from uniquekeys where id = " + id);
+    assertNotNull(rs);
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("1999-01-01"), rs.getDate("dt"));
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testUniqueWithNullableColumnNotUpdateable() throws Exception {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT id2, dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    try {
+      rs.updateDate("dt", Date.valueOf("1999-01-01"));
+      fail("Should have failed since id2 is nullable column");
+    } catch (SQLException ex) {
+      assertEquals("No eligible primary or unique key found for table uniquekeys.",
+          ex.getMessage());
+    }
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testNoUniqueNotUpdateable() throws SQLException {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT dt from uniquekeys");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+    try {
+      rs.updateDate("dt", Date.valueOf("1999-01-01"));
+      fail("Should have failed since no UK/PK are in the select statement");
+    } catch (SQLException ex) {
+      assertEquals("No eligible primary or unique key found for table uniquekeys.",
+          ex.getMessage());
+    }
     rs.close();
     st.close();
   }

@@ -7,7 +7,7 @@ div.tblBasic h2 {
 }
 
 div.tblBasic table {
-        background: #F5F5F5 url(../img/layout/nav_tbl_top_lft.png) top left no-repeat;
+        background: #F5F5F5 url(/media/img/layout/nav_tbl_top_lft.png) top left no-repeat;
 	margin-left: 2ex;
         margin-bottom: 15px;
 }
