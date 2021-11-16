@@ -383,7 +383,7 @@ public enum PGProperty {
    */
   PG_HOST(
       "PGHOST",
-      null,
+      "localhost",
       "Hostname of the PostgreSQL server (may be specified directly in the JDBC URL)",
       false),
 
@@ -392,7 +392,7 @@ public enum PGProperty {
    */
   PG_PORT(
       "PGPORT",
-      null,
+      "5432",
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
@@ -530,6 +530,16 @@ public enum PGProperty {
       "sendBufferSize",
       "-1",
       "Socket write buffer size"),
+
+  /**
+   * Service name to use for additional parameters. It specifies a service name in "pg_service
+   * .conf" that holds additional connection parameters. This allows applications to specify only
+   * a service name so connection parameters can be centrally maintained.
+   */
+  SERVICE(
+      "service",
+      null,
+      "Service name to be searched in pg_service.conf resource"),
 
   /**
    * Socket factory used to create socket. A null value, which is the default, means system default.
