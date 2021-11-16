@@ -58,7 +58,7 @@ import javax.net.ssl.X509TrustManager;
  * <tr>
  *     <td><code>env:</code></td>
  *     <td><code>env:mydb_cert</code></td>
- *     <td>Loaded from string value of the <code>mydb_cert</code> environment variable.</td>
+ *     <td>Loaded from string value of the <code>mydb_cert</code> environment variable. Spaces are converted to line separators</td>
  * </tr>
  * <tr>
  *     <td><code>sys:</code></td>
