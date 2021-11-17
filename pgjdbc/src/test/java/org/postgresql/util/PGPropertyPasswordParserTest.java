@@ -34,8 +34,8 @@ class PGPropertyPasswordParserTest {
   @Test
   void getPassword11() throws Exception {
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), ""),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", OSUtil.isWindows() ? "APPDATA" : "user.home", "/tmp/dir-non-existent")
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", "/tmp/dir-non-existent"),
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",   "user.home", "/tmp/dir-non-existent")
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres", "postgres");
       assertNull(result);
@@ -51,8 +51,8 @@ class PGPropertyPasswordParserTest {
     URL urlPath = getClass().getResource("/pg_service");
     assertNotNull(urlPath);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), ""),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", OSUtil.isWindows() ? "APPDATA" : "user.home", urlPath.getPath())
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", urlPath.getPath() ),
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",  "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres",
           "postgres");
@@ -106,8 +106,8 @@ class PGPropertyPasswordParserTest {
     URL urlFileEnv = getClass().getResource("/pg_service/pgpassfileEnv.conf");
     assertNotNull(urlFileEnv);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", OSUtil.isWindows() ? "APPDATA" : "user.home", urlPath.getPath())
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
       assertNull(result);
@@ -125,8 +125,8 @@ class PGPropertyPasswordParserTest {
     URL urlFileEnv = getClass().getResource("/pg_service/pgpassfileEnv.conf");
     assertNotNull(urlFileEnv);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", OSUtil.isWindows() ? "APPDATA" : "user.home", urlPath.getPath())
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(), "APPDATA", urlPath.getPath()),
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres1",
           "postgres2");
@@ -148,8 +148,8 @@ class PGPropertyPasswordParserTest {
     URL urlFileProps = getClass().getResource("/pg_service/pgpassfileProps.conf");
     assertNotNull(urlFileProps);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), urlFileProps.getFile(), OSUtil.isWindows() ? "APPDATA" : "user.home", urlPath.getPath())
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
       assertNull(result);
@@ -169,8 +169,8 @@ class PGPropertyPasswordParserTest {
     URL urlFileProps = getClass().getResource("/pg_service/pgpassfileProps.conf");
     assertNotNull(urlFileProps);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), urlFileProps.getFile(), OSUtil.isWindows() ? "APPDATA" : "user.home", urlPath.getPath())
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(),"APPDATA", urlPath.getPath()),
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost77", "5432", "any", "postgres11");
       assertEquals("postgres22", result);
