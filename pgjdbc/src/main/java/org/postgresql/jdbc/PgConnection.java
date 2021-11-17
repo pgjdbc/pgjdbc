@@ -744,15 +744,12 @@ public class PgConnection implements BaseConnection {
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
       return;
     }
-    // this should not be necessary, but adding it to be cautious
-    synchronized ( queryExecutor ) {
       if (queryExecutor.isClosed()) {
         return;
       }
       releaseTimer();
       queryExecutor.close();
       openStackTrace = null;
-    }
   }
 
   @Override
