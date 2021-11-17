@@ -5,6 +5,10 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.jdbc.PgConnection;
@@ -74,6 +78,7 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.dropTable(conn, "arrcompprnttest");
     TestUtil.dropTable(conn, "arrcompchldttest");
     TestUtil.dropTable(conn, "\"CorrectCasing\"");
+
     super.tearDown();
   }
 
@@ -475,14 +480,14 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setInt(1, 1);
     ResultSet rs = pstmt.executeQuery();
 
-    Assert.assertNotNull(rs);
+    assertNotNull(rs);
     Assert.assertTrue(rs.next());
 
     Array childrenArray = rs.getArray("children");
-    Assert.assertNotNull(childrenArray);
+    assertNotNull(childrenArray);
 
     ResultSet rsChildren = childrenArray.getResultSet();
-    Assert.assertNotNull(rsChildren);
+    assertNotNull(rsChildren);
     while (rsChildren.next()) {
       String comp = rsChildren.getString(2);
       PGtokenizer token = new PGtokenizer(PGtokenizer.removePara(comp), ',');
@@ -640,7 +645,7 @@ public class ArrayTest extends BaseTest4 {
   @Test
   public void createNullArray() throws SQLException {
     Array arr = con.createArrayOf("float8", null);
-    Assert.assertNotNull(arr);
+    assertNotNull(arr);
     Assert.assertNull(arr.getArray());
   }
 
@@ -682,5 +687,20 @@ public class ArrayTest extends BaseTest4 {
 
     Assert.assertEquals(3, secondRowValues[0][0].intValue());
     Assert.assertEquals(4, secondRowValues[0][1].intValue());
+  }
+
+  @Test
+  public void testJsonbArray() throws  SQLException {
+    Assume.assumeTrue("jsonb requires PostgreSQL 9.4+", TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4));
+    TestUtil.createTempTable(con, "jsonbarray", "jbarray jsonb[]" );
+    try (Statement stmt = con.createStatement()) {
+      stmt.executeUpdate("insert into jsonbarray values( ARRAY['{\"a\":\"a\"}'::jsonb, '{\"b\":\"b\"}'::jsonb] )");
+      try (ResultSet rs = stmt.executeQuery("select jbarray from jsonbarray")) {
+        assertTrue(rs.next());
+        Array jsonArray = rs.getArray(1);
+        assertNotNull(jsonArray);
+        assertEquals("jsonb", jsonArray.getBaseTypeName());
+      }
+    }
   }
 }

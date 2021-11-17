@@ -462,6 +462,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   boolean getStandardConformingStrings();
 
   /**
+   *
+   * @return true if we are going to quote identifier provided in the returning array default is true
+   */
+  boolean getQuoteReturningIdentifiers();
+
+  /**
    * Returns backend timezone in java format.
    * @return backend timezone in java format.
    */

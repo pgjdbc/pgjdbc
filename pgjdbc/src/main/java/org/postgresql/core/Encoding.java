@@ -29,6 +29,8 @@ public class Encoding {
 
   private static final Encoding DEFAULT_ENCODING = new Encoding();
 
+  private static final Encoding UTF8_ENCODING = new Encoding(StandardCharsets.UTF_8, true);
+
   /*
    * Preferred JVM encodings for backend encodings.
    */
@@ -78,32 +80,7 @@ public class Encoding {
     encodings.put("LATIN10", new String[0]);
   }
 
-  private interface UTFEncodingProvider {
-    Encoding getEncoding();
-  }
-
-  private static final UTFEncodingProvider UTF_ENCODING_PROVIDER;
-
-  static {
-    //for java 1.8 and older, use implementation optimized for char[]
-    final JavaVersion runtimeVersion = JavaVersion.getRuntimeVersion();
-    if (JavaVersion.v1_8.compareTo(runtimeVersion) >= 0) {
-      UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
-        @Override
-        public Encoding getEncoding() {
-          return new CharOptimizedUTF8Encoder();
-        }
-      };
-    } else {
-      //for newer versions, use default java behavior
-      UTF_ENCODING_PROVIDER = new UTFEncodingProvider() {
-        @Override
-        public Encoding getEncoding() {
-          return new ByteOptimizedUTF8Encoder();
-        }
-      };
-    }
-  }
+  static final AsciiStringInterner INTERNER = new AsciiStringInterner();
 
   private final Charset encoding;
   private final boolean fastASCIINumbers;
@@ -163,7 +140,7 @@ public class Encoding {
    */
   public static Encoding getJVMEncoding(String jvmEncoding) {
     if ("UTF-8".equals(jvmEncoding)) {
-      return UTF_ENCODING_PROVIDER.getEncoding();
+      return UTF8_ENCODING;
     }
     if (Charset.isSupported(jvmEncoding)) {
       return new Encoding(Charset.forName(jvmEncoding));
@@ -179,8 +156,8 @@ public class Encoding {
    *     default JVM encoding if the specified encoding is unavailable.
    */
   public static Encoding getDatabaseEncoding(String databaseEncoding) {
-    if ("UTF8".equals(databaseEncoding)) {
-      return UTF_ENCODING_PROVIDER.getEncoding();
+    if ("UTF8".equals(databaseEncoding) || "UNICODE".equals(databaseEncoding)) {
+      return UTF8_ENCODING;
     }
     // If the backend encoding is known and there is a suitable
     // encoding in the JVM we use that. Otherwise we fall back
@@ -207,6 +184,20 @@ public class Encoding {
   }
 
   /**
+   * Indicates that <i>string</i> should be staged as a canonicalized value.
+   *
+   * <p>
+   * This is intended for use with {@code String} constants.
+   * </p>
+   *
+   * @param string The string to maintain canonicalized reference to. Must not be {@code null}.
+   * @see Encoding#decodeCanonicalized(byte[], int, int)
+   */
+  public static void canonicalize(String string) {
+    INTERNER.putString(string);
+  }
+
+  /**
    * Get the name of the (JVM) encoding used.
    *
    * @return the JVM encoding name used by this instance.
@@ -228,6 +219,55 @@ public class Encoding {
     }
 
     return s.getBytes(encoding);
+  }
+
+  /**
+   * Decode an array of bytes possibly into a canonicalized string.
+   *
+   * <p>
+   * Only ascii compatible encoding support canonicalization and only ascii {@code String} values are eligible
+   * to be canonicalized.
+   * </p>
+   *
+   * @param encodedString a byte array containing the string to decode
+   * @param offset        the offset in <code>encodedString</code> of the first byte of the encoded
+   *                      representation
+   * @param length        the length, in bytes, of the encoded representation
+   * @return the decoded string
+   * @throws IOException if something goes wrong
+   */
+  public String decodeCanonicalized(byte[] encodedString, int offset, int length) throws IOException {
+    if (length == 0) {
+      return "";
+    }
+    // if fastASCIINumbers is false, then no chance of the byte[] being ascii compatible characters
+    return fastASCIINumbers ? INTERNER.getString(encodedString, offset, length, this)
+                            : decode(encodedString, offset, length);
+  }
+
+  public String decodeCanonicalizedIfPresent(byte[] encodedString, int offset, int length) throws IOException {
+    if (length == 0) {
+      return "";
+    }
+    // if fastASCIINumbers is false, then no chance of the byte[] being ascii compatible characters
+    return fastASCIINumbers ? INTERNER.getStringIfPresent(encodedString, offset, length, this)
+                            : decode(encodedString, offset, length);
+  }
+
+  /**
+   * Decode an array of bytes possibly into a canonicalized string.
+   *
+   * <p>
+   * Only ascii compatible encoding support canonicalization and only ascii {@code String} values are eligible
+   * to be canonicalized.
+   * </p>
+   *
+   * @param encodedString a byte array containing the string to decode
+   * @return the decoded string
+   * @throws IOException if something goes wrong
+   */
+  public String decodeCanonicalized(byte[] encodedString) throws IOException {
+    return decodeCanonicalized(encodedString, 0, encodedString.length);
   }
 
   /**

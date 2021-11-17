@@ -2,7 +2,7 @@
 layout: default_docs
 title: Using the Statement or PreparedStatement Interface
 header: Chapter 5. Issuing a Query and Processing the Result
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 5. Issuing a Query and Processing the Result
 previous: query.html
 nexttitle: Using the ResultSet Interface

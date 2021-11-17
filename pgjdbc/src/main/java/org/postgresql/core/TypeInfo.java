@@ -91,7 +91,7 @@ public interface TypeInfo {
 
   String getJavaClass(int oid) throws SQLException;
 
-  String getTypeForAlias(String alias);
+  @Nullable String getTypeForAlias(String alias);
 
   int getPrecision(int oid, int typmod);
 
@@ -116,4 +116,30 @@ public interface TypeInfo {
    * @throws SQLException if something goes wrong
    */
   boolean requiresQuotingSqlType(int sqlType) throws SQLException;
+
+  /**
+   * <p>Java Integers are signed 32-bit integers, but oids are unsigned 32-bit integers.
+   * We therefore read them as positive long values and then force them into signed integers
+   * (wrapping around into negative values when required) or we'd be unable to correctly
+   * handle the upper half of the oid space.</p>
+   *
+   * <p>This function handles the mapping of uint32-values in the long to java integers, and
+   * throws for values that are out of range.</p>
+   *
+   * @param oid the oid as a long.
+   * @return the (internal) signed integer representation of the (unsigned) oid.
+   * @throws SQLException if the long has a value outside of the range representable by uint32
+   */
+  int longOidToInt(long oid) throws SQLException;
+
+  /**
+   * Java Integers are signed 32-bit integers, but oids are unsigned 32-bit integers.
+   * We must therefore first map the (internal) integer representation to a positive long
+   * value before sending it to postgresql, or we would be unable to correctly handle the
+   * upper half of the oid space because these negative values are disallowed as OID values.
+   *
+   * @param oid the (signed) integer oid to convert into a long.
+   * @return the non-negative value of this oid, stored as a java long.
+   */
+  long intOidToLong(int oid);
 }

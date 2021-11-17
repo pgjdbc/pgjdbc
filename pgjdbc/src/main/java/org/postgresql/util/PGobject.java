@@ -43,7 +43,7 @@ public class PGobject implements Serializable, Cloneable {
    * @param value a string representation of the value of the object
    * @throws SQLException thrown if value is invalid for this type
    */
-  public void setValue(String value) throws SQLException {
+  public void setValue(@Nullable String value) throws SQLException {
     this.value = value;
   }
 
@@ -53,7 +53,7 @@ public class PGobject implements Serializable, Cloneable {
    * @return the type name of this object
    */
   public final String getType() {
-    return castNonNull(type);
+    return castNonNull(type, "PGobject#type is uninitialized. Please call setType(String)");
   }
 
   /**
@@ -64,6 +64,16 @@ public class PGobject implements Serializable, Cloneable {
    */
   public @Nullable String getValue() {
     return value;
+  }
+
+  /**
+   * Returns true if the current object wraps `null` value.
+   * This might be helpful
+   *
+   * @return true if the current object wraps `null` value.
+   */
+  public boolean isNull() {
+    return getValue() != null;
   }
 
   /**

@@ -2,7 +2,7 @@
 layout: default_docs
 title: Server Prepared Statements
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
-resource: media
+resource: /documentation/head/media
 previoustitle: Listen / Notify
 previous: listennotify.html
 nexttitle: Parameter Status Messages

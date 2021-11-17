@@ -1,8 +1,8 @@
 ---
 layout: faqs
 title: PostgreSQL JDBC FAQ
-resource: ../media
-nav: ../
+resource: /media
+nav: /
 ---
 
 # Frequently Asked Questions

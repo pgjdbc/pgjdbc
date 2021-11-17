@@ -49,7 +49,7 @@ import java.util.Map;
  */
 final class ArrayEncoding {
 
-  public interface ArrayEncoder<A> {
+  interface ArrayEncoder<A> {
 
     /**
      * The default array type oid supported by this instance.
@@ -101,6 +101,19 @@ final class ArrayEncoding {
      */
     byte[] toBinaryRepresentation(BaseConnection connection, A array, int oid)
         throws SQLException, SQLFeatureNotSupportedException;
+
+    /**
+     * Append {@code String} representation of <i>array</i> to <i>sb</i>.
+     *
+     * @param sb
+     *          The {@link StringBuilder} to append to.
+     * @param delim
+     *          The delimiter between elements.
+     * @param array
+     *          The array to represent. Will not be {@code null}, but may contain
+     *          {@code null} elements.
+     */
+    void appendArray(StringBuilder sb, char delim, A array);
   }
 
   /**
@@ -191,19 +204,6 @@ final class ArrayEncoding {
       appendArray(sb, delim, array);
       return sb.toString();
     }
-
-    /**
-     * Append {@code String} representation of <i>array</i> to <i>sb</i>.
-     *
-     * @param sb
-     *          The {@link StringBuilder} to append to.
-     * @param delim
-     *          The delimiter between elements.
-     * @param array
-     *          The array to represent. Will not be {@code null}, but may contain
-     *          {@code null} elements.
-     */
-    abstract void appendArray(StringBuilder sb, char delim, A array);
 
     /**
      * By default returns {@code true} if <i>oid</i> matches the <i>arrayOid</i>
@@ -328,7 +328,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    final void appendArray(StringBuilder sb, char delim, N[] array) {
+    public final void appendArray(StringBuilder sb, char delim, N[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i != 0) {
@@ -748,7 +748,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    void appendArray(StringBuilder sb, char delim, Boolean[] array) {
+    public void appendArray(StringBuilder sb, char delim, Boolean[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i != 0) {
@@ -1016,7 +1016,7 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    void appendArray(StringBuilder sb, char delim, byte[][] array) {
+    public void appendArray(StringBuilder sb, char delim, byte[][] array) {
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i > 0) {
@@ -1070,7 +1070,7 @@ final class ArrayEncoding {
     }
 
     @Override
-    void appendArray(StringBuilder sb, char delim, Object[] array) {
+    public void appendArray(StringBuilder sb, char delim, Object[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i > 0) {
@@ -1078,6 +1078,16 @@ final class ArrayEncoding {
         }
         if (array[i] == null) {
           sb.append('N').append('U').append('L').append('L');
+        } else if (array[i].getClass().isArray()) {
+          if (array[i] instanceof byte[]) {
+            throw new UnsupportedOperationException("byte[] nested inside Object[]");
+          }
+          try {
+            getArrayEncoder(array[i]).appendArray(sb, delim, array[i]);
+          } catch (PSQLException e) {
+            // this should never happen
+            throw new IllegalStateException(e);
+          }
         } else {
           PgArray.escapeArrayElement(sb, array[i].toString());
         }
@@ -1193,6 +1203,15 @@ final class ArrayEncoding {
     @Override
     public String toArrayString(char delim, A[] array) {
       final StringBuilder sb = new StringBuilder(1024);
+      appendArray(sb, delim, array);
+      return sb.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void appendArray(StringBuilder sb, char delim, A[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; ++i) {
         if (i > 0) {
@@ -1201,7 +1220,6 @@ final class ArrayEncoding {
         support.appendArray(sb, delim, array[i]);
       }
       sb.append('}');
-      return sb.toString();
     }
 
     /**
@@ -1304,6 +1322,14 @@ final class ArrayEncoding {
       final StringBuilder sb = new StringBuilder(2048);
       arrayString(sb, array, delim, dimensions);
       return sb.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void appendArray(StringBuilder sb, char delim, Object array) {
+      arrayString(sb, array, delim, dimensions);
     }
 
     private void arrayString(StringBuilder sb, Object array, char delim, int depth) {

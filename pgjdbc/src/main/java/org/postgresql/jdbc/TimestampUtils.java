@@ -1126,7 +1126,7 @@ public class TimestampUtils {
     return ts;
   }
 
-  private ParsedBinaryTimestamp toParsedTimestampBinPlain(byte[] bytes)
+  private ParsedBinaryTimestamp toParsedTimestampBinPlain( byte[] bytes)
       throws PSQLException {
 
     if (bytes.length != 8) {
@@ -1461,7 +1461,7 @@ public class TimestampUtils {
     // java epoc to postgres epoc
     secs -= 946684800L;
 
-    // Julian/Greagorian calendar cutoff point
+    // Julian/Gregorian calendar cutoff point
     if (secs < -13165977600L) { // October 15, 1582 -> October 4, 1582
       secs -= 86400 * 10;
       if (secs < -15773356800L) { // 1500-03-01 -> 1500-02-28

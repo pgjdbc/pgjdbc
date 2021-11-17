@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.AsciiStringInternerTest;
 import org.postgresql.core.CommandCompleteParserNegativeTest;
 import org.postgresql.core.CommandCompleteParserTest;
 import org.postgresql.core.OidToStringTest;
@@ -34,6 +35,7 @@ import org.postgresql.test.util.PGPropertyMaxResultBufferParserTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
 import org.postgresql.util.BigDecimalByteConverterTest;
+import org.postgresql.util.PGbyteaTest;
 import org.postgresql.util.ReaderInputStreamTest;
 import org.postgresql.util.UnusualBigDecimalByteConverterTest;
 
@@ -49,6 +51,7 @@ import org.junit.runners.Suite;
     ArrayTest.class,
     ArraysTest.class,
     ArraysTestSuite.class,
+    AsciiStringInternerTest.class,
     BatchedInsertReWriteEnabledTest.class,
     BatchExecuteTest.class,
     BatchFailureTest.class,
@@ -56,6 +59,8 @@ import org.junit.runners.Suite;
     BitFieldTest.class,
     BlobTest.class,
     BlobTransactionTest.class,
+    ByteBufferByteStreamWriterTest.class,
+    ByteStreamWriterTest.class,
     CallableStmtTest.class,
     ClientEncodingTest.class,
     ColumnSanitiserDisabledTest.class,
@@ -78,6 +83,7 @@ import org.junit.runners.Suite;
     DriverTest.class,
     EncodingTest.class,
     ExpressionPropertiesTest.class,
+    FixedLengthOutputStreamTest.class,
     GeometricTest.class,
     GetXXXTest.class,
     HostSpecTest.class,
@@ -90,16 +96,16 @@ import org.junit.runners.Suite;
     MiscTest.class,
     NativeQueryBindLengthTest.class,
     NoColumnMetadataIssue1613Test.class,
+    NumericTransferTest.class,
+    NumericTransferTest2.class,
     NotifyTest.class,
     OidToStringTest.class,
     OidValueOfTest.class,
     OptionsPropertyTest.class,
     OuterJoinSyntaxTest.class,
-    FixedLengthOutputStreamTest.class,
-    ByteStreamWriterTest.class,
-    ByteBufferByteStreamWriterTest.class,
     ParameterStatusTest.class,
     ParserTest.class,
+    PGbyteaTest.class,
     PGPropertyMaxResultBufferParserTest.class,
     PGPropertyTest.class,
     PGTimestampTest.class,

@@ -27,6 +27,7 @@ import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -237,6 +238,29 @@ public class MultiHostsConnectionTest {
   }
 
   @Test
+  public void testConnectToPrimaryWithReadonlyTransactionMode() throws SQLException {
+    con = TestUtil.openPrivilegedDB();
+    con.createStatement().execute("ALTER DATABASE " + TestUtil.getDatabase() + " SET default_transaction_read_only=on;");
+    try {
+      getConnection(primary, true, fake1, primary1, secondary1);
+    } catch (PSQLException e) {
+      assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState());
+      assertGlobalState(fake1, "ConnectFail");
+      assertGlobalState(primary1, "Secondary");
+      assertGlobalState(secondary1, "Secondary");
+    } finally {
+      con = TestUtil.openPrivilegedDB();
+      con.createStatement().execute(
+          "BEGIN;"
+          + "SET TRANSACTION READ WRITE;"
+          + "ALTER DATABASE " + TestUtil.getDatabase() + " SET default_transaction_read_only=off;"
+          + "COMMIT;"
+      );
+      TestUtil.closeDB(con);
+    }
+  }
+
+  @Test
   public void testConnectToSecondary() throws SQLException {
     getConnection(secondary, true, fake1, secondary1, primary1);
     assertRemote(secondaryIP);
@@ -347,7 +371,7 @@ public class MultiHostsConnectionTest {
         break;
       }
     }
-    assertEquals("Did not attempt to connect to all salve hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+    assertEquals("Did not attempt to connect to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
     assertEquals("Did not attempt to connect to primary and fake node", 4, tryConnectedHosts.size());
 

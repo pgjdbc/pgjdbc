@@ -16,7 +16,7 @@ PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a P
 ## Supported PostgreSQL and Java versions
 The current version of the driver should be compatible with **PostgreSQL 8.4 and higher** using the version 3.0 of the protocol and **Java 8** (JDBC 4.2) or above. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
 
-PgJDBC regression tests are run against all PostgreSQL versions since 8.4, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please fill an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
+PgJDBC regression tests are run against all PostgreSQL versions since 9.1, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but they have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please file an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
 
 ## Get the Driver
 Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
@@ -24,17 +24,17 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-42.2.16-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.3.1-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.16</version>
+    <version>42.3.1</version>
 </dependency>
 ```
 
-[mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.2.16|bundle
+[mvn-search]: https://search.maven.org/search?q=g:org.postgresql%20AND%20a:postgresql "Search on Maven Central"
+[mvn-jre8]: https://search.maven.org/artifact/org.postgresql/postgresql/42.3.1/jar
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -42,7 +42,7 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.3.0-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.3.2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -70,6 +70,7 @@ jdbc:postgresql://host/database
 jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
 jdbc:postgresql://host:port/
+jdbc:postgresql://?service=myservice
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
@@ -90,6 +91,7 @@ In addition to the standard connection parameters the driver supports a number o
 | user                          | String  | null    | The database user on whose behalf the connection is being made. |
 | password                      | String  | null    | The database user's password. |
 | options                       | String  | null    | Specify 'options' connection initialization parameter. |
+| service                       | String  | null    | Specify 'service' name described in pg_service.conf file. References: [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html) and [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html). 'service' file can provide all properties including 'hostname=', 'port=' and 'dbname='. |
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
 | sslfactoryarg (deprecated)    | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
@@ -117,8 +119,9 @@ In addition to the standard connection parameters the driver supports a number o
 | connectTimeout                | Integer | 10      | The timeout value used for socket connect operations. |
 | socketTimeout                 | Integer | 0       | The timeout value used for socket read operations. |
 | tcpKeepAlive                  | Boolean | false   | Enable or disable TCP keep-alive. |
+| tcpNoDelay                    | Boolean | false   | Enable or disable TCP no delay. |
 | ApplicationName               | String  | PostgreSQL JDBC Driver    | The application name (require server version >= 9.0). If assumeMinServerVersion is set to >= 9.0 this will be sent in the startup packets, otherwise after the connection is made |
-| readOnly                      | Boolean | true    | Puts this connection in read-only mode |
+| readOnly                      | Boolean | false   | Puts this connection in read-only mode |
 | disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
 | assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
 | currentSchema                 | String  | null    | Specify the schema (or several schema separated by commas) to be set in the search-path |
@@ -133,11 +136,12 @@ In addition to the standard connection parameters the driver supports a number o
 | reWriteBatchedInserts         | Boolean | false   | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
 | escapeSyntaxCallMode          | String  | select  | Specifies how JDBC escape call syntax is transformed into underlying SQL (CALL/SELECT), for invoking procedures or functions (requires server version >= 11), possible values: select, callIfNoReturn, call |
 | maxResultBuffer               | String  | null    | Specifies size of result buffer in bytes, which can't be exceeded during reading result set. Can be specified as particular size (i.e. "100", "200M" "2G") or as percent of max heap memory (i.e. "10p", "20pct", "50percent") |
-| gssEncMode                    | String  | allow  | Controls the preference for using GSSAPI encryption for the connection,  values are disable, allow, prefer, and require |
+| gssEncMode                    | String  | allow   | Controls the preference for using GSSAPI encryption for the connection, values are disable, allow, prefer, and require |
 | adaptiveFetch                 | Boolean | false   | Specifies if number of rows fetched in ResultSet by each fetch iteration should be dynamic. Number of rows will be calculated by dividing maxResultBuffer size into max row size observed so far. Requires declaring maxResultBuffer and defaultRowFetchSize for first iteration. 
 | adaptiveFetchMinimum          | Integer | 0       | Specifies minimum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go below this value. 
 | adaptiveFetchMaximum          | Integer | -1      | Specifies maximum number of rows, which can be calculated by adaptiveFetch. Number of rows used by adaptiveFetch cannot go above this value. Any negative number set as adaptiveFetchMaximum is used by adaptiveFetch as infinity number of rows.
 | localSocketAddress            | String  | null    | Hostname or IP address given to explicitly configure the interface that the driver will bind the client side of the TCP/IP connection to when connecting.
+| quoteReturningIdentifiers     | Boolean | true    | By default we double quote returning identifiers. Some ORM's already quote them. Switch allows them to turn this off
 
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
