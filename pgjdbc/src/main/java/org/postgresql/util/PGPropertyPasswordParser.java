@@ -88,7 +88,7 @@ public class PGPropertyPasswordParser {
   // open URL or File
   private InputStream openInputStream(String resourceName) throws IOException {
     // is URL? meaning "file:/", "http://" ...
-    if (resourceName.contains(":/")) {
+    if (resourceName.contains(":/") && resourceName.indexOf(':')>3) {
       return new URL(resourceName).openStream();
     } else {
       // try file

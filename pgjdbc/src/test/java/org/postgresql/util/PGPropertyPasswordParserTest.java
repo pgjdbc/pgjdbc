@@ -52,7 +52,7 @@ class PGPropertyPasswordParserTest {
     assertNotNull(urlPath);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), ""),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", OSUtil.isWindows()?"APPDATA":"user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres",
           "postgres");
