@@ -92,7 +92,7 @@ public class PGPropertyPasswordParser {
     try {
       URL url = new URL(resourceName);
       return url.openStream();
-    }catch ( MalformedInputException ex ){
+    } catch ( MalformedInputException ex ) {
       // try file
       File file = new File(resourceName);
       return new FileInputStream(file);
