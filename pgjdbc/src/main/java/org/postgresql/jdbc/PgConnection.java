@@ -733,7 +733,7 @@ public class PgConnection implements BaseConnection {
   /**
    * <B>Note:</B> even though {@code Statement} is automatically closed when it is garbage
    * collected, it is better to close it explicitly to lower resource consumption.
-   * The spec says that calling close on a closed connection is a noop
+   * The spec says that calling close on a closed connection is a no-op.
    *
    * {@inheritDoc}
    */
