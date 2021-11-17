@@ -149,7 +149,7 @@ class PGPropertyPasswordParserTest {
     assertNotNull(urlFileProps);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "user.home", urlPath.getPath())
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(),"", "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
       assertNull(result);
