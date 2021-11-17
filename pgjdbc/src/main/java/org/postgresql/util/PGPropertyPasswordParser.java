@@ -16,8 +16,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -92,7 +92,7 @@ public class PGPropertyPasswordParser {
     try {
       URL url = new URL(resourceName);
       return url.openStream();
-    } catch ( MalformedInputException ex ) {
+    } catch ( MalformedURLException ex ) {
       // try file
       File file = new File(resourceName);
       return new FileInputStream(file);
