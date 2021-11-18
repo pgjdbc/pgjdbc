@@ -173,7 +173,7 @@ public class DatabaseMetaDataTest {
     TestUtil.dropDomain(con, "float83");
 
     if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v12) ) {
-        TestUtil.dropTable(con, "employee");
+      TestUtil.dropTable(con, "employee");
     }
 
     TestUtil.closeDB(con);
@@ -1462,7 +1462,6 @@ public class DatabaseMetaDataTest {
       assertTrue(rs.getBoolean("IS_GENERATEDCOLUMN"));
     }
   }
-
 
   @Test
   public void testGetSQLKeywords() throws SQLException {
