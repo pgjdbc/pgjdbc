@@ -1548,11 +1548,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     } else {
       sql += "null as attidentity,";
     }
-    
+
     if (connection.haveMinimumServerVersion(ServerVersion.v12)) {
-        sql += "nullif(a.attgenerated, '') as attgenerated,";
+      sql += "nullif(a.attgenerated, '') as attgenerated,";
     } else {
-        sql += "null as attgenerated,";
+      sql += "null as attgenerated,";
     }
 
     sql += "pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype "
