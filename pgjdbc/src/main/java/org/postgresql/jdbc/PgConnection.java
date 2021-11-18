@@ -733,6 +733,7 @@ public class PgConnection implements BaseConnection {
   /**
    * <B>Note:</B> even though {@code Statement} is automatically closed when it is garbage
    * collected, it is better to close it explicitly to lower resource consumption.
+   * The spec says that calling close on a closed connection is a no-op.
    *
    * {@inheritDoc}
    */
@@ -741,6 +742,9 @@ public class PgConnection implements BaseConnection {
     if (queryExecutor == null) {
       // This might happen in case constructor throws an exception (e.g. host being not available).
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
+      return;
+    }
+    if (queryExecutor.isClosed()) {
       return;
     }
     releaseTimer();
