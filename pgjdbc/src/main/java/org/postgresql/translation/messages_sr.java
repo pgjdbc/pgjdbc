@@ -58,6 +58,8 @@ public class messages_sr extends java.util.ResourceBundle {
     t[123] = "Server ne podržava SSL.";
     t[124] = "Custom type maps are not supported.";
     t[125] = "Mape sa korisnički definisanim tipovima nisu podržane.";
+    t[134] = "Maximum number of rows must be a value greater than or equal to 0.";
+    t[135] = "Maksimalni broj redova mora biti vrednosti veće ili jednake 0.";
     t[140] = "Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}";
     t[141] = "Ilegalna UTF-8 sekvenca: bajt {0} od {1} bajtova sekvence nije 10xxxxxx: {2}";
     t[148] = "Hint: {0}";
@@ -156,8 +158,6 @@ public class messages_sr extends java.util.ResourceBundle {
     t[345] = "SQLState servera: {0}";
     t[348] = "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.";
     t[349] = "Serverov standard_conforming_strings parametar javlja {0}. JDBC drajver ocekuje on ili off.";
-    t[360] = "The driver currently does not support COPY operations.";
-    t[361] = "Drajver trenutno ne podržava COPY operacije.";
     t[364] = "The array index is out of range: {0}, number of elements: {1}.";
     t[365] = "Indeks niza je van opsega: {0}, broj elemenata: {1}.";
     t[374] = "suspend/resume not implemented";
@@ -264,8 +264,6 @@ public class messages_sr extends java.util.ResourceBundle {
     t[609] = "Pogrešna sintaksa u funkciji ili proceduri na poziciji {0}.";
     t[612] = "Provided Reader failed.";
     t[613] = "Pribavljeni čitač (Reader) zakazao.";
-    t[614] = "Maximum number of rows must be a value grater than or equal to 0.";
-    t[615] = "Maksimalni broj redova mora biti vrednosti veće ili jednake 0.";
     t[616] = "Failed to create object for: {0}.";
     t[617] = "Propao pokušaj kreiranja objekta za: {0}.";
     t[620] = "Conversion of money failed.";

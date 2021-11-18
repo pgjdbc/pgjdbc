@@ -130,6 +130,8 @@ public class messages_bg extends java.util.ResourceBundle {
     t[255] = "Не може да се създаде SAXResult за SQLXML.";
     t[256] = "Interrupted while attempting to connect.";
     t[257] = "Опита за осъществяване на връзка бе своевременно прекъснат. ";
+    t[258] = "Maximum number of rows must be a value greater than or equal to 0.";
+    t[259] = "Максималният брой редове трябва да бъде стойност по-голяма или равна на 0.";
     t[260] = "Protocol error.  Session setup failed.";
     t[261] = "Грешка в протокола. Неуспешна настройка на сесията.";
     t[264] = "Database connection failed when starting copy";
@@ -292,8 +294,6 @@ public class messages_bg extends java.util.ResourceBundle {
     t[639] = "Опит за премахване на заключването/резервацията при връзка към базата данни";
     t[642] = "Missing expected error response to copy cancel request";
     t[643] = "Липсва очакван отговор при грешка да прекъсне копирането";
-    t[644] = "Maximum number of rows must be a value grater than or equal to 0.";
-    t[645] = "Максималният брой редове трябва да бъде стойност по-голяма или равна на 0.";
     t[652] = "Requested CopyIn but got {0}";
     t[653] = "Зададено CopyIn но получено {0}";
     t[656] = "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.";
@@ -376,8 +376,6 @@ public class messages_bg extends java.util.ResourceBundle {
     t[839] = "спиране / започване не се поддържа за момента";
     t[840] = "Error preparing transaction. prepare xid={0}";
     t[841] = "Грешка при подготвяне на транзакция. prepare xid={0}";
-    t[842] = "The driver currently does not support COPY operations.";
-    t[843] = "За момента драйвъра не поддържа COPY команди.";
     t[852] = "Heuristic commit/rollback not supported. forget xid={0}";
     t[853] = "Евристичен commit или rollback не се поддържа. forget xid={0}";
     t[856] = "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database.";
