@@ -1621,7 +1621,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         }
       }
       String identity = rs.getString("attidentity");
-      
+
       String generated = rs.getString("attgenerated");
 
       int baseTypeOid = (int) rs.getLong("typbasetype");
