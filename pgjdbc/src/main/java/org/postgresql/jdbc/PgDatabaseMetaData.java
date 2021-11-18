@@ -1699,7 +1699,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       String generatedcolumn = "NO";
       if (generated != null) {
-          generatedcolumn = "YES";
+        generatedcolumn = "YES";
       }
       tuple[23] = connection.encodeString(generatedcolumn); // IS_GENERATEDCOLUMN
 
