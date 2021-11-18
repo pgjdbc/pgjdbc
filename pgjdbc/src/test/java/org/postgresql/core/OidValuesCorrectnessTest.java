@@ -57,6 +57,12 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidsMinimumVersions.put("JSONB", ServerVersion.v9_4);
     oidsMinimumVersions.put("JSONB_ARRAY", ServerVersion.v9_4);
     oidsMinimumVersions.put("MACADDR8", ServerVersion.v10);
+    oidsMinimumVersions.put("INT4_RANGE", ServerVersion.v9_2);
+    oidsMinimumVersions.put("INT8_RANGE", ServerVersion.v9_2);
+    oidsMinimumVersions.put("NUM_RANGE", ServerVersion.v9_2);
+    oidsMinimumVersions.put("DATE_RANGE", ServerVersion.v9_2);
+    oidsMinimumVersions.put("TIMESTAMP_RANGE", ServerVersion.v9_2);
+    oidsMinimumVersions.put("TIMESTAMPTZ_RANGE", ServerVersion.v9_2);
   }
 
   /**
@@ -98,6 +104,18 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidTypeNames.put("JSON_ARRAY", "_JSON");
     oidTypeNames.put("REF_CURSOR", "REFCURSOR");
     oidTypeNames.put("REF_CURSOR_ARRAY", "_REFCURSOR");
+    oidTypeNames.put("INT4_RANGE", "INT4RANGE");
+    oidTypeNames.put("INT8_RANGE", "INT8RANGE");
+    oidTypeNames.put("NUM_RANGE", "NUMRANGE");
+    oidTypeNames.put("DATE_RANGE", "DATERANGE");
+    oidTypeNames.put("TIMESTAMP_RANGE", "TSRANGE");
+    oidTypeNames.put("TIMESTAMPTZ_RANGE", "TSTZRANGE");
+    oidTypeNames.put("INT4_RANGE_ARRAY", "_INT4RANGE");
+    oidTypeNames.put("INT8_RANGE_ARRAY", "_INT8RANGE");
+    oidTypeNames.put("NUM_RANGE_ARRAY", "_NUMRANGE");
+    oidTypeNames.put("DATE_RANGE_ARRAY", "_DATERANGE");
+    oidTypeNames.put("TIMESTAMP_RANGE_ARRAY", "_TSRANGE");
+    oidTypeNames.put("TIMESTAMPTZ_RANGE_ARRAY", "_TSTZRANGE");
   }
 
   @Parameterized.Parameters(name = "oidName={0}, oidValue={1}")
