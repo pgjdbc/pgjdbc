@@ -141,7 +141,7 @@ class PGPropertyServiceParserTest {
     URL urlPath = getClass().getResource("/pg_service");
     assertNotNull(urlPath);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
+        new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", "APPDATA", urlPath.getPath(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
       Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
@@ -304,7 +304,7 @@ class PGPropertyServiceParserTest {
     URL urlPath = getClass().getResource("/pg_service");
     assertNotNull(urlPath);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
+        new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", "APPDATA", urlPath.getPath(), PGEnvironment.PGSYSCONFDIR.getName(), ""),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
       Properties result;

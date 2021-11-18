@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -70,10 +71,11 @@ public class PGPropertyServiceParser {
 
   // open URL or File
   private InputStream openInputStream(String resourceName) throws IOException {
-    // is URL? meaning "file:/", "http://" ...
-    if (resourceName.contains(":/")) {
-      return new URL(resourceName).openStream();
-    } else {
+
+    try {
+      URL url = new URL(resourceName);
+      return url.openStream();
+    } catch ( MalformedURLException ex ) {
       // try file
       File file = new File(resourceName);
       return new FileInputStream(file);
