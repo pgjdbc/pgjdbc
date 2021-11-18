@@ -343,10 +343,13 @@ public class PgConnection implements BaseConnection {
         Oid.BYTEA,
         Oid.INT2,
         Oid.INT4,
+        Oid.INT4_RANGE,
         Oid.INT8,
+        Oid.INT8_RANGE,
         Oid.FLOAT4,
         Oid.FLOAT8,
         Oid.NUMERIC,
+        Oid.NUM_RANGE,
         Oid.TIME,
         Oid.DATE,
         Oid.TIMETZ,
@@ -707,6 +710,9 @@ public class PgConnection implements BaseConnection {
     addDataType("polygon", org.postgresql.geometric.PGpolygon.class);
     addDataType("money", org.postgresql.util.PGmoney.class);
     addDataType("interval", org.postgresql.util.PGInterval.class);
+    addDataType("int4range", org.postgresql.util.PGint4range.class);
+    addDataType("int8range", org.postgresql.util.PGint8range.class);
+    addDataType("numrange", org.postgresql.util.PGnumrange.class);
 
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
