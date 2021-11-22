@@ -100,75 +100,84 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
-
-    // Set the socket timeout if the "socketTimeout" property has been set.
-    int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
-    if (socketTimeout > 0) {
-      newStream.setNetworkTimeout(socketTimeout * 1000);
-    }
-
-    String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
-    newStream.setMaxResultBuffer(maxResultBuffer);
-
-    // Enable TCP keep-alive probe if required.
-    boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
-    newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
-
-    // Enable TCP no delay if required
-    boolean requireTCPNoDelay = PGProperty.TCP_NO_DELAY.getBoolean(info);
-    newStream.getSocket().setTcpNoDelay(requireTCPNoDelay);
-
-    // Try to set SO_SNDBUF and SO_RECVBUF socket options, if requested.
-    // If receiveBufferSize and send_buffer_size are set to a value greater
-    // than 0, adjust. -1 means use the system default, 0 is ignored since not
-    // supported.
-
-    // Set SO_RECVBUF read buffer size
-    int receiveBufferSize = PGProperty.RECEIVE_BUFFER_SIZE.getInt(info);
-    if (receiveBufferSize > -1) {
-      // value of 0 not a valid buffer size value
-      if (receiveBufferSize > 0) {
-        newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
-      } else {
-        LOGGER.log(Level.WARNING, "Ignore invalid value for receiveBufferSize: {0}", receiveBufferSize);
+    try {
+      // Set the socket timeout if the "socketTimeout" property has been set.
+      int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
+      if (socketTimeout > 0) {
+        newStream.setNetworkTimeout(socketTimeout * 1000);
       }
-    }
 
-    // Set SO_SNDBUF write buffer size
-    int sendBufferSize = PGProperty.SEND_BUFFER_SIZE.getInt(info);
-    if (sendBufferSize > -1) {
-      if (sendBufferSize > 0) {
-        newStream.getSocket().setSendBufferSize(sendBufferSize);
-      } else {
-        LOGGER.log(Level.WARNING, "Ignore invalid value for sendBufferSize: {0}", sendBufferSize);
+      String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
+      newStream.setMaxResultBuffer(maxResultBuffer);
+
+      // Enable TCP keep-alive probe if required.
+      boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
+      newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
+
+      // Enable TCP no delay if required
+      boolean requireTCPNoDelay = PGProperty.TCP_NO_DELAY.getBoolean(info);
+      newStream.getSocket().setTcpNoDelay(requireTCPNoDelay);
+
+      // Try to set SO_SNDBUF and SO_RECVBUF socket options, if requested.
+      // If receiveBufferSize and send_buffer_size are set to a value greater
+      // than 0, adjust. -1 means use the system default, 0 is ignored since not
+      // supported.
+
+      // Set SO_RECVBUF read buffer size
+      int receiveBufferSize = PGProperty.RECEIVE_BUFFER_SIZE.getInt(info);
+      if (receiveBufferSize > -1) {
+        // value of 0 not a valid buffer size value
+        if (receiveBufferSize > 0) {
+          newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
+        } else {
+          LOGGER.log(Level.WARNING, "Ignore invalid value for receiveBufferSize: {0}",
+              receiveBufferSize);
+        }
       }
+
+      // Set SO_SNDBUF write buffer size
+      int sendBufferSize = PGProperty.SEND_BUFFER_SIZE.getInt(info);
+      if (sendBufferSize > -1) {
+        if (sendBufferSize > 0) {
+          newStream.getSocket().setSendBufferSize(sendBufferSize);
+        } else {
+          LOGGER.log(Level.WARNING, "Ignore invalid value for sendBufferSize: {0}", sendBufferSize);
+        }
+      }
+
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Receive Buffer Size is {0}",
+            newStream.getSocket().getReceiveBufferSize());
+        LOGGER.log(Level.FINE, "Send Buffer Size is {0}",
+            newStream.getSocket().getSendBufferSize());
+      }
+
+      newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info,
+          connectTimeout);
+
+      // if we have a security context then gss negotiation succeeded. Do not attempt SSL
+      // negotiation
+      if (!newStream.isGssEncrypted()) {
+        // Construct and send an ssl startup packet if requested.
+        newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+      }
+
+      // Make sure to set network timeout again, in case the stream changed due to GSS or SSL
+      if (socketTimeout > 0) {
+        newStream.setNetworkTimeout(socketTimeout * 1000);
+      }
+
+      List<String[]> paramList = getParametersForStartup(user, database, info);
+      sendStartupPacket(newStream, paramList);
+
+      // Do authentication (until AuthenticationOk).
+      doAuthentication(newStream, hostSpec.getHost(), user, info);
+
+      return newStream;
+    } catch (Exception e) {
+      closeStream(newStream);
+      throw e;
     }
-
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
-      LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
-    }
-
-    newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
-
-    // if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
-    if (!newStream.isGssEncrypted()) {
-      // Construct and send an ssl startup packet if requested.
-      newStream = enableSSL(newStream, sslMode, info, connectTimeout);
-    }
-
-    // Make sure to set network timeout again, in case the stream changed due to GSS or SSL
-    if (socketTimeout > 0) {
-      newStream.setNetworkTimeout(socketTimeout * 1000);
-    }
-
-    List<String[]> paramList = getParametersForStartup(user, database, info);
-    sendStartupPacket(newStream, paramList);
-
-    // Do authentication (until AuthenticationOk).
-    doAuthentication(newStream, hostSpec.getHost(), user, info);
-
-    return newStream;
   }
 
   @Override
