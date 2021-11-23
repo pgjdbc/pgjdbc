@@ -21,6 +21,7 @@ import java.lang.reflect.Proxy;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
@@ -415,6 +416,12 @@ public class PGPooledConnection implements PooledConnection {
         return method.invoke(st, args);
       }
 
+      if (methodName.equals("executeQuery") || methodName.equals("getResultSet")) {
+        ResultSet rs = castNonNull((ResultSet) method.invoke(st, args));
+        return Proxy.newProxyInstance(getClass().getClassLoader(),
+            new Class[]{ResultSet.class},
+            new ResultSetHandler(this, rs));
+      }
       // All the rest is from the Statement interface
       if (methodName.equals("isClosed")) {
         return st == null || st.isClosed();
@@ -457,4 +464,41 @@ public class PGPooledConnection implements PooledConnection {
   public void addStatementEventListener(StatementEventListener listener) {
   }
 
+  private class ResultSetHandler implements InvocationHandler {
+
+    final StatementHandler statementHandler;
+    final ResultSet rs;
+
+    ResultSetHandler( StatementHandler statementHandler, ResultSet rs ) {
+      this.statementHandler = statementHandler;
+      this.rs = rs;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+      final String methodName = method.getName();
+      // From Object
+      if (method.getDeclaringClass() == Object.class) {
+        if (methodName.equals("toString")) {
+          return "Pooled ResultSet wrapping physical resultSet " + rs;
+        }
+        if (methodName.equals("hashCode")) {
+          return System.identityHashCode(proxy);
+        }
+        if (methodName.equals("equals")) {
+          return proxy == args[0];
+        }
+        return method.invoke(rs, args);
+      }
+      try {
+        return method.invoke(rs, args);
+      } catch (final InvocationTargetException ite) {
+        final Throwable te = ite.getTargetException();
+        if (te instanceof SQLException) {
+          fireConnectionError((SQLException) te); // Tell listeners about exception if it's fatal
+        }
+        throw te;
+      }
+    }
+  }
 }
