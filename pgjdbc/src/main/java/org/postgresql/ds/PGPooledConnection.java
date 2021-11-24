@@ -422,7 +422,7 @@ public class PGPooledConnection implements PooledConnection {
           rs = castNonNull((ResultSet) method.invoke(st, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{ResultSet.class},
-              new ResultSetHandler(this, rs));
+              new ResultSetHandler(this, castNonNull(rs)));
         } catch (final InvocationTargetException ite) {
           final Throwable te = ite.getTargetException();
           if (te instanceof SQLException) {
@@ -439,7 +439,7 @@ public class PGPooledConnection implements PooledConnection {
         } else {
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{ResultSet.class},
-              new ResultSetHandler(this, rs));
+              new ResultSetHandler(this, castNonNull(rs)));
         }
       }
 
@@ -496,7 +496,8 @@ public class PGPooledConnection implements PooledConnection {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    @SuppressWarnings("throwing.nullable")
+    public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
       if (method.getDeclaringClass() == Object.class) {
