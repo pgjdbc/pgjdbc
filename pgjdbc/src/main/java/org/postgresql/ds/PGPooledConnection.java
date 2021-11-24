@@ -391,6 +391,7 @@ public class PGPooledConnection implements PooledConnection {
   private class StatementHandler implements InvocationHandler {
     private @Nullable ConnectionHandler con;
     private @Nullable Statement st;
+    private @Nullable ResultSet rs;
 
     StatementHandler(ConnectionHandler con, Statement st) {
       this.con = con;
@@ -416,9 +417,9 @@ public class PGPooledConnection implements PooledConnection {
         return method.invoke(st, args);
       }
 
-      if (methodName.equals("executeQuery") || methodName.equals("getResultSet")) {
+      if (methodName.equals("executeQuery") ) {
         try {
-          ResultSet rs = castNonNull((ResultSet) method.invoke(st, args));
+          rs = castNonNull((ResultSet) method.invoke(st, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{ResultSet.class},
               new ResultSetHandler(this, rs));
@@ -430,6 +431,18 @@ public class PGPooledConnection implements PooledConnection {
           throw te;
         }
       }
+
+      // return the ResultSet stored above.
+      if ( methodName.equals("getResultSet") ) {
+        if ( rs == null ) {
+          return null;
+        } else {
+          return Proxy.newProxyInstance(getClass().getClassLoader(),
+              new Class[]{ResultSet.class},
+              new ResultSetHandler(this, rs));
+        }
+      }
+
       // All the rest is from the Statement interface
       if (methodName.equals("isClosed")) {
         return st == null || st.isClosed();
