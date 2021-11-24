@@ -417,10 +417,18 @@ public class PGPooledConnection implements PooledConnection {
       }
 
       if (methodName.equals("executeQuery") || methodName.equals("getResultSet")) {
-        ResultSet rs = castNonNull((ResultSet) method.invoke(st, args));
-        return Proxy.newProxyInstance(getClass().getClassLoader(),
-            new Class[]{ResultSet.class},
-            new ResultSetHandler(this, rs));
+        try {
+          ResultSet rs = castNonNull((ResultSet) method.invoke(st, args));
+          return Proxy.newProxyInstance(getClass().getClassLoader(),
+              new Class[]{ResultSet.class},
+              new ResultSetHandler(this, rs));
+        } catch (final InvocationTargetException ite) {
+          final Throwable te = ite.getTargetException();
+          if (te instanceof SQLException) {
+            fireConnectionError((SQLException) te); // Tell listeners about exception if it's fatal
+          }
+          throw te;
+        }
       }
       // All the rest is from the Statement interface
       if (methodName.equals("isClosed")) {
