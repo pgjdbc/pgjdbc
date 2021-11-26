@@ -53,7 +53,7 @@ public class messages_ru extends java.util.ResourceBundle {
     t[104] = "Connection to {0} refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.";
     t[105] = "Подсоединение по адресу {0} отклонено. Проверьте что хост и порт указаны правильно и что postmaster принимает TCP/IP-подсоединения.";
     t[108] = "This statement has been closed.";
-    t[109] = "Этот Sstatement был закрыт.";
+    t[109] = "Этот statement был закрыт.";
     t[110] = "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}";
     t[111] = "Ошибка при фиксации подготовленной транзакции. commit xid={0}, preparedXid={1}, currentXid={2}";
     t[114] = "Position: {0}";
