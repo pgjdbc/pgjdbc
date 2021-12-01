@@ -18,6 +18,7 @@ nb-configuration.xml
 *.po.~*~
 target/
 .m2/
+*@tmp/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
