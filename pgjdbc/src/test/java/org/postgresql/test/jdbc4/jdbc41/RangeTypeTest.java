@@ -144,7 +144,7 @@ public class RangeTypeTest extends BaseTest4 {
     assertNotEquals(range, new PGdaterange(start, true, end, true));
     assertNotEquals(range, new PGdaterange(start, false, end, true));
     assertNotEquals(range, new PGdaterange(start, false, end, false));
-    assertEquals(range, new PGdaterange(start.minusDays(1), false, end.minusDays(1), true));
+    assertNotEquals(range, new PGdaterange(start.minusDays(1), false, end.minusDays(1), true));
     assertEquals(range.hashCode(), new PGdaterange(start, end).hashCode());
   }
 
@@ -663,7 +663,7 @@ public class RangeTypeTest extends BaseTest4 {
           "'[\"1970-01-01 00:00:00\",\"9999-12-31 00:00:00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column", "'(,\"2020-12-21 00:00:00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column",
-          "'[\"1337-04-20 00:00:00\",2069-04-20 00:00:00\")'"));
+          "'[\"1337-04-20 00:00:00\",\"2069-04-20 00:00:00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column", "'[\"2001-09-12 00:00:00\",)'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "tsrange_column", null
@@ -788,7 +788,7 @@ public class RangeTypeTest extends BaseTest4 {
           "'[\"1970-01-01 00:00:00+00\",\"9999-12-31 00:00:00+00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'(,\"2020-12-21 00:00:00+00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column",
-          "'[\"1337-04-20 00:00:00+00\",2069-04-20 00:00:00+00\")'"));
+          "'[\"1337-04-20 00:00:00+00\",\"2069-04-20 00:00:00+00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'[\"2001-09-12 00:00:00+00\",)'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "tstzrange_column", null

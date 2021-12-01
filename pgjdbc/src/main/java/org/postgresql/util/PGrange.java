@@ -22,66 +22,10 @@ import java.util.Objects;
 public abstract class PGrange<T extends Serializable> extends PGobject implements Serializable,
     Cloneable {
 
-  /**
-   * Type tag for the range over the binary protocol.
-   */
-  enum TypeTag {
-
-    /**
-     * Both the lower and the upper bound are set.
-     */
-    EMPTY(1),
-
-    /**
-     * Both the lower and the upper bound are set.
-     */
-    CLOSED(2),
-
-    /**
-     * The lower bound is not set but the upper bound is set.
-     */
-    LOWER_OPEN(8),
-
-    /**
-     * The lower bound is set but the upper bound is not set.
-     */
-    UPPER_OPEN(18),
-
-    /**
-     * Neither to lower nor the upper bound are set.
-     */
-    BOTH_OPEN(24);
-
-    TypeTag(int value) {
-      this.value = value;
-    }
-
-    static final Map<Integer, TypeTag> VALUE_TO_INSTANCE;
-
-    static {
-      VALUE_TO_INSTANCE = new HashMap<>();
-      for (TypeTag each : values()) {
-        VALUE_TO_INSTANCE.put(each.getValue(), each);
-      }
-    }
-
-    private final int value;
-
-    int getValue() {
-      return this.value;
-    }
-
-    static TypeTag valueOf(int i) {
-      return VALUE_TO_INSTANCE.get(i);
-    }
-
-  }
-
   protected boolean lowerInclusive;
   protected boolean upperInclusive;
   protected @Nullable T lowerBound;
   protected @Nullable T upperBound;
-
   PGrange(@Nullable T lowerBound, boolean lowerInclusive, @Nullable T upperBound,
       boolean upperInclusive) {
     this.lowerBound = lowerBound;
@@ -211,20 +155,12 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
 
   @Override
   public String getValue() {
-    return (this.lowerInclusive ? '[' : '(')
+    return this.isEmpty() ? "empty" : (this.lowerInclusive ? '[' : '(')
         + (this.lowerBound == null ? "" : this.serializeBound(this.lowerBound))
         + ','
         + (this.upperBound == null ? "" : this.serializeBound(this.upperBound))
         + (this.upperInclusive ? ']' : ')');
   }
-
-  /**
-   * Returns a string representation in the text protocol of a value in the range.
-   *
-   * @param value the value in the range, not {@code null}
-   * @return the string representation of {@code value}
-   */
-  protected abstract @NonNull String serializeBound(@NonNull T value);
 
   @Override
   public void setValue(@Nullable String value) throws SQLException {
@@ -288,6 +224,14 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     }
   }
 
+  /**
+   * Returns a string representation in the text protocol of a value in the range.
+   *
+   * @param value the value in the range, not {@code null}
+   * @return the string representation of {@code value}
+   */
+  protected abstract @NonNull String serializeBound(@NonNull T value);
+
   protected abstract T parseToken(String token);
 
   /**
@@ -341,6 +285,61 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     result = 31 * result + Objects.hashCode(this.lowerBound);
     result = 31 * result + Objects.hashCode(this.upperBound);
     return result;
+  }
+
+  /**
+   * Type tag for the range over the binary protocol.
+   */
+  enum TypeTag {
+
+    /**
+     * Both the lower and the upper bound are set.
+     */
+    EMPTY(1),
+
+    /**
+     * Both the lower and the upper bound are set.
+     */
+    CLOSED(2),
+
+    /**
+     * The lower bound is not set but the upper bound is set.
+     */
+    LOWER_OPEN(8),
+
+    /**
+     * The lower bound is set but the upper bound is not set.
+     */
+    UPPER_OPEN(18),
+
+    /**
+     * Neither to lower nor the upper bound are set.
+     */
+    BOTH_OPEN(24);
+
+    static final Map<Integer, TypeTag> VALUE_TO_INSTANCE;
+
+    static {
+      VALUE_TO_INSTANCE = new HashMap<>();
+      for (TypeTag each : values()) {
+        VALUE_TO_INSTANCE.put(each.getValue(), each);
+      }
+    }
+
+    private final int value;
+
+    TypeTag(int value) {
+      this.value = value;
+    }
+
+    static TypeTag valueOf(int i) {
+      return VALUE_TO_INSTANCE.get(i);
+    }
+
+    int getValue() {
+      return this.value;
+    }
+
   }
 
 }
