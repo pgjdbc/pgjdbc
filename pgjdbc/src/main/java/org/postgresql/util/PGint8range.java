@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -23,8 +26,8 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
    * @param upperInclusive {@code true} to make the upper bound is inclusive,
    *                       {@code false} to make the upper bound is exclusive
    */
-  public PGint8range(Long lowerBound, boolean lowerInclusive,
-          Long upperBound, boolean upperInclusive) {
+  public PGint8range(@Nullable Long lowerBound, boolean lowerInclusive,
+      @Nullable Long upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
     setType("int8range");
   }
@@ -35,7 +38,7 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
    * @param lowerBound the lower bound, inclusive, {@code null} if not set
    * @param upperBound the upper bound, exclusive, {@code null} if not set
    */
-  public PGint8range(Long lowerBound, Long upperBound) {
+  public PGint8range(@Nullable Long lowerBound, @Nullable Long upperBound) {
     super(lowerBound, upperBound);
     setType("int8range");
   }
@@ -60,7 +63,7 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
   }
 
   @Override
-  protected String serializeBound(Long value) {
+  protected @NonNull String serializeBound(Long value) {
     return value.toString();
   }
 

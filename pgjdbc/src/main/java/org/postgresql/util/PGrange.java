@@ -5,20 +5,25 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Abstract base class for all range types.
  *
  * @param <T> the type of element in the range
  */
-public abstract class PGrange<T extends Serializable> extends PGobject implements Serializable, Cloneable {
+public abstract class PGrange<T extends Serializable> extends PGobject implements Serializable,
+    Cloneable {
 
   /**
-   * Type tag for the a range over the binary protocol.
+   * Type tag for the range over the binary protocol.
    */
   enum TypeTag {
 
@@ -54,7 +59,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     static final Map<Integer, TypeTag> VALUE_TO_INSTANCE;
 
     static {
-      VALUE_TO_INSTANCE = new HashMap<Integer, TypeTag>();
+      VALUE_TO_INSTANCE = new HashMap<>();
       for (TypeTag each : values()) {
         VALUE_TO_INSTANCE.put(each.getValue(), each);
       }
@@ -74,17 +79,18 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
 
   protected boolean lowerInclusive;
   protected boolean upperInclusive;
-  protected T lowerBound;
-  protected T upperBound;
+  protected @Nullable T lowerBound;
+  protected @Nullable T upperBound;
 
-  PGrange(T lowerBound, boolean lowerInclusive, T upperBound, boolean upperInclusive) {
+  PGrange(@Nullable T lowerBound, boolean lowerInclusive, @Nullable T upperBound,
+      boolean upperInclusive) {
     this.lowerBound = lowerBound;
     this.lowerInclusive = lowerInclusive;
     this.upperBound = upperBound;
     this.upperInclusive = upperInclusive;
   }
 
-  PGrange(T lowerBound, T upperBound) {
+  PGrange(@Nullable T lowerBound, @Nullable T upperBound) {
     this(lowerBound, true, upperBound, false);
   }
 
@@ -99,7 +105,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * @throws SQLException Is thrown if the string representation has an unknown format
    * @see #setValue(String)
    */
-  PGrange(String value) throws SQLException {
+  PGrange(@Nullable String value) throws SQLException {
     setValue(value);
   }
 
@@ -107,7 +113,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * Checks if the lower bound is inclusive.
    *
    * @return {@code true} if the lower bound is inclusive,
-   *         {@code false} if the lower bound is exclusive
+   * {@code false} if the lower bound is exclusive
    */
   public boolean isLowerInclusive() {
     return this.lowerInclusive;
@@ -127,7 +133,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * Checks if the upper bound is inclusive.
    *
    * @return {@code true} if the upper bound is inclusive,
-   *         {@code false} if the upper bound is exclusive
+   * {@code false} if the upper bound is exclusive
    */
   public boolean isUpperInclusive() {
     return this.upperInclusive;
@@ -149,7 +155,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * @return the lower bound, {@code null} if the lower bound is infinite
    * @see #isLowerInfinite()
    */
-  public T getLowerBound() {
+  public @Nullable T getLowerBound() {
     return this.lowerBound;
   }
 
@@ -159,7 +165,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * @param lowerBound the lower bound to set,
    *                   {@code null} to set the lower bound to infinite
    */
-  public void setLowerBound(T lowerBound) {
+  public void setLowerBound(@Nullable T lowerBound) {
     this.lowerBound = lowerBound;
   }
 
@@ -169,7 +175,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * @return the upper bound, {@code null} if the upper bound is infinite
    * @see #isUpperInfinite()
    */
-  public T getUpperBound() {
+  public @Nullable T getUpperBound() {
     return this.upperBound;
   }
 
@@ -179,7 +185,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * @param upperBound the upper bound to set,
    *                   {@code null} to set the upper bound to infinite
    */
-  public void setUpperBound(T upperBound) {
+  public void setUpperBound(@Nullable T upperBound) {
     this.upperBound = upperBound;
   }
 
@@ -187,7 +193,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * Checks if the lower bound is infinite.
    *
    * @return {@code true} if the lower bound is infinite,
-   *         {@code false} if the lower bound is set
+   * {@code false} if the lower bound is set
    */
   public boolean isLowerInfinite() {
     return this.lowerBound == null;
@@ -197,7 +203,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * Checks if the upper bound is infinite.
    *
    * @return {@code true} if the upper bound is infinite,
-   *         {@code false} if the upper bound is set
+   * {@code false} if the upper bound is set
    */
   public boolean isUpperInfinite() {
     return this.upperBound == null;
@@ -206,10 +212,10 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   @Override
   public String getValue() {
     return (this.lowerInclusive ? '[' : '(')
-            + (this.lowerBound == null ? "" : this.serializeBound(this.lowerBound))
-            + ','
-            + (this.upperBound == null ? "" : this.serializeBound(this.upperBound))
-            + (this.upperInclusive ? ']' : ')');
+        + (this.lowerBound == null ? "" : this.serializeBound(this.lowerBound))
+        + ','
+        + (this.upperBound == null ? "" : this.serializeBound(this.upperBound))
+        + (this.upperInclusive ? ']' : ')');
   }
 
   /**
@@ -218,24 +224,23 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
    * @param value the value in the range, not {@code null}
    * @return the string representation of {@code value}
    */
-  protected abstract String serializeBound(T value);
+  protected abstract @NonNull String serializeBound(@NonNull T value);
 
   @Override
-  public void setValue(String value) throws SQLException {
+  public void setValue(@Nullable String value) throws SQLException {
     super.setValue(value);
-    if (value.length() < 2) {
-      throw new PSQLException(
-              GT.tr("Conversion to type {0} failed: {1}.", type, value),
-              PSQLState.DATA_TYPE_MISMATCH);
-    }
-    if ("empty".equals(value)) {
+    if ("empty".equals(value) || value == null) {
       this.lowerInclusive = false;
       this.upperInclusive = false;
       this.lowerBound = null;
       this.upperBound = null;
       return;
     }
-
+    if (value.length() < 2) {
+      throw new PSQLException(
+          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
 
     if (value.charAt(0) == '[') {
       this.lowerInclusive = true;
@@ -243,8 +248,8 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       this.lowerInclusive = false;
     } else {
       throw new PSQLException(
-              GT.tr("Conversion to type {0} failed: {1}.", type, value),
-              PSQLState.DATA_TYPE_MISMATCH);
+          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          PSQLState.DATA_TYPE_MISMATCH);
     }
 
     if (value.charAt(value.length() - 1) == ']') {
@@ -253,8 +258,8 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       this.upperInclusive = false;
     } else {
       throw new PSQLException(
-              GT.tr("Conversion to type {0} failed: {1}.", type, value),
-              PSQLState.DATA_TYPE_MISMATCH);
+          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          PSQLState.DATA_TYPE_MISMATCH);
     }
 
     PGtokenizer t = new PGtokenizer(value.substring(1, value.length() - 1), ',');
@@ -278,8 +283,8 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       }
     } catch (RuntimeException e) {
       throw new PSQLException(
-              GT.tr("Conversion to type {0} failed: {1}.", type, value),
-              PSQLState.DATA_TYPE_MISMATCH);
+          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          PSQLState.DATA_TYPE_MISMATCH);
     }
   }
 
@@ -303,7 +308,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
 
   boolean isEmpty() {
     return nullSafeEquals(this.upperBound, this.lowerBound)
-            && (!this.lowerInclusive || !this.upperInclusive);
+        && (!this.lowerInclusive || !this.upperInclusive);
   }
 
   @Override
@@ -319,17 +324,13 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     }
     PGrange<T> other = (PGrange<T>) obj;
     return this.lowerInclusive == other.lowerInclusive
-            && this.upperInclusive == other.upperInclusive
-            && nullSafeEquals(this.lowerBound, other.lowerBound)
-            && nullSafeEquals(this.upperBound, other.upperBound);
+        && this.upperInclusive == other.upperInclusive
+        && nullSafeEquals(this.lowerBound, other.lowerBound)
+        && nullSafeEquals(this.upperBound, other.upperBound);
   }
 
-  protected boolean nullSafeEquals(T o1, T o2) {
-    if (o1 == null) {
-      return o2 == null;
-    } else {
-      return o1.equals(o2);
-    }
+  protected boolean nullSafeEquals(@Nullable T o1, @Nullable T o2) {
+    return Objects.equals(o1, o2);
   }
 
   @Override
@@ -337,13 +338,9 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     int result = 17;
     result = 31 * result + (this.lowerInclusive ? 1 : 0);
     result = 31 * result + (this.upperInclusive ? 1 : 0);
-    result = 31 * result + nullSafeHashCode(this.lowerBound);
-    result = 31 * result + nullSafeHashCode(this.upperBound);
+    result = 31 * result + Objects.hashCode(this.lowerBound);
+    result = 31 * result + Objects.hashCode(this.upperBound);
     return result;
-  }
-
-  private static int nullSafeHashCode(Object o) {
-    return o == null ? 0 : o.hashCode();
   }
 
 }

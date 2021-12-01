@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -24,8 +27,8 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
    * @param upperInclusive {@code true} to make the upper bound is inclusive,
    *                       {@code false} to make the upper bound is exclusive
    */
-  public PGnumrange(BigDecimal lowerBound, boolean lowerInclusive,
-          BigDecimal upperBound, boolean upperInclusive) {
+  public PGnumrange(@Nullable BigDecimal lowerBound, boolean lowerInclusive,
+      @Nullable BigDecimal upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
     setType("numrange");
   }
@@ -36,7 +39,7 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
    * @param lowerBound the lower bound, inclusive, {@code null} if not set
    * @param upperBound the upper bound, exclusive, {@code null} if not set
    */
-  public PGnumrange(BigDecimal lowerBound, BigDecimal upperBound) {
+  public PGnumrange(@Nullable BigDecimal lowerBound, @Nullable BigDecimal upperBound) {
     super(lowerBound, upperBound);
     setType("numrange");
   }
@@ -61,7 +64,7 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
   }
 
   @Override
-  protected boolean nullSafeEquals(BigDecimal o1, BigDecimal o2) {
+  protected boolean nullSafeEquals(@Nullable BigDecimal o1, @Nullable BigDecimal o2) {
     if (o1 == null) {
       return o2 == null;
     }
@@ -74,7 +77,7 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
   }
 
   @Override
-  protected String serializeBound(BigDecimal value) {
+  protected @NonNull String serializeBound(BigDecimal value) {
     return value.toString();
   }
 

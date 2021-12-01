@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -23,8 +26,8 @@ public final class PGint4range extends PGrange<Integer> implements PGBinaryObjec
    * @param upperInclusive {@code true} to make the upper bound is inclusive,
    *                       {@code false} to make the upper bound is exclusive
    */
-  public PGint4range(Integer lowerBound, boolean lowerInclusive,
-          Integer upperBound, boolean upperInclusive) {
+  public PGint4range(@Nullable Integer lowerBound, boolean lowerInclusive,
+      @Nullable Integer upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
     setType("int4range");
   }
@@ -35,7 +38,7 @@ public final class PGint4range extends PGrange<Integer> implements PGBinaryObjec
    * @param lowerBound the lower bound, inclusive, {@code null} if not set
    * @param upperBound the upper bound, exclusive, {@code null} if not set
    */
-  public PGint4range(Integer lowerBound, Integer upperBound) {
+  public PGint4range(@Nullable Integer lowerBound, @Nullable Integer upperBound) {
     super(lowerBound, upperBound);
     setType("int4range");
   }
@@ -60,7 +63,7 @@ public final class PGint4range extends PGrange<Integer> implements PGBinaryObjec
   }
 
   @Override
-  protected String serializeBound(Integer value) {
+  protected @NonNull String serializeBound(Integer value) {
     return value.toString();
   }
 

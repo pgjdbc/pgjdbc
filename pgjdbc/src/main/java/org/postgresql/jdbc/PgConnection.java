@@ -352,9 +352,12 @@ public class PgConnection implements BaseConnection {
         Oid.NUM_RANGE,
         Oid.TIME,
         Oid.DATE,
+        Oid.DATE_RANGE,
         Oid.TIMETZ,
         Oid.TIMESTAMP,
+        Oid.TIMESTAMP_RANGE,
         Oid.TIMESTAMPTZ,
+        Oid.TIMESTAMPTZ_RANGE,
         Oid.BYTEA_ARRAY,
         Oid.INT2_ARRAY,
         Oid.INT4_ARRAY,
@@ -713,6 +716,9 @@ public class PgConnection implements BaseConnection {
     addDataType("int4range", org.postgresql.util.PGint4range.class);
     addDataType("int8range", org.postgresql.util.PGint8range.class);
     addDataType("numrange", org.postgresql.util.PGnumrange.class);
+    addDataType("daterange", org.postgresql.util.PGdaterange.class);
+    addDataType("tsrange", org.postgresql.util.PGtsrange.class);
+    addDataType("tstzrange", org.postgresql.util.PGtstzrange.class);
 
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
