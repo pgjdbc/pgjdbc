@@ -118,12 +118,29 @@ public enum PSQLState {
     return this.state;
   }
 
-  public static boolean isConnectionError(@Nullable String psqlState) {
-    return PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(psqlState)
-        || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
-        || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)
-        || PSQLState.CONNECTION_FAILURE.getState().equals(psqlState)
-        || PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION.getState().equals(psqlState);
+  private static Map<String, PSQLState> codeToEnum;
+
+  @Nullable
+  public static PSQLState fromCode(final String string) {
+    if (codeToEnum == null) {
+      final PSQLState[] values = PSQLState.values();
+      final Map<String, PSQLState> temp = new HashMap<>(values.length);
+      for (final PSQLState value : values) {
+        temp.put(value.state, value);
+      }
+      codeToEnum = temp;
+    }
+    return codeToEnum.get(string);
   }
 
+  public static boolean isConnectionError(@Nullable String psqlState) {
+    final PSQLState enumValue = fromCode(psqlState);
+    return Arrays.asList(
+        CONNECTION_UNABLE_TO_CONNECT,
+        CONNECTION_DOES_NOT_EXIST,
+        CONNECTION_REJECTED,
+        CONNECTION_FAILURE,
+        CONNECTION_FAILURE_DURING_TRANSACTION)
+      .contains(enumValue);
+    }
 }
