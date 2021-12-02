@@ -262,7 +262,7 @@ public class RangeTypeTest extends BaseTest4 {
   public void insertInt4Range() throws SQLException {
     try (PreparedStatement insert =
              con.prepareStatement("INSERT INTO table1 (int4range_column) " + "VALUES (?)")) {
-      assertInt4RangeInsert(insert, new PGint4range("[1,1)"), "(,)");
+      assertInt4RangeInsert(insert, new PGint4range("[1,1)"), "empty");
       assertInt4RangeInsert(insert, new PGint4range("(,)"), "(,)");
 
       assertInt4RangeInsert(insert, new PGint4range("[1,)"), "[1,)");
@@ -373,7 +373,7 @@ public class RangeTypeTest extends BaseTest4 {
   public void insertInt8Range() throws SQLException {
     try (PreparedStatement insert =
              con.prepareStatement("INSERT INTO table1 (int8range_column) " + "VALUES (?)")) {
-      assertInt8RangeInsert(insert, new PGint8range("[1,1)"), "(,)");
+      assertInt8RangeInsert(insert, new PGint8range("[1,1)"), "empty");
       assertInt8RangeInsert(insert, new PGint8range("(,)"), "(,)");
 
       assertInt8RangeInsert(insert, new PGint8range("[1,)"), "[1,)");
@@ -504,7 +504,7 @@ public class RangeTypeTest extends BaseTest4 {
   public void insertNumRange() throws SQLException {
     try (PreparedStatement insert =
              con.prepareStatement("INSERT INTO table1 (numrange_column) " + "VALUES (?)")) {
-      assertNumRangeInsert(insert, new PGnumrange("[1.1,1.1)"), "(,)");
+      assertNumRangeInsert(insert, new PGnumrange("[1.1,1.1)"), "empty");
       assertNumRangeInsert(insert, new PGnumrange("(,)"), "(,)");
 
       assertNumRangeInsert(insert, new PGnumrange("[1.1,)"), "[1.1,)");
@@ -576,7 +576,7 @@ public class RangeTypeTest extends BaseTest4 {
         // (,2020-12-21)
         assertFalse(range.isLowerInclusive());
         assertTrue(range.isLowerInfinite());
-        assertEquals(LocalDate.of(2020, 12, 31), range.getUpperBound());
+        assertEquals(LocalDate.of(2020, 12, 21), range.getUpperBound());
         assertFalse(range.isUpperInclusive());
         assertFalse(range.isUpperInfinite());
 
@@ -609,7 +609,7 @@ public class RangeTypeTest extends BaseTest4 {
   public void insertDateRange() throws SQLException {
     try (PreparedStatement insert =
              con.prepareStatement("INSERT INTO table1 (daterange_column) " + "VALUES (?)")) {
-      assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,1970-01-01)"), "(,)");
+      assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,1970-01-01)"), "empty");
       assertDateRangeInsert(insert, new PGdaterange("(,)"), "(,)");
 
       assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,)"), "[1970-01-01,)");
@@ -692,7 +692,7 @@ public class RangeTypeTest extends BaseTest4 {
         // (,2020-12-21)
         assertFalse(range.isLowerInclusive());
         assertTrue(range.isLowerInfinite());
-        assertEquals(LocalDate.of(2020, 12, 31).atStartOfDay(), range.getUpperBound());
+        assertEquals(LocalDate.of(2020, 12, 21).atStartOfDay(), range.getUpperBound());
         assertFalse(range.isUpperInclusive());
         assertFalse(range.isUpperInfinite());
 
@@ -725,7 +725,7 @@ public class RangeTypeTest extends BaseTest4 {
   public void insertTsRange() throws SQLException {
     try (PreparedStatement insert =
              con.prepareStatement("INSERT INTO table1 (tsrange_column) " + "VALUES (?)")) {
-      assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-01 00:00:00\")"), "(,)");
+      assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-01 00:00:00\")"), "empty");
       assertTsRangeInsert(insert, new PGtsrange("(,)"), "(,)");
 
       assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",)"), "[\"1970-01-01 00:00:00\",)");
@@ -817,7 +817,7 @@ public class RangeTypeTest extends BaseTest4 {
         // (,2020-12-21)
         assertFalse(range.isLowerInclusive());
         assertTrue(range.isLowerInfinite());
-        assertEquals(LocalDate.of(2020, 12, 31).atStartOfDay().atOffset(offset), range.getUpperBound());
+        assertEquals(LocalDate.of(2020, 12, 21).atStartOfDay().atOffset(offset), range.getUpperBound());
         assertFalse(range.isUpperInclusive());
         assertFalse(range.isUpperInfinite());
 
@@ -851,7 +851,7 @@ public class RangeTypeTest extends BaseTest4 {
     try (PreparedStatement insert =
              con.prepareStatement("INSERT INTO table1 (tstzrange_column) " + "VALUES (?)")) {
       ZoneOffset offset = ZoneOffset.UTC;
-      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-01 00:00:00+00\")"), "(,)");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-01 00:00:00+00\")"), "empty");
       assertTsTzRangeInsert(insert, new PGtstzrange("(,)"), "(,)");
 
       assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",)"), "[\"1970-01-01 00:00:00+00\",)");
