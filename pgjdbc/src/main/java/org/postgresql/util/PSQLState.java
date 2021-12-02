@@ -5,6 +5,9 @@
 
 package org.postgresql.util;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
