@@ -729,16 +729,16 @@ public class RangeTypeTest extends BaseTest4 {
       assertTsRangeInsert(insert, new PGtsrange("(,)"), "(,)");
 
       assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",)"), "[\"1970-01-01 00:00:00\",)");
-      assertTsRangeInsert(insert, new PGtsrange("(\"1970-01-01 00:00:00\",]"), "[\"1970-01-02 00:00:00\",)");
+      assertTsRangeInsert(insert, new PGtsrange("(\"1970-01-01 00:00:00\",]"), "(\"1970-01-01 00:00:00\",)");
 
       assertTsRangeInsert(insert, new PGtsrange("[,\"1970-01-01 00:00:00\")"), "(,\"1970-01-01 00:00:00\")");
-      assertTsRangeInsert(insert, new PGtsrange("[,\"1970-01-01 00:00:00\"]"), "(,\"1970-01-02 00:00:00\")");
+      assertTsRangeInsert(insert, new PGtsrange("[,\"1970-01-01 00:00:00\"]"), "(,\"1970-01-01 00:00:00\"]");
 
       assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\")"), "[\"1970-01-01 00:00:00\"," +
           "\"1970-01-02 00:00:00\")");
       assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")"), "[\"1970-01-01 00:00:00\"," +
           "\"1970-01-03 00:00:00\")");
-      assertTsRangeInsert(insert, new PGtsrange("(\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\"]"), "[\"1970-01-02 00:00:00\"," +
+      assertTsRangeInsert(insert, new PGtsrange("(\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\"]"), "(\"1970-01-01 00:00:00\"," +
           "\"1970-01-03 00:00:00\")");
       assertTsRangeInsert(insert, new PGtsrange(LocalDate.ofEpochDay(0).atStartOfDay(),
           LocalDate.ofEpochDay(2).atStartOfDay()), "[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")");
@@ -855,16 +855,16 @@ public class RangeTypeTest extends BaseTest4 {
       assertTsTzRangeInsert(insert, new PGtstzrange("(,)"), "(,)");
 
       assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",)"), "[\"1970-01-01 00:00:00+00\",)");
-      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",]"), "[\"1970-01-02 00:00:00+00\",)");
+      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",]"), "(\"1970-01-01 00:00:00+00\",)");
 
       assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\")"), "(,\"1970-01-01 00:00:00+00\")");
-      assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\"]"), "(,\"1970-01-02 00:00:00+00\")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\"]"), "[,\"1970-01-01 00:00:00+00\")");
 
       assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\")"), "[\"1970-01-01 00:00:00+00\"," +
           "\"1970-01-02 00:00:00+00\")");
       assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-03 00:00:00+00\")"), "[\"1970-01-01 00:00:00+00\"," +
           "\"1970-01-03 00:00:00+00\")");
-      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\"]"), "[\"1970-01-02 00:00:00+00\"," +
+      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\"]"), "(\"1970-01-01 00:00:00+00\"," +
           "\"1970-01-03 00:00:00+00\")");
       assertTsTzRangeInsert(insert, new PGtstzrange(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset),
           LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset)), "[\"1970-01-01 00:00:00+00\",\"1970-01-03 00:00:00+00\")");
