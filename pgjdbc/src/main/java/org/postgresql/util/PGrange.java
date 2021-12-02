@@ -26,6 +26,9 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   protected boolean upperInclusive;
   protected @Nullable T lowerBound;
   protected @Nullable T upperBound;
+  protected boolean empty;
+  protected boolean iterable = false;
+
   PGrange(@Nullable T lowerBound, boolean lowerInclusive, @Nullable T upperBound,
       boolean upperInclusive) {
     this.lowerBound = lowerBound;
@@ -40,6 +43,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
 
   PGrange() {
     this(null, null);
+    this.empty = true;
   }
 
   /**
@@ -170,6 +174,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       this.upperInclusive = false;
       this.lowerBound = null;
       this.upperBound = null;
+      this.empty = true;
       return;
     }
     if (value.length() < 2) {
@@ -251,7 +256,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   }
 
   boolean isEmpty() {
-    return nullSafeEquals(this.upperBound, this.lowerBound)
+    return this.empty || nullSafeEquals(this.upperBound, this.lowerBound) && this.lowerBound != null
         && (!this.lowerInclusive || !this.upperInclusive);
   }
 

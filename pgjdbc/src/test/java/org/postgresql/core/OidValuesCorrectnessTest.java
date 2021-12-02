@@ -102,13 +102,13 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
       put("NUM_RANGE", "NUMRANGE");
       put("DATE_RANGE", "DATERANGE");
       put("TIMESTAMP_RANGE", "TSRANGE");
-      put("TIMESTAMPTZ_RANGE", "TSTRANGE");
+      put("TIMESTAMPTZ_RANGE", "TSTZRANGE");
       put("INT4_RANGE_ARRAY", "_INT4RANGE");
       put("INT8_RANGE_ARRAY", "_INT8RANGE");
       put("NUM_RANGE_ARRAY", "_NUMRANGE");
       put("DATE_RANGE_ARRAY", "_DATERANGE");
       put("TIMESTAMP_RANGE_ARRAY", "_TSRANGE");
-      put("TIMESTAMPTZ_RANGE_ARRAY", "_TSTRANGE");
+      put("TIMESTAMPTZ_RANGE_ARRAY", "_TSTZRANGE");
     }};
 
   @Parameterized.Parameters(name = "oidName={0}, oidValue={1}")
