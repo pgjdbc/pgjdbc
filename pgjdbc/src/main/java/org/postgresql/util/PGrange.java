@@ -43,7 +43,6 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
 
   PGrange() {
     this(null, null);
-    this.empty = true;
   }
 
   /**
@@ -272,7 +271,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       return false;
     }
     PGrange<T> other = (PGrange<T>) obj;
-    return this.lowerInclusive == other.lowerInclusive
+    return (this.isEmpty() && other.isEmpty()) || this.lowerInclusive == other.lowerInclusive
         && this.upperInclusive == other.upperInclusive
         && nullSafeEquals(this.lowerBound, other.lowerBound)
         && nullSafeEquals(this.upperBound, other.upperBound);
