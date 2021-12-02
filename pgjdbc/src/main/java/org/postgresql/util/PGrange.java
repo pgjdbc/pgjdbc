@@ -217,7 +217,12 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
         this.lowerBound = parseToken(token);
       }
       if (t.getSize() > 1) {
-        this.upperBound = parseToken(t.getToken(1));
+        String upperToken = t.getToken(1);
+        if (upperToken.isEmpty()) {
+          this.upperBound = null;
+        } else {
+          this.upperBound = parseToken(upperToken);
+        }
       } else {
         this.upperBound = null;
       }
