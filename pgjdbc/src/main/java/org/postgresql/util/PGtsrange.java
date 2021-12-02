@@ -73,8 +73,7 @@ public class PGtsrange extends PGrange<LocalDateTime> implements Serializable, C
           .appendLiteral('"')
           .appendPattern("yyyy-MM-dd HH:mm:ss")
           .optionalStart()
-          .appendLiteral(".")
-          .appendFraction(ChronoField.NANO_OF_SECOND, 1, 6, false)
+          .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
           .optionalEnd()
           .appendLiteral('"')
           .toFormatter(Locale.ENGLISH);

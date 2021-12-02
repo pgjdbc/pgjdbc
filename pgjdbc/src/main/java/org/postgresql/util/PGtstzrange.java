@@ -87,10 +87,10 @@ public class PGtstzrange extends PGrange<OffsetDateTime> implements Serializable
       .appendLiteral('"')
       .appendPattern("yyyy-MM-dd HH:mm:ss")
       .optionalStart()
-      .appendLiteral(".")
-      .appendFraction(ChronoField.NANO_OF_SECOND, 1, 6, false)
+      .optionalStart()
+      .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
       .optionalEnd()
-      .appendPattern("X")
+      .appendPattern("x")
       .appendLiteral('"')
       .toFormatter(Locale.ENGLISH);
 }
