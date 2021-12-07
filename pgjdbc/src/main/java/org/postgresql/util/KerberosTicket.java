@@ -5,8 +5,6 @@
 
 package org.postgresql.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.postgresql.PGProperty;
 
 import java.io.IOException;
@@ -55,7 +53,7 @@ public class KerberosTicket {
 
   }
 
-  public static boolean credentialCacheExists(Properties info) {
+  public static boolean credentialCacheExists( Properties info ) {
     LoginContext lc = null;
     String jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.get(info);
     if (jaasApplicationName == null ) {
