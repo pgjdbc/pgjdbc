@@ -438,7 +438,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     // If there is not credential cache there is little point in attempting this
-    if (!KerberosTicket.credentialCacheExists()) {
+    if (!KerberosTicket.credentialCacheExists(info)) {
       if ( gssEncMode == GSSEncMode.REQUIRE ) {
         throw new PSQLException("GSSAPI encryption required but was impossible (possibly no credential cache)", PSQLState.CONNECTION_REJECTED);
       } else {

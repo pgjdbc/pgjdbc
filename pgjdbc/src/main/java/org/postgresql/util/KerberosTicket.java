@@ -5,9 +5,14 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import org.postgresql.PGProperty;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -29,6 +34,7 @@ public class KerberosTicket {
 
   static class CustomKrbConfig extends Configuration {
 
+    @SuppressWarnings("nullness")
     @Override
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
       if (CONFIG_ITEM_NAME.equals(name)) {
@@ -49,16 +55,21 @@ public class KerberosTicket {
 
   }
 
-  public static boolean credentialCacheExists() {
+  public static boolean credentialCacheExists(Properties info) {
     LoginContext lc = null;
+    String jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.get(info);
+    if (jaasApplicationName == null ) {
+      jaasApplicationName = CONFIG_ITEM_NAME;
+    }
+
     try {
-      lc = new LoginContext(CONFIG_ITEM_NAME, new CallbackHandler() {
+      lc = new LoginContext(jaasApplicationName, new CallbackHandler() {
 
         @Override
         public void handle(Callback[] callbacks)
             throws IOException, UnsupportedCallbackException {
-          // config has doNotPrompt, so it should never happen
-          throw new RuntimeException("Should not happen!");
+          // if the user has not configured jaasLogin correctly this can happen
+          throw new RuntimeException("This is an error, you should set doNotPrompt to false in jaas.config");
         }
 
       });
