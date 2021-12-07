@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGProperty;
 
 import java.io.IOException;
@@ -23,11 +25,7 @@ import javax.security.auth.login.LoginException;
 
 public class KerberosTicket {
 
-  static {
-    Configuration.setConfiguration(new CustomKrbConfig());
-  }
-
-  private static final String CONFIG_ITEM_NAME = "ticketCache";
+  private static final String CONFIG_ITEM_NAME = "pgjdbc";
   private static final String KRBLOGIN_MODULE = "com.sun.security.auth.module.Krb5LoginModule";
 
   static class CustomKrbConfig extends Configuration {
@@ -55,13 +53,26 @@ public class KerberosTicket {
 
   public static boolean credentialCacheExists( Properties info ) {
     LoginContext lc = null;
-    String jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.get(info);
-    if (jaasApplicationName == null ) {
-      jaasApplicationName = CONFIG_ITEM_NAME;
+
+    /* check to see if the user has created a valid jaas.config file */
+    String jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getSetString(info);
+    if ( jaasApplicationName != null ) {
+      Configuration configuration = Configuration.getConfiguration();
+      AppConfigurationEntry[] entries = configuration.getAppConfigurationEntry(jaasApplicationName);
+
+      /* is there an entry for this name ? */
+      if ( entries == null ) {
+        jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getDefaultValue();
+        Configuration.setConfiguration(new CustomKrbConfig());
+      } else {
+        Configuration.setConfiguration(new CustomKrbConfig());
+      }
+    } else {
+      Configuration.setConfiguration(new CustomKrbConfig());
     }
 
     try {
-      lc = new LoginContext(jaasApplicationName, new CallbackHandler() {
+      lc = new LoginContext(castNonNull(jaasApplicationName), new CallbackHandler() {
 
         @Override
         public void handle(Callback[] callbacks)
