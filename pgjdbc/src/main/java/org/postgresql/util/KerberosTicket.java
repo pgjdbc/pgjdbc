@@ -68,6 +68,7 @@ public class KerberosTicket {
         Configuration.setConfiguration(new CustomKrbConfig());
       }
     } else {
+      jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getDefaultValue();
       Configuration.setConfiguration(new CustomKrbConfig());
     }
 
