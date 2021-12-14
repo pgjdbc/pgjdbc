@@ -5,10 +5,6 @@
 
 package org.postgresql.util;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
-import org.postgresql.PGProperty;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +21,7 @@ import javax.security.auth.login.LoginException;
 
 public class KerberosTicket {
 
-  private static final String CONFIG_ITEM_NAME = "pgjdbc";
+  private static final String CONFIG_ITEM_NAME = "ticketCache";
   private static final String KRBLOGIN_MODULE = "com.sun.security.auth.module.Krb5LoginModule";
 
   static class CustomKrbConfig extends Configuration {
@@ -54,26 +50,12 @@ public class KerberosTicket {
   public static boolean credentialCacheExists( Properties info ) {
     LoginContext lc = null;
 
-    /* check to see if the user has created a valid jaas.config file */
-    String jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getSetString(info);
-    if ( jaasApplicationName != null ) {
-      Configuration configuration = Configuration.getConfiguration();
-      AppConfigurationEntry[] entries = configuration.getAppConfigurationEntry(jaasApplicationName);
-
-      /* is there an entry for this name ? */
-      if ( entries == null ) {
-        jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getDefaultValue();
-        Configuration.setConfiguration(new CustomKrbConfig());
-      } else {
-        Configuration.setConfiguration(new CustomKrbConfig());
-      }
-    } else {
-      jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getDefaultValue();
-      Configuration.setConfiguration(new CustomKrbConfig());
-    }
+    // in the event that the user has specified a jaas.conf file then we want to remember it
+    Configuration existingConfiguration = Configuration.getConfiguration();
+    Configuration.setConfiguration(new CustomKrbConfig());
 
     try {
-      lc = new LoginContext(castNonNull(jaasApplicationName), new CallbackHandler() {
+      lc = new LoginContext(CONFIG_ITEM_NAME, new CallbackHandler() {
 
         @Override
         public void handle(Callback[] callbacks)
@@ -81,11 +63,18 @@ public class KerberosTicket {
           // if the user has not configured jaasLogin correctly this can happen
           throw new RuntimeException("This is an error, you should set doNotPrompt to false in jaas.config");
         }
-
       });
       lc.login();
     } catch (LoginException e) {
+      // restore saved configuration
+      if (existingConfiguration != null ) {
+        Configuration.setConfiguration(existingConfiguration);
+      }
       return false;
+    }
+    // restore saved configuration
+    if (existingConfiguration != null ) {
+      Configuration.setConfiguration(existingConfiguration);
     }
     Subject sub = lc.getSubject();
     return sub != null;
