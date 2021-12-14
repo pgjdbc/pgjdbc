@@ -2,7 +2,7 @@
 layout: default_docs
 title: Connecting to the Database
 header: Chapter 3. Initializing the Driver
-resource: media
+resource: /documentation/head/media
 previoustitle: Loading the Driver
 previous: load.html
 nexttitle: Chapter 4. Using SSL
@@ -307,7 +307,7 @@ Connection conn = DriverManager.getConnection(url);
 	Determine the number of rows fetched in `ResultSet`
 	by one fetch with trip to the database. Limiting the number of rows are fetch with 
 	each trip to the database allow avoids unnecessary memory consumption 
-	and as a consequence `OutOfMemoryException`.
+	and as a consequence `OutOfMemoryError`.
 
 	The default is zero, meaning that in `ResultSet` will be fetch all rows at once. 
 	Negative number is not available.
@@ -341,6 +341,10 @@ Connection conn = DriverManager.getConnection(url);
 * **tcpKeepAlive** = boolean
 
 	Enable or disable TCP keep-alive probe. The default is `false`.
+
+* **tcpNoDelay** = boolean
+
+  Enable or disable TCP nodelay. The default is `false`.
 
 * **unknownLength** = int
 
@@ -389,13 +393,14 @@ Connection conn = DriverManager.getConnection(url);
 
 * **gssEncMode** = String
 
-    PostgreSQL 12 and later now allow GSSAPI encrypted connections.  This parameter controls whether
-    to enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and
-    `require`.  `disable` is obvious and disables any attempt to connect using GSS encrypted mode;
-    `allow` will connect initially in plain text then if the server requests it will switch to
-    encrypted mode; `prefer` will attempt to connect in encrypted mode and fall back to plain text
-    if it fails to acquire an encrypted connection; `require` attempts to connect in encrypted mode
-    and will fail to connect if that is not possible.
+    PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
+    enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
+    `disable` is obvious and disables any attempt to connect using GSS encrypted mode
+    `allow` will connect in plain text then if the server requests it will switch to encrypted mode
+    `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
+    an encrypted connection
+    `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
+    The default is `allow`.
 
 * **gsslib** = String
 
@@ -573,6 +578,13 @@ Connection conn = DriverManager.getConnection(url);
 	Setting to false will only include minimal, not sensitive messages.
 
 	By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
+
+* **quoteReturningIdentifiers** == boolean
+
+  Quote returning columns.
+  There are some ORM's that quote everything, including returning columns
+  If we quote them, then we end up sending ""colname"" to the backend instead of "colname"
+  which will not be found.
 
 <a name="unix sockets"></a>
 ## Unix sockets

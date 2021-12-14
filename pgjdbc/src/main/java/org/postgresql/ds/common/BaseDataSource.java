@@ -395,6 +395,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return quoteReturningIdentifiers
+   * @see PGProperty#QUOTE_RETURNING_IDENTIFIERS
+   */
+  public boolean getQuoteReturningIdentifiers() {
+    return PGProperty.QUOTE_RETURNING_IDENTIFIERS.getBoolean(properties);
+  }
+
+  /**
+   * @param quoteIdentifiers indicate whether to quote identifiers
+   * @see PGProperty#QUOTE_RETURNING_IDENTIFIERS
+   */
+  public void setQuoteReturningIdentifiers(boolean quoteIdentifiers) {
+    PGProperty.QUOTE_RETURNING_IDENTIFIERS.set(properties, quoteIdentifiers);
+  }
+
+  /**
    * @return receive buffer size
    * @see PGProperty#RECEIVE_BUFFER_SIZE
    */
@@ -813,6 +829,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public boolean getTcpKeepAlive() {
     return PGProperty.TCP_KEEP_ALIVE.getBoolean(properties);
+  }
+
+  /**
+   * @param enabled if TCP no delay should be enabled
+   * @see PGProperty#TCP_NO_DELAY
+   */
+  public void setTcpNoDelay( boolean enabled ) {
+    PGProperty.TCP_NO_DELAY.set(properties,enabled);
+  }
+
+  /**
+   * @return true if TCP no delay is enabled
+   * @see PGProperty#TCP_NO_DELAY
+   */
+  public boolean getTcpNoDelay() {
+    return PGProperty.TCP_NO_DELAY.getBoolean( properties );
   }
 
   /**

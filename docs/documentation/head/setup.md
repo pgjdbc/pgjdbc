@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 2. Setting up the JDBC Driver
 header: Chapter 2. Setting up the JDBC Driver
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 1. Introduction
 previous: intro.html
 nexttitle: Setting up the Class Path
@@ -37,9 +37,7 @@ to use a different JDK than the default, this may work:
 To compile the driver simply run **gradlew assemble** or **gradlew build** if you want to run the tests
 in the top level directory. 
 Note: if you want to skip test execution, add the option -DskipTests.
-This will build 3 versions of the driver; pgjdbc, pgjdbc-jre7, and pgjdbc-jre6
-The compiled driver will be placed in `pgjdbc/build/libs/postgresql-MM.nn.pp.jar`, 
-`pgjdbc-jre7/build/libs/postgresql-MM.nn.pp.jar` and `pgjdbc-jre7/build/libs/postgresql-MM.nn.pp.jar` 
+The compiled driver will be placed in `pgjdbc/build/libs/postgresql-MM.nn.pp.jar` 
 Where MM is the major version, nn is the minor version and pp is the patch version. 
 Versions for JDBC3 and lower can be found [here](https://jdbc.postgresql.org/download.html#others)
 This is a very brief outline of how to build the driver. Much more detailed information can be 

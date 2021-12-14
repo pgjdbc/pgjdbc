@@ -1,8 +1,8 @@
 ---
 layout: changes
 title: PostgreSQL JDBC Changelog
-resource: ../media
-nav: ../
+resource: /media
+nav: /
 ---
 
 # History of Changes
@@ -834,7 +834,7 @@ Author: [Alexis Meneses](https://github.com/alexismeneses)
 * ![fix](../media/img/fix.jpg)Declare all maven dependencies as optional in the pom [PR #252](https://github.com/pgjdbc/pgjdbc/pull/252) (1d02876)
 * ![fix](../media/img/fix.jpg)Automatically load maven-ant-tasks to remove the need of "-lib lib" when building the project using ant PR #253 (7e80fca)
 * ![fix](../media/img/fix.jpg)ant clean target delete maven dependencies added into "lib" directory [PR #253](https://github.com/pgjdbc/pgjdbc/pull/253) (cb7964e)
-* ![chore](../media/img/chore.jpg) travis uses build process simplification [PR #253](https://github.com/pgjdbc/pgjdbc/pull/253) (e09032c)
+* ![fix](../media/img/fix.jpg)travis uses build process simplification [PR #253](https://github.com/pgjdbc/pgjdbc/pull/253) (e09032c)
 * ![fix](../media/img/fix.jpg) regression of `ssl` parameter processing when used in additional Properties [PR #260](https://github.com/pgjdbc/pgjdbc/pull/260) (33d55af)
 
 Author: Dave Cramer <davec@postgresintl.com>

@@ -2,7 +2,7 @@
 layout: default_docs
 title: Physical and Logical replication API
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
-resource: media
+resource: /documentation/head/media
 previoustitle: Parameter Status Messages
 previous: parameterstatus.html
 nexttitle: Arrays

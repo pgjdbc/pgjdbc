@@ -76,6 +76,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_SASL_CONTINUE = 11;
   private static final int AUTH_REQ_SASL_FINAL = 12;
 
+  private static final String IN_HOT_STANDBY = "in_hot_standby";
+
   private ISSPIClient createSSPI(PGStream pgStream,
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
@@ -98,71 +100,84 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
     PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
-
-    // Set the socket timeout if the "socketTimeout" property has been set.
-    int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
-    if (socketTimeout > 0) {
-      newStream.setNetworkTimeout(socketTimeout * 1000);
-    }
-
-    String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
-    newStream.setMaxResultBuffer(maxResultBuffer);
-
-    // Enable TCP keep-alive probe if required.
-    boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
-    newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
-
-    // Try to set SO_SNDBUF and SO_RECVBUF socket options, if requested.
-    // If receiveBufferSize and send_buffer_size are set to a value greater
-    // than 0, adjust. -1 means use the system default, 0 is ignored since not
-    // supported.
-
-    // Set SO_RECVBUF read buffer size
-    int receiveBufferSize = PGProperty.RECEIVE_BUFFER_SIZE.getInt(info);
-    if (receiveBufferSize > -1) {
-      // value of 0 not a valid buffer size value
-      if (receiveBufferSize > 0) {
-        newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
-      } else {
-        LOGGER.log(Level.WARNING, "Ignore invalid value for receiveBufferSize: {0}", receiveBufferSize);
+    try {
+      // Set the socket timeout if the "socketTimeout" property has been set.
+      int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
+      if (socketTimeout > 0) {
+        newStream.setNetworkTimeout(socketTimeout * 1000);
       }
-    }
 
-    // Set SO_SNDBUF write buffer size
-    int sendBufferSize = PGProperty.SEND_BUFFER_SIZE.getInt(info);
-    if (sendBufferSize > -1) {
-      if (sendBufferSize > 0) {
-        newStream.getSocket().setSendBufferSize(sendBufferSize);
-      } else {
-        LOGGER.log(Level.WARNING, "Ignore invalid value for sendBufferSize: {0}", sendBufferSize);
+      String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
+      newStream.setMaxResultBuffer(maxResultBuffer);
+
+      // Enable TCP keep-alive probe if required.
+      boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
+      newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
+
+      // Enable TCP no delay if required
+      boolean requireTCPNoDelay = PGProperty.TCP_NO_DELAY.getBoolean(info);
+      newStream.getSocket().setTcpNoDelay(requireTCPNoDelay);
+
+      // Try to set SO_SNDBUF and SO_RECVBUF socket options, if requested.
+      // If receiveBufferSize and send_buffer_size are set to a value greater
+      // than 0, adjust. -1 means use the system default, 0 is ignored since not
+      // supported.
+
+      // Set SO_RECVBUF read buffer size
+      int receiveBufferSize = PGProperty.RECEIVE_BUFFER_SIZE.getInt(info);
+      if (receiveBufferSize > -1) {
+        // value of 0 not a valid buffer size value
+        if (receiveBufferSize > 0) {
+          newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
+        } else {
+          LOGGER.log(Level.WARNING, "Ignore invalid value for receiveBufferSize: {0}",
+              receiveBufferSize);
+        }
       }
+
+      // Set SO_SNDBUF write buffer size
+      int sendBufferSize = PGProperty.SEND_BUFFER_SIZE.getInt(info);
+      if (sendBufferSize > -1) {
+        if (sendBufferSize > 0) {
+          newStream.getSocket().setSendBufferSize(sendBufferSize);
+        } else {
+          LOGGER.log(Level.WARNING, "Ignore invalid value for sendBufferSize: {0}", sendBufferSize);
+        }
+      }
+
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Receive Buffer Size is {0}",
+            newStream.getSocket().getReceiveBufferSize());
+        LOGGER.log(Level.FINE, "Send Buffer Size is {0}",
+            newStream.getSocket().getSendBufferSize());
+      }
+
+      newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info,
+          connectTimeout);
+
+      // if we have a security context then gss negotiation succeeded. Do not attempt SSL
+      // negotiation
+      if (!newStream.isGssEncrypted()) {
+        // Construct and send an ssl startup packet if requested.
+        newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+      }
+
+      // Make sure to set network timeout again, in case the stream changed due to GSS or SSL
+      if (socketTimeout > 0) {
+        newStream.setNetworkTimeout(socketTimeout * 1000);
+      }
+
+      List<String[]> paramList = getParametersForStartup(user, database, info);
+      sendStartupPacket(newStream, paramList);
+
+      // Do authentication (until AuthenticationOk).
+      doAuthentication(newStream, hostSpec.getHost(), user, info);
+
+      return newStream;
+    } catch (Exception e) {
+      closeStream(newStream);
+      throw e;
     }
-
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.log(Level.FINE, "Receive Buffer Size is {0}", newStream.getSocket().getReceiveBufferSize());
-      LOGGER.log(Level.FINE, "Send Buffer Size is {0}", newStream.getSocket().getSendBufferSize());
-    }
-
-    newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), user, info, connectTimeout);
-
-    // if we have a security context then gss negotiation succeeded. Do not attempt SSL negotiation
-    if (!newStream.isGssEncrypted()) {
-      // Construct and send an ssl startup packet if requested.
-      newStream = enableSSL(newStream, sslMode, info, connectTimeout);
-    }
-
-    // Make sure to set network timeout again, in case the stream changed due to GSS or SSL
-    if (socketTimeout > 0) {
-      newStream.setNetworkTimeout(socketTimeout * 1000);
-    }
-
-    List<String[]> paramList = getParametersForStartup(user, database, info);
-    sendStartupPacket(newStream, paramList);
-
-    // Do authentication (until AuthenticationOk).
-    doAuthentication(newStream, hostSpec.getHost(), user, info);
-
-    return newStream;
   }
 
   @Override
@@ -765,6 +780,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
+                if (password == null) {
+                  throw new PSQLException(
+                      GT.tr(
+                          "The server requested SCRAM-based authentication, but no password was provided."),
+                      PSQLState.CONNECTION_REJECTED);
+                }
+                if (password.equals("")) {
+                  throw new PSQLException(
+                      GT.tr(
+                          "The server requested SCRAM-based authentication, but the password is an empty string."),
+                      PSQLState.CONNECTION_REJECTED);
+                }
                 scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
@@ -851,10 +878,44 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
+  /**
+   * Since PG14 there is GUC_REPORT ParamStatus {@code in_hot_standby} which is set to "on"
+   * when the server is in archive recovery or standby mode. In driver's lingo such server is called
+   * {@link org.postgresql.hostchooser.HostRequirement#secondary}.
+   * Previously {@code transaction_read_only} was used as a workable substitute.
+   * However {@code transaction_read_only} could have been manually overridden on the primary server
+   * by database user leading to a false positives: ie server is effectively read-only but
+   * technically is "primary" (not in a recovery/standby mode).
+   *
+   * <p>This method checks whether {@code in_hot_standby} GUC was reported by the server
+   * during initial connection:</p>
+   *
+   * <ul>
+   * <li>{@code in_hot_standby} was reported and the value was "on" then the server is a replica
+   * and database is read-only by definition, false is returned.</li>
+   * <li>{@code in_hot_standby} was reported and the value was "off"
+   * then the server is indeed primary but database may be in
+   * read-only mode nevertheless. We proceed to conservatively {@code show transaction_read_only}
+   * since users may not be expecting a readonly connection for {@code targetServerType=primary}</li>
+   * <li>If {@code in_hot_standby} has not been reported we fallback to pre v14 behavior.</li>
+   * </ul>
+   *
+   * <p>Do not confuse {@code hot_standby} and {@code in_hot_standby} ParamStatuses</p>
+   *
+   * @see <a href="https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-ASYNC">GUC_REPORT documentation</a>
+   * @see <a href="https://www.postgresql.org/docs/current/hot-standby.html">Hot standby documentation</a>
+   * @see <a href="https://www.postgresql.org/message-id/flat/1700970.cRWpxnom9y@hammer.magicstack.net">in_hot_standby patch thread v10</a>
+   * @see <a href="https://www.postgresql.org/message-id/flat/CAF3%2BxM%2B8-ztOkaV9gHiJ3wfgENTq97QcjXQt%2BrbFQ6F7oNzt9A%40mail.gmail.com">in_hot_standby patch thread v14</a>
+   *
+   */
   private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
+    String inHotStandby = queryExecutor.getParameterStatus(IN_HOT_STANDBY);
+    if ("on".equalsIgnoreCase(inHotStandby)) {
+      return false;
+    }
     Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
     Tuple nonNullResults = castNonNull(results);
-    String value = queryExecutor.getEncoding().decode(castNonNull(nonNullResults.get(0)));
-    return value.equalsIgnoreCase("off");
+    String queriedTransactionReadonly = queryExecutor.getEncoding().decode(castNonNull(nonNullResults.get(0)));
+    return queriedTransactionReadonly.equalsIgnoreCase("off");
   }
 }

@@ -669,14 +669,14 @@ public class PgConnection implements BaseConnection {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
         } else {
-          obj.setValue(castNonNull(value));
+          obj.setValue(value);
         }
       } else {
         // If className is null, then the type is unknown.
         // so return a PGobject with the type set, and the value set
         obj = new PGobject();
         obj.setType(type);
-        obj.setValue(castNonNull(value));
+        obj.setValue(value);
       }
 
       return obj;
@@ -751,6 +751,7 @@ public class PgConnection implements BaseConnection {
   /**
    * <B>Note:</B> even though {@code Statement} is automatically closed when it is garbage
    * collected, it is better to close it explicitly to lower resource consumption.
+   * The spec says that calling close on a closed connection is a no-op.
    *
    * {@inheritDoc}
    */
@@ -759,6 +760,9 @@ public class PgConnection implements BaseConnection {
     if (queryExecutor == null) {
       // This might happen in case constructor throws an exception (e.g. host being not available).
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
+      return;
+    }
+    if (queryExecutor.isClosed()) {
       return;
     }
     releaseTimer();

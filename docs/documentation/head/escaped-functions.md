@@ -2,7 +2,7 @@
 layout: default_docs
 title: Escaped scalar functions
 header: Chapter 8. JDBC escapes
-resource: media
+resource: /documentation/head/media
 previoustitle: Date-time escapes
 previous: escapes-datetime.html
 nexttitle: Chapter 9. PostgreSQL™ Extensions to the JDBC API
@@ -14,7 +14,7 @@ The following tables show which functions are supported by the PostgreSQL™ dri
 The driver supports the nesting and the mixing of escaped functions and escaped
 values. The appendix C of the JDBC specification describes the functions.
 
-Some functions in the following tables are translated but not reported as supported
+Some functions in the following tables are translated but reported as not supported
 because they are duplicating or changing their order of the arguments. While this
 is harmless for literal values or columns, it will cause problems when using
 prepared statements. For example "`{fn right(?,?)}`" will be translated to "`substring(? from (length(?)+1-?))`".
@@ -220,7 +220,7 @@ was so easy...</td>
       <td>insert(arg1,arg2,arg3,arg4)</td>
       <td>no</td>
       <td>overlay(arg1 placing arg4 from arg2 for arg3)</td>
-      <td>This function is not reported as supported since it changes
+      <td>This function is not supported since it changes
 the order of the arguments which can be a problem (for prepared
 statements by example).</td>
     </tr>
@@ -253,7 +253,7 @@ statements by example).</td>
       <td>no</td>
       <td>(arg2*sign(position(arg1 in substring(arg2 from
 arg3)+position(arg1 in substring(arg2 from arg3))</td>
-      <td>Not reported as supported since the three arguments version
+      <td>Not supported since the three arguments version
 duplicate and change the order of the arguments.</td>
     </tr>
     <tr>
@@ -278,7 +278,7 @@ duplicate and change the order of the arguments.</td>
       <td>right(arg1,arg2)</td>
       <td>no</td>
       <td>substring(arg1 from (length(arg1)+1-arg2))</td>
-      <td>Not reported as supported since arg2 is duplicated.</td>
+      <td>Not supported since arg2 is duplicated.</td>
     </tr>
     <tr>
       <td>rtrim(arg1)</td>
@@ -314,14 +314,14 @@ duplicate and change the order of the arguments.</td>
       <td>soundex(arg1)</td>
       <td>no</td>
       <td>soundex(arg1)</td>
-      <td>Not reported as supported since it requires the fuzzystrmatch
+      <td>Not supported since it requires the fuzzystrmatch
 contrib module.</td>
     </tr>
     <tr>
       <td>difference(arg1,arg2)</td>
       <td>no</td>
       <td>difference(arg1,arg2)</td>
-      <td>Not reported as supported since it requires the fuzzystrmatch
+      <td>Not supported since it requires the fuzzystrmatch
 contrib module.</td>
     </tr>
   </tbody>

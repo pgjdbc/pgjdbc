@@ -15,6 +15,22 @@ import java.sql.SQLException;
 public class PGbytea {
   private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
+  /**
+   * Lookup table for each of the valid ascii code points (offset by {@code '0'})
+   * to the 4 bit numeric value.
+   */
+  private static final int[] HEX_VALS = new int['f' + 1 - '0'];
+
+  static {
+    for (int i = 0; i < 10; ++i) {
+      HEX_VALS[i] = (byte) i;
+    }
+    for (int i = 0; i < 6; ++i) {
+      HEX_VALS['A' + i - '0'] = (byte) (10 + i);
+      HEX_VALS['a' + i - '0'] = (byte) (10 + i);
+    }
+  }
+
   /*
    * Converts a PG bytea raw value (i.e. the raw binary representation of the bytea data type) into
    * a java byte[]
@@ -35,30 +51,20 @@ public class PGbytea {
   }
 
   private static byte[] toBytesHexEscaped(byte[] s) {
-    byte[] output = new byte[(s.length - 2) / 2];
-    for (int i = 0; i < output.length; i++) {
-      byte b1 = gethex(s[2 + i * 2]);
-      byte b2 = gethex(s[2 + i * 2 + 1]);
-      // squid:S3034
-      // Raw byte values should not be used in bitwise operations in combination with shifts
-      output[i] = (byte) ((b1 << 4) | (b2 & 0xff));
+    // first 2 bytes of s indicate the byte[] is hex encoded
+    // so they need to be ignored here
+    final int realLength = s.length - 2;
+    byte[] output = new byte[realLength >>> 1];
+    for (int i = 0; i < realLength; i += 2) {
+      int val = getHex(s[2 + i]) << 4;
+      val |= getHex(s[3 + i]);
+      output[i >>> 1] = (byte) val;
     }
     return output;
   }
 
-  private static byte gethex(byte b) {
-    // 0-9 == 48-57
-    if (b <= 57) {
-      return (byte) (b - 48);
-    }
-
-    // a-f == 97-102
-    if (b >= 97) {
-      return (byte) (b - 97 + 10);
-    }
-
-    // A-F == 65-70
-    return (byte) (b - 65 + 10);
+  private static int getHex(byte b) {
+    return HEX_VALS[b - '0'];
   }
 
   private static byte[] toBytesOctalEscaped(byte[] s) {

@@ -6,4 +6,6 @@
 
 <suppressions>
     <suppress checks=".*" files=".*[/\\]messages_[^.]*.java"/>
+    <suppress checks="AvoidEscapedUnicodeCharacters"
+              files="DatabaseEncodingTest.java"/>
 </suppressions>

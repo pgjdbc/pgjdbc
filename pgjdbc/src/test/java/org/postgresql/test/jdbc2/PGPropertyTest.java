@@ -138,7 +138,7 @@ public class PGPropertyTest {
     // test for the existence of all read methods (getXXX/isXXX) and write methods (setXXX) for all
     // known properties
     for (PGProperty property : PGProperty.values()) {
-      if (!property.getName().startsWith("PG")) {
+      if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
         assertTrue("Missing getter/setter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]", propertyDescriptors.containsKey(property.getName()));
 
@@ -154,7 +154,7 @@ public class PGPropertyTest {
 
     // test readability/writability of default value
     for (PGProperty property : PGProperty.values()) {
-      if (!property.getName().startsWith("PG")) {
+      if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
         Object propertyValue =
             propertyDescriptors.get(property.getName()).getReadMethod().invoke(dataSource);
         propertyDescriptors.get(property.getName()).getWriteMethod().invoke(dataSource,

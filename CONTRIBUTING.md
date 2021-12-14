@@ -44,7 +44,7 @@ code located in the **docs** directory also qualify. You are welcome to report i
 pull request on these as well. [skip ci] can be added to the commit message to prevent Travis-CI from building a
 pull request that only changes the documentation.
 
-For enhancements request keep reading the *Ideas, enhancements and new features* seccion.
+For enhancements request keep reading the *Ideas, enhancements and new features* section.
 
 ### Ideas, enhancements and new features
 

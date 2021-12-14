@@ -2,7 +2,7 @@
 layout: default_docs
 title: Geometric Data Types
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
-resource: media
+resource: /documentation/head/media
 previoustitle: Chapter 9. PostgreSQL™ Extensions to the JDBC API
 previous: ext.html
 nexttitle: Large Objects

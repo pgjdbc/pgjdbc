@@ -2,7 +2,7 @@
 layout: default_docs
 title: Tomcat setup
 header: Chapter 11. Connection Pools and Data Sources
-resource: media
+resource: /documentation/head/media
 previoustitle: Applications DataSource
 previous: ds-ds.html
 nexttitle: Data Sources and JNDI

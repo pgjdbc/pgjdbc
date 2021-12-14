@@ -2,7 +2,7 @@
 layout: default_docs
 title: Listen / Notify
 header: Chapter 9. PostgreSQL™ Extensions to the JDBC API
-resource: media
+resource: /documentation/head/media
 previoustitle: Large Objects
 previous: largeobjects.html
 nexttitle: Server Prepared Statements

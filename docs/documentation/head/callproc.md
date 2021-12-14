@@ -2,7 +2,7 @@
 layout: default_docs
 title: Chapter 6. Calling Stored Functions and Procedures
 header: Chapter 6. Calling Stored Functions and Procedures
-resource: media
+resource: /documentation/head/media
 previoustitle: Creating and Modifying Database Objects
 previous: ddl.html
 nexttitle: Chapter 7. Storing Binary Data
