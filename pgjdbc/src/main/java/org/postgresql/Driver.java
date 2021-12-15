@@ -589,7 +589,7 @@ public class Driver implements java.sql.Driver {
             firstException = ex;
           }
           // TODO log exception go to the next one after adding to failed list
-          LOGGER.log(Level.WARNING,
+          LOGGER.log(Level.FINE,
               "couldn't connect to " + chosenHost + ", adding it to failed host list");
           loadBalancer.updateFailedHosts(chosenHost);
         } else {

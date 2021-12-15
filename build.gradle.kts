@@ -643,9 +643,9 @@ allprojects {
                     pom {
                         simplifyXml()
                         name.set(
-                            (project.findProperty("artifact.name") as? String) ?: "pgdjbc ${project.name.capitalize()}"
+                            "YugabyteDB YSQL JDBC Driver"
                         )
-                        description.set(project.description ?: "YugabyteDB JDBC Driver ${project.name.capitalize()}")
+                        description.set(project.description ?: "Forked from https://github.com/pgjdbc/pgjdbc.git")
                         inceptionYear.set("2016")
                         url.set("https://www.yugabyte.com/")
                         licenses {
@@ -658,47 +658,22 @@ allprojects {
                             }
                         }
                         organization {
-                            name.set("PostgreSQL Global Development Group")
-                            url.set("https://jdbc.postgresql.org/")
+                            name.set("Yugabyte Inc.")
+                            url.set("https://www.yugabyte.com/")
                         }
                         developers {
                             developer {
-                                id.set("davecramer")
-                                name.set("Dave Cramer")
+                                id.set("kneeraj")
+                                name.set("Neeraj Kumar")
                             }
                             developer {
-                                id.set("jurka")
-                                name.set("Kris Jurka")
-                            }
-                            developer {
-                                id.set("oliver")
-                                name.set("Oliver Jowett")
-                            }
-                            developer {
-                                id.set("ringerc")
-                                name.set("Craig Ringer")
-                            }
-                            developer {
-                                id.set("vlsi")
-                                name.set("Vladimir Sitnikov")
-                            }
-                            developer {
-                                id.set("bokken")
-                                name.set("Brett Okken")
+                                id.set("sanyamsinghal")
+                                name.set("Sanyam Singhal")
                             }
                         }
                         issueManagement {
                             system.set("GitHub issues")
-                            url.set("https://github.com/pgjdbc/pgjdbc/issues")
-                        }
-                        mailingLists {
-                            mailingList {
-                                name.set("PostgreSQL JDBC development list")
-                                subscribe.set("https://lists.postgresql.org/")
-                                unsubscribe.set("https://lists.postgresql.org/unsubscribe/")
-                                post.set("pgsql-jdbc@postgresql.org")
-                                archive.set("https://www.postgresql.org/list/pgsql-jdbc/")
-                            }
+                            url.set("https://github.com/yugabyte/yugabyte-db/issues")
                         }
                         scm {
                             connection.set("scm:git:https://github.com/yugabyte/pgjdbc.git")
