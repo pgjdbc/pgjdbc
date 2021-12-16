@@ -2610,7 +2610,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
 
-    return createMetaDataStatement().executeQuery(sql);
+    return ((PgResultSet)createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
   }
 
   // ** JDBC 2 Extensions **
