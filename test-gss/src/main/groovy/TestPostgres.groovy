@@ -11,9 +11,12 @@ import java.sql.Connection
 class TestPostgres {
 
     public static void main(String[] args) {
-        String osName = System.getProperty("os.name").toLowerCase();
-        System.setProperty("sun.security.jgss.native", "true");
-        System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
+        String osName = System.getProperty("os.name").toLowerCase()
+        System.setProperty("sun.security.jgss.native", "true")
+        System.setProperty("javax.security.auth.useSubjectCredsOnly", "false")
+        println "KRB5CCNAME: ${System.getenv('KRB5CCNAME')}"
+        println "KRB5_CONFIG: ${System.getenv('KRB5_CONFIG')}"
+        println "KRB5_KDC_PROFILE: ${System.getenv('KRB5_KDC_PROFILE')}"
         boolean  isMac = osName.indexOf("mac") >= 0
         new TestPostgres().testKerberos(isMac)
 
@@ -39,8 +42,6 @@ class TestPostgres {
         currentEnvironment[environment.size()] = kerberos.env[0]
         currentEnvironment[environment.size() + 1] = kerberos.env[1]
         currentEnvironment[environment.size() + 2] = kerberos.env[2]
-//        System.setProperty("java.security.krb5.kdc",kerberos.keytab)
- //       System.setProperty("java.security.krb5.realm", "EXAMPLE.COM")
         Postgres postgres;
 
         if (isMac)
