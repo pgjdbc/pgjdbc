@@ -14,9 +14,9 @@ class TestPostgres {
         String osName = System.getProperty("os.name").toLowerCase()
         System.setProperty("sun.security.jgss.native", "true")
         System.setProperty("javax.security.auth.useSubjectCredsOnly", "false")
-        println "KRB5CCNAME: ${System.getenv('KRB5CCNAME')}"
-        println "KRB5_CONFIG: ${System.getenv('KRB5_CONFIG')}"
-        println "KRB5_KDC_PROFILE: ${System.getenv('KRB5_KDC_PROFILE')}"
+        System.err.println "KRB5CCNAME: ${System.getenv('KRB5CCNAME')}"
+        System.err.println "KRB5_CONFIG: ${System.getenv('KRB5_CONFIG')}"
+        System.err.println "KRB5_KDC_PROFILE: ${System.getenv('KRB5_KDC_PROFILE')}"
         boolean  isMac = osName.indexOf("mac") >= 0
         new TestPostgres().testKerberos(isMac)
 
