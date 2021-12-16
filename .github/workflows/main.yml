@@ -226,6 +226,6 @@ jobs:
         ./gradlew assemble
         ./gradlew run
       env:
-        KRB5CCNAME: test-gss/tmp_check/krb5cc
-        KRB5_CONFIG: test-gss/tmp_check/krb5.conf
-        KRB5_KDC_PROFILE: test-gss/tmp_check/kdc.conf
+        KRB5CCNAME: /home/pgjdbc/actions-runner/_work/pgjdbc/pgjdbc/test-gss/tmp_check/krb5cc
+        KRB5_CONFIG: /home/pgjdbc/actions-runner/_work/pgjdbc/pgjdbc/test-gss/tmp_check/krb5.conf
+        KRB5_KDC_PROFILE: /home/pgjdbc/actions-runner/_work/pgjdbc/pgjdbc/test-gss/tmp_check/kdc.conf
