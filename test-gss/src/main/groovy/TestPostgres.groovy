@@ -1,18 +1,25 @@
 import org.junit.Assert
 import org.postgresql.PGProperty
 import org.postgresql.jdbc.GSSEncMode
+import org.postgresql.util.KerberosTicket
 
-
+import javax.security.auth.login.AppConfigurationEntry
+import javax.security.auth.login.Configuration
 import java.sql.Connection
 
 @groovy.transform.CompileStatic
 class TestPostgres {
 
     public static void main(String[] args) {
-        new TestPostgres().testKerberos()
+        String osName = System.getProperty("os.name").toLowerCase();
+        System.setProperty("sun.security.jgss.native", "true");
+        System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
+        boolean  isMac = osName.indexOf("mac") >= 0
+        new TestPostgres().testKerberos(isMac)
+
     }
 
-    public void testKerberos() {
+    public void testKerberos(boolean isMac) {
         String host='127.0.0.1'
         String superUser = System.getProperty("user.name");
         String superPass = 'test'
@@ -20,16 +27,26 @@ class TestPostgres {
 
         Kerberos kerberos = new Kerberos()
         kerberos.startKerberos()
+
+        /* force the configuration and adjust the values */
+//        Configuration.setConfiguration(new CustomKrbConfig(kerberos.keytab, kerberos.kdcCache));
         Map environment = System.getenv()
         // +2 for the kerberos environment
-        String [] currentEnvironment = new String[environment.size() + 2]
+        String [] currentEnvironment = new String[environment.size() + 3]
         environment.eachWithIndex {e,i->
             currentEnvironment[i] = "${e.key}=${e.value}"
         }
         currentEnvironment[environment.size()] = kerberos.env[0]
         currentEnvironment[environment.size() + 1] = kerberos.env[1]
+        currentEnvironment[environment.size() + 2] = kerberos.env[2]
+//        System.setProperty("java.security.krb5.kdc",kerberos.keytab)
+ //       System.setProperty("java.security.krb5.realm", "EXAMPLE.COM")
+        Postgres postgres;
 
-        Postgres postgres = new Postgres('/usr/lib/postgresql/12/bin/', '/tmp/pggss')
+        if (isMac)
+            postgres = new Postgres()
+        else
+            postgres = new Postgres('/usr/lib/postgresql/12/bin/', '/tmp/pggss')
         /*
         make sure we can connect
          */
