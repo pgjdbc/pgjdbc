@@ -5,8 +5,6 @@
 
 package org.postgresql.gss;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
@@ -45,7 +43,7 @@ public class MakeGSS {
     @Nullable Exception result;
     try {
       boolean performAuthentication = jaasLogin;
-  
+
       LoginContext lc = new LoginContext(jaasApplicationName, new TextCallbackHandler());
       lc.login();
       Subject sub = lc.getSubject();
