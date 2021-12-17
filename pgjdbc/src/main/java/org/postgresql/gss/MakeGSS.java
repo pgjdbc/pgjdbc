@@ -5,6 +5,8 @@
 
 package org.postgresql.gss;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
@@ -21,8 +23,6 @@ import java.util.logging.Logger;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
-
-import static org.postgresql.util.internal.Nullness.castNonNull;
 
 public class MakeGSS {
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
