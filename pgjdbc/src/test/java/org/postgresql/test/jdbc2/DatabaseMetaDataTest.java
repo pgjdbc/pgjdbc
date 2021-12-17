@@ -787,6 +787,24 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testIndexInfoColumnCase() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    try (ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false)) {
+      ResultSetMetaData rsmd = rs.getMetaData();
+      for (int i = 1; i < rsmd.getColumnCount() + 1; i++) {
+        char[] chars = rsmd.getColumnName(i).toCharArray();
+        for (int j = 0; j < chars.length; j++) {
+          if (Character.isAlphabetic(chars[j])) {
+            assertTrue("Column: " + rsmd.getColumnName(i) + " is not UPPER CASE", Character.isUpperCase(chars[j]));
+          }
+        }
+      }
+    }
+  }
+
+  @Test
   public void testNotNullDomainColumn() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
