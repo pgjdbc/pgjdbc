@@ -67,11 +67,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
 
   @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible"})
-  protected QueryExecutorBase(PGStream pgStream, String user,
-      String database, int cancelSignalTimeout, Properties info) throws SQLException {
+  protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
-    this.user = user;
-    this.database = database;
+    this.user = PGProperty.USER.get(info);
+    this.database = PGProperty.PG_DBNAME.get(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
