@@ -255,7 +255,7 @@ public enum PGProperty {
    */
   JAAS_APPLICATION_NAME(
       "jaasApplicationName",
-      null,
+      "pgjdbc",
       "Specifies the name of the JAAS system or application login configuration."),
 
   /**

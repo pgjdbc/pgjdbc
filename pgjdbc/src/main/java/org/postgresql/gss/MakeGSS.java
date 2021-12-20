@@ -5,6 +5,9 @@
 
 package org.postgresql.gss;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -33,7 +36,7 @@ public class MakeGSS {
     LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
 
     if (jaasApplicationName == null) {
-      jaasApplicationName = "pgjdbc";
+      jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getDefaultValue();
     }
     if (kerberosServerName == null) {
       kerberosServerName = "postgres";
@@ -42,10 +45,10 @@ public class MakeGSS {
     @Nullable Exception result;
     try {
       boolean performAuthentication = jaasLogin;
-      LoginContext lc = new LoginContext(jaasApplicationName, new TextCallbackHandler());
+
+      LoginContext lc = new LoginContext(castNonNull(jaasApplicationName), new TextCallbackHandler());
       lc.login();
       Subject sub = lc.getSubject();
-
       if ( encrypted ) {
         PrivilegedAction<@Nullable Exception> action = new GssEncAction(pgStream, sub, host, user,
             kerberosServerName, useSpnego, logServerErrorDetail);
