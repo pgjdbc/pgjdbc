@@ -159,9 +159,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible",
       "method.invocation.invalid"})
-  public QueryExecutorImpl(PGStream pgStream, String user, String database,
+  public QueryExecutorImpl(PGStream pgStream,
       int cancelSignalTimeout, Properties info) throws SQLException, IOException {
-    super(pgStream, user, database, cancelSignalTimeout, info);
+    super(pgStream, cancelSignalTimeout, info);
 
     long maxResultBuffer = pgStream.getMaxResultBuffer();
     this.adaptiveFetchCache = new AdaptiveFetchCache(maxResultBuffer, info);
