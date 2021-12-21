@@ -788,6 +788,13 @@ public class TestUtil {
     return false;
   }
 
+  public static void assumeHaveMinimumServerVersion(Version version)
+      throws SQLException {
+    try (Connection conn = openPrivilegedDB()) {
+      Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version));
+    }
+  }
+
   public static boolean haveMinimumJVMVersion(String version) {
     String jvm = java.lang.System.getProperty("java.version");
     return (jvm.compareTo(version) >= 0);
