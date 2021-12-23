@@ -2141,7 +2141,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if ( refCursorName != null  && connection.getDefaultFetchSize() != 0) {
       if (connection.getTransactionState() == TransactionState.OPEN) {
         StringBuilder sb = new StringBuilder("CLOSE ");
-        Utils.escapeIdentifier(sb, refCursorName);
+        Utils.escapeIdentifier(sb, castNonNull(refCursorName));
         connection.execSQLUpdate(sb.toString());
         refCursorName = null;
       }
