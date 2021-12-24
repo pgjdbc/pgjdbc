@@ -13,7 +13,6 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import com.sun.security.auth.callback.TextCallbackHandler;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -46,7 +45,7 @@ public class MakeGSS {
     try {
       boolean performAuthentication = jaasLogin;
 
-      LoginContext lc = new LoginContext(castNonNull(jaasApplicationName), new TextCallbackHandler());
+      LoginContext lc = new LoginContext(castNonNull(jaasApplicationName), new GSSCallbackHandler(user, password));
       lc.login();
       Subject sub = lc.getSubject();
       if ( encrypted ) {
