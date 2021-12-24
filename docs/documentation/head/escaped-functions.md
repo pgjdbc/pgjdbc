@@ -144,7 +144,7 @@ translation but the driver will not automatically handle this.
       <td>rand(arg1)</td>
       <td>yes</td>
       <td>setseed(arg1)*0+random()</td>
-      <td>The seed is initialized with the given argument and a new randow value is returned.</td>
+      <td>The seed is initialized with the given argument and a new random value is returned.</td>
     </tr>
     <tr>
       <td>round(arg1,arg2)</td>
