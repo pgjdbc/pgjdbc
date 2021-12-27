@@ -2138,7 +2138,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     We only need to worry about closing it if the transaction is still open
     if it is in error it will get closed eventually. (maybe not ?)
      */
-    if ( refCursorName != null  && connection.getDefaultFetchSize() != 0) {
+    if ( refCursorName != null  && fetchSize != 0) {
       if (connection.getTransactionState() == TransactionState.OPEN) {
         StringBuilder sb = new StringBuilder("CLOSE ");
         Utils.escapeIdentifier(sb, castNonNull(refCursorName));
