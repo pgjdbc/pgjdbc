@@ -262,6 +262,43 @@ public class BlobTest {
     assertEquals(length, lob.length());
   }
 
+  @Test
+  public void testLargeObjectRead() throws Exception {
+    con.setAutoCommit(false);
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    long oid = lom.createLO(LargeObjectManager.READWRITE);
+    LargeObject blob = lom.open(oid);
+
+    byte []buf = new byte[256];
+    for ( int i = 0; i < buf.length; i++ ) {
+      buf[i] = 'a';
+    }
+    // I want to create a large object
+    int i = 1024 / buf.length;
+    for ( int j = i; j > 0; j--)  {
+      blob.write(buf, 0, buf.length);
+    }
+    assertEquals(1024,blob.size());
+    blob.close();
+    try ( PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)")) {
+      pstmt.setString(1, "l1");
+      pstmt.setLong(2, oid);
+      pstmt.executeUpdate();
+    }
+
+    con.commit();
+    con.setAutoCommit(false);
+    InputStream lois = lom.open(oid).getInputStream();
+    // read half of the data with read
+    for ( int j = 0; j < 512; j++ ) {
+      lois.read();
+    }
+    byte []buf2 = new byte[512];
+    lois.read(buf2, 0, 512);
+    lois.close();
+    con.commit();
+  }
+
   /*
    * Helper - uploads a file into a blob using old style methods. We use this because it always
    * works, and we can use it as a base to test the new methods.
