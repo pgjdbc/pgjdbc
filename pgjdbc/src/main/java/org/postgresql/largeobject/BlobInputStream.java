@@ -110,7 +110,7 @@ public class BlobInputStream extends InputStream {
       throw new IOException(se.toString());
     }
   }
-  
+
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
     int bytesCopied = 0;
@@ -120,7 +120,7 @@ public class BlobInputStream extends InputStream {
       if ( buffer != null ) {
         // now figure out how much data is in the buffer
         int bytesInBuffer = bufferSize - bufferPosition;
-        // figure out haw many the user wants
+        // figure out how many bytes the user wants
         int bytesToCopy = len > bytesInBuffer ? bytesInBuffer : len;
         // copy them in
         System.arraycopy(buffer, bufferPosition, b, off, bytesToCopy);
