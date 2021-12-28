@@ -179,6 +179,31 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
+   * Buffered read on Application Level.
+   */
+  @Override
+  public int read(byte[] buf, int off, int len) throws IOException {
+    LargeObject lo = getLo();
+    try {
+
+      if (limit > 0 && apos >= limit) {
+        return -1;
+      }
+
+      if (limit > 0 && limit - apos < len) {
+        len = (int) (limit - apos);
+      }
+
+      int result =  lo.read(buf, off, len);
+      apos += result;
+
+      return result == 0 ? -1 : result;
+    } catch (SQLException se) {
+      throw new IOException(se.toString());
+    }
+  }
+
+  /**
    * Tests if this input stream supports the <code>mark</code> and <code>reset</code> methods. The
    * <code>markSupported</code> method of <code>InputStream</code> returns <code>false</code>.
    *

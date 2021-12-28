@@ -16,6 +16,7 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -260,6 +261,42 @@ public class BlobTest {
     long length = ((long) Integer.MAX_VALUE) + 1024;
     lob.truncate(length);
     assertEquals(length, lob.length());
+  }
+
+  @Test
+  public void testLargeObjectBufferedRead() throws Exception {
+    String fileName = "/test-file.xml";
+    long loid = uploadFile("/test-file.xml", LOOP);
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+
+    InputStream fis = getClass().getResourceAsStream(fileName);
+
+    InputStream lois = lom.open(loid).getInputStream();
+
+    for (byte[] fileBuffer = new byte[10], loBuffer = new byte[10]; (fis.read(fileBuffer)) != -1;) {
+      lois.read(loBuffer);
+      Assert.assertArrayEquals(fileBuffer, loBuffer);
+    }
+
+    fis.close();
+    lois.close();
+  }
+
+  @Test
+  public void testLargeObjectBufferedReadWithLimit() throws Exception {
+    long loid = uploadFile("/test-file.xml", LOOP);
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    int limit = 35;
+    InputStream lois = lom.open(loid).getInputStream(limit);
+    byte[] loBuffer = new byte[10];
+    int totalReadBytes = 0;
+
+    for (int countBytes; (countBytes = lois.read(loBuffer)) != -1;) {
+      totalReadBytes += countBytes;
+    }
+
+    Assert.assertEquals(limit, totalReadBytes);
+    lois.close();
   }
 
   /*
