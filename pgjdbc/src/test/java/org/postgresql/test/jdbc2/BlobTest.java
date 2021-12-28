@@ -299,6 +299,26 @@ public class BlobTest {
     lois.close();
   }
 
+  @Test
+  public void testLargeObjectBufferedReadPlusSingleWithLimit() throws Exception {
+    long loid = uploadFile("/test-file.xml", LOOP);
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    int limit = 35;
+    InputStream lois = lom.open(loid).getInputStream(limit);
+    byte[] loBuffer = new byte[10];
+    int totalReadBytes = 0;
+
+    for (int countBytes; (countBytes = lois.read(loBuffer)) != -1;) {
+      totalReadBytes += countBytes;
+      if (lois.read() != -1) {
+        ++totalReadBytes;
+      }
+    }
+
+    Assert.assertEquals(limit, totalReadBytes);
+    lois.close();
+  }
+
   /*
    * Helper - uploads a file into a blob using old style methods. We use this because it always
    * works, and we can use it as a base to test the new methods.

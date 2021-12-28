@@ -183,6 +183,11 @@ public class BlobInputStream extends InputStream {
    */
   @Override
   public int read(byte[] buf, int off, int len) throws IOException {
+
+    if (bpos != 0) {
+      return super.read(buf,off,len);
+    }
+
     LargeObject lo = getLo();
     try {
 
