@@ -35,6 +35,8 @@ import java.sql.Types;
  * problems from re-occurring ;-)
  */
 public class BlobTest {
+  private static final String TEST_FILE =  "/test-file.xml";
+
   private static final int LOOP = 0; // LargeObject API using loop
   private static final int NATIVE_STREAM = 1; // LargeObject API using OutputStream
 
@@ -44,6 +46,28 @@ public class BlobTest {
   public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "testblob", "id name,lo oid");
+    con.setAutoCommit(false);
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    long oid = lom.createLO(LargeObjectManager.READWRITE);
+    LargeObject blob = lom.open(oid);
+
+    byte []buf = new byte[256];
+    for ( int i = 0; i < buf.length; i++ ) {
+      buf[i] = (byte)i;
+    }
+    // I want to create a large object
+    int i = 1024 / buf.length;
+    for ( int j = i; j > 0; j--)  {
+      blob.write(buf, 0, buf.length);
+    }
+    assertEquals(1024,blob.size());
+    blob.close();
+    try ( PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)")) {
+      pstmt.setString(1, "l1");
+      pstmt.setLong(2, oid);
+      pstmt.executeUpdate();
+    }
+    con.commit();
     con.setAutoCommit(false);
   }
 
@@ -93,7 +117,7 @@ public class BlobTest {
   public void testSet() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
-    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '1'");
     assertTrue(rs.next());
 
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)");
@@ -134,13 +158,13 @@ public class BlobTest {
    */
   @Test
   public void testUploadBlob_LOOP() throws Exception {
-    assertTrue(uploadFile("/test-file.xml", LOOP) > 0);
+    assertTrue(uploadFile(TEST_FILE, LOOP) > 0);
 
     // Now compare the blob & the file. Note this actually tests the
     // InputStream implementation!
-    assertTrue(compareBlobsLOAPI());
-    assertTrue(compareBlobs());
-    assertTrue(compareClobs());
+    assertTrue(compareBlobsLOAPI(TEST_FILE));
+    assertTrue(compareBlobs(TEST_FILE));
+    assertTrue(compareClobs(TEST_FILE));
   }
 
   /*
@@ -148,19 +172,19 @@ public class BlobTest {
    */
   @Test
   public void testUploadBlob_NATIVE() throws Exception {
-    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     // Now compare the blob & the file. Note this actually tests the
     // InputStream implementation!
-    assertTrue(compareBlobs());
+    assertTrue(compareBlobs(TEST_FILE));
   }
 
   @Test
   public void testMarkResetStream() throws Exception {
-    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '/test-file.xml'");
     assertTrue(rs.next());
 
     LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
@@ -181,10 +205,10 @@ public class BlobTest {
 
   @Test
   public void testGetBytesOffset() throws Exception {
-    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '/test-file.xml'");
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
@@ -198,10 +222,10 @@ public class BlobTest {
 
   @Test
   public void testMultipleStreams() throws Exception {
-    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '/test-file.xml'");
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
@@ -222,10 +246,10 @@ public class BlobTest {
 
   @Test
   public void testParallelStreams() throws Exception {
-    assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id='/test-file.xml'");
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
@@ -253,13 +277,59 @@ public class BlobTest {
 
     Statement stmt = con.createStatement();
     stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
-    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id ='1'");
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
     long length = ((long) Integer.MAX_VALUE) + 1024;
     lob.truncate(length);
     assertEquals(length, lob.length());
+  }
+
+  @Test
+  public void testLargeObjectRead() throws Exception {
+    con.setAutoCommit(false);
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    try ( Statement stmt = con.createStatement() ) {
+      try ( ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id='l1'") ) {
+        assertTrue(rs.next());
+
+        long oid = rs.getLong(1);
+        InputStream lois = lom.open(oid).getInputStream();
+        // read half of the data with read
+        for ( int j = 0; j < 512; j++ ) {
+          lois.read();
+        }
+        byte []buf2 = new byte[512];
+        lois.read(buf2, 0, 512);
+        lois.close();
+
+      }
+    }
+    con.commit();
+  }
+
+  @Test
+  public void testLargeObjectRead1() throws Exception {
+    con.setAutoCommit(false);
+    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    try ( Statement stmt = con.createStatement() ) {
+      try ( ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id='l1'") ) {
+        assertTrue(rs.next());
+
+        long oid = rs.getLong(1);
+        InputStream lois = lom.open(oid).getInputStream(512, 1024);
+        // read one byte
+        assertEquals(0, lois.read());
+        byte []buf2 = new byte[1024];
+        int bytesRead = lois.read(buf2, 0, buf2.length);
+        assertEquals(bytesRead, 1023);
+        assertEquals(1, buf2[0]);
+        lois.close();
+
+      }
+    }
+    con.commit();
   }
 
   /*
@@ -319,13 +389,13 @@ public class BlobTest {
    * Helper - compares the blobs in a table with a local file. Note this uses the postgresql
    * specific Large Object API
    */
-  private boolean compareBlobsLOAPI() throws Exception {
+  private boolean compareBlobsLOAPI(String id) throws Exception {
     boolean result = true;
 
     LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
 
     Statement st = con.createStatement();
-    ResultSet rs = st.executeQuery(TestUtil.selectSQL("testblob", "id,lo"));
+    ResultSet rs = st.executeQuery(TestUtil.selectSQL("testblob", "id,lo", "id = '" + id + "'"));
     assertNotNull(rs);
 
     while (rs.next()) {
@@ -363,11 +433,11 @@ public class BlobTest {
   /*
    * Helper - compares the blobs in a table with a local file. This uses the jdbc java.sql.Blob api
    */
-  private boolean compareBlobs() throws Exception {
+  private boolean compareBlobs(String id) throws Exception {
     boolean result = true;
 
     Statement st = con.createStatement();
-    ResultSet rs = st.executeQuery(TestUtil.selectSQL("testblob", "id,lo"));
+    ResultSet rs = st.executeQuery(TestUtil.selectSQL("testblob", "id,lo", "id = '" + id + "'"));
     assertNotNull(rs);
 
     while (rs.next()) {
@@ -404,11 +474,11 @@ public class BlobTest {
   /*
    * Helper - compares the clobs in a table with a local file.
    */
-  private boolean compareClobs() throws Exception {
+  private boolean compareClobs(String id) throws Exception {
     boolean result = true;
 
     Statement st = con.createStatement();
-    ResultSet rs = st.executeQuery(TestUtil.selectSQL("testblob", "id,lo"));
+    ResultSet rs = st.executeQuery(TestUtil.selectSQL("testblob", "id,lo", "id = '" + id + "'"));
     assertNotNull(rs);
 
     while (rs.next()) {
