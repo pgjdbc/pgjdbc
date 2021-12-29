@@ -286,23 +286,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           // we have updatable cursors it must be readonly.
           ResultSet rs =
               connection.execSQLQuery(sb.toString(), resultsettype, ResultSet.CONCUR_READ_ONLY);
-
-          /*
-          If the user has set a fetch size we can't close the cursor yet.
-          Issue https://github.com/pgjdbc/pgjdbc/issues/2227
-           */
-          if (connection.getDefaultFetchSize() == 0 ) {
-            /*
-            // In long running transactions these backend cursors take up memory space
-            // we could close in rs.close(), but if the transaction is closed before the result set,
-            // then the cursor no longer exists
-            */
-            sb.setLength(0);
-            sb.append("CLOSE ");
-            Utils.escapeIdentifier(sb, cursorName);
-            connection.execSQLUpdate(sb.toString());
-          }
           ((PgResultSet) rs).setRefCursor(cursorName);
+          // In long-running transactions these backend cursors take up memory space
+          // we could close in rs.close(), but if the transaction is closed before the result set,
+          // then
+          // the cursor no longer exists
+          ((PgResultSet) rs).closeRefCursor();
           return rs;
         }
         if ("hstore".equals(type)) {
@@ -2154,6 +2143,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       connection.getQueryExecutor()
           .fetch(cursor, new CursorResultHandler(), fetchRows, adaptiveFetch);
 
+      // .fetch(...) could update this.cursor, and cursor==null means
+      // there are no more rows to fetch
+      closeRefCursor();
+
       // After fetch, update last used fetch size (could be useful for adaptive fetch).
       lastUsedFetchSize = fetchRows;
 
@@ -2192,24 +2185,30 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     rows = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;
-
-    /* this used to be closed right after reading all of the rows,
-    however if fetchSize is set ony fetchSize rows will be read and then
-    the cursor will be closed
-    We only need to worry about closing it if the transaction is still open
-    if it is in error it will get closed eventually. (maybe not ?)
-     */
-    if ( refCursorName != null  && fetchSize != 0) {
-      if (connection.getTransactionState() == TransactionState.OPEN) {
-        StringBuilder sb = new StringBuilder("CLOSE ");
-        Utils.escapeIdentifier(sb, castNonNull(refCursorName));
-        connection.execSQLUpdate(sb.toString());
-        refCursorName = null;
-      }
-    }
     if (cursor != null) {
       cursor.close();
       cursor = null;
+    }
+    closeRefCursor();
+  }
+
+  /**
+   * Closes {@code <unnamed portal 1>} if no more fetch calls expected ({@code cursor==null})
+   * @throws SQLException if portal close fails
+   */
+  private void closeRefCursor() throws SQLException {
+    String refCursorName = this.refCursorName;
+    if (refCursorName == null || cursor != null) {
+      return;
+    }
+    try {
+      if (connection.getTransactionState() == TransactionState.OPEN) {
+        StringBuilder sb = new StringBuilder("CLOSE ");
+        Utils.escapeIdentifier(sb, refCursorName);
+        connection.execSQLUpdate(sb.toString());
+      }
+    } finally {
+      this.refCursorName = null;
     }
   }
 

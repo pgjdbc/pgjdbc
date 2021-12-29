@@ -654,6 +654,13 @@ public class TestUtil {
     dropObject(con, "TYPE", type);
   }
 
+  /*
+   * Drops a function with a given signature.
+   */
+  public static void dropFunction(Connection con, String name, String arguments) throws SQLException {
+    dropObject(con, "FUNCTION", name + "(" + arguments + ")");
+  }
+
   private static void dropObject(Connection con, String type, String name) throws SQLException {
     Statement stmt = con.createStatement();
     try {
@@ -1163,7 +1170,19 @@ public class TestUtil {
     }
   }
 
+  /**
+   * Executes given SQL via {@link Statement#execute(String)} on a given connection.
+   * @deprecated prefer {@link #execute(Connection, String)} since it yields easier for read code
+   */
+  @Deprecated
   public static void execute(String sql, Connection connection) throws SQLException {
+    execute(connection, sql);
+  }
+
+  /**
+   * Executes given SQL via {@link Statement#execute(String)} on a given connection.
+   */
+  public static void execute(Connection connection, String sql) throws SQLException {
     try (Statement stmt = connection.createStatement()) {
       stmt.execute(sql);
     }
