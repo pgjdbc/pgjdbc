@@ -119,7 +119,7 @@ public class BlobInputStream extends InputStream {
       // have we read anything into the buffer
       if ( buffer != null ) {
         // now figure out how much data is in the buffer
-        int bytesInBuffer = bufferSize - bufferPosition;
+        int bytesInBuffer = buffer.length - bufferPosition;
         // figure out how many bytes the user wants
         int bytesToCopy = len > bytesInBuffer ? bytesInBuffer : len;
         // copy them in
@@ -134,6 +134,9 @@ public class BlobInputStream extends InputStream {
       }
       if (len > 0 ) {
         bytesCopied += lo.read(b, off, len);
+        if ( bytesCopied == 0 && (buffer == null || bufferPosition >= buffer.length) ) {
+          return -1;
+        }
       }
     } catch (SQLException ex ) {
       throw new IOException(ex.toString());
