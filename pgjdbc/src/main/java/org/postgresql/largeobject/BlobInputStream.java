@@ -115,6 +115,15 @@ public class BlobInputStream extends InputStream {
   public int read(byte[] b, int off, int len) throws IOException {
     int bytesCopied = 0;
     LargeObject lo = getLo();
+
+    /* check to make sure we aren't at the limit
+    *  funny to test for 0, but I guess someone could create a blob
+    * with a limit of zero
+    */
+    if ( limit >= 0 && absolutePosition >= limit ) {
+      return -1;
+    }
+
     try {
       // have we read anything into the buffer
       if ( buffer != null ) {
@@ -134,6 +143,7 @@ public class BlobInputStream extends InputStream {
       }
       if (len > 0 ) {
         bytesCopied += lo.read(b, off, len);
+        absolutePosition += bytesCopied;
         if ( bytesCopied == 0 && (buffer == null || bufferPosition >= buffer.length) ) {
           return -1;
         }
