@@ -65,7 +65,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
   }
 
   /**
-   * This method sets the value of this object. It should be overidden, but still called by
+   * This method sets the value of this object. It should be overridden, but still called by
    * subclasses.
    *
    * @param value a string representation of the value of the object

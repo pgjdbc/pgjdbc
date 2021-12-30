@@ -8,8 +8,8 @@ package org.postgresql.util;
 import java.sql.SQLException;
 
 /**
- * PGBinaryObject is a inteface that classes extending {@link PGobject} can use to take advantage of
- * more optimal binary encoding of the data type.
+ * PGBinaryObject is a interface that classes extending {@link PGobject} can use to take advantage
+ * of more optimal binary encoding of the data type.
  */
 public interface PGBinaryObject {
   /**
