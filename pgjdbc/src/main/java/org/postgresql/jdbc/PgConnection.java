@@ -90,9 +90,9 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
+  // "lazy initialization", so LeakTracker is not initialized if the property is not enabled
   static class ConnectionLeakTrackerHolder {
-    private static final LeakTracker<Object> INSTANCE =
-        new LeakTracker<>();
+    static final LeakTracker<Object> INSTANCE = new LeakTracker<>();
   }
 
   private enum ReadOnlyBehavior {
@@ -768,8 +768,6 @@ public class PgConnection implements BaseConnection {
     if (queryExecutor.isClosed()) {
       return;
     }
-    releaseTimer();
-    queryExecutor.close();
     LeakTracker.LeakTraceHandle<Object> leakTraceHandle = this.leakTraceHandle;
     // Connection has been explicitly closed, unregister
     if (leakTraceHandle != null) {
@@ -777,6 +775,8 @@ public class PgConnection implements BaseConnection {
       this.leakMarker = null;
       this.leakTraceHandle = null;
     }
+    releaseTimer();
+    queryExecutor.close();
   }
 
   @Override

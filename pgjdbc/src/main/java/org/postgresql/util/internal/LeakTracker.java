@@ -8,11 +8,11 @@ package org.postgresql.util.internal;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
-public class LeakTracker<T> {
+public final class LeakTracker<T> {
   private final ReferenceQueue<T> leakedResources = new ReferenceQueue<>();
 
   /**
@@ -20,8 +20,7 @@ public class LeakTracker<T> {
    * it won't be enqueued to the reference queue.
    */
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-  private final ConcurrentMap<LeakTraceHandle<T>, Boolean> resourcesInUse =
-      new ConcurrentHashMap<>();
+  private final Set<LeakTraceHandle<T>> resourcesInUse = ConcurrentHashMap.newKeySet();
 
   public static class LeakTraceHandle<T> extends PhantomReference<T> {
     public final Throwable stackTrace;
@@ -34,22 +33,23 @@ public class LeakTracker<T> {
 
   public LeakTraceHandle<T> register(T resource, Throwable stackTrace) {
     LeakTraceHandle<T> ref = new LeakTraceHandle<T>(resource, leakedResources, stackTrace);
-    // We need to keep the strong reference to Phantom so it will be enqueued when resource leaks
-    resourcesInUse.put(ref, true);
+    // We need to keep the strong reference to Phantom, so it will be enqueued when resource leaks
+    resourcesInUse.add(ref);
     return ref;
   }
 
   public void unregister(LeakTraceHandle<T> ref) {
-    // If the user calls #close, we remove the strong reference to the PhantomReference,
-    // so it won't be enqueued
+    ref.clear();
     resourcesInUse.remove(ref);
   }
 
   public void processReferences(Consumer<LeakTraceHandle<T>> action) {
     Reference<? extends T> handle;
     while ((handle = leakedResources.poll()) != null) {
-      //noinspection unchecked
-      action.accept((LeakTraceHandle<T>) handle);
+      @SuppressWarnings("unchecked")
+      LeakTraceHandle<T> leakHandle = (LeakTraceHandle<T>) handle;
+      resourcesInUse.remove(leakHandle);
+      action.accept(leakHandle);
     }
   }
 }
