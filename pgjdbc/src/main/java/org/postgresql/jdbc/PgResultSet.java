@@ -70,6 +70,10 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -582,7 +586,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getTimestampUtils().toTime(cal, string);
   }
 
-  private java.time.@Nullable LocalTime getLocalTime(int i) throws SQLException {
+  private @Nullable LocalTime getLocalTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -668,7 +672,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   }
 
-  private java.time.@Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
+  private @Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -708,7 +712,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getTimestampUtils().toOffsetDateTime(string);
   }
 
-  private java.time.@Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
+  private @Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -3691,7 +3695,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, ex);
       }
       // JSR-310 support
-    } else if (type == java.time.LocalDate.class) {
+    } else if (type == LocalDate.class) {
       if (sqlType == Types.DATE) {
         Date dateValue = getDate(columnIndex);
         if (dateValue == null) {
@@ -3699,14 +3703,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         long time = dateValue.getTime();
         if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(java.time.LocalDate.MAX);
+          return type.cast(LocalDate.MAX);
         }
         if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(java.time.LocalDate.MIN);
+          return type.cast(LocalDate.MIN);
         }
         return type.cast(dateValue.toLocalDate());
       } else if (sqlType == Types.TIMESTAMP) {
-        java.time.LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
+        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
         if (localDateTimeValue == null) {
           return null;
         }
@@ -3715,23 +3719,23 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == java.time.LocalTime.class) {
+    } else if (type == LocalTime.class) {
       if (sqlType == Types.TIME) {
         return type.cast(getLocalTime(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == java.time.LocalDateTime.class) {
+    } else if (type == LocalDateTime.class) {
       if (sqlType == Types.TIMESTAMP) {
         return type.cast(getLocalDateTime(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == java.time.OffsetDateTime.class) {
+    } else if (type == OffsetDateTime.class) {
       if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
-        java.time.OffsetDateTime offsetDateTime = getOffsetDateTime(columnIndex);
+        OffsetDateTime offsetDateTime = getOffsetDateTime(columnIndex);
         return type.cast(offsetDateTime);
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
