@@ -144,12 +144,16 @@ public class BlobInputStream extends InputStream {
       if (len > 0 ) {
         bytesCopied += lo.read(b, off, len);
         absolutePosition += bytesCopied;
+        /*
+        if there is a limit on the size of the blob then we could have read to the limit
+        so bytesCopied will be non-zero but we will have read nothing
+         */
         if ( bytesCopied == 0 && (buffer == null || bufferPosition >= buffer.length) ) {
           return -1;
         }
       }
     } catch (SQLException ex ) {
-      throw new IOException(ex.toString());
+      throw new IOException(ex.getCause());
     }
     return bytesCopied;
   }
