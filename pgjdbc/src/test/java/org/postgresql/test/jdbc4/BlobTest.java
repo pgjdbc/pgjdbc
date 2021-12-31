@@ -162,11 +162,11 @@ public class BlobTest {
       ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
       assertTrue(rs.next());
 
-      byte[] actualData = new byte[10];
+      byte[] actualData = new byte[9];
       Blob actualBlob = rs.getBlob(1);
       InputStream stream = actualBlob.getBinaryStream(6, 10);
       try {
-        // read 10 bytes 1 at a time
+        // read 9 bytes 1 at a time
         for ( int i = 0; i < 9; i++ ) {
           actualData[i] = (byte)stream.read();
         }

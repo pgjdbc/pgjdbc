@@ -128,7 +128,7 @@ public class BlobInputStream extends InputStream {
     }
 
     /* check to make sure we are not going to read past the limit */
-    if ( len > limit - absolutePosition ) {
+    if ( limit >= 0 && len > limit - absolutePosition ) {
       len -= limit - absolutePosition;
     }
 

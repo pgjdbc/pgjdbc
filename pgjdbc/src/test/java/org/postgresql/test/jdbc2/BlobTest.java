@@ -323,7 +323,7 @@ public class BlobTest {
         assertEquals(0, lois.read());
         byte []buf2 = new byte[1024];
         int bytesRead = lois.read(buf2, 0, buf2.length);
-        assertEquals(bytesRead, 1023);
+        assertEquals( 1023, bytesRead);
         assertEquals(1, buf2[0]);
         lois.close();
 
