@@ -146,6 +146,44 @@ public class BlobTest {
   }
 
   @Test
+  public void testGetBinaryStreamWithBoundaries2() throws Exception {
+    byte[] data =
+        "Cras vestibulum tellus eu sapien imperdiet ornare.".getBytes("UTF-8");
+    PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
+    try {
+      insertPS.setBlob(1, new ByteArrayInputStream(data), data.length);
+      insertPS.executeUpdate();
+    } finally {
+      insertPS.close();
+    }
+
+    Statement selectStmt = conn.createStatement();
+    try {
+      ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
+      assertTrue(rs.next());
+
+      byte[] actualData = new byte[10];
+      Blob actualBlob = rs.getBlob(1);
+      InputStream stream = actualBlob.getBinaryStream(6, 10);
+      try {
+        // read 10 bytes 1 at a time
+        for ( int i = 0; i < 9; i++ ) {
+          actualData[i] = (byte)stream.read();
+        }
+        /* try to read past the end and make sure we get 1 byte */
+        assertEquals("There should be 1 byte left", 1, stream.read(new byte[2]));
+        /* now read one more and we should get an EOF */
+        assertEquals("Stream should be at end", -1, stream.read(new byte[1]));
+      } finally {
+        stream.close();
+      }
+      assertEquals("vestibulu", new String(actualData, "UTF-8"));
+    } finally {
+      selectStmt.close();
+    }
+  }
+
+  @Test
   public void testFree() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.execute("INSERT INTO testblob(lo) VALUES(lo_creat(-1))");
