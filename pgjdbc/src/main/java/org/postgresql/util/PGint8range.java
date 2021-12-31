@@ -15,6 +15,21 @@ import java.sql.SQLException;
  */
 public final class PGint8range extends PGrange<Long> implements PGBinaryObject, Serializable, Cloneable {
 
+  /*
+   * Binary Representation
+   * ---------------------
+   *
+   * Values use either 1, 13 or 25 bytes.
+   *
+   * 1 byte: type tag, determines which bounds are set, see TypeTag
+   * 12 bytes: lower bound, only present if the lower bound is set
+   *           4 bytes: length, always 0x00 0x00 0x00 0x08
+   *           8 bytes: actual lower bound
+   * 12 bytes: upper bound, only present if the upper bound is set
+   *           4 bytes: length, always 0x00 0x00 0x00 0x08
+   *           8 bytes: actual upper bound
+   */
+
   /**
    * The name of the type.
    *
@@ -138,15 +153,17 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
 
   @Override
   public int lengthInBytes() {
-    int length = 1;
+    int length = 1; // type tag
     if (this.isEmpty()) {
       return length;
     }
     if (!this.isLowerInfinite()) {
-      length += 4 + 8;
+      // the lower bound is only sent if it is set
+      length += 4 + 8; // length of the value + actual value
     }
     if (!this.isUpperInfinite()) {
-      length += 4 + 8;
+      // the upper bound is only sent if it is set
+      length += 4 + 8; // length of the value + actual value
     }
     return length;
   }
