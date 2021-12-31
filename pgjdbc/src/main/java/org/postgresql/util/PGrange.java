@@ -46,7 +46,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     UPPER_OPEN(18),
 
     /**
-     * Neither to lower nor the upper bound are set.
+     * Neither the lower nor the upper bound are set.
      */
     BOTH_OPEN(24);
 
