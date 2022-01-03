@@ -1626,7 +1626,6 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.ADAPTIVE_FETCH_MINIMUM.set(properties, adaptiveFetchMinimum);
   }
 
-  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
   @Override
   public java.util.logging.Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
