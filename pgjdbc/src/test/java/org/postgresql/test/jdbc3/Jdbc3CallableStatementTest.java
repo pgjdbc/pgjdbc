@@ -85,6 +85,18 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
         + "end;'"
         + "LANGUAGE plpgsql VOLATILE;"
     );
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getBooleanWithoutArg() "
+                + "RETURNS boolean AS '  "
+                + "begin return true; end; ' LANGUAGE plpgsql;");
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getBit1WithoutArg() "
+                    + "RETURNS bit(1) AS '  "
+                    + "begin return B''1''; end; ' LANGUAGE plpgsql;");
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getBit2WithoutArg() "
+                    + "RETURNS bit(2) AS '  "
+                    + "begin return B''10''; end; ' LANGUAGE plpgsql;");
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       stmt.execute(
           "CREATE OR REPLACE PROCEDURE inonlyprocedure(a IN int) AS 'BEGIN NULL; END;' LANGUAGE plpgsql");
@@ -104,6 +116,9 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     stmt.execute("drop function myif(a INOUT int, b IN int)");
     stmt.execute("drop function mynoparams()");
     stmt.execute("drop function mynoparamsproc()");
+    stmt.execute("drop function testspg__getBooleanWithoutArg ();");
+    stmt.execute("drop function testspg__getBit1WithoutArg ();");
+    stmt.execute("drop function testspg__getBit2WithoutArg ();");
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       stmt.execute("drop procedure inonlyprocedure(a IN int)");
       stmt.execute("drop procedure inoutprocedure(a INOUT int)");
@@ -374,6 +389,29 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
         Statement dstmt = con.createStatement();
         dstmt.execute("drop function update_bit(boolean, boolean, boolean)");
       } catch (Exception ex) {
+      }
+    }
+  }
+
+  @Test
+  public void testGetBit1WithoutArg() throws SQLException {
+    try (CallableStatement call = con.prepareCall("{ ? = call testspg__getBit1WithoutArg () }")) {
+      call.registerOutParameter(1, Types.BOOLEAN);
+      call.execute();
+      assertTrue(call.getBoolean(1));
+    }
+  }
+
+  @Test
+  public void testGetBit2WithoutArg() throws SQLException {
+    try (CallableStatement call = con.prepareCall("{ ? = call testspg__getBit2WithoutArg () }")) {
+      call.registerOutParameter(1, Types.BOOLEAN);
+      try {
+        call.execute();
+        assertTrue(call.getBoolean(1));
+        fail("#getBoolean(int) on bit(2) should throw");
+      } catch (SQLException e) {
+        assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       }
     }
   }
@@ -937,6 +975,15 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
         dstmt.execute("drop function bit_proc()");
       } catch (Exception ex) {
       }
+    }
+  }
+
+  @Test
+  public void testGetBooleanWithoutArg() throws SQLException {
+    try (CallableStatement call = con.prepareCall("{ ? = call testspg__getBooleanWithoutArg () }")) {
+      call.registerOutParameter(1, Types.BOOLEAN);
+      call.execute();
+      assertTrue(call.getBoolean(1));
     }
   }
 
