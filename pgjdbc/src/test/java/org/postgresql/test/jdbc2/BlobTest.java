@@ -10,12 +10,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.junit.*;
-
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
+
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -92,7 +93,7 @@ public class BlobTest {
   @After
   public void tearDown() throws Exception {
     con.setAutoCommit(true);
-    try (Statement stmt = con.createStatement()){
+    try ( Statement stmt = con.createStatement() ) {
       stmt.execute("SELECT lo_unlink(lo) FROM testblob where id != 'l1'");
       stmt.execute("delete from testblob where id != 'l1'");
     } finally {
