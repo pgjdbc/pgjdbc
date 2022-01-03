@@ -10,14 +10,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.junit.*;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,50 +40,62 @@ public class BlobTest {
 
   private Connection con;
 
+  /*
+    Only do this once
+  */
+  @BeforeClass
+  public static void createLargeBlob() throws Exception {
+    try ( Connection con = TestUtil.openDB() ) {
+      TestUtil.createTable(con, "testblob", "id name,lo oid");
+      con.setAutoCommit(false);
+      LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+      long oid = lom.createLO(LargeObjectManager.READWRITE);
+      LargeObject blob = lom.open(oid);
+
+      byte[] buf = new byte[256];
+      for (int i = 0; i < buf.length; i++) {
+        buf[i] = (byte) i;
+      }
+      // I want to create a large object
+      int i = 1024 / buf.length;
+      for (int j = i; j > 0; j--) {
+        blob.write(buf, 0, buf.length);
+      }
+      assertEquals(1024, blob.size());
+      blob.close();
+      try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)")) {
+        pstmt.setString(1, "l1");
+        pstmt.setLong(2, oid);
+        pstmt.executeUpdate();
+      }
+      con.commit();
+    }
+  }
+
+  @AfterClass
+  public static void cleanup() throws Exception {
+    try ( Connection con = TestUtil.openDB() ) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("SELECT lo_unlink(lo) FROM testblob where id = 'l1'");
+      } finally {
+        TestUtil.dropTable(con, "testblob");
+      }
+    }
+  }
+
   @Before
   public void setUp() throws Exception {
     con = TestUtil.openDB();
-    TestUtil.createTable(con, "testblob", "id name,lo oid");
-    con.setAutoCommit(false);
-    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
-    long oid = lom.createLO(LargeObjectManager.READWRITE);
-    LargeObject blob = lom.open(oid);
-
-    byte []buf = new byte[256];
-    for ( int i = 0; i < buf.length; i++ ) {
-      buf[i] = (byte)i;
-    }
-    // I want to create a large object
-    int i = 1024 / buf.length;
-    for ( int j = i; j > 0; j--)  {
-      blob.write(buf, 0, buf.length);
-    }
-    assertEquals(1024,blob.size());
-    blob.close();
-    try ( PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)")) {
-      pstmt.setString(1, "l1");
-      pstmt.setLong(2, oid);
-      pstmt.executeUpdate();
-    }
-    con.commit();
     con.setAutoCommit(false);
   }
 
   @After
   public void tearDown() throws Exception {
     con.setAutoCommit(true);
-    try {
-      Statement stmt = con.createStatement();
-      try {
-        stmt.execute("SELECT lo_unlink(lo) FROM testblob");
-      } finally {
-        try {
-          stmt.close();
-        } catch (Exception e) {
-        }
-      }
+    try (Statement stmt = con.createStatement()){
+      stmt.execute("SELECT lo_unlink(lo) FROM testblob where id != 'l1'");
+      stmt.execute("delete from testblob where id != 'l1'");
     } finally {
-      TestUtil.dropTable(con, "testblob");
       TestUtil.closeDB(con);
     }
   }
