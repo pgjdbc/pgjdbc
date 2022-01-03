@@ -63,25 +63,20 @@ public class BlobTest {
   public void testSetBlobWithStream() throws Exception {
     byte[] data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque bibendum dapibus varius."
         .getBytes("UTF-8");
-    PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
-    try {
+    try ( PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?")) ) {
       insertPS.setBlob(1, new ByteArrayInputStream(data));
       insertPS.executeUpdate();
-    } finally {
-      insertPS.close();
     }
 
-    Statement selectStmt = conn.createStatement();
-    try {
-      ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
-      assertTrue(rs.next());
+    try (Statement selectStmt = conn.createStatement() ) {
+      try (ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"))) {
+        assertTrue(rs.next());
 
-      Blob actualBlob = rs.getBlob(1);
-      byte[] actualBytes = actualBlob.getBytes(1, (int) actualBlob.length());
+        Blob actualBlob = rs.getBlob(1);
+        byte[] actualBytes = actualBlob.getBytes(1, (int) actualBlob.length());
 
-      assertArrayEquals(data, actualBytes);
-    } finally {
-      selectStmt.close();
+        assertArrayEquals(data, actualBytes);
+      }
     }
   }
 
@@ -91,25 +86,21 @@ public class BlobTest {
             .getBytes("UTF-8");
     byte[] data =
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".getBytes("UTF-8");
-    PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
-    try {
+
+    try ( PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?")) ) {
       insertPS.setBlob(1, new ByteArrayInputStream(fullData), data.length);
       insertPS.executeUpdate();
-    } finally {
-      insertPS.close();
     }
 
-    Statement selectStmt = conn.createStatement();
-    try {
-      ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
-      assertTrue(rs.next());
+    try ( Statement selectStmt = conn.createStatement() ) {
+      try (ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"))) {
+        assertTrue(rs.next());
 
-      Blob actualBlob = rs.getBlob(1);
-      byte[] actualBytes = actualBlob.getBytes(1, (int) actualBlob.length());
+        Blob actualBlob = rs.getBlob(1);
+        byte[] actualBytes = actualBlob.getBytes(1, (int) actualBlob.length());
 
-      assertArrayEquals(data, actualBytes);
-    } finally {
-      selectStmt.close();
+        assertArrayEquals(data, actualBytes);
+      }
     }
   }
 
@@ -117,48 +108,75 @@ public class BlobTest {
   public void testGetBinaryStreamWithBoundaries() throws Exception {
     byte[] data =
         "Cras vestibulum tellus eu sapien imperdiet ornare.".getBytes("UTF-8");
-    PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
-    try {
+    try ( PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?")) ) {
       insertPS.setBlob(1, new ByteArrayInputStream(data), data.length);
       insertPS.executeUpdate();
-    } finally {
-      insertPS.close();
+    }
+    try ( Statement selectStmt = conn.createStatement() ) {
+      try (ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"))) {
+        assertTrue(rs.next());
+
+        byte[] actualData = new byte[10];
+        Blob actualBlob = rs.getBlob(1);
+        InputStream stream = actualBlob.getBinaryStream(6, 10);
+        try {
+          stream.read(actualData);
+          assertEquals("Stream should be at end", -1, stream.read(new byte[1]));
+        } finally {
+          stream.close();
+        }
+        assertEquals("vestibulum", new String(actualData, "UTF-8"));
+      }
+    }
+  }
+
+  @Test
+  public void testGetBinaryStreamWithBoundaries2() throws Exception {
+    byte[] data =
+        "Cras vestibulum tellus eu sapien imperdiet ornare.".getBytes("UTF-8");
+
+    try ( PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?")) ) {
+      insertPS.setBlob(1, new ByteArrayInputStream(data), data.length);
+      insertPS.executeUpdate();
     }
 
-    Statement selectStmt = conn.createStatement();
-    try {
-      ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
-      assertTrue(rs.next());
+    try ( Statement selectStmt = conn.createStatement() ) {
+      try (ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"))) {
+        assertTrue(rs.next());
 
-      byte[] actualData = new byte[10];
-      Blob actualBlob = rs.getBlob(1);
-      InputStream stream = actualBlob.getBinaryStream(6, 10);
-      try {
-        stream.read(actualData);
-        assertEquals("Stream should be at end", -1, stream.read(new byte[1]));
-      } finally {
-        stream.close();
+        byte[] actualData = new byte[9];
+        Blob actualBlob = rs.getBlob(1);
+        try ( InputStream stream = actualBlob.getBinaryStream(6, 10) ) {
+          // read 9 bytes 1 at a time
+          for (int i = 0; i < 9; i++) {
+            actualData[i] = (byte) stream.read();
+          }
+          /* try to read past the end and make sure we get 1 byte */
+          assertEquals("There should be 1 byte left", 1, stream.read(new byte[2]));
+          /* now read one more and we should get an EOF */
+          assertEquals("Stream should be at end", -1, stream.read(new byte[1]));
+        }
+        assertEquals("vestibulu", new String(actualData, "UTF-8"));
       }
-      assertEquals("vestibulum", new String(actualData, "UTF-8"));
-    } finally {
-      selectStmt.close();
     }
   }
 
   @Test
   public void testFree() throws SQLException {
-    Statement stmt = conn.createStatement();
-    stmt.execute("INSERT INTO testblob(lo) VALUES(lo_creat(-1))");
-    ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
-    assertTrue(rs.next());
+    try ( Statement stmt = conn.createStatement() ) {
+      stmt.execute("INSERT INTO testblob(lo) VALUES(lo_creat(-1))");
+      try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob")) {
+        assertTrue(rs.next());
 
-    Blob blob = rs.getBlob(1);
-    blob.free();
-    try {
-      blob.length();
-      fail("Should have thrown an Exception because it was freed.");
-    } catch (SQLException sqle) {
-      // expected
+        Blob blob = rs.getBlob(1);
+        blob.free();
+        try {
+          blob.length();
+          fail("Should have thrown an Exception because it was freed.");
+        } catch (SQLException sqle) {
+          // expected
+        }
+      }
     }
   }
 }
