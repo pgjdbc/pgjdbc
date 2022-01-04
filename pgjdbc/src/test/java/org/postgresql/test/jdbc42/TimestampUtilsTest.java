@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 import org.postgresql.jdbc.TimestampUtils;
 
@@ -13,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.util.TimeZone;
@@ -22,7 +24,7 @@ public class TimestampUtilsTest {
 
   @Before
   public void setUp() {
-    timestampUtils = new TimestampUtils(true, TimeZone::getDefault);
+    timestampUtils = createTimestampUtils();
   }
 
   @Test
