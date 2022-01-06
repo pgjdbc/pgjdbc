@@ -9,50 +9,55 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.test.TestUtil;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 
 public class RefCursorFetchTest extends BaseTest4 {
+  @BeforeClass
+  public static void checkVersion() throws SQLException {
+    TestUtil.assumeHaveMinimumServerVersion(ServerVersion.v9_0);
+  }
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
+    assumeCallableStatementsSupported();
 
-    try (Statement statement = con.createStatement()) {
-      statement.execute("create table if not exists  test_blob(content bytea)");
-      statement.execute("--create function to read data\n"
-          + "CREATE OR REPLACE FUNCTION test_blob(p_cur OUT REFCURSOR) AS $body$\n"
-          + "BEGIN\n"
-          + "OPEN p_cur FOR SELECT content FROM test_blob;\n"
-          + "END;\n"
-          + "$body$ LANGUAGE plpgsql STABLE");
+    TestUtil.dropTable(con, "test_blob");
+    TestUtil.createTable(con, "test_blob", "content bytea");
 
-      statement.execute("--generate 101 rows with 4096 bytes:\n"
-          + "insert into test_blob\n"
-          + "select(select decode(string_agg(lpad(to_hex(width_bucket(random(), 0, 1, 256) - 1), 2, '0'), ''), 'hex')FROM generate_series(1, 4096))\n"
-          + "from generate_series (1, 101)");
+    // Create a function to read the blob data
+    TestUtil.execute("CREATE OR REPLACE FUNCTION test_blob (p_cur OUT REFCURSOR) AS\n"
+      + "$body$\n"
+      + "  BEGIN\n"
+      + "    OPEN p_cur FOR SELECT content FROM test_blob;\n"
+      + "  END;\n"
+      + "$body$ LANGUAGE plpgsql STABLE", con);
 
-    }
+      // Generate 101 rows with 4096 bytes
+    TestUtil.execute("INSERT INTO test_blob (content)\n"
+      + "SELECT (SELECT decode(string_agg(lpad(to_hex(width_bucket(random(), 0, 1, 256) - 1), 2, '0'), ''), 'hex')\n"
+      + "        FROM generate_series(1, 4096)) AS content\n"
+      + "FROM generate_series (1, 101)", con);
   }
 
   @Override
   public void tearDown() throws SQLException {
-    try (Statement stmt = con.createStatement()) {
-      stmt.execute("drop FUNCTION test_blob ()");
-      stmt.execute("drop table test_blob");
-    }
+    TestUtil.execute("DROP FUNCTION IF EXISTS test_blob (OUT REFCURSOR)", con);
+    TestUtil.dropTable(con, "test_blob");
     super.tearDown();
   }
 
   @Test
   public void testRefCursorWithFetchSize() throws SQLException {
-    assumeCallableStatementsSupported();
     ((PGConnection)con).setDefaultFetchSize(50);
     int cnt = 0;
     try (CallableStatement call = con.prepareCall("{? = call test_blob()}")) {
