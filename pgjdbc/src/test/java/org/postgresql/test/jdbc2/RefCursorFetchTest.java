@@ -6,7 +6,6 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
@@ -36,17 +35,17 @@ public class RefCursorFetchTest extends BaseTest4 {
 
     // Create a function to read the blob data
     TestUtil.execute("CREATE OR REPLACE FUNCTION test_blob (p_cur OUT REFCURSOR) AS\n"
-      + "$body$\n"
-      + "  BEGIN\n"
-      + "    OPEN p_cur FOR SELECT content FROM test_blob;\n"
-      + "  END;\n"
-      + "$body$ LANGUAGE plpgsql STABLE", con);
+        + "$body$\n"
+        + "  BEGIN\n"
+        + "    OPEN p_cur FOR SELECT content FROM test_blob;\n"
+        + "  END;\n"
+        + "$body$ LANGUAGE plpgsql STABLE", con);
 
-      // Generate 101 rows with 4096 bytes
+    // Generate 101 rows with 4096 bytes
     TestUtil.execute("INSERT INTO test_blob (content)\n"
-      + "SELECT (SELECT decode(string_agg(lpad(to_hex(width_bucket(random(), 0, 1, 256) - 1), 2, '0'), ''), 'hex')\n"
-      + "        FROM generate_series(1, 4096)) AS content\n"
-      + "FROM generate_series (1, 101)", con);
+        + "SELECT (SELECT decode(string_agg(lpad(to_hex(width_bucket(random(), 0, 1, 256) - 1), 2, '0'), ''), 'hex')\n"
+        + "        FROM generate_series(1, 4096)) AS content\n"
+        + "FROM generate_series (1, 101)", con);
   }
 
   @Override
@@ -68,11 +67,8 @@ public class RefCursorFetchTest extends BaseTest4 {
         while (rs.next()) {
           cnt++;
         }
-      } catch (SQLException ex) {
-        fail(ex.getMessage());
-      } finally {
-        assertEquals(101, cnt);
       }
+      assertEquals(101, cnt);
     }
   }
 
@@ -88,11 +84,8 @@ public class RefCursorFetchTest extends BaseTest4 {
         while (rs.next()) {
           cnt++;
         }
-      } catch (SQLException ex) {
-        fail(ex.getMessage());
-      } finally {
-        assertEquals(101, cnt);
       }
+      assertEquals(101, cnt);
     }
   }
 
