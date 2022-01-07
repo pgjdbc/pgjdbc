@@ -45,6 +45,7 @@ include(
     "benchmarks",
     "postgresql",
     "pgjdbc-osgi-test",
+    "pgjdbc-test-jqwik",
     "pgjdbc-testkit"
 )
 
