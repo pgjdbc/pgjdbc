@@ -70,22 +70,22 @@ class BlobInputStreamProperties {
     fun sizes() = integers().between(0, 20000)
 
     private fun read() =
-        just(InputStreamState.Read())
+        just(ActionInputStreamState.Read)
 
     private fun readOffsetLength(size: Int) =
         integers().between(0, size).flatMap { offset ->
             integers().between(0, size - offset).map { length ->
-                InputStreamState.ReadOffsetLength(offset, length)
+                ActionInputStreamState.ReadOffsetLength(offset, length)
             }
         }
 
     private fun skip(size: Long) =
-        longs().between(0, size).map { InputStreamState.Skip(it) }
+        longs().between(0, size).map { ActionInputStreamState.Skip(it) }
 
     private fun mark(size: Int) =
-        integers().between(0, size).map { InputStreamState.Mark(it) }
+        integers().between(0, size).map { ActionInputStreamState.Mark(it) }
 
     private fun reset() =
-        just(InputStreamState.Reset())
+        just(ActionInputStreamState.Reset)
 }
 

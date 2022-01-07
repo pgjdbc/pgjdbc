@@ -9,10 +9,12 @@ import java.nio.ByteBuffer
 class InputStreamState(
     val actual: InputStream,
     val expected: InputStream,
-    private val actualBuffer: ByteArray,
-    private val expectedBuffer: ByteArray
-) {
-    class Read: Action<InputStreamState> {
+    val actualBuffer: ByteArray,
+    val expectedBuffer: ByteArray
+)
+
+sealed interface ActionInputStreamState: Action<InputStreamState> {
+    object Read: ActionInputStreamState {
         override fun run(state: InputStreamState) = state.apply {
             val expected = expected.read()
             val actual = this.actual.read()
@@ -22,7 +24,7 @@ class InputStreamState(
         override fun toString() = "read()"
     }
 
-    class ReadOffsetLength(val offset: Int, val length: Int): Action<InputStreamState> {
+    class ReadOffsetLength(val offset: Int, val length: Int): ActionInputStreamState {
         override fun run(state: InputStreamState) = state.apply {
             val expected = expected.read(expectedBuffer, offset, length)
             val actual = actual.read(actualBuffer, offset, length)
@@ -43,7 +45,7 @@ class InputStreamState(
         override fun toString() = "read([], $offset, $length)"
     }
 
-    class Skip(val n: Long): Action<InputStreamState> {
+    class Skip(val n: Long): ActionInputStreamState {
         override fun run(state: InputStreamState) = state.apply {
             val expected = expected.skip(n)
             val actual = this.actual.skip(n)
@@ -53,7 +55,7 @@ class InputStreamState(
         override fun toString() = "skip($n)"
     }
 
-    class Mark(val readlimit: Int): Action<InputStreamState> {
+    class Mark(val readlimit: Int): ActionInputStreamState {
         override fun run(state: InputStreamState) = state.apply {
             val expected = expected.mark(readlimit)
             val actual = this.actual.mark(readlimit)
@@ -63,7 +65,7 @@ class InputStreamState(
         override fun toString() = "mark($readlimit)"
     }
 
-    class Reset: Action<InputStreamState> {
+    object Reset: ActionInputStreamState {
         override fun run(state: InputStreamState) = state.apply {
             expected.reset()
             actual.reset()
