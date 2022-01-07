@@ -44,7 +44,8 @@ include(
     "bom",
     "benchmarks",
     "postgresql",
-    "pgjdbc-osgi-test"
+    "pgjdbc-osgi-test",
+    "pgjdbc-testkit"
 )
 
 project(":postgresql").projectDir = file("pgjdbc")
