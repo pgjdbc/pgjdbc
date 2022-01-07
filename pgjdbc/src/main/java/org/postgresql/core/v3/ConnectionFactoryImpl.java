@@ -31,7 +31,6 @@ import org.postgresql.plugin.AuthenticationRequestType;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.KerberosTicket;
 import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -442,15 +441,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return pgStream;
     }
 
-    // If there is not credential cache there is little point in attempting this
-    if (!KerberosTicket.credentialCacheExists(info)) {
-      if ( gssEncMode == GSSEncMode.REQUIRE ) {
-        throw new PSQLException("GSSAPI encryption required but was impossible (possibly no credential cache)", PSQLState.CONNECTION_REJECTED);
-      } else {
-        return pgStream;
-      }
+    if ( gssEncMode != GSSEncMode.REQUIRE ) {
+      return pgStream;
     }
 
+    /*
+    let's see if the server will allow a GSS encrypted connection
+     */
     String user = PGProperty.USER.get(info);
     if (user == null) {
       throw new PSQLException("GSSAPI encryption required but was impossible user is null", PSQLState.CONNECTION_REJECTED);
