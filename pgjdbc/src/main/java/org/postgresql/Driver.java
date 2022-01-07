@@ -678,7 +678,8 @@ public class Driver implements java.sql.Driver {
       // priority 2 - forEach() returns all entries EXCEPT defaults
       defaults.forEach(result::putIfAbsent);
     }
-    priority3Service.forEach(result::putIfAbsent);
+    // if we have a service file then it takes priority
+    priority3Service.forEach(result::put);
     if (defaults != null) {
       // priority 4 - stringPropertyNames() returns all entries INCLUDING defaults
       defaults.stringPropertyNames().forEach(s -> result.putIfAbsent(s, castNonNull(defaults.getProperty(s))));
