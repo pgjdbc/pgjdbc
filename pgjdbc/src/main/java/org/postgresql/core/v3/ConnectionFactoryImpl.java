@@ -441,10 +441,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return pgStream;
     }
 
-    if ( gssEncMode != GSSEncMode.REQUIRE ) {
-      return pgStream;
-    }
-
+    /*
+     at this point gssEncMode is either PREFER or REQUIRE
+     libpq looks to see if there is a ticket in the cache before asking
+     the server if it supports encrypted GSS connections or not.
+     since the user has specifically asked or either prefer or require we can
+     assume they want it.
+     */
     /*
     let's see if the server will allow a GSS encrypted connection
      */
