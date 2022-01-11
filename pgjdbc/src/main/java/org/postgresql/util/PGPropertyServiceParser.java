@@ -116,9 +116,8 @@ public class PGPropertyServiceParser {
       String resourceName = OSUtil.getUserConfigRootDirectory();
       if (OSUtil.isWindows()) {
         resourceName += "postgresql" + File.separator;
-      } else {
-        resourceName += ".";
       }
+      resourceName += ".";
       resourceName += pgServceConfFileDefaultName;
       if (new File(resourceName).canRead()) {
         LOGGER.log(Level.FINE, "Value [{0}] selected because file exist in user home directory", new Object[]{resourceName});
