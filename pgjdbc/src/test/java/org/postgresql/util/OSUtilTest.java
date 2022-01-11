@@ -27,7 +27,7 @@ class OSUtilTest {
         new SystemProperties("os.name", "Windows 10")).execute(() -> {
           String result = OSUtil.getUserConfigRootDirectory();
           assertNotNull(result);
-          assertEquals("C:\\Users\\realuser\\AppData\\Roaming" + File.separator, result);
+          assertEquals("C:\\Users\\realuser\\AppData\\Roaming" + File.separator + "postgresql" + File.separator, result);
         }
     );
     // linux

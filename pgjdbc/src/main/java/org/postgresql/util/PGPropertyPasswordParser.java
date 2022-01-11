@@ -127,11 +127,7 @@ public class PGPropertyPasswordParser {
     // if file in user home is readable, use it, otherwise continue - 3rd priority
     {
       String resourceName = OSUtil.getUserConfigRootDirectory();
-      if (OSUtil.isWindows()) {
-        resourceName += "postgresql" + File.separator;
-      } else {
-        resourceName += ".";
-      }
+      resourceName += ".";
       resourceName += pgPassFileDefaultName;
       if (OSUtil.isWindows()) {
         resourceName += ".conf";
