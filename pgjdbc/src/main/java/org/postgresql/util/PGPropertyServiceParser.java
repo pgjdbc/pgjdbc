@@ -111,14 +111,16 @@ public class PGPropertyServiceParser {
       }
     }
 
-    // if file in user home is readable, use it, otherwise continue - 3rd priority
+    /*
+     if file in user home is readable, use it, otherwise continue - 3rd priority
+     in the case that the file is in the user home directory it is prepended with '.'
+     */
     {
-      String resourceName = OSUtil.getUserConfigRootDirectory();
-      resourceName += ".";
-      resourceName += pgServceConfFileDefaultName;
-      if (new File(resourceName).canRead()) {
-        LOGGER.log(Level.FINE, "Value [{0}] selected because file exist in user home directory", new Object[]{resourceName});
-        return resourceName;
+      String resourceName = "." + pgServceConfFileDefaultName;
+      File resourceFile = new File(OSUtil.getUserConfigRootDirectory(), resourceName);
+      if (resourceFile.canRead()) {
+        LOGGER.log(Level.FINE, "Value [{0}] selected because file exist in user home directory", new Object[]{resourceFile.getAbsolutePath()});
+        return resourceFile.getAbsolutePath();
       }
     }
 
