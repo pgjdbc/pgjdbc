@@ -26,9 +26,9 @@ public class OSUtil {
    */
   public static String getUserConfigRootDirectory() {
     if (isWindows()) {
-      return System.getenv("APPDATA") + File.separator;
+      return System.getenv("APPDATA") + File.separator + "postgresql";
     } else {
-      return System.getProperty("user.home") + File.separator;
+      return System.getProperty("user.home");
     }
   }
 

@@ -6,7 +6,6 @@
 package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,15 +25,13 @@ class OSUtilTest {
     Resources.with(new EnvironmentVariables("APPDATA", "C:\\Users\\realuser\\AppData\\Roaming"),
         new SystemProperties("os.name", "Windows 10")).execute(() -> {
           String result = OSUtil.getUserConfigRootDirectory();
-          assertNotNull(result);
-          assertEquals("C:\\Users\\realuser\\AppData\\Roaming" + File.separator, result);
+          assertEquals("C:\\Users\\realuser\\AppData\\Roaming" + File.separator + "postgresql", result);
         }
     );
     // linux
     Resources.with(new SystemProperties("os.name", "Linux", "user.home", "/home/realuser")).execute(() -> {
           String result = OSUtil.getUserConfigRootDirectory();
-          assertNotNull(result);
-          assertEquals("/home/realuser" + File.separator, result);
+          assertEquals("/home/realuser", result);
         }
     );
   }
