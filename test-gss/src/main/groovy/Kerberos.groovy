@@ -7,6 +7,7 @@ class Kerberos {
     String realm    = 'EXAMPLE.COM'
     String krb5Conf
     String kdcConf
+    String kdcCache
     String krb5Log
     String kdcLog
     String krb5Config  = 'krb5-config'
@@ -65,6 +66,7 @@ class Kerberos {
 
         krb5Conf   = "$testLib/tmp_check/krb5.conf"
         kdcConf    = "$testLib/tmp_check/kdc.conf"
+        kdcCache   = "$testLib/tmp_check/krb5cc"
         krb5Log    = "$testLib/tmp_check/log/krb5libs.log"
         kdcLog     = "$testLib/tmp_check/log/krb5kdc.log"
         // find a free port
@@ -153,7 +155,7 @@ $realm = {
 
         mkdir(kdcDataDir)
 
-        env = ["KRB5_CONFIG=$krb5Conf", "KRB5_KDC_PROFILE=$kdcConf"]
+        env = ["KRB5_CONFIG=$krb5Conf", "KRB5_KDC_PROFILE=$kdcConf", "KRB5CCNAME=$kdcCache"]
 
         String service_principal = "postgres/$host" // should really get postgres from configuration file
 
@@ -162,12 +164,13 @@ $realm = {
 
         String test1Password = 'secret1'
 
-        p = "$kadminLocal addprinc -pw $test1Password test1".execute(env, null)
+        p = ["$kadminLocal", "-q", "addprinc -pw $test1Password test1" ].execute(env, null)
         p.waitForProcessOutput(System.out, System.err)
 
-        p = "$kadminLocal addprinc -randkey $service_principal".execute(env,null)
+        p = ["$kadminLocal", "-q", "addprinc -randkey $service_principal"].execute(env,null)
         p.waitForProcessOutput(System.out, System.err)
-        p = "$kadminLocal ktadd -k $keytab $service_principal".execute(env,null)
+
+        p = ["$kadminLocal", "-q", "ktadd -k $keytab $service_principal"].execute(env,null)
         p.waitForProcessOutput(System.out, System.err)
 
         new Thread() {
@@ -180,6 +183,12 @@ $realm = {
         while (krb5Process == null){
             Thread.sleep(100)
         }
+        p = "$kinit test1".execute(env, null)
+        p.withWriter { w ->
+            w.println(test1Password)
+        }
+        p.waitForProcessOutput(System.out, System.err)
+
         return krb5Process
 
     }

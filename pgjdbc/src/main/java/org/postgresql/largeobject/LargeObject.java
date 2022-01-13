@@ -399,6 +399,20 @@ public class LargeObject
   }
 
   /**
+   * Returns an {@link InputStream} from this object, that will limit the amount of data that is
+   * visible.
+   * Added mostly for testing
+   *
+   * @param maxSize internal buffer size
+   * @param limit maximum number of bytes the resulting stream will serve
+   * @return {@link InputStream} from this object
+   * @throws SQLException if a database-access error occurs.
+   */
+  public InputStream getInputStream(int maxSize, long limit) throws SQLException {
+    return new BlobInputStream(this, maxSize, limit);
+  }
+
+  /**
    * <p>Returns an {@link OutputStream} to this object.</p>
    *
    * <p>This OutputStream can then be used in any method that requires an OutputStream.</p>

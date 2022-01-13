@@ -23,7 +23,7 @@ public class BlobInputStream extends InputStream {
   /**
    * The absolute position.
    */
-  private long apos;
+  private long absolutePosition;
 
   /**
    * Buffer used to improve performance.
@@ -33,17 +33,17 @@ public class BlobInputStream extends InputStream {
   /**
    * Position within buffer.
    */
-  private int bpos;
+  private int bufferPosition;
 
   /**
    * The buffer size.
    */
-  private int bsize;
+  private final int bufferSize;
 
   /**
    * The mark position.
    */
-  private long mpos = 0;
+  private long markPosition = 0;
 
   /**
    * The limit.
@@ -74,9 +74,9 @@ public class BlobInputStream extends InputStream {
   public BlobInputStream(LargeObject lo, int bsize, long limit) {
     this.lo = lo;
     buffer = null;
-    bpos = 0;
-    apos = 0;
-    this.bsize = bsize;
+    bufferPosition = 0;
+    absolutePosition = 0;
+    this.bufferSize = bsize;
     this.limit = limit;
   }
 
@@ -86,31 +86,86 @@ public class BlobInputStream extends InputStream {
   public int read() throws java.io.IOException {
     LargeObject lo = getLo();
     try {
-      if (limit > 0 && apos >= limit) {
+      if (limit > 0 && absolutePosition >= limit) {
         return -1;
       }
-      if (buffer == null || bpos >= buffer.length) {
-        buffer = lo.read(bsize);
-        bpos = 0;
+      // read more in if necessary
+      if (buffer == null || bufferPosition >= buffer.length) {
+        buffer = lo.read(bufferSize);
+        bufferPosition = 0;
       }
 
       // Handle EOF
-      if (buffer == null || bpos >= buffer.length) {
+      if ( buffer == null || bufferPosition >= buffer.length) {
         return -1;
       }
 
-      int ret = (buffer[bpos] & 0x7F);
-      if ((buffer[bpos] & 0x80) == 0x80) {
-        ret |= 0x80;
-      }
+      int ret = (buffer[bufferPosition] & 0xFF);
 
-      bpos++;
-      apos++;
+      bufferPosition++;
+      absolutePosition++;
 
       return ret;
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }
+  }
+
+  @Override
+  public int read(byte[] b, int off, int len) throws IOException {
+    int bytesCopied = 0;
+    LargeObject lo = getLo();
+
+    /* check to make sure we aren't at the limit
+    *  funny to test for 0, but I guess someone could create a blob
+    * with a limit of zero
+    */
+    if ( limit >= 0 && absolutePosition >= limit ) {
+      return -1;
+    }
+
+    /* check to make sure we are not going to read past the limit */
+    if ( limit >= 0 && len > limit - absolutePosition ) {
+      len = (int)(limit - absolutePosition);
+    }
+
+    try {
+      // have we read anything into the buffer
+      if ( buffer != null ) {
+        // now figure out how much data is in the buffer
+        int bytesInBuffer = buffer.length - bufferPosition;
+        // figure out how many bytes the user wants
+        int bytesToCopy = len > bytesInBuffer ? bytesInBuffer : len;
+        // copy them in
+        System.arraycopy(buffer, bufferPosition, b, off, bytesToCopy);
+        // move the buffer position
+        bufferPosition += bytesToCopy;
+        // position in the blob
+        absolutePosition += bytesToCopy;
+        // increment offset
+        off += bytesToCopy;
+        // decrement the length
+        len -= bytesToCopy;
+        bytesCopied = bytesToCopy;
+      }
+
+      if (len > 0 ) {
+        bytesCopied += lo.read(b, off, len);
+        buffer = null;
+        bufferPosition = 0;
+        absolutePosition += bytesCopied;
+        /*
+        if there is a limit on the size of the blob then we could have read to the limit
+        so bytesCopied will be non-zero but we will have read nothing
+         */
+        if ( bytesCopied == 0 && (buffer == null) ) {
+          return -1;
+        }
+      }
+    } catch (SQLException ex ) {
+      throw new IOException(ex.getCause());
+    }
+    return bytesCopied;
   }
 
   /**
@@ -153,7 +208,7 @@ public class BlobInputStream extends InputStream {
    * @see java.io.InputStream#reset()
    */
   public synchronized void mark(int readlimit) {
-    mpos = apos;
+    markPosition = absolutePosition;
   }
 
   /**
@@ -166,13 +221,13 @@ public class BlobInputStream extends InputStream {
   public synchronized void reset() throws IOException {
     LargeObject lo = getLo();
     try {
-      if (mpos <= Integer.MAX_VALUE) {
-        lo.seek((int)mpos);
+      if (markPosition <= Integer.MAX_VALUE) {
+        lo.seek((int)markPosition);
       } else {
-        lo.seek64(mpos, LargeObject.SEEK_SET);
+        lo.seek64(markPosition, LargeObject.SEEK_SET);
       }
       buffer = null;
-      apos = mpos;
+      absolutePosition = markPosition;
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }

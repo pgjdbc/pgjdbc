@@ -18,6 +18,7 @@ import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
@@ -69,6 +70,10 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -280,16 +285,22 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           // we have updatable cursors it must be readonly.
           ResultSet rs =
               connection.execSQLQuery(sb.toString(), resultsettype, ResultSet.CONCUR_READ_ONLY);
-          //
-          // In long running transactions these backend cursors take up memory space
-          // we could close in rs.close(), but if the transaction is closed before the result set,
-          // then
-          // the cursor no longer exists
 
-          sb.setLength(0);
-          sb.append("CLOSE ");
-          Utils.escapeIdentifier(sb, cursorName);
-          connection.execSQLUpdate(sb.toString());
+          /*
+          If the user has set a fetch size we can't close the cursor yet.
+          Issue https://github.com/pgjdbc/pgjdbc/issues/2227
+           */
+          if (connection.getDefaultFetchSize() == 0 ) {
+            /*
+            // In long running transactions these backend cursors take up memory space
+            // we could close in rs.close(), but if the transaction is closed before the result set,
+            // then the cursor no longer exists
+            */
+            sb.setLength(0);
+            sb.append("CLOSE ");
+            Utils.escapeIdentifier(sb, cursorName);
+            connection.execSQLUpdate(sb.toString());
+          }
           ((PgResultSet) rs).setRefCursor(cursorName);
           return rs;
         }
@@ -575,7 +586,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getTimestampUtils().toTime(cal, string);
   }
 
-  private java.time.@Nullable LocalTime getLocalTime(int i) throws SQLException {
+  private @Nullable LocalTime getLocalTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -661,7 +672,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   }
 
-  private java.time.@Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
+  private @Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -701,7 +712,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getTimestampUtils().toOffsetDateTime(string);
   }
 
-  private java.time.@Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
+  private @Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -2124,6 +2135,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     rows = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;
+
+    /* this used to be closed right after reading all of the rows,
+    however if fetchSize is set ony fetchSize rows will be read and then
+    the cursor will be closed
+    We only need to worry about closing it if the transaction is still open
+    if it is in error it will get closed eventually. (maybe not ?)
+     */
+    if ( refCursorName != null  && fetchSize != 0) {
+      if (connection.getTransactionState() == TransactionState.OPEN) {
+        StringBuilder sb = new StringBuilder("CLOSE ");
+        Utils.escapeIdentifier(sb, castNonNull(refCursorName));
+        connection.execSQLUpdate(sb.toString());
+        refCursorName = null;
+      }
+    }
     if (cursor != null) {
       cursor.close();
       cursor = null;
@@ -3669,7 +3695,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, ex);
       }
       // JSR-310 support
-    } else if (type == java.time.LocalDate.class) {
+    } else if (type == LocalDate.class) {
       if (sqlType == Types.DATE) {
         Date dateValue = getDate(columnIndex);
         if (dateValue == null) {
@@ -3677,14 +3703,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
         long time = dateValue.getTime();
         if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(java.time.LocalDate.MAX);
+          return type.cast(LocalDate.MAX);
         }
         if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(java.time.LocalDate.MIN);
+          return type.cast(LocalDate.MIN);
         }
         return type.cast(dateValue.toLocalDate());
       } else if (sqlType == Types.TIMESTAMP) {
-        java.time.LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
+        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
         if (localDateTimeValue == null) {
           return null;
         }
@@ -3693,23 +3719,23 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == java.time.LocalTime.class) {
+    } else if (type == LocalTime.class) {
       if (sqlType == Types.TIME) {
         return type.cast(getLocalTime(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == java.time.LocalDateTime.class) {
+    } else if (type == LocalDateTime.class) {
       if (sqlType == Types.TIMESTAMP) {
         return type.cast(getLocalDateTime(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == java.time.OffsetDateTime.class) {
+    } else if (type == OffsetDateTime.class) {
       if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
-        java.time.OffsetDateTime offsetDateTime = getOffsetDateTime(columnIndex);
+        OffsetDateTime offsetDateTime = getOffsetDateTime(columnIndex);
         return type.cast(offsetDateTime);
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),

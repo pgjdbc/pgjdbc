@@ -586,6 +586,11 @@ Connection conn = DriverManager.getConnection(url);
   If we quote them, then we end up sending ""colname"" to the backend instead of "colname"
   which will not be found.
 
+* **authenticationPluginClassName** == String
+
+  Fully qualified class name of the class implementing the AuthenticationPlugin interface.
+  If this is null, the password value in the connection properties will be used.
+
 <a name="unix sockets"></a>
 ## Unix sockets
 

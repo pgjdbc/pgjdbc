@@ -102,25 +102,12 @@ public class CopyLargeFileTest {
     } catch (Throwable t) {
       String message = "Using seed = " + seed + " for StrangeInputStream. Set -DStrangeInputStream.seed="
           + seed + " to reproduce the test";
-      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
       t.addSuppressed(new Throwable(message) {
         @Override
         public synchronized Throwable fillInStackTrace() {
           return this;
         }
       });
-      //#else
-      if (t.getCause() != null) {
-        System.err.println(message);
-      } else {
-        t.initCause(new Throwable(message) {
-          @Override
-          public synchronized Throwable fillInStackTrace() {
-            return this;
-          }
-        });
-      }
-      //#endif
     } finally {
       if (in != null) {
         in.close();

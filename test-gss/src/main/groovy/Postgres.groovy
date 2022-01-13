@@ -6,7 +6,7 @@ class Postgres {
     int port
 
     public Postgres() {
-        setupPaths('/usr/local/pgsql/12/bin/','/tmp/pgdata11')
+        setupPaths('/usr/local/pgsql/14/bin/','/tmp/pgdata14')
         initDB()
     }
     public Postgres(String binDir, String dataDir) {
@@ -78,7 +78,11 @@ class Postgres {
         writePgHBA("$mode all all $hostAddress/32 gss map=mymap")
     }
     public void enableMyMap(String realm) {
-        writePgIdent("mymap  /^(.*)@$realm\$  \\1");
+        writePgIdent("mymap  /^(.*)@$realm\$  \\1")
+    }
+    // enables a database user that is different than the kerberos login user
+    public void enableOwnerMap(String principal, String realm, String user) {
+        writePgIdent("mymap $principal@$realm  $user")
     }
 
     public Process startPostgres(String []environment) {

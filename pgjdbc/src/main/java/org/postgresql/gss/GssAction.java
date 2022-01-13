@@ -20,27 +20,30 @@ import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.security.PrivilegedAction;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.security.auth.Subject;
 
 class GssAction implements PrivilegedAction<@Nullable Exception> {
 
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
   private final PGStream pgStream;
   private final String host;
-  private final String user;
   private final String kerberosServerName;
   private final boolean useSpnego;
-  private final @Nullable GSSCredential clientCredentials;
+  private final Subject subject;
   private final boolean logServerErrorDetail;
 
-  GssAction(PGStream pgStream, @Nullable GSSCredential clientCredentials, String host, String user,
+  GssAction(PGStream pgStream, Subject subject, String host,
       String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
-    this.clientCredentials = clientCredentials;
+    this.subject = subject;
     this.host = host;
-    this.user = user;
     this.kerberosServerName = kerberosServerName;
     this.useSpnego = useSpnego;
     this.logServerErrorDetail = logServerErrorDetail;
@@ -65,19 +68,24 @@ class GssAction implements PrivilegedAction<@Nullable Exception> {
       GSSManager manager = GSSManager.getInstance();
       GSSCredential clientCreds = null;
       Oid[] desiredMechs = new Oid[1];
-      if (clientCredentials == null) {
-        if (useSpnego && hasSpnegoSupport(manager)) {
-          desiredMechs[0] = new Oid("1.3.6.1.5.5.2");
-        } else {
-          desiredMechs[0] = new Oid("1.2.840.113554.1.2.2");
-        }
-        GSSName clientName = manager.createName(user, GSSName.NT_USER_NAME);
-        clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
-            GSSCredential.INITIATE_ONLY);
+      if (useSpnego && hasSpnegoSupport(manager)) {
+        desiredMechs[0] = new Oid("1.3.6.1.5.5.2");
       } else {
         desiredMechs[0] = new Oid("1.2.840.113554.1.2.2");
-        clientCreds = clientCredentials;
       }
+      Set<Principal> principals = subject.getPrincipals();
+      Iterator<Principal> principalIterator = principals.iterator();
+
+      Principal principal = null;
+      if (principalIterator.hasNext()) {
+        principal = principalIterator.next();
+      } else {
+        return new Exception("No principal found, unexpected error please report");
+      }
+
+      GSSName clientName = manager.createName(principal.getName(), GSSName.NT_USER_NAME);
+      clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
+          GSSCredential.INITIATE_ONLY);
 
       GSSName serverName =
           manager.createName(kerberosServerName + "@" + host, GSSName.NT_HOSTBASED_SERVICE);

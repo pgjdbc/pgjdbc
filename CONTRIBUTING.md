@@ -77,7 +77,7 @@ Here are a few important things you should know about contributing code:
 In order to build the source code for PgJDBC you will need the following tools:
 
   - A git client
-  - A JDK for the JDBC version you'd like to build (JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
+  - A JDK for the JDBC version you'd like to build (JDK8 for JDBC 4.2)
   - A running PostgreSQL instance (optional for unit/integration tests)
 
 Additionally, in order to update translations (not typical), you will need the following additional tools:
@@ -110,10 +110,6 @@ on a command line (the outputs are located in the relevant:
     ./gradlew test --tests org.postgresql.test.ssl.SslTest # execute test by class
     ./gradlew test -PincludeTestTags=!org.postgresql.test.SlowTests # skip slow tests
 
-Note: by default `pgjdbc` builds Java7-compatible jar as well, and it might be a bit confusing
-as every class is present in multiple files.
-You can skip `postgresql-jre7` by adding `pgjdbc.skip.jre7` to your `$HOME/.gradle/gradle.properties`
-
 Note: `clean` is not required, and the build automatically re-executes the tasks.
 However, Gradle caches the results of `test` execution as well, so if you want to
 re-execute tests even without changes to the source code, you might need to call
@@ -124,11 +120,9 @@ to load, build, and execute PgJDBC tests.
 It is known that PgJDBC loads automatically and it works in IntelliJ IDEA.
 
 After running the build , and build a .jar file (Java ARchive)
-depending on the version of java and which release you have the jar will be named
-postgresql[-jre<N>]-<major>.<minor>.<patch>.jar. We use Semantic versioning; as such
-major, minor, patch refer to the level of change introduced. For Java 7
-jre<N> will be appended after the patch level. N corresponds to the version of Java,
-roughly correlated to the JDBC version number.
+depending on which release you have the jar will be named
+postgresql-&lt;major&gt;.&lt;minor&gt;.&lt;patch&gt;.jar. We use Semantic versioning; as such
+major, minor, patch refer to the level of change introduced.
 
 ## Code style
 
@@ -314,18 +308,8 @@ https://guides.github.com/introduction/flow/.
 Remember to test proposed PgJDBC patches when running against older PostgreSQL
 versions where possible, not just against the PostgreSQL you use yourself.
 
-You also need to test your changes with older JDKs. PgJDBC must support JDK7
-("Java 1.7") and newer. Code that is specific to a particular spec version
-may use features from that version of the language. i.e. JDBC4.1 specific
-may use JDK7 features, JDBC4.2 may use JDK8 features.
-Common code and JDBC4 code needs to be compiled using JDK6.
-
-Three different versions of PgJDBC can be built, the JDBC 4.1 and 4.2 drivers.
-The driver to build is auto-selected based on the JDK version used to run the
-build.
-
-Note: `postgresql-jre7` is provided on a best effort basis, and the test suite
-requires Java 1.8 for execution.
+You also need to test your changes with older JDKs. PgJDBC must support JDK8
+("Java 1.8") and newer.
 
 You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.com/technetwork/java/archive-139210.html).
 

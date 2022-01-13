@@ -248,8 +248,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (result == null) {
       return false;
     }
-
-    return (Boolean) result;
+    return BooleanTypeUtil.castToBoolean(result);
   }
 
   public byte getByte(@Positive int parameterIndex) throws SQLException {

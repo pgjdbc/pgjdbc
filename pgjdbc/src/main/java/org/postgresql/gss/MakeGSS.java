@@ -5,18 +5,18 @@
 
 package org.postgresql.gss;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.ietf.jgss.GSSCredential;
 
 import java.io.IOException;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,7 +35,7 @@ public class MakeGSS {
     LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
 
     if (jaasApplicationName == null) {
-      jaasApplicationName = "pgjdbc";
+      jaasApplicationName = PGProperty.JAAS_APPLICATION_NAME.getDefaultValue();
     }
     if (kerberosServerName == null) {
       kerberosServerName = "postgres";
@@ -44,28 +44,17 @@ public class MakeGSS {
     @Nullable Exception result;
     try {
       boolean performAuthentication = jaasLogin;
-      GSSCredential gssCredential = null;
-      Subject sub = Subject.getSubject(AccessController.getContext());
-      if (sub != null) {
-        Set<GSSCredential> gssCreds = sub.getPrivateCredentials(GSSCredential.class);
-        if (gssCreds != null && !gssCreds.isEmpty()) {
-          gssCredential = gssCreds.iterator().next();
-          performAuthentication = false;
-        }
-      }
-      if (performAuthentication) {
-        LoginContext lc =
-            new LoginContext(jaasApplicationName, new GSSCallbackHandler(user, password));
-        lc.login();
-        sub = lc.getSubject();
-      }
+
+      LoginContext lc = new LoginContext(castNonNull(jaasApplicationName), new GSSCallbackHandler(user, password));
+      lc.login();
+      Subject sub = lc.getSubject();
       if ( encrypted ) {
-        PrivilegedAction<@Nullable Exception> action = new GssEncAction(pgStream, gssCredential, host, user,
+        PrivilegedAction<@Nullable Exception> action = new GssEncAction(pgStream, sub, host, user,
             kerberosServerName, useSpnego, logServerErrorDetail);
 
         result = Subject.doAs(sub, action);
       } else {
-        PrivilegedAction<@Nullable Exception> action = new GssAction(pgStream, gssCredential, host, user,
+        PrivilegedAction<@Nullable Exception> action = new GssAction(pgStream, sub, host,
             kerberosServerName, useSpnego, logServerErrorDetail);
 
         result = Subject.doAs(sub, action);

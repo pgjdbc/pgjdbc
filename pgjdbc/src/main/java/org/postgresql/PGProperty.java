@@ -83,6 +83,16 @@ public enum PGProperty {
       "Assume the server is at least that version"),
 
   /**
+   * AuthenticationPluginClass
+   */
+
+  AUTHENTICATION_PLUGIN_CLASS_NAME(
+      "authenticationPluginClassName",
+      null,
+      "Name of class which implements AuthenticationPlugin"
+  ),
+
+  /**
    * Specifies what the driver should do if a query fails. In {@code autosave=always} mode, JDBC driver sets a savepoint before each query,
    * and rolls back to that savepoint in case of failure. In {@code autosave=never} mode (default), no savepoint dance is made ever.
    * In {@code autosave=conservative} mode, savepoint is set for each query, however the rollback is done only for rare cases
@@ -255,7 +265,7 @@ public enum PGProperty {
    */
   JAAS_APPLICATION_NAME(
       "jaasApplicationName",
-      null,
+      "pgjdbc",
       "Specifies the name of the JAAS system or application login configuration."),
 
   /**

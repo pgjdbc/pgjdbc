@@ -16,16 +16,21 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.TextOutputCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
-public class GSSCallbackHandler implements CallbackHandler {
+/*
+  provide a more or less redundant callback handler
+*/
+
+class GSSCallbackHandler implements CallbackHandler {
 
   private final String user;
   private final @Nullable String password;
 
-  public GSSCallbackHandler(String user, @Nullable String password) {
+  GSSCallbackHandler(String user, @Nullable String password) {
     this.user = user;
     this.password = password;
   }
 
+  @Override
   public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
     for (Callback callback : callbacks) {
       if (callback instanceof TextOutputCallback) {
@@ -57,5 +62,4 @@ public class GSSCallbackHandler implements CallbackHandler {
       }
     }
   }
-
 }
