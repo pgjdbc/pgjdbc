@@ -21,40 +21,38 @@ public class BlobInputStream extends InputStream {
   private @Nullable LargeObject lo;
 
   /**
-   * The absolute position.
-   */
-  private long absolutePosition;
-
-  /**
    * Buffer used to improve performance.
    */
-  private byte @Nullable [] buffer;
+  private byte[] buffer;
 
   /**
-   * Position within buffer.
+   * Absolute position of the very first element in {@link #buffer}.
+   */
+  private long bufferStartPosition;
+
+  /**
+   * Number of ready bytes in {@link #buffer}.
    */
   private int bufferPosition;
 
   /**
-   * The buffer size.
+   * The mark position (absolute).
    */
-  private final int bufferSize;
+  private int markPosition = -1;
 
-  /**
-   * The mark position.
-   */
-  private long markPosition = 0;
-
+  private int marklimit = 0;
   /**
    * The limit.
    */
-  private long limit = -1;
+  private final long limit;
+
+  private int count = 0;
 
   /**
    * @param lo LargeObject to read from
    */
   public BlobInputStream(LargeObject lo) {
-    this(lo, 1024);
+    this(lo, 16384);
   }
 
   /**
@@ -73,39 +71,95 @@ public class BlobInputStream extends InputStream {
    */
   public BlobInputStream(LargeObject lo, int bsize, long limit) {
     this.lo = lo;
-    buffer = null;
-    bufferPosition = 0;
-    absolutePosition = 0;
-    this.bufferSize = bsize;
+    this.buffer = new byte[(int) Math.min(bsize, limit)];
     this.limit = limit;
+  }
+
+  private void fill() throws IOException, SQLException {
+    // check EOF
+    if (markPosition < 0) {
+      bufferPosition = 0;
+    } else if (bufferPosition >= buffer.length) { /* no mark: throw away the buffer */
+      /* no room left in buffer */
+      if (markPosition > 0) {
+        /* can throw away early part of the buffer */
+        int sz = bufferPosition - markPosition;
+        System.arraycopy(buffer, markPosition, buffer, 0, sz);
+        bufferPosition = sz;
+        markPosition = 0;
+      } else if (buffer.length >= marklimit) {
+        markPosition = -1;   /* buffer got too big, invalidate mark */
+        bufferPosition = 0;        /* drop buffer contents */
+      } else {            /* grow buffer */
+        int nsz = buffer.length * 2;
+        if (nsz > marklimit) {
+          nsz = marklimit;
+        }
+        byte[] nbuf = new byte[nsz];
+        System.arraycopy(buffer, 0, nbuf, 0, markPosition);
+        buffer = nbuf;
+      }
+    }
+    count = bufferPosition;
+    int n = read1(buffer, bufferPosition, buffer.length - bufferPosition);
+    if (n > 0) {
+      count = n + bufferPosition;
+    }
+  }
+
+  private int read1(byte []b, int pos, int len) throws IOException {
+    int bytesRead = -1;
+    LargeObject lo = getLo();
+    try {
+      byte[] tmp = lo.read(len);
+
+      if (tmp != null) {
+        // only copy what we read
+        System.arraycopy(tmp, 0, b, pos, tmp.length);
+        bytesRead = Math.min(tmp.length, len);
+      }
+    } catch (SQLException e) {
+      throw new IOException(e.getCause());
+    }
+    return bytesRead;
+  }
+
+  private int read2( byte []b, int off, int len ) throws IOException, SQLException {
+    int avail = count - bufferPosition;
+    if (avail <= 0) {
+      /*
+        If the requested length is at least as large as the buffer, and
+        if there is no mark/reset activity, do not bother to copy the
+        bytes into the local buffer.  In this way buffered streams will
+        cascade harmlessly.
+      */
+      if (len >= buffer.length && markPosition < 0) {
+        return read1(b, off, len);
+      }
+      fill();
+      avail = count - bufferPosition;
+      if (avail <= 0) {
+        return -1;
+      }
+    }
+    int cnt = (avail < len) ? avail : len;
+    System.arraycopy(buffer, bufferPosition, b, off, cnt);
+    bufferPosition += cnt;
+    return cnt;
   }
 
   /**
    * The minimum required to implement input stream.
    */
   public int read() throws java.io.IOException {
-    LargeObject lo = getLo();
     try {
-      if (limit > 0 && absolutePosition >= limit) {
-        return -1;
+      if (bufferPosition >= count) {
+        fill();
+        if (bufferPosition >= count) {
+          return -1;
+        }
       }
-      // read more in if necessary
-      if (buffer == null || bufferPosition >= buffer.length) {
-        buffer = lo.read(bufferSize);
-        bufferPosition = 0;
-      }
-
-      // Handle EOF
-      if ( buffer == null || bufferPosition >= buffer.length) {
-        return -1;
-      }
-
-      int ret = (buffer[bufferPosition] & 0xFF);
-
-      bufferPosition++;
-      absolutePosition++;
-
-      return ret;
+      return buffer[bufferPosition++] & 0xff;
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }
@@ -113,59 +167,36 @@ public class BlobInputStream extends InputStream {
 
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
-    int bytesCopied = 0;
-    LargeObject lo = getLo();
-
-    /* check to make sure we aren't at the limit
-    *  funny to test for 0, but I guess someone could create a blob
-    * with a limit of zero
-    */
-    if ( limit >= 0 && absolutePosition >= limit ) {
-      return -1;
+    getLo();
+    if ((off | len | (off + len) | (b.length - (off + len))) < 0) {
+      throw new IndexOutOfBoundsException();
+    } else if (len == 0) {
+      return 0;
     }
-
-    /* check to make sure we are not going to read past the limit */
-    if ( limit >= 0 && len > limit - absolutePosition ) {
-      len = (int)(limit - absolutePosition);
-    }
-
     try {
-      // have we read anything into the buffer
-      if ( buffer != null ) {
-        // now figure out how much data is in the buffer
-        int bytesInBuffer = buffer.length - bufferPosition;
-        // figure out how many bytes the user wants
-        int bytesToCopy = len > bytesInBuffer ? bytesInBuffer : len;
-        // copy them in
-        System.arraycopy(buffer, bufferPosition, b, off, bytesToCopy);
-        // move the buffer position
-        bufferPosition += bytesToCopy;
-        // position in the blob
-        absolutePosition += bytesToCopy;
-        // increment offset
-        off += bytesToCopy;
-        // decrement the length
-        len -= bytesToCopy;
-        bytesCopied = bytesToCopy;
-      }
-
-      if (len > 0 ) {
-        bytesCopied += lo.read(b, off, len);
-        buffer = null;
-        bufferPosition = 0;
-        absolutePosition += bytesCopied;
-        /*
-        if there is a limit on the size of the blob then we could have read to the limit
-        so bytesCopied will be non-zero but we will have read nothing
-         */
-        if ( bytesCopied == 0 && (buffer == null) ) {
-          return -1;
+      int n = 0;
+      for (; ; ) {
+        int nread = read2(b, off + n, len - n);
+        if (nread <= 0) {
+          return (n == 0) ? nread : n;
         }
+        n += nread;
+        if (n >= len) {
+          return n;
+        }
+        /*
+          TODO
+          if not closed but no bytes available, return
+
+          InputStream input = in;
+          if (input != null && input.available() <= 0)
+          return n;
+
+        */
       }
-    } catch (SQLException ex ) {
-      throw new IOException(ex.getCause());
+    } catch ( SQLException e) {
+      throw new IOException(e.getCause());
     }
-    return bytesCopied;
   }
 
   /**
@@ -208,7 +239,8 @@ public class BlobInputStream extends InputStream {
    * @see java.io.InputStream#reset()
    */
   public synchronized void mark(int readlimit) {
-    markPosition = absolutePosition;
+    marklimit = readlimit;
+    markPosition = bufferPosition;
   }
 
   /**
@@ -219,18 +251,13 @@ public class BlobInputStream extends InputStream {
    * @see java.io.IOException
    */
   public synchronized void reset() throws IOException {
-    LargeObject lo = getLo();
-    try {
-      if (markPosition <= Integer.MAX_VALUE) {
-        lo.seek((int)markPosition);
-      } else {
-        lo.seek64(markPosition, LargeObject.SEEK_SET);
-      }
-      buffer = null;
-      absolutePosition = markPosition;
-    } catch (SQLException se) {
-      throw new IOException(se.toString());
+
+    // check if closed
+    getLo();
+    if (markPosition < 0) {
+      throw new IOException("Resetting to invalid mark");
     }
+    bufferPosition = markPosition;
   }
 
   /**
@@ -248,7 +275,7 @@ public class BlobInputStream extends InputStream {
 
   private LargeObject getLo() throws IOException {
     if (lo == null) {
-      throw new IOException("BlobOutputStream is closed");
+      throw new IOException("BlobInputStream is closed");
     }
     return lo;
   }
