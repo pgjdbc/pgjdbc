@@ -1,14 +1,16 @@
 name: Nightly Snapshot
 
 # only on push or allow us to do this manually using workflow dispatch
-on: [push,workflow_dispatch]
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
 
 jobs:
   snapshot:
     name: Snapshot
     runs-on: ubuntu-latest
-    #only for master
-    if: ${{ github.ref == 'refs/heads/master' }}
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true

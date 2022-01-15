@@ -23,9 +23,6 @@ jobs:
           java-version: 11
       - uses: burrunan/gradle-cache-action@v1
         name: Publish Snapshot
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: jdk8
           arguments: postgresql:publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc

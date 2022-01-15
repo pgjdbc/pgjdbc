@@ -23,6 +23,13 @@ on:
 # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners
 # GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
 
+concurrency:
+  # On master/release, we don't want any jobs cancelled so the sha is used to name the group
+  # On PR branches, we cancel the job if new commits are pushed
+  # More info: https://stackoverflow.com/a/68422069/253468
+  group: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release' ) && format('ci-main-{0}', github.sha) || format('ci-main-{0}', github.ref) }}
+  cancel-in-progress: true
+
 jobs:
   code-style:
     name: 'Code style'

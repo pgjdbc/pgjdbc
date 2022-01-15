@@ -9,6 +9,13 @@ on:
       - '**/*.md'
       - 'appveyor.xml'
 
+concurrency:
+  # Push to the same branch (ref is like refs/heads/release) should stop previous buildcache
+  # workflows for the branch.
+  # More info: https://stackoverflow.com/a/68422069/253468
+  group: ci-buildcache-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check_secrets:
     name: Check if required secrets are available
