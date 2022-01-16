@@ -71,13 +71,19 @@ jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
 jdbc:postgresql://host:port/
 jdbc:postgresql://?service=myservice
+jdbc:postgresql://user@host1,host2/database?port=5555
+jdbc:postgresql://user:password@host1:port1,host2:port2/database?service=myservice&defaultRowFetchSize=100
+jdbc:postgresql://:password@:port
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
-jdbc:postgresql:[//host[:port]/][database][?property1=value1[&property2=value2]...]
+jdbc:postgresql://[[user][:password]@][host1[:port1][,host2[:port2]][,...]][/database][?property1=value1[&property2=value2][&...]]
+jdbc:postgresql:[database]
 ```
 where:
  * **jdbc:postgresql:** (Required) is known as the sub-protocol and is constant.
+ * **user** (Optional) is the user to connect. Defaults to `operating system username`.
+ * **password** (Optional) is the password to connect. No default value.
  * **host** (Optional) is the server address to connect. This could be a DNS or IP address, or it could be *localhost* or *127.0.0.1* for the local computer. To specify an IPv6 address your must enclose the host parameter with square brackets (jdbc:postgresql://[::1]:5740/accounting). Defaults to `localhost`.
  * **port** (Optional) is the port number listening on the host. Defaults to `5432`.
  * **database** (Optional) is the database name. Defaults to the same name as the *user name* used in the connection.
@@ -143,6 +149,36 @@ In addition to the standard connection parameters the driver supports a number o
 | localSocketAddress            | String  | null    | Hostname or IP address given to explicitly configure the interface that the driver will bind the client side of the TCP/IP connection to when connecting.
 | quoteReturningIdentifiers     | Boolean | true    | By default we double quote returning identifiers. Some ORM's already quote them. Switch allows them to turn this off
 | authenticationPluginClassName | String  | null    | Fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the password value in the connection properties will be used.
+
+#### Properties
+The following command line properties can be set.
+
+| Property                     |                               Default                                | Description                                                                                                                                           |
+|------------------------------|:--------------------------------------------------------------------:|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| org.postgresql.pghost        |                                 null                                 | same as the host connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| org.postgresql.pgport        |                                 null                                 | same as the port connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| org.postgresql.pgdatabase    |                                 null                                 | same as the dbname connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                |
+| org.postgresql.pguser        |                                 null                                 | same as the user connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| org.postgresql.pgpassword    |                                 null                                 | same as the password connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).              |
+| org.postgresql.pgpassfile    |        $HOME/.pgpass <br /> %APPDATA%\postgresql\pgpass.conf         | same as the passfile connection parameter. [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html).                            |
+| org.postgresql.pgservice     |                                 null                                 | same as the service connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).               |
+| org.postgresql.pgservicefile | $HOME/.pg_service.conf <br /> %APPDATA%\postgresql\\.pg_service.conf | name of the per-user connection service file. [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html).            |
+| org.postgresql.pgsysconfdir  |                                 null                                 | sets the directory containing the pg_service.conf file. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html). |
+
+#### Environment variables
+The following environment variables can be set.
+
+| Variable      |                                                              Default | Description                                                                                                                                           |
+|---------------|---------------------------------------------------------------------:|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| PGHOST        |                                                                 null | same as the host connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| PGPORT        |                                                                 null | same as the port connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| PGDATABASE    |                                                                 null | same as the dbname connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                |
+| PGUSER        |                                                                 null | same as the user connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| PGPASSWORD    |                                                                 null | same as the password connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).              |
+| PGPASSFILE    |                $HOME/.pgpass <br /> %APPDATA%\postgresql\pgpass.conf | same as the passfile connection parameter. [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html).                            |
+| PGSERVICE     |                                                                 null | same as the service connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).               |
+| PGSERVICEFILE | $HOME/.pg_service.conf <br /> %APPDATA%\postgresql\\.pg_service.conf | name of the per-user connection service file. [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html).            |
+| PGSYSCONFDIR  |                                                                 null | sets the directory containing the pg_service.conf file. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html). |
 
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)

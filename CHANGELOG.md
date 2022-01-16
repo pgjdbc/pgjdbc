@@ -37,7 +37,8 @@ binary numeric values which represented integers multiples of 10,000 from 10,000
 
 ### Added
 - Support for pg_service.conf file and jdbc URL syntax: "jdbc:postgresql://?service=service1".
-  Resource can be provided using 1) property "-Dorg.postgresql.pgservicefile=file1" 2) environment variable PGSERVICEFILE=file2 3) default location "$HOME/.pg_service.conf" 4) environment variable PGSYSCONFDIR=dir1 looks for file "dir1/pg_service.conf".
+  Service name can be provided in 3 ways (order of priority): 1) URL argument "?service=service1" 2) property "-Dorg.postgresql.pgservice=service1" 3) environment variable PGSERVICE=service1.
+  Resource for services can be provided in 4 ways (order of priority) 1) property "-Dorg.postgresql.pgservicefile=file1" 2) environment variable PGSERVICEFILE=file2 3) default location "$HOME/.pg_service.conf" 4) environment variable PGSYSCONFDIR=dir1 looks for file "dir1/pg_service.conf".
 - Support for .pgpass file. Resource can be provided using 1) property "-Dorg.postgresql.pgpassfile=file1" 2) environment variable PGPASSFILE=file2 3) default location "$HOME/.pgpass"
 
 ### Fixed

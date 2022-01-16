@@ -26,7 +26,7 @@ import java.util.logging.Logger;
  * helps to read Password File.
  * https://www.postgresql.org/docs/current/libpq-pgpass.html
  */
-public class PGPropertyPasswordParser {
+class PGPropertyPasswordParser {
 
   private static final Logger LOGGER = Logger.getLogger(PGPropertyPasswordParser.class.getName());
   private static final char SEPARATOR = ':';
@@ -53,7 +53,7 @@ public class PGPropertyPasswordParser {
    * @param user     username or *
    * @return password or null
    */
-  public static @Nullable String getPassword(@Nullable String hostname, @Nullable String port, @Nullable String database, @Nullable String user) {
+  static @Nullable String getPassword(@Nullable String hostname, @Nullable String port, @Nullable String database, @Nullable String user) {
     if (hostname == null || hostname.isEmpty()) {
       return null;
     }
@@ -106,20 +106,20 @@ public class PGPropertyPasswordParser {
 
     // if there is value, use it - 1st priority
     {
-      String propertyName = PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName();
-      String resourceName = System.getProperty(propertyName);
+      PGEnvironment pgEnvironment = PGEnvironment.ORG_POSTGRESQL_PGPASSFILE;
+      String resourceName = pgEnvironment.readStringValue();
       if (resourceName != null && !resourceName.trim().isEmpty()) {
-        LOGGER.log(Level.FINE, "Value [{0}] selected from property [{1}]", new Object[]{resourceName, propertyName});
+        LOGGER.log(Level.FINE, "Value [{0}] selected from property [{1}]", new Object[]{resourceName, pgEnvironment.getName()});
         return resourceName;
       }
     }
 
     // if there is value, use it - 2nd priority
     {
-      String envVariableName = PGEnvironment.PGPASSFILE.getName();
-      String resourceName = System.getenv().get(envVariableName);
+      PGEnvironment pgEnvironment = PGEnvironment.PGPASSFILE;
+      String resourceName = pgEnvironment.readStringValue();
       if (resourceName != null && !resourceName.trim().isEmpty()) {
-        LOGGER.log(Level.FINE, "Value [{0}] selected from environment variable [{1}]", new Object[]{resourceName, envVariableName});
+        LOGGER.log(Level.FINE, "Value [{0}] selected from environment variable [{1}]", new Object[]{resourceName, pgEnvironment.getName()});
         return resourceName;
       }
     }

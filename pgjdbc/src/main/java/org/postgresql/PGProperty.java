@@ -870,6 +870,16 @@ public enum PGProperty {
   }
 
   /**
+   * Put the value for this connection parameter in the given {@code Properties} if parameter is absent.
+   *
+   * @param properties properties in which the value should be set
+   * @param value value for this connection parameter
+   */
+  public void putIfAbsent(Properties properties, String value) {
+    properties.putIfAbsent(name, value);
+  }
+
+  /**
    * Return the boolean value for this connection parameter in the given {@code Properties}.
    *
    * @param properties properties to take actual value from

@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * helps to read Connection Service File.
  * https://www.postgresql.org/docs/current/libpq-pgservice.html
  */
-public class PGPropertyServiceParser {
+class PGPropertyServiceParser {
 
   private static final Logger LOGGER = Logger.getLogger(PGPropertyServiceParser.class.getName());
   private final String serviceName;
@@ -47,7 +47,7 @@ public class PGPropertyServiceParser {
    * @param serviceName service name to search for
    * @return key value pairs
    */
-  public static @Nullable Properties getServiceProperties(String serviceName) {
+  static @Nullable Properties getServiceProperties(String serviceName) {
     PGPropertyServiceParser pgPropertyServiceParser = new PGPropertyServiceParser(serviceName);
     return pgPropertyServiceParser.findServiceDescription();
   }
