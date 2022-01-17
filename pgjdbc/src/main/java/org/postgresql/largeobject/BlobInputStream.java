@@ -73,7 +73,7 @@ public class BlobInputStream extends InputStream {
    */
   public BlobInputStream(LargeObject lo, int bsize, long limit) {
     this.lo = lo;
-    this.buffer = new byte[(int) Math.min(bsize, limit)];
+    this.buffer = new byte[bsize];
     this.limit = limit;
   }
 
@@ -141,7 +141,7 @@ public class BlobInputStream extends InputStream {
     int avail = bytesInBuffer - bufferPosition;
 
     /* we respect the limit and return EOF in this case */
-    if ( absolutePosition >= limit ) {
+    if ( limit != -1 && absolutePosition >= limit ) {
       return -1;
     }
 
