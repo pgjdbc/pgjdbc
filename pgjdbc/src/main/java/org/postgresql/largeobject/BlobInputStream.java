@@ -182,7 +182,7 @@ public class BlobInputStream extends InputStream {
   public int read() throws java.io.IOException {
     /* check to make sure the underlying stream has not been closed */
     getLo();
-    if ( absolutePosition >= limit ) {
+    if ( limit > 0  && absolutePosition >= limit ) {
       return -1;
     }
     try {
