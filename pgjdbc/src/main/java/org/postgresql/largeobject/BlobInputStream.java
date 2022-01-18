@@ -125,8 +125,8 @@ public class BlobInputStream extends InputStream {
     }
     try {
       byte[] tmp = lo.read(len);
-
-      if (tmp != null) {
+      // check for end of file lo.read returns an empty buffer if it is at the end
+      if (tmp != null && tmp.length > 0) {
         // only copy what we read
         System.arraycopy(tmp, 0, b, pos, tmp.length);
         bytesRead = Math.min(tmp.length, len);
@@ -141,8 +141,14 @@ public class BlobInputStream extends InputStream {
     int avail = bytesInBuffer - bufferPosition;
 
     /* we respect the limit and return EOF in this case */
-    if ( limit != -1 && absolutePosition >= limit ) {
-      return -1;
+    if ( limit != -1 ) {
+      if ( absolutePosition >= limit ) {
+        return -1;
+      }
+      // respect the limit
+      if ( absolutePosition + len > limit ) {
+        avail = Math.min((int)(limit - absolutePosition), avail);
+      }
     }
 
     if (avail <= 0) {
