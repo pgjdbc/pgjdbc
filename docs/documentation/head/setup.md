@@ -43,5 +43,10 @@ Versions for JDBC3 and lower can be found [here](https://jdbc.postgresql.org/dow
 This is a very brief outline of how to build the driver. Much more detailed information can be 
 found on the [github repo](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md)
 
-Even though the JDBC driver should be built with Gradle, for situations, where use of Gradle is not possible, e.g., when building pgjdbc for distributions, the pgjdbc provides a convenience source release artifact **-src.tar.gz** - a Maven based project. The Maven based project contains a minimal version of the JDBC driver with reduced feature and test set and is still validly buildable within the Maven build environment.
-Minimal version of the JDBC driver is created with **gradlew -d :postgresql:sourceDistribution -Prelease** and then released in the ["Maven central repository"](https://repo1.maven.org/maven2/org/postgresql/postgresql/).
+Even though the JDBC driver should be built with Gradle, for situations, where use of Gradle is not possible,
+e.g., when building pgjdbc for distributions, the pgjdbc gradle build provides a convenience
+source release artifact **-src.tar.gz** - a Maven based project.
+The Maven based project contains a minimal version of the JDBC driver with reduced feature and test set
+and is still validly buildable within the Maven build environment.
+Minimal version of the JDBC driver is created with **gradlew -d :postgresql:sourceDistribution -Prelease**
+and then released in the ["Maven central repository"](https://repo1.maven.org/maven2/org/postgresql/postgresql/).
