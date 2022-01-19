@@ -53,8 +53,6 @@ install:
 - echo service=postgresql%x64%-%pgversion%
 
 before_build:
-- ps: Add-Content -PATH "\Users\appveyor\.gradle\gradle.properties" "pgjdbc.skip.jre6=true"
-- ps: Add-Content -PATH "\Users\appveyor\.gradle\gradle.properties" "pgjdbc.skip.jre7=true"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
