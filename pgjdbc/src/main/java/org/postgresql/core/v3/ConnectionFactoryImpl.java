@@ -403,6 +403,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   /**
    * Convert Java time zone to postgres time zone. All others stay the same except that GMT+nn
    * changes to GMT-nn and vise versa.
+   * If you provide GMT+/-nn postgres uses POSIX rules which has a positive sign for west of Greenwich
+   * JAVA uses ISO rules which the positive sign is east of Greenwich
+   * To make matters more interesting postgres will always report in ISO
    *
    * @return The current JVM time zone in postgresql format.
    */
