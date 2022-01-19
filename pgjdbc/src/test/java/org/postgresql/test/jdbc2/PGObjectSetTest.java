@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
@@ -78,6 +79,7 @@ public class PGObjectSetTest extends BaseTest4 {
     PGobject object = new PGobject();
     object.setType(typeName);
     object.setValue(null);
+    assertTrue("IsNull should return true", object.isNull());
     testSet(object, expected, PGobject.class);
   }
 
