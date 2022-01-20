@@ -20,6 +20,7 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.x500.X500Principal;
 
 public class LazyKeyManagerTest {
 
@@ -43,6 +44,32 @@ public class LazyKeyManagerTest {
         true);
     PrivateKey pk = lazyKeyManager.getPrivateKey("user");
     Assert.assertNotNull(pk);
+  }
+
+  @Test
+  public void testChooseClientAlias() throws Exception {
+    LazyKeyManager lazyKeyManager = new LazyKeyManager(
+        TestUtil.getSslTestCertPath("goodclient.crt"),
+        TestUtil.getSslTestCertPath("goodclient.pk8"),
+        new TestCallbackHandler("sslpwd"),
+        true);
+    X500Principal testPrincipal = new X500Principal("CN=root certificate, O=PgJdbc test, ST=CA, C=US");
+    X500Principal[] issuers = new X500Principal[]{testPrincipal};
+
+    String validKeyType = lazyKeyManager.chooseClientAlias(new String[]{"RSA"}, issuers, null);
+    Assert.assertNotNull(validKeyType);
+
+    String ignoresCase = lazyKeyManager.chooseClientAlias(new String[]{"rsa"}, issuers, null);
+    Assert.assertNotNull(ignoresCase);
+
+    String invalidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
+    Assert.assertNull(invalidKeyType);
+
+    String containsValidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC","RSA"}, issuers, null);
+    Assert.assertNotNull(containsValidKeyType);
+
+    String ignoresBlank = lazyKeyManager.chooseClientAlias(new String[]{}, issuers, null);
+    Assert.assertNotNull(ignoresBlank);
   }
 
   public static class TestCallbackHandler implements CallbackHandler {
