@@ -24,6 +24,7 @@ remove the user and password arguments. Any locations that required those fields
 - test: Fix DatabaseMetadataTest to perform mview tests only on 9.3+
 - perf: read in_hot_standby GUC on connection [PR #2334](https://github.com/pgjdbc/pgjdbc/pull/2334)
 - doc: improv doc around binary decoding of numeric data [#2331](https://github.com/pgjdbc/pgjdbc/pull/2331)
+- Add cert key type checking to chooseClientAlias [PR #2417](https://github.com/pgjdbc/pgjdbc/pull/2417)
 ### Added
 - perf: add read(b,o,l) to BlobInputStream [PR #2376](https://github.com/pgjdbc/pgjdbc/pull/2376)
 - feat: Add authenticationPluginClassName option to provide passwords at runtime
