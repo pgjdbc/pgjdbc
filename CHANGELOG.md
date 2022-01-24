@@ -47,7 +47,7 @@ a password that must be generated on the fly or periodically changes. [PR #2369]
 - fix: The spec says that calling close() on a closed connection is a noop. [PR #2345](https://github.com/pgjdbc/pgjdbc/pull/2345) fixes [Issue #2300](https://github.com/pgjdbc/pgjdbc/issues/2300)
 - fix: add microsecond precision to getTimestamp() called on sql TIME(6) Currently, "when fetching a value of type TIME(6) through
 resultSet.getTimestamp() only ms precision is retained, the microsecond fractional digits are lost." This change will retain the microsecond
-precision when .getTimestamp() is called on TIME(6). [PR #1732](https://github.com/pgjdbc/pgjdbc/pull/1732) Closes [Issue #1537](https://github.com/pgjdbc/pgjdbc/issues/1537)
+precision when .getTimestamp() is called on TIME(6). [PR #2181](https://github.com/pgjdbc/pgjdbc/pull/2181) Closes [Issue #1537](https://github.com/pgjdbc/pgjdbc/issues/1537)
 - test: materialized view privileges [PR #2209](https://github.com/pgjdbc/pgjdbc/pull/2209) add and drop a materialized view
 Add to TestUtil and also to DatabaseMetaData setup and teardown fixes [Issue #2060](https://github.com/pgjdbc/pgjdbc/issues/2060)
 - fix: type in connect.md [PR #2338](https://github.com/pgjdbc/pgjdbc/pull/2238) `OutOfMemoryException` => `OutOfMemoryError`
