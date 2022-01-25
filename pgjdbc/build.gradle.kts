@@ -56,6 +56,7 @@ dependencies {
 
     implementation("org.checkerframework:checker-qual")
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
+    testImplementation(project(":pgjdbc-testkit"))
 }
 
 val skipReplicationTests by props()

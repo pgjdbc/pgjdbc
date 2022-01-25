@@ -37,6 +37,7 @@ plugins {
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.license-gather") apply false
     id("com.github.vlsi.stage-vote-release")
+    kotlin("jvm") apply false
 }
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: props.bool("CI"))
@@ -169,6 +170,7 @@ allprojects {
         apply(plugin = "org.jetbrains.kotlin.jvm")
         dependencies {
             add(if (kotlinMainUsed) "implementation" else "testImplementation", kotlin("stdlib"))
+            add(if (kotlinMainUsed) "implementation" else "testImplementation", kotlin("stdlib-jdk8"))
         }
     }
 

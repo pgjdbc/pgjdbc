@@ -69,6 +69,11 @@ public class LargeObject
 
   private boolean closed = false; // true when we are closed
 
+  /**
+   * Absolute position of the descriptor {@link #fd}, or -1 if the position is not known.
+   */
+  private long fdPosition;
+
   private @Nullable BaseConnection conn; // Only initialized when open a LOB with CommitOnClose
   private final boolean commitOnClose; // Only initialized when open a LOB with CommitOnClose
 
@@ -149,6 +154,14 @@ public class LargeObject
    */
   public long getLongOID() {
     return oid;
+  }
+
+  /**
+   * Current server-side position assuming LO is not modified via another location.
+   * @return current server-side position, or -1 if the position is not known
+   */
+  /* package */ long getFdPosition() {
+    return fdPosition;
   }
 
   /**
@@ -425,5 +438,10 @@ public class LargeObject
       os = new BlobOutputStream(this, 4096);
     }
     return os;
+  }
+
+  @Override
+  public String toString() {
+    return "LargeObject{oid=" + oid + ", mode=" + mode + "}";
   }
 }
