@@ -109,6 +109,10 @@ public class BaseTest4 {
     Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
   }
 
+  public void assumeNotSimpleQueryMode() {
+    Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
+  }
+
   /**
    * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}.
    */
