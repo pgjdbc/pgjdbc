@@ -31,7 +31,7 @@ remove the user and password arguments. Any locations that required those fields
 Adds authenticationPluginClassName connection property that allows end users to specify a class
 that will provide the connection passwords at runtime. This allows configuring a connection with
 a password that must be generated on the fly or periodically changes. [PR #2369](https://github.com/pgjdbc/pgjdbc/pull/2369) original issue [Issue #2102](https://github.com/pgjdbc/pgjdbc/issues/2102)
-- fix: add TCP No Delay option [PR #2341](https://github.com/pgjdbc/pgjdbc/pull/2341) fixes [Issue #2324](https://github.com/pgjdbc/pgjdbc/issues/2324)
+- feat: add tcpNoDelay option [PR #2341](https://github.com/pgjdbc/pgjdbc/pull/2341) fixes [Issue #2324](https://github.com/pgjdbc/pgjdbc/issues/2324)
 - feat: pg_service.conf and .pgpass support (jdbc:postgresql://?service=my-service) [PR #2260](https://github.com/pgjdbc/pgjdbc/pull/2260) fixes [Issue #2278](https://github.com/pgjdbc/pgjdbc/issues/2278)
 ### Fixed
 - Use local TimestampUtil in PgStatement and PgResultset for thread safety [PR #2291](https://github.com/pgjdbc/pgjdbc/pull/2291)
@@ -51,7 +51,7 @@ resultSet.getTimestamp() only ms precision is retained, the microsecond fraction
 precision when .getTimestamp() is called on TIME(6). [PR #2181](https://github.com/pgjdbc/pgjdbc/pull/2181) Closes [Issue #1537](https://github.com/pgjdbc/pgjdbc/issues/1537)
 - test: materialized view privileges [PR #2209](https://github.com/pgjdbc/pgjdbc/pull/2209) add and drop a materialized view
 Add to TestUtil and also to DatabaseMetaData setup and teardown fixes [Issue #2060](https://github.com/pgjdbc/pgjdbc/issues/2060)
-- fix: type in connect.md [PR #2338](https://github.com/pgjdbc/pgjdbc/pull/2238) `OutOfMemoryException` => `OutOfMemoryError`
+- fix: typo in connect.md [PR #2338](https://github.com/pgjdbc/pgjdbc/pull/2238) `OutOfMemoryException` => `OutOfMemoryError`
 - fix: use local TimestampUtil in PgStatement and PgResultset for thread
 safety TimestampUtil is not thread safe. It raises exceptions when multiple threads use ResultSets of one connection. [PR #2291](https://github.com/pgjdbc/pgjdbc/pull/2291) 
 fixes [Issue #921](https://github.com/pgjdbc/pgjdbc/issues/921)
