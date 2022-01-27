@@ -37,6 +37,7 @@ public class TestReturning extends BaseTest4 {
     NO();
 
     final String[] columns;
+
     ColumnsReturned(String... columns) {
       this.columns =  columns;
     }

@@ -781,6 +781,7 @@ public enum PGProperty {
   }
 
   private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<String, PGProperty>();
+
   static {
     for (PGProperty prop : PGProperty.values()) {
       if (PROPS_BY_NAME.put(prop.getName(), prop) != null) {
