@@ -12,7 +12,6 @@ import org.postgresql.PGProperty;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,32 +40,21 @@ public class URLParser {
   }
 
   // work state
-  @Nullable
-  private SECTION currentSection;
-  @Nullable
-  private String urlTemp;
+  private @Nullable SECTION currentSection;
+  private String urlTemp = "";
 
   // results
-  @Nullable
-  private String urlUser;
-  @Nullable
-  private String urlPass;
-  @Nullable
-  private String urlHosts;
-  @Nullable
-  private HostPort urlHostPort;
-  @Nullable
-  private String urlDatabase;
-  @Nullable
-  private String urlArguments;
-  @Nullable
-  private String urlService;
-  @Nullable
-  private Properties urlServiceProperties;
+  private @Nullable String urlUser;
+  private @Nullable String urlPass;
+  private @Nullable String urlHosts;
+  private @Nullable HostPort urlHostPort;
+  private @Nullable String urlDatabase;
+  private @Nullable String urlArguments;
+  private @Nullable String urlService;
+  private @Nullable Properties urlServiceProperties;
 
   // to support unit tests
-  @Nullable
-  private URLParserFatalException failException;
+  private @Nullable URLParserFatalException failException;
 
   // to support unit tests
   @Nullable URLParserFatalException getFailException() {
@@ -74,8 +62,7 @@ public class URLParser {
   }
 
   /**
-   *
-   * @param url jdbc url
+   * @param url      jdbc url
    * @param defaults defaults
    */
   public URLParser(String url, @Nullable Properties defaults) {
@@ -85,10 +72,10 @@ public class URLParser {
 
   /**
    * Returns Properties
+   *
    * @return result of parsing URL
    */
-  @Nullable
-  public Properties getResult() {
+  public @Nullable Properties getResult() {
     Properties result = new Properties();
     try {
       // split url into sections: user, password, hosts, database, arguments
@@ -155,7 +142,7 @@ public class URLParser {
   }
 
   private void parse20User() {
-    if (urlTemp == null) {
+    if (urlTemp.isEmpty()) {
       return;
     }
     // find end of scan. "jdbc:postgresql://user[:password]@/?" section can not go beyond "/" or "?", whichever comes first
@@ -201,7 +188,7 @@ public class URLParser {
   }
 
   private void parse40Host() {
-    if (urlTemp == null) {
+    if (urlTemp.isEmpty()) {
       return;
     }
     // find end of scan
@@ -217,7 +204,7 @@ public class URLParser {
   }
 
   private void parse50Database() {
-    if (urlTemp == null) {
+    if (urlTemp.isEmpty()) {
       return;
     }
     // find end of scan
@@ -233,12 +220,10 @@ public class URLParser {
   }
 
   private void parse60Argument() {
-    if (urlTemp != null) {
+    if (!urlTemp.isEmpty()) {
       // the rest are arguments
-      if (urlTemp.length() > 0) {
-        saveSection(urlTemp);
-      }
-      urlTemp = null;
+      saveSection(urlTemp);
+      urlTemp = "";
     }
     currentSection = null;
   }
@@ -389,7 +374,7 @@ public class URLParser {
   }
 
   private void result50PGEnvironmentJava(Properties result) {
-    PGEnvironment [] javaEnvs = {
+    PGEnvironment[] javaEnvs = {
         PGEnvironment.ORG_POSTGRESQL_PGHOST,
         PGEnvironment.ORG_POSTGRESQL_PGPORT,
         PGEnvironment.ORG_POSTGRESQL_PGDATABASE,
@@ -397,15 +382,18 @@ public class URLParser {
         PGEnvironment.ORG_POSTGRESQL_PGPASSWORD
     };
     Properties props = new Properties();
-    Arrays.stream(javaEnvs)
-        .map(s -> new AbstractMap.SimpleEntry<>(s.getName(), s.readStringValue()))
-        .filter(s -> s.getValue() != null)
-        .forEach(s -> props.setProperty(PGEnvironmentUtil.translateToPGProperty(s.getKey()), s.getValue()));
+    for (PGEnvironment env : javaEnvs) {
+      String value = env.readStringValue();
+      if (value != null) {
+        String key = PGEnvironmentUtil.translateToPGProperty(env.getName());
+        props.setProperty(key, value);
+      }
+    }
     applySourceToResultIfAbsent(result, props);
   }
 
   private void result60PGEnvironmentOs(Properties result) {
-    PGEnvironment [] osEnvs = {
+    PGEnvironment[] osEnvs = {
         PGEnvironment.PGHOST,
         PGEnvironment.PGPORT,
         PGEnvironment.PGDATABASE,
@@ -413,10 +401,13 @@ public class URLParser {
         PGEnvironment.PGPASSWORD
     };
     Properties props = new Properties();
-    Arrays.stream(osEnvs)
-        .map(s -> new AbstractMap.SimpleEntry<>(s.getName(), s.readStringValue()))
-        .filter(s -> s.getValue() != null)
-        .forEach(s -> props.setProperty(PGEnvironmentUtil.translateToPGProperty(s.getKey()), s.getValue()));
+    for (PGEnvironment env : osEnvs) {
+      String value = env.readStringValue();
+      if (value != null) {
+        String key = PGEnvironmentUtil.translateToPGProperty(env.getName());
+        props.setProperty(key, value);
+      }
+    }
     applySourceToResultIfAbsent(result, props);
   }
 
@@ -439,11 +430,11 @@ public class URLParser {
     String hosts = result.getProperty(PGProperty.PG_HOST.getName());
     String ports = result.getProperty(PGProperty.PG_PORT.getName());
     //
-    String[] hostArray = hosts == null ? new String[] {""} : hosts.split(",", -1);
-    String[] portArray = ports == null ? new String[] {""} : ports.split(",", -1);
+    String[] hostArray = hosts == null ? new String[]{""} : hosts.split(",", -1);
+    String[] portArray = ports == null ? new String[]{""} : ports.split(",", -1);
     // if any host/port value is still empty string then fill them using default
-    String hostsNew = Arrays.stream(hostArray).map(s -> s.isEmpty() ? PGProperty.PG_HOST.getDefaultValue() : s).collect(Collectors.joining(","));
-    String portsNew = Arrays.stream(portArray).map(s -> s.isEmpty() ? PGProperty.PG_PORT.getDefaultValue() : s).collect(Collectors.joining(","));
+    String hostsNew = Arrays.stream(hostArray).map(s -> s.isEmpty() ? castNonNull(PGProperty.PG_HOST.getDefaultValue()) : s).collect(Collectors.joining(","));
+    String portsNew = Arrays.stream(portArray).map(s -> s.isEmpty() ? castNonNull(PGProperty.PG_PORT.getDefaultValue()) : s).collect(Collectors.joining(","));
     //
     if (!hostsNew.equals(hosts)) {
       result.put(PGProperty.PG_HOST.getName(), hostsNew);
@@ -456,6 +447,10 @@ public class URLParser {
   private void result86AdjustHostPort(Properties result) throws URLParserFatalException {
     String hosts = result.getProperty(PGProperty.PG_HOST.getName());
     String ports = result.getProperty(PGProperty.PG_PORT.getName());
+    // to fix checker error
+    if (hosts == null || ports == null) {
+      throw new RuntimeException(String.format("bug in code, hosts [%s] ports [%s]", hosts, ports));
+    }
     int hostCount = hosts.split(",", -1).length;
     int portCount = ports.split(",", -1).length;
     // if there are many hosts and one port then apply same port to all hosts
@@ -468,6 +463,10 @@ public class URLParser {
     }
     // remove space around port values
     String portString = result.getProperty(PGProperty.PG_PORT.getName());
+    // to fix checker error
+    if (portString == null) {
+      throw new RuntimeException("bug in code, portString is null");
+    }
     String portStringNew = portString.replaceAll(" ", "");
     if (!portString.equals(portStringNew)) {
       result.put(PGProperty.PG_PORT.getName(), portStringNew);
@@ -475,7 +474,12 @@ public class URLParser {
   }
 
   private void verify10Port(Properties result) throws URLParserFatalException {
-    String[] ports = result.getProperty(PGProperty.PG_PORT.getName()).split(",", -1);
+    String portString = result.getProperty(PGProperty.PG_PORT.getName());
+    // to fix checker error
+    if (portString == null) {
+      throw new RuntimeException("bug in code, portString is null");
+    }
+    String[] ports = portString.split(",", -1);
     // verify that port values are numbers in a given range
     for (String port : ports) {
       try {
@@ -516,6 +520,10 @@ public class URLParser {
     String ports = null;
     for (String key : source.stringPropertyNames()) {
       String value = source.getProperty(key);
+      // to fix checker error
+      if (value == null) {
+        throw new RuntimeException("bug in code, value is null");
+      }
       // collect host/port separately
       if (PGProperty.PG_HOST.getName().equals(key)) {
         hosts = value;
@@ -587,10 +595,6 @@ public class URLParser {
       if (ports != null) {
         portList.addAll(Arrays.asList(ports.split(",", -1)));
       }
-    }
-
-    HostPort(@Nullable Object hosts, @Nullable Object ports) {
-      this((String)hosts, (String)ports);
     }
 
     void mergeInto(Properties result) {
