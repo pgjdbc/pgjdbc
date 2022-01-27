@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
+import org.postgresql.core.JavaVersion;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
@@ -45,7 +46,11 @@ public class URLParserTest {
     verifyUrl("jdbc:postgresql:%2F", "localhost", "5432", "/", "osUser", null);
     verifyUrl("jdbc:postgresql:%2F/", "localhost", "5432", "//", "osUser", null);
     verifyUrl("jdbc:postgresql:%2F/local:2222/?user=urlUser", "localhost", "5432", "//local:2222/?user=urlUser", "osUser", null);
-    failUrl("jdbc:postgresql:te%1st", "url [te%1st] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1s\"]");
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      failUrl("jdbc:postgresql:te%1st", "url [te%1st] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1s\"]");
+    } else  {
+      failUrl("jdbc:postgresql:te%1st", "url [te%1st] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"1s\"]");
+    }
     // full syntax
     verifyUrl("jdbc:postgresql://:@/?&", "localhost", "5432", "osUser", "osUser", null);
     verifyUrl("jdbc:postgresql://:@/urlDb?", "localhost", "5432", "urlDb", "osUser", null);
@@ -66,7 +71,11 @@ public class URLParserTest {
     verifyUrl("jdbc:postgresql://urlUser@?", "localhost", "5432", "urlUser", "urlUser", null);
     verifyUrl("jdbc:postgresql://first.last%40company.org@?", "localhost", "5432", "first.last@company.org", "first.last@company.org", null);
     verifyUrl("jdbc:postgresql://first.last%40company.org@?user=arg@usr.org", "localhost", "5432", "arg@usr.org", "arg@usr.org", null);
-    failUrl("jdbc:postgresql://url%1User@", "url [url%1User] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1U\"]");
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      failUrl("jdbc:postgresql://url%1User@", "url [url%1User] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1U\"]");
+    } else {
+      failUrl("jdbc:postgresql://url%1User@", "url [url%1User] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"1U\"]");
+    }
     // password
     verifyUrl("jdbc:postgresql://:urlPass@", "localhost", "5432", "osUser", "osUser", "urlPass");
     verifyUrl("jdbc:postgresql://: urlPass@", "localhost", "5432", "osUser", "osUser", " urlPass");
@@ -80,7 +89,11 @@ public class URLParserTest {
     verifyUrl("jdbc:postgresql://:urlPass@?password= argPass", "localhost", "5432", "osUser", "osUser", " argPass");
     verifyUrl("jdbc:postgresql://:urlPass@?password=argPass ", "localhost", "5432", "osUser", "osUser", "argPass ");
     verifyUrl("jdbc:postgresql://:urlPass@?password=arg%2FPass", "localhost", "5432", "osUser", "osUser", "arg/Pass");
-    failUrl("jdbc:postgresql://:url%1Pass@", "url [url%1Pass] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1P\"]");
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      failUrl("jdbc:postgresql://:url%1Pass@", "url [url%1Pass] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1P\"]");
+    } else {
+      failUrl("jdbc:postgresql://:url%1Pass@", "url [url%1Pass] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"1P\"]");
+    }
     // host
     verifyUrl("jdbc:postgresql://urlHost", "urlHost", "5432", "osUser", "osUser", null);
     verifyUrl("jdbc:postgresql:// urlHost", " urlHost", "5432", "osUser", "osUser", null);
@@ -98,7 +111,11 @@ public class URLParserTest {
     verifyUrl("jdbc:postgresql://host1 , host2/", "host1 , host2", "5432,5432", "osUser", "osUser", null);
     verifyUrl("jdbc:postgresql://urlHost.org,127.0.0.1,[2001:4860:4860::8888]/", "urlHost.org,127.0.0.1,[2001:4860:4860::8888]", "5432,5432,5432", "osUser", "osUser", null);
     verifyUrl("jdbc:postgresql://urlHost?host=argHost", "argHost", "5432", "osUser", "osUser", null);
-    failUrl("jdbc:postgresql://url%1Host", "url [url%1Host] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1H\"]");
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      failUrl("jdbc:postgresql://url%1Host", "url [url%1Host] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1H\"]");
+    } else {
+      failUrl("jdbc:postgresql://url%1Host", "url [url%1Host] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"1H\"]");
+    }
     // port
     verifyUrl("jdbc:postgresql://:3333", "localhost", "3333", "osUser", "osUser", null);
     verifyUrl("jdbc:postgresql://: 1", "localhost", "1", "osUser", "osUser", null);
@@ -129,7 +146,11 @@ public class URLParserTest {
     verifyUrl("jdbc:postgresql:///urlDb/?", "localhost", "5432", "urlDb/", "osUser", null);
     verifyUrl("jdbc:postgresql:///url%2FDb", "localhost", "5432", "url/Db", "osUser", null);
     verifyUrl("jdbc:postgresql:///urlDb?dbname=argDb", "localhost", "5432", "argDb", "osUser", null);
-    failUrl("jdbc:postgresql:///ur%1lDb", "url [ur%1lDb] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1l\"]");
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      failUrl("jdbc:postgresql:///ur%1lDb", "url [ur%1lDb] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1l\"]");
+    } else {
+      failUrl("jdbc:postgresql:///ur%1lDb", "url [ur%1lDb] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"1l\"]");
+    }
     // args
     verifyUrl("jdbc:postgresql://?user=argUser", "localhost", "5432", "argUser", "argUser", null);
     verifyUrl("jdbc:postgresql://?user= argUser", "localhost", "5432", " argUser", " argUser", null);
@@ -150,7 +171,11 @@ public class URLParserTest {
     failUrl("jdbc:postgresql://?database=urlDb", "Unsupported url argument: [database]");
     failUrl("jdbc:postgresql://? loggerLevel", "Unsupported url argument: [ loggerLevel]");
     failUrl("jdbc:postgresql://?loggerLevel ", "Unsupported url argument: [loggerLevel ]");
-    failUrl("jdbc:postgresql://?logger%1Level=OFF", "url [logger%1Level] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1L\"]");
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      failUrl("jdbc:postgresql://?logger%1Level=OFF", "url [logger%1Level] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1L\"]");
+    } else {
+      failUrl("jdbc:postgresql://?logger%1Level=OFF", "url [logger%1Level] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"1L\"]");
+    }
     failUrl("jdbc:postgresql://?loggerLevel=%1", "url [%1] parsing failed [URLDecoder: Incomplete trailing escape (%) pattern]");
     failUrl("jdbc:postgresql://? ", "Unsupported url argument: [ ]");
     failUrl("jdbc:postgresql:///? ", "Unsupported url argument: [ ]");
