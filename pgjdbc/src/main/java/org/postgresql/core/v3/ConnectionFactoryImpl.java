@@ -852,7 +852,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     final int dbVersion = queryExecutor.getServerVersionNum();
 
-    if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
+    if (PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(info) && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
       SetupQueryRunner.run(queryExecutor, "BEGIN", false);
     }
 
@@ -869,7 +869,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SetupQueryRunner.run(queryExecutor, sql.toString(), false);
     }
 
-    if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
+    if (PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(info) && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
       SetupQueryRunner.run(queryExecutor, "COMMIT", false);
     }
   }

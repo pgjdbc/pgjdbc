@@ -1016,6 +1016,26 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * This is important in pool-by-transaction scenarios in order to make sure that all the statements
+   * reaches the same connection that is being initialized. If set then we will group the startup
+   * parameters in a transaction
+   * @return whether to group starup parameters or not
+   * @see PGProperty#GROUP_STARTUP_PARAMETERS
+   */
+  public boolean getGroupStartupParameters() {
+    return PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(properties);
+  }
+
+  /**
+   *
+   * @param groupStartupParameters whether to group startup Parameters in a transaction or not
+   * @see PGProperty#GROUP_STARTUP_PARAMETERS
+   */
+  public void setGroupStartupParameters(boolean groupStartupParameters) {
+    PGProperty.GROUP_STARTUP_PARAMETERS.set(properties, groupStartupParameters);
+  }
+
+  /**
    * @return JAAS application name
    * @see PGProperty#JAAS_APPLICATION_NAME
    */
