@@ -15,6 +15,7 @@ import org.postgresql.core.JavaVersion;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
@@ -31,6 +32,22 @@ import java.util.Properties;
  */
 @ExtendWith(SystemStubsExtension.class)
 public class URLParserTest {
+
+  @Before
+  public void setUp() throws Exception {
+    // Verify that related properties and environment variables are not set. Fail, if any is set.
+    // If they are set then test cases will fail.
+    // Alternative would be clearing environment before tests, but it needs ugly hacking
+    // because System.getenv().remove() reports UnsupportedOperationException.
+    // Reflection or other method should be used.
+    for (PGEnvironment env : PGEnvironment.values()) {
+      String value = env.readStringValue();
+      assertNull(value, String.format(
+          "Environment variable [%s] has value [%s] but for successful unit testing it must be null.",
+          env.getName(), value
+      ));
+    }
+  }
 
   @Test
   public void testCaseSet1() throws Exception {
