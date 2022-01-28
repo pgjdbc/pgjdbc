@@ -28,8 +28,11 @@ remove the user and password arguments. Any locations that required those fields
 ### Added
 - feat: Add authenticationPluginClassName option to provide passwords at runtime
 Adds authenticationPluginClassName connection property that allows end users to specify a class
-that will provide the connection passwords at runtime. This allows configuring a connection with
-a password that must be generated on the fly or periodically changes. [PR #2369](https://github.com/pgjdbc/pgjdbc/pull/2369) original issue [Issue #2102](https://github.com/pgjdbc/pgjdbc/issues/2102)
+that will provide the connection passwords at runtime. Users implementing that interface must
+ensure that each invocation of the method provides a new char[] array as the contents
+will be filled with zeroes by the driver after use.Call sites within the driver have been updated to use the char[] directly wherever possible.
+This includes direct usage in the GSS authentication code paths that internally were already converting the String password into a char[] for internal usage.
+This allows configuring a connection with a password that must be generated on the fly or periodically changes. [PR #2369](https://github.com/pgjdbc/pgjdbc/pull/2369) original issue [Issue #2102](https://github.com/pgjdbc/pgjdbc/issues/2102)
 - feat: add tcpNoDelay option [PR #2341](https://github.com/pgjdbc/pgjdbc/pull/2341) fixes [Issue #2324](https://github.com/pgjdbc/pgjdbc/issues/2324)
 - feat: pg_service.conf and .pgpass support (jdbc:postgresql://?service=my-service) [PR #2260](https://github.com/pgjdbc/pgjdbc/pull/2260) fixes [Issue #2278](https://github.com/pgjdbc/pgjdbc/issues/2278)
 ### Fixed
