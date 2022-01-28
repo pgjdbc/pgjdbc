@@ -5,8 +5,6 @@ configuration: Release
 clone_depth: 1
 environment:
   JAVA_HOME: 'C:\Program Files\Java\jdk1.8.0'
-  PGUSER: postgres
-  PGPASSWORD: Password12!
   matrix:
   - pg: 9.6.11-1
     PlatformToolset: v120
