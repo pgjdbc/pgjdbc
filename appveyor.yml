@@ -60,13 +60,9 @@ before_build:
 - ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
 - net start postgresql%x64%-%pgversion%
 - path %pgroot%\bin;%PATH%
-- echo %PGUSER%
-- set PGUSER
-- echo %PGPASSWORD%
-- set PGPASSWORD
 - reg query "HKCU\Environment"
-- SET PGUSER=postgres
 - SET PGPASSWORD=Password12!
+- reg query "HKCU\Environment"
 - createuser -U postgres test
 - psql -U postgres -c "alter user test with password 'test'" postgres
 - psql -U postgres -c "alter user test with replication" postgres
@@ -80,8 +76,9 @@ test_script:
   - echo redirect escape ^> foo.bar
   - echo privilegedPassword=Password12!>c:\projects\pgjdbc\build.local.properties
   - set PGPASSWORD=
-  - set PGUSER=
   - gradlew test
+  - set
+  - mkdir %APPDATA%\postgresql
 
 cache:
   - C:\Users\appveyor\.m2
