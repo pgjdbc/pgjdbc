@@ -61,7 +61,7 @@ before_build:
 - net start postgresql%x64%-%pgversion%
 - path %pgroot%\bin;%PATH%
 - mkdir %APPDATA%\postgresql
-^- echo *:*:*:postgres:Password12!> %APPDATA%\postgresql\pgpass.conf
+- echo *:*:*:postgres:Password12!> %APPDATA%\postgresql\pgpass.conf
 - createuser -U postgres test
 - psql -U postgres -c "alter user test with password 'test'" postgres
 - psql -U postgres -c "alter user test with replication" postgres
