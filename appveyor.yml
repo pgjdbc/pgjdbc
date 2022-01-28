@@ -67,6 +67,7 @@ before_build:
 - psql -U postgres -c "alter user test with replication" postgres
 - createuser -U postgres testsspi
 - createdb -U postgres -O test test
+- del %APPDATA%\postgresql\pgpass.conf
 
 build_script:
   - gradlew assemble
