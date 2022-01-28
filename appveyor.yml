@@ -76,6 +76,8 @@ build_script:
 test_script:
   - echo redirect escape ^> foo.bar
   - echo privilegedPassword=Password12!>c:\projects\pgjdbc\build.local.properties
+  - set PGPASSWORD=
+  - set PGUSER=
   - gradlew test
 
 cache:
