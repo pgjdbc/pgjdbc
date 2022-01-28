@@ -27,7 +27,7 @@ public class MakeGSS {
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
 
   public static void authenticate(boolean encrypted,
-      PGStream pgStream, String host, String user, @Nullable String password,
+      PGStream pgStream, String host, String user, char @Nullable [] password,
       @Nullable String jaasApplicationName, @Nullable String kerberosServerName,
       boolean useSpnego, boolean jaasLogin,
       boolean logServerErrorDetail)

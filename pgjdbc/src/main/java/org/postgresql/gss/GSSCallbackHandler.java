@@ -23,9 +23,9 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 class GSSCallbackHandler implements CallbackHandler {
 
   private final String user;
-  private final @Nullable String password;
+  private final char @Nullable [] password;
 
-  GSSCallbackHandler(String user, @Nullable String password) {
+  GSSCallbackHandler(String user, char @Nullable [] password) {
     this.user = user;
     this.password = password;
   }
@@ -56,7 +56,7 @@ class GSSCallbackHandler implements CallbackHandler {
         if (password == null) {
           throw new IOException("No cached kerberos ticket found and no password supplied.");
         }
-        pc.setPassword(password.toCharArray());
+        pc.setPassword(password);
       } else {
         throw new UnsupportedCallbackException(callback, "Unrecognized Callback");
       }
