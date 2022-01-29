@@ -31,8 +31,18 @@
 # Configuration for rpmbuild, might be specified by options
 # like e.g. 'rpmbuild --define "runselftest 0"'.
 
-%{!?runselftest:%global runselftest 1}
+# =============================================================================
+# IMPORTANT NOTE: This spec file is maintained on two places -- in native
+# Fedora repo [1] and in pgjdbc upstream [2].  Please, keep that in sync
+# (manual effort!) so both Fedora and Upstream can benefit from automatic
+# packaging CI, this is now done in Fedora Copr projects [3, 4].
+# [1] https://src.fedoraproject.org/rpms/postgresql-jdbc
+# [2] https://github.com/pgjdbc/pgjdbc/tree/master/packaging/rpm
+# [3] https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc/
+# [4] https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-ci/
+# ============================================================================
 
+%{!?runselftest:%global runselftest 1}
 
 %global section		devel
 %global source_path	pgjdbc/src/main/java/org/postgresql
@@ -44,8 +54,7 @@ Release:	GENERATED
 License:	BSD
 URL:		http://jdbc.postgresql.org/
 
-# This archive contains the minimal set of files + pom.xml that can be used to build postgresql.jar
-Source0:    https://repo1.maven.org/maven2/org/postgresql/postgresql/%{version}/postgresql-%{version}-jdbc-src.tar.gz
+Source0:	https://repo1.maven.org/maven2/org/postgresql/postgresql/%{version}/postgresql-%{version}-jdbc-src.tar.gz
 Provides:	pgjdbc = %version-%release
 
 BuildArch:	noarch
@@ -58,7 +67,6 @@ BuildRequires:	mvn(com.ongres.scram:client)
 BuildRequires:	mvn(org.apache.maven.plugins:maven-clean-plugin)
 BuildRequires:	mvn(org.apache.maven.surefire:surefire-junit-platform)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-api)
-BuildRequires:	mvn(uk.org.webcompere:system-stubs-jupiter)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-engine)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-params)
 BuildRequires:	mvn(org.junit.vintage:junit-vintage-engine)
@@ -94,7 +102,17 @@ mv postgresql-%{version}-jdbc-src/* .
 # remove any binary libs
 find -type f \( -name "*.jar" -or -name "*.class" \) | xargs rm -f
 
+# Build parent POMs in the same Maven call.
 %pom_xpath_remove "pom:plugin[pom:artifactId = 'maven-shade-plugin']"
+
+# The system-stubs-jupiter package is not (yet?) in Fedora.
+%pom_xpath_remove "pom:dependency[pom:artifactId = 'system-stubs-jupiter']"
+
+# Remove the test files depending on system-stubs-jupiter
+rm src/test/java/org/postgresql/test/jdbc2/DriverTest.java \
+   src/test/java/org/postgresql/util/OSUtilTest.java \
+   src/test/java/org/postgresql/util/PGPropertyPasswordParserTest.java \
+   src/test/java/org/postgresql/util/PGPropertyServiceParserTest.java
 
 # compat symlink: requested by dtardon (libreoffice), reverts part of
 # 0af97ce32de877 commit.
@@ -102,6 +120,7 @@ find -type f \( -name "*.jar" -or -name "*.class" \) | xargs rm -f
 
 # For compat reasons, make Maven artifact available under older coordinates.
 %mvn_alias org.postgresql:postgresql postgresql:postgresql
+
 
 %build
 # Ideally we would run "sh update-translations.sh" here, but that results
@@ -153,7 +172,11 @@ opts="-f"
 
 
 %changelog
+* Sun Jan 30 2022 Pavel Raiskup <praiskup@redhat.com>
+- synchronized with Fedora spec
+
 * Tue Mar 03 2020 Vladimir Sitnikov <sitnikov.vladimir@gmail.com>
 - Adapted to building from the source release
+
 * Wed Nov 29 2017 Pavel Raiskup <praiskup@redhat.com> - 9.5.git
 - no changelog in this spec file (upstream git)
