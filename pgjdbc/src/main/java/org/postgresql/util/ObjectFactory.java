@@ -43,7 +43,13 @@ public class ObjectFactory {
           InvocationTargetException {
     @Nullable Object[] args = {info};
     Constructor<?> ctor = null;
-    Class<?> cls = Class.forName(classname);
+    Class<?> cls;
+    try {
+      //first use the TCCL, but fall back to the CL that loaded this class if the TCCL fails
+      cls = Class.forName(classname, false, Thread.currentThread().getContextClassLoader());
+    } catch (ClassNotFoundException e) {
+      cls = Class.forName(classname);
+    }
     try {
       ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException ignored) {
