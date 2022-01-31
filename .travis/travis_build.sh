@@ -1,24 +1,6 @@
 #!/usr/bin/env bash
 set -x -e
 
-if [[ $FEDORA_CI == "Y" ]];
-then
-  # Prepare "source release" archive
-  ./gradlew :postgresql:sourceDistribution -Prelease
-
-  # Copy file to packaging directory, so rpm_ci would use it rather that downloading it from release URL
-  cp pgjdbc/build/distributions/postgresql-*-src.tar.gz packaging/rpm
-
-  # Try to prevent "stdout: write error"
-  # WA is taken from https://github.com/travis-ci/travis-ci/issues/4704#issuecomment-348435959
-  python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-  export PROJECT_VERSION=$(grep pgjdbc.version gradle.properties | cut -d "=" -f2-)
-  # Removal of PARENT_VERSION requires rebuild of praiskup/copr-and-jdbc-ci Docker image
-  export PARENT_VERSION=unused_but_passed_to_make_script_inside_docker_happy
-
-  exec ./packaging/rpm_ci
-fi
-
 # Build project
 # TODO: run SlowTests as well
 GRADLE_ARGS="--no-daemon -PskipAutostyle -PskipCheckstyle build $MVN_CUSTOM_ARGS"

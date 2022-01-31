@@ -1,0 +1,28 @@
+#! /bin/bash -x
+
+# Helper script to update CI scripting on Copr side
+
+script=$(readlink -f "$(dirname "$0")")/build-script
+script_resultdir=srpm_results
+pkgname=postgresql-jdbc
+
+PROJECT_PR=@pgjdbc/pgjdbc-ci
+PROJECT_PUSH=@pgjdbc/pgjdbc
+
+build_deps=(
+    git
+    java-11-openjdk-devel
+)
+
+copr_cmd=(
+    copr edit-package-custom \
+    --webhook-rebuild on \
+    --script "$script" \
+    --script-chroot "fedora-latest-x86_64" \
+    --script-builddeps "${build_deps[*]}" \
+    --name "$pkgname" \
+    --script-resultdir "$script_resultdir"
+)
+
+"${copr_cmd[@]}" "$PROJECT_PR" --max-builds 20
+"${copr_cmd[@]}" "$PROJECT_PUSH"

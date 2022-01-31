@@ -1,0 +1,52 @@
+#! /bin/bash -x
+
+# Prepare the source RPM tarball in Fedora Copr build system.  This script
+# shouldn'ŧ be executed on a localhost.
+
+set -e
+set -o pipefail
+
+clone_url_parent=https://github.com/pgjdbc/pgjdbc.git
+
+workdir=$(basename "$clone_url_parent")
+workdir=${workdir%%.git}
+
+hook_payload=$(readlink -f "${HOOK_PAYLOAD-hook_payload}")
+
+mkdir -p "$COPR_RESULTDIR"
+resultdir=$(readlink -f "$COPR_RESULTDIR")
+
+# clone the helper scripts when needed, and add to PATH
+test -d copr-ci-tooling \
+    || git clone --depth 1 https://github.com/praiskup/copr-ci-tooling.git
+export PATH="$PWD/copr-ci-tooling:$PATH"
+
+# clone the tested project
+git clone \
+    --recursive \
+    --no-single-branch \
+    "$clone_url_parent"
+
+# checkout requested revision
+cd "$workdir"
+
+test -f "$hook_payload" && webhook-checkout "$hook_payload"
+
+# generate source tarball
+./gradlew :postgresql:sourceDistribution -Prelease
+
+project_version=$(grep pgjdbc.version gradle.properties | cut -d "=" -f2-)
+cp pgjdbc/build/distributions/postgresql-$project_version-jdbc-src.tar.gz "$resultdir"
+
+git_rev=$(git rev-parse --short=7 HEAD)
+date_rev=$(date +%Y%m%d_%H%M%S)
+release=${date_rev}.git$git_rev
+
+cd packaging/rpm
+
+spec=postgresql-jdbc.spec
+sed -e "s!^Release:.*\$!Release: 1.$release%{?dist}!" \
+    -e "s!^Version:.*\$!Version: $project_version!" \
+    "$spec.tpl" > "$spec"
+
+cp "$spec" "$resultdir"
