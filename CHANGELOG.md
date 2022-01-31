@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+
+### Added
+
+### Fixed
+
+[42.3.2] (2022-01-31 08:42:41 -0500)
+### Changed
 - perf: read in_hot_standby GUC on connection [PR #2334](https://github.com/pgjdbc/pgjdbc/pull/2334)
 - test: materialized view privileges [PR #2209](https://github.com/pgjdbc/pgjdbc/pull/2209) fixes [Issue #2060](https://github.com/pgjdbc/pgjdbc/issues/2060)
 - docs: add info about convenience maven project [PR #2407](https://github.com/pgjdbc/pgjdbc/pull/2407)
@@ -25,6 +32,7 @@ remove the user and password arguments. Any locations that required those fields
 - perf: read in_hot_standby GUC on connection [PR #2334](https://github.com/pgjdbc/pgjdbc/pull/2334)
 - doc: improv doc around binary decoding of numeric data [#2331](https://github.com/pgjdbc/pgjdbc/pull/2331)
 - Add cert key type checking to chooseClientAlias [PR #2417](https://github.com/pgjdbc/pgjdbc/pull/2417)
+
 ### Added
 - feat: Add authenticationPluginClassName option to provide passwords at runtime
 Adds authenticationPluginClassName connection property that allows end users to specify a class
@@ -35,6 +43,7 @@ This includes direct usage in the GSS authentication code paths that internally 
 This allows configuring a connection with a password that must be generated on the fly or periodically changes. [PR #2369](https://github.com/pgjdbc/pgjdbc/pull/2369) original issue [Issue #2102](https://github.com/pgjdbc/pgjdbc/issues/2102)
 - feat: add tcpNoDelay option [PR #2341](https://github.com/pgjdbc/pgjdbc/pull/2341) fixes [Issue #2324](https://github.com/pgjdbc/pgjdbc/issues/2324)
 - feat: pg_service.conf and .pgpass support (jdbc:postgresql://?service=my-service) [PR #2260](https://github.com/pgjdbc/pgjdbc/pull/2260) fixes [Issue #2278](https://github.com/pgjdbc/pgjdbc/issues/2278)
+
 ### Fixed
 - Use local TimestampUtil in PgStatement and PgResultset for thread safety [PR #2291](https://github.com/pgjdbc/pgjdbc/pull/2291)
   fixes [Issue #921](https://github.com/pgjdbc/pgjdbc/issues/921) synchronize modification of shared calendar
@@ -608,4 +617,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.24]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.23...REL42.2.24
 [42.3.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.24...REL42.3.1
 [42.3.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.0...REL42.3.1
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...HEAD
+[42.3.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...REL42.3.2
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...HEAD
