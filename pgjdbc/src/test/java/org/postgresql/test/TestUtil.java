@@ -16,6 +16,7 @@ import org.postgresql.util.PSQLException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
+import org.junit.Assume;
 
 import java.io.Closeable;
 import java.io.File;
@@ -263,6 +264,28 @@ public class TestUtil {
       }
     }
     return p;
+  }
+
+  private static Properties sslTestProperties = null;
+
+  private static synchronized void initSslTestProperties() {
+    if (sslTestProperties == null) {
+      sslTestProperties = TestUtil.loadPropertyFiles("ssltest.properties");
+    }
+  }
+
+  private static String getSslTestProperty(String name) {
+    initSslTestProperties();
+    return sslTestProperties.getProperty(name);
+  }
+
+  public static void assumeSslTestsEnabled() {
+    Assume.assumeTrue(Boolean.parseBoolean(getSslTestProperty("enable_ssl_tests")));
+  }
+
+  public static String getSslTestCertPath(String name) {
+    File certdir = TestUtil.getFile(getSslTestProperty("certdir"));
+    return new File(certdir, name).getAbsolutePath();
   }
 
   public static void initDriver() {

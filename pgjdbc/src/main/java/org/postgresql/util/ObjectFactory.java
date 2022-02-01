@@ -36,14 +36,15 @@ public class ObjectFactory {
    * @throws IllegalAccessException if something goes wrong
    * @throws InvocationTargetException if something goes wrong
    */
-  public static Object instantiate(String classname, Properties info, boolean tryString,
+  public static <T> T instantiate(Class<T> expectedClass, String classname, Properties info,
+      boolean tryString,
       @Nullable String stringarg)
       throws ClassNotFoundException, SecurityException, NoSuchMethodException,
           IllegalArgumentException, InstantiationException, IllegalAccessException,
           InvocationTargetException {
     @Nullable Object[] args = {info};
-    Constructor<?> ctor = null;
-    Class<?> cls = Class.forName(classname);
+    Constructor<? extends T> ctor = null;
+    Class<? extends T> cls = Class.forName(classname).asSubclass(expectedClass);
     try {
       ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException ignored) {
