@@ -73,6 +73,9 @@ jobs:
         java-version: ${{ matrix.jdk }}
     - name: Prepare ssltest.local.properties
       run: echo enable_ssl_tests=true > ssltest.local.properties
+    - name: Get Docker logs
+      working-directory: docker
+      run: docker-compose logs
     - uses: burrunan/gradle-cache-action@v1
       name: Test
       env:
