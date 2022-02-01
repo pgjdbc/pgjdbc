@@ -23,6 +23,9 @@ public class ObjectFactory {
    * single String argument is searched if it fails, or tryString is true a no argument constructor
    * is tried.
    *
+   * @param <T> type of expected class
+   * @param expectedClass expected class of type T, if the classname instantiated doesn't match
+   *                     the expected type of this class this method will fail
    * @param classname name of the class to instantiate
    * @param info parameter to pass as Properties
    * @param tryString whether to look for a single String argument constructor
