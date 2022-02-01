@@ -5,9 +5,9 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.SslMode;
@@ -15,8 +15,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.opentest4j.MultipleFailuresError;
 
 import java.sql.SQLException;
