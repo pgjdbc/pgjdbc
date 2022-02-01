@@ -66,11 +66,12 @@ class AuthenticationPluginManager {
     } else {
       AuthenticationPlugin authPlugin;
       try {
-        authPlugin = (AuthenticationPlugin) ObjectFactory.instantiate(authPluginClassName, info,
+        authPlugin = ObjectFactory.instantiate(AuthenticationPlugin.class, authPluginClassName, info,
             false, null);
       } catch (Exception ex) {
-        LOGGER.log(Level.FINE, "Unable to load Authentication Plugin " + ex.toString());
-        throw new PSQLException(ex.getMessage(), PSQLState.UNEXPECTED_ERROR);
+        String msg = GT.tr("Unable to load Authentication Plugin {0}", authPluginClassName);
+        LOGGER.log(Level.FINE, msg, ex);
+        throw new PSQLException(msg, PSQLState.INVALID_PARAMETER_VALUE, ex);
       }
 
       password = authPlugin.getPassword(type);
@@ -106,7 +107,8 @@ class AuthenticationPluginManager {
     byte[] encodedPassword = withPassword(type, info, password -> {
       if (password == null) {
         throw new PSQLException(
-            GT.tr("The server requested password-based authentication, but no password was provided."),
+            GT.tr("The server requested password-based authentication, but no password was provided by plugin {0}",
+                PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.get(info)),
             PSQLState.CONNECTION_REJECTED);
       }
       ByteBuffer buf = StandardCharsets.UTF_8.encode(CharBuffer.wrap(password));
