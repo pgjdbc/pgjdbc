@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 [42.3.2] (2022-01-31 08:42:41 -0500)
+### Security
+- pgjdbc instantiates plugin instances based on class names provided via authenticationPluginClassName, 
+sslhostnameverifier, socketFactory, sslfactory, sslpasswordcallback connection properties.
+However, the driver did not verify if the class implements the expected interface before instantiating the class. This
+would allow a malicious class to be instantiated that could execute arbitrary code from the JVM.
+
 ### Changed
 - perf: read in_hot_standby GUC on connection [PR #2334](https://github.com/pgjdbc/pgjdbc/pull/2334)
 - test: materialized view privileges [PR #2209](https://github.com/pgjdbc/pgjdbc/pull/2209) fixes [Issue #2060](https://github.com/pgjdbc/pgjdbc/issues/2060)
