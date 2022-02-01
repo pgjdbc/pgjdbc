@@ -3,7 +3,7 @@ services:
   pgdb:
     image: postgres:${PGV:-latest}
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     security_opt:
       - seccomp:unconfined
     volumes:
