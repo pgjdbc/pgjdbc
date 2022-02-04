@@ -246,7 +246,9 @@ public class Driver implements java.sql.Driver {
     }
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
-      return null;
+      throw new PSQLException(
+          GT.tr("Unable to parse URL "),
+          PSQLState.UNEXPECTED_ERROR);
     }
     try {
       // Setup java.util.logging.Logger using connection properties.
