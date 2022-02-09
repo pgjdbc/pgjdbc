@@ -1,15 +1,21 @@
 # Security Policy
 
-## Supported Versions
-
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+1) We value backward compatibility, so we expect that upgrading pgjdbc versions should not involve code changes nor it should it require configuration changes.
+2) In the event that you are unable to upgrade, you might expect or ask for security fixes for the past versions as well. However, please raise the reason you unable to upgrade in the mailing list or in the issues
 
 | Version  | Supported          |
 | -------- | ------------------ |
-| 42.2.x   | :white_check_mark: |
-| 42.3.x   | :white_check_mark: |
-| < 42.2.x | :x:                |
+| 42.3.x   | security fixes, features, bug fixes |
+| 42.2.x   | (the latest branch that supports Java 6, and 7): security fixes, critical bug fixes only. |
+| < 42.2.x | security fixes (upon request) |
+
+The intention is to separate «we are eager fixing bugs» from «we can roll security releases».
+It would not be impossible for us to roll security fixes even for 9.4 versions if necessary.
+
+## Reporting a Vulnerability
+
+Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org
+
 
 ## Reporting a Vulnerability
 
