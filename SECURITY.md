@@ -15,8 +15,3 @@ It would not be impossible for us to roll security fixes even for 9.4 versions i
 ## Reporting a Vulnerability
 
 Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org
-
-
-## Reporting a Vulnerability
-
-Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org
