@@ -496,6 +496,10 @@ Connection conn = DriverManager.getConnection(url);
 	In default mode (disabled) hosts are connected in the given order. 
 	If enabled hosts are chosen randomly from the set of suitable candidates.
 
+* **localSocketAddress** = String
+
+	Hostname or IP address given to explicitly configure the interface that the driver will bind the client side of the TCP/IP connection to when connecting.
+
 * **socketFactory** = String
 
 	The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
