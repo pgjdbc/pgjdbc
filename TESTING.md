@@ -45,13 +45,47 @@ installed.
 
 If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
 
-    cd docker/postgres-server
+    cd docker && bin/postgresql-server
 
-    # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
-    docker-compose down && docker-compose up
+    Helper script to start a postgres container for testing the PGJDBC driver.
 
-    # Launch PostgreSQL 13, with XA, without SSL
-    docker-compose down && SSL=no XA=yes docker-compose up
+    This is the same container used by the automated CI platform and can be used
+    to reproduce CI errors locally. It respects all the same environment variables
+    used by the CI matrix:
+
+    PGV   = "8.4" | "9.0" | ... "13" ...   - PostgreSQL server version (defaults to latest)
+    SSL   = "yes" | "no"                   - Whether to enable SSL
+    XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
+    SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
+    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
+    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
+
+    The container is started in the foreground. It will remain running until it
+    is killed via Ctrl-C.
+
+    To start the default (latest) version:
+
+    docker/bin/postgres-server
+
+    To start a v8.4 server without SSL:
+
+    PGV=8.4 SSL=off docker/bin/postgres-server
+
+    To start a v10 server with SCRAM disabled:
+
+     PGV=10 SCRAM=no docker/bin/postgres-server
+
+    To start a v11 server with a custom timezone:
+
+    PGV=11 TZ=Americas/New_York docker/bin/postgres-server
+
+    To start a v13 server with the defaults (SSL + XA + SCRAM):
+
+    PGV=13 docker/bin/postgres-server
+
+    To start the default (latest) version with read only replicas:
+
+    CREATE_REPLICAS=on docker/bin/postgres-server
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
