@@ -1216,13 +1216,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param localSocketAddress
+   * @param localSocketAddress local address to bind client side to
    * @see PGProperty#LOCAL_SOCKET_ADDRESS
    */
   public void setLocalSocketAddress( String localSocketAddress ) {
     PGProperty.LOCAL_SOCKET_ADDRESS.set(properties,localSocketAddress);
   }
-
+  
   /**
    * This property is no longer used by the driver and will be ignored.
    * @return loggerLevel in properties
