@@ -1208,6 +1208,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return the localSocketAddress
+   * @see PGProperty#LOCAL_SOCKET_ADDRESS
+   */
+  public @Nullable String getLocalSocketAddress() {
+    return PGProperty.LOCAL_SOCKET_ADDRESS.get(properties);
+  }
+
+  /**
+   * @param localSocketAddress
+   * @see PGProperty#LOCAL_SOCKET_ADDRESS
+   */
+  public void setLocalSocketAddress( String localSocketAddress ) {
+    PGProperty.LOCAL_SOCKET_ADDRESS.set(properties,localSocketAddress);
+  }
+
+  /**
    * This property is no longer used by the driver and will be ignored.
    * @return loggerLevel in properties
    * @deprecated Configure via java.util.logging

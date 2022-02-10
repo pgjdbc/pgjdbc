@@ -658,7 +658,7 @@ public class Driver implements java.sql.Driver {
   private static HostSpec[] hostSpecs(Properties props) {
     String[] hosts = castNonNull(PGProperty.PG_HOST.get(props)).split(",");
     String[] ports = castNonNull(PGProperty.PG_PORT.get(props)).split(",");
-    String localSocketAddress = props.getProperty("localSocketAddress");
+    String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.get(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {
       hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);
