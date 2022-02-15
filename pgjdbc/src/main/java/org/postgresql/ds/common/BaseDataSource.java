@@ -1209,6 +1209,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * This property is no longer used by the driver and will be ignored.
+   * @return loggerLevel in properties
    * @deprecated Configure via java.util.logging
    */
   @Deprecated
@@ -1218,6 +1219,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * This property is no longer used by the driver and will be ignored.
+   * @param loggerLevel loggerLevel to set, will be ignored
    * @deprecated Configure via java.util.logging
    */
   @Deprecated
@@ -1227,6 +1229,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * This property is no longer used by the driver and will be ignored.
+   * @return loggerFile in properties
    * @deprecated Configure via java.util.logging
    */
   @Deprecated
@@ -1237,6 +1240,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * This property is no longer used by the driver and will be ignored.
+   * @param loggerFile will be ignored
    * @deprecated Configure via java.util.logging
    */
   @Deprecated
