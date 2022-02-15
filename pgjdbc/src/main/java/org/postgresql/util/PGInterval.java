@@ -98,13 +98,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       for (int i = 0; i < timeValue.length(); i++) {
         int lookAhead = lookAhead(timeValue, i, "HMS");
         if (lookAhead > 0) {
-          number = Integer.parseInt(timeValue.substring(i, lookAhead));
+          final String substring = timeValue.substring(i, lookAhead);
           if (timeValue.charAt(lookAhead) == 'H') {
-            setHours(number);
+            setHours(Integer.parseInt(substring));
           } else if (timeValue.charAt(lookAhead) == 'M') {
-            setMinutes(number);
+            setMinutes(Integer.parseInt(substring));
           } else if (timeValue.charAt(lookAhead) == 'S') {
-            setSeconds(number);
+            setSeconds(Double.parseDouble(substring));
           }
           i = lookAhead;
         }
