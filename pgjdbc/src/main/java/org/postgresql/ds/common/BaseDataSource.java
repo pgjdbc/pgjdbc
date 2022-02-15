@@ -1208,34 +1208,38 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @return Logger Level of the JDBC Driver
-   * @see PGProperty#LOGGER_LEVEL
+   * This property is no longer used by the driver and will be ignored.
+   * @deprecated Configure via java.util.logging
    */
+  @Deprecated
   public @Nullable String getLoggerLevel() {
     return PGProperty.LOGGER_LEVEL.get(properties);
   }
 
   /**
-   * @param loggerLevel of the JDBC Driver
-   * @see PGProperty#LOGGER_LEVEL
+   * This property is no longer used by the driver and will be ignored.
+   * @deprecated Configure via java.util.logging
    */
+  @Deprecated
   public void setLoggerLevel(@Nullable String loggerLevel) {
     PGProperty.LOGGER_LEVEL.set(properties, loggerLevel);
   }
 
   /**
-   * @return File output of the Logger.
-   * @see PGProperty#LOGGER_FILE
+   * This property is no longer used by the driver and will be ignored.
+   * @deprecated Configure via java.util.logging
    */
+  @Deprecated
   public @Nullable String getLoggerFile() {
     ExpressionProperties exprProps = new ExpressionProperties(properties, System.getProperties());
     return PGProperty.LOGGER_FILE.get(exprProps);
   }
 
   /**
-   * @param loggerFile File output of the Logger.
-   * @see PGProperty#LOGGER_LEVEL
+   * This property is no longer used by the driver and will be ignored.
+   * @deprecated Configure via java.util.logging
    */
+  @Deprecated
   public void setLoggerFile(@Nullable String loggerFile) {
     PGProperty.LOGGER_FILE.set(properties, loggerFile);
   }
