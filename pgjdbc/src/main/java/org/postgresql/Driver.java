@@ -656,9 +656,9 @@ public class Driver implements java.sql.Driver {
    * @return the address portion of the URL
    */
   private static HostSpec[] hostSpecs(Properties props) {
-    String[] hosts = castNonNull(props.getProperty("PGHOST")).split(",");
-    String[] ports = castNonNull(props.getProperty("PGPORT")).split(",");
-    String localSocketAddress = props.getProperty("localSocketAddress");
+    String[] hosts = castNonNull(PGProperty.PG_HOST.get(props)).split(",");
+    String[] ports = castNonNull(PGProperty.PG_PORT.get(props)).split(",");
+    String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.get(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {
       hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);

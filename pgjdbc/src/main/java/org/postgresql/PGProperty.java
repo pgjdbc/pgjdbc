@@ -293,6 +293,15 @@ public enum PGProperty {
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   /**
+   * <p>If this is set then the client side will bind to this address. This is useful if you need
+   * to choose which interface to connect to.</p>
+   */
+  LOCAL_SOCKET_ADDRESS(
+      "localSocketAddress",
+      null,
+      "Local Socket address, if set bind the client side of the socket to this address"),
+
+  /**
    * This property is no longer used by the driver and will be ignored.
    * Logging is configured via java.util.logging.
    */
