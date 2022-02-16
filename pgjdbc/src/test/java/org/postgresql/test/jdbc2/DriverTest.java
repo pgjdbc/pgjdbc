@@ -177,6 +177,9 @@ public class DriverTest {
     TestUtil.initDriver();
     Properties properties = new Properties();
     final String localIpAddress = System.getenv("VM_IP");
+    if ( localIpAddress == null) {
+      return;
+    }
     PGProperty.USER.set(properties, TestUtil.getUser());
     PGProperty.PASSWORD.set(properties, TestUtil.getPassword());
     PGProperty.LOCAL_SOCKET_ADDRESS.set(properties, localIpAddress);
@@ -187,6 +190,9 @@ public class DriverTest {
           assertEquals( localIpAddress, rs.getString(1) );
         }
       }
+    } catch ( Exception ex ){
+      System.err.println("trying to bind to " + localIpAddress);
+      throw ex;
     }
   }
 
