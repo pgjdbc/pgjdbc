@@ -143,7 +143,7 @@ jobs:
         docker-compose up -d
         docker-compose logs
     - name: 'Get VM IP'
-      run: export VM_IP=npx -y public-ip-cli -4
+      run: export VM_IP=$(npx -y public-ip-cli -4)
     - name: 'Get test node ARCH'
       run: echo "::set-output name=arch_name::$(uname -i)"
       id: get_arch_name
