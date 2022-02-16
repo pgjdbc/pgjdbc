@@ -31,9 +31,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
@@ -170,6 +168,23 @@ public class DriverTest {
     // Test with failover url
   }
 
+  @Test
+  public void testConnectLocalAddress() throws Exception {
+    TestUtil.initDriver();
+    Properties properties = new Properties();
+    final String localIpAddress = System.getenv("VM_IP");
+    PGProperty.USER.set(properties, TestUtil.getUser());
+    PGProperty.PASSWORD.set(properties, TestUtil.getPassword());
+    PGProperty.LOCAL_SOCKET_ADDRESS.set(properties, localIpAddress);
+    try (Connection con = DriverManager.getConnection(TestUtil.getURL(), properties)) {
+      try (Statement statement = con.createStatement()){
+        try (ResultSet rs = statement.executeQuery("select inet_client_addr();")){
+          assertTrue(rs.next());
+          assertEquals(localIpAddress, rs.getString(1));
+        }
+      }
+    }
+  }
   /**
    * Tests the connect method by connecting to the test database.
    */
