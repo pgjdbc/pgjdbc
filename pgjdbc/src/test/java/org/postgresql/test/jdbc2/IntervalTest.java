@@ -304,6 +304,16 @@ public class IntervalTest {
     assertEquals(-1, pgi.getYears());
     assertEquals(-2, pgi.getMonths());
     assertEquals(-4, pgi.getHours());
+
+    pgi = new PGInterval("PT6.123456S");
+    assertEquals(6.123456, pgi.getSeconds(), .0);
+    assertEquals(6, pgi.getWholeSeconds());
+    assertEquals(123456, pgi.getMicroSeconds());
+
+    pgi = new PGInterval("PT-6.123456S");
+    assertEquals(-6.123456, pgi.getSeconds(), .0);
+    assertEquals(-6, pgi.getWholeSeconds());
+    assertEquals(-123456, pgi.getMicroSeconds());
   }
 
   @Test
