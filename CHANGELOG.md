@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.3.3] (2022-02-15 11:32:24 -0500)
+##[42.3.3] (2022-02-15 11:32:24 -0500)
 ### Changed
 - fix: Removed loggerFile and loggerLevel configuration. While the properties still exist. 
   They can no longer be used to configure the driver logging. Instead use java.util.logging
@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.3.2] (2022-02-01 07:35:41 -0500)
+##[42.3.2] (2022-02-01 07:35:41 -0500)
 ### Security
 - CVE-2022-21724 pgjdbc instantiates plugin instances based on class names provided via authenticationPluginClassName, 
 sslhostnameverifier, socketFactory, sslfactory, sslpasswordcallback connection properties.
@@ -631,7 +631,8 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.2.22]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.21...REL42.2.22
 [42.2.23]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.22...REL42.2.23
 [42.2.24]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.23...REL42.2.24
-[42.3.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.24...REL42.3.1
+[42.3.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.24...REL42.3.0
 [42.3.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.0...REL42.3.1
-[42.3.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...REL42.3.2
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...HEAD
+[42.3.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...REL42.3.2
+[42.3.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...REL42.3.3
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...HEAD
