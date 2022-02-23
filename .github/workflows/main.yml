@@ -153,6 +153,8 @@ jobs:
         architecture: x64
     - name: 'Set localAddress'
       run: echo "VM_IP=$(npx -y public-ip-cli -4)" >> $GITHUB_ENV
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
     - name: 'Setup JDK ${{ matrix.jdk }} on ARM64'
       if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
       uses: AdoptOpenJDK/install-jdk@v1
@@ -173,8 +175,6 @@ jobs:
         arguments: --scan --no-parallel --no-daemon jandex test
         properties: |
           includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
     - name: Cleanup Docker
       if: ${{ always() }}
       working-directory: docker/postgres-server
