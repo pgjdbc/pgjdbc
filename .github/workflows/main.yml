@@ -174,7 +174,7 @@ jobs:
         properties: |
           includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
     - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@v3
     - name: Cleanup Docker
       if: ${{ always() }}
       working-directory: docker/postgres-server
