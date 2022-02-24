@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -213,15 +212,6 @@ public class PGPropertyTest {
     Object value = PGProperty.READ_ONLY.get(empty);
     assertNotNull(value);
     assertFalse(PGProperty.READ_ONLY.isPresent(empty));
-  }
-
-  @Test
-  public void testNullValue() {
-    Properties empty = new Properties();
-    assertNull(PGProperty.LOGGER_LEVEL.getSetString(empty));
-    Properties withLogging = new Properties();
-    withLogging.setProperty(PGProperty.LOGGER_LEVEL.getName(), "OFF");
-    assertNotNull(PGProperty.LOGGER_LEVEL.getSetString(withLogging));
   }
 
   @Test

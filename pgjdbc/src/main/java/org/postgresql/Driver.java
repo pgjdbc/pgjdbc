@@ -9,10 +9,8 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.util.DriverInfo;
-import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.LogWriterHandler;
 import org.postgresql.util.PGPropertyPasswordParser;
 import org.postgresql.util.PGPropertyServiceParser;
 import org.postgresql.util.PGPropertyUtil;
@@ -39,12 +37,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
 
 /**
  * <p>The Java SQL framework allows for multiple database drivers. Each driver should supply a class
@@ -246,11 +240,11 @@ public class Driver implements java.sql.Driver {
     }
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
-      return null;
+      throw new PSQLException(
+          GT.tr("Unable to parse URL "),
+          PSQLState.UNEXPECTED_ERROR);
     }
     try {
-      // Setup java.util.logging.Logger using connection properties.
-      setupLoggerFromProperties(props);
 
       LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
 
@@ -291,73 +285,13 @@ public class Driver implements java.sql.Driver {
     }
   }
 
-  // Used to check if the handler file is the same
-  private static @Nullable String loggerHandlerFile;
-
   /**
-   * <p>Setup java.util.logging.Logger using connection properties.</p>
-   *
-   * <p>See {@link PGProperty#LOGGER_FILE} and {@link PGProperty#LOGGER_FILE}</p>
-   *
+   *  this is an empty method left here for graalvm
+   *  we removed the ability to setup the logger from properties
+   *  due to a security issue
    * @param props Connection Properties
    */
   private void setupLoggerFromProperties(final Properties props) {
-    final String driverLogLevel = PGProperty.LOGGER_LEVEL.get(props);
-    if (driverLogLevel == null) {
-      return; // Don't mess with Logger if not set
-    }
-    if ("OFF".equalsIgnoreCase(driverLogLevel)) {
-      PARENT_LOGGER.setLevel(Level.OFF);
-      return; // Don't mess with Logger if set to OFF
-    } else if ("DEBUG".equalsIgnoreCase(driverLogLevel)) {
-      PARENT_LOGGER.setLevel(Level.FINE);
-    } else if ("TRACE".equalsIgnoreCase(driverLogLevel)) {
-      PARENT_LOGGER.setLevel(Level.FINEST);
-    }
-
-    ExpressionProperties exprProps = new ExpressionProperties(props, System.getProperties());
-    final String driverLogFile = PGProperty.LOGGER_FILE.get(exprProps);
-    if (driverLogFile != null && driverLogFile.equals(loggerHandlerFile)) {
-      return; // Same file output, do nothing.
-    }
-
-    for (java.util.logging.Handler handlers : PARENT_LOGGER.getHandlers()) {
-      // Remove previously set Handlers
-      handlers.close();
-      PARENT_LOGGER.removeHandler(handlers);
-      loggerHandlerFile = null;
-    }
-
-    java.util.logging.Handler handler = null;
-    if (driverLogFile != null) {
-      try {
-        handler = new java.util.logging.FileHandler(driverLogFile);
-        loggerHandlerFile = driverLogFile;
-      } catch (Exception ex) {
-        System.err.println("Cannot enable FileHandler, fallback to ConsoleHandler.");
-      }
-    }
-
-    Formatter formatter = new SimpleFormatter();
-
-    if ( handler == null ) {
-      if (DriverManager.getLogWriter() != null) {
-        handler = new LogWriterHandler(DriverManager.getLogWriter());
-      } else if ( DriverManager.getLogStream() != null) {
-        handler = new StreamHandler(DriverManager.getLogStream(), formatter);
-      } else {
-        handler = new ConsoleHandler();
-      }
-    } else {
-      handler.setFormatter(formatter);
-    }
-
-    Level loggerLevel = PARENT_LOGGER.getLevel();
-    if (loggerLevel != null) {
-      handler.setLevel(loggerLevel);
-    }
-    PARENT_LOGGER.setUseParentHandlers(false);
-    PARENT_LOGGER.addHandler(handler);
   }
 
   /**
@@ -722,9 +656,9 @@ public class Driver implements java.sql.Driver {
    * @return the address portion of the URL
    */
   private static HostSpec[] hostSpecs(Properties props) {
-    String[] hosts = castNonNull(props.getProperty("PGHOST")).split(",");
-    String[] ports = castNonNull(props.getProperty("PGPORT")).split(",");
-    String localSocketAddress = props.getProperty("localSocketAddress");
+    String[] hosts = castNonNull(PGProperty.PG_HOST.get(props)).split(",");
+    String[] ports = castNonNull(PGProperty.PG_PORT.get(props)).split(",");
+    String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.get(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {
       hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);

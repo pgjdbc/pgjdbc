@@ -178,17 +178,13 @@ Connection conn = DriverManager.getConnection(url);
  
 * **loggerLevel** = String
 
-	Logger level of the driver. Allowed values: <code>OFF</code>, <code>DEBUG</code> or <code>TRACE</code>.
-	This enable the <code>java.util.logging.Logger</code> Level of the driver based on the following mapping
-	of levels: DEBUG -&gt; FINE, TRACE -&gt; FINEST. This property is intended for debug the driver and
-	not for general SQL query debug.
+	This property is no longer used by the driver and will be ignored.
+	All logging configuration is handled by java.util.logging.
 
 * **loggerFile** = String
 
-	File name output of the Logger. If set, the Logger will use a <code>java.util.logging.FileHandler</code>
-	to write to a specified file. If the parameter is not set or the file can’t be created the
-	<code>java.util.logging.ConsoleHandler</code> will be used instead. This parameter should be use
-	together with loggerLevel.
+	This property is no longer used by the driver and will be ignored.
+	All logging configuration is handled by java.util.logging.
  
 * **allowEncodingChanges** = boolean
 

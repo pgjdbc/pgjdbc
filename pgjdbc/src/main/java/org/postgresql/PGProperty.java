@@ -293,11 +293,17 @@ public enum PGProperty {
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   /**
-   * <p>File name output of the Logger, if set, the Logger will use a
-   * {@link java.util.logging.FileHandler} to write to a specified file. If the parameter is not set
-   * or the file can't be created the {@link java.util.logging.ConsoleHandler} will be used instead.</p>
-   *
-   * <p>Parameter should be use together with {@link PGProperty#LOGGER_LEVEL}</p>
+   * <p>If this is set then the client side will bind to this address. This is useful if you need
+   * to choose which interface to connect to.</p>
+   */
+  LOCAL_SOCKET_ADDRESS(
+      "localSocketAddress",
+      null,
+      "Local Socket address, if set bind the client side of the socket to this address"),
+
+  /**
+   * This property is no longer used by the driver and will be ignored.
+   * Logging is configured via java.util.logging.
    */
   LOGGER_FILE(
       "loggerFile",
@@ -305,19 +311,8 @@ public enum PGProperty {
       "File name output of the Logger"),
 
   /**
-   * <p>Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.</p>
-   *
-   * <p>This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
-   * of levels:</p>
-   * <ul>
-   *     <li>FINE -&gt; DEBUG</li>
-   *     <li>FINEST -&gt; TRACE</li>
-   * </ul>
-   *
-   * <p><b>NOTE:</b> The recommended approach to enable java.util.logging is using a
-   * {@code logging.properties} configuration file with the property
-   * {@code -Djava.util.logging.config.file=myfile} or if your are using an application server
-   * you should use the appropriate logging subsystem.</p>
+   * This property is no longer used by the driver and will be ignored.
+   * Logging is configured via java.util.logging.
    */
   LOGGER_LEVEL(
       "loggerLevel",
@@ -781,6 +776,7 @@ public enum PGProperty {
   }
 
   private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<String, PGProperty>();
+
   static {
     for (PGProperty prop : PGProperty.values()) {
       if (PROPS_BY_NAME.put(prop.getName(), prop) != null) {

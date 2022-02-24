@@ -395,6 +395,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetBit1WithoutArg() throws SQLException {
+    assumeNotSimpleQueryMode();
     try (CallableStatement call = con.prepareCall("{ ? = call testspg__getBit1WithoutArg () }")) {
       call.registerOutParameter(1, Types.BOOLEAN);
       call.execute();
@@ -404,6 +405,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetBit2WithoutArg() throws SQLException {
+    assumeNotSimpleQueryMode();
     try (CallableStatement call = con.prepareCall("{ ? = call testspg__getBit2WithoutArg () }")) {
       call.registerOutParameter(1, Types.BOOLEAN);
       try {
@@ -980,6 +982,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetBooleanWithoutArg() throws SQLException {
+    assumeNotSimpleQueryMode();
     try (CallableStatement call = con.prepareCall("{ ? = call testspg__getBooleanWithoutArg () }")) {
       call.registerOutParameter(1, Types.BOOLEAN);
       call.execute();

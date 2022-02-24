@@ -23,6 +23,9 @@ public class ObjectFactory {
    * single String argument is searched if it fails, or tryString is true a no argument constructor
    * is tried.
    *
+   * @param <T> type of expected class
+   * @param expectedClass expected class of type T, if the classname instantiated doesn't match
+   *                     the expected type of this class this method will fail
    * @param classname name of the class to instantiate
    * @param info parameter to pass as Properties
    * @param tryString whether to look for a single String argument constructor
@@ -36,14 +39,15 @@ public class ObjectFactory {
    * @throws IllegalAccessException if something goes wrong
    * @throws InvocationTargetException if something goes wrong
    */
-  public static Object instantiate(String classname, Properties info, boolean tryString,
+  public static <T> T instantiate(Class<T> expectedClass, String classname, Properties info,
+      boolean tryString,
       @Nullable String stringarg)
       throws ClassNotFoundException, SecurityException, NoSuchMethodException,
           IllegalArgumentException, InstantiationException, IllegalAccessException,
           InvocationTargetException {
     @Nullable Object[] args = {info};
-    Constructor<?> ctor = null;
-    Class<?> cls = Class.forName(classname);
+    Constructor<? extends T> ctor = null;
+    Class<? extends T> cls = Class.forName(classname).asSubclass(expectedClass);
     try {
       ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException ignored) {

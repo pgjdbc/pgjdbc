@@ -64,7 +64,7 @@ public class MakeSSL extends ObjectFactory {
       sslhostnameverifier = "PgjdbcHostnameVerifier";
     } else {
       try {
-        hvn = (HostnameVerifier) instantiate(sslhostnameverifier, info, false, null);
+        hvn = instantiate(HostnameVerifier.class, sslhostnameverifier, info, false, null);
       } catch (Exception e) {
         throw new PSQLException(
             GT.tr("The HostnameVerifier class provided {0} could not be instantiated.",

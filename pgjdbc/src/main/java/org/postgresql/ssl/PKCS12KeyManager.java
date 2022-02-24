@@ -67,7 +67,7 @@ public class PKCS12KeyManager implements X509KeyManager {
   }
 
   @Override
-  public @Nullable String chooseClientAlias(String[] strings, Principal @Nullable [] principals,
+  public @Nullable String chooseClientAlias(String[] keyType, Principal @Nullable [] principals,
       @Nullable Socket socket) {
     if (principals == null || principals.length == 0) {
       // Postgres 8.4 and earlier do not send the list of accepted certificate authorities
@@ -81,11 +81,27 @@ public class PKCS12KeyManager implements X509KeyManager {
       if (certchain == null) {
         return null;
       } else {
-        X500Principal ourissuer = certchain[certchain.length - 1].getIssuerX500Principal();
+        X509Certificate cert = certchain[certchain.length - 1];
+        X500Principal ourissuer = cert.getIssuerX500Principal();
+        String certKeyType = cert.getPublicKey().getAlgorithm();
+        boolean keyTypeFound = false;
         boolean found = false;
-        for (Principal issuer : principals) {
-          if (ourissuer.equals(issuer)) {
-            found = true;
+        if (keyType != null && keyType.length > 0) {
+          for (String kt : keyType) {
+            if (kt.equalsIgnoreCase(certKeyType)) {
+              keyTypeFound = true;
+            }
+          }
+        } else {
+          // If no key types were passed in, assume we don't care
+          // about checking that the cert uses a particular key type.
+          keyTypeFound = true;
+        }
+        if (keyTypeFound) {
+          for (Principal issuer : principals) {
+            if (ourissuer.equals(issuer)) {
+              found = keyTypeFound;
+            }
           }
         }
         return (found ? "user" : null);

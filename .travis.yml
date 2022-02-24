@@ -50,11 +50,6 @@ cache:
 matrix:
   fast_finish: true
   include:
-    - env:
-        - FEDORA_CI=Y
-      services:
-        - docker
-      if: type != pull_request
     - addons:
         postgresql: "9.6"
       env:

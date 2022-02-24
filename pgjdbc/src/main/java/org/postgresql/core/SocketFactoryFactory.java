@@ -36,7 +36,7 @@ public class SocketFactoryFactory {
       return SocketFactory.getDefault();
     }
     try {
-      return (SocketFactory) ObjectFactory.instantiate(socketFactoryClassName, info, true,
+      return ObjectFactory.instantiate(SocketFactory.class, socketFactoryClassName, info, true,
           PGProperty.SOCKET_FACTORY_ARG.get(info));
     } catch (Exception e) {
       throw new PSQLException(
@@ -61,7 +61,7 @@ public class SocketFactoryFactory {
       return new LibPQFactory(info);
     }
     try {
-      return (SSLSocketFactory) ObjectFactory.instantiate(classname, info, true,
+      return ObjectFactory.instantiate(SSLSocketFactory.class, classname, info, true,
           PGProperty.SSL_FACTORY_ARG.get(info));
     } catch (Exception e) {
       throw new PSQLException(

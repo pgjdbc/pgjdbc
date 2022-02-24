@@ -32,11 +32,11 @@ public class AuthenticationPluginTest {
     private static Consumer<AuthenticationRequestType> onGetPassword;
 
     @Override
-    public @Nullable String getPassword(AuthenticationRequestType type) throws PSQLException {
+    public @Nullable char[] getPassword(AuthenticationRequestType type) throws PSQLException {
       onGetPassword.accept(type);
 
       // Ex: "MD5" => "DUMMY-MD5"
-      return "DUMMY-" + type.toString();
+      return ("DUMMY-" + type.toString()).toCharArray();
     }
   }
 

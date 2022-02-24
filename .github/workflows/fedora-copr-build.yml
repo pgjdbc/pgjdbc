@@ -1,0 +1,24 @@
+---
+name: RPM build in Fedora Copr
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    name: Submit a Copr build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out proper version of sources
+        uses: actions/checkout@v1
+
+      - name: Submit the build
+        env:
+          COPR_PR_WEBHOOK: https://copr.fedorainfracloud.org/webhooks/custom/55296/cf449c12-03b4-4f5b-ae84-3f5aa1d2b462/postgresql-jdbc/
+          COPR_PUSH_WEBHOOK: ${{ secrets.COPR_PUSH_WEBHOOK }}
+        run: |
+          curl https://raw.githubusercontent.com/praiskup/copr-ci-tooling/main/copr-gh-actions-submit > submit
+          bash submit ${{ github.event.pull_request.number }}

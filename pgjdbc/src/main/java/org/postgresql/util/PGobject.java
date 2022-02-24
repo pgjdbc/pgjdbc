@@ -73,7 +73,7 @@ public class PGobject implements Serializable, Cloneable {
    * @return true if the current object wraps `null` value.
    */
   public boolean isNull() {
-    return getValue() != null;
+    return getValue() == null;
   }
 
   /**

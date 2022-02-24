@@ -9,7 +9,6 @@ package org.postgresql.core.v3;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.AuthenticationPluginManager;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
@@ -31,7 +30,6 @@ import org.postgresql.plugin.AuthenticationRequestType;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.KerberosTicket;
 import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -404,6 +402,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   /**
    * Convert Java time zone to postgres time zone. All others stay the same except that GMT+nn
    * changes to GMT-nn and vise versa.
+   * If you provide GMT+/-nn postgres uses POSIX rules which has a positive sign for west of Greenwich
+   * JAVA uses ISO rules which the positive sign is east of Greenwich
+   * To make matters more interesting postgres will always report in ISO
    *
    * @return The current JVM time zone in postgresql format.
    */
@@ -442,15 +443,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return pgStream;
     }
 
-    // If there is not credential cache there is little point in attempting this
-    if (!KerberosTicket.credentialCacheExists(info)) {
-      if ( gssEncMode == GSSEncMode.REQUIRE ) {
-        throw new PSQLException("GSSAPI encryption required but was impossible (possibly no credential cache)", PSQLState.CONNECTION_REJECTED);
-      } else {
-        return pgStream;
-      }
-    }
-
+    /*
+     at this point gssEncMode is either PREFER or REQUIRE
+     libpq looks to see if there is a ticket in the cache before asking
+     the server if it supports encrypted GSS connections or not.
+     since the user has specifically asked or either prefer or require we can
+     assume they want it.
+     */
+    /*
+    let's see if the server will allow a GSS encrypted connection
+     */
     String user = PGProperty.USER.get(info);
     if (user == null) {
       throw new PSQLException("GSSAPI encryption required but was impossible user is null", PSQLState.CONNECTION_REJECTED);
@@ -494,12 +496,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       case 'G':
         LOGGER.log(Level.FINEST, " <=BE GSSEncryptedOk");
         try {
-          String password = AuthenticationPluginManager.getPassword(AuthenticationRequestType.GSS, info);
-          org.postgresql.gss.MakeGSS.authenticate(true, pgStream, host, user, password,
-              PGProperty.JAAS_APPLICATION_NAME.get(info),
-              PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
-              PGProperty.JAAS_LOGIN.getBoolean(info),
-              PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+          AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
+            org.postgresql.gss.MakeGSS.authenticate(true, pgStream, host, user, password,
+                PGProperty.JAAS_APPLICATION_NAME.get(info),
+                PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
+                PGProperty.JAAS_LOGIN.getBoolean(info),
+                PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+            return void.class;
+          });
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
@@ -657,17 +661,23 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
                 }
 
-                byte[] encodedPassword = AuthenticationPluginManager.getEncodedPassword(AuthenticationRequestType.MD5_PASSWORD, info);
-                byte[] digest =
-                    MD5Digest.encode(user.getBytes(StandardCharsets.UTF_8), encodedPassword, md5Salt);
+                byte[] digest = AuthenticationPluginManager.withEncodedPassword(
+                    AuthenticationRequestType.MD5_PASSWORD, info,
+                    encodedPassword -> MD5Digest.encode(user.getBytes(StandardCharsets.UTF_8),
+                        encodedPassword, md5Salt)
+                );
 
                 if (LOGGER.isLoggable(Level.FINEST)) {
                   LOGGER.log(Level.FINEST, " FE=> Password(md5digest={0})", new String(digest, StandardCharsets.US_ASCII));
                 }
 
-                pgStream.sendChar('p');
-                pgStream.sendInteger4(4 + digest.length + 1);
-                pgStream.send(digest);
+                try {
+                  pgStream.sendChar('p');
+                  pgStream.sendInteger4(4 + digest.length + 1);
+                  pgStream.send(digest);
+                } finally {
+                  java.util.Arrays.fill(digest, (byte) 0);
+                }
                 pgStream.sendChar(0);
                 pgStream.flush();
 
@@ -678,11 +688,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 LOGGER.log(Level.FINEST, "<=BE AuthenticationReqPassword");
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
-                byte[] encodedPassword = AuthenticationPluginManager.getEncodedPassword(AuthenticationRequestType.CLEARTEXT_PASSWORD, info);
-
-                pgStream.sendChar('p');
-                pgStream.sendInteger4(4 + encodedPassword.length + 1);
-                pgStream.send(encodedPassword);
+                AuthenticationPluginManager.withEncodedPassword(AuthenticationRequestType.CLEARTEXT_PASSWORD, info, encodedPassword -> {
+                  pgStream.sendChar('p');
+                  pgStream.sendInteger4(4 + encodedPassword.length + 1);
+                  pgStream.send(encodedPassword);
+                  return void.class;
+                });
                 pgStream.sendChar(0);
                 pgStream.flush();
 
@@ -753,12 +764,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   castNonNull(sspiClient).startSSPI();
                 } else {
                   /* Use JGSS's GSSAPI for this request */
-                  String password = AuthenticationPluginManager.getPassword(AuthenticationRequestType.GSS, info);
-                  org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
-                      PGProperty.JAAS_APPLICATION_NAME.get(info),
-                      PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
-                      PGProperty.JAAS_LOGIN.getBoolean(info),
-                      PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+                  AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
+                    org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
+                        PGProperty.JAAS_APPLICATION_NAME.get(info),
+                        PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
+                        PGProperty.JAAS_LOGIN.getBoolean(info),
+                        PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+                    return void.class;
+                  });
                 }
                 break;
 
@@ -772,20 +785,21 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
-                String password = AuthenticationPluginManager.getPassword(AuthenticationRequestType.SASL, info);
-                if (password == null) {
-                  throw new PSQLException(
-                      GT.tr(
-                          "The server requested SCRAM-based authentication, but no password was provided."),
-                      PSQLState.CONNECTION_REJECTED);
-                }
-                if (password.equals("")) {
-                  throw new PSQLException(
-                      GT.tr(
-                          "The server requested SCRAM-based authentication, but the password is an empty string."),
-                      PSQLState.CONNECTION_REJECTED);
-                }
-                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
+                scramAuthenticator = AuthenticationPluginManager.withPassword(AuthenticationRequestType.SASL, info, password -> {
+                  if (password == null) {
+                    throw new PSQLException(
+                        GT.tr(
+                            "The server requested SCRAM-based authentication, but no password was provided."),
+                        PSQLState.CONNECTION_REJECTED);
+                  }
+                  if (password.length == 0) {
+                    throw new PSQLException(
+                        GT.tr(
+                            "The server requested SCRAM-based authentication, but the password is an empty string."),
+                        PSQLState.CONNECTION_REJECTED);
+                  }
+                  return new org.postgresql.jre7.sasl.ScramAuthenticator(user, String.valueOf(password), pgStream);
+                });
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
                 // This works as follows:

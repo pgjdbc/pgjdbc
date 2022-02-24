@@ -125,7 +125,7 @@ public class TimestampUtils {
   // This calendar is used when user provides calendar in setX(, Calendar) method.
   // It ensures calendar is Gregorian.
   private final Calendar calendarWithUserTz = new GregorianCalendar();
-  private final TimeZone utcTz = TimeZone.getTimeZone("UTC");
+  private final TimeZone utcTz = TimeZone.getTimeZone(ZoneOffset.UTC);
 
   private @Nullable Calendar calCache;
   private int calCacheZone;

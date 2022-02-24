@@ -45,13 +45,47 @@ installed.
 
 If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
 
-    cd docker/postgres-server
+    cd docker && bin/postgresql-server
 
-    # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
-    docker-compose down && docker-compose up
+    Helper script to start a postgres container for testing the PGJDBC driver.
 
-    # Launch PostgreSQL 13, with XA, without SSL
-    docker-compose down && SSL=no XA=yes docker-compose up
+    This is the same container used by the automated CI platform and can be used
+    to reproduce CI errors locally. It respects all the same environment variables
+    used by the CI matrix:
+
+    PGV   = "8.4" | "9.0" | ... "13" ...   - PostgreSQL server version (defaults to latest)
+    SSL   = "yes" | "no"                   - Whether to enable SSL
+    XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
+    SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
+    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
+    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
+
+    The container is started in the foreground. It will remain running until it
+    is killed via Ctrl-C.
+
+    To start the default (latest) version:
+
+    docker/bin/postgres-server
+
+    To start a v8.4 server without SSL:
+
+    PGV=8.4 SSL=off docker/bin/postgres-server
+
+    To start a v10 server with SCRAM disabled:
+
+     PGV=10 SCRAM=no docker/bin/postgres-server
+
+    To start a v11 server with a custom timezone:
+
+    PGV=11 TZ=Americas/New_York docker/bin/postgres-server
+
+    To start a v13 server with the defaults (SSL + XA + SCRAM):
+
+    PGV=13 docker/bin/postgres-server
+
+    To start the default (latest) version with read only replicas:
+
+    CREATE_REPLICAS=on docker/bin/postgres-server
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
@@ -150,78 +184,6 @@ See [BlobTest.java](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test
 - contrib module sslinfo needs to be installed in the databases
 - databases `certdb`, `hostdb`, `hostnossldb`, `hostssldb`, and `hostsslcertdb` need to be created
 
-
-## 9 - Running the JDBC 2 test suite against PostgreSQL
-
-Download the [JDBC test suite](http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html).
-This is the JDBC 2 test suite that includes J2EE requirements.
-
-1. Configure PostgreSQL so that it accepts TCP/IP connections and
-   start the server. Prepare PostgreSQL by creating two users (cts1
-   and cts2) and two databases (DB1 and DB2) in the cluster that is
-   going to be used for JDBC testing.
-
-2. Download the latest release versions of the J2EE, J2SE, and JDBC
-   test suite from Sun's Java site (http://java.sun.com), and install
-   according to Sun's documentation.
-
-3. The following environment variables should be set:
-
-       CTS_HOME=<path where JDBC test suite installed (eg: /usr/local/jdbccts)>
-       J2EE_HOME=<path where J2EE installed (eg: /usr/local/j2sdkee1.2.1)>
-       JAVA_HOME=<path where J2SE installed (eg: /usr/local/jdk1.3.1)>
-       NO_JAVATEST=Y
-       LOCAL_CLASSES=<path to PostgreSQL JDBC driver jar>
-
-4. In $J2EE_HOME/config/default.properties:
-
-       jdbc.drivers=org.postgresql.Driver
-       jdbc.datasources=jdbc/DB1|jdbc:postgresql://localhost:5432/DB1|jdbc/DB2|jdbc:postgresq://localhost:5432/DB2
-
-    Of course, if PostgreSQL is running on a computer different from
-    the one running the application server, localhost should be changed
-    to the proper host. Also, 5432 should be changed to whatever port
-    PostgreSQL is listening on (5432 is the default).
-
-    In $J2EE_HOME/bin/userconfig.sh:
-
-       Add $CTS_HOME/lib/harness.jar, $CTS_HOME/lib/moo.jar,
-       $CTS_HOME/lib/util.jar to J2EE_CLASSPATH. Also add the path to
-       the PostgreSQL JDBC jar to J2EE_CLASSPATH. Set the JAVA_HOME
-       variable to where you installed the J2SE. You should end up with
-       something like this:
-
-       CTS_HOME=/home/liams/linux/java/jdbccts
-       J2EE_CLASSPATH=/home/liams/work/inst/postgresql-7.1.2/share/java/postgresql.jar:$CTS_HOME/lib/harness.jar:$CTS_HOME/lib/moo.jar:$CTS_HOME/lib/util.jar
-       export J2EE_CLASSPATH
-
-       JAVA_HOME=/home/liams/linux/java/jdk1.3.1
-       export JAVA_HOME
-
-   In $CTS_HOME/bin/cts.jte:
-
-       webServerHost=localhost
-       webServerPort=8000
-       servletServerHost=localhost
-       servletServerPort=8000
-
-5. Start the application server (j2ee):
-
-        cd $J2EE_HOME
-        bin/j2ee -verbose
-
-    The server can be stopped after the tests have finished:
-
-        cd $J2EE_HOME
-        bin/j2ee -stop
-
-6. Run the JDBC tests:
-
-        cd $CTS_HOME/tests/jdbc/ee
-        make jdbc-tests
-
-At the time of writing of this document, a great number of tests
-in this test suite fail.
 
 ## 10 - Credits and Feedback
 
