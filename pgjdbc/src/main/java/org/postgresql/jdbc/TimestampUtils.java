@@ -63,6 +63,8 @@ public class TimestampUtils {
   private static final LocalDate MIN_LOCAL_DATE = LocalDate.of(4713, 1, 1).with(ChronoField.ERA, IsoEra.BCE.getValue());
   private static final LocalDateTime MIN_LOCAL_DATETIME = MIN_LOCAL_DATE.atStartOfDay();
   private static final OffsetDateTime MIN_OFFSET_DATETIME = MIN_LOCAL_DATETIME.atOffset(ZoneOffset.UTC);
+  private static final Duration PG_EPOCH_DIFF =
+      Duration.between(Instant.EPOCH, LocalDate.of(2000, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC));
 
   private static final @Nullable Field DEFAULT_TIME_ZONE_FIELD;
 
@@ -1229,7 +1231,7 @@ public class TimestampUtils {
     long secs = ts.millis / 1000L;
 
     // postgres epoc to java epoc
-    secs += 946684800L;
+    secs += PG_EPOCH_DIFF.getSeconds();
     long millis = secs * 1000L;
 
     ts.millis = millis;
@@ -1256,6 +1258,29 @@ public class TimestampUtils {
     // hardcode utc because the backend does not provide us the timezone
     // Postgres is always UTC
     return LocalDateTime.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos, ZoneOffset.UTC);
+  }
+
+  /**
+   * Returns the local date time object matching the given bytes with {@link Oid#DATE} or
+   * {@link Oid#TIMESTAMP}.
+   * @param bytes The binary encoded local date value.
+   *
+   * @return The parsed local date object.
+   * @throws PSQLException If binary format could not be parsed.
+   */
+  public LocalDate toLocalDateBin(byte[] bytes) throws PSQLException {
+    if (bytes.length != 4) {
+      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "date"),
+          PSQLState.BAD_DATETIME_FORMAT);
+    }
+    int days = ByteConverter.int4(bytes, 0);
+    if (days == Integer.MAX_VALUE) {
+      return LocalDate.MAX;
+    } else if (days == Integer.MIN_VALUE) {
+      return LocalDate.MIN;
+    }
+    // adapt from different Postgres Epoch and convert to LocalDate:
+    return LocalDate.ofEpochDay(PG_EPOCH_DIFF.toDays() + days);
   }
 
   /**
@@ -1446,7 +1471,7 @@ public class TimestampUtils {
    */
   private static long toJavaSecs(long secs) {
     // postgres epoc to java epoc
-    secs += 946684800L;
+    secs += PG_EPOCH_DIFF.getSeconds();
 
     // Julian/Gregorian calendar cutoff point
     if (secs < -12219292800L) { // October 4, 1582 -> October 15, 1582
@@ -1470,7 +1495,7 @@ public class TimestampUtils {
    */
   private static long toPgSecs(long secs) {
     // java epoc to postgres epoc
-    secs -= 946684800L;
+    secs -= PG_EPOCH_DIFF.getSeconds();
 
     // Julian/Gregorian calendar cutoff point
     if (secs < -13165977600L) { // October 15, 1582 -> October 4, 1582

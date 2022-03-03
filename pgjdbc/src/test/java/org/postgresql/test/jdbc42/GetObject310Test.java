@@ -90,17 +90,66 @@ public class GetObject310Test extends BaseTest4 {
    */
   @Test
   public void testGetLocalDate() throws SQLException {
-    Statement stmt = con.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","DATE '1999-01-08'"));
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
-    try {
-      assertTrue(rs.next());
-      LocalDate localDate = LocalDate.of(1999, 1, 8);
-      assertEquals(localDate, rs.getObject("date_column", LocalDate.class));
-      assertEquals(localDate, rs.getObject(1, LocalDate.class));
-    } finally {
-      rs.close();
+    List<String> zoneIdsToTest = new ArrayList<String>();
+    zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
+    zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9
+    zoneIdsToTest.add("Atlantic/Azores"); // It is something like GMT-1..GMT+0
+    zoneIdsToTest.add("Europe/Berlin"); // It is something like GMT+1..GMT+2
+    zoneIdsToTest.add("Europe/Moscow"); // It is something like GMT+3..GMT+4 for 2000s
+    zoneIdsToTest.add("Pacific/Apia"); // It is something like GMT+13..GMT+14
+    zoneIdsToTest.add("Pacific/Niue"); // It is something like GMT-11..GMT-11
+    for (int i = -12; i <= 13; i++) {
+      zoneIdsToTest.add(String.format("GMT%+02d", i));
+    }
+
+    List<String> datesToTest = Arrays.asList("1998-01-08",
+            // Some random dates
+            "1981-12-11", "2022-02-22",
+            "2015-09-03", "2015-06-30",
+            "1997-06-30", "1997-07-01", "2012-06-30", "2012-07-01",
+            "2015-06-30", "2015-07-01", "2005-12-31", "2006-01-01",
+            "2008-12-31", "2009-01-01", "2015-06-30", "2015-07-31",
+            "2015-07-31",
+
+            // On 2000-03-26 02:00:00 Moscow went to DST, thus local time became 03:00:00
+            "2003-03-25", "2000-03-26", "2000-03-27",
+
+            // This is a pre-1970 date, so check if it is rounded properly
+            "1950-07-20",
+
+            // Ensure the calendar is proleptic
+            "1582-01-01", "1582-12-31",
+            "1582-09-30", "1582-10-16",
+
+            // https://github.com/pgjdbc/pgjdbc/issues/2221
+            "0001-01-01",
+            "1000-01-01", "1000-06-01", "0999-12-31",
+
+            // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
+            "2000-10-28", "2000-10-29", "2000-10-30");
+
+    for (String zoneId : zoneIdsToTest) {
+      ZoneId zone = ZoneId.of(zoneId);
+      for (String date : datesToTest) {
+        localDate(zone, date);
+      }
+    }
+  }
+
+  public void localDate(ZoneId zoneId, String date) throws SQLException {
+    TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
+    try (Statement stmt = con.createStatement(); ) {
+      stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","DATE '" + date + "'"));
+
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column")); ) {
+        assertTrue(rs.next());
+        LocalDate localDate = LocalDate.parse(date);
+        assertEquals(localDate, rs.getObject("date_column", LocalDate.class));
+        assertEquals(localDate, rs.getObject(1, LocalDate.class));
+      }
+      stmt.executeUpdate("DELETE FROM table1");
     }
   }
 
@@ -203,6 +252,11 @@ public class GetObject310Test extends BaseTest4 {
 
             // Ensure the calendar is proleptic
             "1582-09-30T00:00:00", "1582-10-16T00:00:00",
+
+            // https://github.com/pgjdbc/pgjdbc/issues/2221
+            "0001-01-01T00:00:00",
+            "1000-01-01T00:00:00",
+            "1000-01-01T23:59:59", "1000-06-01T01:00:00", "0999-12-31T23:59:59",
 
             // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
             "2000-10-29T01:59:59", "2000-10-29T02:00:00", "2000-10-29T02:00:01", "2000-10-29T02:59:59",

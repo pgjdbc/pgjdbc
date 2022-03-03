@@ -8,7 +8,6 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGResultSetMetaData;
-import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
@@ -732,6 +731,30 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     String string = castNonNull(getString(i));
     return getTimestampUtils().toLocalDateTime(string);
+  }
+
+  private @Nullable LocalDate getLocalDate(int i) throws SQLException {
+    byte[] value = getRawValue(i);
+    if (value == null) {
+      return null;
+    }
+
+    if (isBinary(i)) {
+      int col = i - 1;
+      int oid = fields[col].getOID();
+      if (oid == Oid.DATE) {
+        return getTimestampUtils().toLocalDateBin(value);
+      } else if (oid == Oid.TIMESTAMP) {
+        return getTimestampUtils().toLocalDateTimeBin(value).toLocalDate();
+      } else {
+        throw new PSQLException(
+            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                Oid.toString(oid), "java.time.LocalDate"),
+            PSQLState.DATA_TYPE_MISMATCH);
+      }
+    }
+
+    return getTimestampUtils().toLocalDateTime(castNonNull(getString(i))).toLocalDate();
   }
 
   public java.sql.@Nullable Date getDate(
@@ -3696,25 +3719,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
       // JSR-310 support
     } else if (type == LocalDate.class) {
-      if (sqlType == Types.DATE) {
-        Date dateValue = getDate(columnIndex);
-        if (dateValue == null) {
-          return null;
-        }
-        long time = dateValue.getTime();
-        if (time == PGStatement.DATE_POSITIVE_INFINITY) {
-          return type.cast(LocalDate.MAX);
-        }
-        if (time == PGStatement.DATE_NEGATIVE_INFINITY) {
-          return type.cast(LocalDate.MIN);
-        }
-        return type.cast(dateValue.toLocalDate());
-      } else if (sqlType == Types.TIMESTAMP) {
-        LocalDateTime localDateTimeValue = getLocalDateTime(columnIndex);
-        if (localDateTimeValue == null) {
-          return null;
-        }
-        return type.cast(localDateTimeValue.toLocalDate());
+      if (sqlType == Types.DATE || sqlType == Types.TIMESTAMP) {
+        return type.cast(getLocalDate(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
