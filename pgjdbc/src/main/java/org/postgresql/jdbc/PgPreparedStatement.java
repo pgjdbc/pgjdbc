@@ -69,6 +69,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Map;
@@ -614,6 +615,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           } else if (in instanceof LocalTime) {
             setTime(parameterIndex, (LocalTime) in);
             break;
+          } else if (in instanceof OffsetTime) {
+            setTime(parameterIndex, (OffsetTime) in);
+            break;
           } else {
             tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
           }
@@ -988,6 +992,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setDate(parameterIndex, (LocalDate) x);
     } else if (x instanceof LocalTime) {
       setTime(parameterIndex, (LocalTime) x);
+    } else if (x instanceof OffsetTime) {
+      setTime(parameterIndex, (OffsetTime) x);
     } else if (x instanceof LocalDateTime) {
       setTimestamp(parameterIndex, (LocalDateTime) x);
     } else if (x instanceof OffsetDateTime) {
@@ -1437,6 +1443,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private void setTime(@Positive int i, LocalTime localTime) throws SQLException {
     int oid = Oid.TIME;
     bindString(i, getTimestampUtils().toString(localTime), oid);
+  }
+
+  private void setTime(@Positive int i, OffsetTime offsetTime) throws SQLException {
+    int oid = Oid.TIMETZ;
+    bindString(i, getTimestampUtils().toString(offsetTime), oid);
   }
 
   private void setTimestamp(@Positive int i, LocalDateTime localDateTime)

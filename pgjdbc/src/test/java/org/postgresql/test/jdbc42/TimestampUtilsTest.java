@@ -14,6 +14,7 @@ import org.junit.Test;
 
 import java.sql.SQLException;
 import java.time.LocalTime;
+import java.time.OffsetTime;
 import java.util.TimeZone;
 
 public class TimestampUtilsTest {
@@ -60,6 +61,46 @@ public class TimestampUtilsTest {
     assertEquals(LocalTime.parse("23:59:59.99999999"), timestampUtils.toLocalTime("23:59:59.99999999")); // 990 NanoSeconds
     assertEquals(LocalTime.parse("23:59:59.999999998"), timestampUtils.toLocalTime("23:59:59.999999998")); // 998 NanoSeconds
     assertEquals(LocalTime.parse("23:59:59.999999999"), timestampUtils.toLocalTime("24:00:00"));
+  }
+
+  @Test
+  public void testToStringOfOffsetTime() {
+    TimestampUtils timestampUtils = createTimestampUtils();
+
+    assertEquals("00:00:00+00", timestampUtils.toString(OffsetTime.parse("00:00:00+00:00")));
+    assertEquals("00:00:00.1+01", timestampUtils.toString(OffsetTime.parse("00:00:00.1+01:00")));
+    assertEquals("00:00:00.12+12", timestampUtils.toString(OffsetTime.parse("00:00:00.12+12:00")));
+    assertEquals("00:00:00.123-01", timestampUtils.toString(OffsetTime.parse("00:00:00.123-01:00")));
+    assertEquals("00:00:00.1234-02", timestampUtils.toString(OffsetTime.parse("00:00:00.1234-02:00")));
+    assertEquals("00:00:00.12345-12", timestampUtils.toString(OffsetTime.parse("00:00:00.12345-12:00")));
+    assertEquals("00:00:00.123456+01:30", timestampUtils.toString(OffsetTime.parse("00:00:00.123456+01:30")));
+    assertEquals("00:00:00.123456-12:34", timestampUtils.toString(OffsetTime.parse("00:00:00.123456-12:34")));
+
+    assertEquals("23:59:59+01", timestampUtils.toString(OffsetTime.parse("23:59:59+01:00")));
+    assertEquals("23:59:59.999999+01", timestampUtils.toString(OffsetTime.parse("23:59:59.999999+01:00"))); // 0 NanoSeconds
+    assertEquals("23:59:59.999999+01", timestampUtils.toString(OffsetTime.parse("23:59:59.999999499+01:00"))); // 499 NanoSeconds
+    assertEquals("24:00:00+01", timestampUtils.toString(OffsetTime.parse("23:59:59.999999500+01:00")));// 500 NanoSeconds
+    assertEquals("24:00:00+01", timestampUtils.toString(OffsetTime.parse("23:59:59.999999999+01:00")));// 999 NanoSeconds
+  }
+
+  @Test
+  public void testToOffsetTime() throws SQLException {
+    TimestampUtils timestampUtils = createTimestampUtils();
+
+    assertEquals(OffsetTime.parse("00:00:00+00:00"), timestampUtils.toOffsetTime("00:00:00+00"));
+    assertEquals(OffsetTime.parse("00:00:00.1+01:00"), timestampUtils.toOffsetTime("00:00:00.1+01"));
+    assertEquals(OffsetTime.parse("00:00:00.12+12:00"), timestampUtils.toOffsetTime("00:00:00.12+12"));
+    assertEquals(OffsetTime.parse("00:00:00.123-01:00"), timestampUtils.toOffsetTime("00:00:00.123-01"));
+    assertEquals(OffsetTime.parse("00:00:00.1234-02:00"), timestampUtils.toOffsetTime("00:00:00.1234-02"));
+    assertEquals(OffsetTime.parse("00:00:00.12345-12:00"), timestampUtils.toOffsetTime("00:00:00.12345-12"));
+    assertEquals(OffsetTime.parse("00:00:00.123456+01:30"), timestampUtils.toOffsetTime("00:00:00.123456+01:30"));
+    assertEquals(OffsetTime.parse("00:00:00.123456-12:34"), timestampUtils.toOffsetTime("00:00:00.123456-12:34"));
+
+    assertEquals(OffsetTime.parse("23:59:59.999999+01:00"), timestampUtils.toOffsetTime("23:59:59.999999+01")); // 0 NanoSeconds
+    assertEquals(OffsetTime.parse("23:59:59.9999999+01:00"), timestampUtils.toOffsetTime("23:59:59.9999999+01")); // 900 NanoSeconds
+    assertEquals(OffsetTime.parse("23:59:59.99999999+01:00"), timestampUtils.toOffsetTime("23:59:59.99999999+01")); // 990 NanoSeconds
+    assertEquals(OffsetTime.parse("23:59:59.999999998+01:00"), timestampUtils.toOffsetTime("23:59:59.999999998+01")); // 998 NanoSeconds
+    assertEquals(OffsetTime.MAX, timestampUtils.toOffsetTime("24:00:00+01"));// 999 NanoSeconds
   }
 
   private TimestampUtils createTimestampUtils() {
