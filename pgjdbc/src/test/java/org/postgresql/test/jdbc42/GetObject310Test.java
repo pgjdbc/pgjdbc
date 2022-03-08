@@ -30,6 +30,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.chrono.IsoEra;
@@ -150,6 +151,37 @@ public class GetObject310Test extends BaseTest4 {
         assertEquals(localDate, rs.getObject(1, LocalDate.class));
       }
       stmt.executeUpdate("DELETE FROM table1");
+    }
+  }
+
+  /**
+   * Test the behavior getObject for timetz columns.
+   */
+  @Test
+  public void testGetOffsetTime() throws SQLException {
+    List<String> timesToTest = Arrays.asList("00:00:00+00:00", "00:00:00+00:30",
+        "01:02:03.333444+02:00", "23:59:59.999999-12:00",
+        "11:22:59.4711-08:00", "23:59:59.0-12:00",
+        "11:22:59.4711+15:59:12", "23:59:59.0-15:59:12"
+    );
+
+    for (String time : timesToTest) {
+      try (Statement stmt = con.createStatement(); ) {
+        stmt.executeUpdate(TestUtil.insertSQL("table1","time_with_time_zone_column","time with time zone '" + time + "'"));
+
+        try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column")); ) {
+          assertTrue(rs.next());
+          OffsetTime offsetTime = OffsetTime.parse(time);
+          assertEquals(offsetTime, rs.getObject("time_with_time_zone_column", OffsetTime.class));
+          assertEquals(offsetTime, rs.getObject(1, OffsetTime.class));
+          
+          //Also test that we get the correct values when retrieving the data as OffsetDateTime objects on EPOCH (required by JDBC)
+          OffsetDateTime offsetDT = offsetTime.atDate(LocalDate.of(1970, 1, 1));
+          assertEquals(offsetDT, rs.getObject("time_with_time_zone_column", OffsetDateTime.class));
+          assertEquals(offsetDT, rs.getObject(1, OffsetDateTime.class));
+        }
+        stmt.executeUpdate("DELETE FROM table1");
+      }
     }
   }
 

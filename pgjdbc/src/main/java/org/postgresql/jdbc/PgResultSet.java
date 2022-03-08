@@ -73,6 +73,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -671,6 +672,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   }
 
+  private static final LocalDate LOCAL_DATE_EPOCH = LocalDate.of(1970, 1, 1);
+
   private @Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
@@ -685,11 +688,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return getTimestampUtils().toOffsetDateTimeBin(value);
       } else if (oid == Oid.TIMETZ) {
         // JDBC spec says timetz must be supported
-        Time time = getTime(i);
-        if (time == null) {
-          return null;
-        }
-        return getTimestampUtils().toOffsetDateTime(time);
+        return getTimestampUtils().toOffsetTimeBin(value).atDate(LOCAL_DATE_EPOCH);
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -697,18 +696,29 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             PSQLState.DATA_TYPE_MISMATCH);
       }
     }
-    // If this is actually a timestamptz, the server-provided timezone will override
-    // the one we pass in, which is the desired behaviour. Otherwise, we'll
-    // interpret the timezone-less value in the provided timezone.
-    String string = castNonNull(getString(i));
-    if (oid == Oid.TIMETZ) {
-      // JDBC spec says timetz must be supported
-      // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
-      Calendar cal = getDefaultCalendar();
-      Time time = getTimestampUtils().toTime(cal, string);
-      return getTimestampUtils().toOffsetDateTime(time);
+    return getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)), oid != Oid.TIMETZ);
+  }
+
+  private @Nullable OffsetTime getOffsetTime(int i) throws SQLException {
+    byte[] value = getRawValue(i);
+    if (value == null) {
+      return null;
     }
-    return getTimestampUtils().toOffsetDateTime(string);
+
+    int col = i - 1;
+    int oid = fields[col].getOID();
+
+    if (isBinary(i)) {
+     if (oid == Oid.TIMETZ || oid == Oid.TIME) {
+        return getTimestampUtils().toOffsetTimeBin(value);
+      } else {
+        throw new PSQLException(
+            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                Oid.toString(oid), "timestamptz"),
+            PSQLState.DATA_TYPE_MISMATCH);
+      }
+    }
+    return getTimestampUtils().toOffsetTime(castNonNull(getString(i)));
   }
 
   private @Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
@@ -3740,9 +3750,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == OffsetDateTime.class) {
-      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
+      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP || sqlType == Types.TIME) {
         OffsetDateTime offsetDateTime = getOffsetDateTime(columnIndex);
         return type.cast(offsetDateTime);
+      } else {
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+                PSQLState.INVALID_PARAMETER_VALUE);
+      }
+    } else if (type == OffsetTime.class) {
+      if (sqlType == Types.TIME) {
+        return type.cast(getOffsetTime(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
