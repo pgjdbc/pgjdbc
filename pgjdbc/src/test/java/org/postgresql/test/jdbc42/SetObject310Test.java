@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.chrono.IsoChronology;
@@ -144,7 +145,7 @@ public class SetObject310Test extends BaseTest4 {
     insert(data, columnName, null);
   }
 
-  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expectedType) throws SQLException {
+  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> type) throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
     try {
       ps.setObject(1, data);
@@ -160,7 +161,7 @@ public class SetObject310Test extends BaseTest4 {
         assertNotNull(rs);
 
         assertTrue(rs.next());
-        return expectedType.cast(rs.getObject(1));
+        return type.cast(rs.getObject(1, type));
       } finally {
         rs.close();
       }
@@ -169,7 +170,7 @@ public class SetObject310Test extends BaseTest4 {
     }
   }
 
-  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expectedType) throws SQLException {
+  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> type) throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
     try {
       ps.setObject(1, data, sqlType);
@@ -185,7 +186,7 @@ public class SetObject310Test extends BaseTest4 {
         assertNotNull(rs);
 
         assertTrue(rs.next());
-        return expectedType.cast(rs.getObject(1));
+        return type.cast(rs.getObject(1, type));
       } finally {
         rs.close();
       }
@@ -426,6 +427,46 @@ public class SetObject310Test extends BaseTest4 {
     Time actual = insertThenReadWithoutType(data, "time_without_time_zone_column", Time.class);
     Time expected = Time.valueOf("16:21:51");
     assertEquals(expected, actual);
+  }
+
+  /**
+   * Test the behavior setObject for time columns.
+   */
+  @Test
+  public void testSetLocalTimeWithType2() throws SQLException {
+    LocalTime data = LocalTime.parse("16:21:51");
+    LocalTime actual = insertThenReadWithType(data, Types.TIME, "time_without_time_zone_column", LocalTime.class);
+    assertEquals(data, actual);
+  }
+
+  /**
+   * Test the behavior setObject for time columns.
+   */
+  @Test
+  public void testSetLocalTimeWithoutType2() throws SQLException {
+    LocalTime data = LocalTime.parse("16:21:51");
+    LocalTime actual = insertThenReadWithoutType(data, "time_without_time_zone_column", LocalTime.class);
+    assertEquals(data, actual);
+  }
+
+  /**
+   * Test the behavior setObject for time columns.
+   */
+  @Test
+  public void testSetOffsetTimeWithType() throws SQLException {
+    OffsetTime data = OffsetTime.parse("16:21:51+12:34");
+    OffsetTime actual = insertThenReadWithType(data, Types.TIME, "time_with_time_zone_column", OffsetTime.class);
+    assertEquals(data, actual);
+  }
+
+  /**
+   * Test the behavior setObject for time columns.
+   */
+  @Test
+  public void testSetOffsetTimeWithoutType() throws SQLException {
+    OffsetTime data = OffsetTime.parse("16:21:51+12:34");
+    OffsetTime actual = insertThenReadWithoutType(data, "time_with_time_zone_column", OffsetTime.class);
+    assertEquals(data, actual);
   }
 
 }
