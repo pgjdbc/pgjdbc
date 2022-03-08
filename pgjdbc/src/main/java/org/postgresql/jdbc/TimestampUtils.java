@@ -569,7 +569,7 @@ public class TimestampUtils {
     }
     ParsedTimestamp ts = parseBackendTimestamp(s);
     Calendar useCal = ts.hasOffset ? setupCalendar(ts.offset) : setupCalendar(cal);
-    if (ts.offset == null) {
+    if (!ts.hasOffset) {
       // When no time zone provided (e.g. time or timestamp)
       // We get the year-month-day from the string, then truncate the day to 1970-01-01
       // This is used for timestamp -> time conversion
@@ -596,7 +596,7 @@ public class TimestampUtils {
     useCal.set(Calendar.MILLISECOND, 0);
 
     long timeMillis = useCal.getTimeInMillis() + ts.nanos / 1000000;
-    if (ts.offset != null || (ts.year == 1970 && ts.era == GregorianCalendar.AD)) {
+    if (ts.hasOffset || (ts.year == 1970 && ts.era == GregorianCalendar.AD)) {
       // time with time zone has proper time zone, so the value can be returned as is
       return new Time(timeMillis);
     }
