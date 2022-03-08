@@ -129,6 +129,9 @@ public class TimestampUtils {
   private final Calendar calendarWithUserTz = new GregorianCalendar();
   private final TimeZone utcTz = TimeZone.getTimeZone(ZoneOffset.UTC);
 
+  private @Nullable Calendar calCache;
+  private ZoneOffset calCacheZone;
+
   /**
    * True if the backend uses doubles for time values. False if long is used.
    */
@@ -138,6 +141,16 @@ public class TimestampUtils {
   public TimestampUtils(boolean usesDouble, Provider<TimeZone> timeZoneProvider) {
     this.usesDouble = usesDouble;
     this.timeZoneProvider = timeZoneProvider;
+  }
+
+  private Calendar getCalendar(ZoneOffset offset) {
+    if (calCache != null && calCacheZone == offset) {
+      return calCache;
+    }
+
+    calCache = new GregorianCalendar(TimeZone.getTimeZone(offset));
+    calCacheZone = offset;
+    return calCache;
   }
 
   private static class ParsedTimestamp {
@@ -373,7 +386,7 @@ public class TimestampUtils {
     }
 
     ParsedTimestamp ts = parseBackendTimestamp(s);
-    Calendar useCal = ts.hasOffset ? setupCalendar(ts.offset) : setupCalendar(cal);
+    Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
     useCal.set(Calendar.ERA, ts.era);
     useCal.set(Calendar.YEAR, ts.year);
     useCal.set(Calendar.MONTH, ts.month - 1);
@@ -568,7 +581,7 @@ public class TimestampUtils {
       return null;
     }
     ParsedTimestamp ts = parseBackendTimestamp(s);
-    Calendar useCal = ts.hasOffset ? setupCalendar(ts.offset) : setupCalendar(cal);
+    Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
     if (!ts.hasOffset) {
       // When no time zone provided (e.g. time or timestamp)
       // We get the year-month-day from the string, then truncate the day to 1970-01-01
@@ -622,10 +635,6 @@ public class TimestampUtils {
   private Calendar setupCalendar(@Nullable Calendar cal) {
     TimeZone timeZone = cal == null ? null : cal.getTimeZone();
     return getSharedCalendar(timeZone);
-  }
-
-  private Calendar setupCalendar(ZoneOffset offset) {
-    return getSharedCalendar(TimeZone.getTimeZone(offset));
   }
 
   /**
