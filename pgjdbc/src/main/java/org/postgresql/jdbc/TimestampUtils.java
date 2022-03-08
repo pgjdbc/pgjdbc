@@ -286,7 +286,7 @@ public class TimestampUtils {
       sep = charAt(s, start);
       if (sep == '-' || sep == '+') {
         result.hasOffset = true;
-        
+
         int tzsign = (sep == '-') ? -1 : 1;
         int tzhr;
         int tzmin;
@@ -461,9 +461,9 @@ public class TimestampUtils {
     if (s.startsWith("24:00:00")) {
       return OffsetTime.MAX;
     }
-    
+
     final ParsedTimestamp ts = parseBackendTimestamp(s);
-    return OffsetTime.of(ts.hour, ts.minute, ts.second, ts.nanos, ts.offset); 
+    return OffsetTime.of(ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
   }
 
   /**
@@ -506,7 +506,7 @@ public class TimestampUtils {
    *
    * @param s The ISO formated date string to parse.
    * @param adaptToUTC if true the timezone is adapted to be UTC;
-   *   this must be done for timestamp and timestamptz as they have no zone on server side
+   *     this must be done for timestamp and timestamptz as they have no zone on server side
    * @return null if s is null or a LocalDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
    */

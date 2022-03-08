@@ -174,7 +174,7 @@ public class GetObject310Test extends BaseTest4 {
           OffsetTime offsetTime = OffsetTime.parse(time);
           assertEquals(offsetTime, rs.getObject("time_with_time_zone_column", OffsetTime.class));
           assertEquals(offsetTime, rs.getObject(1, OffsetTime.class));
-          
+
           //Also test that we get the correct values when retrieving the data as OffsetDateTime objects on EPOCH (required by JDBC)
           OffsetDateTime offsetDT = offsetTime.atDate(LocalDate.of(1970, 1, 1));
           assertEquals(offsetDT, rs.getObject("time_with_time_zone_column", OffsetDateTime.class));

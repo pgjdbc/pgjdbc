@@ -709,7 +709,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     int oid = fields[col].getOID();
 
     if (isBinary(i)) {
-     if (oid == Oid.TIMETZ || oid == Oid.TIME) {
+      if (oid == Oid.TIMETZ || oid == Oid.TIME) {
         return getTimestampUtils().toOffsetTimeBin(value);
       } else {
         throw new PSQLException(
