@@ -39,6 +39,7 @@ import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.TimeZone;
 
 /**
@@ -130,7 +131,7 @@ public class TimestampUtils {
   private final TimeZone utcTz = TimeZone.getTimeZone(ZoneOffset.UTC);
 
   private @Nullable Calendar calCache;
-  private ZoneOffset calCacheZone;
+  private @Nullable ZoneOffset calCacheZone;
 
   /**
    * True if the backend uses doubles for time values. False if long is used.
@@ -144,7 +145,7 @@ public class TimestampUtils {
   }
 
   private Calendar getCalendar(ZoneOffset offset) {
-    if (calCache != null && calCacheZone == offset) {
+    if (calCache != null && Objects.equals(offset, calCacheZone)) {
       return calCache;
     }
 
