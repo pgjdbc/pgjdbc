@@ -672,6 +672,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   }
 
+  // TODO: In Java 8 this constant is missing, later versions (at least 11) have LocalDate#EPOCH:
   private static final LocalDate LOCAL_DATE_EPOCH = LocalDate.of(1970, 1, 1);
 
   private @Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
