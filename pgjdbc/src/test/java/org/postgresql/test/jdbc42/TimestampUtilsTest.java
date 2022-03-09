@@ -31,8 +31,8 @@ public class TimestampUtilsTest {
     assertEquals("00:00:00.123456", timestampUtils.toString(LocalTime.parse("00:00:00.123456")));
 
     assertEquals("00:00:00.999999", timestampUtils.toString(LocalTime.parse("00:00:00.999999")));
-    assertEquals("00:00:00.999999", timestampUtils.toString(LocalTime.parse("00:00:00.999999499"))); // 499 NanoSeconds
-    assertEquals("00:00:01", timestampUtils.toString(LocalTime.parse("00:00:00.999999500"))); // 500 NanoSeconds
+    assertEquals("499 nanosecs difference should round down", "00:00:00.999999", timestampUtils.toString(LocalTime.parse("00:00:00.999999499")));
+    assertEquals("500 nanosecs difference should round up", "00:00:01", timestampUtils.toString(LocalTime.parse("00:00:00.999999500")));
 
     assertEquals("23:59:59", timestampUtils.toString(LocalTime.parse("23:59:59")));
 
