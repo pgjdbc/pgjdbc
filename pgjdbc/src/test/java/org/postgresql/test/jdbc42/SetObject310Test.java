@@ -145,11 +145,11 @@ public class SetObject310Test extends BaseTest4 {
     insert(data, columnName, null);
   }
 
-  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expected) throws SQLException {
-    return insertThenReadWithoutType(data, columnName, expected, true);
+  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expectedType) throws SQLException {
+    return insertThenReadWithoutType(data, columnName, expectedType, true);
   }
 
-  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expected, boolean checkRoundtrip) throws SQLException {
+  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expectedType, boolean checkRoundtrip) throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
     try {
       ps.setObject(1, data);
@@ -169,7 +169,7 @@ public class SetObject310Test extends BaseTest4 {
           assertEquals("Roundtrip set/getObject with type should return same result",
               data, rs.getObject(1, data.getClass()));
         }
-        return expected.cast(rs.getObject(1));
+        return expectedType.cast(rs.getObject(1));
       } finally {
         rs.close();
       }
@@ -178,11 +178,11 @@ public class SetObject310Test extends BaseTest4 {
     }
   }
 
-  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expected) throws SQLException {
-    return insertThenReadWithType(data, sqlType, columnName, expected, true);
+  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expectedType) throws SQLException {
+    return insertThenReadWithType(data, sqlType, columnName, expectedType, true);
   }
 
-  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expected, boolean checkRoundtrip) throws SQLException {
+  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expectedType, boolean checkRoundtrip) throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
     try {
       ps.setObject(1, data, sqlType);
@@ -202,7 +202,7 @@ public class SetObject310Test extends BaseTest4 {
           assertEquals("Roundtrip set/getObject with type should return same result",
               data, rs.getObject(1, data.getClass()));
         }
-        return expected.cast(rs.getObject(1));
+        return expectedType.cast(rs.getObject(1));
       } finally {
         rs.close();
       }
