@@ -145,7 +145,11 @@ public class SetObject310Test extends BaseTest4 {
     insert(data, columnName, null);
   }
 
-  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> type) throws SQLException {
+  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expected) throws SQLException {
+    return insertThenReadWithoutType(data, columnName, expected, true);
+  }
+
+  private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expected, boolean checkRoundtrip) throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
     try {
       ps.setObject(1, data);
@@ -161,7 +165,11 @@ public class SetObject310Test extends BaseTest4 {
         assertNotNull(rs);
 
         assertTrue(rs.next());
-        return type.cast(rs.getObject(1, type));
+        if (checkRoundtrip) {
+          assertEquals("Roundtrip set/getObject with type should return same result",
+              data, rs.getObject(1, data.getClass()));
+        }
+        return expected.cast(rs.getObject(1));
       } finally {
         rs.close();
       }
@@ -170,7 +178,11 @@ public class SetObject310Test extends BaseTest4 {
     }
   }
 
-  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> type) throws SQLException {
+  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expected) throws SQLException {
+    return insertThenReadWithType(data, sqlType, columnName, expected, true);
+  }
+
+  private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expected, boolean checkRoundtrip) throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
     try {
       ps.setObject(1, data, sqlType);
@@ -186,7 +198,11 @@ public class SetObject310Test extends BaseTest4 {
         assertNotNull(rs);
 
         assertTrue(rs.next());
-        return type.cast(rs.getObject(1, type));
+        if (checkRoundtrip) {
+          assertEquals("Roundtrip set/getObject with type should return same result",
+              data, rs.getObject(1, data.getClass()));
+        }
+        return expected.cast(rs.getObject(1));
       } finally {
         rs.close();
       }
@@ -337,7 +353,7 @@ public class SetObject310Test extends BaseTest4 {
     // TODO: fix for binary
     assumeBinaryModeRegular();
     LocalTime time = LocalTime.parse("23:59:59.999999500");
-    Time actual = insertThenReadWithoutType(time, "time_without_time_zone_column", Time.class);
+    Time actual = insertThenReadWithoutType(time, "time_without_time_zone_column", Time.class, false/*no roundtrip*/);
     assertEquals(Time.valueOf("24:00:00"), actual);
   }
 
@@ -347,7 +363,7 @@ public class SetObject310Test extends BaseTest4 {
     assumeBinaryModeRegular();
     LocalTime time = LocalTime.parse("23:59:59.999999500");
     Time actual =
-        insertThenReadWithType(time, Types.TIME, "time_without_time_zone_column", Time.class);
+        insertThenReadWithType(time, Types.TIME, "time_without_time_zone_column", Time.class, false/*no roundtrip*/);
     assertEquals(Time.valueOf("24:00:00"), actual);
   }
 
@@ -433,30 +449,9 @@ public class SetObject310Test extends BaseTest4 {
    * Test the behavior setObject for time columns.
    */
   @Test
-  public void testSetLocalTimeWithType2() throws SQLException {
-    LocalTime data = LocalTime.parse("16:21:51");
-    LocalTime actual = insertThenReadWithType(data, Types.TIME, "time_without_time_zone_column", LocalTime.class);
-    assertEquals(data, actual);
-  }
-
-  /**
-   * Test the behavior setObject for time columns.
-   */
-  @Test
-  public void testSetLocalTimeWithoutType2() throws SQLException {
-    LocalTime data = LocalTime.parse("16:21:51");
-    LocalTime actual = insertThenReadWithoutType(data, "time_without_time_zone_column", LocalTime.class);
-    assertEquals(data, actual);
-  }
-
-  /**
-   * Test the behavior setObject for time columns.
-   */
-  @Test
   public void testSetOffsetTimeWithType() throws SQLException {
     OffsetTime data = OffsetTime.parse("16:21:51+12:34");
-    OffsetTime actual = insertThenReadWithType(data, Types.TIME, "time_with_time_zone_column", OffsetTime.class);
-    assertEquals(data, actual);
+    insertThenReadWithType(data, Types.TIME, "time_with_time_zone_column", Time.class);
   }
 
   /**
@@ -465,8 +460,7 @@ public class SetObject310Test extends BaseTest4 {
   @Test
   public void testSetOffsetTimeWithoutType() throws SQLException {
     OffsetTime data = OffsetTime.parse("16:21:51+12:34");
-    OffsetTime actual = insertThenReadWithoutType(data, "time_with_time_zone_column", OffsetTime.class);
-    assertEquals(data, actual);
+    insertThenReadWithoutType(data, "time_with_time_zone_column", Time.class);
   }
 
 }
