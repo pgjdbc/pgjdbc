@@ -36,15 +36,15 @@ public class TimestampUtilsTest {
     assertToStringOfLocalTime("00:00:00.123456", "00:00:00.123456");
 
     assertToStringOfLocalTime("00:00:00.999999", "00:00:00.999999");
-    assertToStringOfLocalTime("00:00:00.999999", "00:00:00.999999499");
-    assertToStringOfLocalTime("00:00:01", "00:00:00.999999500");
+    assertToStringOfLocalTime("00:00:00.999999", "00:00:00.999999499"); // 499 NanoSeconds
+    assertToStringOfLocalTime("00:00:01", "00:00:00.999999500"); // 500 NanoSeconds
 
     assertToStringOfLocalTime("23:59:59", "23:59:59");
 
     assertToStringOfLocalTime("23:59:59.999999", "23:59:59.999999");
-    assertToStringOfLocalTime("23:59:59.999999", "23:59:59.999999499");
-    assertToStringOfLocalTime("24:00:00", "23:59:59.999999500");
-    assertToStringOfLocalTime("24:00:00", "23:59:59.999999999");
+    assertToStringOfLocalTime("23:59:59.999999", "23:59:59.999999499"); // 499 NanoSeconds
+    assertToStringOfLocalTime("24:00:00", "23:59:59.999999500"); // 500 NanoSeconds
+    assertToStringOfLocalTime("24:00:00", "23:59:59.999999999"); // 999 NanoSeconds
   }
 
   private void assertToStringOfLocalTime(String expectedOutput, String inputTime) {
@@ -66,10 +66,10 @@ public class TimestampUtilsTest {
     assertToLocalTime("00:00:00.999999", "00:00:00.999999");
 
     assertToLocalTime("23:59:59", "23:59:59");
-    assertToLocalTime("23:59:59.999999", "23:59:59.999999");
-    assertToLocalTime("23:59:59.9999999", "23:59:59.9999999");
-    assertToLocalTime("23:59:59.99999999", "23:59:59.99999999");
-    assertToLocalTime("23:59:59.999999998", "23:59:59.999999998");
+    assertToLocalTime("23:59:59.999999", "23:59:59.999999"); // 0 NanoSeconds
+    assertToLocalTime("23:59:59.9999999", "23:59:59.9999999"); // 900 NanoSeconds
+    assertToLocalTime("23:59:59.99999999", "23:59:59.99999999"); // 990 NanoSeconds
+    assertToLocalTime("23:59:59.999999998", "23:59:59.999999998"); // 998 NanoSeconds
     assertToLocalTime(LocalTime.MAX.toString(), "24:00:00");
   }
 
@@ -93,9 +93,9 @@ public class TimestampUtilsTest {
     assertToStringOfOffsetTime("23:59:59+01", "23:59:59+01:00");
 
     assertToStringOfOffsetTime("23:59:59.999999+01", "23:59:59.999999+01:00");
-    assertToStringOfOffsetTime("23:59:59.999999+01", "23:59:59.999999499+01:00");
-    assertToStringOfOffsetTime("24:00:00+01", "23:59:59.999999500+01:00");
-    assertToStringOfOffsetTime("24:00:00+01", "23:59:59.999999999+01:00");
+    assertToStringOfOffsetTime("23:59:59.999999+01", "23:59:59.999999499+01:00"); // 499 NanoSeconds
+    assertToStringOfOffsetTime("24:00:00+01", "23:59:59.999999500+01:00"); // 500 NanoSeconds
+    assertToStringOfOffsetTime("24:00:00+01", "23:59:59.999999999+01:00"); // 999 NanoSeconds
   }
 
   private void assertToStringOfOffsetTime(String expectedOutput, String inputTime) {
@@ -115,10 +115,10 @@ public class TimestampUtilsTest {
     assertToOffsetTime("00:00:00.123456+01:30", "00:00:00.123456+01:30");
     assertToOffsetTime("00:00:00.123456-12:34", "00:00:00.123456-12:34");
 
-    assertToOffsetTime("23:59:59.999999+01:00", "23:59:59.999999+01");
-    assertToOffsetTime("23:59:59.9999999+01:00", "23:59:59.9999999+01");
-    assertToOffsetTime("23:59:59.99999999+01:00", "23:59:59.99999999+01");
-    assertToOffsetTime("23:59:59.999999998+01:00", "23:59:59.999999998+01");
+    assertToOffsetTime("23:59:59.999999+01:00", "23:59:59.999999+01"); // 0 NanoSeconds
+    assertToOffsetTime("23:59:59.9999999+01:00", "23:59:59.9999999+01"); // 900 NanoSeconds
+    assertToOffsetTime("23:59:59.99999999+01:00", "23:59:59.99999999+01"); // 990 NanoSeconds
+    assertToOffsetTime("23:59:59.999999998+01:00", "23:59:59.999999998+01"); // 998 NanoSeconds
     assertToOffsetTime(OffsetTime.MAX.toString(), "24:00:00+01");
   }
 
