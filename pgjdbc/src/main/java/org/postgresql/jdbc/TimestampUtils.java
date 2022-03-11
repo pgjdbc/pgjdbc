@@ -435,13 +435,11 @@ public class TimestampUtils {
    * @throws PSQLException If binary format could not be parsed.
    */
   public OffsetTime toOffsetTimeBin(byte[] bytes) throws PSQLException {
-    if ((bytes.length != 8 && bytes.length != 12)) {
+    if (bytes.length != 12) {
       throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "time"),
           PSQLState.BAD_DATETIME_FORMAT);
     }
 
-    // question: use default timezone with offset of current day here?
-    ZoneOffset timeOffset = ZoneOffset.UTC;
     final long micros;
 
     if (usesDouble) {
@@ -451,10 +449,8 @@ public class TimestampUtils {
       micros = ByteConverter.int8(bytes, 0);
     }
 
-    if (bytes.length == 12) {
-      // postgres offset is negative, so we have to flip sign:
-      timeOffset = ZoneOffset.ofTotalSeconds(-ByteConverter.int4(bytes, 8));
-    }
+    // postgres offset is negative, so we have to flip sign:
+    final ZoneOffset timeOffset = ZoneOffset.ofTotalSeconds(-ByteConverter.int4(bytes, 8));
 
     return OffsetTime.of(LocalTime.ofNanoOfDay(Math.multiplyExact(micros, 1000L)), timeOffset);
   }
@@ -515,12 +511,12 @@ public class TimestampUtils {
   }
 
   /**
-   * Parse a string and return a LocalDateTime representing its value.
+   * Parse a string and return a OffsetDateTime representing its value.
    *
    * @param s The ISO formated date string to parse.
    * @param adaptToUTC if true the timezone is adapted to be UTC;
    *     this must be done for timestamp and timestamptz as they have no zone on server side
-   * @return null if s is null or a LocalDateTime of the parsed string s.
+   * @return null if s is null or a OffsetDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
    */
   public @PolyNull OffsetDateTime toOffsetDateTime(
