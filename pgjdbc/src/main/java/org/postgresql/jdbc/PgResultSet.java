@@ -3762,7 +3762,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == OffsetDateTime.class) {
-      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP || sqlType == Types.TIME) {
+      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP || sqlType == Types.TIME || sqlType == Types.TIME_WITH_TIMEZONE) {
         OffsetDateTime offsetDateTime = getOffsetDateTime(columnIndex);
         return type.cast(offsetDateTime);
       } else {
@@ -3770,7 +3770,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == OffsetTime.class) {
-      if (sqlType == Types.TIME) {
+      // Postgres currently always returns Types#TIME, also for TIMETZ:
+      if (sqlType == Types.TIME || sqlType == Types.TIME_WITH_TIMEZONE) {
         return type.cast(getOffsetTime(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
