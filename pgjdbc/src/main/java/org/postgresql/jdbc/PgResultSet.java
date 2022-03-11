@@ -3741,42 +3741,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
       // JSR-310 support
     } else if (type == LocalDate.class) {
-      if (sqlType == Types.DATE || sqlType == Types.TIMESTAMP) {
-        return type.cast(getLocalDate(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
+      return type.cast(getLocalDate(columnIndex));
     } else if (type == LocalTime.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getLocalTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
+      return type.cast(getLocalTime(columnIndex));
     } else if (type == LocalDateTime.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        return type.cast(getLocalDateTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
+      return type.cast(getLocalDateTime(columnIndex));
     } else if (type == OffsetDateTime.class) {
-      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP || sqlType == Types.TIME || sqlType == Types.TIME_WITH_TIMEZONE) {
-        OffsetDateTime offsetDateTime = getOffsetDateTime(columnIndex);
-        return type.cast(offsetDateTime);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
+      return type.cast(getOffsetDateTime(columnIndex));
     } else if (type == OffsetTime.class) {
-      // Postgres currently always returns Types#TIME, also for TIMETZ:
-      if (sqlType == Types.TIME || sqlType == Types.TIME_WITH_TIMEZONE) {
-        return type.cast(getOffsetTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
+      return type.cast(getOffsetTime(columnIndex));
     } else if (PGobject.class.isAssignableFrom(type)) {
       Object object;
       if (isBinary(columnIndex)) {
