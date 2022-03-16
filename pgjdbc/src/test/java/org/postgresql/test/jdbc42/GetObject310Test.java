@@ -355,7 +355,7 @@ public class GetObject310Test extends BaseTest4 {
 
   @Test
   public void testBcTimestamp() throws SQLException {
-    try(Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56 BC'::timestamp")) {
+    try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56 BC'::timestamp")) {
       assertTrue(rs.next());
       LocalDateTime expected = LocalDateTime.of(1582, 9, 30, 12, 34, 56)
           .with(ChronoField.ERA, IsoEra.BCE.getValue());
