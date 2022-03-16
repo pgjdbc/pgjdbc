@@ -70,6 +70,7 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception> {
       GSSCredential clientCreds = null;
       Oid[] desiredMechs = new Oid[1];
 
+      //Try to get credential from subject first.
       GSSCredential gssCredential = null;
       if (subject != null) {
         Set<GSSCredential> gssCreds = subject.getPrivateCredentials(GSSCredential.class);
@@ -77,6 +78,9 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception> {
           gssCredential = gssCreds.iterator().next();
         }
       }
+
+      //If failed to get credential from subject,
+      //then call createCredential to create one.
       if (gssCredential == null) {
         if (useSpnego && hasSpnegoSupport(manager)) {
           desiredMechs[0] = new Oid("1.3.6.1.5.5.2");

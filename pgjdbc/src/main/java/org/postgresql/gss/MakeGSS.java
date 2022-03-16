@@ -48,6 +48,7 @@ public class MakeGSS {
     try {
       boolean performAuthentication = jaasLogin;
 
+      //Check if we can get credential from subject to avoid login.
       Subject sub = Subject.getSubject(AccessController.getContext());
       if (sub != null) {
         Set<GSSCredential> gssCreds = sub.getPrivateCredentials(GSSCredential.class);
