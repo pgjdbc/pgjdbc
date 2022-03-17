@@ -35,15 +35,17 @@ class GssAction implements PrivilegedAction<@Nullable Exception> {
   private final PGStream pgStream;
   private final String host;
   private final String kerberosServerName;
+  private final String user;
   private final boolean useSpnego;
   private final Subject subject;
   private final boolean logServerErrorDetail;
 
-  GssAction(PGStream pgStream, Subject subject, String host,
+  GssAction(PGStream pgStream, Subject subject, String host, String user,
       String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
     this.subject = subject;
     this.host = host;
+    this.user = user;
     this.kerberosServerName = kerberosServerName;
     this.useSpnego = useSpnego;
     this.logServerErrorDetail = logServerErrorDetail;
@@ -68,24 +70,43 @@ class GssAction implements PrivilegedAction<@Nullable Exception> {
       GSSManager manager = GSSManager.getInstance();
       GSSCredential clientCreds = null;
       Oid[] desiredMechs = new Oid[1];
-      if (useSpnego && hasSpnegoSupport(manager)) {
-        desiredMechs[0] = new Oid("1.3.6.1.5.5.2");
+
+      //Try to get credential from subject first.
+      GSSCredential gssCredential = null;
+      if (subject != null) {
+        Set<GSSCredential> gssCreds = subject.getPrivateCredentials(GSSCredential.class);
+        if (gssCreds != null && !gssCreds.isEmpty()) {
+          gssCredential = gssCreds.iterator().next();
+        }
+      }
+
+      //If failed to get credential from subject,
+      //then call createCredential to create one.
+      if (gssCredential == null) {
+        if (useSpnego && hasSpnegoSupport(manager)) {
+          desiredMechs[0] = new Oid("1.3.6.1.5.5.2");
+        } else {
+          desiredMechs[0] = new Oid("1.2.840.113554.1.2.2");
+        }
+        String principalName = this.user;
+        if (subject != null) {
+          Set<Principal> principals = subject.getPrincipals();
+          Iterator<Principal> principalIterator = principals.iterator();
+
+          Principal principal = null;
+          if (principalIterator.hasNext()) {
+            principal = principalIterator.next();
+            principalName = principal.getName();
+          }
+        }
+
+        GSSName clientName = manager.createName(principalName, GSSName.NT_USER_NAME);
+        clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
+            GSSCredential.INITIATE_ONLY);
       } else {
         desiredMechs[0] = new Oid("1.2.840.113554.1.2.2");
+        clientCreds = gssCredential;
       }
-      Set<Principal> principals = subject.getPrincipals();
-      Iterator<Principal> principalIterator = principals.iterator();
-
-      Principal principal = null;
-      if (principalIterator.hasNext()) {
-        principal = principalIterator.next();
-      } else {
-        return new Exception("No principal found, unexpected error please report");
-      }
-
-      GSSName clientName = manager.createName(principal.getName(), GSSName.NT_USER_NAME);
-      clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
-          GSSCredential.INITIATE_ONLY);
 
       GSSName serverName =
           manager.createName(kerberosServerName + "@" + host, GSSName.NT_HOSTBASED_SERVICE);
