@@ -82,7 +82,7 @@ buildCache {
         val pushAllowed = property("s3.build.cache.push")?.ifBlank { "true" }?.toBoolean() ?: true
         remote<com.github.burrunan.s3cache.AwsS3BuildCache> {
             region = "us-east-2"
-            bucket = "pgjdbc-gradle-cache"
+            bucket = "pgjdbc-build-cache"
             isPush = isCiServer && pushAllowed && !awsAccessKeyId.isNullOrBlank()
         }
     }
