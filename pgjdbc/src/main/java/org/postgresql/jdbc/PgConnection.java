@@ -246,9 +246,13 @@ public class PgConnection implements BaseConnection {
 
     /*
      * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
-     * whereas the binary transfer only supports date accuracy.
+     * whereas the binary transfer only supports date accuracy. If the user has explicitly included
+     * dates for binary transfer in the connection string, we will allow it.
      */
-    useBinarySendForOids.remove(Oid.DATE);
+    String explicitlyRequestedBinaryTransferOids = PGProperty.BINARY_TRANSFER_ENABLE.get(info);
+    if (explicitlyRequestedBinaryTransferOids == null || !getOidSet(explicitlyRequestedBinaryTransferOids).contains(Oid.DATE)) {
+      useBinarySendForOids.remove(Oid.DATE);
+    }
 
     queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
     queryExecutor.setBinarySendOids(useBinarySendForOids);

@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.Oid;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.jdbc.PgConnection;
@@ -107,6 +108,24 @@ public class ConnectionTest {
    */
   @Test
   public void testPrepareCall() {
+  }
+
+  @Test
+  public void testSendDateDefaultText() throws SQLException {
+    con = TestUtil.openDB();
+
+    QueryExecutor executor = ((PgConnection) con).getQueryExecutor();
+    assertFalse("Date parameters should be sent using text format by default", executor.useBinaryForSend(Oid.DATE));
+  }
+
+  @Test
+  public void testForceSendDateBinary() throws SQLException {
+    Properties properties = new Properties();
+    properties.setProperty(PGProperty.BINARY_TRANSFER_ENABLE.getName(), String.format("%d", Oid.DATE));
+    con = TestUtil.openDB(properties);
+
+    QueryExecutor executor = ((PgConnection) con).getQueryExecutor();
+    assertTrue("Setting binaryTransferEnable for OID.Date should be respected", executor.useBinaryForSend(Oid.DATE));
   }
 
   /*
