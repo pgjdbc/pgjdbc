@@ -128,6 +128,14 @@ public class ConnectionTest {
     assertTrue("Setting binaryTransferEnable for OID.Date should be respected", executor.useBinaryForSend(Oid.DATE));
   }
 
+  @Test
+  public void testReceiveDateDefaultBinary() throws SQLException {
+    con = TestUtil.openDB();
+
+    QueryExecutor executor = ((PgConnection) con).getQueryExecutor();
+    assertTrue("Date parameters should be received using binary format by default", executor.useBinaryForReceive(Oid.DATE));
+  }
+
   /*
    * Test nativeSQL
    */
