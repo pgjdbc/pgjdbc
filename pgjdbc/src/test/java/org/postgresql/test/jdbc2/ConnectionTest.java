@@ -110,22 +110,14 @@ public class ConnectionTest {
   public void testPrepareCall() {
   }
 
+  /*
+   * Test nativeSQL
+   */
   @Test
-  public void testSendDateDefaultText() throws SQLException {
+  public void testNativeSQL() throws Exception {
+    // test a simple escape
     con = TestUtil.openDB();
-
-    QueryExecutor executor = ((PgConnection) con).getQueryExecutor();
-    assertFalse("Date parameters should be sent using text format by default", executor.useBinaryForSend(Oid.DATE));
-  }
-
-  @Test
-  public void testForceSendDateBinary() throws SQLException {
-    Properties properties = new Properties();
-    properties.setProperty(PGProperty.BINARY_TRANSFER_ENABLE.getName(), String.format("%d", Oid.DATE));
-    con = TestUtil.openDB(properties);
-
-    QueryExecutor executor = ((PgConnection) con).getQueryExecutor();
-    assertTrue("Setting binaryTransferEnable for OID.Date should be respected", executor.useBinaryForSend(Oid.DATE));
+    assertEquals("DATE '2005-01-24'", con.nativeSQL("{d '2005-01-24'}"));
   }
 
   @Test
@@ -136,14 +128,22 @@ public class ConnectionTest {
     assertTrue("Date parameters should be received using binary format by default", executor.useBinaryForReceive(Oid.DATE));
   }
 
-  /*
-   * Test nativeSQL
-   */
   @Test
-  public void testNativeSQL() throws Exception {
-    // test a simple escape
+  public void testSendDateDefaultText() throws SQLException {
     con = TestUtil.openDB();
-    assertEquals("DATE '2005-01-24'", con.nativeSQL("{d '2005-01-24'}"));
+
+    QueryExecutor executor = ((PgConnection) con).getQueryExecutor();
+    assertFalse("Date parameters should be sent using text format by default", executor.useBinaryForSend(Oid.DATE));
+  }
+
+  @Test
+  public void testSendDateForceBinary() throws SQLException {
+    Properties properties = new Properties();
+    properties.setProperty(PGProperty.BINARY_TRANSFER_ENABLE.getName(), String.format("%d", Oid.DATE));
+    con = TestUtil.openDB(properties);
+
+    QueryExecutor executor = ((PgConnection) con).getQueryExecutor();
+    assertTrue("Setting binaryTransferEnable for OID.Date should be respected", executor.useBinaryForSend(Oid.DATE));
   }
 
   /*
