@@ -5,8 +5,8 @@
 
 package org.postgresql.util;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -122,7 +122,7 @@ public enum PSQLState {
     return this.state;
   }
 
-  private static final Collection<PSQLState> CONNECTION_ERRORS = Arrays.asList(
+  private static final Collection<PSQLState> CONNECTION_ERRORS = EnumSet.of(
     CONNECTION_UNABLE_TO_CONNECT,
     CONNECTION_DOES_NOT_EXIST,
     CONNECTION_REJECTED,
