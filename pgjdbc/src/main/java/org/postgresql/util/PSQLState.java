@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -121,29 +122,29 @@ public enum PSQLState {
     return this.state;
   }
 
-  private static Map<String, PSQLState> codeToEnum;
+  private static final Collection<PSQLState> CONNECTION_ERRORS = Arrays.asList(
+    CONNECTION_UNABLE_TO_CONNECT,
+    CONNECTION_DOES_NOT_EXIST,
+    CONNECTION_REJECTED,
+    CONNECTION_FAILURE,
+    CONNECTION_FAILURE_DURING_TRANSACTION);
+  private static final Map<String, PSQLState> CODE_TO_ENUM;
+
+  static {
+    final PSQLState[] values = PSQLState.values();
+    CODE_TO_ENUM = new HashMap<>((int) (values.length / 0.75), 0.75f);
+    for (final PSQLState value : values) {
+      CODE_TO_ENUM.put(value.state, value);
+    }
+  }
 
   @Nullable
   public static PSQLState fromCode(final String string) {
-    if (codeToEnum == null) {
-      final PSQLState[] values = PSQLState.values();
-      final Map<String, PSQLState> temp = new HashMap<>(values.length);
-      for (final PSQLState value : values) {
-        temp.put(value.state, value);
-      }
-      codeToEnum = temp;
-    }
-    return codeToEnum.get(string);
+    return CODE_TO_ENUM.get(string);
   }
 
   public static boolean isConnectionError(@Nullable String psqlState) {
     final PSQLState enumValue = fromCode(psqlState);
-    return Arrays.asList(
-        CONNECTION_UNABLE_TO_CONNECT,
-        CONNECTION_DOES_NOT_EXIST,
-        CONNECTION_REJECTED,
-        CONNECTION_FAILURE,
-        CONNECTION_FAILURE_DURING_TRANSACTION)
-      .contains(enumValue);
-    }
+    return CONNECTION_ERRORS.contains(enumValue);
+  }
 }
