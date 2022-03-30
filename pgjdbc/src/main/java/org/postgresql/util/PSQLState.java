@@ -139,7 +139,7 @@ public enum PSQLState {
   }
 
   @Nullable
-  public static PSQLState fromCode(final String string) {
+  public static PSQLState fromCode(@Nullable final String string) {
     return CODE_TO_ENUM.get(string);
   }
 
