@@ -7,6 +7,7 @@ package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ class PSQLStateTest {
   @Test
   void fromCode() {
     assertEquals(PSQLState.UNIQUE_VIOLATION, PSQLState.fromCode("23505"));
+    assertNull(PSQLState.fromCode(null));
   }
 
   @Test
