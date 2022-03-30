@@ -132,7 +132,7 @@ public enum PSQLState {
 
   static {
     final PSQLState[] values = PSQLState.values();
-    CODE_TO_ENUM = new HashMap<>((int) (values.length / 0.75), 0.75f);
+    CODE_TO_ENUM = new HashMap<>((int) (values.length / 0.75f + 1), 0.75f);    
     for (final PSQLState value : values) {
       CODE_TO_ENUM.put(value.state, value);
     }
