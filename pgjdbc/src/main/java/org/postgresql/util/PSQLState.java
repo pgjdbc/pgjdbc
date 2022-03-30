@@ -138,12 +138,11 @@ public enum PSQLState {
     }
   }
 
-  @Nullable
-  public static PSQLState fromCode(@Nullable final String string) {
+  public static @Nullable PSQLState fromCodeOrNull(String string) {
     return CODE_TO_ENUM.get(string);
   }
 
-  public static boolean isConnectionError(@Nullable String psqlState) {
+  public static boolean isConnectionError(String psqlState) {
     final PSQLState enumValue = fromCode(psqlState);
     return CONNECTION_ERRORS.contains(enumValue);
   }
