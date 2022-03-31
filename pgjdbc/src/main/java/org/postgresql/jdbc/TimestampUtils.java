@@ -1550,7 +1550,7 @@ public class TimestampUtils {
     ByteConverter.int4(bytes, 0, (int) (epochDay - PG_EPOCH_DIFF.toDays()));
   }
 
-  synchronized private static final BaseCalendar getJulianCalendar() {
+  private static synchronized BaseCalendar getJulianCalendar() {
     if (jcal == null) {
       jcal = (BaseCalendar) CalendarSystem.forName("julian");
     }
