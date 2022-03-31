@@ -9,8 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Properties;
-
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
 import org.postgresql.test.TestUtil;
@@ -24,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 
 /*
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous

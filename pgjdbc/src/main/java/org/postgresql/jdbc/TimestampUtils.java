@@ -18,6 +18,9 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
+import sun.util.calendar.BaseCalendar;
+import sun.util.calendar.CalendarDate;
+import sun.util.calendar.CalendarSystem;
 
 import java.lang.reflect.Field;
 import java.sql.Date;
@@ -40,10 +43,6 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
-
-import sun.util.calendar.BaseCalendar;
-import sun.util.calendar.CalendarDate;
-import sun.util.calendar.CalendarSystem;
 
 /**
  * Misc utils for handling time and date values.
