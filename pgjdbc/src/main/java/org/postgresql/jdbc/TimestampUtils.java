@@ -41,6 +41,10 @@ import java.util.HashMap;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
+import sun.util.calendar.BaseCalendar;
+import sun.util.calendar.CalendarDate;
+import sun.util.calendar.CalendarSystem;
+
 /**
  * Misc utils for handling time and date values.
  */
@@ -65,6 +69,9 @@ public class TimestampUtils {
   private static final OffsetDateTime MIN_OFFSET_DATETIME = MIN_LOCAL_DATETIME.atOffset(ZoneOffset.UTC);
   private static final Duration PG_EPOCH_DIFF =
       Duration.between(Instant.EPOCH, LocalDate.of(2000, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC));
+
+  private static final long GREGORIAN_CUTOVER = -12219292800000L;
+  private static @Nullable BaseCalendar jcal;
 
   private static final @Nullable Field DEFAULT_TIME_ZONE_FIELD;
 
@@ -1514,27 +1521,41 @@ public class TimestampUtils {
   /**
    * Converts the SQL Date to binary representation for {@link Oid#DATE}.
    *
-   * @param tz The timezone used.
+   * @param tz The timezone used. If <code>null</code>, then no timezone offset will be applied to the date.
    * @param bytes The binary encoded date value.
    * @param value value
    * @throws PSQLException If binary format could not be parsed.
    */
   public void toBinDate(@Nullable TimeZone tz, byte[] bytes, Date value) throws PSQLException {
     long millis = value.getTime();
-
+    boolean isBce = false;
     if (tz == null) {
       tz = getDefaultTz();
     }
-    // It "getOffset" is UNTESTED
-    // See org.postgresql.jdbc.AbstractJdbc2Statement.setDate(int, java.sql.Date,
-    // java.util.Calendar)
-    // The problem is we typically do not know for sure what is the exact required date/timestamp
-    // type
-    // Thus pgjdbc sticks to text transfer.
-    millis += tz.getOffset(millis);
+    if (millis < GREGORIAN_CUTOVER) {
+      BaseCalendar calendar = getJulianCalendar();
+      CalendarDate calendarDate = calendar.getCalendarDate(millis, tz);
+      isBce = calendarDate.getEra().getAbbreviation().equals("B.C.E.");
+    }
 
-    long secs = toPgSecs(millis / 1000);
-    ByteConverter.int4(bytes, 0, (int) (secs / 86400));
+    // LocalDate does not work properly for BC dates, as the era is not carried over to the local
+    // date.
+    LocalDate localDate = value.toLocalDate();
+    if (isBce) {
+      // LocalDate accepts year 0 (so 0000-01-01 is a valid LocalDate). PostgreSQL expects dates to
+      // have a year value >= 1 (BC or BCE). So for BC we need to flip the sign of the
+      // year value and add one to get the right number of days since PostgreSQL epoch.
+      localDate = localDate.withYear(-localDate.getYear() + 1);
+    }
+    long epochDay = localDate.toEpochDay();
+    ByteConverter.int4(bytes, 0, (int) (epochDay - PG_EPOCH_DIFF.toDays()));
+  }
+
+  synchronized private static final BaseCalendar getJulianCalendar() {
+    if (jcal == null) {
+      jcal = (BaseCalendar) CalendarSystem.forName("julian");
+    }
+    return jcal;
   }
 
   /**

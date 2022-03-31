@@ -9,6 +9,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Properties;
+
+import org.postgresql.PGProperty;
+import org.postgresql.core.Oid;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -46,32 +50,44 @@ public class DateTest {
    */
   @Test
   public void testGetDate() throws SQLException {
-    Statement stmt = con.createStatement();
+    for (boolean binaryTransfer : new boolean[] {false, true}) {
+      Properties properties = new Properties();
+      if (binaryTransfer) {
+        properties.setProperty(
+            PGProperty.BINARY_TRANSFER_ENABLE.getName(), String.format("%d", Oid.DATE));
+      }
+      try (Connection con = TestUtil.openDB(properties)) {
+        Statement stmt = con.createStatement();
 
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-02-07'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-06-02'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1999-08-11'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2001-02-13'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-04-02'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-11-30'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1988-01-01'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2003-07-09'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1934-02-28'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1969-04-03'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1982-08-03'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2012-03-15'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1912-05-01'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1971-12-15'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1984-12-03'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2000-01-01'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'3456-01-01'")));
-    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0101-01-01 BC'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-02-07'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-06-02'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1999-08-11'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2001-02-13'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-04-02'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-11-30'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1988-01-01'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2003-07-09'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1934-02-28'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1969-04-03'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1982-08-03'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2012-03-15'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1912-05-01'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1971-12-15'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1984-12-03'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2000-01-01'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'3456-01-01'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0101-01-01 BC'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0001-01-01'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0001-01-01 BC'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0001-12-31 BC'")));
 
-    /* dateTest() contains all of the tests */
-    dateTest();
+        /* dateTest() contains all of the tests */
+        dateTest();
 
-    assertEquals(18, stmt.executeUpdate("DELETE FROM " + "testdate"));
-    stmt.close();
+        assertEquals(21, stmt.executeUpdate("DELETE FROM " + "testdate"));
+        stmt.close();
+      }
+    }
   }
 
   /*
@@ -79,70 +95,88 @@ public class DateTest {
    */
   @Test
   public void testSetDate() throws SQLException {
-    Statement stmt = con.createStatement();
-    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"));
+    for (boolean binaryTransfer : new boolean[] {false, true}) {
+      Properties properties = new Properties();
+      if (binaryTransfer) {
+        properties.setProperty(PGProperty.BINARY_TRANSFER_ENABLE.getName(), String.format("%d", Oid.DATE));
+      }
+      try (Connection con = TestUtil.openDB(properties)) {
+        Statement stmt = con.createStatement();
+        PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"));
 
-    ps.setDate(1, makeDate(1950, 2, 7));
-    assertEquals(1, ps.executeUpdate());
+        ps.setDate(1, makeDate(1950, 2, 7));
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setDate(1, makeDate(1970, 6, 2));
-    assertEquals(1, ps.executeUpdate());
+        ps.setDate(1, makeDate(1970, 6, 2));
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setDate(1, makeDate(1999, 8, 11));
-    assertEquals(1, ps.executeUpdate());
+        ps.setDate(1, makeDate(1999, 8, 11));
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setDate(1, makeDate(2001, 2, 13));
-    assertEquals(1, ps.executeUpdate());
+        ps.setDate(1, makeDate(2001, 2, 13));
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Timestamp.valueOf("1950-04-02 12:00:00"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Timestamp.valueOf("1950-04-02 12:00:00"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Timestamp.valueOf("1970-11-30 3:00:00"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Timestamp.valueOf("1970-11-30 3:00:00"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Timestamp.valueOf("1988-01-01 13:00:00"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Timestamp.valueOf("1988-01-01 13:00:00"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Timestamp.valueOf("2003-07-09 12:00:00"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Timestamp.valueOf("2003-07-09 12:00:00"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "1934-02-28", java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, "1934-02-28", java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "1969-04-03", java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, "1969-04-03", java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "1982-08-03", java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, "1982-08-03", java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "2012-03-15", java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, "2012-03-15", java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Date.valueOf("1912-05-01"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Date.valueOf("1912-05-01"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Date.valueOf("1971-12-15"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Date.valueOf("1971-12-15"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Date.valueOf("1984-12-03"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Date.valueOf("1984-12-03"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Date.valueOf("2000-01-01"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Date.valueOf("2000-01-01"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Date.valueOf("3456-01-01"), java.sql.Types.DATE);
-    assertEquals(1, ps.executeUpdate());
+        ps.setObject(1, java.sql.Date.valueOf("3456-01-01"), java.sql.Types.DATE);
+        assertEquals(1, ps.executeUpdate());
 
-    // We can't use valueOf on BC dates.
-    ps.setObject(1, makeDate(-100, 1, 1));
-    assertEquals(1, ps.executeUpdate());
+        // We can't use valueOf on BC dates.
+        ps.setObject(1, makeDate(-100, 1, 1));
+        assertEquals(1, ps.executeUpdate());
 
-    ps.close();
+        ps.setObject(1, makeDate(1, 1, 1));
+        assertEquals(1, ps.executeUpdate());
 
-    dateTest();
+        // Note: Year 0 in Java is year '0001-01-01 BC' in PostgreSQL.
+        ps.setObject(1, makeDate(0, 1, 1));
+        assertEquals(1, ps.executeUpdate());
 
-    assertEquals(18, stmt.executeUpdate("DELETE FROM testdate"));
-    stmt.close();
+        ps.setObject(1, makeDate(0, 12, 31));
+        assertEquals(1, ps.executeUpdate());
+
+        ps.close();
+
+        dateTest();
+
+        assertEquals(21, stmt.executeUpdate("DELETE FROM testdate"));
+        stmt.close();
+      }
+    }
   }
 
   /*
@@ -245,6 +279,21 @@ public class DateTest {
     d = rs.getDate(1);
     assertNotNull(d);
     assertEquals(makeDate(-100, 1, 1), d);
+
+    assertTrue(rs.next());
+    d = rs.getDate(1);
+    assertNotNull(d);
+    assertEquals(makeDate(1, 1, 1), d);
+
+    assertTrue(rs.next());
+    d = rs.getDate(1);
+    assertNotNull(d);
+    assertEquals(makeDate(0, 1, 1), d);
+
+    assertTrue(rs.next());
+    d = rs.getDate(1);
+    assertNotNull(d);
+    assertEquals(makeDate(0, 12, 31), d);
 
     assertTrue(!rs.next());
 
