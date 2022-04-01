@@ -40,6 +40,11 @@ public enum HostRequirement {
     public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status != HostStatus.ConnectFail;
     }
+  },
+  preferPrimary {
+    public boolean allowConnectingTo(@Nullable HostStatus status) {
+      return status != HostStatus.ConnectFail;
+    }
   };
 
   public abstract boolean allowConnectingTo(@Nullable HostStatus status);

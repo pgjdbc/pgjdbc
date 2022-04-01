@@ -693,7 +693,7 @@ public enum PGProperty {
       "any",
       "Specifies what kind of server to connect",
       false,
-      new String [] {"any", "primary", "master", "slave", "secondary",  "preferSlave", "preferSecondary"}),
+      new String [] {"any", "primary", "master", "slave", "secondary",  "preferSlave", "preferSecondary", "preferPrimary"}),
 
   /**
    * Enable or disable TCP keep-alive. The default is {@code false}.

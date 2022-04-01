@@ -56,32 +56,40 @@ class MultiHostChooser implements HostChooser {
   }
 
   private Iterator<CandidateHost> candidateIterator() {
-    if (targetServerType != HostRequirement.preferSecondary) {
+    if (targetServerType != HostRequirement.preferSecondary &&
+        targetServerType != HostRequirement.preferPrimary) {
       return getCandidateHosts(targetServerType).iterator();
     }
+
+    HostRequirement preferredServerType =
+        targetServerType == HostRequirement.preferSecondary
+          ? HostRequirement.secondary
+          : HostRequirement.primary;
 
     // preferSecondary tries to find secondary hosts first
     // Note: sort does not work here since there are "unknown" hosts,
     // and that "unknown" might turn out to be master, so we should discard that
     // if other secondaries exist
-    List<CandidateHost> secondaries = getCandidateHosts(HostRequirement.secondary);
+    // Same logic as the above works for preferPrimary if we replace "secondary"
+    // with "primary" and vice versa
+    List<CandidateHost> preferred = getCandidateHosts(preferredServerType);
     List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
 
-    if (secondaries.isEmpty()) {
+    if (preferred.isEmpty()) {
       return any.iterator();
     }
 
     if (any.isEmpty()) {
-      return secondaries.iterator();
+      return preferred.iterator();
     }
 
-    if (secondaries.get(secondaries.size() - 1).equals(any.get(0))) {
-      // When the last secondary's hostspec is the same as the first in "any" list, there's no need
-      // to attempt to connect it as "secondary"
+    if (preferred.get(preferred.size() - 1).equals(any.get(0))) {
+      // When the last preferred host's hostspec is the same as the first in "any" list, there's no need
+      // to attempt to connect it as "preferred"
       // Note: this is only an optimization
-      secondaries = rtrim(1, secondaries);
+      preferred = rtrim(1, preferred);
     }
-    return append(secondaries, any).iterator();
+    return append(preferred, any).iterator();
   }
 
   private List<CandidateHost> getCandidateHosts(HostRequirement hostRequirement) {
