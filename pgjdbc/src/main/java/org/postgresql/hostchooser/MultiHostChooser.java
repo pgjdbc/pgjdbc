@@ -56,8 +56,8 @@ class MultiHostChooser implements HostChooser {
   }
 
   private Iterator<CandidateHost> candidateIterator() {
-    if (targetServerType != HostRequirement.preferSecondary &&
-        targetServerType != HostRequirement.preferPrimary) {
+    if (   targetServerType != HostRequirement.preferSecondary
+        && targetServerType != HostRequirement.preferPrimary   ) {
       return getCandidateHosts(targetServerType).iterator();
     }
 
