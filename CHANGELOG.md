@@ -652,5 +652,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.0...REL42.3.1
 [42.3.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...REL42.3.2
 [42.3.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...REL42.3.3
-[42.3.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...REL42.3.4
+[42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...REL42.3.4
 [Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...HEAD
