@@ -12,19 +12,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 [42.3.4] (2022-04-01 14:16:28 -0400)
 ### Changed
-fix: change name of build cache [PR 2471](https://github.com/pgjdbc/pgjdbc/pull/2471)
-feat: add support for ResultSet#getObject(OffsetTime.class) and PreparedStatement#setObject(OffsetTime.class) [PR 2467](https://github.com/pgjdbc/pgjdbc/pull/2467)
-fix: Use non-synchronized getTimeZone in TimestampUtils [PR 2451](https://github.com/pgjdbc/pgjdbc/pull/2451)
-docs: Fix CHANGELOG.md misformatted markdown headings [PR 2461](https://github.com/pgjdbc/pgjdbc/pull/2461)
+- fix: change name of build cache [PR 2471](https://github.com/pgjdbc/pgjdbc/pull/2471)
+- feat: add support for ResultSet#getObject(OffsetTime.class) and PreparedStatement#setObject(OffsetTime.class) [PR 2467](https://github.com/pgjdbc/pgjdbc/pull/2467)
+- fix: Use non-synchronized getTimeZone in TimestampUtils [PR 2451](https://github.com/pgjdbc/pgjdbc/pull/2451)
+- docs: Fix CHANGELOG.md misformatted markdown headings [PR 2461](https://github.com/pgjdbc/pgjdbc/pull/2461)
 ### Added
 
 ### Fixed
-docs: Update testing documentation [PR 2446](https://github.com/pgjdbc/pgjdbc/pull/2446)
-fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes Issue [PR 2421](https://github.com/pgjdbc/pgjdbc/pull/2421) (#2441)
-fix: Use PGProperty instead of the property names directly [PR 2444](https://github.com/pgjdbc/pgjdbc/pull/2444)
-docs: update changelog, missing links at bottom and formatting [PR 2460](https://github.com/pgjdbc/pgjdbc/pull/2460)
-fix: Remove isDeprecated from PGProperty. It was originally intended to help produce automated docs. Fixes #Issue 2479 [PR 2480](https://github.com/pgjdbc/pgjdbc/pull/2480)
-fix: change PGInterval parseISO8601Format to support fractional second [PR 2457](https://github.com/pgjdbc/pgjdbc/pull/2457)
+- docs: Update testing documentation [PR 2446](https://github.com/pgjdbc/pgjdbc/pull/2446)
+- fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes Issue [PR 2421](https://github.com/pgjdbc/pgjdbc/pull/2421) (#2441)
+- fix: Use PGProperty instead of the property names directly [PR 2444](https://github.com/pgjdbc/pgjdbc/pull/2444)
+- docs: update changelog, missing links at bottom and formatting [PR 2460](https://github.com/pgjdbc/pgjdbc/pull/2460)
+- fix: Remove isDeprecated from PGProperty. It was originally intended to help produce automated docs. Fixes #Issue 2479 [PR 2480](https://github.com/pgjdbc/pgjdbc/pull/2480)
+- fix: change PGInterval parseISO8601Format to support fractional second [PR 2457](https://github.com/pgjdbc/pgjdbc/pull/2457)
+- fix: GSS login to use TGT from keytab fixes Issue #2469 [PR 2470](https://github.com/pgjdbc/pgjdbc/pull/2470) 
 
 ## [42.3.3] (2022-02-15 11:32:24 -0500)
 ### Changed
