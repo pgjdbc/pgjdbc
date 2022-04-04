@@ -143,7 +143,7 @@ public enum PSQLState {
   }
 
   public static boolean isConnectionError(String psqlState) {
-    final PSQLState enumValue = fromCode(psqlState);
+    final PSQLState enumValue = fromCodeOrNull(psqlState);
     return CONNECTION_ERRORS.contains(enumValue);
   }
 }
