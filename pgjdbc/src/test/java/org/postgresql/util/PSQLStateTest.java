@@ -17,7 +17,7 @@ class PSQLStateTest {
   @Test
   void fromCode() {
     assertEquals(PSQLState.UNIQUE_VIOLATION, PSQLState.fromCodeOrNull("23505"));
-    assertNull(PSQLState.fromCodeOrNull(null));
+    assertNull(PSQLState.fromCode(null));
   }
 
   @Test
