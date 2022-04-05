@@ -138,12 +138,21 @@ public enum PSQLState {
     }
   }
 
-  public static @Nullable PSQLState fromCodeOrNull(String string) {
-    return CODE_TO_ENUM.get(string);
+  /**
+   * Get a {@link PSQLState} by its error code
+   *
+   * @param code A
+   * <a href="https://www.postgresql.org/docs/current/errcodes-appendix.html">PostgreSQL
+   * error code</a>
+   * @return The {@link PSQLState} with the given code, {@code null} if the
+   * code is {@code null} or not known
+   */
+  public static @Nullable PSQLState fromCode(String code) {
+    return CODE_TO_ENUM.get(code);
   }
 
   public static boolean isConnectionError(String psqlState) {
-    final PSQLState enumValue = fromCodeOrNull(psqlState);
+    final PSQLState enumValue = fromCode(psqlState);
     return CONNECTION_ERRORS.contains(enumValue);
   }
 }
