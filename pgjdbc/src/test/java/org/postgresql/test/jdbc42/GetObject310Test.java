@@ -154,6 +154,18 @@ public class GetObject310Test extends BaseTest4 {
     }
   }
 
+  @Test
+  public void testBcDate() throws SQLException {
+    try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 BC'::date")) {
+      assertTrue(rs.next());
+      LocalDate expected = LocalDate.of(1582, 9, 30)
+          .with(ChronoField.ERA, IsoEra.BCE.getValue());
+      LocalDate actual = rs.getObject(1, LocalDate.class);
+      assertEquals(expected, actual);
+      assertFalse(rs.next());
+    }
+  }
+
   /**
    * Test the behavior getObject for timetz columns.
    */
