@@ -40,6 +40,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
 /**
@@ -148,7 +149,12 @@ public class TimestampUtils {
       return calCache;
     }
 
-    calCache = new GregorianCalendar(TimeZone.getTimeZone(offset));
+    // normally we would use:
+    // calCache = new GregorianCalendar(TimeZone.getTimeZone(offset));
+    // But this seems to cause issues for some crazy offsets as returned by server for BC dates!
+    final String tzid = (offset.getTotalSeconds() == 0) ? "UTC" : "GMT".concat(offset.getId());
+    final TimeZone syntheticTZ = new SimpleTimeZone(offset.getTotalSeconds() * 1000, tzid);
+    calCache = new GregorianCalendar(syntheticTZ);
     calCacheZone = offset;
     return calCache;
   }
