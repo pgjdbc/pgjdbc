@@ -55,7 +55,7 @@ public class DateTest extends BaseTest4 {
     final List<Object[]> data = new ArrayList<>();
     for (String type : Arrays.asList("date", "timestamp", "timestamptz")) {
       Stream<String> tzIds = Stream.of("Africa/Casablanca", "America/New_York", "America/Toronto",
-          "Atlantic/Azores", "Europe/Berlin", "Europe/Moscow", "Pacific/Apia", "Pacific/Niue");
+          "Europe/Berlin", "Europe/Moscow", "Pacific/Apia", "America/Los_Angeles");
       // some selection of static GMT offsets (not all, as this takes too long):
       tzIds = Stream.concat(tzIds, IntStream.of(-12, -11, -5, -1, 0, 1, 3, 12, 13)
           .mapToObj(i -> String.format(Locale.ROOT, "GMT%+02d", i)));
