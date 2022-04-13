@@ -14,22 +14,52 @@ import org.postgresql.test.TestUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 /*
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
  * problems from re-occurring ;-)
  *
  */
+@RunWith(Parameterized.class)
 public class DateTest {
+  private static final TimeZone saveTZ = TimeZone.getDefault();
+
   private Connection con;
+
+  public DateTest(String zoneId) {
+    TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
+  }
+
+  @Parameterized.Parameters(name = "zoneId = {0}")
+  public static Iterable<Object[]> data() {
+    List<String> ids = new ArrayList<>();
+    ids.add("Africa/Casablanca");
+    ids.add("America/New_York");
+    ids.add("America/Toronto");
+    ids.add("Atlantic/Azores");
+    ids.add("Europe/Berlin");
+    ids.add("Europe/Moscow");
+    ids.add("Pacific/Apia");
+    ids.add("Pacific/Niue");
+    for (int i = -12; i <= 13; i++) {
+      ids.add(String.format("GMT%+02d", i));
+    }
+    return ids.stream().map(id -> new Object[] { id }).collect(Collectors.toList());
+  }
 
   @Before
   public void setUp() throws Exception {
@@ -41,6 +71,7 @@ public class DateTest {
 
   @After
   public void tearDown() throws Exception {
+    TimeZone.setDefault(saveTZ);
     TestUtil.dropTable(con, "testdate");
     TestUtil.dropTable(con, "testts");
     TestUtil.dropTable(con, "testtstz");
@@ -188,107 +219,107 @@ public class DateTest {
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1950, 2, 7), d);
+    assertEquals(table, makeDate(1950, 2, 7), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1970, 6, 2), d);
+    assertEquals(table, makeDate(1970, 6, 2), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1999, 8, 11), d);
+    assertEquals(table, makeDate(1999, 8, 11), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(2001, 2, 13), d);
+    assertEquals(table, makeDate(2001, 2, 13), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1950, 4, 2), d);
+    assertEquals(table, makeDate(1950, 4, 2), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1970, 11, 30), d);
+    assertEquals(table, makeDate(1970, 11, 30), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1988, 1, 1), d);
+    assertEquals(table, makeDate(1988, 1, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(2003, 7, 9), d);
+    assertEquals(table, makeDate(2003, 7, 9), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1934, 2, 28), d);
+    assertEquals(table, makeDate(1934, 2, 28), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1969, 4, 3), d);
+    assertEquals(table, makeDate(1969, 4, 3), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1982, 8, 3), d);
+    assertEquals(table, makeDate(1982, 8, 3), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(2012, 3, 15), d);
+    assertEquals(table, makeDate(2012, 3, 15), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1912, 5, 1), d);
+    assertEquals(table, makeDate(1912, 5, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1971, 12, 15), d);
+    assertEquals(table, makeDate(1971, 12, 15), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1984, 12, 3), d);
+    assertEquals(table, makeDate(1984, 12, 3), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(2000, 1, 1), d);
+    assertEquals(table, makeDate(2000, 1, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(3456, 1, 1), d);
+    assertEquals(table, makeDate(3456, 1, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(-100, 1, 1), d);
+    assertEquals(table, makeDate(-100, 1, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(1, 1, 1), d);
+    assertEquals(table, makeDate(1, 1, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(0, 1, 1), d);
+    assertEquals(table, makeDate(0, 1, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
-    assertEquals(makeDate(0, 12, 31), d);
+    assertEquals(table, makeDate(0, 12, 31), d);
 
     assertTrue(!rs.next());
 
