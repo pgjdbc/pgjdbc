@@ -34,8 +34,8 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.chrono.IsoChronology;
 import java.time.chrono.IsoEra;
-import java.time.temporal.ChronoField;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +54,8 @@ public class GetObject310Test extends BaseTest4 {
   private static final ZoneOffset GMT03 = ZoneOffset.of("+03:00"); // +0300 always
   private static final ZoneOffset GMT05 = ZoneOffset.of("-05:00"); // -0500 always
   private static final ZoneOffset GMT13 = ZoneOffset.of("+13:00"); // +1300 always
+
+  private static final IsoChronology ISO = IsoChronology.INSTANCE;
 
   public GetObject310Test(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
@@ -151,18 +153,6 @@ public class GetObject310Test extends BaseTest4 {
         assertEquals(localDate, rs.getObject(1, LocalDate.class));
       }
       stmt.executeUpdate("DELETE FROM table1");
-    }
-  }
-
-  @Test
-  public void testBcDate() throws SQLException {
-    try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 BC'::date")) {
-      assertTrue(rs.next());
-      LocalDate expected = LocalDate.of(1582, 9, 30)
-          .with(ChronoField.ERA, IsoEra.BCE.getValue());
-      LocalDate actual = rs.getObject(1, LocalDate.class);
-      assertEquals(expected, actual);
-      assertFalse(rs.next());
     }
   }
 
@@ -366,11 +356,21 @@ public class GetObject310Test extends BaseTest4 {
   }
 
   @Test
+  public void testBcDate() throws SQLException {
+    try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 BC'::date")) {
+      assertTrue(rs.next());
+      LocalDate expected = ISO.date(IsoEra.BCE, 1582, 9, 30);
+      LocalDate actual = rs.getObject(1, LocalDate.class);
+      assertEquals(expected, actual);
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
   public void testBcTimestamp() throws SQLException {
     try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56 BC'::timestamp")) {
       assertTrue(rs.next());
-      LocalDateTime expected = LocalDateTime.of(1582, 9, 30, 12, 34, 56)
-          .with(ChronoField.ERA, IsoEra.BCE.getValue());
+      LocalDateTime expected = ISO.date(IsoEra.BCE, 1582, 9, 30).atTime(12, 34, 56);
       LocalDateTime actual = rs.getObject(1, LocalDateTime.class);
       assertEquals(expected, actual);
       assertFalse(rs.next());
@@ -382,8 +382,7 @@ public class GetObject310Test extends BaseTest4 {
     try (Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56Z BC'::timestamp")) {
       assertTrue(rs.next());
-      OffsetDateTime expected = OffsetDateTime.of(1582, 9, 30, 12, 34, 56, 0, UTC)
-          .with(ChronoField.ERA, IsoEra.BCE.getValue());
+      OffsetDateTime expected = ISO.date(IsoEra.BCE, 1582, 9, 30).atTime(OffsetTime.of(12, 34, 56, 0, UTC));
       OffsetDateTime actual = rs.getObject(1, OffsetDateTime.class);
       assertEquals(expected, actual);
       assertFalse(rs.next());
