@@ -25,8 +25,3 @@ And what actually happens
 
 **Logs**
 If possible PostgreSQL logs surrounding the occurrence of the issue
-Additionally logs from the driver can be obtained adding
-```java
-loggerLevel=TRACE&loggerFile=pgjdbc-trace.log 
-```
-to the connection string
