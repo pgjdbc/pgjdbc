@@ -71,7 +71,7 @@ SSLSocketFactory”](ssl-factory.html)) </td>
       <td>defaultAutoCommit</td>
       <td>BOOLEAN</td>
       <td> Whether connections should have autocommit enabled or
-disabled when they are supplied to the caller. The default is `false`, to disable autocommit. </td>
+disabled when they are supplied to the caller. The default is `true`, to enable autocommit. </td>
     </tr>
   </tbody>
 </table>
