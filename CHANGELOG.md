@@ -16,7 +16,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - feat: add support for ResultSet#getObject(OffsetTime.class) and PreparedStatement#setObject(OffsetTime.class) [PR 2467](https://github.com/pgjdbc/pgjdbc/pull/2467)
 - fix: Use non-synchronized getTimeZone in TimestampUtils [PR 2451](https://github.com/pgjdbc/pgjdbc/pull/2451)
 - docs: Fix CHANGELOG.md misformatted markdown headings [PR 2461](https://github.com/pgjdbc/pgjdbc/pull/2461)
-- docs:  remove loggerLevel and loggerFile from docs and issues [#2489](https://github.com/pgjdbc/pgjdbc/pull/2489)
+- docs:  remove loggerLevel and loggerFile from docs and issues [PR 2489](https://github.com/pgjdbc/pgjdbc/pull/2489)
+- feat: use direct wire format -> LocalDate conversion without resorting to java.util.Date, java.util.Calendar, 
+  and default timezones [PR 2464](https://github.com/pgjdbc/pgjdbc/pull/2464) fixes Issue #2221
 
 ### Added
 
@@ -25,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes Issue [PR 2421](https://github.com/pgjdbc/pgjdbc/pull/2421) (#2441)
 - fix: Use PGProperty instead of the property names directly [PR 2444](https://github.com/pgjdbc/pgjdbc/pull/2444)
 - docs: update changelog, missing links at bottom and formatting [PR 2460](https://github.com/pgjdbc/pgjdbc/pull/2460)
-- fix: Remove isDeprecated from PGProperty. It was originally intended to help produce automated docs. Fixes #Issue 2479 [PR 2480](https://github.com/pgjdbc/pgjdbc/pull/2480)
+- fix: Remove isDeprecated from PGProperty. It was originally intended to help produce automated docs. Fixes Issue #2479 [PR 2480](https://github.com/pgjdbc/pgjdbc/pull/2480)
 - fix: change PGInterval parseISO8601Format to support fractional second [PR 2457](https://github.com/pgjdbc/pgjdbc/pull/2457)
 - fix: GSS login to use TGT from keytab fixes Issue #2469 [PR 2470](https://github.com/pgjdbc/pgjdbc/pull/2470) 
 - fix: More test and fix for issues discovered by [PR #2476](https://github.com/pgjdbc/pgjdbc/pull/2476) [PR #2488](https://github.com/pgjdbc/pgjdbc/pull/2488)
