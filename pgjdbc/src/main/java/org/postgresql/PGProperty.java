@@ -751,7 +751,6 @@ public enum PGProperty {
   private final boolean required;
   private final String description;
   private final String @Nullable [] choices;
-  private final boolean deprecated;
 
   PGProperty(String name, @Nullable String defaultValue, String description) {
     this(name, defaultValue, description, false);
@@ -768,11 +767,6 @@ public enum PGProperty {
     this.required = required;
     this.description = description;
     this.choices = choices;
-    try {
-      this.deprecated = PGProperty.class.getField(name()).getAnnotation(Deprecated.class) != null;
-    } catch (NoSuchFieldException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<String, PGProperty>();
@@ -829,15 +823,6 @@ public enum PGProperty {
    */
   public String @Nullable [] getChoices() {
     return choices;
-  }
-
-  /**
-   * Returns whether this connection parameter is deprecated.
-   *
-   * @return whether this connection parameter is deprecated
-   */
-  public boolean isDeprecated() {
-    return deprecated;
   }
 
   /**

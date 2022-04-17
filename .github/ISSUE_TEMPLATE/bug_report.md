@@ -30,10 +30,7 @@ And what actually happens
 **Logs**
 If possible PostgreSQL logs surrounding the occurrence of the issue
 Additionally logs from the driver can be obtained adding
-```java
-loggerLevel=TRACE&loggerFile=pgjdbc-trace.log 
-```
-to the connection string
+
 Using the following template code make sure the bug can be replicated in the driver alone.
 ```
 import java.sql.Connection;
