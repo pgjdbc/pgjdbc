@@ -119,6 +119,8 @@ public class DateTest extends BaseTest4 {
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'1971-12-15'")));
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'1984-12-03'")));
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'2000-01-01'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'2025-01-01'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'2025-07-01'")));
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'3456-01-01'")));
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'0101-01-01 BC'")));
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'0001-01-01'")));
@@ -128,7 +130,7 @@ public class DateTest extends BaseTest4 {
       /* dateTest() contains all of the tests */
       dateTest();
 
-      assertEquals(21, stmt.executeUpdate("DELETE FROM test"));
+      assertEquals(23, stmt.executeUpdate("DELETE FROM test"));
       stmt.close();
     }
   }
@@ -139,7 +141,9 @@ public class DateTest extends BaseTest4 {
   @Test
   public void testSetDate() throws SQLException {
     assumeTrue("TODO: Test fails for some local time zones (not GMT based)",
-        false == Objects.equals(type, "timestamptz") || zoneId.startsWith("GMT"));
+        false == Objects.equals(type, "timestamptz")
+            || zoneId.startsWith("GMT")
+            || binaryMode != BinaryMode.FORCE);
 
     try (Statement stmt = con.createStatement()) {
       PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("test", "?"));
@@ -192,6 +196,12 @@ public class DateTest extends BaseTest4 {
       ps.setObject(1, java.sql.Date.valueOf("2000-01-01"), java.sql.Types.DATE);
       assertEquals(1, ps.executeUpdate());
 
+      ps.setObject(1, java.sql.Date.valueOf("2025-01-01"), java.sql.Types.DATE);
+      assertEquals(1, ps.executeUpdate());
+
+      ps.setObject(1, java.sql.Date.valueOf("2025-07-01"), java.sql.Types.DATE);
+      assertEquals(1, ps.executeUpdate());
+
       ps.setObject(1, java.sql.Date.valueOf("3456-01-01"), java.sql.Types.DATE);
       assertEquals(1, ps.executeUpdate());
 
@@ -213,7 +223,7 @@ public class DateTest extends BaseTest4 {
 
       dateTest();
 
-      assertEquals(21, stmt.executeUpdate("DELETE FROM test"));
+      assertEquals(23, stmt.executeUpdate("DELETE FROM test"));
       stmt.close();
     }
   }
@@ -308,6 +318,16 @@ public class DateTest extends BaseTest4 {
     d = rs.getDate(1);
     assertNotNull(d);
     assertEquals(makeDate(2000, 1, 1), d);
+
+    assertTrue(rs.next());
+    d = rs.getDate(1);
+    assertNotNull(d);
+    assertEquals(makeDate(2025, 1, 1), d);
+
+    assertTrue(rs.next());
+    d = rs.getDate(1);
+    assertNotNull(d);
+    assertEquals(makeDate(2025, 7, 1), d);
 
     assertTrue(rs.next());
     d = rs.getDate(1);
