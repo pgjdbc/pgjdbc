@@ -338,6 +338,7 @@ public class DateTest extends BaseTest4 {
     d = rs.getDate(1);
     assertNotNull(d);
     assertEquals(makeDate(-100, 1, 1), d);
+
     assertTrue(rs.next());
     d = rs.getDate(1);
     assertNotNull(d);
