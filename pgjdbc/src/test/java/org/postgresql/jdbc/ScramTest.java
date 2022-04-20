@@ -63,7 +63,7 @@ class ScramTest {
     createRole(passwd); // Create role password with spaces.
 
     Properties props = new Properties();
-    props.setProperty("username", ROLE_NAME);
+    props.setProperty("user", ROLE_NAME);
     props.setProperty("password", passwd);
 
     try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB(props));
@@ -92,7 +92,7 @@ class ScramTest {
     createRole(passwdNoSpaces); // Create role password without spaces.
 
     Properties props = new Properties();
-    props.setProperty("username", ROLE_NAME);
+    props.setProperty("user", ROLE_NAME);
     props.setProperty("password", passwd); // Open connection with spaces
 
     SQLException ex = assertThrows(SQLException.class, () -> TestUtil.openDB(props));
