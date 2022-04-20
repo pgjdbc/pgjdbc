@@ -63,8 +63,8 @@ class ScramTest {
     createRole(passwd); // Create role password with spaces.
 
     Properties props = new Properties();
-    props.setProperty("user", ROLE_NAME);
-    props.setProperty("password", passwd);
+    PGProperty.USER.set(props, ROLE_NAME);
+    PGProperty.PASSWORD.set(props, passwd);
 
     try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB(props));
         Statement stmt = c.createStatement();
@@ -92,8 +92,8 @@ class ScramTest {
     createRole(passwdNoSpaces); // Create role password without spaces.
 
     Properties props = new Properties();
-    props.setProperty("user", ROLE_NAME);
-    props.setProperty("password", passwd); // Open connection with spaces
+    PGProperty.USER.set(props, ROLE_NAME);
+    PGProperty.PASSWORD.set(props, passwd); // Open connection with spaces
 
     SQLException ex = assertThrows(SQLException.class, () -> TestUtil.openDB(props));
     assertEquals(PSQLState.INVALID_PASSWORD.getState(), ex.getSQLState());
@@ -113,9 +113,9 @@ class ScramTest {
     createRole("anything_goes_here");
 
     Properties props = new Properties();
-    props.setProperty("user", ROLE_NAME);
+    PGProperty.USER.set(props, ROLE_NAME);
     if (password != null) {
-      props.setProperty("password", password);
+      PGProperty.PASSWORD.set(props, passwd);
     }
     try (Connection conn = DriverManager.getConnection(TestUtil.getURL(), props)) {
       fail("SCRAM connection attempt with invalid password should fail");
