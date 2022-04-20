@@ -115,7 +115,7 @@ class ScramTest {
     Properties props = new Properties();
     PGProperty.USER.set(props, ROLE_NAME);
     if (password != null) {
-      PGProperty.PASSWORD.set(props, passwd);
+      PGProperty.PASSWORD.set(props, password);
     }
     try (Connection conn = DriverManager.getConnection(TestUtil.getURL(), props)) {
       fail("SCRAM connection attempt with invalid password should fail");
