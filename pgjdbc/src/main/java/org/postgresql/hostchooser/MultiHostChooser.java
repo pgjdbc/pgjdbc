@@ -14,7 +14,6 @@ import org.postgresql.util.PSQLException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -47,8 +46,8 @@ class MultiHostChooser implements HostChooser {
       // In case all the candidate hosts are unavailable or do not match, try all the hosts just in case
       List<HostSpec> allHosts = Arrays.asList(hostSpecs);
       if (loadBalance) {
-        allHosts = new ArrayList<HostSpec>(allHosts);
-        Collections.shuffle(allHosts);
+        allHosts = new ArrayList<>(allHosts);
+        shuffle(allHosts);
       }
       res = withReqStatus(targetServerType, allHosts).iterator();
     }
@@ -75,15 +74,8 @@ class MultiHostChooser implements HostChooser {
     List<CandidateHost> preferred = getCandidateHosts(preferredServerType);
     List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
 
-    if (preferred.isEmpty()) {
-      return any.iterator();
-    }
-
-    if (any.isEmpty()) {
-      return preferred.iterator();
-    }
-
-    if (preferred.get(preferred.size() - 1).equals(any.get(0))) {
+    if (  !preferred.isEmpty() && !any.isEmpty()
+        && preferred.get(preferred.size() - 1).hostSpec.equals(any.get(0).hostSpec)) {
       // When the last preferred host's hostspec is the same as the first in "any" list, there's no need
       // to attempt to connect it as "preferred"
       // Note: this is only an optimization
