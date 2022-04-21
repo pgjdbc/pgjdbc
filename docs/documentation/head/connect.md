@@ -340,7 +340,7 @@ Connection conn = DriverManager.getConnection(url);
 
 * **tcpNoDelay** = boolean
 
-  Enable or disable TCP nodelay. The default is `false`.
+  Enable or disable TCP nodelay. The default is `true`.
 
 * **unknownLength** = int
 

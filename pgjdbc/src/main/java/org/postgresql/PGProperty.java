@@ -705,8 +705,8 @@ public enum PGProperty {
 
   TCP_NO_DELAY(
       "tcpNoDelay",
-      "false",
-      "Enable or disable TCP no delay. The default is (@code false}."
+      "true",
+      "Enable or disable TCP no delay. The default is (@code true}."
   ),
   /**
    * Specifies the length to return for types of unknown length.

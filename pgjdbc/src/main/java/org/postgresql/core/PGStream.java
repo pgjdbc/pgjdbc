@@ -113,7 +113,7 @@ public class PGStream implements Closeable, Flushable {
     int receiveBufferSize = 1024;
     int soTimeout = 0;
     boolean keepAlive = false;
-    boolean tcpNoDelay = false;
+    boolean tcpNoDelay = true;
 
     /*
     Get the existing values before closing the stream
