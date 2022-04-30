@@ -27,54 +27,66 @@ public class TimestampUtilsTest {
 
   @Test
   public void testToStringOfLocalTime() {
-    assertToStringOfLocalTime("00:00:00", "00:00:00");
-    assertToStringOfLocalTime("00:00:00.1", "00:00:00.1");
-    assertToStringOfLocalTime("00:00:00.12", "00:00:00.12");
-    assertToStringOfLocalTime("00:00:00.123", "00:00:00.123");
-    assertToStringOfLocalTime("00:00:00.1234", "00:00:00.1234");
-    assertToStringOfLocalTime("00:00:00.12345", "00:00:00.12345");
-    assertToStringOfLocalTime("00:00:00.123456", "00:00:00.123456");
+    assertToStringOfLocalTime("00:00:00");
+    assertToStringOfLocalTime("00:00:00.1");
+    assertToStringOfLocalTime("00:00:00.12");
+    assertToStringOfLocalTime("00:00:00.123");
+    assertToStringOfLocalTime("00:00:00.1234");
+    assertToStringOfLocalTime("00:00:00.12345");
+    assertToStringOfLocalTime("00:00:00.123456");
 
-    assertToStringOfLocalTime("00:00:00.999999", "00:00:00.999999");
-    assertToStringOfLocalTime("00:00:00.999999", "00:00:00.999999499"); // 499 NanoSeconds
-    assertToStringOfLocalTime("00:00:01", "00:00:00.999999500"); // 500 NanoSeconds
+    assertToStringOfLocalTime("00:00:00.999999");
+    assertToStringOfLocalTime("00:00:00.999999", "00:00:00.999999499", "499 NanoSeconds round down");
+    assertToStringOfLocalTime("00:00:01", "00:00:00.999999500", "500 NanoSeconds round up");
 
-    assertToStringOfLocalTime("23:59:59", "23:59:59");
+    assertToStringOfLocalTime("23:59:59");
 
-    assertToStringOfLocalTime("23:59:59.999999", "23:59:59.999999");
-    assertToStringOfLocalTime("23:59:59.999999", "23:59:59.999999499"); // 499 NanoSeconds
-    assertToStringOfLocalTime("24:00:00", "23:59:59.999999500"); // 500 NanoSeconds
-    assertToStringOfLocalTime("24:00:00", "23:59:59.999999999"); // 999 NanoSeconds
+    assertToStringOfLocalTime("23:59:59.999999");
+    assertToStringOfLocalTime("23:59:59.999999", "23:59:59.999999499", "499 NanoSeconds round down");
+    assertToStringOfLocalTime("24:00:00", "23:59:59.999999500", "500 NanoSeconds round up");
+    assertToStringOfLocalTime("24:00:00", "23:59:59.999999999", "999 NanoSeconds round up");
   }
 
-  private void assertToStringOfLocalTime(String expectedOutput, String inputTime) {
-    assertEquals("timestampUtils.toString(LocalTime.parse(" + inputTime + "))",
+  private void assertToStringOfLocalTime(String inputTime) {
+    assertToStringOfLocalTime(inputTime, inputTime, null);
+  }
+
+  private void assertToStringOfLocalTime(String expectedOutput, String inputTime, String message) {
+    assertEquals(
+        "timestampUtils.toString(LocalTime.parse(" + inputTime + "))"
+            + (message == null ? ": " + message : ""),
         expectedOutput,
         timestampUtils.toString(LocalTime.parse(inputTime)));
   }
 
   @Test
   public void testToLocalTime() throws SQLException {
-    assertToLocalTime("00:00:00", "00:00:00");
+    assertToLocalTime("00:00:00");
 
-    assertToLocalTime("00:00:00.1", "00:00:00.1");
-    assertToLocalTime("00:00:00.12", "00:00:00.12");
-    assertToLocalTime("00:00:00.123", "00:00:00.123");
-    assertToLocalTime("00:00:00.1234", "00:00:00.1234");
-    assertToLocalTime("00:00:00.12345", "00:00:00.12345");
-    assertToLocalTime("00:00:00.123456", "00:00:00.123456");
-    assertToLocalTime("00:00:00.999999", "00:00:00.999999");
+    assertToLocalTime("00:00:00.1");
+    assertToLocalTime("00:00:00.12");
+    assertToLocalTime("00:00:00.123");
+    assertToLocalTime("00:00:00.1234");
+    assertToLocalTime("00:00:00.12345");
+    assertToLocalTime("00:00:00.123456");
+    assertToLocalTime("00:00:00.999999");
 
-    assertToLocalTime("23:59:59", "23:59:59");
-    assertToLocalTime("23:59:59.999999", "23:59:59.999999"); // 0 NanoSeconds
-    assertToLocalTime("23:59:59.9999999", "23:59:59.9999999"); // 900 NanoSeconds
-    assertToLocalTime("23:59:59.99999999", "23:59:59.99999999"); // 990 NanoSeconds
-    assertToLocalTime("23:59:59.999999998", "23:59:59.999999998"); // 998 NanoSeconds
-    assertToLocalTime(LocalTime.MAX.toString(), "24:00:00");
+    assertToLocalTime("23:59:59");
+    assertToLocalTime("23:59:59.999999"); // 0 NanoSeconds
+    assertToLocalTime("23:59:59.9999999"); // 900 NanoSeconds
+    assertToLocalTime("23:59:59.99999999"); // 990 NanoSeconds
+    assertToLocalTime("23:59:59.999999998"); // 998 NanoSeconds
+    assertToLocalTime(LocalTime.MAX.toString(), "24:00:00", "LocalTime can't represent 24:00:00");
   }
 
-  private void assertToLocalTime(String expectedOutput, String inputTime) throws SQLException {
-    assertEquals("timestampUtils.toLocalTime(" + inputTime + ")",
+  private void assertToLocalTime(String inputTime) throws SQLException {
+    assertToLocalTime(inputTime, inputTime, null);
+  }
+
+  private void assertToLocalTime(String expectedOutput, String inputTime, String message) throws SQLException {
+    assertEquals(
+        "timestampUtils.toLocalTime(" + inputTime + ")"
+            + (message == null ? ": " + message : ""),
         LocalTime.parse(expectedOutput),
         timestampUtils.toLocalTime(inputTime));
   }
