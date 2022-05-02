@@ -517,16 +517,29 @@ public class TimestampUtils {
   }
 
   /**
+   * Returns the offset date time object matching the given bytes with Oid#TIMETZ.
+   * Not used internally anymore, function is here to retain compatibility with previous versions
+   *
+   * @param t the time value
+   * @return the matching offset date time
+   * @deprecated was used internally, and not used anymore
+   */
+  @Deprecated
+  public OffsetDateTime toOffsetDateTime(Time t) {
+    // hardcode utc because the backend does not provide us the timezone
+    // hardcode UNIX epoch, JDBC requires OffsetDateTime but doesn't describe what date should be used
+    return t.toLocalTime().atDate(LocalDate.of(1970, 1, 1)).atOffset(ZoneOffset.UTC);
+  }
+
+  /**
    * Parse a string and return a OffsetDateTime representing its value.
    *
-   * @param s The ISO formated date string to parse.
-   * @param adaptToUTC if true the timezone is adapted to be UTC;
-   *     this must be done for timestamp and timestamptz as they have no zone on server side
+   * @param s The ISO formatted date string to parse.
    * @return null if s is null or a OffsetDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
    */
   public @PolyNull OffsetDateTime toOffsetDateTime(
-      @PolyNull String s, boolean adaptToUTC) throws SQLException {
+      @PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
     }
@@ -545,9 +558,6 @@ public class TimestampUtils {
     final ParsedTimestamp ts = parseBackendTimestamp(s);
     OffsetDateTime result =
         OffsetDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
-    if (adaptToUTC) {
-      result = result.withOffsetSameInstant(ZoneOffset.UTC);
-    }
     if (ts.era == GregorianCalendar.BC) {
       return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
     } else {
