@@ -74,6 +74,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -671,8 +672,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     } else {
       // string
-      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP || oid == Oid.TIMETZ) {
-        return getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)), oid != Oid.TIMETZ);
+      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP )  {
+        OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)));
+        return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
+      }
+      if ( oid == Oid.TIMETZ ) {
+        return getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)));
       }
     }
 

@@ -533,31 +533,13 @@ public class TimestampUtils {
 
   /**
    * Parse a string and return a OffsetDateTime representing its value.
-   * This function is here to retain compatibility with the previous version 42.3.3
-   * for converting timestamp and timestamptz for timetz use #toOffsetDateTime(timetz, false)
    *
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a OffsetDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated in favour of #toOffsetDateTime(String s, boolean adaptToUTC)
    */
-  @Deprecated
   public @PolyNull OffsetDateTime toOffsetDateTime(
       @PolyNull String s) throws SQLException {
-    return toOffsetDateTime(s, false);
-  }
-
-  /**
-   * Parse a string and return a OffsetDateTime representing its value.
-   *
-   * @param s The ISO formatted date string to parse.
-   * @param adaptToUTC if true the timezone is adapted to be UTC;
-   *     this must be done for timestamp and timestamptz as they have no zone on server side
-   * @return null if s is null or a OffsetDateTime of the parsed string s.
-   * @throws SQLException if there is a problem parsing s.
-   */
-  public @PolyNull OffsetDateTime toOffsetDateTime(
-      @PolyNull String s, boolean adaptToUTC) throws SQLException {
     if (s == null) {
       return null;
     }
@@ -576,9 +558,6 @@ public class TimestampUtils {
     final ParsedTimestamp ts = parseBackendTimestamp(s);
     OffsetDateTime result =
         OffsetDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
-    if (adaptToUTC) {
-      result = result.withOffsetSameInstant(ZoneOffset.UTC);
-    }
     if (ts.era == GregorianCalendar.BC) {
       return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
     } else {
