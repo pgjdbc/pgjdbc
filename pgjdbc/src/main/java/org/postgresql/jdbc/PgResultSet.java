@@ -672,9 +672,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     } else {
       // string
+
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP )  {
+
         OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)));
-        return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
+        if ( offsetDateTime != OffsetDateTime.MAX && offsetDateTime != OffsetDateTime.MIN ) {
+          return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
+        } else {
+          return offsetDateTime;
+        }
+
       }
       if ( oid == Oid.TIMETZ ) {
         return getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)));
