@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 import static org.postgresql.hostchooser.HostRequirement.any;
+import static org.postgresql.hostchooser.HostRequirement.preferPrimary;
 import static org.postgresql.hostchooser.HostRequirement.preferSecondary;
 import static org.postgresql.hostchooser.HostRequirement.primary;
 import static org.postgresql.hostchooser.HostRequirement.secondary;
@@ -238,6 +239,27 @@ public class MultiHostsConnectionTest {
   }
 
   @Test
+  public void testConnectToPrimaryFirst() throws SQLException {
+    getConnection(preferPrimary, true, fake1, primary1, secondary1);
+    assertRemote(primaryIp);
+    assertGlobalState(fake1, "ConnectFail");
+    assertGlobalState(primary1, "Primary");
+    assertGlobalState(secondary1, null);
+
+    getConnection(primary, false, fake1, secondary1, primary1);
+    assertRemote(primaryIp);
+    assertGlobalState(fake1, "ConnectFail");
+    assertGlobalState(primary1, "Primary");
+    assertGlobalState(secondary1, "Secondary"); // tried as it was unknown
+
+    getConnection(preferPrimary, true, fake1, secondary1, primary1);
+    assertRemote(primaryIp);
+    assertGlobalState(fake1, "ConnectFail");
+    assertGlobalState(primary1, "Primary");
+    assertGlobalState(secondary1, "Secondary");
+  }
+
+  @Test
   public void testConnectToPrimaryWithReadonlyTransactionMode() throws SQLException {
     con = TestUtil.openPrivilegedDB();
     con.createStatement().execute("ALTER DATABASE " + TestUtil.getDatabase() + " SET default_transaction_read_only=on;");
@@ -320,6 +342,47 @@ public class MultiHostsConnectionTest {
     assertEquals("Never connected to all hosts", new HashSet<String>(asList(primaryIp, secondaryIP)),
         connectedHosts);
     assertTrue("Never tried to connect to fake node", fake1FoundTried);
+  }
+
+  @Test
+  public void testLoadBalancing_preferPrimary() throws SQLException {
+    Set<String> connectedHosts = new HashSet<String>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    for (int i = 0; i < 20; ++i) {
+      getConnection(preferPrimary, true, true, fake1, secondary1, secondary2, primary1);
+      connectedHosts.add(getRemoteHostSpec());
+      tryConnectedHosts.addAll(hostStatusMap.keySet());
+      if (tryConnectedHosts.size() == 4) {
+        break;
+      }
+    }
+
+    assertRemote(primaryIp);
+    assertEquals("Connected to hosts other than primary", new HashSet<String>(asList(primaryIp)),
+        connectedHosts);
+    assertEquals("Never tried to connect to fake node", 4, tryConnectedHosts.size());
+
+    getConnection(preferPrimary, false, true, fake1, secondary1, primary1);
+    assertRemote(primaryIp);
+
+    // connect to secondaries when there's no primary - with load balancing
+    connectedHosts.clear();
+    for (int i = 0; i < 20; ++i) {
+      getConnection(preferPrimary, false, true, fake1, secondary1, secondary2);
+      connectedHosts.add(getRemoteHostSpec());
+      if (connectedHosts.size() == 2) {
+        break;
+      }
+    }
+    assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
+        connectedHosts);
+
+    // connect to secondary when there's no primary
+    getConnection(preferPrimary, true, true, fake1, secondary1);
+    assertRemote(secondaryIP);
+
+    getConnection(preferPrimary, false, true, fake1, secondary1);
+    assertRemote(secondaryIP);
   }
 
   @Test

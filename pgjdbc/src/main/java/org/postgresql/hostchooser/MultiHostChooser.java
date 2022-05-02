@@ -14,7 +14,6 @@ import org.postgresql.util.PSQLException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -47,8 +46,8 @@ class MultiHostChooser implements HostChooser {
       // In case all the candidate hosts are unavailable or do not match, try all the hosts just in case
       List<HostSpec> allHosts = Arrays.asList(hostSpecs);
       if (loadBalance) {
-        allHosts = new ArrayList<HostSpec>(allHosts);
-        Collections.shuffle(allHosts);
+        allHosts = new ArrayList<>(allHosts);
+        shuffle(allHosts);
       }
       res = withReqStatus(targetServerType, allHosts).iterator();
     }
@@ -56,32 +55,33 @@ class MultiHostChooser implements HostChooser {
   }
 
   private Iterator<CandidateHost> candidateIterator() {
-    if (targetServerType != HostRequirement.preferSecondary) {
+    if (   targetServerType != HostRequirement.preferSecondary
+        && targetServerType != HostRequirement.preferPrimary   ) {
       return getCandidateHosts(targetServerType).iterator();
     }
+
+    HostRequirement preferredServerType =
+        targetServerType == HostRequirement.preferSecondary
+          ? HostRequirement.secondary
+          : HostRequirement.primary;
 
     // preferSecondary tries to find secondary hosts first
     // Note: sort does not work here since there are "unknown" hosts,
     // and that "unknown" might turn out to be master, so we should discard that
     // if other secondaries exist
-    List<CandidateHost> secondaries = getCandidateHosts(HostRequirement.secondary);
+    // Same logic as the above works for preferPrimary if we replace "secondary"
+    // with "primary" and vice versa
+    List<CandidateHost> preferred = getCandidateHosts(preferredServerType);
     List<CandidateHost> any = getCandidateHosts(HostRequirement.any);
 
-    if (secondaries.isEmpty()) {
-      return any.iterator();
-    }
-
-    if (any.isEmpty()) {
-      return secondaries.iterator();
-    }
-
-    if (secondaries.get(secondaries.size() - 1).equals(any.get(0))) {
-      // When the last secondary's hostspec is the same as the first in "any" list, there's no need
-      // to attempt to connect it as "secondary"
+    if (  !preferred.isEmpty() && !any.isEmpty()
+        && preferred.get(preferred.size() - 1).hostSpec.equals(any.get(0).hostSpec)) {
+      // When the last preferred host's hostspec is the same as the first in "any" list, there's no need
+      // to attempt to connect it as "preferred"
       // Note: this is only an optimization
-      secondaries = rtrim(1, secondaries);
+      preferred = rtrim(1, preferred);
     }
-    return append(secondaries, any).iterator();
+    return append(preferred, any).iterator();
   }
 
   private List<CandidateHost> getCandidateHosts(HostRequirement hostRequirement) {
