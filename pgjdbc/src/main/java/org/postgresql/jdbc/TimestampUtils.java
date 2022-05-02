@@ -517,6 +517,21 @@ public class TimestampUtils {
   }
 
   /**
+   * Returns the offset date time object matching the given bytes with Oid#TIMETZ.
+   * Not used internally anymore, function is here to retain compatibility with previous versions
+   *
+   * @param t the time value
+   * @return the matching offset date time
+   * @deprecated was used internally, and not used anymore
+   */
+  @Deprecated
+  public OffsetDateTime toOffsetDateTime(Time t) {
+    // hardcode utc because the backend does not provide us the timezone
+    // hardcode UNIX epoch, JDBC requires OffsetDateTime but doesn't describe what date should be used
+    return t.toLocalTime().atDate(LocalDate.of(1970, 1, 1)).atOffset(ZoneOffset.UTC);
+  }
+
+  /**
    * Parse a string and return a OffsetDateTime representing its value.
    * This function is here to retain compatibility with the previous version 42.3.3
    * for converting timestamp and timestamptz for timetz use #toOffsetDateTime(timetz, false)
