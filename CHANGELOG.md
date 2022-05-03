@@ -5,11 +5,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+- test: polish TimestampUtilsTest
 
 ### Added
+- Added KEYS file to allow for verifying artifacts [PR 2499](https://github.com/pgjdbc/pgjdbc/pull/2499)
 
 ### Fixed
+- perf: enable tcpNoDelay by default [PR 2495](https://github.com/pgjdbc/pgjdbc/pull/2495).
+ This is a regression from 42.2.x versions where tcpNoDelay defaulted to true
+- docs: fix readme.md after [PR 2495](https://github.com/pgjdbc/pgjdbc/pull/2495) [PR 2496](https://github.com/pgjdbc/pgjdbc/pull/249)
+- feat: targetServerType=preferPrimary connection parameter [PR 2483](https://github.com/pgjdbc/pgjdbc/pull/2483)
+    * preferPrimary: documentation, code/logic, tests
+    * preferPrimary: simplify MultiHostChooser.candidateIterator(), fix the optimization in there
+- fix: revert removal of toOffsetDateTime(String timestamp)  fixes [Issue #2497](https://github.com/pgjdbc/pgjdbc/issues/2497) [PR 2501](https://github.com/pgjdbc/pgjdbc/pull/2501)
+    * fix: revert removal of toOffsetDateTime(String timestamp) 
+    * resurrected OffsetDateTime toOffsetDateTime(Time t) for completeness
 
+  
 [42.3.4] (2022-04-01 14:16:28 -0400)
 ### Changed
 - fix: change name of build cache [PR 2471](https://github.com/pgjdbc/pgjdbc/pull/2471)
@@ -24,7 +36,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - docs: Update testing documentation [PR 2446](https://github.com/pgjdbc/pgjdbc/pull/2446)
-- fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes Issue [PR 2421](https://github.com/pgjdbc/pgjdbc/pull/2421) (#2441)
+- fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes [Issue #2421](https://github.com/pgjdbc/pgjdbc/issues/2421)  [PR 2441](https://github.com/pgjdbc/pgjdbc/pull/2441) 
 - fix: Use PGProperty instead of the property names directly [PR 2444](https://github.com/pgjdbc/pgjdbc/pull/2444)
 - docs: update changelog, missing links at bottom and formatting [PR 2460](https://github.com/pgjdbc/pgjdbc/pull/2460)
 - fix: Remove isDeprecated from PGProperty. It was originally intended to help produce automated docs. Fixes Issue #2479 [PR 2480](https://github.com/pgjdbc/pgjdbc/pull/2480)
