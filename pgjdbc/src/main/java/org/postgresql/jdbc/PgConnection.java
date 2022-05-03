@@ -113,7 +113,7 @@ public class PgConnection implements BaseConnection {
 
   /**
    * The sole purpose of leakMarker field is to have a minimal object.
-   * That will become ureachable as soon as the connection itself becomes unreachable.
+   * That will become unreachable as soon as the connection itself becomes unreachable.
    * In practice {@code PhantomReference<PgConnection>} would be good enough,
    * however, {@code OpenJdk <= 8} keeps the referrent longer than needed,
    * so we add a dummy object to workaround
