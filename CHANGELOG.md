@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+
+### Added
+
+### Fixed
+
+[42.3.5] (2022-05-03 13:10:35 -0400)
+### Changed
 - test: polish TimestampUtilsTest
 
 ### Added
@@ -671,4 +678,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...REL42.3.2
 [42.3.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...REL42.3.3
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...REL42.3.4
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...HEAD
+[42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...HEAD
