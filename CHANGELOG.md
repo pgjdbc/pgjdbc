@@ -22,12 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  This is a regression from 42.2.x versions where tcpNoDelay defaulted to true
 - docs: fix readme.md after [PR 2495](https://github.com/pgjdbc/pgjdbc/pull/2495) [PR 2496](https://github.com/pgjdbc/pgjdbc/pull/249)
 - feat: targetServerType=preferPrimary connection parameter [PR 2483](https://github.com/pgjdbc/pgjdbc/pull/2483)
-    * preferPrimary: documentation, code/logic, tests
-    * preferPrimary: simplify MultiHostChooser.candidateIterator(), fix the optimization in there
 - fix: revert removal of toOffsetDateTime(String timestamp)  fixes [Issue #2497](https://github.com/pgjdbc/pgjdbc/issues/2497) [PR 2501](https://github.com/pgjdbc/pgjdbc/pull/2501)
-    * fix: revert removal of toOffsetDateTime(String timestamp) 
-    * resurrected OffsetDateTime toOffsetDateTime(Time t) for completeness
-
   
 [42.3.4] (2022-04-01 14:16:28 -0400)
 ### Changed
