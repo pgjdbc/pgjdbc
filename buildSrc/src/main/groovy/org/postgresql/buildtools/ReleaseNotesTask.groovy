@@ -34,8 +34,12 @@ class ReleaseNotesTask extends DefaultTask {
     @Inject
     public ReleaseNotesTask()  {
         repositoryDirectory = getProject().projectDir
-        githubUser = "github config github.user".execute()
-        githubToken = "github config github.token".execute()
+        "git config github.user".execute().with {
+            githubUser = it.inputStream.newReader().readLine()
+        }
+        "git config github.token".execute().with {
+            githubToken = it.inputStream.newReader().readLine()
+        }
     }
 
     @TaskAction
