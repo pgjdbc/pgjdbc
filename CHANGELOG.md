@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.3.5] (2022-05-04 08:48:35 -0400)
 ### Changed
 - test: polish TimestampUtilsTest
+- chore: use GitHub Action concurrency feature to terminate CI jobs on fast PR pushes
 
 ### Added
 - Added KEYS file to allow for verifying artifacts [PR 2499](https://github.com/pgjdbc/pgjdbc/pull/2499)
