@@ -744,6 +744,62 @@ public enum PGProperty {
       "",
       "Factory class to instantiate factories for XML processing"),
 
+  /**
+   * Use connection plugins.
+   */
+  USE_CONNECTION_PLUGINS(
+      "useConnectionPlugins",
+      "true",
+      "Use connection plugins"),
+
+  /**
+   * A list of connection plugin factory class names.
+   */
+  CONNECTION_PLUGIN_FACTORIES(
+      "connectionPluginFactories",
+      null,
+      "Coma separated list of connection plugin factories"),
+
+  /**
+   * Interval in milliseconds for a monitor to be considered inactive and to be disposed.
+   */
+  MONITOR_DISPOSAL_TIME(
+      "monitorDisposalTime",
+      Integer.toString(60000),
+      "Interval in milliseconds for a monitor to be considered inactive and to be disposed."),
+
+  /**
+   * Enable failure detection logic (aka node monitoring thread).
+   */
+  FAILURE_DETECTION_ENABLED(
+      "failureDetectionEnabled",
+      "true",
+      "Enable failure detection logic (aka node monitoring thread)."),
+
+  /**
+   * Interval in millis between sending SQL to the server and the first probe to database node.
+   */
+  FAILURE_DETECTION_TIME(
+      "failureDetectionTime",
+      Integer.toString(30000),
+      "Interval in millis between sending SQL to the server and the first probe to database node."),
+
+  /**
+   * Interval in millis between probes to database node.
+   */
+  FAILURE_DETECTION_INTERVAL(
+      "failureDetectionInterval",
+      Integer.toString(5000),
+      "Interval in millis between probes to database node."),
+
+  /**
+   * Number of failed connection checks before considering database node unhealthy.
+   */
+  FAILURE_DETECTION_COUNT(
+      "failureDetectionCount",
+      Integer.toString(3),
+      "Number of failed connection checks before considering database node unhealthy."),
+
   ;
 
   private final String name;

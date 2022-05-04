@@ -8,6 +8,7 @@ package org.postgresql;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.pluginmanager.ConnectionWrapper;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
@@ -399,7 +400,13 @@ public class Driver implements java.sql.Driver {
    * @throws SQLException if the connection could not be made
    */
   private static Connection makeConnection(String url, Properties props) throws SQLException {
-    return new PgConnection(hostSpecs(props), props, url);
+    HostSpec[] hostSpecs = hostSpecs(props);
+
+    if (PGProperty.USE_CONNECTION_PLUGINS.getBoolean(props)) {
+      return new ConnectionWrapper(hostSpecs, props, url);
+    } else {
+      return new PgConnection(hostSpecs, props, url);
+    }
   }
 
   /**
