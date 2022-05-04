@@ -11,16 +11,31 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+
 import javax.inject.Inject
 
 class ReleaseNotesTask extends DefaultTask {
 
     @Internal
     final File repositoryDirectory
+    final String githubUser
+    final String githubToken
 
     @Inject
     public ReleaseNotesTask()  {
         repositoryDirectory = getProject().projectDir
+        githubUser = "github config github.user".execute()
+        githubToken = "github config github.token".execute()
     }
 
     @TaskAction
@@ -161,17 +176,33 @@ ${getContributors(repositoryDirectory, previousVersion)}
  * @return
  */
     def getContributorForSha(Map contributors, sha){
+        def commit
 
-        def url = new URL("https://api.github.com/repos/pgjdbc/pgjdbc/commits/$sha")
-        def jsonSlurper = new JsonSlurper()
-        def commit = jsonSlurper.parse(url)
-        def author = commit.commit.author
-        if (!contributors.containsKey(author.name)) {
-            if ( author.html_url) {
-                contributors.put(author.name, author.html_url)
-            } else {
-                contributors.put(author.name, author.email)
+        final BasicCredentialsProvider credsProvider = new BasicCredentialsProvider();
+        credsProvider.setCredentials(
+                new AuthScope("api.github,com", 80),
+                new UsernamePasswordCredentials(githubUser, githubToken));
+        final CloseableHttpClient httpclient = HttpClients.custom()
+                .setDefaultCredentialsProvider(credsProvider)
+                .build()
+        final HttpGet httpget = new HttpGet("https://api.github.com/repos/pgjdbc/pgjdbc/commits/$sha");
+
+        final CloseableHttpResponse response = httpclient.execute(httpget)
+        println "Status Code: ${response.getStatusLine().statusCode}"
+
+        if ( response.getStatusLine().statusCode == 200 ) {
+            commit = new JsonSlurper().parse(new StringReader(EntityUtils.toString(response.getEntity())))
+
+            def author = commit.commit.author
+            if (!contributors.containsKey(author.name)) {
+                if (author.html_url) {
+                    contributors.put(author.name, author.html_url)
+                } else {
+                    contributors.put(author.name, author.email)
+                }
             }
+        } else {
+            println("Error getting commit information for ${httpget.getRequestLine()}")
         }
     }
 
