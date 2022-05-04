@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.3.5] (2022-05-03 13:10:35 -0400)
+[42.3.5] (2022-05-04 08:48:35 -0400)
 ### Changed
 - test: polish TimestampUtilsTest
 
