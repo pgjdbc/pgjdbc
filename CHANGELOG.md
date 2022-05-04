@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.3.5] (2022-05-04 08:48:35 -0400)
+## [42.3.5] (2022-05-04 08:48:35 -0400)
 ### Changed
 - test: polish TimestampUtilsTest
 - chore: use GitHub Action concurrency feature to terminate CI jobs on fast PR pushes
@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - feat: targetServerType=preferPrimary connection parameter [PR 2483](https://github.com/pgjdbc/pgjdbc/pull/2483)
 - fix: revert removal of toOffsetDateTime(String timestamp)  fixes [Issue #2497](https://github.com/pgjdbc/pgjdbc/issues/2497) [PR 2501](https://github.com/pgjdbc/pgjdbc/pull/2501)
   
-[42.3.4] (2022-04-01 14:16:28 -0400)
+## [42.3.4] (2022-04-01 14:16:28 -0400)
 ### Changed
 - fix: change name of build cache [PR 2471](https://github.com/pgjdbc/pgjdbc/pull/2471)
 - feat: add support for ResultSet#getObject(OffsetTime.class) and PreparedStatement#setObject(OffsetTime.class) [PR 2467](https://github.com/pgjdbc/pgjdbc/pull/2467)
