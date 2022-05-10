@@ -292,7 +292,7 @@ public class ParserTest {
         + "  RETURNS SETOF text\n"
         + "  LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE\n"
         + "BEGIN ATOMIC\n"
-        + "SELECT repeat('*', g) FROM generate_series (1, n) g; \n" 
+        + "SELECT repeat('*', g) FROM generate_series (1, n) g; \n"
         + "END;";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     Assert.assertNotNull(qry);
