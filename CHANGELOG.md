@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+[42.3.6] (2022-05-23 14:52:27 -0400)
+### Changed
+
+### Added
+
+### Fixed
+- fix: close refcursors when underlying cursor==null instead of relying on defaultRowFetchSize [PR #2377](https://github.com/pgjdbc/pgjdbc/pull/2377)
+
 ## [42.3.5] (2022-05-04 08:48:35 -0400)
 ### Changed
 - test: polish TimestampUtilsTest
@@ -675,4 +683,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...REL42.3.3
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...REL42.3.4
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...HEAD
+[42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...HEAD
