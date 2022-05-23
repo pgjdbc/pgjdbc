@@ -646,7 +646,7 @@ allprojects {
                         licenses {
                             license {
                                 name.set("BSD-2-Clause")
-                                url.set("https://jdbc.postgresql.org/about/license.html")
+                                url.set("https://opensource.org/licenses/BSD-2-Clause")
                                 comments.set("BSD-2-Clause, copyright PostgreSQL Global Development Group")
                                 distribution.set("repo")
                             }
