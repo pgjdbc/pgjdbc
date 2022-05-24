@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.3.6] (2022-05-24 08:52:27 -0400)
+## [42.3.6] (2022-05-24 08:52:27 -0400)
 ### Changed
 
 ### Added
