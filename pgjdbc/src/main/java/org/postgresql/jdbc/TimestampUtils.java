@@ -70,6 +70,8 @@ public class TimestampUtils {
 
   private static final @Nullable Field DEFAULT_TIME_ZONE_FIELD;
 
+  private static final TimeZone UTC_TIMEZONE = TimeZone.getTimeZone(ZoneOffset.UTC);
+
   private @Nullable TimeZone prevDefaultZoneFieldValue;
   private @Nullable TimeZone defaultTimeZoneCache;
 
@@ -128,7 +130,6 @@ public class TimestampUtils {
   // This calendar is used when user provides calendar in setX(, Calendar) method.
   // It ensures calendar is Gregorian.
   private final Calendar calendarWithUserTz = new GregorianCalendar();
-  private final TimeZone utcTz = TimeZone.getTimeZone(ZoneOffset.UTC);
 
   private @Nullable Calendar calCache;
   private @Nullable ZoneOffset calCacheZone;
@@ -1381,7 +1382,7 @@ public class TimestampUtils {
     // Note: cal.setTimeZone alone is not sufficient as it would alter hour (it will try to keep the
     // same time instant value)
     Calendar cal = calendarWithUserTz;
-    cal.setTimeZone(utcTz);
+    cal.setTimeZone(UTC_TIMEZONE);
     cal.setTimeInMillis(millis);
     int era = cal.get(Calendar.ERA);
     int year = cal.get(Calendar.YEAR);
