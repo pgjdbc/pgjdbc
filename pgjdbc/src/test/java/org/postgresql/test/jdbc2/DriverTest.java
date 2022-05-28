@@ -33,7 +33,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
@@ -168,6 +170,30 @@ public class DriverTest {
     con.close();
 
     // Test with failover url
+  }
+
+  @Test
+  public void testConnectLocalAddress() throws Exception {
+    TestUtil.initDriver();
+    Properties properties = new Properties();
+    final String localIpAddress = System.getenv("VM_IP");
+    if ( localIpAddress == null) {
+      return;
+    }
+    PGProperty.USER.set(properties, TestUtil.getUser());
+    PGProperty.PASSWORD.set(properties, TestUtil.getPassword());
+    PGProperty.LOCAL_SOCKET_ADDRESS.set(properties, localIpAddress);
+    try ( Connection con = DriverManager.getConnection(TestUtil.getURL(), properties) ) {
+      try ( Statement statement = con.createStatement() ) {
+        try ( ResultSet rs = statement.executeQuery("select inet_client_addr();") ) {
+          assertTrue( rs.next() );
+          assertEquals( localIpAddress, rs.getString(1) );
+        }
+      }
+    } catch ( Exception ex ){
+      System.err.println("trying to bind to " + localIpAddress);
+      throw ex;
+    }
   }
 
   /**
