@@ -1188,7 +1188,7 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertTrue("base type", !rs.wasNull());
+      assertEquals("base type", java.sql.Types.BIGINT, baseType);
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
@@ -1220,7 +1220,7 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertTrue("base type", !rs.wasNull());
+      assertEquals("base type", java.sql.Types.BIGINT, baseType);
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
@@ -1251,7 +1251,7 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertTrue("base type", !rs.wasNull());
+      assertEquals("base type", java.sql.Types.BIGINT, baseType);
       assertEquals("data type", Types.DISTINCT, dataType);
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);

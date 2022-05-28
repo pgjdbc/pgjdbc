@@ -2696,7 +2696,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       long longTypOid = typeInfo.intOidToLong(typOid);
       int sqlType = typeInfo.getSQLType(typOid);
 
-      sqlwhen.append(" when t.oid = ").append(longTypOid).append(" then ").append(sqlType);
+      sqlwhen.append(" when oid = ").append(longTypOid).append(" then ").append(sqlType);
     }
     sql += sqlwhen.toString();
 
