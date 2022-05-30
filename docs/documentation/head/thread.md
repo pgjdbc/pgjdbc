@@ -18,5 +18,4 @@ Most classes and methods in the PostgreSQL™ JDBC driver are not thread safe. F
 The following classes and methods are guaranteed to be thread-safe:
 * org.postgresql.Driver
 * Getter methods on DataSource implementations, including methods getConnection and getPooledConnection. Setter methods are not thread-safe.
-* org.postgresql.jdbc.TimestampUtils
  
