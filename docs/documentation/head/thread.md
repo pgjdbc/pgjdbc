@@ -10,11 +10,13 @@ next: datasource.html
 ---
 
 
-The PostgreSQL™ JDBC driver is not thread safe. 
+The PostgreSQL™ JDBC driver should not be considered to be thread safe. 
 The PostgreSQL server is not threaded. Each connection creates a new process on the server; 
-as such any concurrent requests to the process would have to be serialized. 
-The driver makes no guarantees that methods on connections are synchronized. 
-It will be up to the caller to synchronize calls to the driver.
+as such any concurrent requests to the process would have to be serialized.
+Most classes and methods in the PostgreSQL™ JDBC driver are not thread safe. For instance, you may not call methods on the same connection object from multiple threads without synchronizing access to the connection yourself. However it is often more convenient and performant to open a separate connection for each thread or use a connection pooling library.
 
-A notable exception is org/postgresql/jdbc/TimestampUtils.java which is threadsafe.
+The following classes and methods are guaranteed to be thread-safe:
+* org.postgresql.Driver
+* Getter methods on DataSource implementations, including methods getConnection and getPooledConnection. Setter methods are not thread-safe.
+* org.postgresql.jdbc.TimestampUtils
  
