@@ -25,7 +25,10 @@ public class UTF8EncodingTest {
   @Parameterized.Parameter(1)
   public String string;
 
-  @Parameterized.Parameters(name = "string={1}, encoding={0}")
+  @Parameterized.Parameter(2)
+  public String shortString;
+
+  @Parameterized.Parameters(name = "string={2}, encoding={0}")
   public static Iterable<Object[]> data() {
     final StringBuilder reallyLongString = new StringBuilder(1024 * 1024);
     for (int i = 0; i < 185000; ++i) {
@@ -76,7 +79,11 @@ public class UTF8EncodingTest {
 
     final List<Object[]> data = new ArrayList<Object[]>(strings.size() * 2);
     for (String string : strings) {
-      data.add(new Object[] { Encoding.getDatabaseEncoding("UNICODE"), string });
+      String shortString = string;
+      if (shortString != null && shortString.length() > 1000) {
+        shortString = shortString.substring(0, 100) + "...(" + string.length() + " chars)";
+      }
+      data.add(new Object[] { Encoding.getDatabaseEncoding("UNICODE"), string, shortString });
     }
     return data;
   }
