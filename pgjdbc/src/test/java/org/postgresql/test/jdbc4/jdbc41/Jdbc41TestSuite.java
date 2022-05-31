@@ -16,6 +16,7 @@ import org.junit.runners.Suite;
     AbortTest.class,
     CloseOnCompletionTest.class,
     GetObjectTest.class,
+    Jdbc41CallableStatementTest.class,
     NetworkTimeoutTest.class,
     SchemaTest.class,
     SharedTimerClassLoaderLeakTest.class,
