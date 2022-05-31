@@ -355,8 +355,8 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs or {@code val} cannot be encoded in 2 bytes
    */
   public void sendInteger2(int val) throws IOException {
-    if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
-      throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
+    if (val < 0 || val > 65535) {
+      throw new IllegalArgumentException("Tried to send an out-of-range integer as a 2-byte unsigned int value: " + val);
     }
     int2Buf[0] = (byte) (val >>> 8);
     int2Buf[1] = (byte) val;

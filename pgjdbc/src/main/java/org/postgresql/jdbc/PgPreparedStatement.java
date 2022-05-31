@@ -95,9 +95,23 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     this.preparedQuery = query;
     this.preparedParameters = this.preparedQuery.query.createParameterList();
+    int parameterCount = preparedParameters.getParameterCount();
+    int maxSupportedParameters = maximumNumberOfParameters();
+    if (parameterCount > maxSupportedParameters) {
+      throw new PSQLException(
+          GT.tr("PreparedStatement can have at most {0} parameters. Please consider using arrays, or splitting the query in several ones, or using COPY. Given query has {0} parameters",
+              maxSupportedParameters,
+              parameterCount),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
     // TODO: this.wantsGeneratedKeysAlways = true;
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
+  }
+
+  final int maximumNumberOfParameters() {
+    return connection.getPreferQueryMode() == PreferQueryMode.SIMPLE ? Integer.MAX_VALUE : 65535;
   }
 
   @Override
@@ -1691,7 +1705,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     final int highestBlockCount = 128;
     final int maxValueBlocks = bindCount == 0 ? 1024 /* if no binds, use 1024 rows */
         : Integer.highestOneBit( // deriveForMultiBatch supports powers of two only
-            Math.min(Math.max(1, (Short.MAX_VALUE - 1) / bindCount), highestBlockCount));
+            Math.min(Math.max(1, maximumNumberOfParameters() / bindCount), highestBlockCount));
     int unprocessedBatchCount = batchParameters.size();
     final int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;
     final int partialValueBlocksCount = Integer.bitCount(unprocessedBatchCount % maxValueBlocks);

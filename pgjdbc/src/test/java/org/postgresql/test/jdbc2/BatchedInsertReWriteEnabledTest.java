@@ -386,13 +386,18 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   @Test
-  public void test32000Binds() throws Exception {
-    testNBinds(32000);
+  public void test32767Binds() throws Exception {
+    testNBinds(32767);
   }
 
   @Test
-  public void test17000Binds() throws Exception {
-    testNBinds(17000);
+  public void test32768Binds() throws Exception {
+    testNBinds(32768);
+  }
+
+  @Test
+  public void test65535Binds() throws Exception {
+    testNBinds(65535);
   }
 
   public void testNBinds(int nBinds) throws Exception {
@@ -411,11 +416,20 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
         }
         pstmt.addBatch();
       }
-      Assert.assertEquals(
-          "Statement with " + nBinds
-              + " binds should not be batched => two executions with exactly one row inserted each",
-          Arrays.toString(new int[] { 1, 1 }),
-          Arrays.toString(pstmt.executeBatch()));
+      if (nBinds * 2 <= 65535) {
+        Assert.assertEquals(
+            "Insert with " + nBinds + " binds should be rewritten into multi-value insert"
+                + ", so expecting Statement.SUCCESS_NO_INFO == -2",
+            Arrays.toString(new int[]{Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO}),
+            Arrays.toString(pstmt.executeBatch()));
+      } else {
+        Assert.assertEquals(
+            "Insert with " + nBinds + " binds can't be rewritten into multi-value insert"
+                + " since write format allows 65535 binds maximum"
+                + ", so expecting batch to be executed as individual statements",
+            Arrays.toString(new int[]{1, 1}),
+            Arrays.toString(pstmt.executeBatch()));
+      }
     } catch (BatchUpdateException be) {
       SQLException e = be;
       while (true) {
