@@ -5,28 +5,32 @@
 
 package org.postgresql.test.jdbc3;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 
-public class SendRecvBufferSizeTest {
+public class SendRecvBufferSizeTest extends BaseTest4 {
 
-  private Connection conn;
+  @Override
+  protected void updateProperties(Properties props) {
+    super.updateProperties(props);
+    PGProperty.SEND_BUFFER_SIZE.set(props, "1024");
+    PGProperty.RECEIVE_BUFFER_SIZE.set(props, "1024");
+  }
 
   @Before
   public void setUp() throws Exception {
-    System.setProperty("sendBufferSize", "1024");
-    System.setProperty("receiveBufferSize", "1024");
-
-    conn = TestUtil.openDB();
-    Statement stmt = conn.createStatement();
-    stmt.execute("CREATE TEMP TABLE hold(a int)");
+    super.setUp();
+    TestUtil.createTable(con, "hold", "a int");
+    Statement stmt = con.createStatement();
     stmt.execute("INSERT INTO hold VALUES (1)");
     stmt.execute("INSERT INTO hold VALUES (2)");
     stmt.close();
@@ -34,16 +38,14 @@ public class SendRecvBufferSizeTest {
 
   @After
   public void tearDown() throws SQLException {
-    Statement stmt = conn.createStatement();
-    stmt.execute("DROP TABLE hold");
-    stmt.close();
-    TestUtil.closeDB(conn);
+    TestUtil.dropTable(con, "hold");
+    super.tearDown();
   }
 
   // dummy test
   @Test
   public void testSelect() throws SQLException {
-    Statement stmt = conn.createStatement();
+    Statement stmt = con.createStatement();
     stmt.execute("select * from hold");
     stmt.close();
   }
