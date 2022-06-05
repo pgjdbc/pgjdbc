@@ -32,6 +32,7 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -1456,6 +1457,7 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testInappropriateStatementSharing() throws SQLException {
     PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
+    printParameterMetadata("after prepare ?::timestamp bind type should be timestamp", "timestamp", ps);
     try {
       Timestamp ts = new Timestamp(1474997614836L);
       // Since PreparedStatement isn't cached immediately, we need to some warm up
@@ -1464,7 +1466,10 @@ public class PreparedStatementTest extends BaseTest4 {
 
         // Flip statement to use Oid.DATE
         ps.setNull(1, Types.DATE);
+        printParameterMetadata("set parameter to DATE", "date", ps);
         rs = ps.executeQuery();
+        printParameterMetadata("set parameter to DATE (executeQuery should not affect parameterMetadata)",
+            "date", ps);
         try {
           assertTrue(rs.next());
           assertNull("NULL DATE converted to TIMESTAMP should return NULL value on getObject",
@@ -1475,7 +1480,10 @@ public class PreparedStatementTest extends BaseTest4 {
 
         // Flop statement to use Oid.UNSPECIFIED
         ps.setTimestamp(1, ts);
+        printParameterMetadata("set parameter to Timestamp", "timestamp", ps);
         rs = ps.executeQuery();
+        printParameterMetadata("set parameter to Timestamp (executeQuery should not affect parameterMetadata)",
+            "timestamp", ps);
         try {
           assertTrue(rs.next());
           assertEquals(
@@ -1488,6 +1496,12 @@ public class PreparedStatementTest extends BaseTest4 {
     } finally {
       ps.close();
     }
+  }
+
+  private void printParameterMetadata(String msg, String expected, PreparedStatement ps) throws SQLException {
+    ParameterMetaData pmd = ps.getParameterMetaData();
+    assertEquals("getParameterMetaData().getParameterTypeName(1) " + msg,
+        expected, pmd.getParameterTypeName(1));
   }
 
   @Test

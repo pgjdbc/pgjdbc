@@ -14,6 +14,8 @@ import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assume;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -21,8 +23,25 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Properties;
 
+@RunWith(Parameterized.class)
 public class ParameterMetaDataTest extends BaseTest4 {
+  public ParameterMetaDataTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
+
 
   @Override
   public void setUp() throws Exception {
