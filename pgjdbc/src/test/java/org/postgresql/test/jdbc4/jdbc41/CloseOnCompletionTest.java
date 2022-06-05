@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -115,7 +116,8 @@ public class CloseOnCompletionTest {
     try {
       s.executeQuery();
     } catch (SQLException ex) {
-      assertEquals(ex.getMessage(),"This statement has been closed.");
+      assertEquals("Expecting <<This statement has been closed>>",
+          PSQLState.OBJECT_NOT_IN_STATE.getState(), ex.getSQLState());
     }
 
   }
