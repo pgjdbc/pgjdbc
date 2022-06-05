@@ -15,7 +15,7 @@ repositories {
 dependencies {
     implementation('org.codehaus.groovy:groovy-all:2.5.12')
     implementation(group: 'org.postgresql', name: 'postgresql', version: '1.0.0-dev-master-SNAPSHOT')
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testImplementation(group: 'junit', name: 'junit', version: '4.12')
 }
 application {
     mainClassName = 'TestPostgres'
