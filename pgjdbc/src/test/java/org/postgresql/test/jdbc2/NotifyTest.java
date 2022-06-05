@@ -82,7 +82,7 @@ public class NotifyTest {
     // less to run and is still as effective.
     PGNotification[] notifications = null;
     try {
-      int retries = 20;
+      int retries = 300;
       while (retries-- > 0
         && (notifications = conn.unwrap(PGConnection.class).getNotifications()) == null ) {
         Thread.sleep(100);
