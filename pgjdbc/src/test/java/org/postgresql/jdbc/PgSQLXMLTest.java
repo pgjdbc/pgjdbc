@@ -99,7 +99,7 @@ public class PgSQLXMLTest extends BaseTest4 {
     String message = ex.getCause().getMessage();
     assertTrue(
         "Expected to get a <<DOCTYPE disallowed>> SAXParseException. Actual message is " + message,
-        message.startsWith("DOCTYPE is disallowed"));
+        message.contains("DOCTYPE"));
   }
 
   @Test
@@ -122,7 +122,7 @@ public class PgSQLXMLTest extends BaseTest4 {
     String message = ex.getCause().getMessage();
     assertTrue(
         "Expected to get a <<DOCTYPE disallowed>> TransformerException. Actual message is " + message,
-        message.startsWith("DOCTYPE is disallowed"));
+        message.contains("DOCTYPE"));
   }
 
   @Test
