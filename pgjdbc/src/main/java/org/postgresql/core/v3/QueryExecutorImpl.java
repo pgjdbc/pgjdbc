@@ -38,6 +38,7 @@ import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
@@ -83,6 +84,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
 
   private static final Field[] NO_FIELDS = new Field[0];
+
+  private static final int[] EMPTY_INT_ARRAY = new int[0];
 
   static {
     //canonicalize commonly seen strings to reduce memory and speed comparisons
@@ -2568,6 +2571,37 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     handler.handleCompletion();
+  }
+
+  @Override
+  public boolean requiresDescribe(Query query, ParameterList preparedParameters) {
+    if (preparedParameters.getParameterCount() == 0) {
+      return false;
+    }
+    // See org.postgresql.core.v3.QueryExecutorImpl.sendQuery
+    Query[] subqueries = query.getSubqueries();
+    SimpleParameterList[] subparams = ((V3ParameterList) preparedParameters).getSubparams();
+    if (subqueries == null) {
+      return requiresDescribeSimple((SimpleQuery) query, (SimpleParameterList) preparedParameters);
+    }
+
+    for (int i = 0; i < subparams.length; i++) {
+      SimpleQuery subQuery = (SimpleQuery) subqueries[i];
+      SimpleParameterList subparam = subparams[i];
+      if (requiresDescribeSimple(subQuery, subparam)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean requiresDescribeSimple(
+      SimpleQuery query, @Nullable SimpleParameterList parameterList
+  ) {
+    if (parameterList == null) {
+      parameterList = SimpleQuery.NO_PARAMETERS;
+    }
+    return !query.isPreparedFor(parameterList.getTypeOIDs(), deallocateEpoch);
   }
 
   @Override

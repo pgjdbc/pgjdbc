@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - fix: queries with up to 65535 (inclusive) parameters are supported now (previous limit was 32767) [PR #2525](https://github.com/pgjdbc/pgjdbc/pull/2525)
+- perf: avoid database roundtrip 
 
 ## [42.3.6] (2022-05-24 08:52:27 -0400)
 ### Changed

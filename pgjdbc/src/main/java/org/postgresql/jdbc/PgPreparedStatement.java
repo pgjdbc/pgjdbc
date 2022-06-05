@@ -1678,12 +1678,16 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
-    int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    StatementResultHandler handler = new StatementResultHandler();
-    connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
-        flags);
-
+    QueryExecutor queryExecutor = connection.getQueryExecutor();
+    if (queryExecutor.requiresDescribe(preparedQuery.query, preparedParameters)) {
+      int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
+          | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+      StatementResultHandler handler = new StatementResultHandler();
+      queryExecutor.execute(preparedQuery.query, preparedParameters, handler, 0, 0,
+          flags);
+    } else {
+      System.out.println("CACHED");
+    }
     int[] oids = preparedParameters.getTypeOIDs();
     return createParameterMetaData(connection, oids);
   }

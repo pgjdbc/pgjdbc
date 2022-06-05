@@ -35,9 +35,10 @@ public class ParameterMetaDataTest extends BaseTest4 {
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
-    for (BinaryMode binaryMode : BinaryMode.values()) {
-      ids.add(new Object[]{binaryMode});
-    }
+//     for (BinaryMode binaryMode : BinaryMode.values()) {
+//       ids.add(new Object[]{binaryMode});
+//     }
+       ids.add(new Object[]{BinaryMode.FORCE});
     return ids;
   }
 
@@ -127,6 +128,26 @@ public class ParameterMetaDataTest extends BaseTest4 {
 
     ResultSet rs = pstmt.executeQuery();
     rs.close();
+  }
+
+  @Test
+  public void testMetaData() throws SQLException {
+    System.out.println("testMetaData: begin ");
+    try (PreparedStatement pstmt =
+        con.prepareStatement("select /* test metadata */ ?::timestamp");) {
+      System.out.println("pstmt.getMetaData().getColumnTypeName(1) = " + pstmt.getParameterMetaData().getParameterTypeName(1));
+      pstmt.setNull(1, Types.TIMESTAMP);
+      pstmt.executeQuery().close();
+    }
+    try (PreparedStatement pstmt =
+        con.prepareStatement("select /* test metadata */ ?::timestamp");) {
+      System.out.println("pstmt.getMetaData().getColumnTypeName(1) = " + pstmt.getParameterMetaData().getParameterTypeName(1));
+    }
+    try (PreparedStatement pstmt =
+        con.prepareStatement("select /* test metadata */ ?::timestamp");) {
+      System.out.println("pstmt.getMetaData().getColumnTypeName(1) = " + pstmt.getParameterMetaData().getParameterTypeName(1));
+    }
+    System.out.println("testMetaData: end");
   }
 
 }
