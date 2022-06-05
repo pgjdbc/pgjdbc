@@ -25,7 +25,6 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class ParameterMetaDataTest extends BaseTest4 {
