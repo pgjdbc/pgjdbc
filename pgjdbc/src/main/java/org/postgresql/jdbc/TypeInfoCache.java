@@ -27,6 +27,7 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -377,7 +378,7 @@ public class TypeInfoCache implements TypeInfo {
         getOidStatementSimple = conn.prepareStatement(sql);
       }
       // coerce to lower case to handle upper case type names
-      String lcName = pgTypeName.toLowerCase();
+      String lcName = pgTypeName.toLowerCase(Locale.ROOT);
       // default arrays are represented with _ as prefix ... this dont even work for public schema
       // fully
       getOidStatementSimple.setString(1, lcName);
@@ -445,12 +446,12 @@ public class TypeInfoCache implements TypeInfo {
     if (schema != null && schema.startsWith("\"") && schema.endsWith("\"")) {
       schema = schema.substring(1, schema.length() - 1);
     } else if (schema != null) {
-      schema = schema.toLowerCase();
+      schema = schema.toLowerCase(Locale.ROOT);
     }
     if (name.startsWith("\"") && name.endsWith("\"")) {
       name = name.substring(1, name.length() - 1);
     } else {
-      name = name.toLowerCase();
+      name = name.toLowerCase(Locale.ROOT);
     }
     oidStatementComplex.setString(1, name);
     oidStatementComplex.setString(2, schema);
@@ -523,8 +524,8 @@ public class TypeInfoCache implements TypeInfo {
         pgTypeName = "\"" + schema + "\".\"" + name + "\"";
         // if all is lowercase add special type info
         // TODO: should probably check for all special chars
-        if (schema.equals(schema.toLowerCase()) && schema.indexOf('.') == -1
-            && name.equals(name.toLowerCase()) && name.indexOf('.') == -1) {
+        if (schema.equals(schema.toLowerCase(Locale.ROOT)) && schema.indexOf('.') == -1
+            && name.equals(name.toLowerCase(Locale.ROOT)) && name.indexOf('.') == -1) {
           pgNameToOid.put(schema + "." + name, oid);
         }
       }
@@ -651,7 +652,7 @@ public class TypeInfoCache implements TypeInfo {
     pgNameToOid.put(schema + "." + name, pgType);
     String fullName = "\"" + schema + "\".\"" + name + "\"";
     pgNameToOid.put(fullName, pgType);
-    if (onPath && name.equals(name.toLowerCase())) {
+    if (onPath && name.equals(name.toLowerCase(Locale.ROOT))) {
       oidToPgName.put(pgType, name);
       pgNameToOid.put(name, pgType);
     } else {
@@ -709,7 +710,7 @@ public class TypeInfoCache implements TypeInfo {
     if (type != null) {
       return type;
     }
-    type = TYPE_ALIASES.get(alias.toLowerCase());
+    type = TYPE_ALIASES.get(alias.toLowerCase(Locale.ROOT));
     if (type == null) {
       type = alias;
     }

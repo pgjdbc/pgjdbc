@@ -391,6 +391,7 @@ allprojects {
             apply(plugin = "de.thetaphi.forbiddenapis")
             configure<CheckForbiddenApisExtension> {
                 failOnUnsupportedJava = false
+                signaturesFiles = files("$rootDir/config/forbidden-apis/forbidden-apis.txt")
                 bundledSignatures.addAll(
                     listOf(
                         // "jdk-deprecated",

@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import java.util.Locale;
+
 public enum AutoSave {
   NEVER,
   ALWAYS,
@@ -13,7 +15,7 @@ public enum AutoSave {
   private final String value;
 
   AutoSave() {
-    value = this.name().toLowerCase();
+    value = this.name().toLowerCase(Locale.ROOT);
   }
 
   public String value() {
@@ -21,6 +23,6 @@ public enum AutoSave {
   }
 
   public static AutoSave of(String value) {
-    return valueOf(value.toUpperCase());
+    return valueOf(value.toUpperCase(Locale.ROOT));
   }
 }

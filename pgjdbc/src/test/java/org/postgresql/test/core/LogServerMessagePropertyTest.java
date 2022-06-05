@@ -17,6 +17,7 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Properties;
 
 public class LogServerMessagePropertyTest {
@@ -67,13 +68,13 @@ public class LogServerMessagePropertyTest {
   }
 
   private static void assertMessageContains(String message, String text) {
-    if (message.toLowerCase().indexOf(text.toLowerCase()) < 0) {
+    if (!message.toLowerCase(Locale.ROOT).contains(text.toLowerCase(Locale.ROOT))) {
       Assert.fail(String.format("Message must contain text '%s': %s", text, message));
     }
   }
 
   private static void assertMessageDoesNotContain(String message, String text) {
-    if (message.toLowerCase().indexOf(text.toLowerCase()) >= 0) {
+    if (message.toLowerCase(Locale.ROOT).contains(text.toLowerCase(Locale.ROOT))) {
       Assert.fail(String.format("Message must not contain text '%s': %s", text, message));
     }
   }

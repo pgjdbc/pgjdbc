@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.Locale;
 import java.util.Properties;
 
 /*
@@ -37,7 +38,7 @@ public class SSPITest {
   @BeforeClass
   public static void checkPlatform() {
     assumeThat("SSPI not supported on this platform",
-               System.getProperty("os.name").toLowerCase(),
+               System.getProperty("os.name").toLowerCase(Locale.ROOT),
                containsString("windows"));
   }
 

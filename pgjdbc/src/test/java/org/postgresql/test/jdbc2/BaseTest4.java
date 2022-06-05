@@ -17,6 +17,7 @@ import org.junit.Before;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Properties;
 
 public class BaseTest4 {
@@ -51,7 +52,7 @@ public class BaseTest4 {
       PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
     }
     if (stringType != null) {
-      PGProperty.STRING_TYPE.set(props, stringType.name().toLowerCase());
+      PGProperty.STRING_TYPE.set(props, stringType.name().toLowerCase(Locale.ROOT));
     }
   }
 

@@ -28,6 +28,7 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.sql.DriverPropertyInfo;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
@@ -97,7 +98,7 @@ public class PGPropertyTest {
       String enumName = property.name().replaceAll("_", "");
       assertEquals("Naming of the enum constant [" + property.name()
           + "] should follow the naming of its underlying property [" + property.getName()
-          + "] in PGProperty", property.getName().toLowerCase(), enumName.toLowerCase());
+          + "] in PGProperty", property.getName().toLowerCase(Locale.ROOT), enumName.toLowerCase(Locale.ROOT));
     }
   }
 
@@ -255,15 +256,15 @@ public class PGPropertyTest {
       if (!property.name().startsWith("PG")) { // Ignore all properties that start with PG
         String[] words = property.name().split("_");
         if (words.length == 1) {
-          assertEquals(words[0].toLowerCase(), property.getName());
+          assertEquals(words[0].toLowerCase(Locale.ROOT), property.getName());
         } else {
           if (!excluded.contains(property.name())) {
             String word = "";
             for (int i = 0; i < words.length; i++) {
               if (i == 0) {
-                word = words[i].toLowerCase();
+                word = words[i].toLowerCase(Locale.ROOT);
               } else {
-                word += words[i].substring(0, 1).toUpperCase() + words[i].substring(1).toLowerCase();
+                word += words[i].substring(0, 1).toUpperCase(Locale.ROOT) + words[i].substring(1).toLowerCase(Locale.ROOT);
               }
             }
             assertEquals(word, property.getName());

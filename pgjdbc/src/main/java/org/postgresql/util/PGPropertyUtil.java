@@ -9,6 +9,7 @@ import org.postgresql.PGProperty;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -91,7 +92,7 @@ public class PGPropertyUtil {
    */
   // translate PGSERVICEFILE keys host, port, dbname
   public static String translatePGServiceToPGProperty(String serviceKey) {
-    String testKey = "PG" + serviceKey.toUpperCase();
+    String testKey = "PG" + serviceKey.toUpperCase(Locale.ROOT);
     if (
         PGProperty.PG_HOST.getName().equals(testKey)
             || (PGProperty.PG_PORT.getName().equals(testKey))
@@ -116,7 +117,7 @@ public class PGPropertyUtil {
             || (PGProperty.PG_PORT.getName().equals(propertyKey))
             || (PGProperty.PG_DBNAME.getName().equals(propertyKey))
     ) {
-      return propertyKey.substring(2).toLowerCase();
+      return propertyKey.substring(2).toLowerCase(Locale.ROOT);
     } else {
       return propertyKey;
     }

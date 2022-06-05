@@ -40,7 +40,7 @@ public class AddPaddingZeros {
 
   Timestamp ts = new Timestamp(System.currentTimeMillis());
 
-  StringBuffer sb = new StringBuffer();
+  StringBuilder sb = new StringBuilder();
 
   @Setup
   public void init() {

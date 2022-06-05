@@ -1,0 +1,3 @@
+@defaultMessage Use toLowerCase(Locale.ROOT) and toUpperCase(Locale.ROOT)
+java.lang.String#toUpperCase()
+java.lang.String#toLowerCase()

@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import java.io.File;
+import java.util.Locale;
 
 /**
  * Operating system specifics
@@ -17,7 +18,7 @@ public class OSUtil {
    * @return true if OS is windows
    */
   public static boolean isWindows() {
-    return System.getProperty("os.name").toLowerCase().contains("windows");
+    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows");
   }
 
   /**
