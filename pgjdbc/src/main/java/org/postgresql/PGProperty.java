@@ -702,6 +702,14 @@ public enum PGProperty {
       "tcpKeepAlive",
       "false",
       "Enable or disable TCP keep-alive. The default is {@code false}."),
+  /**
+   * If {@link #TCP_KEEP_ALIVE} is set, set the interval for the keep alive checks.
+   * The default is to use the system default.
+   */
+  TCP_KEEP_INTERVAL(
+      "tcpKeepInterval",
+      "false",
+      "Interval to use for the Keep alive socket interval. Default is to use system default."),
 
   TCP_NO_DELAY(
       "tcpNoDelay",
