@@ -115,24 +115,18 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+    env:
+      MATRIX_JOBS: 7
     steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 50
     - id: set-matrix
       run: |
-        node -p "
-          '::set-output name=matrix::' + JSON.stringify({
-            jdk: [
-              8,
-              11,
-            ],
-            os: [
-              'ubuntu-latest',
-              // Disable self-hosted on forks:
-              ...(process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc' ? ['self-hosted'] : [])
-            ],
-          })"
+        node .github/workflows/matrix.js
 
   build-test:
-    name: 'Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
+    name: '${{ matrix.name }}'
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
@@ -141,13 +135,24 @@ jobs:
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
+      TZ: ${{ matrix.tz }}
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 50
-    - name: Start PostgreSQL
+    - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }}
       working-directory: docker/postgres-server
+      env:
+        PGV: ${{ matrix.pg_version }}
+        TZ: ${{ matrix.server_tz }}
+        XA: ${{ matrix.xa }}
+        SSL: ${{ matrix.ssl }}
+        SCRAM: ${{ matrix.scram }}
+        CREATE_REPLICAS: ${{ matrix.replication }}
+      # The below run command is long, however, it is intentional, and it makes the output nicer in GitHub UI
       run: |
+        echo 'Starting PostgreSQL via docker-compose down; PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }} docker-compose up'
+
         docker-compose down -v --rmi local || true
         sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
         docker-compose up -d
@@ -155,82 +160,62 @@ jobs:
     - name: 'Get test node ARCH'
       run: echo "::set-output name=arch_name::$(uname -i)"
       id: get_arch_name
-    - name: 'Set up JDK ${{ matrix.jdk }}'
+    - name: Set up Java ${{ matrix.java_version }}, ${{ matrix.java_distribution }}
       if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v2
       with:
-        java-version: ${{ matrix.jdk }}
+        java-version: ${{ matrix.java_version }}
+        distribution: ${{ matrix.java_distribution }}
         architecture: x64
-    - name: 'Setup JDK ${{ matrix.jdk }} on ARM64'
+    - name: 'Setup JDK ${{ matrix.java_version }} on ARM64'
       if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
       uses: AdoptOpenJDK/install-jdk@v1
       with:
         impl: hotspot # or openj9
-        version: ${{ matrix.jdk }}
+        version: ${{ matrix.java_version }}
         architecture: aarch64
-    - name: Prepare ssltest.local.properties
-      run: echo enable_ssl_tests=true > ssltest.local.properties
+    - name: Prepare local properties
+      run: |
+        # See https://github.com/actions/runner/issues/409
+        cat <<EOF >ssltest.local.properties
+        enable_ssl_tests=${{ matrix.ssl == 'yes' && 'true' || 'false' }}
+        EOF
+        cat <<EOF >build.local.properties
+        preferQueryMode=${{ matrix.query_mode }}
+        EOF
+
     - uses: burrunan/gradle-cache-action@v1
       name: Test
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        _JAVA_OPTIONS: ${{ matrix.testExtraJvmArgs }}
       with:
         read-only: ${{ matrix.os == 'self-hosted' }}
-        job-id: jdk${{ matrix.jdk }}
+        job-id: jdk${{ matrix.java_version }}
         arguments: --scan --no-parallel --no-daemon jandex test
         properties: |
-          includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
-    - name: Cleanup Docker
-      if: ${{ always() }}
-      working-directory: docker/postgres-server
-      run: |
-        docker-compose ps
-        docker-compose down -v --rmi local
+          includeTestTags=${{ matrix.includeTestTags }}
 
-  gss-encryption:
-    name: 'GSS Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
-    runs-on: ${{ matrix.os }}
-    needs: matrix_prep
-    strategy:
-      fail-fast: false
-      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
-    env:
-      ACTIONS_STEP_DEBUG: true
-      ACTIONS_RUNNER_DEBUG: true
-    steps:
-    - uses: actions/checkout@v2
-    - name: 'Get test node ARCH'
-      run: echo "::set-output name=arch_name::$(uname -i)"
-      id: get_arch_name
-    - name: 'Set up JDK 8'
-      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
-      uses: actions/setup-java@v1
-      with:
-        java-version: 8
-    - name: 'Setup JDK 8 on ARM64'
-      if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
-      uses: AdoptOpenJDK/install-jdk@v1
-      with:
-        impl: hotspot # or openj9
-        version: '8'
-        architecture: aarch64
-    - name: 'Install software'
-      if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
+    - name: 'Install krb5 for GSS tests'
+      if: ${{ matrix.gss == 'yes' }}
       run: |
         sudo apt -y update
         sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-12
-    - name: 'Update hosts'
+    - name: 'Update hosts for GSS tests'
+      if: ${{ matrix.gss == 'yes' }}
       run: |
         sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
         cat /etc/hosts
     - uses: burrunan/gradle-cache-action@v1
-      name: Build pgjdbc
+      if: ${{ matrix.deploy_to_maven_local }}
+      name: Deploy pgjdbc to mavenLocal
       with:
         read-only: ${{ matrix.os == 'self-hosted' }}
-        job-id: gss-jdk8
+        job-id: jdk${{ matrix.java_version }}
         arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
-    - name: Run tests
+    - name: Test GSS
+      if: ${{ matrix.gss == 'yes' }}
       run: |
         cd test-gss
         ./gradlew assemble
@@ -239,3 +224,19 @@ jobs:
         KRB5CCNAME: /home/runner/work/pgjdbc/pgjdbc/test-gss/tmp_check/krb5cc
         KRB5_CONFIG: /home/runner/work/pgjdbc/pgjdbc/test-gss/tmp_check/krb5.conf
         KRB5_KDC_PROFILE: /home/runner/work/pgjdbc/pgjdbc/test-gss/tmp_check/kdc.conf
+    - name: Test anorm-sbt
+      if: ${{ matrix.check_anorm_sbt == 'yes' }}
+      run: |
+        # mkdir -p $HOME/.sbt/launchers/0.13.12
+        # curl -L -o $HOME/.sbt/launchers/0.13.12/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.12/sbt-launch.jar
+
+        cd test-anorm-sbt
+        sed -i "s/\"org.postgresql\" % \"postgresql\" % \"[^\"]*\"/\"org.postgresql\" % \"postgresql\" % \"1.0.0-dev-master-SNAPSHOT\"/" build.sbt
+        sbt test
+
+    - name: Cleanup Docker
+      if: ${{ always() }}
+      working-directory: docker/postgres-server
+      run: |
+        docker-compose ps
+        docker-compose down -v --rmi local

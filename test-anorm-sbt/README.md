@@ -3,7 +3,7 @@
 ## Dependencies
 
 ```
-http://www.scala-sbt.org/download.html
+https://www.scala-sbt.org/download.html
 ```
 
 ## Database setup

@@ -32,7 +32,10 @@ pluginManagement {
 }
 
 plugins {
-    `gradle-enterprise`
+    // TODO: remove explicit version once upgrade to Gradle 7.4+
+    // The version is explicitly specified to support building with tr_TR locale
+    // See https://github.com/gradle/gradle/issues/17361
+    id("com.gradle.enterprise") version "3.10.1"
     id("com.github.burrunan.s3-build-cache")
 }
 
