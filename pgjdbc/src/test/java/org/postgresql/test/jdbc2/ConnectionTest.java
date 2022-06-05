@@ -17,6 +17,7 @@ import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -200,7 +201,8 @@ public class ConnectionTest {
       con.setReadOnly(false);
       fail("cannot set read only during transaction");
     } catch (SQLException e) {
-      assertStringContains(e.getMessage(), "Cannot change transaction read-only");
+      assertEquals("Expecting <<cannot change transaction read-only>>",
+          PSQLState.ACTIVE_SQL_TRANSACTION.getState(), e.getSQLState());
     }
 
     // end the transaction
