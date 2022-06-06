@@ -7,6 +7,8 @@ get_password_encryption () {
     if is_option_enabled "${SCRAM}"; then
         is_pg_version_at_least "10" || err "SCRAM requires a minimum of 10 but PG_MAJOR=${PG_MAJOR}. Disable with SCRAM=off"
         printf "scram-sha-256"
+    elif is_pg_version_at_least "10"; then
+        printf "md5"
     else
         printf "on"
     fi
