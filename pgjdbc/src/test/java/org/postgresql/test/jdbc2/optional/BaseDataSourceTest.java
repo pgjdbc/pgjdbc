@@ -6,7 +6,6 @@
 package org.postgresql.test.jdbc2.optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -166,13 +165,11 @@ public abstract class BaseDataSourceTest {
    */
   @Test
   public void testNotPooledConnection() throws SQLException {
-    con = getDataSourceConnection();
-    String name = con.toString();
-    con.close();
-    con = getDataSourceConnection();
-    String name2 = con.toString();
-    con.close();
-    assertNotEquals(name, name2);
+    Connection con1 = getDataSourceConnection();
+    con1.close();
+    Connection con2 = getDataSourceConnection();
+    con2.close();
+    assertNotSame(con1, con2);
   }
 
   /**
