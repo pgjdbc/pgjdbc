@@ -37,6 +37,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Locale;
 
 /**
  * @author kato@iki.fi
@@ -172,7 +173,9 @@ public class CopyTest {
       os.flush();
       fail("should have failed flushing an inactive copy stream.");
     } catch (IOException e) {
-      if (!e.toString().contains("This copy stream is closed.")) {
+      // We expect "This copy stream is closed", however, the message is locale-dependent
+      if (Locale.getDefault().getLanguage().equals(new Locale("en").getLanguage())
+          && !e.toString().contains("This copy stream is closed.")) {
         fail("has failed not due to checkClosed(): " + e);
       }
     }
