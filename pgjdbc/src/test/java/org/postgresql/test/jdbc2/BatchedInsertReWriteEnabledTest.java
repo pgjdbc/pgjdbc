@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -416,7 +417,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
         }
         pstmt.addBatch();
       }
-      if (nBinds * 2 <= 65535) {
+      if (nBinds * 2 <= 65535 || preferQueryMode == PreferQueryMode.SIMPLE) {
         Assert.assertEquals(
             "Insert with " + nBinds + " binds should be rewritten into multi-value insert"
                 + ", so expecting Statement.SUCCESS_NO_INFO == -2",
