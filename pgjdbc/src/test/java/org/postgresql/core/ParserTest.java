@@ -154,6 +154,13 @@ public class ParserTest {
     assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v11.getVersionNum(), 3, EscapeSyntaxCallMode.SELECT).getSql());
     assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v11.getVersionNum(), 3, EscapeSyntaxCallMode.CALL_IF_NO_RETURN).getSql());
     assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v11.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).getSql());
+
+    /*function call*/
+    assertEquals(true, Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
+    assertEquals(true, Parser.modifyJdbcCall("/* some comment */ { ? = call lower(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
+    /*stored procedure call*/
+    assertEquals(true, Parser.modifyJdbcCall("call lower(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
+    assertEquals(true, Parser.modifyJdbcCall("/* some comment */ call lower(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
   }
 
   @Test
