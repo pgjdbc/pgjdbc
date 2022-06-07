@@ -154,13 +154,51 @@ public class ParserTest {
     assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v11.getVersionNum(), 3, EscapeSyntaxCallMode.SELECT).getSql());
     assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v11.getVersionNum(), 3, EscapeSyntaxCallMode.CALL_IF_NO_RETURN).getSql());
     assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v11.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).getSql());
+  }
 
-    /*function call*/
-    assertEquals(true, Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
-    assertEquals(true, Parser.modifyJdbcCall("/* some comment */ { ? = call lower(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
-    /*stored procedure call*/
-    assertEquals(true, Parser.modifyJdbcCall("call lower(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
-    assertEquals(true, Parser.modifyJdbcCall("/* some comment */ call lower(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction());
+  /**
+   * Tests whether a call statement to a function is recognised as function call.
+   * @throws SQLException
+   */
+  @Test
+  public void testModifyJdbcCallRecogniseFunctionCall() throws SQLException {
+    assertIsFunction(Parser.modifyJdbcCall("{ ? = call test_function(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+  }
+
+  /**
+   * Tests whether a call statement to a function with a preceding comment is recognised as function call.
+   * @throws SQLException
+   */
+  @Test
+  public void testModifyJdbcCallRecogniseFunctionCallWithPrecedingComment() throws SQLException {
+        assertIsFunction(Parser.modifyJdbcCall("/* some comment */ { ? = call test_function(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+  }
+
+  /**
+   * Tests whether a call statement to a stored procedure is recognised as function call.
+   * @throws SQLException
+   */
+  @Test
+  public void testModifyJdbcCallRecogniseProcedureCall() throws SQLException {
+    assertIsFunction(Parser.modifyJdbcCall("call test_procedure(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+  }
+
+  /**
+   * Tests whether a call statement to a stored procedure with a preceding comment is recognised as function call.
+   * @throws SQLException
+   */
+  @Test
+  public void testModifyJdbcCallRecogniseProcedureCallWithPrecedingComment() throws SQLException {
+      assertIsFunction(Parser.modifyJdbcCall("/* some comment */ call test_procedure(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+  }
+
+  /**
+   * Asserts that {@link JdbcCallParseInfo#isFunction()} returns <code>true</code> for the given jdbcCallInfo.
+   * @param jdbcCallParseInfo not <code>null</code>
+   */
+  private void assertIsFunction(JdbcCallParseInfo jdbcCallParseInfo) {
+    String message = "Call statement was not recognised as such : \"" + jdbcCallParseInfo.getSql() + "\", " + jdbcCallParseInfo.getClass().getSimpleName() + ".isFunction() -";
+    assertEquals(message, true, jdbcCallParseInfo.isFunction());
   }
 
   @Test
