@@ -10,10 +10,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import org.postgresql.test.SlowTests;
-
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -102,7 +99,6 @@ public class AsciiStringInternerTest {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testGarbageCleaning() throws Exception {
     final byte[] bytes = new byte[100000];
     for (int i = 0; i < 100000; ++i) {

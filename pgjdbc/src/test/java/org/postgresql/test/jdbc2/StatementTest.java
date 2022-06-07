@@ -15,7 +15,6 @@ import static org.junit.Assert.fail;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
-import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.PSQLState;
@@ -25,7 +24,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -697,7 +695,6 @@ public class StatementTest {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testSetQueryTimeout() throws SQLException {
     Statement stmt = con.createStatement();
     long start = 0;
@@ -720,7 +717,6 @@ public class StatementTest {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testLongQueryTimeout() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.setQueryTimeout(Integer.MAX_VALUE);
@@ -736,7 +732,6 @@ public class StatementTest {
    * one does not. The timeout of the first query should not impact the second one.
    */
   @Test
-  @Category(SlowTests.class)
   public void testShortQueryTimeout() throws SQLException {
     assumeLongTest();
 
@@ -863,7 +858,6 @@ public class StatementTest {
   }
 
   @Test(timeout = 30000)
-  @Category(SlowTests.class)
   public void testCancelQueryWithBrokenNetwork() throws SQLException, IOException, InterruptedException {
     // check that stmt.cancel() doesn't hang forever if the network is broken
 

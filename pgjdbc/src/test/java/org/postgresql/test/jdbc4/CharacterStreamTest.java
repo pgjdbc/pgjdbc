@@ -5,13 +5,11 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -181,7 +179,6 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testKnownIntLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamKnownIntLength(data);
@@ -189,7 +186,6 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
-  @Category(SlowTests.class)
   public void testKnownLongLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamKnownLongLength(data);
@@ -197,7 +193,6 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testUnknownLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamUnknownLength(data);
@@ -205,7 +200,6 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testKnownIntLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamKnownIntLength(data);
@@ -213,7 +207,6 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
-  @Category(SlowTests.class)
   public void testKnownLongLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamKnownLongLength(data);
@@ -221,7 +214,6 @@ public class CharacterStreamTest extends BaseTest4 {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testUnknownLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamUnknownLength(data);

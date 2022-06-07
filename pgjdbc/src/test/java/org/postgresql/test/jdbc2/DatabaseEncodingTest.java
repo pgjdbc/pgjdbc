@@ -9,14 +9,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.Encoding;
-import org.postgresql.test.SlowTests;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -68,7 +66,6 @@ public class DatabaseEncodingTest {
   }
 
   @Test
-  @Category(SlowTests.class)
   public void testEncoding() throws Exception {
     String databaseEncoding = TestUtil.queryForString(con, "SELECT getdatabaseencoding()");
     Assume.assumeTrue("Database encoding must be UTF8", databaseEncoding.equals("UTF8"));
