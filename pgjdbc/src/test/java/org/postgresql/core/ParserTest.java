@@ -158,7 +158,7 @@ public class ParserTest {
 
   /**
    * Tests whether a call statement to a function is recognised as function call.
-   * @throws SQLException
+   * @throws SQLException if parsing fails due to SQL error
    */
   @Test
   public void testModifyJdbcCallRecogniseFunctionCall() throws SQLException {
@@ -167,16 +167,16 @@ public class ParserTest {
 
   /**
    * Tests whether a call statement to a function with a preceding comment is recognised as function call.
-   * @throws SQLException
+   * @throws SQLException if parsing fails due to SQL error
    */
   @Test
   public void testModifyJdbcCallRecogniseFunctionCallWithPrecedingComment() throws SQLException {
-        assertIsFunction(Parser.modifyJdbcCall("/* some comment */ { ? = call test_function(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+    assertIsFunction(Parser.modifyJdbcCall("/* some comment */ { ? = call test_function(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
   }
 
   /**
    * Tests whether a call statement to a stored procedure is recognised as function call.
-   * @throws SQLException
+   * @throws SQLException if parsing fails due to SQL error
    */
   @Test
   public void testModifyJdbcCallRecogniseProcedureCall() throws SQLException {
@@ -185,11 +185,11 @@ public class ParserTest {
 
   /**
    * Tests whether a call statement to a stored procedure with a preceding comment is recognised as function call.
-   * @throws SQLException
+   * @throws SQLException if parsing fails due to SQL error
    */
   @Test
   public void testModifyJdbcCallRecogniseProcedureCallWithPrecedingComment() throws SQLException {
-      assertIsFunction(Parser.modifyJdbcCall("/* some comment */ call test_procedure(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+    assertIsFunction(Parser.modifyJdbcCall("/* some comment */ call test_procedure(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
   }
 
   /**
