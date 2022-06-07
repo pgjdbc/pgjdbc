@@ -326,13 +326,13 @@ public class SetObject310Test extends BaseTest4 {
         try (ResultSet rs = ps.executeQuery()) {
           rs.next();
           String noType = rs.getString(1);
-          OffsetDateTime noTypeRes = OffsetDateTime.parse(noType.replace(' ', 'T') + ":00");
+          OffsetDateTime noTypeRes = parseBackendTimestamp(noType);
           assertEquals(
               "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
                   + storeZone + ", setObject(int, Object)", data.toInstant(),
               noTypeRes.toInstant());
           String withType = rs.getString(2);
-          OffsetDateTime withTypeRes = OffsetDateTime.parse(withType.replace(' ', 'T') + ":00");
+          OffsetDateTime withTypeRes = parseBackendTimestamp(withType);
           assertEquals(
               "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
                   + storeZone + ", setObject(int, Object, TIMESTAMP_WITH_TIMEZONE)",
@@ -340,6 +340,20 @@ public class SetObject310Test extends BaseTest4 {
         }
       }
     }
+  }
+
+  /**
+   * Sometimes backend responds like {@code 1950-07-20 16:20:00+03} and sometimes it responds like
+   * {@code 1582-09-30 13:49:57+02:30:17}, so we need to handle cases when "offset minutes" is missing.
+   */
+  private static OffsetDateTime parseBackendTimestamp(String backendTimestamp) {
+    String isoTimestamp = backendTimestamp.replace(' ', 'T');
+    // If the pattern already has trailing :XX we are fine
+    // Otherwise add :00 for timezone offset minutes
+    if (isoTimestamp.charAt(isoTimestamp.length() - 3) != ':') {
+      isoTimestamp += ":00";
+    }
+    return OffsetDateTime.parse(isoTimestamp);
   }
 
   @Test
