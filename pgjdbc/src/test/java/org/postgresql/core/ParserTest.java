@@ -162,7 +162,7 @@ public class ParserTest {
    */
   @Test
   public void testModifyJdbcCallRecogniseFunctionCall() throws SQLException {
-    assertIsFunction(Parser.modifyJdbcCall("{ ? = call test_function(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+    assertIsFunction("{ ? = call test_function(?)}");
   }
 
   /**
@@ -171,7 +171,7 @@ public class ParserTest {
    */
   @Test
   public void testModifyJdbcCallRecogniseFunctionCallWithPrecedingComment() throws SQLException {
-    assertIsFunction(Parser.modifyJdbcCall("/* some comment */ { ? = call test_function(?)}", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+    assertIsFunction("/* some comment */ { ? = call test_function(?)}");
   }
 
   /**
@@ -180,7 +180,7 @@ public class ParserTest {
    */
   @Test
   public void testModifyJdbcCallRecogniseProcedureCall() throws SQLException {
-    assertIsFunction(Parser.modifyJdbcCall("call test_procedure(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+    assertIsFunction("call test_procedure(?,?)");
   }
 
   /**
@@ -189,14 +189,15 @@ public class ParserTest {
    */
   @Test
   public void testModifyJdbcCallRecogniseProcedureCallWithPrecedingComment() throws SQLException {
-    assertIsFunction(Parser.modifyJdbcCall("/* some comment */ call test_procedure(?,?)", true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL));
+    assertIsFunction("/* some comment */ call test_procedure(?,?)");
   }
 
   /**
    * Asserts that {@link JdbcCallParseInfo#isFunction()} returns <code>true</code> for the given jdbcCallInfo.
-   * @param jdbcCallParseInfo not <code>null</code>
+   * @param sql the sql to pass to {@link Parser#modifyJdbcCall(String, boolean, int, int, EscapeSyntaxCallMode)}
    */
-  private void assertIsFunction(JdbcCallParseInfo jdbcCallParseInfo) {
+  private void assertIsFunction(String sql) throws SQLException {
+    JdbcCallParseInfo jdbcCallParseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL);
     String message = "Call statement was not recognised as such : \"" + jdbcCallParseInfo.getSql() + "\", " + jdbcCallParseInfo.getClass().getSimpleName() + ".isFunction() -";
     assertEquals(message, true, jdbcCallParseInfo.isFunction());
   }
