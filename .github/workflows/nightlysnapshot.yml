@@ -8,9 +8,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  check_secrets:
+    name: Check if required secrets are available
+    runs-on: ubuntu-latest
+    env:
+      NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+      NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+    outputs:
+      secrets_available: ${{ steps.set-matrix.outputs.secrets_available }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [[ -n "${NEXUS_USERNAME:-}" ]] && [[ -n "${NEXUS_PASSWORD:-}" ]]; then
+            echo "::set-output name=secrets_available::true"
+          else
+            echo "::set-output name=secrets_available::false"
+          fi
+
   snapshot:
     name: Snapshot
     runs-on: ubuntu-latest
+    needs: check_secrets
+    if: ${{ needs.check_secrets.outputs.secrets_available == 'true' }}
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
