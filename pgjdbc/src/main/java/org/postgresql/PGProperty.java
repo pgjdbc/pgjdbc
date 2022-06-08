@@ -223,6 +223,20 @@ public enum PGProperty {
       false,
       new String[] {"select", "callIfNoReturn", "call"}),
 
+  /**
+   * Group startup parameters in a transaction
+   * This is important in pool-by-transaction scenarios in order to make sure that all the statements
+   * reaches the same connection that is being initialized. All of the startup parameters will be wrapped
+   * in a transaction
+   * Note this is off by default as pgbouncer in statement mode
+   */
+  GROUP_STARTUP_PARAMETERS(
+      "groupStartupParameters",
+      "false",
+      "This is important in pool-by-transaction scenarios in order to make sure that all "
+          + "the statements reaches the same connection that is being initialized."
+  ),
+
   GSS_ENC_MODE(
       "gssEncMode",
       "allow",
