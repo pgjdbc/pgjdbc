@@ -198,7 +198,7 @@ public class ParserTest {
    */
   private void assertIsFunction(String sql) throws SQLException {
     JdbcCallParseInfo jdbcCallParseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL);
-    String message = "Parse error : Parser did not recognise call statement : \"" + sql + "\", " + jdbcCallParseInfo.getClass().getSimpleName() + ".isFunction() -";
+    String message = "Parser.modifyJdbcCall(\"" + sql + "\", , true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction was supposed to return FUNCTION, ";
     assertEquals(message, true, jdbcCallParseInfo.isFunction());
   }
 
