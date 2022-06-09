@@ -3,6 +3,7 @@
 // See https://github.com/vlsi/github-actions-random-matrix
 let fs = require('fs');
 let os = require('os');
+const { RNG } = require('./rng');
 let {MatrixBuilder} = require('./matrix_builder');
 const matrix = new MatrixBuilder();
 
@@ -317,7 +318,7 @@ include.forEach(v => {
   jvmArgs.push(`-Duser.country=${v.locale.country}`);
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
   let jit = v.java_distribution === 'semeru' ? 'open9j' : 'hotspot';
-  if (jit === 'hotspot' && Math.random() > 0.5) {
+  if (jit === 'hotspot' && RNG.random() > 0.5) {
     // The following options randomize instruction selection in JIT compiler
     // so it might reveal missing synchronization in TestNG code
     v.name += ', stress JIT';
