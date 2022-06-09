@@ -5,17 +5,21 @@
 
 package org.postgresql.core;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -31,15 +35,15 @@ public class ParserTest {
   public void testDeleteCommandParsing() {
     char[] command = new char[6];
     "DELETE".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse upper case command.", Parser.parseDeleteKeyword(command, 0));
+    assertTrue(Parser.parseDeleteKeyword(command, 0),"Failed to correctly parse upper case command.");
     "DelEtE".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseDeleteKeyword(command, 0));
+    assertTrue(Parser.parseDeleteKeyword(command, 0),"Failed to correctly parse mixed case command.");
     "deleteE".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseDeleteKeyword(command, 0));
+    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "delete".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse lower case command.", Parser.parseDeleteKeyword(command, 0));
+    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse lower case command.");
     "Delete".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseDeleteKeyword(command, 0));
+    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse mixed case command.");
   }
 
   /**
@@ -49,15 +53,15 @@ public class ParserTest {
   public void testUpdateCommandParsing() {
     char[] command = new char[6];
     "UPDATE".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse upper case command.", Parser.parseUpdateKeyword(command, 0));
+    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse upper case command.");
     "UpDateE".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseUpdateKeyword(command, 0));
+    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "updatE".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseUpdateKeyword(command, 0));
+    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "Update".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseUpdateKeyword(command, 0));
+    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "update".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse lower case command.", Parser.parseUpdateKeyword(command, 0));
+    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse lower case command.");
   }
 
   /**
@@ -67,15 +71,15 @@ public class ParserTest {
   public void testMoveCommandParsing() {
     char[] command = new char[4];
     "MOVE".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse upper case command.", Parser.parseMoveKeyword(command, 0));
+    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse upper case command.");
     "mOVe".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseMoveKeyword(command, 0));
+    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "movE".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseMoveKeyword(command, 0));
+    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "Move".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseMoveKeyword(command, 0));
+    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "move".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse lower case command.", Parser.parseMoveKeyword(command, 0));
+    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse lower case command.");
   }
 
   /**
@@ -85,15 +89,15 @@ public class ParserTest {
   public void testWithCommandParsing() {
     char[] command = new char[4];
     "WITH".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse upper case command.", Parser.parseWithKeyword(command, 0));
+    assertTrue(Parser.parseWithKeyword(command, 0), "Failed to correctly parse upper case command.");
     "wITh".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseWithKeyword(command, 0));
+    assertTrue(Parser.parseWithKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "witH".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseWithKeyword(command, 0));
+    assertTrue(Parser.parseWithKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "With".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseWithKeyword(command, 0));
+    assertTrue(Parser.parseWithKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "with".getChars(0, 4, command, 0);
-    assertTrue("Failed to correctly parse lower case command.", Parser.parseWithKeyword(command, 0));
+    assertTrue(Parser.parseWithKeyword(command, 0), "Failed to correctly parse lower case command.");
   }
 
   /**
@@ -103,15 +107,15 @@ public class ParserTest {
   public void testSelectCommandParsing() {
     char[] command = new char[6];
     "SELECT".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse upper case command.", Parser.parseSelectKeyword(command, 0));
+    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse upper case command.");
     "sELect".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseSelectKeyword(command, 0));
+    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "selecT".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseSelectKeyword(command, 0));
+    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "Select".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse mixed case command.", Parser.parseSelectKeyword(command, 0));
+    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "select".getChars(0, 6, command, 0);
-    assertTrue("Failed to correctly parse lower case command.", Parser.parseSelectKeyword(command, 0));
+    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse lower case command.");
   }
 
   @Test
@@ -157,49 +161,29 @@ public class ParserTest {
   }
 
   /**
-   * Tests whether a call statement to a function is recognised as function call.
-   * @throws SQLException if parsing fails due to SQL error
+   * Provides arguments for the parameterized test method {@link #testParseCallStatementAsFunction(String)}.
+   * @return a Stream containing the arguments.
    */
   @Test
-  public void testModifyJdbcCallRecogniseFunctionCall() throws SQLException {
-    assertIsFunction("{ ? = call test_function(?)}");
+  static Stream<Arguments> argsTestParseCallStatementAsFunction() {
+    return Stream.of(
+      Arguments.arguments("{ ? = call test_function(?)}"),
+      Arguments.arguments("/* some comment */ { ? = call test_function(?)}"),
+      Arguments.arguments("call test_procedure(?,?)"),
+      Arguments.arguments("/* some comment */ call test_procedure(?,?)"));
   }
 
   /**
-   * Tests whether a call statement to a function with a preceding comment is recognised as function call.
-   * @throws SQLException if parsing fails due to SQL error
-   */
-  @Test
-  public void testModifyJdbcCallRecogniseFunctionCallWithPrecedingComment() throws SQLException {
-    assertIsFunction("/* some comment */ { ? = call test_function(?)}");
-  }
-
-  /**
-   * Tests whether a call statement to a stored procedure is recognised as function call.
-   * @throws SQLException if parsing fails due to SQL error
-   */
-  @Test
-  public void testModifyJdbcCallRecogniseProcedureCall() throws SQLException {
-    assertIsFunction("call test_procedure(?,?)");
-  }
-
-  /**
-   * Tests whether a call statement to a stored procedure with a preceding comment is recognised as function call.
-   * @throws SQLException if parsing fails due to SQL error
-   */
-  @Test
-  public void testModifyJdbcCallRecogniseProcedureCallWithPrecedingComment() throws SQLException {
-    assertIsFunction("/* some comment */ call test_procedure(?,?)");
-  }
-
-  /**
-   * Asserts that {@link JdbcCallParseInfo#isFunction()} returns <code>true</code> for the given jdbcCallInfo.
+   * Asserts that {@link Parser#modifyJdbcCall(String, boolean, int, int, EscapeSyntaxCallMode)} returns a JdbcCallParseInfo object
+   * which indicates that the given sql is a function or procedure call, i.e. {@link JdbcCallParseInfo#isFunction()} returns <code>true</code>.
    * @param sql the sql to pass to {@link Parser#modifyJdbcCall(String, boolean, int, int, EscapeSyntaxCallMode)}
    */
-  private void assertIsFunction(String sql) throws SQLException {
+  @ParameterizedTest
+  @MethodSource("argsTestParseCallStatementAsFunction")
+  void testParseCallStatementAsFunction(String sql) throws SQLException {
     JdbcCallParseInfo jdbcCallParseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL);
     String message = "Parser.modifyJdbcCall(\"" + sql + "\", , true, ServerVersion.v14.getVersionNum(), 3, EscapeSyntaxCallMode.CALL).isFunction was supposed to return FUNCTION, ";
-    assertEquals(message, true, jdbcCallParseInfo.isFunction());
+    assertTrue(jdbcCallParseInfo.isFunction(), message);
   }
 
   @Test
@@ -208,7 +192,7 @@ public class ParserTest {
   }
 
   @Test
-  @Ignore(value = "returning in the select clause is hard to distinguish from insert ... returning *")
+  @Disabled(value = "returning in the select clause is hard to distinguish from insert ... returning *")
   public void insertSelectFakeReturning() throws SQLException {
     String query =
         "insert test(id, name) select 1, 'value' as RETURNING from test2";
@@ -216,7 +200,7 @@ public class ParserTest {
         Parser.parseJdbcSql(
             query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
-    Assert.assertFalse("Query does not have returning clause " + query, returningKeywordPresent);
+    assertFalse(returningKeywordPresent, "Query does not have returning clause " + query);
   }
 
   @Test
@@ -227,7 +211,7 @@ public class ParserTest {
         Parser.parseJdbcSql(
             query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
-    Assert.assertTrue("Query has a returning clause " + query, returningKeywordPresent);
+    assertTrue(returningKeywordPresent, "Query has a returning clause " + query);
   }
 
   @Test
@@ -238,7 +222,7 @@ public class ParserTest {
         Parser.parseJdbcSql(
             query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
-    Assert.assertFalse("There's no top-level <<returning>> clause " + query, returningKeywordPresent);
+    assertFalse(returningKeywordPresent, "There's no top-level <<returning>> clause " + query);
   }
 
   @Test
@@ -246,8 +230,8 @@ public class ParserTest {
     String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
   }
 
   @Test
@@ -255,7 +239,7 @@ public class ParserTest {
     String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertFalse("update set name=? is NOT compatible with insert rewrite", command.isBatchedReWriteCompatible());
+    assertFalse(command.isBatchedReWriteCompatible(), "update set name=? is NOT compatible with insert rewrite");
   }
 
   @Test
@@ -263,7 +247,7 @@ public class ParserTest {
     String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertTrue("update set name='default' is compatible with insert rewrite", command.isBatchedReWriteCompatible());
+    assertTrue(command.isBatchedReWriteCompatible(), "update set name='default' is compatible with insert rewrite");
   }
 
   @Test
@@ -272,8 +256,8 @@ public class ParserTest {
         "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
   }
 
   @Test
@@ -281,14 +265,14 @@ public class ParserTest {
     String query = "insert into values_table (id, name) values (?,?)";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
 
     query = "insert into table_values (id, name) values (?,?)";
     qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     command = qry.get(0).getCommand();
-    Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
   }
 
   @Test
@@ -297,8 +281,8 @@ public class ParserTest {
     String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION)";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
-    Assert.assertEquals(SqlCommandType.CREATE, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.CREATE, command.getType());
   }
 
   @Test
@@ -307,8 +291,8 @@ public class ParserTest {
     String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\")) ON UPDATE NO ACTION";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
-    Assert.assertEquals(SqlCommandType.CREATE, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.CREATE, command.getType());
   }
 
   @Test
@@ -317,8 +301,8 @@ public class ParserTest {
     String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
-    Assert.assertEquals(SqlCommandType.ALTER, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.ALTER, command.getType());
   }
 
   @Test
@@ -327,7 +311,7 @@ public class ParserTest {
     String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON UPDATE RESTRICT";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
-    Assert.assertEquals(SqlCommandType.ALTER, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.ALTER, command.getType());
   }
 }
