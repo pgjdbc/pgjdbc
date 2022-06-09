@@ -9,8 +9,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Fixed
-- fix: queries with up to 65535 (inclusive) parameters are supported now (previous limit was 32767) [PR #2525](https://github.com/pgjdbc/pgjdbc/pull/2525)
-- fix: workaround JarIndex parsing issue by using groupId/artifactId-version directory namings. Regression since 42.2.13. [PR #2531](https://github.com/pgjdbc/pgjdbc/pull/2531), [issue #2527](https://github.com/pgjdbc/pgjdbc/issues/2527)
+
+## [42.4.0] (2022-06-09 08:14:02 -0400)
+### Changed
+- fix: added GROUP_STARTUP_PARAMETERS boolean property to determine whether or not to group 
+startup parameters in a transaction (default=false like 42.2.x) fixes [Issue #2425](https://github.com/pgjdbc/pgjdbc/issues/2497) 
+pgbouncer cannot deal with transactions in statement pooling mode [PR #2425](https://github.com/pgjdbc/pgjdbc/pull/2425)
+
+### Fixed
+- fix: queries with up to 65535 (inclusive) parameters are supported now (previous limit was 32767) 
+[PR #2525](https://github.com/pgjdbc/pgjdbc/pull/2525), [Issue #1311](https://github.com/pgjdbc/pgjdbc/issues/1311)
+- fix: workaround JarIndex parsing issue by using groupId/artifactId-version directory namings. 
+Regression since 42.2.13. [PR #2531](https://github.com/pgjdbc/pgjdbc/pull/2531), [issue #2527](https://github.com/pgjdbc/pgjdbc/issues/2527)
+- fix: use Locale.ROOT for toUpperCase() toLowerCase() calls
+- doc: add Vladimir Sitnikov's PGP key
+- fix: return correct base type for domain from getUDTs [PR #2520](https://github.com/pgjdbc/pgjdbc/pull/2520) [Issue #2522](https://github.com/pgjdbc/pgjdbc/issues/2522)
+- perf: utcTz static and renamed to UTC_TIMEZONE [PR #2519](https://github.com/pgjdbc/pgjdbc/pull/2520)
+- doc: fix release version for #2377 (it should be 42.3.6, not 42.3.5)
 
 ## [42.3.6] (2022-05-24 08:52:27 -0400)
 ### Changed
@@ -686,4 +701,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...REL42.3.4
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
 [42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...HEAD
+[42.3.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...REL42.4.0
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...HEAD
