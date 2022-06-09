@@ -81,13 +81,13 @@ public class NotifyTest {
     // Wait a bit to let the notify come through... Changed this so the test takes ~2 seconds
     // less to run and is still as effective.
     PGNotification[] notifications = null;
-    try {
-      int retries = 300;
-      while (retries-- > 0
-        && (notifications = conn.unwrap(PGConnection.class).getNotifications()) == null ) {
-        Thread.sleep(100);
+    PGConnection connection = conn.unwrap(PGConnection.class);
+    for (int i = 0; i < 3000; i++) {
+      notifications = connection.getNotifications();
+      if (notifications.length > 0) {
+        break;
       }
-    } catch (InterruptedException ie) {
+      Thread.sleep(10);
     }
 
     assertNotNull("Notification is expected to be delivered when subscription was created"
