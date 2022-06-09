@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 [42.4.0] (2022-06-09 08:14:02 -0400)
 ### Changed
 - fix: added GROUP_STARTUP_PARAMETERS boolean property to determine whether or not to group 
-startup parameters in a transaction or not fixes [Issue #2425](https://github.com/pgjdbc/pgjdbc/issues/2497)  
+startup parameters in a transaction (default=false like 42.2.x) fixes [Issue #2425](https://github.com/pgjdbc/pgjdbc/issues/2497) 
 pgbouncer cannot deal with transactions in statement pooling mode [PR #2425](https://github.com/pgjdbc/pgjdbc/pull/2425)
 
 ### Fixed
