@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.4.0] (2022-06-09 08:14:02 -0400)
+## [42.4.0] (2022-06-09 08:14:02 -0400)
 ### Changed
 - fix: added GROUP_STARTUP_PARAMETERS boolean property to determine whether or not to group 
 startup parameters in a transaction (default=false like 42.2.x) fixes [Issue #2425](https://github.com/pgjdbc/pgjdbc/issues/2497) 
