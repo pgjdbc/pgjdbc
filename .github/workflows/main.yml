@@ -19,6 +19,11 @@ on:
       - 'appveyor.xml'
       - '.travis.yml'
       - '.travis/**'
+  workflow_dispatch:
+    inputs:
+      matrix_rng_seed:
+        description: RNG Seed
+        required: false
 
 permissions:
   contents: read
@@ -123,6 +128,8 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     env:
       MATRIX_JOBS: 5
+      GITHUB_PR_NUMBER: ${{ github.event.number }}
+      RNG_SEED: ${{ github.event.inputs.matrix_rng_seed }}
     steps:
     - uses: actions/checkout@v3
       with:
