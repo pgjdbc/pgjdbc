@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 ### Added
+chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
+chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
 
 ### Fixed
 
