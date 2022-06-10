@@ -9,6 +9,9 @@ on:
       - '**/*.md'
       - 'appveyor.xml'
 
+permissions:
+  contents: read
+
 concurrency:
   # Push to the same branch (ref is like refs/heads/release) should stop previous buildcache
   # workflows for the branch.

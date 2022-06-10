@@ -3,6 +3,9 @@ name: Test Debezium
 # only on push or allow us to do this manually using workflow dispatch
 on: [workflow_dispatch]
 
+permissions:
+  contents: read
+
 jobs:
   snapshot:
     name: Debezium
