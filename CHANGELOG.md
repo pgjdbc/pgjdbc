@@ -11,6 +11,7 @@ chore: bump Gradle to 7.4.2
 ### Added
 chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
 chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
+chore: support building pgjdbc with Java 17
 
 ### Fixed
 
