@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+chore: skip publishing pgjdbc-osgi-test to Central
 
 ### Added
 chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
