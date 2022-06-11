@@ -3,6 +3,18 @@
 // See https://github.com/vlsi/github-actions-random-matrix
 let {MatrixBuilder} = require('./matrix_builder');
 const matrix = new MatrixBuilder();
+
+// Some of the filter conditions might become unsatisfiable, and by default
+// the matrix would ignore that.
+// For instance, SCRAM requires PostgreSQL 10+, so if you ask
+// matrix.generateRow({pg_version: '9.0'}), then it won't generate a row
+// That behaviour is useful for PR testing. For instance, if you want to test only SCRAM=yes
+// cases, then just comment out "value: no" in SCRAM axis, and the matrix would yield the matching
+// parameters.
+// However, if you add new testing parameters, you might want un-comment the following line
+// to notice if you accidentally introduce unsatisfiable conditions.
+// matrix.failOnUnsatisfiableFilters(true);
+
 matrix.addAxis({
   name: 'java_distribution',
   values: [

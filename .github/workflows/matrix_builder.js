@@ -68,6 +68,7 @@ class MatrixBuilder {
     this.duplicates = {};
     this.excludes = [];
     this.includes = [];
+    this.failOnUnsatisfiableFilters = false;
   }
 
   /**
@@ -105,6 +106,10 @@ class MatrixBuilder {
   matches(row) {
     return (this.excludes.length === 0 || !this.excludes.find(f => Axis.matches(row, f))) &&
            (this.includes.length === 0 || this.includes.find(f => Axis.matches(row, f)));
+  }
+
+  failOnUnsatisfiableFilters(value) {
+    this.failOnUnsatisfiableFilters = value;
   }
 
   /**
@@ -153,7 +158,13 @@ class MatrixBuilder {
         return res;
       }
     }
-    throw Error(`Unable to generate row. Please check include and exclude filters`);
+    const filterStr = typeof filter === 'string' ? filter.toString() : JSON.stringify(filter);
+    const msg = `Unable to generate row for ${filterStr}. Please check include and exclude filters`;
+    if (this.failOnUnsatisfiableFilters) {
+      throw Error(msg);
+    } else {
+      console.warn(msg);
+    }
   }
 
   generateRows(maxRows, filter) {
