@@ -20,8 +20,7 @@ plugins {
 
 dependencies {
     // Make jmhCompileClasspath resolvable
-    @Suppress("DEPRECATION")
-    jmhCompileClasspath(platform(project(":bom")))
+    jmhImplementation(platform(project(":bom")))
     jmhImplementation(project(":postgresql"))
 //    jmhImplementation("com.google.guava:guava")
 //    jmhImplementation("org.codehaus.janino:commons-compiler")

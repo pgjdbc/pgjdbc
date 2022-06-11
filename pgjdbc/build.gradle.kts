@@ -5,6 +5,7 @@
 
 import aQute.bnd.gradle.Bundle
 import aQute.bnd.gradle.BundleTaskConvention
+import com.github.autostyle.gradle.AutostyleTask
 import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.gettext.GettextTask
 import com.github.vlsi.gradle.gettext.MsgAttribTask
@@ -78,6 +79,16 @@ val preprocessVersion by tasks.registering(org.postgresql.buildtools.JavaComment
     baseDir.set(projectDir)
     sourceFolders.add("src/main/version")
 }
+
+// <editor-fold defaultstate="collapsed" desc="Workaround Gradle 7 warning on check style tasks depending on preprocessVersion results">
+tasks.withType<Checkstyle>().configureEach {
+    mustRunAfter(preprocessVersion)
+}
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(preprocessVersion)
+}
+// </editor-fold>
 
 ide {
     generatedJavaSources(

@@ -21,10 +21,6 @@ dependencies {
     implementation("com.igormaznitsa:jcp:${"jcp".v}")
 }
 
-kotlinDslPluginOptions {
-    experimentalWarning.set(false)
-}
-
 tasks.withType<KotlinCompile> {
     sourceCompatibility = "unused"
     targetCompatibility = "unused"
