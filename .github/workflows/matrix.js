@@ -246,14 +246,17 @@ include.forEach(v => {
   v.query_mode = v.query_mode.value;
 
   let includeTestTags = [];
-  if (v.replication === 'no') {
-      includeTestTags.push('!org.postgresql.test.Replication');
+  // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions
+  includeTestTags.push('none()'); // untagged tests
+
+  if (v.replication === 'yes') {
+      includeTestTags.push('org.postgresql.test.Replication');
   }
-  if (v.slow_tests === 'no') {
-      includeTestTags.push('!org.postgresql.test.SlowTests');
+  if (v.slow_tests === 'yes') {
+      includeTestTags.push('org.postgresql.test.SlowTests');
   }
 
-  v.includeTestTags = includeTestTags.join(' & ');
+  v.includeTestTags = includeTestTags.join(' | ');
 
   if (v.gss === 'yes' || v.check_anorm_sbt === 'yes') {
       v.deploy_to_maven_local = true
