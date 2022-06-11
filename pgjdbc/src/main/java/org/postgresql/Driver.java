@@ -23,8 +23,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
-import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
@@ -88,16 +89,45 @@ public class Driver implements java.sql.Driver {
     // Make sure we load properties with the maximum possible privileges.
     try {
       defaultProperties =
-          AccessController.doPrivileged(new PrivilegedExceptionAction<Properties>() {
+          doPrivileged(new PrivilegedExceptionAction<Properties>() {
             public Properties run() throws IOException {
               return loadDefaultProperties();
             }
           });
     } catch (PrivilegedActionException e) {
-      throw (IOException) e.getException();
+      Exception ex = e.getException();
+      if (ex instanceof IOException) {
+        throw (IOException) ex;
+      }
+      throw new RuntimeException(e);
+    } catch (Throwable e) {
+      if (e instanceof IOException) {
+        throw (IOException) e;
+      }
+      if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      }
+      if (e instanceof Error) {
+        throw (Error) e;
+      }
+      throw new RuntimeException(e);
     }
 
     return defaultProperties;
+  }
+
+  private static <T> T doPrivileged(PrivilegedExceptionAction<T> action) throws Throwable {
+    try {
+      Class<?> accessControllerClass = Class.forName("java.security.AccessController");
+      Method doPrivileged = accessControllerClass.getMethod("doPrivileged",
+          PrivilegedExceptionAction.class);
+      //noinspection unchecked
+      return (T) doPrivileged.invoke(null, action);
+    } catch (ClassNotFoundException e) {
+      return action.run();
+    } catch (InvocationTargetException e) {
+      throw castNonNull(e.getCause());
+    }
   }
 
   private Properties loadDefaultProperties() throws IOException {
@@ -271,12 +301,14 @@ public class Driver implements java.sql.Driver {
       // re-throw the exception, otherwise it will be caught next, and a
       // org.postgresql.unusual error will be returned instead.
       throw ex1;
-    } catch (java.security.AccessControlException ace) {
-      throw new PSQLException(
-          GT.tr(
-              "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
-          PSQLState.UNEXPECTED_ERROR, ace);
     } catch (Exception ex2) {
+      if ("java.security.AccessControlException".equals(ex2.getClass().getName())) {
+        // java.security.AccessControlException has been deprecated for removal, so compare the class name
+        throw new PSQLException(
+            GT.tr(
+                "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
+            PSQLState.UNEXPECTED_ERROR, ex2);
+      }
       LOGGER.log(Level.FINE, "Unexpected connection error: ", ex2);
       throw new PSQLException(
           GT.tr(

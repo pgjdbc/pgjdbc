@@ -47,6 +47,10 @@ import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.security.Permission;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -88,6 +92,26 @@ public class PgConnection implements BaseConnection {
   private static final Set<Integer> SUPPORTED_BINARY_OIDS = getSupportedBinaryOids();
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
+
+  private static final @Nullable MethodHandle SYSTEM_GET_SECURITY_MANAGER;
+  private static final @Nullable MethodHandle SECURITY_MANAGER_CHECK_PERMISSION;
+
+  static {
+    MethodHandle systemGetSecurityManagerHandle = null;
+    MethodHandle securityManagerCheckPermission = null;
+    try {
+      Class<?> securityManagerClass = Class.forName("java.lang.SecurityManager");
+      systemGetSecurityManagerHandle =
+          MethodHandles.lookup().findStatic(System.class, "getSecurityManager",
+              MethodType.methodType(securityManagerClass));
+      securityManagerCheckPermission =
+          MethodHandles.lookup().findVirtual(securityManagerClass, "checkPermission",
+              MethodType.methodType(void.class, Permission.class));
+    } catch (NoSuchMethodException | IllegalAccessException | ClassNotFoundException ignore) {
+    }
+    SYSTEM_GET_SECURITY_MANAGER = systemGetSecurityManagerHandle;
+    SECURITY_MANAGER_CHECK_PERMISSION = securityManagerCheckPermission;
+  }
 
   private enum ReadOnlyBehavior {
     ignore,
@@ -1624,16 +1648,26 @@ public class PgConnection implements BaseConnection {
               PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    SecurityManager securityManager = System.getSecurityManager();
-    if (securityManager != null) {
-      securityManager.checkPermission(SQL_PERMISSION_NETWORK_TIMEOUT);
-    }
+    checkPermission(SQL_PERMISSION_NETWORK_TIMEOUT);
 
     try {
       queryExecutor.setNetworkTimeout(milliseconds);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Unable to set network timeout."),
               PSQLState.COMMUNICATION_ERROR, ioe);
+    }
+  }
+
+  private void checkPermission(SQLPermission sqlPermissionNetworkTimeout) {
+    if (SYSTEM_GET_SECURITY_MANAGER != null && SECURITY_MANAGER_CHECK_PERMISSION != null) {
+      try {
+        Object securityManager = SYSTEM_GET_SECURITY_MANAGER.invoke();
+        if (securityManager != null) {
+          SECURITY_MANAGER_CHECK_PERMISSION.invoke(securityManager, sqlPermissionNetworkTimeout);
+        }
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
