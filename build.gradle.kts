@@ -293,8 +293,8 @@ allprojects {
 
         tasks.configureEach<JacocoReport> {
             reports {
-                html.isEnabled = reportsForHumans()
-                xml.isEnabled = !reportsForHumans()
+                html.required.set(reportsForHumans())
+                xml.required.set(!reportsForHumans())
             }
         }
     }
@@ -360,11 +360,9 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
+        configure<JavaPluginExtension> {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
-        }
-        configure<JavaPluginExtension> {
             withSourcesJar()
             if (!skipJavadoc) {
                 withJavadocJar()
@@ -574,8 +572,8 @@ allprojects {
                     description = "$description (skipped by default, to enable it add -Dspotbugs)"
                 }
                 reports {
-                    html.isEnabled = reportsForHumans()
-                    xml.isEnabled = !reportsForHumans()
+                    html.required.set(reportsForHumans())
+                    xml.required.set(!reportsForHumans())
                 }
                 enabled = enableSpotBugs
             }
