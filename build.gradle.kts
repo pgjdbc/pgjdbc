@@ -335,6 +335,8 @@ allprojects {
                     // for information about the -Xwerror option.
                     addBooleanOption("Xwerror", true)
                 }
+                // There are too many missing javadocs, so failing the build on missing comments seems to be not an option
+                addBooleanOption("Xdoclint:all,-missing", true)
                 // javadoc: error - The code being documented uses modules but the packages
                 // defined in https://docs.oracle.com/javase/9/docs/api/ are in the unnamed module
                 source = "1.8"
