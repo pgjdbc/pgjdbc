@@ -9,7 +9,6 @@ import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.properties.dsl.props
-import com.github.vlsi.gradle.properties.dsl.stringProperty
 import com.github.vlsi.gradle.publishing.dsl.simplifyXml
 import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
@@ -58,8 +57,6 @@ val includeTestTags by props("")
 // By default use Java implementation to sign artifacts
 // When useGpgCmd=true, then gpg command line tool is used for signing
 val useGpgCmd by props()
-val slowSuiteLogThreshold = stringProperty("slowSuiteLogThreshold")?.toLong() ?: 0
-val slowTestLogThreshold = stringProperty("slowTestLogThreshold")?.toLong() ?: 2000
 val jacocoEnabled by extra {
     props.bool("coverage") || gradle.startParameter.taskNames.any { it.contains("jacoco") }
 }
