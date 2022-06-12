@@ -255,6 +255,9 @@ include.forEach(v => {
   if (v.slow_tests === 'yes') {
       includeTestTags.push('org.postgresql.test.SlowTests');
   }
+  if (v.xa === 'yes') {
+      includeTestTags.push('org.postgresql.test.XaTests');
+  }
 
   v.includeTestTags = includeTestTags.join(' | ');
 

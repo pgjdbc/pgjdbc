@@ -12,13 +12,16 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.XaTests;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 import org.postgresql.xa.PGXADataSource;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -33,6 +36,7 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
+@Category(XaTests.class)
 public class XADataSourceTest {
 
   private XADataSource xaDs;
@@ -49,10 +53,16 @@ public class XADataSourceTest {
     BaseDataSourceTest.setupDataSource((PGXADataSource) xaDs);
   }
 
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    try (Connection con = TestUtil.openDB();) {
+      assumeTrue("max_prepared_transactions should be non-zero for XA tests", isPreparedTransactionEnabled(con));
+    }
+  }
+
   @Before
   public void setUp() throws Exception {
     dbConn = TestUtil.openDB();
-    assumeTrue(isPreparedTransactionEnabled(dbConn));
 
     // Check if we're operating as a superuser; some tests require it.
     Statement st = dbConn.createStatement();
