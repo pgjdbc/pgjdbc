@@ -93,12 +93,18 @@ public class BaseTest4 {
 
   public void assumeByteaSupported() {
     Assume.assumeTrue("bytea is not supported in simple protocol execution mode",
-        preferQueryMode.compareTo(PreferQueryMode.EXTENDED) >= 0);
+        preferQueryMode != PreferQueryMode.SIMPLE);
+  }
+
+  public static void assumeCallableStatementsSupported(Connection con) throws SQLException {
+    PreferQueryMode preferQueryMode = con.unwrap(PGConnection.class).getPreferQueryMode();
+    Assume.assumeTrue("callable statements are not fully supported in simple protocol execution mode",
+        preferQueryMode != PreferQueryMode.SIMPLE);
   }
 
   public void assumeCallableStatementsSupported() {
     Assume.assumeTrue("callable statements are not fully supported in simple protocol execution mode",
-        preferQueryMode.compareTo(PreferQueryMode.EXTENDED) >= 0);
+        preferQueryMode != PreferQueryMode.SIMPLE);
   }
 
   public void assumeBinaryModeRegular() {

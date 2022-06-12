@@ -12,11 +12,13 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -47,6 +49,13 @@ public class RefCursorTest extends BaseTest4 {
         {"OTHER", Types.OTHER},
         {"REF_CURSOR", Types.REF_CURSOR},
     });
+  }
+
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    try (Connection con = TestUtil.openDB();) {
+      assumeCallableStatementsSupported(con);
+    }
   }
 
   @Override
@@ -87,7 +96,6 @@ public class RefCursorTest extends BaseTest4 {
 
   @Test
   public void testResult() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }");
     call.registerOutParameter(1, cursorType);
     call.execute();
@@ -119,7 +127,6 @@ public class RefCursorTest extends BaseTest4 {
 
   @Test
   public void testEmptyResult() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ ? = call testspg__getEmptyRefcursor () }");
     call.registerOutParameter(1, cursorType);
     call.execute();
@@ -133,8 +140,6 @@ public class RefCursorTest extends BaseTest4 {
 
   @Test
   public void testMetaData() throws SQLException {
-    assumeCallableStatementsSupported();
-
     CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }");
     call.registerOutParameter(1, cursorType);
     call.execute();
@@ -152,7 +157,6 @@ public class RefCursorTest extends BaseTest4 {
 
   @Test
   public void testResultType() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }",
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     call.registerOutParameter(1, cursorType);

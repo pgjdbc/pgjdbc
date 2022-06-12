@@ -16,10 +16,12 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,6 +32,12 @@ import java.sql.Types;
  * @author davec
  */
 public class Jdbc3CallableStatementTest extends BaseTest4 {
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    try (Connection con = TestUtil.openDB();) {
+      assumeCallableStatementsSupported(con);
+    }
+  }
 
   @Override
   public void setUp() throws Exception {
@@ -129,7 +137,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testSomeInOut() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ call test_somein_someout(?,?,?) }");
 
     call.registerOutParameter(2, Types.VARCHAR);
@@ -141,7 +148,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testNotEnoughParameters() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{call myiofunc(?,?)}");
     cs.setInt(1, 2);
     cs.registerOutParameter(2, Types.INTEGER);
@@ -189,8 +195,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testNumeric() throws Throwable {
-    assumeCallableStatementsSupported();
-
     CallableStatement call = con.prepareCall("{ call Numeric_Proc(?,?,?) }");
 
     call.registerOutParameter(1, Types.NUMERIC, 15);
@@ -216,7 +220,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetObjectDecimal() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute(
@@ -420,7 +423,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetObjectLongVarchar() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table longvarchar_tab ( t text, null_val text )");
@@ -699,7 +701,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetObjectFloat() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute(createDecimalTab);
@@ -736,7 +737,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetDouble01() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table d_tab ( max_val float, min_val float, null_val float )");
@@ -777,7 +777,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetDoubleAsReal() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table d_tab ( max_val float, min_val float, null_val float )");
@@ -818,7 +817,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetShort01() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table short_tab ( max_val int2, min_val int2, null_val int2 )");
@@ -859,7 +857,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetInt01() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table i_tab ( max_val int, min_val int, null_val int )");
@@ -900,7 +897,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetLong01() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table l_tab ( max_val int8, min_val int8, null_val int8 )");
@@ -941,7 +937,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetBoolean01() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute(createBitTab);
@@ -992,7 +987,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testGetByte01() throws Throwable {
-    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table byte_tab ( max_val int2, min_val int2, null_val int2 )");
@@ -1033,7 +1027,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testMultipleOutExecutions() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{call myiofunc(?, ?)}");
     for (int i = 0; i < 10; i++) {
       cs.registerOutParameter(1, Types.INTEGER);
@@ -1048,7 +1041,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testSum() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{?= call mysum(?, ?)}");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.setInt(2, 2);
@@ -1059,7 +1051,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testFunctionNoParametersWithParentheses() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{?= call mynoparams()}");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.execute();
@@ -1069,7 +1060,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testFunctionNoParametersWithoutParentheses() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{?= call mynoparams}");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.execute();
@@ -1079,7 +1069,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testProcedureNoParametersWithParentheses() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{ call mynoparamsproc()}");
     cs.execute();
     TestUtil.closeQuietly(cs);
@@ -1087,7 +1076,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testProcedureNoParametersWithoutParentheses() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{ call mynoparamsproc}");
     cs.execute();
     TestUtil.closeQuietly(cs);
@@ -1096,7 +1084,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
   @Test
   public void testProcedureInOnlyNativeCall() throws SQLException {
     assumeMinimumServerVersion(ServerVersion.v11);
-    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("call inonlyprocedure(?)");
     cs.setInt(1, 5);
     cs.execute();
@@ -1106,7 +1093,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
   @Test
   public void testProcedureInOutNativeCall() throws SQLException {
     assumeMinimumServerVersion(ServerVersion.v11);
-    assumeCallableStatementsSupported();
     // inoutprocedure(a INOUT int) returns a*2 via the INOUT parameter
     CallableStatement cs = con.prepareCall("call inoutprocedure(?)");
     cs.setInt(1, 5);

@@ -13,10 +13,12 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.Array;
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -29,6 +31,12 @@ import java.sql.Types;
  * @author Paul Bethe
  */
 public class CallableStmtTest extends BaseTest4 {
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    try (Connection con = TestUtil.openDB();) {
+      assumeCallableStatementsSupported(con);
+    }
+  }
 
   @Override
   public void setUp() throws Exception {
@@ -99,7 +107,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetUpdateCount() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getDouble (?) }");
     call.setDouble(2, 3.04);
     call.registerOutParameter(1, Types.DOUBLE);
@@ -128,7 +135,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetDouble() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getDouble (?) }");
     call.setDouble(2, 3.04);
     call.registerOutParameter(1, Types.DOUBLE);
@@ -147,7 +153,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetInt() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getInt (?) }");
     call.setInt(2, 4);
     call.registerOutParameter(1, Types.INTEGER);
@@ -157,7 +162,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetShort() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getShort (?) }");
     call.setShort(2, (short) 4);
     call.registerOutParameter(1, Types.SMALLINT);
@@ -167,7 +171,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetNumeric() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getNumeric (?) }");
     call.setBigDecimal(2, new java.math.BigDecimal(4));
     call.registerOutParameter(1, Types.NUMERIC);
@@ -177,7 +180,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetNumericWithoutArg() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getNumericWithoutArg () }");
     call.registerOutParameter(1, Types.NUMERIC);
     call.execute();
@@ -186,7 +188,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetString() throws Throwable {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getString (?) }");
     call.setString(2, "foo");
     call.registerOutParameter(1, Types.VARCHAR);
@@ -197,7 +198,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testGetArray() throws SQLException {
-    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getarray()}");
     call.registerOutParameter(1, Types.ARRAY);
     call.execute();
@@ -212,7 +212,6 @@ public class CallableStmtTest extends BaseTest4 {
 
   @Test
   public void testRaiseNotice() throws SQLException {
-    assumeCallableStatementsSupported();
     Statement statement = con.createStatement();
     statement.execute("SET SESSION client_min_messages = 'NOTICE'");
     CallableStatement call = con.prepareCall(func + pkgName + "raisenotice()}");

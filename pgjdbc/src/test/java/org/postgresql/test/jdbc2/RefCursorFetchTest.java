@@ -78,6 +78,7 @@ public class RefCursorFetchTest extends BaseTest4 {
   public static void beforeClass() throws Exception {
     TestUtil.assumeHaveMinimumServerVersion(ServerVersion.v9_0);
     try (Connection con = TestUtil.openDB();) {
+      assumeCallableStatementsSupported(con);
       TestUtil.createTable(con, "test_blob", "content bytea");
       TestUtil.execute(con, "");
       TestUtil.execute(con, "--create function to read data\n"
@@ -106,7 +107,6 @@ public class RefCursorFetchTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeCallableStatementsSupported();
     con.setAutoCommit(autoCommit == AutoCommit.YES);
   }
 
