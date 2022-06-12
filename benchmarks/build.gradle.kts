@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 plugins {
-    id("me.champeau.gradle.jmh")
+    id("me.champeau.jmh")
 }
 
 dependencies {
