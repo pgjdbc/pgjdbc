@@ -116,8 +116,9 @@ matrix.addAxis({
   name: 'query_mode',
   values: [
     {value: 'simple', title: 'simple query', weight: 2},
-    {value: 'extendedForPrepared', title: '', weight: 42},
-    {value: 'extendedCacheEverything', title: 'always extended query', weight: 2}
+    {value: 'extendedForPrepared', title: 'extendedForPrepared', weight: 2},
+    {value: 'extended', title: '', weight: 10},
+    {value: 'extendedCacheEverything', title: 'extendedCacheEverything', weight: 2}
   ]
 });
 
