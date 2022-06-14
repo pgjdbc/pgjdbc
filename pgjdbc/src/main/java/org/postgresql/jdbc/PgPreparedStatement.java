@@ -99,7 +99,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     int maxSupportedParameters = maximumNumberOfParameters();
     if (parameterCount > maxSupportedParameters) {
       throw new PSQLException(
-          GT.tr("PreparedStatement can have at most {0} parameters. Please consider using arrays, or splitting the query in several ones, or using COPY. Given query has {0} parameters",
+          GT.tr("PreparedStatement can have at most {0} parameters. Please consider using arrays, or splitting the query in several ones, or using COPY. Given query has {1} parameters",
               maxSupportedParameters,
               parameterCount),
           PSQLState.INVALID_PARAMETER_VALUE);
