@@ -219,7 +219,7 @@ public class TypeInfoCache implements TypeInfo {
     // (keeping old behaviour of finding types, that should not be found without correct search
     // path)
     StringBuilder sql = new StringBuilder();
-    sql.append("SELECT typinput='array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
+    sql.append("SELECT typinput='pg_catalog.array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
     sql.append("  FROM pg_catalog.pg_type ");
     sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
     sql.append("          from pg_namespace as ns ");
