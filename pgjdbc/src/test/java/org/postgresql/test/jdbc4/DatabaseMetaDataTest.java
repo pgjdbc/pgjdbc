@@ -473,17 +473,17 @@ public class DatabaseMetaDataTest {
       lastType = type;
     }
   }
+
   @Test
   public void testGetSqlTypes() throws SQLException {
     try (Connection privileged = TestUtil.openPrivilegedDB()) {
       try (Statement stmt = privileged.createStatement()) {
         // create a function called array_in
-        stmt.execute("CREATE OR REPLACE FUNCTION public.array_in(anyarray, oid, integer)\n" +
-            " RETURNS anyarray\n" +
-            " LANGUAGE internal\n" +
-            " STABLE PARALLEL SAFE STRICT\n" +
-            "AS $function$array_in$function$\n" +
-            ";");
+        stmt.execute("CREATE OR REPLACE FUNCTION public.array_in(anyarray, oid, integer)\n"
+            + " RETURNS anyarray\n"
+            + " LANGUAGE internal\n"
+            + " STABLE PARALLEL SAFE STRICT\n"
+            + "AS $function$array_in$function$" );
       }
       DatabaseMetaData dbmd = privileged.getMetaData();
       ResultSet rs = dbmd.getTypeInfo();
