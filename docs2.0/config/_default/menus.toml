@@ -1,0 +1,25 @@
+### GLOBAL ITEMS
+
+[[global]]
+    name="Download"
+    weight=1
+    identifier="download"
+    url="/download/"
+
+[[global]]
+    name="Documentation"
+    weight=2
+    identifier="document"
+    url="/documentation/"
+
+[[global]]
+    name="Community"
+    weight=3
+    identifier="community"
+    url="/community/"
+
+[[global]]
+    name="Development"
+    weight=1
+    identifier="development"
+    url="/development/"

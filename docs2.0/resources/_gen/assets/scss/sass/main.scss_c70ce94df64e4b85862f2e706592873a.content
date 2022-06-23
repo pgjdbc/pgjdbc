@@ -1,0 +1,6 @@
+.nav {
+  background-color: #d3eaff; }
+
+.heading {
+  color: teal;
+  background-color: lightgoldenrodyellow; }

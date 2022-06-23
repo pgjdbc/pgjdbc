@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <base href="{{.Site.BaseURL}}">
+    <title>
+        {{ block "title" . }}
+        {{ .Site.Title }}
+        {{ end }}
+    </title>
+    {{ $sass := resources.Get "sass/main.scss" }}
+    {{ $style := $sass | resources.ToCSS | resources.Fingerprint }}
+    <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
+</head>
+
+<body>
+    {{partial "navbar" .}}
+    <main>
+        {{ block "main" . }}
+        <!-- The part of the page that begins to differ between templates -->
+        {{ end }}
+    </main>
+    <hr>
+    {{ partial "footer" . }}
+</body>
+
+</html>

@@ -1,0 +1,8 @@
+<nav class="nav">
+    {{ $currentPage := . }}
+    <a href="{{ .Site.BaseURL | relLangURL }}">Home</a>
+    {{ range .Site.Menus.main }}
+    <a class="nav__item{{if or ($currentPage.IsMenuCurrent " main" .) ($currentPage.HasMenuCurrent "main" .) }}
+        active{{end}}" href="{{ .URL }}" title="{{ .Title }}">{{ .Name }}</a>
+    {{ end }}
+</nav>
