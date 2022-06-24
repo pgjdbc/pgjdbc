@@ -1,7 +1,26 @@
-.nav {
-    background-color: rgb(211, 234, 255);
-}
-.heading {
-    color: teal;
-    background-color: lightgoldenrodyellow;
-}
+@import
+'abstracts/breakpoints',
+'abstracts/colors',
+'abstracts/functions',
+'abstracts/mixins',
+'abstracts/type',
+'abstracts/variables';
+
+@import
+  'base/font-face',
+  'base/reset',
+  'base/root',
+  'base/typography';
+
+@import
+  'layout/footer',
+  'layout/header',
+  'layout/navigation',
+  'layout/sidebar';
+
+@import
+  'components/buttons';
+
+@import
+  'pages/home',
+  'pages/docs';

@@ -1,7 +1,7 @@
 ---
 title: Large Objects
 date: 2022-06-19T22:46:55+05:30
-draft: true
+draft: false
 weight: 3
 ---
 

@@ -1,4 +1,3 @@
 baseURL = "http://localhost:1313/"
 languageCode = "en-us"
 title = "Pgjdbc"
-sectionPagesMenu = "main"
