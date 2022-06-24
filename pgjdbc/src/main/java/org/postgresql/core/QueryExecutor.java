@@ -336,11 +336,61 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int getProtocolVersion();
 
   /**
+   * Adds a single oid that should be received using binary encoding.
+   *
+   * @param oid The oid to request with binary encoding.
+   */
+  void addBinaryReceiveOid(int oid);
+
+  /**
+   * Remove given oid from the list of oids for binary receive encoding.
+   * <p>Note: the binary receive for the oid can be re-activated later.</p>
+   *
+   * @param oid The oid to request with binary encoding.
+   */
+  void removeBinaryReceiveOid(int oid);
+
+  /**
+   * Gets the oids that should be received using binary encoding.
+   * <p>Note: this returns an unmodifiable set, and its contents might not reflect the current state.</p>
+   *
+   * @return The oids to request with binary encoding.
+   * @deprecated the method returns a copy of the set, so it is not efficient. Use {@link #useBinaryForReceive(int)}
+   */
+  @Deprecated
+  Set<? extends Integer> getBinaryReceiveOids();
+
+  /**
    * Sets the oids that should be received using binary encoding.
    *
    * @param useBinaryForOids The oids to request with binary encoding.
    */
   void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
+
+  /**
+   * Adds a single oid that should be sent using binary encoding.
+   *
+   * @param oid The oid to send with binary encoding.
+   */
+  void addBinarySendOid(int oid);
+
+  /**
+   * Remove given oid from the list of oids for binary send encoding.
+   * <p>Note: the binary send for the oid can be re-activated later.</p>
+   *
+   * @param oid The oid to send with binary encoding.
+   */
+  void removeBinarySendOid(int oid);
+
+  /**
+   * Gets the oids that should be sent using binary encoding.
+   * <p>Note: this returns an unmodifiable set, and its contents might not reflect the current state.</p>
+   *
+   * @return useBinaryForOids The oids to send with binary encoding.
+   * @deprecated the method returns a copy of the set, so it is not efficient. Use {@link #useBinaryForSend(int)}
+   */
+  @Deprecated
+  Set<? extends Integer> getBinarySendOids();
 
   /**
    * Sets the oids that should be sent using binary encoding.

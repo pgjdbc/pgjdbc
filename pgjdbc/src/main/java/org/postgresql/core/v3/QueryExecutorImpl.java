@@ -2913,25 +2913,77 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  public void addBinaryReceiveOid(int oid) {
+    synchronized (useBinaryReceiveForOids) {
+      useBinaryReceiveForOids.add(oid);
+    }
+  }
+
+  @Override
+  public void removeBinaryReceiveOid(int oid) {
+    synchronized (useBinaryReceiveForOids) {
+      useBinaryReceiveForOids.remove(oid);
+    }
+  }
+
+  @Override
+  public Set<? extends Integer> getBinaryReceiveOids() {
+    // copy the values to prevent ConcurrentModificationException when reader accesses the elements
+    synchronized (useBinaryReceiveForOids) {
+      return new HashSet<>(useBinaryReceiveForOids);
+    }
+  }
+
+  @Override
   public boolean useBinaryForReceive(int oid) {
-    return useBinaryReceiveForOids.contains(oid);
+    synchronized (useBinaryReceiveForOids) {
+      return useBinaryReceiveForOids.contains(oid);
+    }
   }
 
   @Override
   public void setBinaryReceiveOids(Set<Integer> oids) {
-    useBinaryReceiveForOids.clear();
-    useBinaryReceiveForOids.addAll(oids);
+    synchronized (useBinaryReceiveForOids) {
+      useBinaryReceiveForOids.clear();
+      useBinaryReceiveForOids.addAll(oids);
+    }
+  }
+
+  @Override
+  public void addBinarySendOid(int oid) {
+    synchronized (useBinarySendForOids) {
+      useBinarySendForOids.add(oid);
+    }
+  }
+
+  @Override
+  public void removeBinarySendOid(int oid) {
+    synchronized (useBinarySendForOids) {
+      useBinarySendForOids.remove(oid);
+    }
+  }
+
+  @Override
+  public Set<? extends Integer> getBinarySendOids() {
+    // copy the values to prevent ConcurrentModificationException when reader accesses the elements
+    synchronized (useBinarySendForOids) {
+      return new HashSet<>(useBinarySendForOids);
+    }
   }
 
   @Override
   public boolean useBinaryForSend(int oid) {
-    return useBinarySendForOids.contains(oid);
+    synchronized (useBinarySendForOids) {
+      return useBinarySendForOids.contains(oid);
+    }
   }
 
   @Override
   public void setBinarySendOids(Set<Integer> oids) {
-    useBinarySendForOids.clear();
-    useBinarySendForOids.addAll(oids);
+    synchronized (useBinarySendForOids) {
+      useBinarySendForOids.clear();
+      useBinarySendForOids.addAll(oids);
+    }
   }
 
   private void setIntegerDateTimes(boolean state) {
