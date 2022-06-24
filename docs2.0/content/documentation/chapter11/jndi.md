@@ -2,7 +2,10 @@
 title: Data Sources and JNDI
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 4
+menu:
+  docs:
+    parent: "chapter11"
+    weight: 4
 ---
 
 All the `ConnectionPoolDataSource` and `DataSource` implementations can be stored

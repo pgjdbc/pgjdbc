@@ -2,7 +2,10 @@
 title: Server Prepared Statements
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 5
+menu:
+  docs:
+    parent: "chapter9"
+    weight: 5
 ---
 
 ### Motivation

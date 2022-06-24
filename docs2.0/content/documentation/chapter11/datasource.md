@@ -2,7 +2,10 @@
 title: Connection Pools and Data Sources
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 1
+menu:
+  docs:
+    parent: "chapter11"
+    weight: 1
 ---
 
 JDBC 2 introduced standard connection pooling features in an add-on API known as

@@ -1,20 +1,22 @@
-<nav class="sidebar sidebar-hidden" id="site-sidebar">
-    <ul>
-      {{ $section := .Section }}
-      {{ range .Sections.ByWeight }}
-        <li class="sidebar-section">
-          <a href="{{ .Permalink | relLangURL }}"
-             {{ if eq .FirstSection $section }}id="sidebar-focus" class="sidebar-focus"{{end}}>{{ .Name }}</a>
-          <div class="sidebar-pages">
-            <ul>
-              {{ range .Pages.ByWeight }}
-                <li class="sidebar-page">
-                  <a href="{{ .Permalink | relLangURL }}">{{ .Name }}</a>
-                </li>
-              {{ end }}
-            </ul>
-          </div>
-        </li>
-      {{ end }}
-    </ul>
+{{ $currentPage := . }}
+<nav role="navigation">
+  <ul>
+    {{ range .Site.Menus.docs.ByWeight }}
+      <li>
+        <a href="{{ if .HasChildren }}javascript:void(0){{ else }}{{ .URL }}{{ end }}">{{ .Name }}</a>
+
+        {{- if .HasChildren }}
+        <ul>
+          {{- range .Children }}
+          <li>
+            <a href="{{.URL}}">
+              {{ .Name }}
+            </a>
+          </li>
+          {{- end}}
+        </ul>
+        {{- end}}
+      </li>
+    {{- end}}
+  </ul>
 </nav>

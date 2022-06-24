@@ -2,7 +2,10 @@
 title: Custom SSLSocketFactory
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 3
+menu:
+  docs:
+    parent: "chapter4"
+    weight: 3
 ---
 
 PostgreSQL™ provides a way for developers to customize how a SSL connection is

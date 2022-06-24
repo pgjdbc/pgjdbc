@@ -2,7 +2,10 @@
 title: Issuing a Query and Processing the Result
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 1
+menu:
+  docs:
+    parent: "chapter5"
+    weight: 1
 ---
 
 Any time you want to issue SQL statements to the database, you require a `Statement`

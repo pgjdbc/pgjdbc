@@ -2,7 +2,10 @@
 title: Listen / Notify
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 4
+menu:
+  docs:
+    parent: "chapter9"
+    weight: 4
 ---
 
 Listen and Notify provide a simple form of signal or interprocess communication

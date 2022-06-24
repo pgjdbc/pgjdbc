@@ -2,7 +2,10 @@
 title: Using the Statement or PreparedStatement Interface
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 2
+menu:
+  docs:
+    parent: "chapter5"
+    weight: 2
 ---
 
 The following must be considered when using the `Statement` or `PreparedStatement`

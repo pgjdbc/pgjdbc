@@ -2,7 +2,10 @@
 title: Configuring the Client
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 2
+menu:
+  docs:
+    parent: "chapter4"
+    weight: 2
 ---
 
 There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](connect.html#ssl)

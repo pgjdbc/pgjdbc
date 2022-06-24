@@ -2,7 +2,10 @@
 title: Application Servers ConnectionPoolDataSource
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 2
+menu:
+  docs:
+    parent: "chapter11"
+    weight: 2
 ---
 
 PostgreSQL™ includes one implementation of `ConnectionPoolDataSource` named

@@ -2,7 +2,10 @@
 title: Creating a Database
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 4
+menu:
+  docs:
+    parent: "chapter2"
+    weight: 4
 ---
 
 When creating a database to be accessed via JDBC it is important to select an

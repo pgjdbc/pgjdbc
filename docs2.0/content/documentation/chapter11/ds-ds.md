@@ -2,7 +2,10 @@
 title: Applications DataSource
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 3
+menu:
+  docs:
+    parent: "chapter11"
+    weight: 3
 ---
 
 PostgreSQL™ includes two implementations of `DataSource`, as shown in [Table 11.2, “`DataSource` Implementations”](ds-ds.html#ds-ds-imp).
