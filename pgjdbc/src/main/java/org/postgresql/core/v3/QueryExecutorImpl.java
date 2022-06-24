@@ -2913,6 +2913,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  public void addBinaryReceiveOid(int oid) {
+    useBinaryReceiveForOids.add(oid);
+  }
+
+  @Override
+  public Set<Integer> getBinaryReceiveOids() {
+    return useBinaryReceiveForOids;
+  }
+
+  @Override
   public boolean useBinaryForReceive(int oid) {
     return useBinaryReceiveForOids.contains(oid);
   }
@@ -2921,6 +2931,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void setBinaryReceiveOids(Set<Integer> oids) {
     useBinaryReceiveForOids.clear();
     useBinaryReceiveForOids.addAll(oids);
+  }
+
+  @Override
+  public void addBinarySendOid(int oid) {
+    useBinarySendForOids.add(oid);
+  }
+
+  @Override
+  public Set<Integer> getBinarySendOids() {
+    return useBinarySendForOids;
   }
 
   @Override

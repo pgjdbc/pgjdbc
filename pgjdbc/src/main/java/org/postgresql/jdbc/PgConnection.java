@@ -160,6 +160,12 @@ public class PgConnection implements BaseConnection {
   // Default forcebinary option.
   protected boolean forcebinary = false;
 
+  /**
+   * Oids for which binary transfer should be disabled or null, if no oids should be disabled.
+   */
+  @Nullable
+  private final Set<Integer> binaryDisabledOids;
+
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId = 0;
   // Connection's autocommit state.
@@ -261,7 +267,14 @@ public class PgConnection implements BaseConnection {
 
     this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
 
-    Set<Integer> binaryOids = getBinaryOids(info);
+    // get oids that support binary transfer
+    Set<Integer> binaryOids = getBinaryEnabledOids(info);
+    // get oids that should be disabled from transfer
+    binaryDisabledOids = getBinaryDisabledOids(info);
+    // if there are any, remove them from the enabled ones
+    if (binaryDisabledOids != null) {
+      binaryOids.removeAll(binaryDisabledOids);
+    }
 
     // split for receive and send for better control
     Set<Integer> useBinarySendForOids = new HashSet<Integer>(binaryOids);
@@ -388,24 +401,45 @@ public class PgConnection implements BaseConnection {
         Oid.UUID));
   }
 
-  private static Set<Integer> getBinaryOids(Properties info) throws PSQLException {
+  /**
+   * Gets all oids for which binary transfer can be enabled.
+   *
+   * @param info properties
+   * @return oids for which binary transfer can be enabled
+   * @throws PSQLException if any oid is not valid
+   */
+  private static Set<Integer> getBinaryEnabledOids(Properties info) throws PSQLException {
+    // check if binary transfer should be enabled for built-in types
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
-    // Formats that currently have binary protocol support
+    // get formats that currently have binary protocol support
     Set<Integer> binaryOids = new HashSet<Integer>(32);
     if (binaryTransfer) {
       binaryOids.addAll(SUPPORTED_BINARY_OIDS);
     }
-
+    // add all oids which are enabled for binary transfer by the creator of the connection
     String oids = PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info);
     if (oids != null) {
       binaryOids.addAll(getOidSet(oids));
     }
-    oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
-    if (oids != null) {
-      binaryOids.removeAll(getOidSet(oids));
-    }
-
     return binaryOids;
+  }
+
+  /**
+   * Gets all oids for which binary transfer should be disabled.
+   *
+   * @param info properties
+   * @return oids for which binary transfer should be disabled or null, if no oids should be
+   *         disabled
+   * @throws PSQLException if any oid is not valid
+   */
+  private static @Nullable Set<Integer> getBinaryDisabledOids(Properties info)
+      throws PSQLException {
+    // check for oids that should explicitly be disabled
+    String oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
+    if (oids != null) {
+      return new HashSet<Integer>(getOidSet(oids));
+    }
+    return null;
   }
 
   private static Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -714,7 +748,19 @@ public class PgConnection implements BaseConnection {
   @Override
   public void addDataType(String type, Class<? extends PGobject> klass) throws SQLException {
     checkClosed();
+    // first add the data type to the type cache
     typeCache.addDataType(type, klass);
+    // then check if this type supports binary transfer
+    if (PGBinaryObject.class.isAssignableFrom(klass)) {
+      // try to get an oid for this type (will return 0 if the type does not exist in the database)
+      int oid = typeCache.getPGType(type);
+      // check if oid is there and if it is not disabled for binary transfer
+      if ((oid > 0) && ((binaryDisabledOids == null) || !binaryDisabledOids.contains(oid))) {
+        // allow using binary transfer for receiving and sending of this type
+        queryExecutor.addBinaryReceiveOid(oid);
+        queryExecutor.addBinarySendOid(oid);
+      }
+    }
   }
 
   // This initialises the objectTypes hash map

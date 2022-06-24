@@ -336,11 +336,39 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int getProtocolVersion();
 
   /**
+   * Adds a single oid that should be received using binary encoding.
+   *
+   * @param oid The oid to request with binary encoding.
+   */
+  void addBinaryReceiveOid(int oid);
+
+  /**
+   * Gets the oids that should be received using binary encoding.
+   *
+   * @return The oids to request with binary encoding.
+   */
+  Set<Integer> getBinaryReceiveOids();
+
+  /**
    * Sets the oids that should be received using binary encoding.
    *
    * @param useBinaryForOids The oids to request with binary encoding.
    */
   void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
+
+  /**
+   * Adds a single oid that should be sent using binary encoding.
+   *
+   * @param oid The oid to send with binary encoding.
+   */
+  void addBinarySendOid(int oid);
+
+  /**
+   * Gets the oids that should be sent using binary encoding.
+   *
+   * @return useBinaryForOids The oids to send with binary encoding.
+   */
+  Set<Integer> getBinarySendOids();
 
   /**
    * Sets the oids that should be sent using binary encoding.
