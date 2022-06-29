@@ -2,6 +2,7 @@
 title: Escaped scalar functions
 date: 2022-06-19T22:46:55+05:30
 draft: false
+weight: 23
 menu:
   docs:
     parent: "chapter8"

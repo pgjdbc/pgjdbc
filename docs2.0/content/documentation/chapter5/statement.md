@@ -2,6 +2,7 @@
 title: Using the Statement or PreparedStatement Interface
 date: 2022-06-19T22:46:55+05:30
 draft: false
+weight: 13
 menu:
   docs:
     parent: "chapter5"

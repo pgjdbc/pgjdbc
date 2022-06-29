@@ -2,8 +2,6 @@
 {{ .Site.Title }} | {{ .Title }}
 {{ end }}
 {{ define "main" }}
-<article>
-    <h1>{{ .Title }}</h1>
-    <p>{{ .Content }}</p>
-</article>
+    {{- partial "docsLayout" . -}}
+    {{- partial "previous-next-links.html" . -}}
 {{ end }}

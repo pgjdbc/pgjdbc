@@ -2,22 +2,12 @@
 title: PostgreSQL™ Extensions to the JDBC API
 date: 2022-06-19T22:46:55+05:30
 draft: false
+weight: 24
 menu:
   docs:
     parent: "chapter9"
     weight: 1
 ---
-
-**Table of Contents**
-
-* [Accessing the Extensions](ext.html#extensions)
-* [Geometric Data Types](geometric.html)
-* [Large Objects](largeobjects.html)
-* [Listen / Notify](listennotify.html)
-* [Server Prepared Statements](server-prepare.html)
-* [Parameter Status Messages](parameterstatus.html)
-* [Physical and Logical replication API](replication.html)
-* [Arrays](arrays.html)
 
 PostgreSQL™ is an extensible database system. You can add your own functions to
 the server, which can then be called from queries, or even add your own data types.

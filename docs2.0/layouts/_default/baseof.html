@@ -17,14 +17,14 @@
 </head>
 
 <body>
-    {{partial "navbar" .}}
+    {{- partial "navbar" . -}}
     <main>
         {{ block "main" . }}
         <!-- The part of the page that begins to differ between templates -->
         {{ end }}
     </main>
     <hr>
-    {{ partial "footer" . }}
+    {{- partial "footer" . -}}
 </body>
 
 </html>

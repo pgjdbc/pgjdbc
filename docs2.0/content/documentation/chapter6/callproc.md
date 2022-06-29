@@ -2,6 +2,7 @@
 title: Calling Stored Functions and Procedures
 date: 2022-06-19T22:46:55+05:30
 draft: false
+weight: 18
 menu:
   docs:
     parent: "chapter6"

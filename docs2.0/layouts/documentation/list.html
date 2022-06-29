@@ -1,7 +1,6 @@
+{{ define "title" }}
+{{ .Site.Title }} | {{ .Title }}
+{{ end }}
 {{ define "main" }}
-<article>
-    <h1 class="heading">{{.Name}}</h1>
-    <p>{{.Content}}</p>
-</article>
-{{ partial "sidebar" . }}
+    {{- partial "docsLayout" . -}}
 {{ end }}

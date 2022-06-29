@@ -1,10 +1,8 @@
-{{ $currentPage := . }}
 <nav role="navigation">
   <ul>
     {{ range .Site.Menus.docs.ByWeight }}
       <li>
-        <a href="{{ if .HasChildren }}javascript:void(0){{ else }}{{ .URL }}{{ end }}">{{ .Name }}</a>
-
+        <a href="{{ .URL }}">{{ .Name }}</a>
         {{- if .HasChildren }}
         <ul>
           {{- range .Children }}
