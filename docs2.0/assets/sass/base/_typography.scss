@@ -1,0 +1,78 @@
+* { // this is a bad idea, but works for now
+    font-variation-settings:
+      'wght' var(--font-weight, 375),
+      'wdth' var(--font-width, 80);
+  }
+
+  body {
+    font-size: var(--fs-400);
+    font-family: 'Inria Sans', sans-serif;
+    color: var(--clr-neutral-900);
+    letter-spacing: -.5px;
+  }
+
+  h1, h2, h3, h4 {
+    --font-weight: 700;
+    --font-width: 80;
+    font-weight: normal;
+    font-stretch: 100%;
+    line-height: 1.1;
+    color: var(--clr-neutral-800);
+  }
+
+  h1 {
+    --font-weight: 900;
+    color: var(--clr, var(--clr-primary-400));
+  }
+
+  // This is setting the font-sizes
+  // based on the ones in the abstract
+  // folder, go there to make updates
+
+  h1,
+  .h1 {
+    font-size: --fs-800;
+  }
+
+  h2,
+  .h2 {
+    --flow-spacer: 1.5em;
+    font-size: --fs-700;
+  }
+  h3,
+  .h3 {
+    --flow-spacer: 1.5em;
+    font-size: --fs-600;
+  }
+
+  h4,
+  .h4 {
+    font-size: --fs-500;
+  }
+
+  small,
+  .text-small {
+    font-size: var(--fs-300);
+  }
+
+  strong {
+    --font-weight: 500;
+    font-weight: normal;
+    }
+
+  a {
+    color: var(--clr-primary-400);
+    text-decoration: none;
+
+    &:hover,
+    &:focus {
+      color: var(--clr-primary-500);
+      text-decoration: underline;
+    }
+  }
+
+  p:not([class]),
+  ul:not([class]),
+  li:not([class]) {
+    max-width: 60ch;
+  }

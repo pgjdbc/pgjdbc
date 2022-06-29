@@ -1,0 +1,11 @@
+{{ $pages := where .Site.RegularPages "Section" .Section }}
+
+{{ with $pages.ByWeight.Next . }}
+	<a title="Next page in {{ .Page.Title }}" href="{{ .Permalink }}">{{.Title}} | {{ .Weight }}</a>
+{{ end }}
+
+-----------------------------
+
+{{ with $pages.ByWeight.Prev . }}
+	<a title="Previous page in {{ .Page.Title }}" href="{{ .Permalink }}">{{.Title}} | {{ .Weight }}</a>
+{{ end }}

@@ -1,0 +1,34 @@
+@import '../abstracts/breakpoints';
+@import '../abstracts/colors';
+@import '../abstracts/mixins';
+@import '../abstracts/variables';
+@import '../abstracts/type';
+
+
+:root {
+  --section-spacing: 3.5rem;
+  @include mq(medium) {
+    --section-spacing: 7rem;
+  }
+  @each $color, $shade in $colors {
+
+    @each $prop, $value in $shade {
+      --clr-#{$color}-#{$prop}: #{$value};
+    }
+  }
+
+  @each $screen-size, $property in $type-scale {
+    @if $screen-size == small {
+      @each $prop, $value in $property {
+        --fs-#{$prop}: #{$value};
+      }
+    } @else {
+      @include mq(small) {
+        @each $prop,
+        $value in $property {
+          --fs-#{$prop}: #{$value};
+        }
+      }
+    }
+  }
+}

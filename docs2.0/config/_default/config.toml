@@ -1,0 +1,6 @@
+baseURL = "http://localhost:1313/"
+languageCode = "en-us"
+title = "Pgjdbc"
+[permalinks]
+    posts = "/:year/:month/:slug/"
+    page = "/:slug/"
