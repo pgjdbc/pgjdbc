@@ -1,0 +1,125 @@
+<!doctype html><html><head><meta charset=utf-8><base href=http://localhost:1313/><title>Pgjdbc | Listen / Notify</title><link rel=stylesheet href=http://localhost:1313/sass/main.4444731f7116386ab6822ca30bdfcce309f779d0e912deceb72a9585a99593b4.css integrity="sha256-RERzH3EWOGq2giyjC9/M4wn3edDpEt7OtyqVhamVk7Q="><link rel=icon href=favicon.ico type=image/x-icon><link rel="shortcut icon" href=favicon.ico type=image/x-icon></head><body><nav class=nav><a href=/>Home</a>
+<a class=nav__item href=/development/>Development</a>
+<a class=nav__item href=/download/>Download</a>
+<a class=nav__item href=/documentation/>Documentation</a>
+<a class=nav__item href=/community/>Community</a></nav><main><div><nav role=navigation><ul><li><a href=/documentation/chapter1/>Introduction</a><ul><li><a href=/documentation/chapter1/intro/>Introduction</a></li></ul></li><li><a href=/documentation/chapter2/>Setting up the JDBC Driver</a><ul><li><a href=/documentation/chapter2/setup/>Setting up the JDBC Driver</a></li><li><a href=/documentation/chapter2/classpath/>Setting up the Class Path</a></li><li><a href=/documentation/chapter2/prepare/>Preparing the Database Server for JDBC</a></li><li><a href=/documentation/chapter2/your-database/>Creating a Database</a></li></ul></li><li><a href=/documentation/chapter3/>Initializing the Driver</a><ul><li><a href=/documentation/chapter3/use/>Initializing the Driver</a></li><li><a href=/documentation/chapter3/load/>Loading the Driver</a></li><li><a href=/documentation/chapter3/connect/>Connecting to the Database</a></li></ul></li><li><a href=/documentation/chapter4/>Using SSL</a><ul><li><a href=/documentation/chapter4/ssl/>Using SSL</a></li><li><a href=/documentation/chapter4/ssl-client/>Configuring the Client</a></li><li><a href=/documentation/chapter4/ssl-factory/>Custom SSLSocketFactory</a></li></ul></li><li><a href=/documentation/chapter5/>Issuing a Query and Processing the Result</a><ul><li><a href=/documentation/chapter5/query/>Issuing a Query and Processing the Result</a></li><li><a href=/documentation/chapter5/statement/>Using the Statement or PreparedStatement Interface</a></li><li><a href=/documentation/chapter5/resultset/>Using the ResultSet Interface</a></li><li><a href=/documentation/chapter5/update/>Performing Updates</a></li><li><a href=/documentation/chapter5/ddl/>Creating and Modifying Database Objects</a></li><li><a href=/documentation/chapter5/java8-date-time/>Using Java 8 Date and Time classes</a></li></ul></li><li><a href=/documentation/chapter6/>Calling Stored Functions and Procedures</a><ul><li><a href=/documentation/chapter6/callproc/>Calling Stored Functions and Procedures</a></li></ul></li><li><a href=/documentation/chapter7/>Storing Binary Data</a><ul><li><a href=/documentation/chapter7/binary-data/>Storing Binary Data</a></li></ul></li><li><a href=/documentation/chapter8/>JDBC escapes</a><ul><li><a href=/documentation/chapter8/escapes/>JDBC escapes</a></li><li><a href=/documentation/chapter8/outer-joins-escape/>Escape for outer joins</a></li><li><a href=/documentation/chapter8/escapes-datetime/>Date-time escapes</a></li><li><a href=/documentation/chapter8/escaped-functions/>Escaped scalar functions</a></li></ul></li><li><a href=/documentation/chapter9/>PostgreSQL™ Extensions to the JDBC API</a><ul><li><a href=/documentation/chapter9/ext/>PostgreSQL™ Extensions to the JDBC API</a></li><li><a href=/documentation/chapter9/geometric/>Geometric Data Types</a></li><li><a href=/documentation/chapter9/largeobjects/>Large Objects</a></li><li><a href=/documentation/chapter9/listennotify/>Listen / Notify</a></li><li><a href=/documentation/chapter9/server-prepare/>Server Prepared Statements</a></li><li><a href=/documentation/chapter9/parameterstatus/>Parameter Status Messages</a></li><li><a href=/documentation/chapter9/replication/>Physical and Logical replication API</a></li><li><a href=/documentation/chapter9/arrays/>Arrays</a></li></ul></li><li><a href=/documentation/chapter10/>Using the Driver in a Multithreaded or a Servlet Environment</a><ul><li><a href=/documentation/chapter10/thread/>Using the Driver in a Multithreaded or a Servlet Environment</a></li></ul></li><li><a href=/documentation/chapter11/>Connection Pools and Data Sources</a><ul><li><a href=/documentation/chapter11/datasource/>Connection Pools and Data Sources</a></li><li><a href=/documentation/chapter11/ds-cpds/>Application Servers ConnectionPoolDataSource</a></li><li><a href=/documentation/chapter11/ds-ds/>Applications DataSource</a></li><li><a href=/documentation/chapter11/jndi/>Data Sources and JNDI</a></li><li><a href=/documentation/chapter11/tomcat/>Tomcat setup</a></li></ul></li><li><a href=/documentation/chapter12/>Logging using java.util.logging</a><ul><li><a href=/documentation/chapter12/logging/>Logging using java.util.logging</a></li></ul></li><li><a href=/documentation/chapter13/>Further Reading</a><ul><li><a href=/documentation/chapter13/reading/>Further Reading</a></li></ul></li></ul></nav><article><h1>Listen / Notify</h1><p><p>Listen and Notify provide a simple form of signal or interprocess communication
+mechanism for a collection of processes accessing the same PostgreSQL™ database.
+For more information on notifications consult the main server documentation. This
+section only deals with the JDBC specific aspects of notifications.</p><p>Standard <code>LISTEN</code>, <code>NOTIFY</code>, and <code>UNLISTEN</code> commands are issued via the standard
+<code>Statement</code> interface. To retrieve and process retrieved notifications the
+<code>Connection</code> must be cast to the PostgreSQL™ specific extension interface
+<code>PGConnection</code>. From there the <code>getNotifications()</code> method can be used to retrieve
+any outstanding notifications.</p><h3 id=note>Note</h3><blockquote><p>A key limitation of the JDBC driver is that it cannot receive asynchronous
+notifications and must poll the backend to check if any notifications were issued.
+A timeout can be given to the poll function, but then the execution of statements
+from other threads will block.</p></blockquote><p><strong>Example 9.2. Receiving Notifications</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#f92672>import</span> java.sql.*<span style=color:#f92672>;</span>
+
+<span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>NotificationTest</span>
+<span style=color:#f92672>{</span>
+	<span style=color:#66d9ef>public</span> <span style=color:#66d9ef>static</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>main</span><span style=color:#f92672>(</span>String args<span style=color:#f92672>[])</span> <span style=color:#66d9ef>throws</span> Exception
+	<span style=color:#f92672>{</span>
+		Class<span style=color:#f92672>.</span><span style=color:#a6e22e>forName</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;org.postgresql.Driver&#34;</span><span style=color:#f92672>);</span>
+		String url <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;jdbc:postgresql://localhost:5432/test&#34;</span><span style=color:#f92672>;</span>
+
+		<span style=color:#75715e>// Create two distinct connections, one for the notifier
+</span><span style=color:#75715e></span>		<span style=color:#75715e>// and another for the listener to show the communication
+</span><span style=color:#75715e></span>		<span style=color:#75715e>// works across connections although this example would
+</span><span style=color:#75715e></span>		<span style=color:#75715e>// work fine with just one connection.
+</span><span style=color:#75715e></span>
+		Connection lConn <span style=color:#f92672>=</span> DriverManager<span style=color:#f92672>.</span><span style=color:#a6e22e>getConnection</span><span style=color:#f92672>(</span>url<span style=color:#f92672>,</span><span style=color:#e6db74>&#34;test&#34;</span><span style=color:#f92672>,</span><span style=color:#e6db74>&#34;&#34;</span><span style=color:#f92672>);</span>
+		Connection nConn <span style=color:#f92672>=</span> DriverManager<span style=color:#f92672>.</span><span style=color:#a6e22e>getConnection</span><span style=color:#f92672>(</span>url<span style=color:#f92672>,</span><span style=color:#e6db74>&#34;test&#34;</span><span style=color:#f92672>,</span><span style=color:#e6db74>&#34;&#34;</span><span style=color:#f92672>);</span>
+
+		<span style=color:#75715e>// Create two threads, one to issue notifications and
+</span><span style=color:#75715e></span>		<span style=color:#75715e>// the other to receive them.
+</span><span style=color:#75715e></span>
+		Listener listener <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> Listener<span style=color:#f92672>(</span>lConn<span style=color:#f92672>);</span>
+		Notifier notifier <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> Notifier<span style=color:#f92672>(</span>nConn<span style=color:#f92672>);</span>
+		listener<span style=color:#f92672>.</span><span style=color:#a6e22e>start</span><span style=color:#f92672>();</span>
+		notifier<span style=color:#f92672>.</span><span style=color:#a6e22e>start</span><span style=color:#f92672>();</span>
+	<span style=color:#f92672>}</span>
+<span style=color:#f92672>}</span>
+
+<span style=color:#66d9ef>class</span> <span style=color:#a6e22e>Listener</span> <span style=color:#66d9ef>extends</span> Thread
+<span style=color:#f92672>{</span>
+	<span style=color:#66d9ef>private</span> Connection conn<span style=color:#f92672>;</span>
+	<span style=color:#66d9ef>private</span> org<span style=color:#f92672>.</span><span style=color:#a6e22e>postgresql</span><span style=color:#f92672>.</span><span style=color:#a6e22e>PGConnection</span> pgconn<span style=color:#f92672>;</span>
+
+	Listener<span style=color:#f92672>(</span>Connection conn<span style=color:#f92672>)</span> <span style=color:#66d9ef>throws</span> SQLException
+	<span style=color:#f92672>{</span>
+		<span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>conn</span> <span style=color:#f92672>=</span> conn<span style=color:#f92672>;</span>
+		<span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>pgconn</span> <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>unwrap</span><span style=color:#f92672>(</span>org<span style=color:#f92672>.</span><span style=color:#a6e22e>postgresql</span><span style=color:#f92672>.</span><span style=color:#a6e22e>PGConnection</span><span style=color:#f92672>.</span><span style=color:#a6e22e>class</span><span style=color:#f92672>);</span>
+		Statement stmt <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>createStatement</span><span style=color:#f92672>();</span>
+		stmt<span style=color:#f92672>.</span><span style=color:#a6e22e>execute</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;LISTEN mymessage&#34;</span><span style=color:#f92672>);</span>
+		stmt<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+	<span style=color:#f92672>}</span>
+
+	<span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>run</span><span style=color:#f92672>()</span>
+	<span style=color:#f92672>{</span>
+		<span style=color:#66d9ef>try</span>
+		<span style=color:#f92672>{</span>
+			<span style=color:#66d9ef>while</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>true</span><span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span>
+				org<span style=color:#f92672>.</span><span style=color:#a6e22e>postgresql</span><span style=color:#f92672>.</span><span style=color:#a6e22e>PGNotification</span> notifications<span style=color:#f92672>[]</span> <span style=color:#f92672>=</span> pgconn<span style=color:#f92672>.</span><span style=color:#a6e22e>getNotifications</span><span style=color:#f92672>();</span>
+
+				<span style=color:#75715e>// If this thread is the only one that uses the connection, a timeout can be used to
+</span><span style=color:#75715e></span>				<span style=color:#75715e>// receive notifications immediately:
+</span><span style=color:#75715e></span>				<span style=color:#75715e>// org.postgresql.PGNotification notifications[] = pgconn.getNotifications(10000);
+</span><span style=color:#75715e></span>
+				<span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>notifications <span style=color:#f92672>!=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span>
+				<span style=color:#f92672>{</span>
+					<span style=color:#66d9ef>for</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>int</span> i<span style=color:#f92672>=</span>0<span style=color:#f92672>;</span> i <span style=color:#f92672>&lt;</span> notifications<span style=color:#f92672>.</span><span style=color:#a6e22e>length</span><span style=color:#f92672>;</span> i<span style=color:#f92672>++)</span>
+						System<span style=color:#f92672>.</span><span style=color:#a6e22e>out</span><span style=color:#f92672>.</span><span style=color:#a6e22e>println</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;Got notification: &#34;</span> <span style=color:#f92672>+</span> notifications<span style=color:#f92672>[</span>i<span style=color:#f92672>].</span><span style=color:#a6e22e>getName</span><span style=color:#f92672>());</span>
+				<span style=color:#f92672>}</span>
+
+				<span style=color:#75715e>// wait a while before checking again for new
+</span><span style=color:#75715e></span>				<span style=color:#75715e>// notifications
+</span><span style=color:#75715e></span>
+				Thread<span style=color:#f92672>.</span><span style=color:#a6e22e>sleep</span><span style=color:#f92672>(</span>500<span style=color:#f92672>);</span>
+			<span style=color:#f92672>}</span>
+		<span style=color:#f92672>}</span>
+		<span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>SQLException sqle<span style=color:#f92672>)</span>
+		<span style=color:#f92672>{</span>
+			sqle<span style=color:#f92672>.</span><span style=color:#a6e22e>printStackTrace</span><span style=color:#f92672>();</span>
+		<span style=color:#f92672>}</span>
+		<span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>InterruptedException ie<span style=color:#f92672>)</span>
+		<span style=color:#f92672>{</span>
+			ie<span style=color:#f92672>.</span><span style=color:#a6e22e>printStackTrace</span><span style=color:#f92672>();</span>
+		<span style=color:#f92672>}</span>
+	<span style=color:#f92672>}</span>
+<span style=color:#f92672>}</span>
+
+<span style=color:#66d9ef>class</span> <span style=color:#a6e22e>Notifier</span> <span style=color:#66d9ef>extends</span> Thread
+<span style=color:#f92672>{</span>
+	<span style=color:#66d9ef>private</span> Connection conn<span style=color:#f92672>;</span>
+
+	<span style=color:#66d9ef>public</span> <span style=color:#a6e22e>Notifier</span><span style=color:#f92672>(</span>Connection conn<span style=color:#f92672>)</span>
+	<span style=color:#f92672>{</span>
+		<span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>conn</span> <span style=color:#f92672>=</span> conn<span style=color:#f92672>;</span>
+	<span style=color:#f92672>}</span>
+
+	<span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>run</span><span style=color:#f92672>()</span>
+	<span style=color:#f92672>{</span>
+		<span style=color:#66d9ef>while</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>true</span><span style=color:#f92672>)</span>
+		<span style=color:#f92672>{</span>
+			<span style=color:#66d9ef>try</span>
+			<span style=color:#f92672>{</span>
+				Statement stmt <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>createStatement</span><span style=color:#f92672>();</span>
+				stmt<span style=color:#f92672>.</span><span style=color:#a6e22e>execute</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;NOTIFY mymessage&#34;</span><span style=color:#f92672>);</span>
+				stmt<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+				Thread<span style=color:#f92672>.</span><span style=color:#a6e22e>sleep</span><span style=color:#f92672>(</span>2000<span style=color:#f92672>);</span>
+			<span style=color:#f92672>}</span>
+			<span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>SQLException sqle<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span>
+				sqle<span style=color:#f92672>.</span><span style=color:#a6e22e>printStackTrace</span><span style=color:#f92672>();</span>
+			<span style=color:#f92672>}</span>
+			<span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>InterruptedException ie<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span>
+				ie<span style=color:#f92672>.</span><span style=color:#a6e22e>printStackTrace</span><span style=color:#f92672>();</span>
+			<span style=color:#f92672>}</span>
+		<span style=color:#f92672>}</span>
+	<span style=color:#f92672>}</span>
+
+<span style=color:#f92672>}</span>
+</code></pre></div></p></article></div><a title="Next page in Large Objects" href=http://localhost:1313/documentation/chapter9/largeobjects/>Large Objects | 26</a>
+-----------------------------
+<a title="Previous page in Server Prepared Statements" href=http://localhost:1313/documentation/chapter9/server-prepare/>Server Prepared Statements | 28</a></main><hr><footer><div><p>Copyright © 1996-2022 The PostgreSQL Global Development Group</p></div></footer></body></html>

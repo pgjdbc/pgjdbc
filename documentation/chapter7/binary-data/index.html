@@ -1,0 +1,130 @@
+<!doctype html><html><head><meta charset=utf-8><base href=http://localhost:1313/><title>Pgjdbc | Storing Binary Data</title><link rel=stylesheet href=http://localhost:1313/sass/main.4444731f7116386ab6822ca30bdfcce309f779d0e912deceb72a9585a99593b4.css integrity="sha256-RERzH3EWOGq2giyjC9/M4wn3edDpEt7OtyqVhamVk7Q="><link rel=icon href=favicon.ico type=image/x-icon><link rel="shortcut icon" href=favicon.ico type=image/x-icon></head><body><nav class=nav><a href=/>Home</a>
+<a class=nav__item href=/development/>Development</a>
+<a class=nav__item href=/download/>Download</a>
+<a class=nav__item href=/documentation/>Documentation</a>
+<a class=nav__item href=/community/>Community</a></nav><main><div><nav role=navigation><ul><li><a href=/documentation/chapter1/>Introduction</a><ul><li><a href=/documentation/chapter1/intro/>Introduction</a></li></ul></li><li><a href=/documentation/chapter2/>Setting up the JDBC Driver</a><ul><li><a href=/documentation/chapter2/setup/>Setting up the JDBC Driver</a></li><li><a href=/documentation/chapter2/classpath/>Setting up the Class Path</a></li><li><a href=/documentation/chapter2/prepare/>Preparing the Database Server for JDBC</a></li><li><a href=/documentation/chapter2/your-database/>Creating a Database</a></li></ul></li><li><a href=/documentation/chapter3/>Initializing the Driver</a><ul><li><a href=/documentation/chapter3/use/>Initializing the Driver</a></li><li><a href=/documentation/chapter3/load/>Loading the Driver</a></li><li><a href=/documentation/chapter3/connect/>Connecting to the Database</a></li></ul></li><li><a href=/documentation/chapter4/>Using SSL</a><ul><li><a href=/documentation/chapter4/ssl/>Using SSL</a></li><li><a href=/documentation/chapter4/ssl-client/>Configuring the Client</a></li><li><a href=/documentation/chapter4/ssl-factory/>Custom SSLSocketFactory</a></li></ul></li><li><a href=/documentation/chapter5/>Issuing a Query and Processing the Result</a><ul><li><a href=/documentation/chapter5/query/>Issuing a Query and Processing the Result</a></li><li><a href=/documentation/chapter5/statement/>Using the Statement or PreparedStatement Interface</a></li><li><a href=/documentation/chapter5/resultset/>Using the ResultSet Interface</a></li><li><a href=/documentation/chapter5/update/>Performing Updates</a></li><li><a href=/documentation/chapter5/ddl/>Creating and Modifying Database Objects</a></li><li><a href=/documentation/chapter5/java8-date-time/>Using Java 8 Date and Time classes</a></li></ul></li><li><a href=/documentation/chapter6/>Calling Stored Functions and Procedures</a><ul><li><a href=/documentation/chapter6/callproc/>Calling Stored Functions and Procedures</a></li></ul></li><li><a href=/documentation/chapter7/>Storing Binary Data</a><ul><li><a href=/documentation/chapter7/binary-data/>Storing Binary Data</a></li></ul></li><li><a href=/documentation/chapter8/>JDBC escapes</a><ul><li><a href=/documentation/chapter8/escapes/>JDBC escapes</a></li><li><a href=/documentation/chapter8/outer-joins-escape/>Escape for outer joins</a></li><li><a href=/documentation/chapter8/escapes-datetime/>Date-time escapes</a></li><li><a href=/documentation/chapter8/escaped-functions/>Escaped scalar functions</a></li></ul></li><li><a href=/documentation/chapter9/>PostgreSQL™ Extensions to the JDBC API</a><ul><li><a href=/documentation/chapter9/ext/>PostgreSQL™ Extensions to the JDBC API</a></li><li><a href=/documentation/chapter9/geometric/>Geometric Data Types</a></li><li><a href=/documentation/chapter9/largeobjects/>Large Objects</a></li><li><a href=/documentation/chapter9/listennotify/>Listen / Notify</a></li><li><a href=/documentation/chapter9/server-prepare/>Server Prepared Statements</a></li><li><a href=/documentation/chapter9/parameterstatus/>Parameter Status Messages</a></li><li><a href=/documentation/chapter9/replication/>Physical and Logical replication API</a></li><li><a href=/documentation/chapter9/arrays/>Arrays</a></li></ul></li><li><a href=/documentation/chapter10/>Using the Driver in a Multithreaded or a Servlet Environment</a><ul><li><a href=/documentation/chapter10/thread/>Using the Driver in a Multithreaded or a Servlet Environment</a></li></ul></li><li><a href=/documentation/chapter11/>Connection Pools and Data Sources</a><ul><li><a href=/documentation/chapter11/datasource/>Connection Pools and Data Sources</a></li><li><a href=/documentation/chapter11/ds-cpds/>Application Servers ConnectionPoolDataSource</a></li><li><a href=/documentation/chapter11/ds-ds/>Applications DataSource</a></li><li><a href=/documentation/chapter11/jndi/>Data Sources and JNDI</a></li><li><a href=/documentation/chapter11/tomcat/>Tomcat setup</a></li></ul></li><li><a href=/documentation/chapter12/>Logging using java.util.logging</a><ul><li><a href=/documentation/chapter12/logging/>Logging using java.util.logging</a></li></ul></li><li><a href=/documentation/chapter13/>Further Reading</a><ul><li><a href=/documentation/chapter13/reading/>Further Reading</a></li></ul></li></ul></nav><article><h1>Storing Binary Data</h1><p><p>PostgreSQL™ provides two distinct ways to store binary data. Binary data can be
+stored in a table using the data type BYTEA or by using the Large Object feature
+which stores the binary data in a separate table in a special format and refers
+to that table by storing a value of type OID in your table.</p><p>In order to determine which method is appropriate you need to understand the
+limitations of each method. The BYTEA data type is not well suited for storing
+very large amounts of binary data. While a column of type BYTEA can hold up to
+1 GB of binary data, it would require a huge amount of memory to process such a
+large value. The Large Object method for storing binary data is better suited to
+storing very large values, but it has its own limitations. Specifically deleting
+a row that contains a Large Object reference does not delete the Large Object.
+Deleting the Large Object is a separate operation that needs to be performed.
+Large Objects also have some security issues since anyone connected to the
+database can view and/or modify any Large Object, even if they don&rsquo;t have
+permissions to view/update the row containing the Large Object reference.</p><p>Version 7.2 was the first release of the JDBC driver that supports the BYTEA
+data type. The introduction of this functionality in 7.2 has introduced a change
+in behavior as compared to previous releases. Since 7.2, the methods <code>getBytes()</code>,
+<code>setBytes()</code>, <code>getBinaryStream()</code>, and <code>setBinaryStream()</code> operate on the BYTEA
+data type. In 7.1 and earlier, these methods operated on the OID data type
+associated with Large Objects. It is possible to revert the driver back to the
+old 7.1 behavior by setting the property <code>compatible</code> on the <code>Connection</code> object
+to the value <code>7.1</code>. More details on connection properties are available in the
+section called <a href=connect.html#connection-parameters>“Connection Parameters”</a>.</p><p>To use the BYTEA data type you should simply use the <code>getBytes()</code>, <code>setBytes()</code>,
+<code>getBinaryStream()</code>, or <code>setBinaryStream()</code> methods.</p><p>To use the Large Object functionality you can use either the <code>LargeObject</code> class
+provided by the PostgreSQL™ JDBC driver, or by using the <code>getBLOB()</code> and <code>setBLOB()</code>
+methods.</p><h3 id=important>Important</h3><blockquote><p>You must access Large Objects within an SQL transaction block. You can start a
+transaction block by calling <code>setAutoCommit(false)</code>.</p></blockquote><p><a href=binary-data.html#binary-data-example>Example 7.1, “Processing Binary Data in JDBC”</a>
+contains some examples on how to process binary data using the PostgreSQL™ JDBC
+driver.</p><p><em><strong>Example 7.1. Processing Binary Data in JDBC</strong></em></p><p>For example, suppose you have a table containing the file names of images and you
+also want to store the image in a BYTEA column:</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>TABLE</span> images (imgname text, img bytea);
+</code></pre></div><p>To insert an image, you would use:</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>File file <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> File<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;myimage.gif&#34;</span><span style=color:#f92672>);</span>
+FileInputStream fis <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> FileInputStream<span style=color:#f92672>(</span>file<span style=color:#f92672>);</span>
+PreparedStatement ps <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>prepareStatement</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;INSERT INTO images VALUES (?, ?)&#34;</span><span style=color:#f92672>);</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>setString</span><span style=color:#f92672>(</span>1<span style=color:#f92672>,</span> file<span style=color:#f92672>.</span><span style=color:#a6e22e>getName</span><span style=color:#f92672>());</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>setBinaryStream</span><span style=color:#f92672>(</span>2<span style=color:#f92672>,</span> fis<span style=color:#f92672>,</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>int</span><span style=color:#f92672>)</span>file<span style=color:#f92672>.</span><span style=color:#a6e22e>length</span><span style=color:#f92672>());</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>executeUpdate</span><span style=color:#f92672>();</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+fis<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+</code></pre></div><p>Here, <code>setBinaryStream()</code> transfers a set number of bytes from a stream into the
+column of type BYTEA. This also could have been done using the <code>setBytes()</code> method
+if the contents of the image was already in a <code>byte[]</code>.</p><h3 id=note>Note</h3><blockquote><p>The length parameter to <code>setBinaryStream</code> must be correct. There is no way to
+indicate that the stream is of unknown length. If you are in this situation, you
+must read the stream yourself into temporary storage and determine the length.
+Now with the correct length you may send the data from temporary storage on to
+the driver.</p></blockquote><p>Retrieving an image is even easier. (We use <code>PreparedStatement</code> here, but the
+<code>Statement</code> class can equally be used.)</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>PreparedStatement ps <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>prepareStatement</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;SELECT img FROM images WHERE imgname = ?&#34;</span><span style=color:#f92672>);</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>setString</span><span style=color:#f92672>(</span>1<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;myimage.gif&#34;</span><span style=color:#f92672>);</span>
+ResultSet rs <span style=color:#f92672>=</span> ps<span style=color:#f92672>.</span><span style=color:#a6e22e>executeQuery</span><span style=color:#f92672>();</span>
+<span style=color:#66d9ef>while</span> <span style=color:#f92672>(</span>rs<span style=color:#f92672>.</span><span style=color:#a6e22e>next</span><span style=color:#f92672>())</span>
+<span style=color:#f92672>{</span>
+    <span style=color:#66d9ef>byte</span><span style=color:#f92672>[]</span> imgBytes <span style=color:#f92672>=</span> rs<span style=color:#f92672>.</span><span style=color:#a6e22e>getBytes</span><span style=color:#f92672>(</span>1<span style=color:#f92672>);</span>
+    <span style=color:#75715e>// use the data in some way here
+</span><span style=color:#75715e></span><span style=color:#f92672>}</span>
+rs<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+</code></pre></div><p>Here the binary data was retrieved as an <code>byte[]</code>. You could have used a
+<code>InputStream</code> object instead.</p><p>Alternatively you could be storing a very large file and want to use the
+<code>LargeObject</code> API to store the file:</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>TABLE</span> imageslo (imgname text, imgoid oid);
+</code></pre></div><p>To insert an image, you would use:</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#75715e>// All LargeObject API calls must be within a transaction block
+</span><span style=color:#75715e></span>conn<span style=color:#f92672>.</span><span style=color:#a6e22e>setAutoCommit</span><span style=color:#f92672>(</span><span style=color:#66d9ef>false</span><span style=color:#f92672>);</span>
+
+<span style=color:#75715e>// Get the Large Object Manager to perform operations with
+</span><span style=color:#75715e></span>LargeObjectManager lobj <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>unwrap</span><span style=color:#f92672>(</span>org<span style=color:#f92672>.</span><span style=color:#a6e22e>postgresql</span><span style=color:#f92672>.</span><span style=color:#a6e22e>PGConnection</span><span style=color:#f92672>.</span><span style=color:#a6e22e>class</span><span style=color:#f92672>).</span><span style=color:#a6e22e>getLargeObjectAPI</span><span style=color:#f92672>();</span>
+
+<span style=color:#75715e>// Create a new large object
+</span><span style=color:#75715e></span><span style=color:#66d9ef>long</span> oid <span style=color:#f92672>=</span> lobj<span style=color:#f92672>.</span><span style=color:#a6e22e>createLO</span><span style=color:#f92672>(</span>LargeObjectManager<span style=color:#f92672>.</span><span style=color:#a6e22e>READ</span> <span style=color:#f92672>|</span> LargeObjectManager<span style=color:#f92672>.</span><span style=color:#a6e22e>WRITE</span><span style=color:#f92672>);</span>
+
+<span style=color:#75715e>// Open the large object for writing
+</span><span style=color:#75715e></span>LargeObject obj <span style=color:#f92672>=</span> lobj<span style=color:#f92672>.</span><span style=color:#a6e22e>open</span><span style=color:#f92672>(</span>oid<span style=color:#f92672>,</span> LargeObjectManager<span style=color:#f92672>.</span><span style=color:#a6e22e>WRITE</span><span style=color:#f92672>);</span>
+
+<span style=color:#75715e>// Now open the file
+</span><span style=color:#75715e></span>File file <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> File<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;myimage.gif&#34;</span><span style=color:#f92672>);</span>
+FileInputStream fis <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> FileInputStream<span style=color:#f92672>(</span>file<span style=color:#f92672>);</span>
+
+<span style=color:#75715e>// Copy the data from the file to the large object
+</span><span style=color:#75715e></span><span style=color:#66d9ef>byte</span> buf<span style=color:#f92672>[]</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#66d9ef>byte</span><span style=color:#f92672>[</span>2048<span style=color:#f92672>];</span>
+<span style=color:#66d9ef>int</span> s<span style=color:#f92672>,</span> tl <span style=color:#f92672>=</span> 0<span style=color:#f92672>;</span>
+<span style=color:#66d9ef>while</span> <span style=color:#f92672>((</span>s <span style=color:#f92672>=</span> fis<span style=color:#f92672>.</span><span style=color:#a6e22e>read</span><span style=color:#f92672>(</span>buf<span style=color:#f92672>,</span> 0<span style=color:#f92672>,</span> 2048<span style=color:#f92672>))</span> <span style=color:#f92672>&gt;</span> 0<span style=color:#f92672>)</span>
+<span style=color:#f92672>{</span>
+    obj<span style=color:#f92672>.</span><span style=color:#a6e22e>write</span><span style=color:#f92672>(</span>buf<span style=color:#f92672>,</span> 0<span style=color:#f92672>,</span> s<span style=color:#f92672>);</span>
+    tl <span style=color:#f92672>+=</span> s<span style=color:#f92672>;</span>
+<span style=color:#f92672>}</span>
+
+<span style=color:#75715e>// Close the large object
+</span><span style=color:#75715e></span>obj<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+
+<span style=color:#75715e>// Now insert the row into imageslo
+</span><span style=color:#75715e></span>PreparedStatement ps <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>prepareStatement</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;INSERT INTO imageslo VALUES (?, ?)&#34;</span><span style=color:#f92672>);</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>setString</span><span style=color:#f92672>(</span>1<span style=color:#f92672>,</span> file<span style=color:#f92672>.</span><span style=color:#a6e22e>getName</span><span style=color:#f92672>());</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>setLong</span><span style=color:#f92672>(</span>2<span style=color:#f92672>,</span> oid<span style=color:#f92672>);</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>executeUpdate</span><span style=color:#f92672>();</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+fis<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+
+<span style=color:#75715e>// Finally, commit the transaction.
+</span><span style=color:#75715e></span>conn<span style=color:#f92672>.</span><span style=color:#a6e22e>commit</span><span style=color:#f92672>();</span>
+</code></pre></div><p>Retrieving the image from the Large Object:</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#75715e>// All LargeObject API calls must be within a transaction block
+</span><span style=color:#75715e></span>conn<span style=color:#f92672>.</span><span style=color:#a6e22e>setAutoCommit</span><span style=color:#f92672>(</span><span style=color:#66d9ef>false</span><span style=color:#f92672>);</span>
+
+<span style=color:#75715e>// Get the Large Object Manager to perform operations with
+</span><span style=color:#75715e></span>LargeObjectManager lobj <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>unwrap</span><span style=color:#f92672>(</span>org<span style=color:#f92672>.</span><span style=color:#a6e22e>postgresql</span><span style=color:#f92672>.</span><span style=color:#a6e22e>PGConnection</span><span style=color:#f92672>.</span><span style=color:#a6e22e>class</span><span style=color:#f92672>).</span><span style=color:#a6e22e>getLargeObjectAPI</span><span style=color:#f92672>();</span>
+
+PreparedStatement ps <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>prepareStatement</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;SELECT imgoid FROM imageslo WHERE imgname = ?&#34;</span><span style=color:#f92672>);</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>setString</span><span style=color:#f92672>(</span>1<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;myimage.gif&#34;</span><span style=color:#f92672>);</span>
+ResultSet rs <span style=color:#f92672>=</span> ps<span style=color:#f92672>.</span><span style=color:#a6e22e>executeQuery</span><span style=color:#f92672>();</span>
+<span style=color:#66d9ef>while</span> <span style=color:#f92672>(</span>rs<span style=color:#f92672>.</span><span style=color:#a6e22e>next</span><span style=color:#f92672>())</span>
+<span style=color:#f92672>{</span>
+    <span style=color:#75715e>// Open the large object for reading
+</span><span style=color:#75715e></span>    <span style=color:#66d9ef>long</span> oid <span style=color:#f92672>=</span> rs<span style=color:#f92672>.</span><span style=color:#a6e22e>getLong</span><span style=color:#f92672>(</span>1<span style=color:#f92672>);</span>
+    LargeObject obj <span style=color:#f92672>=</span> lobj<span style=color:#f92672>.</span><span style=color:#a6e22e>open</span><span style=color:#f92672>(</span>oid<span style=color:#f92672>,</span> LargeObjectManager<span style=color:#f92672>.</span><span style=color:#a6e22e>READ</span><span style=color:#f92672>);</span>
+
+    <span style=color:#75715e>// Read the data
+</span><span style=color:#75715e></span>    <span style=color:#66d9ef>byte</span> buf<span style=color:#f92672>[]</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#66d9ef>byte</span><span style=color:#f92672>[</span>obj<span style=color:#f92672>.</span><span style=color:#a6e22e>size</span><span style=color:#f92672>()];</span>
+    obj<span style=color:#f92672>.</span><span style=color:#a6e22e>read</span><span style=color:#f92672>(</span>buf<span style=color:#f92672>,</span> 0<span style=color:#f92672>,</span> obj<span style=color:#f92672>.</span><span style=color:#a6e22e>size</span><span style=color:#f92672>());</span>
+    <span style=color:#75715e>// Do something with the data read here
+</span><span style=color:#75715e></span>
+    <span style=color:#75715e>// Close the object
+</span><span style=color:#75715e></span>    obj<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+<span style=color:#f92672>}</span>
+rs<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+ps<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+
+<span style=color:#75715e>// Finally, commit the transaction.
+</span><span style=color:#75715e></span>conn<span style=color:#f92672>.</span><span style=color:#a6e22e>commit</span><span style=color:#f92672>();</span>
+</code></pre></div></p></article></div><a title="Next page in Calling Stored Functions and Procedures" href=http://localhost:1313/documentation/chapter6/callproc/>Calling Stored Functions and Procedures | 18</a>
+-----------------------------
+<a title="Previous page in JDBC escapes" href=http://localhost:1313/documentation/chapter8/escapes/>JDBC escapes | 20</a></main><hr><footer><div><p>Copyright © 1996-2022 The PostgreSQL Global Development Group</p></div></footer></body></html>

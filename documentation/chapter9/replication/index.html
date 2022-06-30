@@ -1,0 +1,215 @@
+<!doctype html><html><head><meta charset=utf-8><base href=http://localhost:1313/><title>Pgjdbc | Physical and Logical replication API</title><link rel=stylesheet href=http://localhost:1313/sass/main.4444731f7116386ab6822ca30bdfcce309f779d0e912deceb72a9585a99593b4.css integrity="sha256-RERzH3EWOGq2giyjC9/M4wn3edDpEt7OtyqVhamVk7Q="><link rel=icon href=favicon.ico type=image/x-icon><link rel="shortcut icon" href=favicon.ico type=image/x-icon></head><body><nav class=nav><a href=/>Home</a>
+<a class=nav__item href=/development/>Development</a>
+<a class=nav__item href=/download/>Download</a>
+<a class=nav__item href=/documentation/>Documentation</a>
+<a class=nav__item href=/community/>Community</a></nav><main><div><nav role=navigation><ul><li><a href=/documentation/chapter1/>Introduction</a><ul><li><a href=/documentation/chapter1/intro/>Introduction</a></li></ul></li><li><a href=/documentation/chapter2/>Setting up the JDBC Driver</a><ul><li><a href=/documentation/chapter2/setup/>Setting up the JDBC Driver</a></li><li><a href=/documentation/chapter2/classpath/>Setting up the Class Path</a></li><li><a href=/documentation/chapter2/prepare/>Preparing the Database Server for JDBC</a></li><li><a href=/documentation/chapter2/your-database/>Creating a Database</a></li></ul></li><li><a href=/documentation/chapter3/>Initializing the Driver</a><ul><li><a href=/documentation/chapter3/use/>Initializing the Driver</a></li><li><a href=/documentation/chapter3/load/>Loading the Driver</a></li><li><a href=/documentation/chapter3/connect/>Connecting to the Database</a></li></ul></li><li><a href=/documentation/chapter4/>Using SSL</a><ul><li><a href=/documentation/chapter4/ssl/>Using SSL</a></li><li><a href=/documentation/chapter4/ssl-client/>Configuring the Client</a></li><li><a href=/documentation/chapter4/ssl-factory/>Custom SSLSocketFactory</a></li></ul></li><li><a href=/documentation/chapter5/>Issuing a Query and Processing the Result</a><ul><li><a href=/documentation/chapter5/query/>Issuing a Query and Processing the Result</a></li><li><a href=/documentation/chapter5/statement/>Using the Statement or PreparedStatement Interface</a></li><li><a href=/documentation/chapter5/resultset/>Using the ResultSet Interface</a></li><li><a href=/documentation/chapter5/update/>Performing Updates</a></li><li><a href=/documentation/chapter5/ddl/>Creating and Modifying Database Objects</a></li><li><a href=/documentation/chapter5/java8-date-time/>Using Java 8 Date and Time classes</a></li></ul></li><li><a href=/documentation/chapter6/>Calling Stored Functions and Procedures</a><ul><li><a href=/documentation/chapter6/callproc/>Calling Stored Functions and Procedures</a></li></ul></li><li><a href=/documentation/chapter7/>Storing Binary Data</a><ul><li><a href=/documentation/chapter7/binary-data/>Storing Binary Data</a></li></ul></li><li><a href=/documentation/chapter8/>JDBC escapes</a><ul><li><a href=/documentation/chapter8/escapes/>JDBC escapes</a></li><li><a href=/documentation/chapter8/outer-joins-escape/>Escape for outer joins</a></li><li><a href=/documentation/chapter8/escapes-datetime/>Date-time escapes</a></li><li><a href=/documentation/chapter8/escaped-functions/>Escaped scalar functions</a></li></ul></li><li><a href=/documentation/chapter9/>PostgreSQL™ Extensions to the JDBC API</a><ul><li><a href=/documentation/chapter9/ext/>PostgreSQL™ Extensions to the JDBC API</a></li><li><a href=/documentation/chapter9/geometric/>Geometric Data Types</a></li><li><a href=/documentation/chapter9/largeobjects/>Large Objects</a></li><li><a href=/documentation/chapter9/listennotify/>Listen / Notify</a></li><li><a href=/documentation/chapter9/server-prepare/>Server Prepared Statements</a></li><li><a href=/documentation/chapter9/parameterstatus/>Parameter Status Messages</a></li><li><a href=/documentation/chapter9/replication/>Physical and Logical replication API</a></li><li><a href=/documentation/chapter9/arrays/>Arrays</a></li></ul></li><li><a href=/documentation/chapter10/>Using the Driver in a Multithreaded or a Servlet Environment</a><ul><li><a href=/documentation/chapter10/thread/>Using the Driver in a Multithreaded or a Servlet Environment</a></li></ul></li><li><a href=/documentation/chapter11/>Connection Pools and Data Sources</a><ul><li><a href=/documentation/chapter11/datasource/>Connection Pools and Data Sources</a></li><li><a href=/documentation/chapter11/ds-cpds/>Application Servers ConnectionPoolDataSource</a></li><li><a href=/documentation/chapter11/ds-ds/>Applications DataSource</a></li><li><a href=/documentation/chapter11/jndi/>Data Sources and JNDI</a></li><li><a href=/documentation/chapter11/tomcat/>Tomcat setup</a></li></ul></li><li><a href=/documentation/chapter12/>Logging using java.util.logging</a><ul><li><a href=/documentation/chapter12/logging/>Logging using java.util.logging</a></li></ul></li><li><a href=/documentation/chapter13/>Further Reading</a><ul><li><a href=/documentation/chapter13/reading/>Further Reading</a></li></ul></li></ul></nav><article><h1>Physical and Logical replication API</h1><p><p></p><h1 id=overview>Overview</h1><p>Postgres 9.4 (released in December 2014) introduced a new feature called logical replication. Logical replication allows
+changes from a database to be streamed in real-time to an external system. The difference between physical replication and
+logical replication is that logical replication sends data over in a logical format whereas physical replication sends data over in a binary format. Additionally logical replication can send over a single table, or database. Binary replication replicates the entire cluster in an all or nothing fashion; which is to say there is no way to get a specific table or database using binary replication</p><p>Prior to logical replication keeping an external system synchronized in real time was problematic. The application would have to update/invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics system, and so on.
+This suffers from race conditions and reliability problems. For example if slightly different data gets written to two different datastores (perhaps due to a bug or a race condition),the contents of the datastores will gradually drift apart — they will become more and more inconsistent over time. Recovering from such gradual data corruption is difficult.</p><p>Logical decoding takes the database’s write-ahead log (WAL), and gives us access to row-level change events:
+every time a row in a table is inserted, updated or deleted, that’s an event. Those events are grouped by transaction,
+and appear in the order in which they were committed to the database. Aborted/rolled-back transactions
+do not appear in the stream. Thus, if you apply the change events in the same order, you end up with an exact,
+transactionally consistent copy of the database. It&rsquo;s looks like the Event Sourcing pattern that you previously implemented
+in your application, but now it&rsquo;s available out of the box from the PostgreSQL database.</p><p>For access to real-time changes PostgreSQL provides the streaming replication protocol. Replication protocol can be physical or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
+to stream changes to an external system.</p><p>Since the JDBC API does not include replication <code>PGConnection</code> implements the PostgreSQL API</p><h2 id=configure-database>Configure database</h2><p>Your database should be configured to enable logical or physical replication</p><h3 id=postgresqlconf>postgresql.conf</h3><ul><li>Property <code>max_wal_senders</code> should be at least equal to the number of replication consumers</li><li>Property <code>wal_keep_segments</code> should contain count wal segments that can&rsquo;t be removed from database.</li><li>Property <code>wal_level</code> for logical replication should be equal to <code>logical</code>.</li><li>Property <code>max_replication_slots</code> should be greater than zero for logical replication, because logical replication can&rsquo;t
+work without replication slot.</li></ul><h3 id=pg_hbaconf>pg_hba.conf</h3><p>Enable connect user with replication privileges to replication stream.</p><pre><code>local   replication   all                   trust
+host    replication   all   127.0.0.1/32    md5
+host    replication   all   ::1/128         md5
+</code></pre><h3 id=configuration-for-examples>Configuration for examples</h3><p><em>postgresql.conf</em></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-ini data-lang=ini><span style=color:#a6e22e>max_wal_senders</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>4             # max number of walsender processes</span>
+<span style=color:#a6e22e>wal_keep_segments</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>4           # in logfile segments, 16MB each; 0 disables</span>
+<span style=color:#a6e22e>wal_level</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>logical             # minimal, replica, or logical</span>
+<span style=color:#a6e22e>max_replication_slots</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>4       # max number of replication slots</span>
+</code></pre></div><p><em>pg_hba.conf</em></p><pre><code># Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication   all                   trust
+host    replication   all   127.0.0.1/32    md5
+host    replication   all   ::1/128         md5
+</code></pre><p></p><h1 id=logical-replication>Logical replication</h1><p>Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate how to use the pgjdbc replication API we will use the <code>test_decoding</code> plugin that is include in the <code>postgresql-contrib</code> package, but you can use your own decoding plugin. There are a few on github which can be used as examples.</p><p>In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection is not available to
+execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL.</p><p><strong>Example 9.4. Create replication connection.</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    String url <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;jdbc:postgresql://localhost:5432/postgres&#34;</span><span style=color:#f92672>;</span>
+    Properties props <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> Properties<span style=color:#f92672>();</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>USER</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;postgres&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>PASSWORD</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;postgres&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>ASSUME_MIN_SERVER_VERSION</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;9.4&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>REPLICATION</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;database&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>PREFER_QUERY_MODE</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;simple&#34;</span><span style=color:#f92672>);</span>
+
+    Connection con <span style=color:#f92672>=</span> DriverManager<span style=color:#f92672>.</span><span style=color:#a6e22e>getConnection</span><span style=color:#f92672>(</span>url<span style=color:#f92672>,</span> props<span style=color:#f92672>);</span>
+    PGConnection replConnection <span style=color:#f92672>=</span> con<span style=color:#f92672>.</span><span style=color:#a6e22e>unwrap</span><span style=color:#f92672>(</span>PGConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>class</span><span style=color:#f92672>);</span>
+</code></pre></div><p>The entire replication API is grouped in <code>org.postgresql.replication.PGReplicationConnection</code> and is available
+via <code>org.postgresql.PGConnection#getReplicationAPI</code>.</p><p>Before you can start replication protocol, you need to have replication slot, which can be also created via pgjdbc API.</p><p><strong>Example 9.5. Create replication slot via pgjdbc API</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    replConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>getReplicationAPI</span><span style=color:#f92672>()</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>createReplicationSlot</span><span style=color:#f92672>()</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>logical</span><span style=color:#f92672>()</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotName</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;demo_logical_slot&#34;</span><span style=color:#f92672>)</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>withOutputPlugin</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;test_decoding&#34;</span><span style=color:#f92672>)</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>make</span><span style=color:#f92672>();</span>
+</code></pre></div><p>Once we have the replication slot, we can create a ReplicationStream.</p><p><strong>Example 9.6. Create logical replication stream.</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    PGReplicationStream stream <span style=color:#f92672>=</span>
+        replConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>getReplicationAPI</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>replicationStream</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>logical</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotName</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;demo_logical_slot&#34;</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;include-xids&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>false</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;skip-empty-xacts&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>true</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>start</span><span style=color:#f92672>();</span>
+</code></pre></div><p>The replication stream will send all changes since the creation of the replication slot or from replication slot
+restart LSN if the slot was already used for replication. You can also start streaming changes from a particular LSN position,in that case LSN position should be specified when you create the replication stream.</p><p><strong>Example 9.7. Create logical replication stream from particular position.</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    LogSequenceNumber waitLSN <span style=color:#f92672>=</span> LogSequenceNumber<span style=color:#f92672>.</span><span style=color:#a6e22e>valueOf</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;6F/E3C53568&#34;</span><span style=color:#f92672>);</span>
+
+    PGReplicationStream stream <span style=color:#f92672>=</span>
+        replConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>getReplicationAPI</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>replicationStream</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>logical</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotName</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;demo_logical_slot&#34;</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;include-xids&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>false</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;skip-empty-xacts&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>true</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withStartPosition</span><span style=color:#f92672>(</span>waitLSN<span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>start</span><span style=color:#f92672>();</span>
+</code></pre></div><p>Via <code>withSlotOption</code> we also can specify options that will be sent to our output plugin, this allows customize decoding.
+For example I have my own output plugin that has a property <code>sensitive=true</code> which will include changes by sensitive columns to change
+event.</p><p><strong>Example 9.8. Example output with include-xids=true</strong></p><pre><code>BEGIN 105779
+table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'previous value'
+COMMIT 105779
+</code></pre><p><strong>Example 9.9. Example output with include-xids=false</strong></p><pre><code>BEGIN
+table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'previous value'
+COMMIT
+</code></pre><p>During replication the database and consumer periodically exchange ping messages. When the database or client do not receive
+ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and the database will free resources. In PostgreSQL the ping timeout is configured by the property <code>wal_sender_timeout</code> (default = 60 seconds).
+Replication stream in pgjdc can be configured to send feedback(ping) when required or by time interval.
+It is recommended to send feedback(ping) to the database more often than configured <code>wal_sender_timeout</code>. In production I use value equal to <code>wal_sender_timeout / 3</code>. It&rsquo;s avoids a potential problems with networks and changes to be streamed without disconnects by timeout. To specify the feedback interval use <code>withStatusInterval</code> method.</p><p><strong>Example 9.10. Replication stream with configured feedback interval equal to 20 sec</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    PGReplicationStream stream <span style=color:#f92672>=</span>
+        replConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>getReplicationAPI</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>replicationStream</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>logical</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotName</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;demo_logical_slot&#34;</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;include-xids&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>false</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;skip-empty-xacts&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>true</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withStatusInterval</span><span style=color:#f92672>(</span>20<span style=color:#f92672>,</span> TimeUnit<span style=color:#f92672>.</span><span style=color:#a6e22e>SECONDS</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>start</span><span style=color:#f92672>();</span>
+</code></pre></div><p>After create <code>PGReplicationStream</code>, it&rsquo;s time to start receive changes in real-time. Changes can be received from
+stream as blocking(<code>org.postgresql.replication.PGReplicationStream#read</code>)
+or as non-blocking(<code>org.postgresql.replication.PGReplicationStream#readPending</code>).
+Both methods receive changes as a <code>java.nio.ByteBuffer</code> with the payload from the send output plugin. We can&rsquo;t receive
+part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That why pgjdbc returns the raw ByteBuffer instead of making assumptions.</p><p><strong>Example 9.11. Example send message from output plugin.</strong></p><pre><code>OutputPluginPrepareWrite(ctx, true);
+appendStringInfo(ctx-&gt;out, &quot;BEGIN %u&quot;, txn-&gt;xid);
+OutputPluginWrite(ctx, true);
+</code></pre><p><strong>Example 9.12. Receive changes via replication stream.</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    <span style=color:#66d9ef>while</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>true</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+      <span style=color:#75715e>//non blocking receive message
+</span><span style=color:#75715e></span>      ByteBuffer msg <span style=color:#f92672>=</span> stream<span style=color:#f92672>.</span><span style=color:#a6e22e>readPending</span><span style=color:#f92672>();</span>
+
+      <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>msg <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        TimeUnit<span style=color:#f92672>.</span><span style=color:#a6e22e>MILLISECONDS</span><span style=color:#f92672>.</span><span style=color:#a6e22e>sleep</span><span style=color:#f92672>(</span>10L<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>continue</span><span style=color:#f92672>;</span>
+      <span style=color:#f92672>}</span>
+
+      <span style=color:#66d9ef>int</span> offset <span style=color:#f92672>=</span> msg<span style=color:#f92672>.</span><span style=color:#a6e22e>arrayOffset</span><span style=color:#f92672>();</span>
+      <span style=color:#66d9ef>byte</span><span style=color:#f92672>[]</span> source <span style=color:#f92672>=</span> msg<span style=color:#f92672>.</span><span style=color:#a6e22e>array</span><span style=color:#f92672>();</span>
+      <span style=color:#66d9ef>int</span> length <span style=color:#f92672>=</span> source<span style=color:#f92672>.</span><span style=color:#a6e22e>length</span> <span style=color:#f92672>-</span> offset<span style=color:#f92672>;</span>
+      System<span style=color:#f92672>.</span><span style=color:#a6e22e>out</span><span style=color:#f92672>.</span><span style=color:#a6e22e>println</span><span style=color:#f92672>(</span><span style=color:#66d9ef>new</span> String<span style=color:#f92672>(</span>source<span style=color:#f92672>,</span> offset<span style=color:#f92672>,</span> length<span style=color:#f92672>));</span>
+    <span style=color:#f92672>}</span>
+</code></pre></div><p>As mentioned previously, replication stream should periodically send feedback to the database to prevent disconnect via
+timeout. Feedback is automatically sent when <code>read</code> or <code>readPending</code> are called if it&rsquo;s time to send feedback. Feedback can also be sent via <code>org.postgresql.replication.PGReplicationStream#forceUpdateStatus()</code> regardless of the timeout. Another important duty of feedback is to provide the server with the Logial Sequence Number (LSN) that has been successfully received and applied to consumer, it is necessary for monitoring and to truncate/archive WAL&rsquo;s that that are no longer needed. In the event that replication has been restarted, it&rsquo;s will start from last successfully processed LSN that was sent via feedback to database.</p><p>The API provides the following feedback mechanism to indicate the successfully applied LSN by the current consumer. LSN&rsquo;s before this can be truncated or archived.
+<code>org.postgresql.replication.PGReplicationStream#setFlushedLSN</code> and
+<code>org.postgresql.replication.PGReplicationStream#setAppliedLSN</code>. You always can get last receive LSN via
+<code>org.postgresql.replication.PGReplicationStream#getLastReceiveLSN</code>.</p><p><strong>Example 9.13. Add feedback indicating a successfully process LSN</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    <span style=color:#66d9ef>while</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>true</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+      <span style=color:#75715e>//Receive last successfully send to queue message. LSN ordered.
+</span><span style=color:#75715e></span>      LogSequenceNumber successfullySendToQueue <span style=color:#f92672>=</span> getQueueFeedback<span style=color:#f92672>();</span>
+      <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>successfullySendToQueue <span style=color:#f92672>!=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        stream<span style=color:#f92672>.</span><span style=color:#a6e22e>setAppliedLSN</span><span style=color:#f92672>(</span>successfullySendToQueue<span style=color:#f92672>);</span>
+        stream<span style=color:#f92672>.</span><span style=color:#a6e22e>setFlushedLSN</span><span style=color:#f92672>(</span>successfullySendToQueue<span style=color:#f92672>);</span>
+      <span style=color:#f92672>}</span>
+
+      <span style=color:#75715e>//non blocking receive message
+</span><span style=color:#75715e></span>      ByteBuffer msg <span style=color:#f92672>=</span> stream<span style=color:#f92672>.</span><span style=color:#a6e22e>readPending</span><span style=color:#f92672>();</span>
+
+      <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>msg <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        TimeUnit<span style=color:#f92672>.</span><span style=color:#a6e22e>MILLISECONDS</span><span style=color:#f92672>.</span><span style=color:#a6e22e>sleep</span><span style=color:#f92672>(</span>10L<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>continue</span><span style=color:#f92672>;</span>
+      <span style=color:#f92672>}</span>
+
+      asyncSendToQueue<span style=color:#f92672>(</span>msg<span style=color:#f92672>,</span> stream<span style=color:#f92672>.</span><span style=color:#a6e22e>getLastReceiveLSN</span><span style=color:#f92672>());</span>
+    <span style=color:#f92672>}</span>
+</code></pre></div><p><strong>Example 9.14. Full example of logical replication</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    String url <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;jdbc:postgresql://localhost:5432/test&#34;</span><span style=color:#f92672>;</span>
+    Properties props <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> Properties<span style=color:#f92672>();</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>USER</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;postgres&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>PASSWORD</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;postgres&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>ASSUME_MIN_SERVER_VERSION</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;9.4&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>REPLICATION</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;database&#34;</span><span style=color:#f92672>);</span>
+    PGProperty<span style=color:#f92672>.</span><span style=color:#a6e22e>PREFER_QUERY_MODE</span><span style=color:#f92672>.</span><span style=color:#a6e22e>set</span><span style=color:#f92672>(</span>props<span style=color:#f92672>,</span> <span style=color:#e6db74>&#34;simple&#34;</span><span style=color:#f92672>);</span>
+
+    Connection con <span style=color:#f92672>=</span> DriverManager<span style=color:#f92672>.</span><span style=color:#a6e22e>getConnection</span><span style=color:#f92672>(</span>url<span style=color:#f92672>,</span> props<span style=color:#f92672>);</span>
+    PGConnection replConnection <span style=color:#f92672>=</span> con<span style=color:#f92672>.</span><span style=color:#a6e22e>unwrap</span><span style=color:#f92672>(</span>PGConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>class</span><span style=color:#f92672>);</span>
+
+    replConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>getReplicationAPI</span><span style=color:#f92672>()</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>createReplicationSlot</span><span style=color:#f92672>()</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>logical</span><span style=color:#f92672>()</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotName</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;demo_logical_slot&#34;</span><span style=color:#f92672>)</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>withOutputPlugin</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;test_decoding&#34;</span><span style=color:#f92672>)</span>
+        <span style=color:#f92672>.</span><span style=color:#a6e22e>make</span><span style=color:#f92672>();</span>
+
+    <span style=color:#75715e>//some changes after create replication slot to demonstrate receive it
+</span><span style=color:#75715e></span>    sqlConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>setAutoCommit</span><span style=color:#f92672>(</span><span style=color:#66d9ef>true</span><span style=color:#f92672>);</span>
+    Statement st <span style=color:#f92672>=</span> sqlConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>createStatement</span><span style=color:#f92672>();</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>execute</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert into test_logic_table(name) values(&#39;first tx changes&#39;)&#34;</span><span style=color:#f92672>);</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+
+    st <span style=color:#f92672>=</span> sqlConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>createStatement</span><span style=color:#f92672>();</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>execute</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;update test_logic_table set name = &#39;second tx change&#39; where pk = 1&#34;</span><span style=color:#f92672>);</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+
+    st <span style=color:#f92672>=</span> sqlConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>createStatement</span><span style=color:#f92672>();</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>execute</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;delete from test_logic_table where pk = 1&#34;</span><span style=color:#f92672>);</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+
+    PGReplicationStream stream <span style=color:#f92672>=</span>
+        replConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>getReplicationAPI</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>replicationStream</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>logical</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotName</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;demo_logical_slot&#34;</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;include-xids&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>false</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withSlotOption</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;skip-empty-xacts&#34;</span><span style=color:#f92672>,</span> <span style=color:#66d9ef>true</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withStatusInterval</span><span style=color:#f92672>(</span>20<span style=color:#f92672>,</span> TimeUnit<span style=color:#f92672>.</span><span style=color:#a6e22e>SECONDS</span><span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>start</span><span style=color:#f92672>();</span>
+
+    <span style=color:#66d9ef>while</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>true</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+      <span style=color:#75715e>//non blocking receive message
+</span><span style=color:#75715e></span>      ByteBuffer msg <span style=color:#f92672>=</span> stream<span style=color:#f92672>.</span><span style=color:#a6e22e>readPending</span><span style=color:#f92672>();</span>
+
+      <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>msg <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        TimeUnit<span style=color:#f92672>.</span><span style=color:#a6e22e>MILLISECONDS</span><span style=color:#f92672>.</span><span style=color:#a6e22e>sleep</span><span style=color:#f92672>(</span>10L<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>continue</span><span style=color:#f92672>;</span>
+      <span style=color:#f92672>}</span>
+
+      <span style=color:#66d9ef>int</span> offset <span style=color:#f92672>=</span> msg<span style=color:#f92672>.</span><span style=color:#a6e22e>arrayOffset</span><span style=color:#f92672>();</span>
+      <span style=color:#66d9ef>byte</span><span style=color:#f92672>[]</span> source <span style=color:#f92672>=</span> msg<span style=color:#f92672>.</span><span style=color:#a6e22e>array</span><span style=color:#f92672>();</span>
+      <span style=color:#66d9ef>int</span> length <span style=color:#f92672>=</span> source<span style=color:#f92672>.</span><span style=color:#a6e22e>length</span> <span style=color:#f92672>-</span> offset<span style=color:#f92672>;</span>
+      System<span style=color:#f92672>.</span><span style=color:#a6e22e>out</span><span style=color:#f92672>.</span><span style=color:#a6e22e>println</span><span style=color:#f92672>(</span><span style=color:#66d9ef>new</span> String<span style=color:#f92672>(</span>source<span style=color:#f92672>,</span> offset<span style=color:#f92672>,</span> length<span style=color:#f92672>));</span>
+
+      <span style=color:#75715e>//feedback
+</span><span style=color:#75715e></span>      stream<span style=color:#f92672>.</span><span style=color:#a6e22e>setAppliedLSN</span><span style=color:#f92672>(</span>stream<span style=color:#f92672>.</span><span style=color:#a6e22e>getLastReceiveLSN</span><span style=color:#f92672>());</span>
+      stream<span style=color:#f92672>.</span><span style=color:#a6e22e>setFlushedLSN</span><span style=color:#f92672>(</span>stream<span style=color:#f92672>.</span><span style=color:#a6e22e>getLastReceiveLSN</span><span style=color:#f92672>());</span>
+    <span style=color:#f92672>}</span>
+</code></pre></div><p>Where output looks like this, where each line is a separate message.</p><pre><code>BEGIN
+table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'first tx changes'
+COMMIT
+BEGIN
+table public.test_logic_table: UPDATE: pk[integer]:1 name[character varying]:'second tx change'
+COMMIT
+BEGIN
+table public.test_logic_table: DELETE: pk[integer]:1
+COMMIT
+</code></pre><p></p><h1 id=physical-replication>Physical replication</h1><p>API for physical replication looks like the API for logical replication. Physical replication does not require a replication
+slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change from version to version. That is why replication between different major PostgreSQL versions is not possible. But physical replication can contain many important data, that is not available via logical replication. That is why pgjdc contains an implementation for both.</p><p><strong>Example 9.15. Use physical replication</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>    LogSequenceNumber lsn <span style=color:#f92672>=</span> getCurrentLSN<span style=color:#f92672>();</span>
+
+    Statement st <span style=color:#f92672>=</span> sqlConnection<span style=color:#f92672>.</span><span style=color:#a6e22e>createStatement</span><span style=color:#f92672>();</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>execute</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert into test_physic_table(name) values(&#39;previous value&#39;)&#34;</span><span style=color:#f92672>);</span>
+    st<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
+
+    PGReplicationStream stream <span style=color:#f92672>=</span>
+        pgConnection
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>getReplicationAPI</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>replicationStream</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>physical</span><span style=color:#f92672>()</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>withStartPosition</span><span style=color:#f92672>(</span>lsn<span style=color:#f92672>)</span>
+            <span style=color:#f92672>.</span><span style=color:#a6e22e>start</span><span style=color:#f92672>();</span>
+
+    ByteBuffer read <span style=color:#f92672>=</span> stream<span style=color:#f92672>.</span><span style=color:#a6e22e>read</span><span style=color:#f92672>();</span>
+</code></pre></div></p></article></div><a title="Next page in Parameter Status Messages" href=http://localhost:1313/documentation/chapter9/parameterstatus/>Parameter Status Messages | 29</a>
+-----------------------------
+<a title="Previous page in Arrays" href=http://localhost:1313/documentation/chapter9/arrays/>Arrays | 31</a></main><hr><footer><div><p>Copyright © 1996-2022 The PostgreSQL Global Development Group</p></div></footer></body></html>
