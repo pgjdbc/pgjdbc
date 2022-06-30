@@ -3,7 +3,7 @@ name: GitHub Pages
 on:
   push:
     branches:
-      - master  # Set a branch name to trigger deployment
+      - newdocs  # Set a branch name to trigger deployment
   pull_request:
 
 defaults:
