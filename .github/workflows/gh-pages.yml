@@ -8,7 +8,7 @@ on:
 
 defaults:
   run:
-    working-directory: docs2.0
+    working-directory: docs
 
 jobs:
   deploy:
@@ -36,7 +36,7 @@ jobs:
         # If you're changing the branch from master,
         # also change the `master` in `refs/heads/master`
         # below accordingly.
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/newdocs' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs2.0/public
+          publish_dir: ./docs/public
