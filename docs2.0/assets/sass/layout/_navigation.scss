@@ -1,3 +1,31 @@
 .nav {
-    background-color: var(--clr-neutral-300);
-}
+    @include flexbox;
+    @include flex-direction(row);
+    @include justify-content(space-between);
+
+    padding: 1rem;
+
+    background-color: var(--clr-primary-400);
+
+    &__items {
+      @include flexbox;
+      @include flex-direction(row);
+      gap: 1rem 1rem;
+    };
+
+    img {
+      width: 2rem;
+      height: 2rem;
+    }
+
+    a {
+        color: var(--clr-neutral-100);
+        text-decoration: none;
+
+        &:hover,
+        &:focus {
+          color: var(--clr-neutral-200);
+          text-decoration: underline;
+        };
+      };
+};
