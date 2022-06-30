@@ -3,7 +3,7 @@ name: GitHub Pages
 on:
   push:
     branches:
-      - master  # Set a branch name to trigger deployment
+      - newDocs  # Set a branch name to trigger deployment
   pull_request:
 
 defaults:
@@ -33,10 +33,10 @@ jobs:
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
-        # If you're changing the branch from master,
-        # also change the `master` in `refs/heads/master`
+        # If you're changing the branch from newDocs,
+        # also change the `newDocs` in `refs/heads/newDocs`
         # below accordingly.
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/newDocs' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs2.0/public
