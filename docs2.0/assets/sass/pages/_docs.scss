@@ -1,0 +1,12 @@
+@import '../layout/flexbox';
+
+.flex {
+   @include flexbox;
+   @include flex-direction(row);
+
+   .prev__next {
+        @include flexbox;
+        @include flex-direction(row);
+        @include justify-content(space-between);
+   };
+};
